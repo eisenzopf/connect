@@ -1,10 +1,10 @@
 {
-  "recorded_at": "2026-10-08T19:33:36.041619+00:00",
+  "recorded_at": "2026-10-08T19:44:44.358658+00:00",
   "scope": "local macOS arm64; no remote deployment or live providers",
   "result": "passed",
-  "command": "bash scripts/check-local.sh",
+  "command": "bash scripts/check-local.sh --package dist/connect-0.1.0-alpha.1-macos-arm64-430257e33558",
   "workspace": {
-    "passed": 73,
+    "passed": 74,
     "failed": 0,
     "ignored": 0
   },
@@ -34,7 +34,7 @@
       ],
       "log": "format.log",
       "exit_code": 0,
-      "seconds": 0.13,
+      "seconds": 0.18,
       "result": "passed"
     },
     {
@@ -51,7 +51,7 @@
       ],
       "log": "lint.log",
       "exit_code": 0,
-      "seconds": 3.09,
+      "seconds": 4.41,
       "result": "passed"
     },
     {
@@ -64,7 +64,7 @@
       ],
       "log": "typescript-sdk-install.log",
       "exit_code": 0,
-      "seconds": 0.71,
+      "seconds": 0.45,
       "result": "passed"
     },
     {
@@ -78,7 +78,7 @@
       ],
       "log": "typescript-sdk-build.log",
       "exit_code": 0,
-      "seconds": 0.83,
+      "seconds": 0.88,
       "result": "passed"
     },
     {
@@ -91,7 +91,7 @@
       ],
       "log": "workspace.log",
       "exit_code": 0,
-      "seconds": 76.72,
+      "seconds": 56.78,
       "result": "passed"
     },
     {
@@ -102,7 +102,7 @@
       ],
       "log": "upstream.log",
       "exit_code": 0,
-      "seconds": 55.39,
+      "seconds": 48.86,
       "result": "passed"
     },
     {
@@ -113,7 +113,7 @@
       ],
       "log": "dispatch.log",
       "exit_code": 0,
-      "seconds": 2.06,
+      "seconds": 1.92,
       "result": "passed"
     },
     {
@@ -140,7 +140,7 @@
       ],
       "log": "datagram-probe.log",
       "exit_code": 0,
-      "seconds": 1.05,
+      "seconds": 1.03,
       "result": "passed"
     },
     {
@@ -151,7 +151,7 @@
       ],
       "log": "identity-process.log",
       "exit_code": 0,
-      "seconds": 3.58,
+      "seconds": 10.44,
       "result": "passed"
     },
     {
@@ -162,7 +162,7 @@
       ],
       "log": "recovery-process.log",
       "exit_code": 0,
-      "seconds": 4.93,
+      "seconds": 4.97,
       "result": "passed"
     },
     {
@@ -173,7 +173,7 @@
       ],
       "log": "crash-replay.log",
       "exit_code": 0,
-      "seconds": 18.59,
+      "seconds": 11.7,
       "result": "passed"
     },
     {
@@ -184,7 +184,7 @@
       ],
       "log": "examples.log",
       "exit_code": 0,
-      "seconds": 10.88,
+      "seconds": 9.29,
       "result": "passed"
     },
     {
@@ -195,12 +195,24 @@
       ],
       "log": "example-recovery.log",
       "exit_code": 0,
-      "seconds": 17.37,
+      "seconds": 13.35,
+      "result": "passed"
+    },
+    {
+      "name": "package",
+      "command": [
+        "python3",
+        "scripts/check-package.py",
+        "/Volumes/D2-2019/Developer/Connect/dist/connect-0.1.0-alpha.1-macos-arm64-430257e33558"
+      ],
+      "log": "package.log",
+      "exit_code": 0,
+      "seconds": 45.3,
       "result": "passed"
     }
   ],
-  "source_revision": "f44c7221a48d30f9068c7a653567fad7abe1cad7",
-  "working_tree": "Pre-checkpoint development; source inputs identify the tested code",
+  "source_revision": "430257e335581c008940478e6e7451484bb3d41c",
+  "working_tree": "Clean checkpoint at qualification; subsequent changes are documentation/evidence only",
   "source_inputs": {
     "crates/connect-client/Cargo.toml": "ad80b00c7bad85e0ab52ca5635961ba0963d9664ea39dd230320b8dddd7bbca9",
     "crates/connect-client/src/client.rs": "fc8b01ed6ae123b835c7c4fe8fadc5a05f0362780436a939dcf55c3ec83d9d38",
@@ -209,13 +221,14 @@
     "crates/connect-client/src/lib.rs": "0f568006fba33be485e2467e3e59b2e92059336525053a04f2c309f0f9f857f3",
     "crates/connect-client/src/operations.rs": "826684ef604fabd1d74311117046db3f5a282f9cbdeffb68484538692512529b",
     "crates/connect-connectors/Cargo.toml": "e60f3c27caccee7c0ebe7cbf160a7880680a576505b6bffb7f5834e39f70d40e",
-    "crates/connect-connectors/src/lib.rs": "5a642e4724a9f6dbb3b480750f3c97701adc7ff822f74acd87aa4f8eefcd8548",
+    "crates/connect-connectors/src/lib.rs": "dc82fafc4f172181e97795a58d2bfd7b87d1af2bc45ae3f705f94a7d67845ef0",
     "crates/connect-connectors/src/numbers.rs": "b01249d2f95850c8297ffe92b3a349537804795e995077169316eca9b8e09ad6",
     "crates/connect-connectors/src/setup.rs": "51641b31e2b41a8a02d96aa3f558bb23fe7add1f0805bb8f82aa08b8d29a6910",
     "crates/connect-connectors/src/voice.rs": "dcbc9d03ceadf39365e2b439a2de04bbddd41eae3dd46b8b505ead3c111b53b6",
     "crates/connect-connectors/src/voice_native_setup.rs": "d8bd8641ef6aa7346e3cee848729481331e30c41f2619bb07f4adc07c75189a1",
     "crates/connect-connectors/src/voice_setup.rs": "856f4ff65bc6901f344cc24d3bf5b25cfe2b692f484dca57258e0b9a6301216a",
     "crates/connect-connectors/tests/adapters.rs": "d7072075f170ce82109867cf618c63eed3ce028354b86a6a329d66a95b717c45",
+    "crates/connect-connectors/tests/crypto_init.rs": "7475bd2f620c54b0a623a4fba4e1d6034d16861a615060834313cd087d60309c",
     "crates/connect-connectors/tests/numbers.rs": "50e5f75132e328e995047854737ec0de91502af6173e8fd71c7bbd736c4769cc",
     "crates/connect-connectors/tests/setup.rs": "a687d0f12da8324f74e33378a25384bd941206723632b30009d5e2b9449e8703",
     "crates/connect-protocol/Cargo.toml": "e1543448c593f33b6966233a430a8aab6ab61e157226c3b1de7318b3733026a2",
@@ -277,7 +290,7 @@
     "examples/agent-presence/README.md": "b5d3ec8c549d6b0b1fd1cf6999b29f12933403c3df388b00cf754ee408fc05b5",
     "examples/agent-presence/chat.mjs": "7f590687f87a67170c0b89311c888ae3f3d85e3e8f7835203681749e12dbcff3",
     "examples/agent-presence/chat.py": "8010982cdc16174ae1f60f4483e66595bf45847698d26b5b344410a0225e658c",
-    "examples/agent-presence/voice.md": "ef6087895d00b08158c087920a97b41739898a4f5f94853845e19b6056d8556d",
+    "examples/agent-presence/voice.md": "744a9c1647837a139e86ef70d11ae5c3ee99a45a931f26ef5604d9d3b2dfd382",
     "examples/agent-presence/voice.mjs": "1506205c5b998e60a959830f176943c71ccb10263f2e8f78b59b8a99515db3c5",
     "examples/agent-presence/voice.py": "9d687ce3450795e444740d320be6826fc41898e0ae319410559fe43007e53292",
     "examples/review-loop/Cargo.toml": "47ddba13323a584735e44b97d36084efd9d634e813fca3d04f242c951c8a4d03",
@@ -295,7 +308,7 @@
     "scripts/check-identity.py": "e12849e0c0b0d28f786d19e139dc9b93a8fc2bfe0449600f0d89876b97efd582",
     "scripts/check-local.py": "9ae71db18a2bf090cf1b798b0aee6f001782d9607505f35d326f8536f4060f7f",
     "scripts/check-local.sh": "026da3833a321e0dd4555e30dec1dadbe8dff4d2eb7f7d81263656ce5f6730c2",
-    "scripts/check-package.py": "ee9c9e8992d85ee29ce55ecac43c8ff48d7a8493f8a4f274a24663e722ed3aa8",
+    "scripts/check-package.py": "91a8124cebab0abe35b0c7e5ac9da9111b86e6dfc4f17985836e1564062486b4",
     "scripts/check-parley.py": "96653941ff436d649b285155944fdd6634c54201d0737dc81203ab6dcc93fd1f",
     "scripts/check-recovery.py": "087da47ea367ce6be96e7de9b6173fecf9593463cc3bfe3ded3cd7dbf90812e6",
     "scripts/check-typescript.py": "1c01634ad766c13023fe26eb780f41eca7f9e1fe07fec957cb60fdc8466e74d3",
@@ -326,22 +339,31 @@
   "log_sha256": {
     "dependencies": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
     "format": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "lint": "ed8505f06f094eeb5d73d4238f5628069a3dcd5afcc9b2f27e6fda0e8aa030f8",
-    "typescript-sdk-install": "1c101b829b84abd9862753dfc0e990c2ebab310acbc83208d618a99e8d65b8dc",
+    "lint": "9d19717c6eb5258c0810e3db97b3324800413980f463b7b390d00db3e515dce6",
+    "typescript-sdk-install": "a8dcb4dfe851eeeb245cebb07eb49af537d1287cedbbe7c164f661309b428c17",
     "typescript-sdk-build": "200a547318160554de6472ac3ebc1ab4a301d1a37be1584f3de764ab2c5e1344",
-    "workspace": "d67eb6c092fd911b9f174e06a18c55060a10726f1ec1ba34fa3711ed983b3386",
-    "upstream": "156714e9faf2b91dc3e6c609a810e139c98707ecbfe843380bfabb028952817c",
-    "dispatch": "4a651d1589b1f485e3348f05edc2064d16c5093abe334586e4e2fc8a7d576f55",
-    "typescript-probe": "4397ce1d14104e75f9b61e31cf48caed48c6a5954339edd61916c07175b6aabc",
+    "workspace": "720b41e5ca5c517993f4ccc31773cf5a2f47530e4bbc9858955a1386a32fae24",
+    "upstream": "26f517047d7ce0a73b2d8155be027509f1d34556a2a553a15e12dc62288a97c6",
+    "dispatch": "ebb228e515a133989007374c070b1f8a47b53027dca04d0eca12c59eee646669",
+    "typescript-probe": "efdadc8ab1d3af6257fcac5ba6b14524375d797db296e9d7bcaab1b72c12a178",
     "datagram-probe": "29e6292b1da0566f219f3446bc2397aedd1d7c6f7056b066bcb9d110de5bd786",
-    "identity-process": "0fdd9fabd8f93be6b52a2641673074eafef4579ce6dd0d35622a09af96c99b42",
-    "recovery-process": "960a07dd866a0ea223234e132ede7dc3c246cf75e42ae29a3d1f9ec0b71f2c21",
-    "crash-replay": "16ffa5d48265891dcac170ea2d01898d5da2d7e6d054e69ff1de804780e6cd14",
-    "examples": "89b86cd737a47ccddfafb1eeb7ff625dd710eabf45f9f24840a79e939e523cda",
-    "example-recovery": "0a2dcd07fbb6a76a014f2690c04651a2f26d2de1233ee651d2ff00327840a5c1"
+    "identity-process": "dc4be7d21d88176e119d21f143b0b026da995abe3664d7e165fb0ea3d6aa6d98",
+    "recovery-process": "aee572d9d83726e65a7ea37bd81ab5830c22dddbfea010c03a0a2d8f0a8bb78f",
+    "crash-replay": "b5dee2a15645aa71a8deec7e4f71ba92612b1be6eb94aaedc3eced1309e44400",
+    "examples": "56fe35cd555d4fbd77a3919e71da1717d2cd90faf8a4413a4a8c85705b75c3fd",
+    "example-recovery": "53cc9b2af650f547ba8b9dc725b48fd1f5b8e7e6b1b093f13a1d724cab36d9dc",
+    "package": "cf3ea4076ea720edc7d87d8184f8699e81e8047c92b5cf9bccbfc2be8e97333d"
   },
-  "after_run_changes": "Voice sample instructions and planning/evidence only; package qualification uses a subsequent committed source",
+  "after_run_changes": "Planning, release instructions and evidence only",
   "schema": 6,
   "live_sms": "owner-deferred pending approval",
-  "remote_connect_deployed": false
+  "remote_connect_deployed": false,
+  "crypto_race": {
+    "initial_clean_recheck": "failed due upstream check/install race; preserved in private run 20261008T193511.595453Z",
+    "fix": "Connect Vapi constructor establishes crypto default before SDK initialization",
+    "fresh_process_stress_runs": 20,
+    "result": "passed",
+    "log_sha256": "075e024ffc6c65263732d2fd5834f8c698f7f29ce7bcd9af6722cd8ce3e51cec"
+  },
+  "package_evidence": "completion-package.json"
 }

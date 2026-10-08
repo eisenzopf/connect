@@ -24,7 +24,8 @@
       "evidence": "evidence/gate-2/result.json",
       "acceptance": "gate-2-acceptance.json",
       "offline_qualification": "evidence/gate-2/completion-qualification.json",
-      "live_evidence": "evidence/gate-2/completion-live.json"
+      "live_evidence": "evidence/gate-2/completion-live.json",
+      "package_qualification": "evidence/gate-2/completion-package.json"
     },
     {
       "id": 3,

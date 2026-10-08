@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-10-08T19:31:57.155936+00:00",
+  "recorded_at": "2026-10-08T19:42:56.879413+00:00",
   "caller_id": "+12702628454",
   "backend": "vapi-telnyx-native",
   "python_native_and_http_status_match": true,
@@ -52,5 +52,39 @@
     "changes_restored_and_readback_verified": true,
     "restore_record": "Telnyx audit event 01a11cf4-c2f4-7176-9b93-b737e846399a",
     "current_guard": "Uses existing shared application outbound profile without PATCH; tested with zero PATCH expectations"
+  },
+  "provider_outbound_calls_for_native_phone": 1,
+  "installed_server_restart": {
+    "same_call_and_provider_id": true,
+    "same_saved_start_receipt": true,
+    "provider_outbound_calls_for_native_phone": 1,
+    "qualified_candidate": "connect-0.1.0-alpha.1-macos-arm64-430257e33558"
+  },
+  "installation_upgrade": {
+    "from_schema": 5,
+    "to_schema": 6,
+    "prior_database_backup_hash_unchanged": true,
+    "preservation": {
+      "identities": {
+        "prior_rows": 3,
+        "preserved": true
+      },
+      "conversations": {
+        "prior_rows": 1,
+        "preserved": true
+      },
+      "participants": {
+        "prior_rows": 2,
+        "preserved": true
+      },
+      "messages": {
+        "prior_rows": 6,
+        "preserved": true
+      },
+      "provider_context": {
+        "prior_rows": 1,
+        "preserved": true
+      }
+    }
   }
 }

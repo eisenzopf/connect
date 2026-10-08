@@ -38,9 +38,8 @@
     "post_readiness_workspace_log_sha256": "61f5d30dc430c333bb589992601eddc9700992eb8ebb9a811d1c98f9ee79b191"
   },
   "open_gate_2_acceptance": [
-    "Vapi outbound SIP credential provisioning rejects with HTTP 400",
-    "Real inbound handset audio and journal correlation",
-    "Real outbound handset audio and public SDK sample"
+    "A2-10: inbound handset conversation and its Connect journal/provider correlation",
+    "A2-08: final gate handoff depends on inbound proof"
   ],
   "documentation_audit": "../documentation-audit.json",
   "audit_before_remediation": {
@@ -55,13 +54,17 @@
     "gate_3_preparation": "Paused for product/delivery-plan review"
   },
   "current_offline_qualification": {
-    "evidence": "voice-qualification.json",
-    "tests": 66,
+    "evidence": "completion-qualification.json",
+    "tests": 74,
+    "upstream_tests": 941,
+    "phases": 16,
     "exit_code": 0,
-    "schema": 5
+    "schema": 6
   },
   "product_plan": "../../connect-gate-2-plan.html",
   "acceptance_mapping": "../../gate-2-acceptance.json",
   "deferred_sms": "Owner explicitly deferred live SMS until approval; implementation and fixture tests retained",
-  "live_evidence": "voice-live.json"
+  "live_evidence": "completion-live.json",
+  "package_evidence": "completion-package.json",
+  "byo_sip_alternative": "HTTP 400 retained as an unqualified alternative; native Telnyx route satisfies provider telephone setup"
 }

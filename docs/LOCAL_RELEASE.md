@@ -102,7 +102,8 @@ matching backup, then run:
 CONNECT migrate --config state/operator.toml --server-config state/server.toml --backup backups/pre-upgrade
 ```
 
-The current migration is schema 1 to 2. Unsupported newer schemas and stale or
+The current development migration supports schema 1–5 to 6. The historical
+Gate 1 archive qualified schema 1 to 2. Unsupported newer schemas and stale or
 foreign backups are refused. Roll back by restoring the matching **pre-upgrade**
 backup into a new directory and using the previous compatible binary. Do not
 downgrade a DB in place. Work accepted after the backup is absent from rollback.
@@ -113,10 +114,18 @@ protected backups for review; do not delete unrelated directories or processes.
 ## SDK source and developer qualification
 
 The `-source.tar.gz` archive contains the complete workspace at the candidate's
-source revision, including the public Rust SDK, lockfile, patches, instructions,
+source revision, including Rust/Python/TypeScript SDKs, lockfile, patches, instructions,
 and numbered HTML plan. Runtime binaries require neither this archive nor Rust.
 SDK builds require the pinned Rust toolchain, native build tools, and dependency
 preparation; see `docs/DEVELOPING.md` and `docs/SDK.md` in the source archive.
+
+The runtime archive also includes `sdk/python/connect_sdk`, the built TypeScript
+client under `sdk/typescript/dist`, and `examples/agent-presence`. Native language
+clients use the installed `bin/connect` helper; HTTP/JSON is a separate local
+interface. Set `PYTHONPATH` to the extracted `sdk/python` directory or import the
+TypeScript module from its extracted path. Python 3.11+ and Node 22+ are required;
+no Rust compiler is needed to use these packaged clients. Package qualification
+exercises both native QUIC and HTTP clients from these extracted runtime files.
 
 The separate `-qualification.tar.gz` contains the actual archived schema-1
 milestone binary and its checksum/provenance manifest. It contains no old DB or

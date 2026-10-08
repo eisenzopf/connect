@@ -35,7 +35,7 @@
       "id": "F-04",
       "required_capability": "Python, TypeScript and HTTP/JSON options",
       "delivery_gate": 2,
-      "status": "local language SDK parity and live Vapi chat/call status verified; current runtime package qualification pending",
+      "status": "Packaged Python/TypeScript native QUIC and HTTP clients qualified; live Vapi chat and call status verified",
       "required_evidence": "Persistent Rust QUIC helper is explicit; HTTP is separate",
       "v0_1_required": true
     },
