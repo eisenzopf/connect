@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-history",
+  "ts": "2026-10-07T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "history",
+    "conversation_id": "conversation-1",
+    "after": null,
+    "limit": 10,
+    "sender": "spoofed-actor"
+  }
+}

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Connect — Give an Agent Presence · The First Ten Minutes</title>
+<style>
+:root{--bg:#07111d;--panel:#0d1b2b;--text:#edf5ff;--muted:#a4b6cb;--line:#23364c;--cyan:#31d6ff;--blue:#1b74ff}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--cyan);text-underline-offset:4px}a:hover{color:white}a:focus-visible,summary:focus-visible{outline:2px solid var(--cyan);outline-offset:5px}.shell{max-width:1160px;margin:auto;padding:0 36px}header{border-bottom:1px solid var(--line)}.masthead{display:flex;justify-content:space-between;gap:24px;padding-block:23px;align-items:center}.brand{font-size:23px;font-weight:700;text-decoration:none;color:var(--text);letter-spacing:-.04em}.brand span{color:var(--cyan);margin-right:10px}.meta,.note{font-size:13px;color:var(--muted)}h1,h2,h3,p,figure{margin:0}h1,h2,h3{line-height:1.12;letter-spacing:-.035em}h1{font-size:clamp(44px,6.4vw,76px);max-width:860px}h2{font-size:clamp(28px,4vw,40px)}h3{font-size:21px}p{color:var(--muted)}strong{color:var(--text)}.hero{padding:65px 0 46px;background:radial-gradient(ellipse at 90% 0,#1b74ff30,transparent 60%)}.eyebrow,.label{font-size:11px;font-weight:650;letter-spacing:.13em;text-transform:uppercase;color:var(--cyan)}.eyebrow{margin-bottom:20px}.hero h1 span{color:var(--cyan)}.lead{font-size:22px;max-width:800px;margin-top:25px}.hero .note{max-width:790px;margin-top:21px}.pills{display:flex;gap:9px;flex-wrap:wrap;margin-top:25px}.pill{font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;color:var(--muted)}nav{position:sticky;top:0;background:#07111df5;backdrop-filter:blur(12px);z-index:2;border-block:1px solid var(--line)}.contents{display:flex;gap:12px 23px;padding-block:15px;flex-wrap:wrap}.contents a{font-size:12px;text-decoration:none;color:var(--muted)}.contents a:hover{color:var(--cyan)}section{padding:49px 0;border-bottom:1px solid var(--line)}.section-head{display:grid;grid-template-columns:45px 1fr;gap:15px;margin-bottom:25px}.number{font:13px/2 ui-monospace,monospace;color:var(--cyan)}.intro{font-size:18px;max-width:820px;margin-top:16px}.grid{display:grid;gap:18px}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.three{grid-template-columns:repeat(3,minmax(0,1fr))}.card{padding:25px;border:1px solid var(--line);border-radius:12px;background:var(--panel);min-width:0}.card .label{display:block;margin-bottom:12px}.card p{margin-top:13px;font-size:15px}.quote{font-size:25px;line-height:1.45;border-left:3px solid var(--cyan);padding:23px 27px;background:linear-gradient(100deg,#1b74ff22,transparent);margin-bottom:25px;color:var(--text)}.callout{border:1px solid #31d6ff40;border-radius:10px;background:#31d6ff09;padding:20px 24px;margin-top:23px}.callout p{font-size:15px}.spaced{margin-top:24px}.note{margin-top:18px}.steps{list-style:none;padding:0;margin:0}.steps>li{display:grid;grid-template-columns:92px minmax(0,1fr);gap:22px;padding:30px 0;border-top:1px solid var(--line)}.time{color:var(--cyan);font:13px/1.7 ui-monospace,monospace}.step p{margin-top:12px}.step h3{font-size:25px}.result{border-left:2px solid var(--blue);padding-left:17px;font-size:14px}.code-label{display:flex;justify-content:space-between;gap:16px;color:var(--muted);font-size:11px;padding:11px 17px;background:#142439;border:1px solid var(--line);border-radius:8px 8px 0 0;margin-top:18px;letter-spacing:.04em}pre{margin:0;padding:20px;background:#040c16;border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;overflow-x:auto;color:#c8eaff;font-size:13px;line-height:1.75}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}p code,td code{font-size:.88em;overflow-wrap:anywhere}.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;text-align:left;min-width:650px;font-size:14px}th{padding:15px 18px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);background:var(--panel)}td{padding:17px 18px;border-top:1px solid var(--line);color:var(--muted);vertical-align:top}td:first-child{color:var(--text);font-weight:600;width:24%}.flow{display:grid;grid-template-columns:1fr 35px 1.15fr 35px 1fr;gap:10px;align-items:center;margin-top:25px}.node{padding:24px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel);text-align:center}.node strong{display:block;margin-bottom:8px}.node p{font-size:13px}.node.core{border-color:#31d6ff65;background:#31d6ff0d}.arrow{color:var(--cyan);font-size:23px;text-align:center}figcaption{font-size:13px;color:var(--muted);margin-top:15px}.transcript{list-style:none;padding:0;margin:18px 0 0}.transcript li{padding:14px 0;border-top:1px solid var(--line);font-size:15px}.transcript b{display:block;color:var(--cyan);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}.transcript span{color:var(--muted)}details{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-top:20px}summary{cursor:pointer;padding:18px 22px;font-weight:600}.detail-body{padding:0 22px 22px}.detail-body p{font-size:14px}ul{padding-left:21px;color:var(--muted)}li+li{margin-top:8px}.checks{list-style:none;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:0 30px}.checks li{position:relative;padding:17px 0 17px 24px;border-top:1px solid var(--line);margin:0;font-size:15px}.checks li:before{content:'□';position:absolute;left:0;color:var(--cyan)}footer{padding:35px 0 50px}footer p{max-width:800px}footer a{margin-right:22px}
+@media(max-width:760px){.shell{padding-inline:22px}.hero{padding-top:42px}.lead{font-size:19px}.masthead{align-items:flex-start}.meta{text-align:right;max-width:160px}.two,.three,.checks{grid-template-columns:1fr}.section-head{grid-template-columns:28px 1fr;gap:10px}.steps>li{grid-template-columns:1fr;gap:12px}.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}.card{padding:22px}.quote{font-size:22px}.contents{gap:9px 17px}.code-label{flex-wrap:wrap;gap:4px}section{padding-block:38px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:white;color:#07111d;font-size:10pt}.shell{padding:0;max-width:none}header,nav{display:none}.hero{background:none;padding:15px 0}h1{font-size:34pt}h2{font-size:23pt}h3{font-size:15pt}p,td,li,.note,figcaption{color:#33485c!important}strong{color:#07111d}.hero h1 span,a,.label,.number,.time,.eyebrow{color:#155cc9}.card,.node,.quote,.callout,details,th,.code-label{background:#f3f7fb;color:#07111d}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f7fb;color:#07111d;font-size:9pt}.card,.steps>li,.table-wrap{break-inside:avoid}section{padding:23px 0}.flow{grid-template-columns:1fr 25px 1fr 25px 1fr}.two{grid-template-columns:1fr 1fr}footer{padding-bottom:0}}
+</style>
+</head>
+<body>
+<header><div class="shell masthead"><a class="brand" href="https://rudeless.ai/connect"><span aria-hidden="true">⇄</span>Connect</a><div class="meta">Product experience design<br>Draft 01 · October 7, 2026</div></div></header>
+<div class="hero"><div class="shell"><p class="eyebrow">The first ten minutes</p><h1>Give an agent<br><span>presence.</span></h1><p class="lead">A way to reach others. A way to be reached.<br>One conversation that can keep going.</p><p class="note">A proposed first-run experience for the Connect server, SDK, and agent tools. All commands, package names, addresses, schemas, and output below are design examples, not implemented interfaces. Journey one gives an agent presence. Journey two makes an app reachable. Both belong to the same v0.1 foundation and extend the <a href="connect-v0.1-contract.html">v0.1 product contract</a>.</p><div class="pills"><span class="pill">Server + SDK first</span><span class="pill">Vapi + Telnyx</span><span class="pill">Native UCTP / QUIC</span><span class="pill">Two-way communication</span></div></div></div>
+<nav aria-label="Document contents"><div class="shell contents"><a href="#presence">01 Presence</a><a href="#start">02 First ten minutes</a><a href="#sdk">03 Developer quickstart</a><a href="#agents">04 Agent quickstart</a><a href="#apps">05 App journey</a><a href="#wire">06 One wire</a><a href="#recovery">07 When something fails</a><a href="#evidence">08 Proof &amp; next steps</a></div></nav>
+<main class="shell">
+<section id="presence"><div class="section-head"><span class="number">01</span><div><h2>Your assistant becomes reachable.</h2><p class="intro">Connect gives a person, app, or agent a communications identity. An assistant can ask you a question—and you can start a conversation with it yourself.</p></div></div>
+<p class="quote">Start Connect, connect your Vapi assistant and Telnyx account, and give your assistant a place where people, apps, and other agents can reach it.</p>
+<div class="grid three"><article class="card"><span class="label">Identity</span><h3>A stable place to reach.</h3><p>One participant identity with configured addresses and routes: a native Connect address, a telephone number, and access from apps and browsers.</p></article><article class="card"><span class="label">Capability</span><h3>A clear way to participate.</h3><p>Discover whether a route supports messages, files, voice, or video, and whether the caller is allowed to use it.</p></article><article class="card"><span class="label">Continuity</span><h3>A conversation with context.</h3><p>Keep exchanges and live sessions related. Deliver a reply to the right conversation and, where supported, the assistant task waiting for it.</p></article></div>
+<p class="note">Presence here means addressability, supported capabilities, permissions, and a delivery path. Availability is a separate state: an identity can exist while its assistant is disconnected. Connect provides communication; the configured assistant provides reasoning.</p>
+</section>
+
+<section id="start"><div class="section-head"><span class="number">02</span><div><h2>From keys to a conversation.</h2><p class="intro">The target: a developer can reach their assistant, hear back, and watch the assistant reach out—all from one running Connect server.</p></div></div>
+<div class="grid two"><article class="card"><span class="label">Bring your accounts</span><h3>Vapi + Telnyx.</h3><p>Bring account credentials, select a Vapi assistant and a Telnyx number enabled for the paths you want to test, and provide an approved human contact. The setup flow should explain and help complete missing configuration.</p></article><article class="card"><span class="label">Try locally first</span><h3>No provider account required.</h3><p>A bundled local example connects two participants through the native SDK. Exchange a message and a file before connecting services. This also gives contributors a repeatable development path.</p></article></div>
+<p class="note">“Ten minutes” is a usability target for a supported machine and ready provider accounts, measured after installing the server package. Number provisioning, carrier approval, and public endpoint setup may take longer. The server must show those prerequisites clearly; this is not a measured claim.</p>
+<ol class="steps spaced">
+<li><div class="time">00–02 min<br>Start</div><div class="step"><h3>Run one server.</h3><p>Install the published server package for a supported platform, then start its interactive setup. The package name and distribution formats will be chosen after the reuse audit.</p><div class="code-label"><span>Proposed terminal experience</span><span>Not executable yet</span></div><pre><code>connect init
+connect serve
+
+Connect is running.
+Native UCTP / QUIC: ready on loopback
+Local state: persistent
+Provider routes: not configured
+
+Next: connect setup</code></pre><p class="result"><strong>Success:</strong> the server reports its endpoint, local state location, and health. Restarting it preserves the installation identity. Setup and diagnostics connect to this same process.</p></div></li>
+<li><div class="time">02–04 min<br>Connect</div><div class="step"><h3>Add the two keys. Choose what they connect.</h3><p>The setup command reads secrets through hidden prompts and stores them in the configured secret store. It lists available resources and lets the developer choose an assistant and number.</p><div class="code-label"><span>Proposed setup prompts</span><span>Credentials stay on the server</span></div><pre><code>connect setup
+
+Vapi API key:             [hidden input]
+Vapi assistant:           [choose existing / configure one]
+Telnyx API key:           [hidden input]
+Telnyx number:            [choose an eligible number]
+Public callback origin:  [configured deployment URL]
+Human test contact:      [your verified contact]
+
+Review proposed routing changes → Apply → Check readiness</code></pre><p>Show the exact number, assistant, callback, messaging, and voice changes before applying them. Reuse compatible configuration; make any replacement of an existing route explicit. Verify the selected human contact using a defined ownership check before treating it as trusted.</p><p class="result"><strong>Success:</strong> each route shows <em>ready</em>, <em>needs configuration</em>, or <em>unavailable</em>, with a specific next action. A valid API key alone never marks an untested route ready.</p><details><summary>What setup should handle</summary><div class="detail-body"><p>Discover resources; explain number capabilities; configure or reuse messaging and voice resources; establish callback verification and endpoint reachability; select an explicit Telnyx/SIP/Vapi routing topology; and perform authorized test exchanges. Require confirmation before a test incurs provider charges. A local-only installation can run the native demo while external routing remains pending. Public ingress and NAT traversal are design decisions to resolve, not an assumed hosted Connect service.</p></div></details></div></li>
+<li><div class="time">04–06 min<br>Give presence</div><div class="step"><h3>Name the assistant and make its routes visible.</h3><p>Bind the selected Vapi assistant to a Connect identity. Associate the selected telephone number with it, and authorize the human test contact. Native apps use the identity; people can use the configured number.</p><div class="code-label"><span>Proposed identity summary</span><span>Illustrative address syntax</span></div><pre><code>connect presence create assistant --integration vapi
+connect presence show assistant
+
+Identity:    assistant
+Address:     connect:assistant@local
+Assistant:   [selected Vapi assistant]
+SMS:         [selected Telnyx number] — ready
+Voice:       [selected Telnyx number] — ready
+Native:      messages — ready
+Access:      approved contacts and scoped clients</code></pre><p class="result"><strong>Success:</strong> another authenticated local client can resolve this identity and inspect its permitted routes. “Local” is a server-local namespace, not a globally resolvable address. Remote clients need an explicit server endpoint and credential.</p></div></li>
+<li><div class="time">06–08 min<br>Reach it</div><div class="step"><h3>Text your assistant. Then talk to it.</h3><p>From the approved human phone, send a message to the configured number. Connect routes it to the Vapi assistant and returns its answer through Telnyx. Call the number to test the configured voice route.</p><ul class="transcript"><li><b>Human · SMS</b>“I’m comparing option A and option B. Help me choose.”</li><li><b>Assistant · SMS</b>“What matters most: cost or speed?”</li><li><b>Human · SMS</b>“Speed. I’ll call to talk it through.”</li></ul><p>The phone’s SMS thread does not carry a Connect task ID. The first-run policy keeps one active conversation for this approved contact and assistant. Cross-channel continuation requires that explicit binding; ambiguous or unverified callers start a separate conversation. The Vapi integration must map chat and call context deliberately.</p><p class="result"><strong>Success:</strong> a real incoming SMS gets a real answer, and a real call exchanges audio in both directions. Logs show the Connect conversation and provider leg IDs. A correlated call record alone does not prove the assistant received prior context.</p></div></li>
+<li><div class="time">08–10 min<br>Let it reach back</div><div class="step"><h3>The assistant uses Connect, too.</h3><p>During the call, ask the assistant to send you a summary and a follow-up question. With the configured permission, it uses a Connect MCP tool to send an SMS. Reply from your phone.</p><ul class="transcript"><li><b>Human · Voice</b>“Text me the summary and ask which option I want.”</li><li><b>Assistant · Connect tool</b><code>send_message</code> → approved human · current conversation</li><li><b>Human · SMS</b>“Go with B.”</li><li><b>Assistant · SMS</b>“B it is. I’ve recorded your choice.”</li></ul><p>The new reply is delivered through the Vapi integration. Continuing a separate background job needs an explicit host/task binding; an ended call is not assumed to remain an executing task.</p><p class="result"><strong>Success:</strong> the assistant is both reachable and able to reach out. Its tool action, provider acceptance, delivery outcome when available, and incoming reply are distinguishable in the same conversation.</p></div></li>
+</ol>
+<div class="callout"><p><strong>The moment that should feel different:</strong> you can reach your assistant using your phone, an app can reach the same identity using the SDK, and the assistant can use Connect to contact you. Each participant uses an interface appropriate to it.</p></div>
+</section>
+
+<section id="sdk"><div class="section-head"><span class="number">03</span><div><h2>A developer should see the whole loop.</h2><p class="intro">Connect, resolve, send, receive. The SDK should make incoming communication as approachable as outgoing communication.</p></div></div>
+<p>TypeScript-shaped pseudocode illustrates a native, server-side SDK client. The first language, QUIC runtime binding, package, and method names remain design decisions. Browser clients use a separately qualified transport path.</p>
+<div class="code-label"><span>Proposed SDK · initiate and receive</span><span>Pseudocode</span></div><pre><code>const client = await Connect.open({
+  endpoint: config.server,
+  credential: secrets.appCredential, // scoped Connect credential
+  transport: "uctp-quic"
+});
+
+const assistant = await client.resolve("connect:assistant@local");
+assistant.require("messages");
+
+const conversation = await client.conversations.create({
+  participants: [assistant.id],
+  requestId: saved.createRequestId
+});
+
+await conversation.messages.send({
+  text: "Help me compare these two options.",
+  requestId: saved.sendRequestId
+});
+
+for await (const event of client.events.resume(saved.cursor)) {
+  if (event.type === "message.received" &amp;&amp;
+      event.conversationId === conversation.id) {
+    await app.applyOnce(event.id, event); // include deduplication
+  }
+  await checkpoints.save(event.cursor);
+}</code></pre>
+<p class="note">Persist operation IDs before sending and reuse them on retry. Event handling must tolerate redelivery; a durable cursor alone does not make application side effects exactly once. Provider credentials never appear in the application client.</p>
+<details><summary>Make your own app or agent reachable</summary><div class="detail-body"><p>The same client can bind an identity it is authorized to serve, subscribe to its inbox, and reply inside an incoming conversation. Stable identity registration and the runtime consumer subscription have separate lifecycles.</p><div class="code-label"><span>Proposed SDK · an incoming conversation</span><span>Pseudocode</span></div><pre><code>const inbox = await client.presences.bind({
+  identity: "reviewer",
+  capabilities: ["messages"]
+});
+
+for await (const event of inbox.events.resume(saved.cursor)) {
+  if (event.type === "message.received") {
+    await jobs.enqueueOnce(event.id, {
+      conversationId: event.conversationId,
+      message: event.message
+    });
+  }
+  await checkpoints.save(event.cursor);
+}
+
+// A durable worker processes the job and replies using
+// the same conversationId and a saved requestId.</code></pre><p class="note">Binding an identity does not make it publicly accessible. Server permissions govern who may discover it and initiate conversations. Retry safety at a provider boundary must be qualified separately.</p></div></details>
+<div class="grid two spaced"><article class="card"><span class="label">Files</span><h3>Share an artifact with its audience.</h3><p>The SDK sends a file reference with explicit access and attaches it to a conversation. An SMS route may need a permitted link rather than a native attachment; unsupported delivery must be reported.</p></article><article class="card"><span class="label">Voice + video</span><h3>Invite, accept, participate.</h3><p>A session invitation requests supported media and returns a session ID. Media flows through the runtime’s negotiated transport. The reference client exercises messages, files, voice, and video through the public interfaces.</p></article></div>
+</section>
+
+<section id="agents"><div class="section-head"><span class="number">04</span><div><h2>An agent should be able to pick it up.</h2><p class="intro">Install the tools, give the agent a scoped identity, and teach one useful workflow. Prove the reply reaches the task that needs it.</p></div></div>
+<div class="grid two"><article class="card"><span class="label">Vapi · Required</span><h3>Use Connect while talking.</h3><p>Configure the assistant to consume the Connect MCP endpoint using scoped credentials. Expose only the permitted operations. Bind each invocation to its authenticated assistant and mapped call/chat conversation.</p></article><article class="card"><span class="label">Additional assistant · Required</span><h3>Install and continue a task.</h3><p>Select one host after evaluating Meta Muse, Grokbot, OpenClaw, Codex, and other candidates. Verify the exact product, installation path, and incoming event behavior. Support is unconfirmed until demonstrated.</p></article></div>
+<div class="code-label"><span>Proposed installer experience</span><span>Host selected through research</span></div><pre><code>connect agent install --host &lt;selected-host&gt;
+
+Connect identity:   reviewer
+Credential:        scoped to approved contacts and conversations
+MCP tools:         installed
+Connect skill:     installed where the host supports skills
+Reply delivery:    [host adapter / bounded wait / explicit resume]
+Verification:      send → receive → continue</code></pre>
+<p class="note">The installer should expose the host’s actual delivery mode. A skill teaches workflows; it does not grant authority. MCP supplies operations; it does not guarantee that a suspended assistant can wake itself.</p>
+<div class="table-wrap spaced"><table><thead><tr><th>Agent’s intention</th><th>Proposed tool</th><th>What the result must tell it</th></tr></thead><tbody>
+<tr><td>Find the right recipient</td><td><code>resolve(address)</code></td><td>Stable participant ID, permitted routes, capabilities, and availability where known.</td></tr>
+<tr><td>Ask or respond</td><td><code>send_message(to, text, request_id, conversation_id?)</code></td><td>Request, message, and conversation IDs; accepted, rejected, or unknown outcome.</td></tr>
+<tr><td>Share the draft</td><td><code>send_file(conversation_id, artifact_id, request_id)</code></td><td>Access scope and the selected route’s supported delivery form. No arbitrary local filesystem access is implied.</td></tr>
+<tr><td>Receive the answer</td><td><code>wait_for_events(cursor, timeout, conversation_id?)</code></td><td>Correlated events and a resume cursor, or an explicit timeout. Host adapter delivery is another supported path.</td></tr>
+<tr><td>Recover context</td><td><code>read_conversation(conversation_id)</code></td><td>Authorized history, participant identities, and operation outcomes.</td></tr>
+<tr><td>Talk it through</td><td><code>start_session(conversation_id, media, request_id)</code></td><td>Invitation/session state and how a media-capable runtime joins. Audio packets are not tool arguments.</td></tr>
+</tbody></table></div>
+<div class="callout"><p><strong>The first skill workflow:</strong> “Send my human this draft, ask which option they prefer, and continue when they reply.” Resolve the approved human, check the route, share the artifact, send the question, save the conversation-to-task binding, and receive the answer through the documented host delivery mode. On resumption, recover the original task and apply its existing authority.</p></div>
+<p class="note">An incoming message is communication, not automatic permission to execute its instructions. Provider event IDs and phone numbers aid correlation; they are not substitutes for authentication and authorization.</p>
+</section>
+
+<section id="apps"><div class="section-head"><span class="number">05</span><div><p class="eyebrow">Journey two · For application developers</p><h2>Make your app reachable.</h2><p class="intro">Give your app a Connect identity. Let people, agents, and other apps start a conversation with it—and let your app reach back through the same interface.</p></div></div>
+<p class="quote">Your app can tell someone what happened, ask what to do next, and receive the answer. Others can also reach it first.</p>
+<div class="grid two"><article class="card"><span class="label">The developer brings</span><h3>An app and its behavior.</h3><p>The app owns its users, records, and business logic. Its Connect integration decides which requests it understands, maps conversations to application records, and checks permission before taking action.</p></article><article class="card"><span class="label">Connect supplies</span><h3>A shared communication surface.</h3><p>The server and SDK provide identity, permitted routes, conversations, incoming events, and outgoing communication. Add provider connectors when the app needs telephone or messaging networks.</p></article></div>
+<p class="note">This is a second entry point into the same v0.1 product. A native app-to-app exchange needs no Vapi or Telnyx account. Vapi is useful when the app wants a voice or conversational assistant; Telnyx adds configured phone and SMS routes.</p>
+<h3 class="spaced">Example: a review app that can ask—and be asked.</h3>
+<p class="intro">A review app manages drafts and approval decisions. It can ask its human to review a draft. A person or authorized agent can also contact the app to ask which drafts are waiting.</p>
+<ol class="steps spaced">
+<li><div class="time">01<br>Identify</div><div class="step"><h3>Give the app an address.</h3><p>Register <code>connect:reviews@local</code>, issue a scoped application credential, and bind its inbox through the SDK. Publish supported communication capabilities and a small description of what the app understands. Grant access to selected users and clients.</p><p class="result"><strong>Success:</strong> a separate authorized client can resolve the app and discover that it accepts messages. Unauthorized clients cannot read its conversations.</p></div></li>
+<li><div class="time">02<br>Reach out</div><div class="step"><h3>Ask a human to review something.</h3><p>When a draft is ready, the app creates a conversation with the assigned reviewer, shares the permitted artifact, and asks a specific question. The app stores the mapping from its review record to the Connect conversation.</p><ul class="transcript"><li><b>Review app → Human</b>“Draft 42 is ready. Should we use option A or B?”</li><li><b>Human → Review app</b>“B.”</li><li><b>Review app → Human</b>“Recorded B for draft 42.”</li></ul><p class="result"><strong>Success:</strong> the reply reaches the right review record. The app checks that the sender is an authorized reviewer before recording the decision. A delivered notification by itself is not completion.</p></div></li>
+<li><div class="time">03<br>Be reached</div><div class="step"><h3>Let someone else start.</h3><p>A person in the reference client or a separately written agent resolves the app and initiates a new conversation. The app's inbox receives it without a prior outgoing notification.</p><ul class="transcript"><li><b>Authorized agent → Review app</b>“Which drafts are waiting for my human?”</li><li><b>Review app → Authorized agent</b>“Draft 42 is waiting. Here is the permitted review link.”</li></ul><p>The example app can use a small set of documented commands such as <code>pending</code> and <code>review 42</code>. Natural-language understanding is optional application behavior, not an automatic Connect feature. Acting on behalf of a human requires an explicit authorization mapping.</p><p class="result"><strong>Success:</strong> the app receives and answers an independently initiated request. An unrecognized request returns a helpful explanation of supported requests.</p></div></li>
+<li><div class="time">04<br>Extend</div><div class="step"><h3>Reach the app from another channel.</h3><p>Attach a configured Telnyx SMS route to the same app identity and let an approved human contact it from their phone. Add a Vapi assistant when a conversational voice interface would help; expose only the app operations that assistant is allowed to invoke.</p><p class="result"><strong>Success:</strong> the developer reuses the same conversation handling and application rules. The connector exposes channel limits, identity assurance, and any ambiguity rather than hiding them.</p></div></li>
+<li><div class="time">05<br>Recover</div><div class="step"><h3>Keep the app reachable across restarts.</h3><p>Restart the app worker, resume its inbox from a saved cursor, and process queued work without recording the same decision twice. The server retains the identity and accepted messages according to its delivery and retention policy.</p><p class="result"><strong>Success:</strong> the app catches up on durable events, returns responses to the original conversations, and clearly reports expired or failed work.</p></div></li>
+</ol>
+<details><summary>Proposed application handler: connect communication to existing logic</summary><div class="detail-body"><p>This builds on the SDK inbox example above. The app owns authorization and review semantics. The durable worker persists its work and response ID so retrying the handler does not repeat the business action.</p><div class="code-label"><span>Proposed app worker</span><span>Pseudocode</span></div><pre><code>async function handleReviewMessage(job) {
+  const actor = await users.mapConnectParticipant(job.senderId);
+  await reviews.authorize(actor, job.reviewId);
+
+  const result = await reviews.applyOnce(job.eventId, {
+    actor,
+    reviewId: job.reviewId,
+    request: job.message
+  });
+
+  await client.conversations.get(job.conversationId).messages.send({
+    text: result.reply,
+    requestId: job.savedResponseId
+  });
+}</code></pre><p class="note">The application obtains the review ID from its validated conversation mapping or a validated incoming request. It does not trust an arbitrary message to select records or authorize changes. An unknown delivery result requires reconciliation before another external send.</p></div></details>
+<div class="callout"><p><strong>One foundation, two journeys.</strong> “Give an agent presence” starts with an existing assistant. “Make your app reachable” starts with your application's own logic. Both use the same identities, conversations, capabilities, permissions, and delivery model. Neither requires a later release or a separate communications stack.</p></div>
+<p class="note">The app journey fits the existing gates: native reachability in Gate 1, optional SMS in Gate 2, optional voice participation in Gate 3, and distribution/recovery checks in Gate 5. A general app marketplace or universal business-action protocol is not required to demonstrate it.</p>
+</section>
+
+<section id="wire"><div class="section-head"><span class="number">06</span><div><h2>One interface that reaches outward.</h2><p class="intro">UCTP supplies the shared communication model. QUIC is the native connection. Connectors translate at the boundary so existing services can participate.</p></div></div>
+<figure><div class="flow"><div class="node"><strong>Apps & agents</strong><p>Native SDK / UCTP client<br>MCP tools / API / CLI<br>Browser reference client</p></div><div class="arrow" aria-hidden="true">↔</div><div class="node core"><strong>Connect server</strong><p>Identity · permissions<br>Conversations · events<br>rvoip · media · connectors</p></div><div class="arrow" aria-hidden="true">↔</div><div class="node"><strong>People & systems</strong><p>Vapi · Telnyx<br>SIP · WebRTC · UCTP peers<br>Community integrations</p></div></div><figcaption>Logical connections, not identical wire transports. Native clients use UCTP/QUIC; MCP, browsers, and providers use their supported interfaces.</figcaption></figure>
+<div class="grid two spaced"><article class="card"><span class="label">Native proof</span><h3>Control and live media.</h3><p>Independent client and server processes exchange reliable UCTP control over QUIC streams and live media over QUIC datagrams. A message-only demo does not prove the media path.</p></article><article class="card"><span class="label">Provider boundary</span><h3>Keep the external world usable.</h3><p>The Vapi connector uses its supported chat and voice interfaces. Telnyx supplies configured telephone and SMS routes. Native QUIC does not change an external provider’s WebSocket or SIP transport guarantees.</p></article></div>
+<p class="note">An independently written client should be able to reach a permitted identity using the published UCTP profile. Independent implementation, negotiation, addressing, and conformance evidence belong in the roadmap alongside the SDK experience.</p>
+</section>
+
+<section id="recovery"><div class="section-head"><span class="number">07</span><div><h2>Make the next action obvious.</h2><p class="intro">Good setup includes clear failure states. A new user should know which part needs attention without understanding every provider’s signaling model.</p></div></div>
+<div class="table-wrap"><table><thead><tr><th>Situation</th><th>What Connect should say</th><th>Expected behavior</th></tr></thead><tbody>
+<tr><td>Key rejected</td><td>“Vapi authentication failed. Update the stored credential.”</td><td>Keep the local server and other working routes available; never echo the secret.</td></tr>
+<tr><td>SMS not ready</td><td>“This number cannot send SMS yet. Complete the listed provider requirements.”</td><td>Identify capability, configuration, or account readiness as the cause; do not claim a delivery attempt succeeded.</td></tr>
+<tr><td>Callback unreachable</td><td>“Incoming messages cannot reach this server. Verify this callback URL.”</td><td>Show inbound and outbound readiness separately and provide a repeatable diagnostic.</td></tr>
+<tr><td>Assistant unavailable</td><td>“The assistant is disconnected. Your message is queued.”</td><td>Say “queued” only after durable acceptance. Show expiry and delivery policy; otherwise return an explicit failure.</td></tr>
+<tr><td>Provider result uncertain</td><td>“The request may have reached the provider. Delivery is unknown.”</td><td>Reconcile if possible. Do not blindly retry a billable operation that could be duplicated.</td></tr>
+<tr><td>Reply is ambiguous</td><td>“More than one conversation could match this reply.”</td><td>Use the published routing policy or request clarification; never guess which task should continue.</td></tr>
+<tr><td>Connection interrupted</td><td>“Reconnected. Resuming events from the saved cursor.”</td><td>Deduplicate durable events. Report live session interruption separately; live audio is not replayed.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="evidence"><div class="section-head"><span class="number">08</span><div><h2>Build toward visible proof.</h2><p class="intro">The walkthrough is a target experience. The roadmap should deliver parts of it that people can run and evaluate along the way.</p></div></div>
+<div class="table-wrap"><table><thead><tr><th>Proposed gate</th><th>Working result</th><th>Evidence to retain</th></tr></thead><tbody>
+<tr><td>1 · Reachable identity</td><td>One server and independent SDK clients initiate and receive messages over UCTP/QUIC.</td><td>Fresh install, identity resolution, authenticated incoming conversation, and restart demonstration.</td></tr>
+<tr><td>2 · Assistant messaging</td><td>Vapi chat and Telnyx two-way SMS reach the same configured assistant.</td><td>Actual sends/replies, provider event mapping, explicit conversation routing, and failure outcomes.</td></tr>
+<tr><td>3 · Assistant voice</td><td>Native QUIC datagram audio reaches Vapi; WebRTC, SIP, and Telnyx PSTN paths work.</td><td>Bidirectional audio, negotiated formats, lifecycle, interruption, and provider failure checks per named path.</td></tr>
+<tr><td>4 · Agent follow-through</td><td>Vapi uses Connect tools; one additional assistant shares a draft and continues after the reply.</td><td>Installable integration, permissions, conversation/task correlation, and demonstrated host delivery mode.</td></tr>
+<tr><td>5 · Downloadable v0.1</td><td>Complete agreed files/video paths, reference client, connector kit, and operational readiness.</td><td>Published compatibility matrix, recovery checks, extension example, and independently repeatable quickstarts.</td></tr>
+</tbody></table></div>
+<p class="note">These are proposed outcomes, not scheduled commitments. They retain the full v0.1 scope in the contract. The reuse audit and experiments may change task ordering and reveal parallel work.</p>
+<h3 class="spaced">What we should review in this experience.</h3>
+<ul class="checks"><li>Does “presence” explain the two-way value clearly?</li><li>Can a developer tell what the server, SDK, and assistant each do?</li><li>Are keys, resource selection, and route readiness understandable?</li><li>Can a person, agent, or another app initiate a permitted conversation with the assistant or app?</li><li>Can an assistant use its tools, and an app use its SDK, to reach a human and receive a reply?</li><li>Is reply handling explicit enough to avoid continuing the wrong task?</li></ul>
+<div class="callout"><p><strong>Next deliverable:</strong> a source-backed reuse audit and a small set of experiments for the native SDK/QUIC path, provider setup and event mapping, voice routing, and assistant task resumption. Use that evidence to finalize the roadmap and write the implementation plan for Gate 1.</p></div>
+<p class="note">Decisions still needed: first SDK/runtime; identity/address syntax; durable storage; supported deployment and public ingress; provider routing topology; SMS conversation policy; secret storage and credential issuance; supported assistant host; connector packaging; and code/specification licenses. Keep decisions short and tied to the demonstrations they enable.</p>
+</section>
+</main>
+<footer class="shell"><p><strong>Connect · Communication for people, apps, and agents.</strong><br>This is a local product design draft. No server release, provider integration, or command shown here is available merely because it appears in this document.</p><p class="note"><a href="connect-v0.1-contract.html">v0.1 product contract</a><a href="https://rudeless.ai/connect">Project vision ↗</a><a href="https://github.com/eisenzopf/connect">Repository ↗</a></p></footer>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Public template; no credentials or private key material.
+# Paths are relative to this configuration file. Use connect init to create them.
+bind = "127.0.0.1:4433"
+# Optional plaintext loopback conformance listener (not the native SDK):
+# websocket_bind = "127.0.0.1:8088"
+database = "state.sqlite3"
+certificate = "certificate.der"
+private_key = "private-key.der"
+
+[limits]
+message_bytes = 16384
+page_size = 100
+journal_events = 100000
+operation_receipts = 100000
+message_storage_bytes = 67108864
+participants = 8
+wait_ms = 5000
+request_timeout_ms = 10000
+connections = 64

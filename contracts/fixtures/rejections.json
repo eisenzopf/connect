@@ -1,0 +1,30 @@
+[
+  {
+    "case": "unsupported-profile",
+    "payload": {
+      "profile": "connect-control/999",
+      "op": "health"
+    },
+    "expected": "unsupported-profile"
+  },
+  {
+    "case": "claimed-sender",
+    "payload": {
+      "profile": "connect-control/1",
+      "op": "send",
+      "request_id": "send-1",
+      "conversation_id": "c",
+      "body": "x",
+      "sender": "foreign"
+    },
+    "expected": "invalid-request"
+  },
+  {
+    "case": "unauthenticated",
+    "payload": {
+      "profile": "connect-control/1",
+      "op": "health"
+    },
+    "expected": "unauthorized"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-request_status",
+  "ts": "2026-10-07T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "request_status",
+    "request_id": "send-1"
+  }
+}

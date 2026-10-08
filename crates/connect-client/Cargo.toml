@@ -1,0 +1,27 @@
+[package]
+name = "connect-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+connect-protocol.workspace = true
+rvoip-quic.workspace = true
+rvoip-uctp.workspace = true
+tokio.workspace = true
+quinn.workspace = true
+rustls.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

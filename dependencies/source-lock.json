@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "sources": {
+    "rvoip": {
+      "url": "https://github.com/eisenzopf/rvoip.git",
+      "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+      "license": "MIT"
+    },
+    "parley": {
+      "url": "https://github.com/eisenzopf/parley.git",
+      "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+      "license": "MIT"
+    }
+  },
+  "patches": [
+    {
+      "path": "patches/rvoip/parley-conference.patch",
+      "sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+      "source": "Parley pinned revision"
+    },
+    {
+      "path": "patches/rvoip/connect-quic-application.patch",
+      "sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+      "source": "Connect native application-handler plumbing; opt-in only"
+    }
+  ]
+}
