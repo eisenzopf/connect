@@ -1,6 +1,6 @@
 {
   "scope": "Local Gate 2: Vapi chat and provider telephone voice; live SMS explicitly deferred",
-  "gate_closed": false,
+  "gate_closed": true,
   "historical_messaging_baseline": {
     "workspace_tests_and_doctests": 53,
     "clippy": "pass",
@@ -37,10 +37,7 @@
     "carrier_readiness_regression": "pass (rejects TCR_ACCEPTED as carrier approval)",
     "post_readiness_workspace_log_sha256": "61f5d30dc430c333bb589992601eddc9700992eb8ebb9a811d1c98f9ee79b191"
   },
-  "open_gate_2_acceptance": [
-    "A2-10: inbound handset conversation and its Connect journal/provider correlation",
-    "A2-08: final gate handoff depends on inbound proof"
-  ],
+  "open_gate_2_acceptance": [],
   "documentation_audit": "../documentation-audit.json",
   "audit_before_remediation": {
     "result": "not qualified",
@@ -54,10 +51,10 @@
     "gate_3_preparation": "Paused for product/delivery-plan review"
   },
   "current_offline_qualification": {
-    "evidence": "completion-qualification.json",
-    "tests": 74,
+    "evidence": "../stabilization/result.json",
+    "tests": 77,
     "upstream_tests": 941,
-    "phases": 16,
+    "phases": 20,
     "exit_code": 0,
     "schema": 6
   },
@@ -67,6 +64,8 @@
   "live_evidence": "completion-live.json",
   "package_evidence": "completion-package.json",
   "byo_sip_alternative": "HTTP 400 retained as an unqualified alternative; native Telnyx route satisfies provider telephone setup",
-  "current_package": "connect-0.1.0-alpha.1-macos-arm64-b0d8623991d4",
-  "current_public_sdk_chat": "Both Python and TypeScript resumed actual Vapi chat context after installed-server restart"
+  "current_package": "connect-0.1.0-alpha.1-macos-arm64-99e96851447b",
+  "current_public_sdk_chat": "Both Python and TypeScript resumed actual Vapi chat context after installed-server restart",
+  "closure_scope": "Local provider chat and direct Telnyx/Vapi telephone control; live SMS deferred by owner; Connect media remains Gate 3",
+  "stabilization": "../stabilization/result.json"
 }

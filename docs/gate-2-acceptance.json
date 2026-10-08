@@ -123,8 +123,9 @@
         "G2-020"
       ],
       "proof": "Full local runner passes at a recorded source state; real chat and both telephone directions have redacted evidence and a public SDK sample. Deferred live SMS remains visible.",
-      "evidence_class": "open",
-      "required": true
+      "evidence_class": "local-and-live-recorded",
+      "required": true,
+      "evidence": "evidence/stabilization/result.json"
     },
     {
       "id": "A2-09",
@@ -174,6 +175,7 @@
   "telephone_backend": "Supported Vapi native Telnyx integration; BYO SIP alternative rejected on this account and not qualified. Native SIP media remains Gate 3.",
   "evidence": {
     "local": "evidence/gate-2/completion-qualification.json",
-    "live": "evidence/gate-2/completion-live.json"
+    "live": "evidence/gate-2/completion-live.json",
+    "stabilization": "evidence/stabilization/result.json"
   }
 }
