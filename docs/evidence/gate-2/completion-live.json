@@ -86,5 +86,21 @@
         "preserved": true
       }
     }
+  },
+  "chat_after_installed_restart": {
+    "python": {
+      "public_sdk": true,
+      "provider_delivery": "completed",
+      "existing_context_marker_recalled": true,
+      "messages_in_history": 8,
+      "log_sha256": "bc6935d8c2a042ef018e7bacf90811e5c9ffd4ee490e40fc89a4f3f061ae5d59"
+    },
+    "typescript": {
+      "public_sdk": true,
+      "provider_delivery": "completed",
+      "existing_context_marker_recalled": true,
+      "messages_in_history": 10,
+      "log_sha256": "dd1577b456597ebade61e1a4e25a0fbd2fb2d52d0490dad5ac4f96fd7d392602"
+    }
   }
 }

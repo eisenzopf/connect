@@ -365,5 +365,14 @@
     "result": "passed",
     "log_sha256": "075e024ffc6c65263732d2fd5834f8c698f7f29ce7bcd9af6722cd8ce3e51cec"
   },
-  "package_evidence": "completion-package.json"
+  "package_evidence": "completion-package.json",
+  "current_documented_package": {
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-b0d8623991d4",
+    "source_revision": "b0d8623991d42cb119a158dfff4f3b50ae39a81b",
+    "evidence": "completion-package.json",
+    "result": "passed",
+    "installed_checks": 10,
+    "same_implementation_as_full_suite": true,
+    "difference": "Documentation and evidence only; every full-suite source input hash still matches"
+  }
 }

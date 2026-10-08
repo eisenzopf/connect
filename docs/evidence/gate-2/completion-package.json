@@ -1,6 +1,6 @@
 {
   "scope": "local macOS arm64; no remote deployment",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-430257e33558",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-b0d8623991d4",
   "checks": {
     "archive-checksums": {
       "result": "passed",
@@ -45,14 +45,14 @@
   },
   "result": "passed",
   "archives": {
-    "connect-0.1.0-alpha.1-macos-arm64-430257e33558-qualification.tar.gz": "f0c9c8aaf651573bd4ae6df311f0667920d3c5bfe2149cf86bd3bca4613962f8",
-    "connect-0.1.0-alpha.1-macos-arm64-430257e33558-source.tar.gz": "3b68fc8ff53cce8d371948534ee55049895426bbcf1827244281a1e4c5259cf5",
-    "connect-0.1.0-alpha.1-macos-arm64-430257e33558.tar.gz": "5433107c4b73e0243b259fcfb1126cd675ded13fb58397d724ee7e5ad60ab2ca"
+    "connect-0.1.0-alpha.1-macos-arm64-b0d8623991d4-qualification.tar.gz": "943177bd09f53e0330d00e8f8b476af6cbf0ab7fd3f4eea2f3dc646f978baa3c",
+    "connect-0.1.0-alpha.1-macos-arm64-b0d8623991d4-source.tar.gz": "d2bd0117b2caada4ac5249c07d675c996b74f7e3d29e7cf7d0cb086ca34ba56c",
+    "connect-0.1.0-alpha.1-macos-arm64-b0d8623991d4.tar.gz": "5b06a93b62db56d3f38695afd9e9c10325274ef348ac405d264de1a95d78b9ef"
   },
   "manifest": {
-    "candidate": "connect-0.1.0-alpha.1-macos-arm64-430257e33558",
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-b0d8623991d4",
     "version": "0.1.0-alpha.1",
-    "source_revision": "430257e335581c008940478e6e7451484bb3d41c",
+    "source_revision": "b0d8623991d42cb119a158dfff4f3b50ae39a81b",
     "schema": 6,
     "target": "aarch64-apple-darwin",
     "os": "26.6.2",
@@ -89,7 +89,7 @@
     "scope": "local candidate; unpublished",
     "files": {
       "LICENSE": "2a2a2cbcaa51b2012f2c66f1168fa520cf86004397c0058682c4d3bb1bd53716",
-      "README.md": "ef587fe493b3b62c8d9c547d83855a3f99c022a0358eaae55eee5dcb22650255",
+      "README.md": "aaba8f0b620249d12e65e598c1ee3dc8751bd1274751204ccace0d7e879da3f6",
       "THIRD_PARTY_NOTICES.md": "68aee4b88b3a5f1b80e63130c09728714b1735567d94a6c8763f754047f8f195",
       "bin/connect": "e6e97f5088e7b86814cac58174fa49aa37be0b48bcd609e1b101f626e8176d1e",
       "bin/connect-example": "ab832fd211f7cb0ef04df41babc744b3dab5f43ea0b8db30ce4b23efaf35d21b",
