@@ -46,6 +46,8 @@ enum Command {
         #[arg(long, default_value = "30")]
         expires_days: u32,
         #[arg(long)]
+        voice: bool,
+        #[arg(long)]
         output: PathBuf,
     },
     /// Capture a consistent database and protected installation recovery material.
@@ -88,6 +90,58 @@ enum Command {
     Serve {
         #[arg(long)]
         config: PathBuf,
+        #[arg(long)]
+        http_bind: Option<std::net::SocketAddr>,
+        #[arg(long)]
+        webhook_bind: Option<std::net::SocketAddr>,
+        #[arg(long)]
+        providers: bool,
+    },
+    PresenceInit {
+        #[arg(long)]
+        directory: PathBuf,
+        #[arg(long, default_value = "127.0.0.1:4433")]
+        bind: std::net::SocketAddr,
+        #[arg(long)]
+        assistant_id: String,
+        #[arg(long)]
+        human_number: Option<String>,
+        #[arg(long)]
+        connect_number: Option<String>,
+    },
+    Stdio {
+        #[arg(long)]
+        config: PathBuf,
+    },
+    VoiceIngress {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        server_config: PathBuf,
+        #[arg(long)]
+        route: String,
+        #[arg(long)]
+        phone_number_id: String,
+    },
+    VoiceRoute {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        server_config: PathBuf,
+        #[arg(long)]
+        input: PathBuf,
+    },
+    Route {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        server_config: PathBuf,
+        #[arg(long)]
+        input: PathBuf,
+    },
+    Providers {
+        #[command(subcommand)]
+        command: ProviderCommand,
     },
     Health {
         #[arg(long)]
@@ -123,6 +177,61 @@ enum DemoCommand {
         config: PathBuf,
     },
 }
+#[derive(Subcommand)]
+enum ProviderCommand {
+    VoiceNative {
+        #[arg(long)]
+        voice_state: PathBuf,
+        #[arg(long)]
+        state: PathBuf,
+    },
+    VoiceApply {
+        #[arg(long)]
+        inbound_only: bool,
+        #[arg(long)]
+        setup_state: PathBuf,
+        #[arg(long)]
+        number_id: String,
+        #[arg(long)]
+        number: String,
+        #[arg(long)]
+        state: PathBuf,
+    },
+    SearchNumbers {
+        #[arg(long, default_value = "US")]
+        country: String,
+        #[arg(long)]
+        area: Option<String>,
+        #[arg(long)]
+        output: PathBuf,
+    },
+    OrderNumber {
+        #[arg(long)]
+        number: String,
+        #[arg(long)]
+        connection_id: String,
+        #[arg(long)]
+        state: PathBuf,
+    },
+    Check {
+        #[arg(long)]
+        state: PathBuf,
+    },
+    Discover {
+        #[arg(long)]
+        output: PathBuf,
+    },
+    Plan {
+        #[arg(long)]
+        input: PathBuf,
+    },
+    Apply {
+        #[arg(long)]
+        input: PathBuf,
+        #[arg(long)]
+        state: PathBuf,
+    },
+}
 #[tokio::main]
 async fn main() -> Result<()> {
     // Default logs retain no tokens, private key material or application bodies.
@@ -147,6 +256,7 @@ async fn main() -> Result<()> {
             identity_id,
             recipients,
             expires_days,
+            voice,
             output,
         } => {
             anyhow::ensure!(!output.exists(), "Credential output must be a new file");
@@ -161,7 +271,11 @@ async fn main() -> Result<()> {
             let key = store.issue_as(
                 &actor,
                 &identity_id,
-                connect_store::Scope::messaging(recipients),
+                if voice {
+                    connect_store::Scope::communications(recipients)
+                } else {
+                    connect_store::Scope::messaging(recipients)
+                },
                 chrono::Utc::now().timestamp() + i64::from(expires_days) * 86400,
             )?;
             let id = key.id.clone();
@@ -198,8 +312,147 @@ async fn main() -> Result<()> {
             example,
             bind,
         } => init::initialize(&directory, example.is_some(), bind)?,
-        Command::Serve { config } => {
-            let server = RunningServer::start(ServerConfig::load(&config)?).await?;
+        Command::PresenceInit {
+            directory,
+            bind,
+            assistant_id,
+            human_number,
+            connect_number,
+        } => connect_server::cli::presence::initialize(
+            &directory,
+            bind,
+            &assistant_id,
+            human_number.as_deref(),
+            connect_number.as_deref(),
+        )?,
+        Command::Stdio { config } => connect_server::cli::stdio::serve(&config).await?,
+        Command::VoiceIngress {
+            config,
+            server_config,
+            route,
+            phone_number_id,
+        } => {
+            let config = ClientConfig::load(&config)?;
+            let server = ServerConfig::load(&server_config)?;
+            let _lock = connect_server::installation::InstallationLock::acquire(&server.database)?;
+            let store = connect_store::Store::open(&server.database, server.limits)?;
+            let actor = store.authenticate(&config.credential)?;
+            store.configure_voice_ingress(&actor.credential_id, &route, &phone_number_id)?;
+            println!("Inbound voice route configured");
+        }
+        Command::VoiceRoute {
+            config,
+            server_config,
+            input,
+        } => {
+            let config = ClientConfig::load(&config)?;
+            let server = ServerConfig::load(&server_config)?;
+            let _lock = connect_server::installation::InstallationLock::acquire(&server.database)?;
+            let store = connect_store::Store::open(&server.database, server.limits)?;
+            let actor = store.authenticate(&config.credential)?;
+            let route: connect_store::VoiceRoute = serde_json::from_slice(&std::fs::read(input)?)?;
+            store.configure_voice_route(&actor.credential_id, &route)?;
+            println!("Voice route configured");
+        }
+        Command::Route {
+            config,
+            server_config,
+            input,
+        } => {
+            let config = ClientConfig::load(&config)?;
+            let server = ServerConfig::load(&server_config)?;
+            let _lock = connect_server::installation::InstallationLock::acquire(&server.database)?;
+            let store = connect_store::Store::open(&server.database, server.limits)?;
+            let actor = store.authenticate(&config.credential)?;
+            let route: connect_store::Route = serde_json::from_slice(&std::fs::read(input)?)?;
+            store.configure_route(&actor.credential_id, &route)?;
+            println!("Route configured");
+        }
+        Command::Providers { command } => match command {
+            ProviderCommand::VoiceNative { voice_state, state } => {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(
+                        &connect_connectors::voice_native_setup::apply(&voice_state, &state)
+                            .await?
+                    )?
+                );
+            }
+            ProviderCommand::VoiceApply {
+                inbound_only,
+                setup_state,
+                number_id,
+                number,
+                state,
+            } => {
+                let result = connect_connectors::voice_setup::apply(
+                    &setup_state,
+                    &number_id,
+                    &number,
+                    &state,
+                    inbound_only,
+                )
+                .await?;
+                println!("{}", serde_json::to_string_pretty(&result)?);
+            }
+            ProviderCommand::SearchNumbers {
+                country,
+                area,
+                output,
+            } => {
+                let value = connect_connectors::numbers::search(&country, area.as_deref()).await?;
+                init::private_write(&output, serde_json::to_vec_pretty(&value)?.as_slice())?;
+                println!("Number inventory saved");
+            }
+            ProviderCommand::OrderNumber {
+                number,
+                connection_id,
+                state,
+            } => {
+                connect_connectors::numbers::order(&number, &connection_id, &state).await?;
+                println!("Number order checkpoint saved");
+            }
+            ProviderCommand::Check { state } => println!(
+                "{}",
+                serde_json::to_string_pretty(&connect_connectors::setup::check(&state).await?)?
+            ),
+            ProviderCommand::Discover { output } => {
+                let value = connect_connectors::setup::discover().await?;
+                init::private_write(&output, serde_json::to_vec_pretty(&value)?.as_slice())?;
+                println!("Inventory saved to {}", output.display());
+            }
+            ProviderCommand::Plan { input } => {
+                let plan = connect_connectors::setup::load_plan(&input)?;
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&connect_connectors::setup::describe(&plan))?
+                );
+            }
+            ProviderCommand::Apply { input, state } => {
+                let plan = connect_connectors::setup::load_plan(&input)?;
+                connect_connectors::setup::apply(&plan, &state).await?;
+                println!("Provider setup state saved to {}", state.display());
+            }
+        },
+        Command::Serve {
+            config,
+            http_bind,
+            webhook_bind,
+            providers,
+        } => {
+            let server = RunningServer::start_interfaces(
+                ServerConfig::load(&config)?,
+                http_bind,
+                webhook_bind,
+                providers,
+            )
+            .await?;
+            if let Some(address) = server.webhook_address {
+                println!("webhook_only={address}");
+            }
+            if let Some(address) = server.http_address {
+                println!("http_json={address}");
+            }
             println!(
                 "ready transport=quic alpn={} profile={} address={} schema={} websocket_parity={}",
                 rvoip_uctp::UCTP_RAW_QUIC_ALPN,

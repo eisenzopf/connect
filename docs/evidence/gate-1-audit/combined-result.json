@@ -1,0 +1,15 @@
+{
+  "scope": "Additional Gate 1 audit proof using unchanged archived binaries and fresh isolated state",
+  "candidate": "263fe1592ceb5099985e58566ae3e3e35a34bc07",
+  "result": "passed",
+  "independent_native_examples": 2,
+  "authenticated_ws_observers": 1,
+  "conversations": 2,
+  "messages": 4,
+  "history": "Native QUIC CLI and WS observer return identical history",
+  "cleanup": "All audit processes stopped; temporary state removed",
+  "ws_port_released": true,
+  "observer_harness_sha256": "ad9265128c7fbb9935f520bf842e3d4fe1fcceeb357b621c3a8a5ae7638ee300",
+  "runner_sha256": "a35fa2067c88ed21f06c7f2d927d1aed99e060f1fbf71aa3a6449a30cebbab97",
+  "initial_attempt": "Communication and history checks passed; the first audit harness failed its final TCP rebind check without SO_REUSEADDR. The rerun used SO_REUSEADDR, then successfully bound and listened on the released port. No product change was made."
+}

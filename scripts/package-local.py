@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import platform
+import re
 import shutil
 import subprocess
 import tarfile
@@ -33,6 +34,8 @@ output = ROOT/'dist'/candidate
 if output.exists():
     parser.error('Candidate directory exists; retain it and use a new source revision')
 subprocess.run(['bash', 'scripts/prepare-dependencies.sh'], cwd=ROOT, check=True)
+subprocess.run(['npm', 'ci', '--prefix', 'sdk/typescript'], cwd=ROOT, check=True)
+subprocess.run(['npm', 'run', 'build', '--prefix', 'sdk/typescript'], cwd=ROOT, check=True)
 subprocess.run(['cargo', 'build', '--locked', '--release', '-p', 'connect-server',
                 '-p', 'connect-review-loop', '--bins'], cwd=ROOT, check=True)
 output.mkdir(parents=True)
@@ -57,6 +60,14 @@ for source, destination in [
     target = runtime/destination
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT/source, target)
+# Usable language clients accompany the native helper; no compiler, dependencies,
+# caches or installation state are copied into the runtime archive.
+shutil.copytree(ROOT/'sdk/python/connect_sdk', runtime/'sdk/python/connect_sdk',
+                ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+shutil.copytree(ROOT/'sdk/typescript/dist', runtime/'sdk/typescript/dist')
+shutil.copyfile(ROOT/'sdk/typescript/package.json', runtime/'sdk/typescript/package.json')
+shutil.copytree(ROOT/'examples/agent-presence', runtime/'examples/agent-presence',
+                ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
 # Preserve dependency license/notice texts alongside a readable package index.
 # The workspace graph is a conservative superset of the two runtime binaries.
 metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--format-version=1'], cwd=ROOT))
@@ -76,6 +87,8 @@ for package in metadata['packages']:
 (runtime/'licenses/registry-index.json').write_text(json.dumps(notices, indent=2)+'\n')
 files = {str(p.relative_to(runtime)): digest(p) for p in sorted(runtime.rglob('*')) if p.is_file()}
 manifest = {'candidate': candidate, 'version': version, 'source_revision': revision,
+            'schema': int(re.search(r'pub const SCHEMA_VERSION: u32 = (\d+);',
+                                   (ROOT/'crates/connect-store/src/lib.rs').read_text()).group(1)),
             'target': 'aarch64-apple-darwin', 'os': platform.mac_ver()[0],
             'rustc': subprocess.check_output(['rustc', '--version'], text=True).strip(),
             'cargo_lock_sha256': digest(ROOT/'Cargo.lock'),

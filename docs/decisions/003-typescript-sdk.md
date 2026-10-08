@@ -30,3 +30,11 @@ Compare that implemented event/recovery path with N-API before finalizing
 v0.1's installed package. A one-shot architecture probe is not that full SDK.
 The protocol profile and logical operation IDs remain identical across options.
 No native TypeScript SDK availability is promised by this experiment.
+
+## Gate 2 follow-through
+
+The persistent JSON-stdio helper is now implemented. TypeScript `NativeClient`
+and Python `NativeClient` use the Rust SDK for verified UCTP/QUIC; `HttpClient`
+is an explicit local HTTP/JSON alternative. The earlier experiment remains
+historical evidence, not a published package claim. See [SDK.md](../SDK.md).
+Distribution, supported runtime packaging and browser media remain unqualified.

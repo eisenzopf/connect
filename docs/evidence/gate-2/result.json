@@ -1,0 +1,67 @@
+{
+  "scope": "Local Gate 2: Vapi chat and provider telephone voice; live SMS explicitly deferred",
+  "gate_closed": false,
+  "historical_messaging_baseline": {
+    "workspace_tests_and_doctests": 53,
+    "clippy": "pass",
+    "sdk_native_quic_and_http_parity": "pass",
+    "cli_recovery_and_migration": "pass",
+    "crash_replay": "pass",
+    "independent_example_recovery": "pass",
+    "signature_and_keyword_regressions": "pass",
+    "callback_tunnel_isolation": {
+      "unsigned_callback": 401,
+      "application_api": 404
+    },
+    "live_vapi_two_turn_chat": "pass",
+    "isolated_number_and_sip_provisioning": "pass",
+    "number_messaging_association": "pass",
+    "real_sms_handset": "not verified",
+    "real_signed_provider_callback": "not verified",
+    "live_sip_audio": "not verified",
+    "carrier_campaign": "TCR_ACCEPTED",
+    "qualification_log_sha256": "1f46ae0bf30bd790b7505fac326f1362bed66ef98c45e8983d01c5a718e94839",
+    "gate_closed": false,
+    "credential_hygiene": {
+      "files_checked": 134,
+      "provider_keys_found": 0
+    },
+    "sms_consent_form": {
+      "url": "https://rudeless.ai/sms",
+      "screenshot": "https://rudeless.ai/sms-opt-in.png",
+      "public_browser_check": "pass",
+      "campaign_flow_readback": "matches implemented form",
+      "rudeless_commit": "c14c5e6",
+      "database_preserved": true
+    },
+    "carrier_readiness_regression": "pass (rejects TCR_ACCEPTED as carrier approval)",
+    "post_readiness_workspace_log_sha256": "61f5d30dc430c333bb589992601eddc9700992eb8ebb9a811d1c98f9ee79b191"
+  },
+  "open_gate_2_acceptance": [
+    "Vapi outbound SIP credential provisioning rejects with HTTP 400",
+    "Real inbound handset audio and journal correlation",
+    "Real outbound handset audio and public SDK sample"
+  ],
+  "documentation_audit": "../documentation-audit.json",
+  "audit_before_remediation": {
+    "result": "not qualified",
+    "workspace_test_command": "cargo test --workspace",
+    "exit_code": 101,
+    "failure": "provider_state_is_included_in_backup_and_v2_migration_preserves_messages expects schema 3, received schema 4",
+    "remaining_tests": "Full run stopped at failure; no complete passing count claimed",
+    "workspace_log_sha256": "465e2a608a90a996946205e53a74e297eb33757da8399048bfd73b3c771c4aa6",
+    "strict_clippy": "Earlier strict run failed with three voice-development warnings",
+    "voice_audio": "Not qualified; no live outbound test call placed",
+    "gate_3_preparation": "Paused for product/delivery-plan review"
+  },
+  "current_offline_qualification": {
+    "evidence": "voice-qualification.json",
+    "tests": 66,
+    "exit_code": 0,
+    "schema": 5
+  },
+  "product_plan": "../../connect-gate-2-plan.html",
+  "acceptance_mapping": "../../gate-2-acceptance.json",
+  "deferred_sms": "Owner explicitly deferred live SMS until approval; implementation and fixture tests retained",
+  "live_evidence": "voice-live.json"
+}

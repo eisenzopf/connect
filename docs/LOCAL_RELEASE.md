@@ -1,4 +1,8 @@
-# Run a local Connect candidate
+# Run the qualified Gate 1 local candidate
+
+These instructions and schema 1→2 drill describe the archived Gate 1 candidate.
+They do not qualify the current Gate 2/Gate 3 development workspace. See
+[index.html](index.html) for current plans and [SDK.md](SDK.md) for development interfaces.
 
 This is Gate 1: the local server, native Rust SDK, and a deterministic review app
 and agent. Vapi, Telnyx, SIP/PSTN/SMS, WebRTC, files, voice/video, MCP, and an

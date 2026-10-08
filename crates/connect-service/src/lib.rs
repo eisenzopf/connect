@@ -62,6 +62,10 @@ impl Service {
         }
         result
     }
+    /// Wake subscribers after connector journal commits; journal reads remain authoritative.
+    pub fn notify_changed(&self) {
+        self.changed.notify_waiters();
+    }
     async fn run(&self, credential_id: String, operation: Operation) -> Result<Outcome> {
         let store = self.store.clone();
         tokio::task::spawn_blocking(move || store.execute(&credential_id, &operation))
@@ -91,7 +95,11 @@ impl ApplicationHandler for Service {
             ))
         } else {
             match envelope.decode_payload::<Request>() {
-                Ok(request) if request.profile == PROFILE => {
+                Ok(request)
+                    if request.profile == PROFILE
+                        && (envelope.cid.is_none()
+                            || envelope.cid.as_deref() == request.operation.conversation_id()) =>
+                {
                     let operation = request.operation;
                     let exchange_ref = diagnostic_ref(&envelope.id);
                     let logical_ref = operation.request_id().map(diagnostic_ref);
@@ -117,14 +125,16 @@ impl ApplicationHandler for Service {
                 _ => Err(Error::new("invalid-request", "Invalid application request")),
             }
         };
-        Ok(UctpEnvelope::new(
+        let mut response = UctpEnvelope::new(
             MessageType::Unknown(RESULT_TYPE.into()),
             serde_json::to_value(Response {
                 profile: PROFILE.into(),
                 result,
             })
             .map_err(|_| ApplicationError::new(500, "response-encoding"))?,
-        ))
+        );
+        response.cid = envelope.cid;
+        Ok(response)
     }
     async fn replay(
         &self,

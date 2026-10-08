@@ -24,9 +24,9 @@ report = {'scope': 'local macOS arm64; no remote deployment or live providers',
           'steps': [], 'result': 'running'}
 report['source_inputs'] = {
     str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
-    for directory in ['crates', 'examples', 'scripts', 'patches', 'dependencies']
+    for directory in ['crates', 'examples', 'scripts', 'patches', 'dependencies', 'sdk']
     for path in sorted((ROOT/directory).rglob('*'))
-    if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc'
+    if path.is_file() and not {'__pycache__', 'node_modules', 'dist'}.intersection(path.parts) and path.suffix != '.pyc'
 }
 for name in ['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml']:
     report['source_inputs'][name] = hashlib.sha256((ROOT/name).read_bytes()).hexdigest()
@@ -35,6 +35,8 @@ steps = [
     ('dependencies', ['bash', 'scripts/prepare-dependencies.sh'], 600),
     ('format', ['bash', 'scripts/format.sh', '--check'], 120),
     ('lint', ['cargo', 'clippy', '--locked', '--workspace', '--all-targets', '--', '-D', 'warnings'], 2400),
+    ('typescript-sdk-install', ['npm', 'ci', '--prefix', 'sdk/typescript'], 300),
+    ('typescript-sdk-build', ['npm', 'run', 'build', '--prefix', 'sdk/typescript'], 120),
     ('workspace', ['cargo', 'test', '--locked', '--workspace'], 2400),
     ('upstream', ['bash', 'scripts/check-baseline.sh'], 2400),
     ('dispatch', ['python3', 'scripts/check-dispatch.py'], 600),

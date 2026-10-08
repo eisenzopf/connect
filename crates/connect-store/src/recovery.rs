@@ -54,7 +54,7 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     let mut digest = Sha256::new();
     digest.update(schema.to_be_bytes());
     let mut tables = vec!["installation", "identities", "credentials"];
-    if schema == 2 {
+    if schema >= 2 {
         tables.extend([
             "conversations",
             "participants",
@@ -62,6 +62,20 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
             "requests",
             "journal",
         ]);
+    }
+    if schema >= 3 {
+        tables.extend([
+            "connector_routes",
+            "provider_jobs",
+            "provider_events",
+            "provider_context",
+        ]);
+    }
+    if schema >= 4 {
+        tables.extend(["voice_routes", "voice_calls"]);
+    }
+    if schema >= 5 {
+        tables.push("voice_ingress");
     }
     for table in tables {
         digest.update(table.as_bytes());
@@ -158,13 +172,29 @@ impl Store {
         if &inspect(&tx)? != expected {
             return Err(Error::new("invalid-backup", "Backup is stale or belongs to another installation; create a fresh verified backup"));
         }
-        if expected.schema != 1 {
+        if expected.schema >= SCHEMA_VERSION {
             return Err(Error::new(
                 "unsupported-schema",
-                "Migration requires schema 1; schema 2 needs no migration",
+                "Current schema needs no migration",
             ));
         }
-        tx.execute_batch(include_str!("../migrations/002_conversations.sql"))
+        if expected.schema == 1 {
+            tx.execute_batch(include_str!("../migrations/002_conversations.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 3 {
+            tx.execute_batch(include_str!("../migrations/003_providers.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 4 {
+            tx.execute_batch(include_str!("../migrations/004_voice.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 5 {
+            tx.execute_batch(include_str!("../migrations/005_inbound_voice.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        tx.execute_batch(include_str!("../migrations/006_voice_recovery.sql"))
             .map_err(|_| Error::storage())?;
         let snapshot = inspect(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;

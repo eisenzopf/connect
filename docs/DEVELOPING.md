@@ -1,12 +1,25 @@
 # Developing Connect
 
+## Plans before implementation
+
+Start with [the docs index](index.html), [v0.1 scope](connect-v0.1-contract.html),
+and the affected gate’s product/delivery plan.
+[Gate 2’s plan](connect-gate-2-plan.html) defines chat and provider telephone acceptance;
+[its checklist](connect-gate-2-implementation.html) records work and evidence.
+Provider telephone call control is Gate 2. Native audio and browser WebRTC are
+Gate 3, even where older G2 item IDs are retained. Gate 3 native media work
+still needs its own product/delivery plan. Local rvoip patches remain
+accepted when pinned and reproducible. Presence/preferences are decision B-001.
+
 ## Repository layout
 
 - `crates/connect-protocol`: serializable contract, public outcomes, errors, limits.
 - `crates/connect-store`: SQLite schema, transactions, credentials, receipts, journal.
 - `crates/connect-service`: authorization and shared application-handler implementation.
 - `crates/connect-client`: native Rust SDK with explicit trust and request recovery.
-- `crates/connect-server`: composition root, local CLI and listener lifecycle.
+- `crates/connect-server`: composition root, local CLI, listeners and owned provider workers.
+- `crates/connect-connectors`: Telnyx/Vapi adapters and explicit private provisioning checkpoints.
+- `sdk/python` / `sdk/typescript`: native-helper and local HTTP client facades.
 - `contracts`: wire specification and executable conformance fixtures.
 - `config`: public example configuration only.
 - `examples`: independent review application and deterministic agent.
@@ -42,11 +55,11 @@ than copied from someone else's installation.
 
 After committing a clean candidate source, `bash scripts/package-local.sh`
 builds an unpublished release candidate under `dist/`. It includes separate
-runtime, complete SDK source, and historical qualification archives. Run
+runtime with Python/TypeScript clients, complete SDK source, and historical qualification archives. Run
 `python3 scripts/check-package.py /absolute/path/to/candidate-directory` to
 verify hashes, compile the extracted SDK, and exercise independent installed
 binaries with offline recovery, abrupt fault replay, backup, upgrade/rollback,
-private file modes, log redaction and shutdown. See
+private file modes, log redaction, installed native/HTTP language clients and shutdown. See
 [the local release instructions](LOCAL_RELEASE.md). No remote deployment is
 part of either command.
 
@@ -66,3 +79,8 @@ Update a numbered item with `python3 scripts/update-plan.py --item G1-001
 --status done --owner YOUR_NAME --evidence PATH_OR_COMMAND_RESULT`. The updater
 validates status, dependencies and completion evidence, and keeps the embedded
 HTML task data authoritative. Do not mark an unrun qualification as complete.
+
+The Gate 2 offline runner is `bash scripts/check-gate-2.sh`. It must
+not provision accounts, purchase numbers, send SMS or place calls. Keep live
+provider evidence separate. Historical Gate 1 package qualification does not
+qualify new schemas, SDK methods or provider media paths.

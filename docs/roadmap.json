@@ -1,0 +1,68 @@
+{
+  "updated": "2026-10-08",
+  "product": "Connect",
+  "identity": "Communication for people, apps, and agents",
+  "priority": "Server and SDK first",
+  "release": "v0.1 developer alpha planned; Gate 1 local candidate unpublished",
+  "gates": [
+    {
+      "id": 1,
+      "name": "Reachable identity",
+      "outcome": "Local server, native Rust SDK and two independent participants exchange durable messages over UCTP/QUIC.",
+      "status": "complete-local",
+      "plan": "connect-gate-1-plan.html",
+      "implementation": "connect-gate-1-implementation.html",
+      "evidence": "evidence/gate-1/result.json"
+    },
+    {
+      "id": 2,
+      "name": "Assistant chat and telephone voice",
+      "outcome": "Vapi chat and real Telnyx inbound/outbound telephone calls through local Connect SDK/API; live SMS explicitly deferred pending approval.",
+      "status": "local-and-outbound-verified-inbound-open",
+      "plan": "connect-gate-2-plan.html",
+      "implementation": "connect-gate-2-implementation.html",
+      "evidence": "evidence/gate-2/result.json",
+      "acceptance": "gate-2-acceptance.json",
+      "offline_qualification": "evidence/gate-2/completion-qualification.json",
+      "live_evidence": "evidence/gate-2/completion-live.json"
+    },
+    {
+      "id": 3,
+      "name": "Native media and interoperability",
+      "outcome": "Native QUIC datagram audio to Vapi, Connect-carried SIP/PSTN media and browser WebRTC with qualified lifecycle and codecs.",
+      "status": "preparatory-work-no-audio-qualification",
+      "plan": null
+    },
+    {
+      "id": 4,
+      "name": "Agent follow-through",
+      "outcome": "Connect MCP tools, skill, and one selected additional assistant resume the originating task after a reply.",
+      "status": "planned",
+      "plan": null
+    },
+    {
+      "id": 5,
+      "name": "Downloadable v0.1",
+      "outcome": "Qualify files and video, a human reference client, connector kit and independently repeatable release/recovery checks.",
+      "status": "planned",
+      "plan": null
+    }
+  ],
+  "source_of_truth": {
+    "scope": "connect-v0.1-contract.html",
+    "journeys": "connect-first-ten-minutes.html",
+    "reuse": "connect-technical-readiness.html",
+    "gate_product_plans": "connect-gate-N-plan.html",
+    "gate_implementation": "connect-gate-N-implementation.html",
+    "actual_evidence": "evidence/gate-N/"
+  },
+  "required_feature_coverage": "feature-coverage.json",
+  "planning_gaps": [
+    "Queryable availability requires delivery assignment and acceptance semantics",
+    "Gate 3 product/delivery plan missing before native media development",
+    "Full cross-channel context-transfer acceptance requires explicit integration"
+  ],
+  "decision_backlog": "backlog.html",
+  "gate_1_completion_audit": "connect-gate-1-audit.html",
+  "local_patches": "Accepted for now; source-lock digests verified"
+}

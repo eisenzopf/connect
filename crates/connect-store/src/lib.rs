@@ -2,7 +2,11 @@
 mod conversations;
 mod cursor;
 mod identity;
+mod providers;
 mod recovery;
+mod voice;
+pub use providers::{event_digest as provider_event_digest, ProviderJob, Route};
+pub use voice::{InboundCall, VoiceAction, VoiceIngress, VoiceJob, VoiceRoute};
 
 use connect_protocol::{Error, Limits, Result};
 use rand::RngCore;
@@ -16,7 +20,7 @@ use std::{
 
 pub use identity::{Actor, IssuedCredential, Scope};
 pub use recovery::Snapshot;
-pub const SCHEMA_VERSION: u32 = 2;
+pub const SCHEMA_VERSION: u32 = 6;
 
 pub struct Store {
     connection: Mutex<Connection>,
@@ -41,6 +45,14 @@ impl Store {
         tx.execute_batch(include_str!("../migrations/001_identity.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/002_conversations.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/003_providers.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/004_voice.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/005_inbound_voice.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/006_voice_recovery.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute(
             "INSERT INTO installation VALUES(1,?1,?2)",

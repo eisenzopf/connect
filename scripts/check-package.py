@@ -53,7 +53,9 @@ try:
                     path = pathlib.PurePosixPath(member.name)
                     assert not path.is_absolute() and '..' not in path.parts
                     assert member.isfile() or member.isdir(), 'Only ordinary files/directories allowed'
-                    assert not any(x in path.parts for x in ['.deps', '.local', '.git', 'target', 'dist'])
+                    assert not any(x in path.parts for x in ['.deps', '.local', '.git', 'target', 'node_modules', '__pycache__'])
+                    if 'dist' in path.parts:
+                        assert path.parts[:4] == (candidate.name, 'sdk', 'typescript', 'dist')
                     assert not member.name.endswith(('.sqlite3', '.der', '.log'))
                 archive.extractall(work, filter='data')
         release = work/candidate.name
@@ -74,7 +76,7 @@ try:
         assert digest(source/'Cargo.lock') == manifest['cargo_lock_sha256']
         assert json.loads((source/'dependencies/source-lock.json').read_text()) == manifest['dependencies']
         # Fault-enabled builds must correspond to the installed candidate source.
-        for directory in ['crates', 'examples', 'scripts', 'patches', 'dependencies']:
+        for directory in ['crates', 'examples', 'scripts', 'patches', 'dependencies', 'sdk']:
             for path in (source/directory).rglob('*'):
                 if path.is_file():
                     assert digest(path) == digest(ROOT/path.relative_to(source)), 'Qualification source differs from candidate'
@@ -107,7 +109,7 @@ try:
         logs = init.stdout+init.stderr
         with Server(state) as server:
             health = json.loads(run('health', '--config', state/'operator.toml').stdout)
-            assert health['transport'] == 'quic' and health['result']['data']['schema'] == 2
+            assert health['transport'] == 'quic' and health['result']['data']['schema'] == manifest['schema']
             run('diagnostics', '--config', state/'operator.toml')
             pair(state)
             assert json.loads(run('demo', 'verify', '--config', state/'operator.toml').stdout)['result'] == 'passed'
@@ -132,6 +134,18 @@ try:
             endpoint = tomllib.loads((state/'server.toml').read_text())['bind']
             sock.bind(('127.0.0.1', int(endpoint.rsplit(':', 1)[1])))
         passed('restart-shutdown', 'Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port')
+        http_port = port()
+        with Server(state, extra_args=['--http-bind', f'127.0.0.1:{http_port}']):
+            sdk_env = dict(os.environ, PYTHONPATH=str(release/'sdk/python'),
+                           CONNECT_TYPESCRIPT_SDK=str(release/'sdk/typescript/dist/index.js'))
+            credential = tomllib.loads((state/'reviews.toml').read_text())['credential']
+            with (results/'installed-language-sdks.log').open('w') as log:
+                for executable, probe in [('python3', 'python_probe.py'), ('node', 'typescript_probe.mjs')]:
+                    subprocess.run([executable, str(source/'sdk/tests'/probe), str(state/'reviews.toml'),
+                                    f'http://127.0.0.1:{http_port}', str(BINARY)],
+                                   input=json.dumps({'credential': credential}), text=True,
+                                   env=sdk_env, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=120)
+        passed('installed-language-sdks', 'Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior')
         for script in ['check-examples.py', 'check-recovery.py', 'check-crash-replay.py', 'check-example-recovery.py']:
             with (results/(script+'.log')).open('w') as log:
                 subprocess.run(['python3', str(ROOT/'scripts'/script)], cwd=work, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=600)

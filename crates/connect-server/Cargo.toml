@@ -15,6 +15,9 @@ connect-protocol.workspace = true
 connect-store.workspace = true
 connect-service.workspace = true
 connect-client.workspace = true
+connect-connectors.workspace = true
+axum.workspace = true
+telnyx.workspace = true
 rvoip-quic.workspace = true
 rvoip-uctp.workspace = true
 rvoip-websocket.workspace = true
@@ -44,6 +47,10 @@ tokio-tungstenite.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+reqwest.workspace = true
+base64 = "0.22"
+ed25519-dalek = "2"
+wiremock = "0.6"
 
 [lints]
 workspace = true

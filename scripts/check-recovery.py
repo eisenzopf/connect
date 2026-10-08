@@ -41,7 +41,7 @@ with tempfile.TemporaryDirectory(prefix='connect-recovery-') as temporary:
         assert request(restored,'agent',{'op':'inbox','cursor':None,'limit':100,'wait_ms':0})==page
         run('request','--config',restored/'agent.toml',value={'op':'inbox','cursor':newer,'limit':100,'wait_ms':0},success=False)
         health=json.loads(run('health','--config',restored/'operator.toml').stdout)
-        assert health['result']['data']['schema']==2
+        assert health['result']['data']['schema']==6
     tampered=work/'tampered';shutil.copytree(backup,tampered)
     (tampered/'certificate.der').write_bytes(b'altered')
     run('restore','--backup',tampered,'--directory',work/'never-created',success=False)

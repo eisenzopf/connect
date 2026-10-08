@@ -1,0 +1,164 @@
+# Give an assistant a Connect presence
+
+This local sample talks to a real Vapi assistant through Connect's public SDK.
+SMS uses that same conversation when an operator configures the human's number.
+The assistant can also initiate a message: use `assistant.toml` rather than
+`human.toml` and the message routes to the configured human's SMS number.
+
+## Prepare
+
+```sh
+bash scripts/prepare-dependencies.sh
+cargo build -p connect-server
+(cd sdk/typescript && npm ci && npm run build)
+```
+
+Keep `TELNYX_API_KEY` and `VAPI_PRIVATE_KEY` in the server's environment.
+Neither key belongs in an SDK client configuration or process argument.
+Save the following plan under ignored `.local/`:
+
+```json
+{
+  "name": "Connect-demo",
+  "assistant_id": null,
+  "phone_number_id": null,
+  "callback_url": null,
+  "create_sip": true,
+  "outbound_voice_profile_id": null
+}
+```
+
+```sh
+target/debug/connect providers discover --output .local/provider-inventory.json
+target/debug/connect providers plan --input .local/provider-plan.json
+target/debug/connect providers apply --input .local/provider-plan.json --state .local/provider-state.json
+target/debug/connect providers check --state .local/provider-state.json
+```
+
+The setup state is protected and includes SIP credentials. `apply` owns newly
+created resources by a unique persisted name and records its intent before
+creation. An uncertain creation is reconciled by name, never blindly repeated.
+Changing the plan requires a new state path; existing assistants are never edited.
+This initial plan creates an assistant and an unassigned SIP credential connection.
+It does not purchase or assign a phone number, configure a usable PSTN path, or
+route live audio. Those require the number, outbound profile and the voice gate.
+
+Read `assistant_id` from the protected state and use it in local initialization:
+
+```sh
+target/debug/connect presence-init --directory .local/presence --assistant-id <assistant-id>
+target/debug/connect serve --config .local/presence/server.toml --http-bind 127.0.0.1:8088 --providers
+```
+
+`presence-init` creates human/assistant identities, scoped credentials, a shared
+conversation and its Vapi route. It requires a new directory. Both directions use
+ordinary `send`, `history`, `inbox` and `provider_status` operations.
+
+## Python and TypeScript
+
+In a second terminal from the repository root:
+
+```sh
+PYTHONPATH=sdk/python python3 examples/agent-presence/chat.py \
+  --config .local/presence/human.toml --manifest .local/presence/presence.json \
+  --request-id demo-turn-001 --body 'Hello, what can we do together?' \
+  --executable target/debug/connect
+
+node examples/agent-presence/chat.mjs \
+  .local/presence/human.toml .local/presence/presence.json \
+  demo-turn-002 'Do you remember my previous question?' target/debug/connect
+```
+
+The examples require caller-owned request IDs. On uncertainty retry with the
+**same ID and body**, or inspect `request_status`. Local acceptance means the
+message and provider job were committed; `provider_status` distinguishes pending,
+sending, accepted, completed, delivered, failed, cancelled, blocked and uncertain.
+A Vapi turn completes only when its reply and chat context commit together.
+History and inbox delivery are at least once; applications should save their
+processed event IDs and cursor with their effects, as in `examples/review-loop`.
+`provider_status` currently returns the most recent bounded page, newest first.
+Delivery changes are read through this operation, not separate inbox events.
+The sample is a CLI demonstration; it does not implement a persistent agent runtime.
+
+## Add real SMS
+
+Choose an existing Telnyx number **ID**, an approved human test number, and an
+HTTPS URL ending in `/webhooks/telnyx` that forwards to the local server.
+The callback gateway should expose only that path. The application API remains
+loopback. Connect retrieves Telnyx's public verification key automatically when
+`--providers` and HTTP are enabled; `TELNYX_PUBLIC_KEY` can explicitly override it.
+An unavailable verifier rejects callbacks; signature checks cannot be bypassed.
+
+Prepare a new provider plan with the existing `assistant_id`, selected
+`phone_number_id` and `callback_url`. Apply it using a **new state path**. It
+creates a dedicated messaging profile and associates only the selected number.
+Its prior voice and messaging settings are preserved in that private state file.
+Keep `create_sip: false` unless intentionally changing that number's voice route.
+An outbound voice profile is necessary for a usable outbound SIP/PSTN path;
+creating a credential connection alone does not qualify voice interoperability.
+
+Initialize a new local presence with both SMS numbers:
+
+```sh
+target/debug/connect presence-init --directory .local/sms-presence \
+  --assistant-id <assistant-id> --human-number <approved-human-E164> \
+  --connect-number <selected-Telnyx-E164>
+```
+
+Send an SMS from the approved human number to the Connect number. A verified
+callback becomes a human message, Vapi produces a reply and Telnyx submits it.
+Repeated signed callbacks produce no duplicate turn. To test assistant-initiated
+contact, use `assistant.toml` with the sample and a fresh persisted request ID.
+SMS is limited to 1600 characters by the adapter; longer bodies fail before
+provider submission. A network failure after submission is **uncertain**, not
+permission to repeat it. Disabled routes and revoked credentials stop subsequent
+queued work; a request already submitted may still finish externally.
+
+## HTTP/JSON and CLI
+
+All application transports use the same operation JSON and authorization. HTTP
+returns `{profile, result: {Ok: outcome} | {Err: error}}`; native CLI `request`
+prints the outcome on success and returns nonzero on error. JSON-lines `stdio`
+adds an exchange `id` and a `response` containing the same result envelope.
+SDK clients load local application credentials; provider keys remain server-side.
+
+```sh
+printf '%s\n' '{"op":"health"}' | target/debug/connect request --config .local/presence/human.toml
+```
+
+Python's `HttpClient("http://127.0.0.1:8088", credential)` and TypeScript's
+`HttpClient` expose the same helpers. Supply credentials from the protected local
+client file, not command arguments. Native SDK clients spawn the Rust `connect
+stdio` helper, which owns verified TLS and UCTP/QUIC. The HTTP mode is HTTP; neither
+SDK claims a browser-native QUIC implementation. The current qualification is
+macOS arm64; a portable binary or browser distribution has not been qualified.
+
+
+### Dedicated numbers and SMS preflight
+
+An operator can explicitly search with `connect providers search-numbers --country US
+--output <private-inventory.json>`, then purchase the selected number with
+`connect providers order-number --number <E.164> --connection-id <Connect-SIP-ID>
+--state <private-order.json>`. Purchases are never performed by server startup.
+Preserve the order checkpoint: an uncertain purchase is reconciled using its
+persisted customer reference; it is never blindly purchased again.
+
+`connect providers check --state <private-setup.json>` separates the messaging
+profile and number association from US carrier readiness. `TCR_ACCEPTED` is still
+under review; it does not mean the campaign is carrier-approved. A real campaign
+in `MNO_ACCEPTED` or `MNO_PROVISIONED`, with completed number assignment, is
+required by this preflight. Non-checked carrier paths remain unverified.
+Recipients must have opted in to the actual sender's messaging program.
+
+A temporary callback tunnel may point at the optional **webhook-only** listener:
+`--webhook-bind 127.0.0.1:4310`. It exposes only the signed Telnyx callback path;
+the HTTP application API stays on its separate local port. Unsigned callbacks
+are rejected. The temporary hostname is ephemeral and its reachability alone
+does not prove real SMS delivery. Configure it on the owned messaging profile,
+keep the server and tunnel running for handset testing, and replace/remove the
+callback when that tunnel ends.
+
+Signed carrier-handled STOP/HELP/START, outbound echo and custom autoresponse
+callbacks do not become assistant prompts. Ordinary messages such as “help with
+my appointment” still enter the conversation. Delivery state is exposed through
+`provider_status`; provider delivery changes are not yet separate push events.

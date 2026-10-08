@@ -16,6 +16,14 @@ impl Scope {
             recipients: vec!["*".into()],
         }
     }
+    /// Explicit voice grant; existing messaging-only credentials remain unchanged.
+    pub fn communications(recipients: Vec<String>) -> Self {
+        let mut scope = Self::messaging(recipients);
+        scope
+            .operations
+            .extend(["call_start", "call_status", "call_end"].map(str::to_owned));
+        scope
+    }
     pub fn messaging(recipients: Vec<String>) -> Self {
         Self {
             operations: [
@@ -27,6 +35,7 @@ impl Scope {
                 "request_status",
                 "close",
                 "health",
+                "provider_status",
             ]
             .iter()
             .map(|v| v.to_string())

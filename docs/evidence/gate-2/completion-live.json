@@ -1,0 +1,56 @@
+{
+  "recorded_at": "2026-10-08T19:31:57.155936+00:00",
+  "caller_id": "+12702628454",
+  "backend": "vapi-telnyx-native",
+  "python_native_and_http_status_match": true,
+  "start_receipt_replay_same_call": true,
+  "calls": [
+    {
+      "connect_call": {
+        "id": "2760f213-6fb7-4db3-a2e8-90c5eaf412c0",
+        "conversation_id": "381f1fc3-963c-41ba-8b61-9726e343101c",
+        "direction": "outbound",
+        "state": "ended",
+        "provider_id": "01a11cfc-b76e-7ffb-ae6e-1c4d632d6cac",
+        "ended_reason": "customer-ended-call"
+      },
+      "provider": {
+        "id": "01a11cfc-b76e-7ffb-ae6e-1c4d632d6cac",
+        "type": "outboundPhoneCall",
+        "status": "ended",
+        "phone_number_id": "3e3a446c-b755-486b-93ab-11c924350fe0",
+        "assistant_id": "3b16e6b3-0b42-4c4e-b4c5-6083f85587c6",
+        "started_at": "2026-10-08T19:28:07.699Z",
+        "ended_at": "2026-10-08T19:28:49.353Z",
+        "ended_reason": "customer-ended-call",
+        "message_role_counts": {
+          "user": 5,
+          "bot": 5,
+          "assistant": 0
+        }
+      }
+    }
+  ],
+  "journal_call_event_count": 4,
+  "no_live_sms_sent": true,
+  "remote_connect_deployed": false,
+  "outbound_human_confirmation": {
+    "source": "Owner message during the test",
+    "message": "yes I',m talling to it",
+    "disposition": "Human confirmed talking with assistant; provider has five human and five assistant turns"
+  },
+  "typescript": {
+    "native_quic": true,
+    "http_status_match": true,
+    "end_terminal_call_id": "2760f213-6fb7-4db3-a2e8-90c5eaf412c0",
+    "end_terminal_state": "ended"
+  },
+  "inbound_audio": "awaiting-handset-call-and-confirmation",
+  "byo_sip_alternative": "Vapi credential creation still rejects HTTP 400: Application creation failed; native Telnyx backend used instead",
+  "shared_application": {
+    "detected": true,
+    "changes_restored_and_readback_verified": true,
+    "restore_record": "Telnyx audit event 01a11cf4-c2f4-7176-9b93-b737e846399a",
+    "current_guard": "Uses existing shared application outbound profile without PATCH; tested with zero PATCH expectations"
+  }
+}

@@ -1,7 +1,7 @@
 # 004 — explicit local upgrades and snapshot rollback
 
-`serve` never creates or migrates a database. It requires schema 2 and refuses
-schema 1 or an unknown newer version before reporting ready. One installation
+`serve` never creates or migrates a database. The active development code requires schema 6 and refuses
+older or unknown schemas before reporting ready. One installation
 lock, keyed to the canonical database path, prevents two current server
 instances from writing the same installation even on different ports.
 
@@ -21,14 +21,15 @@ overwritten. A cursor newer than the restored snapshot fails explicitly.
 
 Stop the affected server before `migrate`. The command checks current operator
 authority, holds the installation lock, verifies the backup manifest, and
-compares all schema-1 logical state with that snapshot inside an immediate
-transaction. Stale or foreign backups fail. Schema 1→2 runs atomically; a
+compares all prior-schema logical state with that snapshot inside an immediate
+transaction. Stale or foreign backups fail. Supported schema 1–5 →6 migrations run atomically; a
 failed migration leaves the prior version. No automatic down migration exists.
 
 Rollback uses the prior milestone binary plus its matching pre-upgrade
 snapshot, restored to a new directory. Post-backup work is not present in that
-snapshot and must be recovered separately. The old binary is not permitted to
-read schema 2. The current local process drill preserves the actual schema-1
+snapshot and must be recovered separately. An older binary must not read a newer schema. The historical Gate 1
+qualification below specifically covered schema 1→2; it is not evidence for
+the new development schema 6. The current local process drill preserves the actual schema-1
 milestone binary under ignored `.local/milestones/m1/`, checks its recorded
 SHA-256, and proves both refusal and rollback. M5 must retain this artifact and
 its manifest with the local qualification materials; it is not a published
@@ -37,3 +38,15 @@ release or a claimed reproducible source build of that earlier binary.
 Normal binaries contain no test failpoint controls. An explicitly featured
 `test-support` binary exits abruptly only for a named synthetic request and
 stage. Test state is disposable; real review installations are never faulted.
+
+Schema 5 adds explicit inbound voice bindings and call direction. Schema-4 voice
+rows migrate as outbound; existing journal JSON remains readable with that
+default. Snapshot digests include inbound bindings; migration tests retain and
+verify the unchanged prior-schema backup.
+
+Schema 6 adds a durable inbound discovery watermark and the credential that
+authorized an end request. Earlier pending end requests have no attributable
+credential and migrate to reconciliation-only state: the server reads provider
+status without repeating the external end mutation. New end requests recheck
+their actual requester's authority at dispatch. The schema-5 migration fixture
+verifies these semantics, preserved bindings/calls and an unchanged backup.

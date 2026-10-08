@@ -6,9 +6,9 @@ An open communications server and SDK from [Rudeless](https://rudeless.ai). One 
 
 ## Status
 
-Connect is in development. Gate 1 is implemented and qualified locally on macOS arm64: native UCTP/QUIC, protected initialization, persistent identities, scoped credentials, transactional messaging, history/inbox recovery, and explicit backup/restore/upgrades. The Rust SDK and independent deterministic app/agent examples are tested. A local installable candidate and complete SDK source bundle are available in this workspace; no server or SDK release has been published. Vapi, Telnyx and the remaining v0.1 integrations are next.
+Connect is in development. Gate 1 is implemented and qualified locally on macOS arm64: native UCTP/QUIC, protected initialization, persistent identities, scoped credentials, transactional messaging, history/inbox recovery, and explicit backup/restore/upgrades. The Rust SDK and independent deterministic app/agent examples are tested. A local installable candidate and complete SDK source bundle are available in this workspace; no server or SDK release has been published. Gate 2 adds local provider messaging and language/API access; live Vapi chat is verified, while real Telnyx SMS acceptance is pending. Voice preparation is unfinished Gate 3 work. No full v0.1 release is claimed.
 
-See [the qualification result](docs/evidence/gate-1/result.json) and [local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below describe the complete product we intend to build.
+See [the documentation and delivery index](docs/index.html), [the Gate 2 product/delivery plan](docs/connect-gate-2-plan.html), [the alignment audit](docs/documentation-alignment.html), [the qualification result](docs/evidence/gate-1/result.json) and [local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below describe the complete product we intend to build.
 
 ## Local development
 

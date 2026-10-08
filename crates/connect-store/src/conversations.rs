@@ -38,6 +38,23 @@ impl Store {
                         .map_err(|_| Error::storage())?,
                 })
             }
+            Operation::ProviderStatus { conversation_id } => {
+                authorized_conversation(&tx, &actor, conversation_id)?;
+                Outcome::ProviderStatus {
+                    deliveries: crate::providers::status(
+                        &tx,
+                        conversation_id,
+                        self.limits.page_size,
+                    )?,
+                }
+            }
+            Operation::CallStatus {
+                conversation_id,
+                call_id,
+            } => {
+                authorized_conversation(&tx, &actor, conversation_id)?;
+                Outcome::Call(crate::voice::get(&tx, conversation_id, call_id)?)
+            }
             Operation::Health {} => {
                 let id: String = tx
                     .query_row("SELECT id FROM installation", [], |r| r.get(0))
@@ -123,7 +140,7 @@ impl Store {
                 if after_seq > max {
                     return Err(invalid("Cursor is newer than this state snapshot"));
                 }
-                let mut statement=tx.prepare("SELECT sequence,id,conversation_id,kind,message_id FROM journal WHERE recipient=?1 AND sequence>?2 ORDER BY sequence LIMIT ?3").map_err(|_|Error::storage())?;
+                let mut statement=tx.prepare("SELECT sequence,id,conversation_id,kind,message_id,call_json FROM journal WHERE recipient=?1 AND sequence>?2 ORDER BY sequence LIMIT ?3").map_err(|_|Error::storage())?;
                 let rows = statement
                     .query_map(params![actor.identity_id, after_seq, limit], |r| {
                         Ok((
@@ -132,6 +149,7 @@ impl Store {
                             r.get::<_, String>(2)?,
                             r.get::<_, String>(3)?,
                             r.get::<_, Option<String>>(4)?,
+                            r.get::<_, Option<String>>(5)?,
                         ))
                     })
                     .map_err(|_| Error::storage())?
@@ -140,7 +158,7 @@ impl Store {
                 let mut events = Vec::new();
                 let mut next = after.clone();
                 let mut bytes = 0;
-                for (sequence, id, conversation_id, kind, message_id) in rows {
+                for (sequence, id, conversation_id, kind, message_id, call_json) in rows {
                     let token = cursor::encode(&tx, &actor.identity_id, "inbox", sequence)?;
                     match authorized_conversation(&tx, &actor, &conversation_id) {
                         Ok(_) => {}
@@ -166,6 +184,9 @@ impl Store {
                         conversation_id,
                         message,
                         cursor: token,
+                        call: call_json
+                            .map(|s| serde_json::from_str(&s).map_err(|_| Error::storage()))
+                            .transpose()?,
                     };
                     let size = serde_json::to_vec(&event)
                         .map_err(|_| Error::storage())?
@@ -239,6 +260,12 @@ impl Store {
                     Operation::Send {
                         conversation_id, ..
                     }
+                    | Operation::CallStart {
+                        conversation_id, ..
+                    }
+                    | Operation::CallEnd {
+                        conversation_id, ..
+                    }
                     | Operation::Close {
                         conversation_id, ..
                     } => authorized_conversation(&tx, &actor, conversation_id)?.participants,
@@ -272,6 +299,25 @@ impl Store {
                     ));
                 }
                 let result = match operation {
+                    Operation::CallStart {
+                        conversation_id,
+                        route_id,
+                        destination,
+                        ..
+                    } => crate::voice::start(
+                        &tx,
+                        &actor,
+                        credential_id,
+                        conversation_id,
+                        route_id,
+                        destination,
+                        self,
+                    ),
+                    Operation::CallEnd {
+                        conversation_id,
+                        call_id,
+                        ..
+                    } => crate::voice::end(&tx, credential_id, conversation_id, call_id, self),
                     Operation::Create { .. } => {
                         if capacity(&tx, resources.len() as u64, 0, self)? {
                             let id = uuid::Uuid::new_v4().to_string();
@@ -323,6 +369,14 @@ impl Store {
                             for member in &resources {
                                 insert_event(&tx, member, conversation_id, "message", Some(&id))?;
                             }
+                            crate::providers::enqueue(
+                                &tx,
+                                &id,
+                                conversation_id,
+                                &actor.identity_id,
+                                credential_id,
+                                self.limits.operation_receipts,
+                            )?;
                             Ok(Outcome::Accepted {
                                 request_id: request_id.into(),
                                 message_id: id,
@@ -410,7 +464,11 @@ fn page_limit(value: u32, max: u32) -> Result<()> {
         Ok(())
     }
 }
-fn authorized_conversation(c: &Connection, actor: &Actor, id: &str) -> Result<Conversation> {
+pub(crate) fn authorized_conversation(
+    c: &Connection,
+    actor: &Actor,
+    id: &str,
+) -> Result<Conversation> {
     let closed: Option<bool> = c
         .query_row("SELECT closed FROM conversations WHERE id=?1", [id], |r| {
             r.get(0)
@@ -439,7 +497,7 @@ fn authorized_conversation(c: &Connection, actor: &Actor, id: &str) -> Result<Co
         closed,
     })
 }
-fn capacity(c: &Connection, events: u64, bytes: u64, store: &Store) -> Result<bool> {
+pub(crate) fn capacity(c: &Connection, events: u64, bytes: u64, store: &Store) -> Result<bool> {
     let stored_events: u64 = c
         .query_row("SELECT COUNT(*) FROM journal", [], |r| r.get(0))
         .map_err(|_| Error::storage())?;
@@ -455,7 +513,7 @@ fn capacity(c: &Connection, events: u64, bytes: u64, store: &Store) -> Result<bo
             && stored_bytes.saturating_add(bytes) <= store.limits.message_storage_bytes,
     )
 }
-fn insert_event(
+pub(crate) fn insert_event(
     c: &Connection,
     recipient: &str,
     conversation: &str,

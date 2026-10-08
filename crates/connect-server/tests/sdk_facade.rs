@@ -15,7 +15,10 @@ async fn typed_facade_and_cancellation_preserve_durable_ids_and_cursors() {
     let mut config = ClientConfig::load(&directory.join("reviews.toml")).unwrap();
     config.endpoint = server.address;
     let mut app = ConnectClient::open(config.clone()).await.unwrap();
-    assert_eq!(app.health().await.unwrap().schema, 2);
+    assert_eq!(
+        app.health().await.unwrap().schema,
+        connect_store::SCHEMA_VERSION
+    );
     let agent = app.resolve("connect:agent@local").await.unwrap();
     let conversation = app.create("create", vec![agent.id.clone()]).await.unwrap();
     assert_eq!(

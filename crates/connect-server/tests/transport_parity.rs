@@ -387,3 +387,60 @@ async fn every_positive_operation_fixture_executes_on_both_transports() {
     }
     server.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn conversation_headers_match_payload_and_legacy_missing_headers_still_work() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path().join("state");
+    init::initialize(&dir, true, "127.0.0.1:0".parse().unwrap()).unwrap();
+    let mut config = ServerConfig::load(&dir.join("server.toml")).unwrap();
+    config.websocket_bind = Some("127.0.0.1:0".parse().unwrap());
+    let server = RunningServer::start(config).await.unwrap();
+    let mut config = ClientConfig::load(&dir.join("reviews.toml")).unwrap();
+    config.endpoint = server.address;
+    for mut peer in [
+        Peer::quic(&config).await,
+        Peer::websocket(server.websocket_address.unwrap()).await,
+    ] {
+        assert!(peer.authenticate(&config.credential).await);
+        let Outcome::Conversation(conv) = peer
+            .request(Operation::Create {
+                request_id: uuid::Uuid::new_v4().to_string(),
+                participants: vec![],
+            })
+            .await
+            .unwrap()
+        else {
+            panic!("conversation")
+        };
+        let op = Operation::History {
+            conversation_id: conv.id.clone(),
+            after: None,
+            limit: 100,
+        };
+        let envelope = |cid: &str| {
+            UctpEnvelope::new(
+                MessageType::Unknown(connect_protocol::REQUEST_TYPE.into()),
+                serde_json::to_value(connect_protocol::Request {
+                    profile: connect_protocol::PROFILE.into(),
+                    operation: op.clone(),
+                })
+                .unwrap(),
+            )
+            .with_cid(cid.to_owned())
+        };
+        let invalid = peer.exchange(envelope("other-conversation")).await;
+        let response: connect_protocol::Response = invalid.decode_payload().unwrap();
+        assert_eq!(response.result.unwrap_err().code, "invalid-request");
+        let valid = peer.exchange(envelope(&conv.id)).await;
+        assert_eq!(valid.cid, Some(conv.id.clone()));
+        assert!(valid
+            .decode_payload::<connect_protocol::Response>()
+            .unwrap()
+            .result
+            .is_ok());
+        assert!(peer.request(op).await.is_ok());
+        peer.close().await;
+    }
+    server.shutdown().await.unwrap();
+}

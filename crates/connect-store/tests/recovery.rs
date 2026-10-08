@@ -96,7 +96,7 @@ fn migration_requires_matching_backup_and_refuses_newer_schema() {
     c.execute("DELETE FROM identities WHERE id='another'", [])
         .unwrap();
     let upgraded = Store::migrate(&database, &backup, &expected).unwrap();
-    assert_eq!(upgraded.schema, 2);
+    assert_eq!(upgraded.schema, connect_store::SCHEMA_VERSION);
     assert_eq!(upgraded.installation_id, expected.installation_id);
     assert_eq!(
         Store::open(&database, Limits::default())

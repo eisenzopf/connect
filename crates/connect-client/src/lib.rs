@@ -26,6 +26,8 @@ mod operations;
 
 pub use client::ConnectClient;
 pub use config::ClientConfig;
-pub use connect_protocol::{Conversation, Event, Identity, Message, Operation, Outcome, PROFILE};
+pub use connect_protocol::{
+    Call, Conversation, Event, Identity, Message, Operation, Outcome, PROFILE,
+};
 pub use error::{ClientError, Result};
 pub use operations::{HistoryPage, InboxPage, RequestState, SendReceipt, ServerHealth};

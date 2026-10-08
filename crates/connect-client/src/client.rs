@@ -108,11 +108,18 @@ impl ConnectClient {
             .close(0u32.into(), b"exchange cancelled or timed out");
     }
     pub async fn request(&mut self, operation: Operation) -> Result<Outcome> {
-        let envelope = UctpEnvelope::new(
+        let cid = operation.conversation_id().map(str::to_owned);
+        let mut envelope = UctpEnvelope::new(
             MessageType::Unknown(REQUEST_TYPE.into()),
             serde_json::to_value(Request::new(operation)).map_err(|_| ClientError::Protocol)?,
         );
+        envelope.cid = cid.clone();
         let reply = self.exchange(envelope).await?;
+        if let (Some(expected), Some(actual)) = (cid.as_deref(), reply.cid.as_deref()) {
+            if expected != actual {
+                return Err(ClientError::Protocol);
+            }
+        }
         if reply.msg_type == MessageType::Error {
             return Err(ClientError::Authentication);
         }

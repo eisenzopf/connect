@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 exclude = [".deps/rvoip", ".deps/parley"]
-members = ["crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop"]
+members = ["crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "crates/connect-connectors"]
 
 [workspace.package]
 version = "0.1.0-alpha.1"
@@ -15,6 +15,11 @@ connect-protocol = { path = "crates/connect-protocol" }
 connect-store = { path = "crates/connect-store" }
 connect-service = { path = "crates/connect-service" }
 connect-client = { path = "crates/connect-client" }
+connect-connectors = { path = "crates/connect-connectors" }
+axum = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+telnyx = { version = "0.1.0", default-features = false, features = ["messaging", "numbers", "sip", "webhooks", "rustls-ring"] }
+vapi = { path = ".deps/parley/vendor/server-sdk-rust" }
 rvoip-core = { path = ".deps/rvoip/crates/foundation/rvoip-core" }
 rvoip-uctp = { path = ".deps/rvoip/crates/uctp/rvoip-uctp" }
 rvoip-quic = { path = ".deps/rvoip/crates/uctp/rvoip-quic" }

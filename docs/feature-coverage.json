@@ -1,0 +1,139 @@
+{
+  "scope": "Required v0.1 capabilities; no feature removed by an implementation decision",
+  "rules": [
+    "A replacement design must preserve capabilities and prove them.",
+    "An upstream PR is a dependency proposal, not delivered Connect functionality.",
+    "Open gate assignment is a planning gap, not permission to omit the feature."
+  ],
+  "features": [
+    {
+      "id": "F-01",
+      "required_capability": "Durable identity, discovery, two-way messaging and offline recovery",
+      "delivery_gate": 1,
+      "status": "local acceptance passed",
+      "required_evidence": "A1\u2013A11; G1-001\u2013053",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-02",
+      "required_capability": "Queryable runtime availability, distinct from identity and declared capabilities",
+      "delivery_gate": null,
+      "status": "open specification gap",
+      "required_evidence": "Gate 1 resolve table; requires explicit semantics, delivery assignment and tests before v0.1",
+      "v0_1_required": true,
+      "decision": "B-001: retain original availability requirement; decide scope and gate separately for broader endpoint/preferences proposal"
+    },
+    {
+      "id": "F-03",
+      "required_capability": "Rust SDK and local CLI",
+      "delivery_gate": 1,
+      "status": "local acceptance passed",
+      "required_evidence": "Installed candidate and independent SDK examples",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-04",
+      "required_capability": "Python, TypeScript and HTTP/JSON options",
+      "delivery_gate": 2,
+      "status": "local language SDK parity and live Vapi chat/call status verified; current runtime package qualification pending",
+      "required_evidence": "Persistent Rust QUIC helper is explicit; HTTP is separate",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-05",
+      "required_capability": "Vapi multi-turn assistant chat",
+      "delivery_gate": 2,
+      "status": "live chat demonstrated",
+      "required_evidence": "Configured conversation/chat-ID mapping",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-06",
+      "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
+      "delivery_gate": "2 local / live deferred",
+      "status": "local implementation tested; live SMS explicitly deferred pending approval",
+      "required_evidence": "Approval/number readiness, consented handset and signed live callback",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-07",
+      "required_capability": "Native UCTP/QUIC datagram audio bridged to Vapi WebSocket voice",
+      "delivery_gate": 3,
+      "status": "not qualified",
+      "required_evidence": "Bidirectional audio, format, interruptions, end and provider disconnect",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-08",
+      "required_capability": "Native SIP, Telnyx inbound/outbound PSTN and browser WebRTC",
+      "delivery_gate": "2 provider telephone / 3 native SIP and WebRTC",
+      "status": "Gate 2 outbound telephone conversation verified; inbound handset proof open. Native SIP/WebRTC remain Gate 3.",
+      "required_evidence": "Gate 2 provider telephone calls in both directions; Gate 3 separately qualifies native SIP/WebRTC media.",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-09",
+      "required_capability": "Vapi invokes authorized Connect MCP tools in chat and voice",
+      "delivery_gate": 4,
+      "status": "not implemented",
+      "required_evidence": "Tool/result/conversation correlation on both paths",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-10",
+      "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
+      "delivery_gate": 4,
+      "status": "not implemented",
+      "required_evidence": "Human reply reaches originating task; documented installation and resumption",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-11",
+      "required_capability": "Files and video with a named interoperability profile",
+      "delivery_gate": 5,
+      "status": "not qualified",
+      "required_evidence": "Distinct clients; limits, permissions, codecs/topology and recovery",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-12",
+      "required_capability": "Human reference/test client",
+      "delivery_gate": 5,
+      "status": "not implemented",
+      "required_evidence": "Runnable demonstration of SDK rather than new product priority",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-13",
+      "required_capability": "Contributor connector kit, template and shared contract checks",
+      "delivery_gate": 5,
+      "status": "not delivered",
+      "required_evidence": "New connector without editing core; catalog and capability compatibility",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-14",
+      "required_capability": "Downloadable v0.1, supported SDK packaging and release qualification",
+      "delivery_gate": 5,
+      "status": "not released",
+      "required_evidence": "Independent installation, source/dependency identity, compatibility and recovery",
+      "v0_1_required": true
+    },
+    {
+      "id": "F-15",
+      "required_capability": "Cross-channel conversation continuity and explicit assistant context transfer",
+      "delivery_gate": null,
+      "status": "Chat context and call-to-conversation mapping implemented; full cross-channel model context transfer open",
+      "required_evidence": "Gate 2 call/conversation correlation; native media in Gate 3; tools in Gate 4; agreed context-transfer behavior before v0.1.",
+      "v0_1_required": true
+    }
+  ],
+  "upstream": {
+    "application_profiles": "https://github.com/eisenzopf/rvoip/pull/262",
+    "native_quic_hook": "https://github.com/eisenzopf/rvoip/pull/292",
+    "owned_ws_lifecycle": "https://github.com/eisenzopf/rvoip/pull/293",
+    "managed_high_level_facade": "https://github.com/eisenzopf/rvoip/issues/113",
+    "status": "All checked items open; next release adoption not guaranteed"
+  },
+  "decision_backlog": "backlog.html#B-001"
+}

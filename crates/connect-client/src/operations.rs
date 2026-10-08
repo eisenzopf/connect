@@ -32,6 +32,52 @@ pub struct ServerHealth {
 }
 
 impl ConnectClient {
+    pub async fn call_start(
+        &mut self,
+        request_id: &str,
+        conversation_id: &str,
+        route_id: &str,
+        destination: &str,
+    ) -> Result<crate::Call> {
+        self.call_operation(Operation::CallStart {
+            request_id: request_id.into(),
+            conversation_id: conversation_id.into(),
+            route_id: route_id.into(),
+            destination: destination.into(),
+        })
+        .await
+    }
+    pub async fn call_status(
+        &mut self,
+        conversation_id: &str,
+        call_id: &str,
+    ) -> Result<crate::Call> {
+        self.call_operation(Operation::CallStatus {
+            conversation_id: conversation_id.into(),
+            call_id: call_id.into(),
+        })
+        .await
+    }
+    pub async fn call_end(
+        &mut self,
+        request_id: &str,
+        conversation_id: &str,
+        call_id: &str,
+    ) -> Result<crate::Call> {
+        self.call_operation(Operation::CallEnd {
+            request_id: request_id.into(),
+            conversation_id: conversation_id.into(),
+            call_id: call_id.into(),
+        })
+        .await
+    }
+    async fn call_operation(&mut self, operation: Operation) -> Result<crate::Call> {
+        match self.request(operation).await? {
+            Outcome::Call(c) => Ok(c),
+            _ => Err(ClientError::Protocol),
+        }
+    }
+
     /// Persist request_id and inputs in the caller's state before this call.
     pub async fn create(
         &mut self,
@@ -145,6 +191,21 @@ impl ConnectClient {
             .await?
         {
             Outcome::Conversation(c) => Ok(c),
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    /// Most recent bounded page of provider deliveries for this conversation.
+    pub async fn provider_status(
+        &mut self,
+        conversation_id: &str,
+    ) -> Result<Vec<connect_protocol::ProviderDelivery>> {
+        match self
+            .request(Operation::ProviderStatus {
+                conversation_id: conversation_id.into(),
+            })
+            .await?
+        {
+            Outcome::ProviderStatus { deliveries } => Ok(deliveries),
             _ => Err(ClientError::Protocol),
         }
     }

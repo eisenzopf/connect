@@ -1,4 +1,4 @@
-# Native Rust development SDK
+# Connect development SDKs
 
 `connect-client` is the Gate 1 Rust SDK. It uses existing rvoip UCTP/QUIC with
 mandatory certificate/hostname verification. The WS parity peer is a test
@@ -55,3 +55,46 @@ python3 scripts/check-example-recovery.py
 The deterministic examples prove the transport/recovery interface without
 provider keys. MCP, the installable agent skill, Vapi, Telnyx and an external
 assistant are later v0.1 gates; Gate 1 does not claim those integrations.
+
+## Gate 2 interfaces
+
+The Rust client also exposes `provider_status(conversation_id)`. The TypeScript
+SDK is in `sdk/typescript`; Python is in `sdk/python/connect_sdk`. Both provide
+`NativeClient` through a persistent Rust helper, and a separate loopback
+`HttpClient`. They share identities, logical request IDs, outcomes and cursors.
+Neither uses WebSocket as a substitute for native QUIC. These are development
+sources, not published npm/PyPI packages.
+
+The messaging sample and provider setup instructions are in
+[examples/agent-presence](../examples/agent-presence/README.md). Gate 2 requires real Vapi chat and telephone voice in both directions. Live SMS
+and its signed carrier callback proof are explicitly deferred pending approval.
+MCP tools and the installable skill are Gate 4; HTTP/JSON alone is not MCP.
+
+## Gate 2 telephone call control
+
+Implemented methods are `call_start(request_id, conversation_id, route_id, destination)`,
+`call_status(conversation_id, call_id)` and
+`call_end(request_id, conversation_id, call_id)`. TypeScript uses camelCase
+method names; Python and Rust use snake_case.
+
+They control Vapi telephone calls; they do not carry client audio. New voice
+routes restrict destinations and bind a Vapi assistant/phone ID to a conversation.
+Voice credentials require an explicit grant; messaging credentials do not gain
+voice access. Call receipt replay must not redial, and uncertain creation must
+not be automatically repeated. Private provider control URLs remain server-side.
+
+[Voice samples](../examples/agent-presence/voice.md) include persistent request
+receipts and inbound setup. The supported Vapi native Telnyx integration provides
+the Gate 2 telephone route. The separately tested BYO SIP credential path still
+returns Vapi HTTP 400; native SIP and QUIC audio remain Gate 3.
+
+Schema 6 preserves call direction, inbound bindings, discovery watermarks and
+the credential that requested a call end. End intent survives concurrent polls
+and restart; an uncertain end is reconciled by reads rather than blindly repeated.
+Dispatch rechecks the requesting credential's current voice authority.
+
+Inbound records appear through the existing inbox after authenticated polling.
+Discovery scans bounded updated-time windows with pagination, provider-ID
+deduplication and a durable watermark. See the sample for scan limits and delay.
+Caller ID is a routing hint, never an authorization grant. Current verification
+and live audio results are linked from the Gate 2 implementation checklist.

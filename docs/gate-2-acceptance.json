@@ -1,0 +1,177 @@
+{
+  "revision": 4,
+  "scope": "Gate 2: Vapi chat and Telnyx inbound/outbound telephone voice, controlled by local Connect SDK/API. Live SMS deferred by owner pending approval.",
+  "implementation_ids": [
+    "G2-001",
+    "G2-002",
+    "G2-003",
+    "G2-004",
+    "G2-005",
+    "G2-006",
+    "G2-007",
+    "G2-008",
+    "G2-009",
+    "G2-010",
+    "G2-011",
+    "G2-012",
+    "G2-013",
+    "G2-014",
+    "G2-015",
+    "G2-016",
+    "G2-017",
+    "G2-020",
+    "G2-021",
+    "G2-022",
+    "G2-023",
+    "G2-025",
+    "G2-027"
+  ],
+  "excluded_legacy_voice_ids": [
+    "G2-024",
+    "G2-026"
+  ],
+  "decision_backlog": "backlog.html#B-001",
+  "acceptance": [
+    {
+      "id": "A2-01",
+      "title": "Durable local foundation",
+      "tasks": [
+        "G2-001",
+        "G2-003",
+        "G2-009",
+        "G2-020"
+      ],
+      "proof": "Start with isolated local state; prove backup-backed upgrades preserve identities, history, journal and receipts; current authorization and recovery still hold.",
+      "evidence_class": "local",
+      "required": true
+    },
+    {
+      "id": "A2-02",
+      "title": "Safe provider effects",
+      "tasks": [
+        "G2-002",
+        "G2-004",
+        "G2-005",
+        "G2-009"
+      ],
+      "proof": "One local message acceptance creates one provider job. Replay, shutdown and restart never blindly repeat an uncertain external mutation.",
+      "evidence_class": "local",
+      "required": true
+    },
+    {
+      "id": "A2-03",
+      "title": "Authenticated callback translation",
+      "tasks": [
+        "G2-006",
+        "G2-008"
+      ],
+      "proof": "Local signature, authorization, callback deduplication and SMS delivery correlation tests pass. Signed live SMS callback is explicitly deferred pending approval.",
+      "evidence_class": "local",
+      "required": true
+    },
+    {
+      "id": "A2-04",
+      "title": "Useful assistant chat",
+      "tasks": [
+        "G2-007",
+        "G2-015"
+      ],
+      "proof": "Two real Vapi chat turns preserve explicit chat/conversation context and commit the replies into Connect history.",
+      "evidence_class": "live-recorded",
+      "required": true
+    },
+    {
+      "id": "A2-05",
+      "title": "One developer interface",
+      "tasks": [
+        "G2-010",
+        "G2-011",
+        "G2-012",
+        "G2-013"
+      ],
+      "proof": "Rust, Python and TypeScript native access plus HTTP/JSON share identities, request receipts, authorization, history and inbox behavior. Run the public-SDK sample.",
+      "evidence_class": "local-and-live-recorded",
+      "required": true
+    },
+    {
+      "id": "A2-06",
+      "title": "Explicit resource setup and readiness",
+      "tasks": [
+        "G2-014",
+        "G2-016",
+        "G2-017"
+      ],
+      "proof": "Use isolated assistant/test resources; select or explicitly order a number, preserve configuration, reconcile uncertainty and report actual messaging readiness. SIP resource readback is setup evidence only.",
+      "evidence_class": "setup-recorded",
+      "required": true
+    },
+    {
+      "id": "A2-07",
+      "title": "Real human\u2013assistant SMS loop",
+      "tasks": [
+        "G2-018",
+        "G2-019"
+      ],
+      "proof": "A consented handset sends a message and receives its Vapi reply; a second turn preserves context. Demonstrate assistant-initiated contact through the SDK and correlate provider delivery/failure outcomes.",
+      "evidence_class": "deferred-until-sms-approval",
+      "required": false
+    },
+    {
+      "id": "A2-08",
+      "title": "Reproducible local handoff",
+      "tasks": [
+        "G2-020"
+      ],
+      "proof": "Full local runner passes at a recorded source state; real chat and both telephone directions have redacted evidence and a public SDK sample. Deferred live SMS remains visible.",
+      "evidence_class": "open",
+      "required": true
+    },
+    {
+      "id": "A2-09",
+      "title": "Outbound telephone voice",
+      "tasks": [
+        "G2-021",
+        "G2-022",
+        "G2-023",
+        "G2-025"
+      ],
+      "proof": "Public SDK starts one Vapi call using the owned Telnyx caller ID; the authorized handset answers and exchanges intelligible audio; call outcome and provider ID remain in the Connect conversation.",
+      "evidence_class": "live-required",
+      "required": true
+    },
+    {
+      "id": "A2-10",
+      "title": "Inbound telephone voice",
+      "tasks": [
+        "G2-022",
+        "G2-023",
+        "G2-027"
+      ],
+      "proof": "A caller dials the owned Telnyx number and talks with the assigned Vapi assistant. Verified provider readback maps the call into the explicitly authorized Connect route and conversation.",
+      "evidence_class": "live-required",
+      "required": true
+    },
+    {
+      "id": "A2-11",
+      "title": "Voice lifecycle and recovery",
+      "tasks": [
+        "G2-021",
+        "G2-025",
+        "G2-027"
+      ],
+      "proof": "SDK status/end, journal events, replay without redial, uncertain creation, inbound deduplication, current authority and restart are tested. Provider polling failures cannot falsely end a call.",
+      "evidence_class": "local-and-live",
+      "required": true
+    }
+  ],
+  "closure_rule": "All required local, Vapi chat, inbound and outbound telephone voice proofs pass with conversation correlation. Record SMS live acceptance as explicitly deferred pending approval; native QUIC audio and browser WebRTC remain Gate 3.",
+  "deferred_sms_ids": [
+    "G2-018",
+    "G2-019"
+  ],
+  "telephone_backend": "Supported Vapi native Telnyx integration; BYO SIP alternative rejected on this account and not qualified. Native SIP media remains Gate 3.",
+  "evidence": {
+    "local": "evidence/gate-2/completion-qualification.json",
+    "live": "evidence/gate-2/completion-live.json"
+  }
+}

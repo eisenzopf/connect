@@ -59,10 +59,53 @@ pub enum Operation {
         request_id: String,
         conversation_id: String,
     },
+    ProviderStatus {
+        conversation_id: String,
+    },
+    CallStart {
+        request_id: String,
+        conversation_id: String,
+        route_id: String,
+        destination: String,
+    },
+    CallStatus {
+        conversation_id: String,
+        call_id: String,
+    },
+    CallEnd {
+        request_id: String,
+        conversation_id: String,
+        call_id: String,
+    },
     Health {},
 }
 
 impl Operation {
+    /// Canonical conversation routing metadata for UCTP envelopes.
+    pub fn conversation_id(&self) -> Option<&str> {
+        match self {
+            Self::Send {
+                conversation_id, ..
+            }
+            | Self::History {
+                conversation_id, ..
+            }
+            | Self::ProviderStatus { conversation_id }
+            | Self::CallStart {
+                conversation_id, ..
+            }
+            | Self::CallStatus {
+                conversation_id, ..
+            }
+            | Self::CallEnd {
+                conversation_id, ..
+            }
+            | Self::Close {
+                conversation_id, ..
+            } => Some(conversation_id),
+            _ => None,
+        }
+    }
     pub fn name(&self) -> &'static str {
         match self {
             Self::Resolve { .. } => "resolve",
@@ -72,6 +115,10 @@ impl Operation {
             Self::Inbox { .. } => "inbox",
             Self::RequestStatus { .. } => "request_status",
             Self::Close { .. } => "close",
+            Self::ProviderStatus { .. } => "provider_status",
+            Self::CallStart { .. } => "call_start",
+            Self::CallStatus { .. } => "call_status",
+            Self::CallEnd { .. } => "call_end",
             Self::Health {} => "health",
         }
     }
@@ -79,6 +126,8 @@ impl Operation {
         match self {
             Self::Create { request_id, .. }
             | Self::Send { request_id, .. }
+            | Self::CallStart { request_id, .. }
+            | Self::CallEnd { request_id, .. }
             | Self::Close { request_id, .. } => Some(request_id),
             _ => None,
         }
@@ -115,11 +164,44 @@ pub struct Event {
     pub conversation_id: String,
     pub message: Option<Message>,
     pub cursor: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub call: Option<Call>,
+}
+
+/// Durable call receipt. Acceptance does not imply ringing or completed audio.
+fn outbound_direction() -> String {
+    "outbound".into()
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Call {
+    /// An accepted end intent remains visible until provider termination is known.
+    #[serde(default)]
+    pub end_requested: bool,
+    #[serde(default = "outbound_direction")]
+    pub direction: String,
+    pub id: String,
+    pub conversation_id: String,
+    pub route_id: String,
+    pub destination: String,
+    pub state: String,
+    pub provider_id: Option<String>,
+    pub ended_reason: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProviderDelivery {
+    pub job_id: String,
+    pub message_id: String,
+    pub connector: String,
+    pub state: String,
+    pub provider_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
 pub enum Outcome {
+    Call(Call),
     Identity(Identity),
     Conversation(Conversation),
     Accepted {
@@ -138,6 +220,9 @@ pub enum Outcome {
     RequestStatus {
         state: String,
         outcome: Option<Box<Outcome>>,
+    },
+    ProviderStatus {
+        deliveries: Vec<ProviderDelivery>,
     },
     Health {
         installation_id: String,

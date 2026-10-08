@@ -1,0 +1,35 @@
+{
+  "recorded_at": "2026-10-08T06:58:19.293488+00:00",
+  "inbound_setup": "verified-provider-readback",
+  "inbound_audio": "awaiting-handset-test",
+  "outbound_setup": "blocked-vapi-sip-credential-http-400",
+  "outbound_audio": "not-attempted",
+  "caller_id": "+12702628454",
+  "inbound_sip_number_id": "4df17968-4f26-4268-b287-dfc80226ac03",
+  "assistant_id": "3b16e6b3-0b42-4c4e-b4c5-6083f85587c6",
+  "checks": {
+    "owned_number_routes_to_owned_fqdn_trunk": true,
+    "translated_user_matches_vapi_sip_uri": true,
+    "inbound_assistant_binding": true,
+    "outbound_telnyx_profile_attached": true,
+    "existing_sms_profile_unchanged": true
+  },
+  "vapi_diagnostic": "Couldn\u2019t validate SIP trunk credential. Application creation failed.",
+  "no_live_sms_sent": true,
+  "remote_connect_deployed": false,
+  "unrelated_resources_changed": false,
+  "python_chat": {
+    "native_quic_public_sdk": true,
+    "provider_deliveries_completed": 2,
+    "shared_context_recall": true,
+    "messages_in_history": 4,
+    "log_sha256": "1ea92fd1d6d9b4cc0713ff3a8c247b4a7ac563a9eb0e5b99b54280cc7c203f40"
+  },
+  "typescript_chat": {
+    "native_quic_public_sdk": true,
+    "provider_deliveries_completed": 3,
+    "shared_context_recall": true,
+    "messages_in_history": 6,
+    "log_sha256": "ab8dd37d5d058f7f027f1fe7d73ff81af6933ae59a867b1d870906ec0d29c5e8"
+  }
+}
