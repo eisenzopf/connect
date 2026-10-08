@@ -55,7 +55,8 @@ try:
                     assert member.isfile() or member.isdir(), 'Only ordinary files/directories allowed'
                     assert not any(x in path.parts for x in ['.deps', '.local', '.git', 'target', 'node_modules', '__pycache__'])
                     if 'dist' in path.parts:
-                        assert path.parts[:4] == (candidate.name, 'sdk', 'typescript', 'dist')
+                        assert path.parts[:4] in [(candidate.name, 'sdk', 'typescript', 'dist'),
+                                                  ('connect-source', 'sdk', 'typescript', 'dist')]
                     assert not member.name.endswith(('.sqlite3', '.der', '.log'))
                 archive.extractall(work, filter='data')
         release = work/candidate.name
