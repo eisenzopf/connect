@@ -440,6 +440,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
+ "tokio-util",
  "toml",
  "uuid",
 ]
@@ -452,6 +453,22 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.21",
+ "uuid",
+]
+
+[[package]]
+name = "connect-review-loop"
+version = "0.1.0-alpha.1"
+dependencies = [
+ "anyhow",
+ "clap",
+ "connect-client",
+ "fs2",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
  "uuid",
 ]
 
@@ -500,14 +517,17 @@ dependencies = [
  "chrono",
  "connect-protocol",
  "connect-store",
+ "hex",
  "rvoip-auth-core",
  "rvoip-core",
  "rvoip-uctp",
  "serde_json",
+ "sha2",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tokio-util",
+ "tracing",
 ]
 
 [[package]]

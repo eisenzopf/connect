@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Fixture failures intentionally panic.
 use connect_client::{ClientConfig, ClientError, ConnectClient};
 use connect_protocol::{Limits, Operation};
 use connect_server::{

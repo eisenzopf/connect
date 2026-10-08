@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Fixture failures intentionally panic.
 use connect_protocol::Limits;
 use connect_store::{Scope, Store};
 

@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 exclude = [".deps/rvoip", ".deps/parley"]
-members = ["crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server"]
+members = ["crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop"]
 
 [workspace.package]
 version = "0.1.0-alpha.1"

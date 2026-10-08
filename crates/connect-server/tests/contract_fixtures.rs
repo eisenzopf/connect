@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Fixture failures intentionally panic.
 use connect_protocol::{Request, PROFILE, REQUEST_TYPE};
 use rvoip_uctp::{envelope::UctpEnvelope, types::MessageType};
 

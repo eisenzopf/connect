@@ -220,6 +220,7 @@ fn is_default_receipt_limit(value: &u64) -> bool {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Panics are deliberate assertions in these fixtures.
 mod tests {
     use super::*;
     #[test]

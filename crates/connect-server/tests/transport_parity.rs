@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Fixture failures intentionally panic.
 mod support;
 use connect_client::{ClientConfig, ClientError, ConnectClient};
 use connect_protocol::{Operation, Outcome, Response, PROFILE, REQUEST_TYPE};

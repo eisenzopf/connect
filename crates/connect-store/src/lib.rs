@@ -130,6 +130,7 @@ pub fn fault_point(stage: &str, request_id: &str) {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Panics are deliberate assertions in these fixtures.
 mod tests {
     use super::*;
     use connect_protocol::{Operation, Outcome};

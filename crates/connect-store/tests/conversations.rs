@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Fixture failures intentionally panic.
 use connect_protocol::{Limits, Operation, Outcome};
 use connect_store::{Scope, Store};
 use std::sync::Arc;
@@ -183,10 +184,12 @@ fn concurrent_duplicate_requests_have_one_effect() {
 }
 #[test]
 fn serialized_capacity_and_failed_sqlite_write_never_acknowledge() {
-    let mut limits = Limits::default();
-    limits.message_storage_bytes = 5;
-    limits.message_bytes = 5;
-    limits.journal_events = 6;
+    let limits = Limits {
+        message_storage_bytes: 5,
+        message_bytes: 5,
+        journal_events: 6,
+        ..Limits::default()
+    };
     let (dir, store, app, agent, peer) = setup(limits);
     let id = create(&store, &app, &peer);
     let mut handles = Vec::new();

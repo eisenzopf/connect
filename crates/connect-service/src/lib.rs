@@ -93,6 +93,9 @@ impl ApplicationHandler for Service {
             match envelope.decode_payload::<Request>() {
                 Ok(request) if request.profile == PROFILE => {
                     let operation = request.operation;
+                    let exchange_ref = diagnostic_ref(&envelope.id);
+                    let logical_ref = operation.request_id().map(diagnostic_ref);
+                    let credential_ref = diagnostic_ref(&context.principal.subject);
                     let execution = self.execute(context.principal.subject, operation.clone());
                     let result = if matches!(operation, Operation::Inbox { .. }) {
                         tokio::select! {
@@ -108,6 +111,7 @@ impl ApplicationHandler for Service {
                             connect_store::fault_point("before-ack", id);
                         }
                     }
+                    tracing::info!(target:"connect_server::operations",operation=operation.name(),exchange_ref,logical_ref,credential_ref,status=result.as_ref().err().map_or("ok",|e|e.code.as_str()),"application operation completed");
                     result
                 }
                 _ => Err(Error::new("invalid-request", "Invalid application request")),
@@ -131,6 +135,11 @@ impl ApplicationHandler for Service {
         // mutations must atomically compare their recorded digest and receipt.
         self.handle(context, envelope).await
     }
+}
+
+fn diagnostic_ref(value: &str) -> String {
+    use sha2::{Digest, Sha256};
+    hex::encode(Sha256::digest(value.as_bytes()))[..16].to_owned()
 }
 
 pub struct StoreValidator {
@@ -191,6 +200,7 @@ impl BearerValidator for StoreValidator {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Panics are deliberate assertions in these fixtures.
 mod tests {
     use super::*;
     use connect_protocol::Limits;

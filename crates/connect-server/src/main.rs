@@ -22,6 +22,10 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    Demo {
+        #[command(subcommand)]
+        command: DemoCommand,
+    },
     /// Rotate the local TLS pair on a stopped installation and refresh demo trust.
     RotateTls {
         #[arg(long)]
@@ -112,6 +116,13 @@ enum Command {
         credential_id: String,
     },
 }
+#[derive(Subcommand)]
+enum DemoCommand {
+    Verify {
+        #[arg(long)]
+        config: PathBuf,
+    },
+}
 #[tokio::main]
 async fn main() -> Result<()> {
     // Default logs retain no tokens, private key material or application bodies.
@@ -123,6 +134,9 @@ async fn main() -> Result<()> {
         )
         .init();
     match Cli::parse().command {
+        Command::Demo {
+            command: DemoCommand::Verify { config },
+        } => connect_server::cli::demo::verify(&config).await?,
         Command::RotateTls {
             config,
             server_config,

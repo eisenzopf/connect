@@ -12,6 +12,7 @@ connect-protocol.workspace = true
 rvoip-quic.workspace = true
 rvoip-uctp.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
 quinn.workspace = true
 rustls.workspace = true
 serde.workspace = true
