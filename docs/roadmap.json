@@ -41,8 +41,8 @@
           "depends_on": [
             "gate-2"
           ],
-          "outcome": "Define invite/accept/reject/end, negotiated route capabilities, bounded media profiles, availability freshness and explicit context-transfer policy. Select a minimal video profile now so audio interfaces can accommodate it. Write the Gate 3 product plan, then its numbered implementation plan.",
-          "acceptance": "Reviewable contracts and executable rejection fixtures: unsupported route/media, unauthorized invitation, stale/unknown availability and ambiguous context binding. Record B-001 ownership/scope and the selected network/codec profile.",
+          "outcome": "Specify the six VoIP 3.0 nouns and their lifecycle/ownership in Connect before media integration. Define durable conversation context and its bounded runtime projections, invite/accept/reject/end, negotiated route capabilities and basic availability. Select media/network and minimal video profiles. Write the Gate 3 product plan, then its numbered implementation plan.",
+          "acceptance": "Reviewable contracts and executable rejection fixtures: unsupported route/media, unauthorized invitation, stale/unknown availability and ambiguous context binding. Record B-001 ownership/scope and the selected network/codec profile. Demonstrate that session end, connection replacement and provider-ID changes do not erase the conversation record. Explicitly identify membership/handoff limitations; preserve Session history while treating live connection/media state as transient.",
           "reuse": "rvoip/UCTP session and capability primitives; Parley conversation semantics. Review upstream gaps before adding Connect-specific protocol extensions.",
           "experiment": "E3 / E5 design",
           "status": "planned"
@@ -53,9 +53,9 @@
           "depends_on": [
             "G3-A"
           ],
-          "outcome": "Bridge reliable UCTP control and bidirectional QUIC datagram audio to Vapi’s WebSocket interface using rvoip media components.",
+          "outcome": "Bridge reliable UCTP control and bidirectional QUIC datagram audio to Vapi\u2019s WebSocket interface using rvoip media components. Bind both media legs to Participants and Connections in a Session belonging to the durable Conversation.",
           "acceptance": "Distinct client/server processes; audible two-way assistant conversation, negotiated formats, interruptions, loss/disconnect, cancellation and paired teardown. Preserve trace evidence separating QUIC and provider WebSocket legs.",
-          "reuse": "rvoip QUIC media and Vapi adapter; Parley audio-host behavior. Requalify against Connect’s pinned dependency graph.",
+          "reuse": "rvoip QUIC media and Vapi adapter; Parley audio-host behavior. Requalify against Connect\u2019s pinned dependency graph.",
           "experiment": "E3; legacy G2-024",
           "status": "planned"
         },
@@ -67,7 +67,7 @@
             "G3-B"
           ],
           "outcome": "Carry Telnyx SIP/PSTN audio through Connect to Vapi; add browser WebRTC participation and a named SIP endpoint. Keep the existing direct provider route available and labeled separately.",
-          "acceptance": "Inbound and outbound Connect-carried telephone conversations, SIP endpoint and browser microphone/speaker audio. Test each-side hangup, hold where advertised, interruptions, provider failures and the selected NAT/TURN conditions.",
+          "acceptance": "Inbound and outbound Connect-carried telephone conversations, SIP endpoint and browser microphone/speaker audio. Test each-side hangup, hold where advertised, interruptions, provider failures and the selected NAT/TURN conditions. Preserve the Conversation/Session model across unlike transports; do not create separate application conversations for each provider leg.",
           "reuse": "rvoip SIP/WebRTC; Parley browser/SIP host; Bridgefu provider-control patterns if the chosen topology needs them. Resource creation alone is not media proof.",
           "experiment": "E5; legacy G2-026",
           "status": "planned"
@@ -92,8 +92,8 @@
             "G3-C",
             "G3-D"
           ],
-          "outcome": "Carry explicit, authorized context between native messages, Vapi chat and voice. Extend the small test client to audio. Publish permitted routes and availability with offline/unknown semantics.",
-          "acceptance": "A fact from chat is available during the mapped call and a call result returns to the intended conversation. Prove no context leaks to another caller/task, no guessing on ambiguous replies, and no silent fallback contact after a timeout.",
+          "outcome": "Prove VoIP 3.0 conversation continuity across native messages, Vapi chat and voice. Persist authorized history, artifact references and accumulated context at the Conversation level; give each runtime a bounded, attributable projection and persist its outcomes. Extend the test client to audio and basic availability.",
+          "acceptance": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. Repeat the SMS boundary after carrier approval; live SMS remains deferred.",
           "reuse": "Parley chat/session mapping, Connect identity/journal and Thelve authority-design lessons. Call-ID correlation by itself does not prove model context transfer.",
           "experiment": "E3 / E5 / E7 integration",
           "status": "planned"
@@ -114,7 +114,7 @@
           "depends_on": [
             "gate-1"
           ],
-          "outcome": "Research the exact Meta Muse, Grokbot, OpenClaw, Codex and other candidate products. Choose one installable integration using documented interfaces. Research may start during Gate 3.",
+          "outcome": "Research the exact Meta Muse, Grokbot, OpenClaw, Codex and other candidate products. Choose one installable integration using documented interfaces. Owner deferred this research and selection to Gate 4.",
           "acceptance": "Compare installation, scoped authentication, conversation/task binding, incoming reply delivery and continuation. Record tested versions and automatic, bounded-wait or explicit-resume behavior. Name one winner with evidence; do not imply all candidates are supported.",
           "reuse": "Parley worker/pending-command patterns; Thelve managed-MCP design. Verify current host interfaces during this milestone.",
           "experiment": "E6 research",
@@ -176,7 +176,7 @@
             "G4-B"
           ],
           "outcome": "Extend the existing storage-independent connector API with a capability/configuration manifest, lifecycle guidance, template and shared contract harness. Publish the interoperable wire profile and conformance materials.",
-          "acceptance": "An independent contributor adds a fixture connector without changing core conversation/routing logic; explicit composition registration is allowed. A separately implemented wire client—not just the same Rust helper—negotiates and exchanges permitted requests/events using the published specification.",
+          "acceptance": "An independent contributor adds a fixture connector without changing core conversation/routing logic; explicit composition registration is allowed. A separately implemented wire client\u2014not just the same Rust helper\u2014negotiates and exchanges permitted requests/events using the published specification.",
           "reuse": "Current connect-connector-api; Bridgefu provider/recipe boundaries; Parley connector guidance. No marketplace or automatic third-party code loading is required.",
           "experiment": "Connector portion of E8; independent conformance",
           "status": "planned"
@@ -205,7 +205,7 @@
           "outcome": "Qualify files, messages, voice and video through the public SDK and reference client; rerun both agent and app journeys across declared interfaces. Publish measured limits and recovery behavior.",
           "acceptance": "Fresh-user walkthroughs, cross-channel continuity, independent protocol client, SDK/MCP/CLI parity, credential revocation, file access/retention, restart/replay, unknown provider outcomes and network-loss/load tests. Publish supported OS/runtime, topology, concurrency, latency/loss and retention limits with evidence.",
           "reuse": "Reuse the existing local/package/recovery harness; add the missing media, artifact, host and live-provider evidence. Local Gate 1/2 qualification is a baseline, not this release test.",
-          "experiment": "E1–E8 integrated release evidence",
+          "experiment": "E1\u2013E8 integrated release evidence",
           "status": "planned"
         },
         {
@@ -235,17 +235,18 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 3–5 detailed product/implementation plans are still to be written from this proposed roadmap.",
-    "D-01–D-07 are unresolved decisions with named deadlines; assignment is not resolution.",
+    "Gate 3\u20135 detailed product/implementation plans still need to be written.",
+    "Six Gate 3 directions are accepted; codec, network, context, availability, artifact and compatibility details must be resolved through G3-A and its qualification work.",
+    "Additional assistant selection/research is deferred to G4-A.",
     "Carrier approval gates the deferred live SMS lane and full v0.1 release."
   ],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
-  "revision": 2,
+  "revision": 3,
   "document": "connect-roadmap.html",
-  "planning_status": "Future milestones proposed for owner review; no dates or implementation completion implied",
-  "sequencing_rule": "Keep gates 1–5 and their evidence IDs. Deliver basic files before Gate 4 artifact/task continuation. Design video early and qualify it in Gate 5. SMS is a parallel deferred qualification lane and a full v0.1 release blocker.",
+  "planning_status": "Owner accepted the six Gate 3 decision directions; engineering details and detailed gate plans remain to be specified. Additional assistant selection is deferred to Gate 4.",
+  "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Deliver basic files before Gate 4 artifact/task continuation. Design video early and qualify it in Gate 5. SMS is a parallel deferred qualification lane and a full v0.1 release blocker.",
   "parallel_lanes": [
     {
       "id": "G2-SMS",
@@ -271,50 +272,82 @@
       "id": "D-01",
       "title": "Availability and the scope of B-001",
       "due": "G3-A",
-      "decision": "Assign required queryable availability to G3-E; define unknown/offline/freshness, endpoint disclosure and update authority. Decide whether richer contact registries, schedules and preferences enter v0.1 or remain backlog. No permission-console project is added.",
-      "source": "backlog.html#B-001"
+      "decision": "Basic presence with a small optional preference override; available, unavailable and unknown with freshness/expiry. Keep schedules, full registries and automatic channel fallback in the backlog. No per-action permission console.",
+      "source": "backlog.html#B-001",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Define the wire fields, update authority, freshness durations and the bounded override semantics in G3-A; prove in G3-E.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
     },
     {
       "id": "D-02",
       "title": "Session, voice, video and network profiles",
       "due": "G3-A",
-      "decision": "Name invitation semantics, supported codecs/topologies, Connect-carried SIP path, browser NAT/TURN conditions and minimum video profile before freezing media interfaces. Set measurable acceptance targets after spikes.",
-      "source": "connect-v0.1-contract.html#review"
+      "decision": "Connect-carried two-party sessions over native UCTP/QUIC, Telnyx SIP/PSTN and browser WebRTC. Use invite/accept/reject/active/end-or-failure semantics; agents may auto-accept under their configured authority. Select the minimal video profile now for Gate 5 delivery.",
+      "source": "connect-v0.1-contract.html#review",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Finalize codec set, media topology, network/NAT/TURN conditions and measurable thresholds with the first rvoip/Vapi compatibility experiment.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
     },
     {
       "id": "D-03",
       "title": "Context-transfer and ambiguous-reply policy",
       "due": "G3-A",
-      "decision": "Specify what context transfers, whose authority permits it, the destination session/task, and behavior for unverified or ambiguous callers; deliver and prove in G3-E/G4-C.",
-      "source": "connect-first-ten-minutes.html#start"
+      "decision": "VoIP 3.0 continuity is a core architectural requirement. Retained history and accumulated context belong to the Conversation; assistant runtimes receive explicit authorized bounded projections. Session end or transport change does not close or reset the Conversation. Never infer continuity from matching IDs alone.",
+      "source": "connect-first-ten-minutes.html#start",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Specify context items, provenance, versioning/watermarks, provider delivery acknowledgments, retention and ambiguous-caller behavior. Prove useful context in both directions across chat/voice, including restart.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
     },
     {
       "id": "D-04",
       "title": "Artifact lifecycle and channel representation",
       "due": "G3-A",
-      "decision": "Name upload/download transport, integrity, size/retention/deletion rules, participant authorization and when a protected link can cross SMS. Basic files must ship before G4-B/C.",
-      "source": "connect-v0.1-contract.html#conversation"
+      "decision": "Connect-managed local files behind a storage interface. Conversation-based metadata/access and reliable byte transfer; a native UCTP/QUIC path with an explicit HTTP option where needed. Deliver basic files in Gate 3 before the Gate 4 artifact workflow.",
+      "source": "connect-v0.1-contract.html#conversation",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Define upload/download profile, limits, integrity, resume, retention/deletion and protected-link rules. File bytes do not use unreliable media datagrams.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
     },
     {
       "id": "D-05",
       "title": "Additional assistant and reply-delivery mode",
       "due": "G4-A",
-      "decision": "Verify candidate identities/interfaces; select one tested host and state whether it automatically resumes, waits for a bounded interval, or requires explicit resume.",
-      "source": "connect-v0.1-contract.html#scope"
+      "decision": "Additional assistant selection and delivery-mode research are deferred to G4-A. Vapi remains required. No additional host is selected or qualified.",
+      "source": "connect-v0.1-contract.html#scope",
+      "status": "deferred-to-gate-4"
     },
     {
       "id": "D-06",
       "title": "Reachable ingress, secret storage and contact verification",
       "due": "G3-A",
-      "decision": "Choose a supported local-development ingress strategy for required provider/MCP callbacks, secret handling and human-contact ownership checks before live tool integration. Finish polished setup/diagnostics in G5-C. No remote deployment is authorized by this roadmap.",
-      "source": "connect-first-ten-minutes.html#start"
+      "decision": "Keep the server local. Use explicitly configured development ingress for live provider tests; qualify HTTP callback and SIP/media reachability separately. Keep environment-variable credentials initially.",
+      "source": "connect-first-ten-minutes.html#start",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Choose the supported ingress strategy, protected persistent secret handling and contact ownership checks; finish usable setup in G5-C. This decision does not authorize a remote deployment.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
     },
     {
       "id": "D-07",
       "title": "Published compatibility and extension surface",
       "due": "G3-A",
-      "decision": "Specify profile versioning and supported media boundaries before adding wire operations. Finish capability manifests, an independent client test, source/specification licensing and distribution choices in G5-B/E.",
-      "source": "connect-v0.1-contract.html#boundaries"
+      "decision": "Reuse UCTP/rvoip interfaces first. Connect owns durable application policy; general protocol/media improvements should go upstream. Explicit pinned local patches remain acceptable. Incompatible wire changes require a new negotiated profile.",
+      "source": "connect-v0.1-contract.html#boundaries",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Map the six VoIP 3.0 nouns to current APIs and persistence before adding parallel abstractions. Complete conformance, capability manifests and source/specification distribution details in G5-B/E.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
     }
-  ]
+  ],
+  "principle": {
+    "name": "VoIP 3.0 conversation continuity",
+    "sources": [
+      "https://rudeless.ai/voip3",
+      "https://github.com/eisenzopf/rvoip/blob/main/docs/voip-3-conversation-model.md"
+    ],
+    "reviewed": "2026-10-08",
+    "source_status": "Conceptual working draft; not evidence of complete rvoip/Connect implementation or a replacement wire specification.",
+    "core": "Conversation is the durable home for communication history and accumulated context. Sessions, Messages, Participants, Connections and Streams retain distinct responsibilities; transport/provider identifiers are bindings, not the conversation identity.",
+    "context_policy": "Persist conversation history and context according to declared retention/access policy. Supply authorized bounded projections to assistant runtimes, with source references, version/watermark and delivery outcome. A summary is derived context, not a replacement for retained source history. Context unavailable at a provider boundary must be explicit.",
+    "gate_3_proof": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. Repeat the SMS boundary after carrier approval; live SMS remains deferred.",
+    "scope_boundary": "The model must represent human/AI kinds, conversation roles and connection changes without losing conversation context. G3-A records gaps in current immutable membership and plans the minimum lifecycle contract; this does not declare live human handoff, multiparty mixing or cross-device transfer already implemented."
+  }
 }

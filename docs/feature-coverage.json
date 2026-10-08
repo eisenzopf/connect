@@ -11,7 +11,7 @@
       "required_capability": "Durable identity, discovery, two-way messaging and offline recovery",
       "delivery_gate": 1,
       "status": "local acceptance passed",
-      "required_evidence": "A1–A11; G1-001–053",
+      "required_evidence": "A1\u2013A11; G1-001\u2013053",
       "v0_1_required": true,
       "milestones": [
         "gate-1"
@@ -25,7 +25,7 @@
       "id": "F-02",
       "required_capability": "Queryable runtime availability, distinct from identity and declared capabilities",
       "delivery_gate": 3,
-      "status": "Planned G3-A/G3-E; availability semantics and broader B-001 scope remain undecided.",
+      "status": "Gate 3 direction accepted: basic availability plus a small optional override; freshness/wire details remain to specify. Schedules and automatic fallback stay in backlog.",
       "required_evidence": "Define freshness, offline versus unknown and authorized discovery/update in G3-A; demonstrate runtime availability in G3-E. Broader preferences remain a B-001 scope decision.",
       "v0_1_required": true,
       "decision": "B-001: retain original availability requirement; decide scope and gate separately for broader endpoint/preferences proposal",
@@ -154,7 +154,7 @@
       "id": "F-10",
       "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
       "delivery_gate": 4,
-      "status": "not implemented",
+      "status": "Not implemented; additional assistant research/selection deferred by owner to Gate 4.",
       "required_evidence": "Human reply reaches originating task; documented installation and resumption",
       "v0_1_required": true,
       "milestones": [
@@ -237,8 +237,8 @@
       "id": "F-15",
       "required_capability": "Cross-channel conversation continuity and explicit assistant context transfer",
       "delivery_gate": "3 continuity / 4 task continuation",
-      "status": "Chat context and call-to-conversation mapping implemented; full cross-channel model context transfer open",
-      "required_evidence": "Gate 2 call/conversation correlation; native media in Gate 3; tools in Gate 4; agreed context-transfer behavior before v0.1.",
+      "status": "VoIP 3.0 core requirement and direction accepted. Existing chat context/call correlation are narrower than full conversation continuity; runtime projections and restart proof remain unimplemented.",
+      "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. Repeat the SMS boundary after carrier approval; live SMS remains deferred.",
       "v0_1_required": true,
       "milestones": [
         "G3-A",
@@ -365,5 +365,5 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "Remaining delivery assignments proposed for review; feature commitments retained."
+  "assignment_status": "Gate 3 decision directions accepted; detailed implementation and acceptance proof remain outstanding. Additional assistant selection deferred to Gate 4."
 }
