@@ -62,9 +62,9 @@
   "acceptance_mapping": "../../gate-2-acceptance.json",
   "deferred_sms": "Owner explicitly deferred live SMS until approval; implementation and fixture tests retained",
   "live_evidence": "completion-live.json",
-  "package_evidence": "completion-package.json",
+  "package_evidence": "../stabilization/result.json",
   "byo_sip_alternative": "HTTP 400 retained as an unqualified alternative; native Telnyx route satisfies provider telephone setup",
-  "current_package": "connect-0.1.0-alpha.1-macos-arm64-99e96851447b",
+  "current_package": "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117",
   "current_public_sdk_chat": "Both Python and TypeScript resumed actual Vapi chat context after installed-server restart",
   "closure_scope": "Local provider chat and direct Telnyx/Vapi telephone control; live SMS deferred by owner; Connect media remains Gate 3",
   "stabilization": "../stabilization/result.json"

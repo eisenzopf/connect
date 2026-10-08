@@ -316,12 +316,13 @@
   },
   "private_report_sha256": "3b610bcd3fa983e57a1be233b61761994365b4600c9c56b162cd769e912e2da1",
   "package": {
-    "candidate": "connect-0.1.0-alpha.1-macos-arm64-99e96851447b",
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117",
+    "source_revision": "85cfc4acf117e5439722cea425cb6f212565c7ce",
     "result": "passed",
     "archives": {
-      "connect-0.1.0-alpha.1-macos-arm64-99e96851447b-qualification.tar.gz": "2d2dbe7fb211e68e4268bb147cfe13cd6f075927cf0e7fb124a3402497d69d56",
-      "connect-0.1.0-alpha.1-macos-arm64-99e96851447b-source.tar.gz": "1a063941dd2833a295443b9e1396f75f5431e9381598c7fb0f1438cf03980c04",
-      "connect-0.1.0-alpha.1-macos-arm64-99e96851447b.tar.gz": "bd74687d193ca8d8d2baa95f245b15fb979f704d1d5bd968366ef270ddf528e3"
+      "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117-qualification.tar.gz": "c83145a887660520351ad927779398ab806bdf71ed418da23aa4a565b310d3f6",
+      "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117-source.tar.gz": "b492fed641c1b87f4babe7319d0e86cc4b17991743ed2403b54f3d5cf41840c7",
+      "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117.tar.gz": "ac878250f10c2b3600d075ae0d0341d04882c0fd09dd7b96789bc2526b1d5275"
     },
     "checks": {
       "archive-checksums": {
@@ -364,7 +365,8 @@
         "result": "passed",
         "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
       }
-    }
+    },
+    "relationship_to_full_run": "Documentation-only revision; all implementation, contract, SDK and CI input hashes match the full 20-phase run."
   },
   "review": {
     "type": "Code self-review; not an independent security audit",
@@ -380,7 +382,13 @@
     "ci": "Workflow configured; hosted run not performed before push",
     "current_schema_ci_recovery_mode": "Separately passed with archived-binary exclusion explicit",
     "connector_normal_dependencies": "async-trait only; no database/server dependency",
-    "visual_preview": "HTML structure and local links checked; browser file preview unavailable"
+    "visual_preview": "HTML structure and local links checked; browser file preview unavailable",
+    "credential_hygiene": {
+      "tracked_files": 261,
+      "available_provider_keys_compared": 2,
+      "matches": 0,
+      "package_private_state_inventory": "passed"
+    }
   },
   "live_evidence": "../gate-2/completion-live.json",
   "live_retest_this_pass": false,
