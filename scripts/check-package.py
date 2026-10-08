@@ -77,7 +77,7 @@ try:
         assert digest(source/'Cargo.lock') == manifest['cargo_lock_sha256']
         assert json.loads((source/'dependencies/source-lock.json').read_text()) == manifest['dependencies']
         # Fault-enabled builds must correspond to the installed candidate source.
-        for directory in ['crates', 'examples', 'scripts', 'patches', 'dependencies', 'sdk']:
+        for directory in ['crates', 'examples', 'scripts', 'patches', 'dependencies', 'sdk', 'contracts', '.github']:
             for path in (source/directory).rglob('*'):
                 if path.is_file():
                     assert digest(path) == digest(ROOT/path.relative_to(source)), 'Qualification source differs from candidate'

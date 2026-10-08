@@ -1,0 +1,26 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env_fixture-result",
+  "in_reply_to": "env_fixture-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "history",
+        "data": {
+          "messages": [
+            {
+              "id": "message-1",
+              "conversation_id": "conversation-1",
+              "sender": "agent-1",
+              "body": "hello"
+            }
+          ],
+          "next": null
+        }
+      }
+    }
+  },
+  "ts": "2026-10-07T00:00:00Z"
+}

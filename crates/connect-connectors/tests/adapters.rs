@@ -1,28 +1,19 @@
 #![allow(clippy::unwrap_used)]
+use connect_connector_api::DeliveryRequest;
 use connect_connectors::{Connector, Failure, Telnyx, Vapi};
-use connect_store::{ProviderJob, Route};
 use wiremock::{
     matchers::{body_partial_json, method, path},
     Mock, MockServer, ResponseTemplate,
 };
-fn job(name: &str) -> ProviderJob {
-    ProviderJob {
-        id: "job-1".into(),
-        route: Route {
-            id: "route".into(),
-            identity_id: "identity".into(),
-            credential_id: "key".into(),
-            conversation_id: "conv".into(),
-            connector: name.into(),
-            target: if name == "vapi" {
-                "12345678-1234-1234-1234-123456789012"
-            } else {
-                "+15555550101"
-            }
-            .into(),
-            source: Some("+15555550102".into()),
-            enabled: true,
-        },
+fn job(name: &str) -> DeliveryRequest {
+    DeliveryRequest {
+        target: if name == "vapi" {
+            "12345678-1234-1234-1234-123456789012"
+        } else {
+            "+15555550101"
+        }
+        .into(),
+        source: Some("+15555550102".into()),
         body: "hello".into(),
         previous_chat_id: Some("previous-chat".into()),
     }

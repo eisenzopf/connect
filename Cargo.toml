@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 exclude = [".deps/rvoip", ".deps/parley"]
-members = ["crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "crates/connect-connectors"]
+members = ["crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "crates/connect-connectors"]
 
 [workspace.package]
 version = "0.1.0-alpha.1"
@@ -11,6 +11,7 @@ license = "MIT"
 repository = "https://github.com/eisenzopf/connect"
 
 [workspace.dependencies]
+connect-connector-api = { path = "crates/connect-connector-api" }
 connect-protocol = { path = "crates/connect-protocol" }
 connect-store = { path = "crates/connect-store" }
 connect-service = { path = "crates/connect-service" }

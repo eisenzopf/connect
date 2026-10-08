@@ -11,6 +11,7 @@ publish = false
 test-support = ["connect-store/test-support", "connect-service/test-support"]
 
 [dependencies]
+connect-connector-api.workspace = true
 connect-protocol.workspace = true
 connect-store.workspace = true
 connect-service.workspace = true

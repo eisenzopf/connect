@@ -19,3 +19,15 @@ repeats an uncertain external mutation automatically.
 
 See [the runnable presence example](../examples/agent-presence/README.md) and
 `bash scripts/check-gate-2.sh` for local conformance tests.
+
+
+The SDKs separate operations, protocol validation, errors, and transports.
+TypeScript exports named result interfaces and a discriminated `Outcome` union.
+Both consume the shared wire fixtures and reject malformed/oversized results.
+Native-client failures are terminal; close the client and recover using the same
+logical mutation ID. An application rejection leaves the client usable.
+
+Run `npm test --prefix sdk/typescript` and
+`PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p 'test_*.py'`
+for bounded helper/HTTP failure tests with no provider account. The complete local
+runner includes these tests plus real Rust native-helper/HTTP parity and recovery.

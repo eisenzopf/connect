@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 publish = false
 [dependencies]
-connect-store.workspace = true
+connect-connector-api.workspace = true
 reqwest.workspace = true
 async-trait.workspace = true
 serde.workspace = true

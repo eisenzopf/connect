@@ -1,4 +1,5 @@
 //! Lifecycle-owned telephone workers; network effects occur after durable claims.
+use connect_connector_api::{VoiceQuery, VoiceStart};
 use connect_connectors::{voice::VoiceConnector, Failure, Vapi};
 use connect_service::Service;
 use connect_store::VoiceAction;
@@ -6,7 +7,7 @@ use std::{sync::Arc, time::Duration};
 use tokio_util::sync::CancellationToken;
 pub struct Worker {
     stop: CancellationToken,
-    tasks: Vec<tokio::task::JoinHandle<()>>,
+    tasks: Vec<tokio::task::JoinHandle<anyhow::Result<()>>>,
 }
 impl Worker {
     pub fn start(service: Arc<Service>) -> anyhow::Result<Self> {
@@ -27,17 +28,7 @@ impl Worker {
     }
     pub async fn shutdown(mut self) -> anyhow::Result<()> {
         self.stop.cancel();
-        for mut task in self.tasks.drain(..) {
-            if tokio::time::timeout(Duration::from_secs(5), &mut task)
-                .await
-                .is_err()
-            {
-                task.abort();
-                let _ = task.await;
-                anyhow::bail!("Voice worker shutdown timed out; recover uncertain work");
-            }
-        }
-        Ok(())
+        crate::worker::drain(std::mem::take(&mut self.tasks), Duration::from_secs(5)).await
     }
 }
 impl Drop for Worker {
@@ -52,7 +43,7 @@ async fn discover(
     service: Arc<Service>,
     driver: Arc<dyn VoiceConnector>,
     cancelled: CancellationToken,
-) {
+) -> anyhow::Result<()> {
     loop {
         if cancelled.is_cancelled() {
             break;
@@ -62,38 +53,55 @@ async fn discover(
             Ok(Ok(b)) => b,
             _ => {
                 tracing::warn!("Inbound route storage unavailable; discovery stopped");
-                break;
+                anyhow::bail!("Inbound route storage unavailable");
             }
         };
         for binding in bindings {
-            let calls = tokio::select! {_=cancelled.cancelled()=>return,r=tokio::time::timeout(Duration::from_secs(35),driver.inbound(&binding))=>r};
+            let query = VoiceQuery {
+                assistant_id: binding.route.assistant_id.clone(),
+                phone_number_id: binding.phone_number_id.clone(),
+                since: binding.since,
+                scanned_until: binding.scanned_until,
+                scan_until: binding.scan_until,
+            };
+            let calls = tokio::select! {
+                _ = cancelled.cancelled() => return Ok(()),
+                result = tokio::time::timeout(Duration::from_secs(35), driver.inbound(&query)) => result,
+            };
             match calls {
-                Ok(Ok(calls))=>{
-                    let store=service.store.clone();
-                    let saved=tokio::task::spawn_blocking(move|| {
+                Ok(Ok(calls)) => {
+                    let store = service.store.clone();
+                    let saved = tokio::task::spawn_blocking(move || {
                         for call in calls {
-                            match store.import_voice_call(&binding.route.id,&call) {
-                                Ok(_)=>{},
-                                Err(e) if ["forbidden","unauthorized"].contains(&e.code.as_str())=>{},
-                                Err(e)=>return Err(e),
+                            match store.import_voice_call(&binding.route.id, &call) {
+                                Ok(_) => {},
+                                Err(error) if ["forbidden", "unauthorized"].contains(&error.code.as_str()) => {},
+                                Err(error) => return Err(error),
                             }
                         }
                         store.complete_voice_scan(&binding)
                     }).await;
-                    if matches!(saved,Ok(Ok(()))) {service.notify_changed();}
-                    else {tracing::warn!("Inbound voice batch not fully committed; scan cursor preserved for retry");}
+                    if matches!(saved, Ok(Ok(()))) {
+                        service.notify_changed();
+                    } else {
+                        tracing::warn!("Inbound voice batch not fully committed; scan cursor preserved for retry");
+                    }
                 }
-                _=>tracing::warn!("Inbound voice discovery unavailable or scan budget exceeded; cursor preserved for retry"),
+                _ => tracing::warn!("Inbound voice discovery unavailable or scan budget exceeded; cursor preserved for retry"),
             }
         }
-        tokio::select! {_=cancelled.cancelled()=>break,_=tokio::time::sleep(Duration::from_secs(5))=>{}}
+        tokio::select! {
+            _ = cancelled.cancelled() => break,
+            _ = tokio::time::sleep(Duration::from_secs(5)) => {},
+        }
     }
+    Ok(())
 }
 async fn control(
     service: Arc<Service>,
     driver: Arc<dyn VoiceConnector>,
     cancelled: CancellationToken,
-) {
+) -> anyhow::Result<()> {
     loop {
         if cancelled.is_cancelled() {
             break;
@@ -102,21 +110,41 @@ async fn control(
         let job = match tokio::task::spawn_blocking(move || store.claim_voice_job()).await {
             Ok(Ok(Some(j))) => j,
             Ok(Ok(None)) => {
-                tokio::select! {_=cancelled.cancelled()=>break,_=tokio::time::sleep(Duration::from_millis(100))=>{}};
+                tokio::select! {
+                    _ = cancelled.cancelled() => break,
+                    _ = tokio::time::sleep(Duration::from_millis(100)) => {},
+                }
                 continue;
             }
             _ => {
                 tracing::warn!("Voice storage unavailable; control worker stopped");
-                break;
+                anyhow::bail!("Voice storage unavailable");
             }
         };
-        let result = tokio::select! {_=cancelled.cancelled()=>Err(Failure::Uncertain),r=tokio::time::timeout(Duration::from_secs(35),async {
+        let request = VoiceStart {
+            assistant_id: job.route.assistant_id.clone(),
+            phone_number_id: job.route.phone_number_id.clone(),
+            destination: job.call.destination.clone(),
+        };
+        let action = async {
             match job.action {
-                VoiceAction::Start=>driver.start(&job).await,
-                VoiceAction::Poll=>match job.call.provider_id.as_deref(){Some(id)=>driver.status(id).await,None=>Err(Failure::Rejected)},
-                VoiceAction::End=>match job.call.provider_id.as_deref(){Some(id)=>driver.end(id,job.control_url.as_deref()).await,None=>Err(Failure::Rejected)},
+                VoiceAction::Start => driver.start(&request).await,
+                VoiceAction::Poll => match job.call.provider_id.as_deref() {
+                    Some(id) => driver.status(id).await,
+                    None => Err(Failure::Rejected),
+                },
+                VoiceAction::End => match job.call.provider_id.as_deref() {
+                    Some(id) => driver.end(id, job.control_url.as_deref()).await,
+                    None => Err(Failure::Rejected),
+                },
             }
-        })=>r.unwrap_or(Err(Failure::Uncertain))};
+        };
+        let result = tokio::select! {
+            _ = cancelled.cancelled() => Err(Failure::Uncertain),
+            result = tokio::time::timeout(Duration::from_secs(35), action) => {
+                result.unwrap_or(Err(Failure::Uncertain))
+            },
+        };
         // Read failures cannot invent a terminal outcome or erase accepted end intent.
         if result.is_err() && job.action == VoiceAction::Poll {
             continue;
@@ -145,8 +173,9 @@ async fn control(
         .await;
         if !matches!(saved, Ok(Ok(()))) {
             tracing::warn!("Voice result not committed; control stopped for reconciliation");
-            break;
+            anyhow::bail!("Voice result not committed; recover uncertain work");
         }
         service.notify_changed();
     }
+    Ok(())
 }

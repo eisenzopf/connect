@@ -1,0 +1,12 @@
+{
+  "status": "source checks passed; final installed-package qualification pending",
+  "scope": "unpublished local macOS arm64 developer alpha",
+  "initial_pass": {
+    "phases": 18,
+    "workspace": 77,
+    "upstream": 941
+  },
+  "final_evidence": "Recorded after candidate qualification",
+  "schema": 6,
+  "database_changes": "none"
+}

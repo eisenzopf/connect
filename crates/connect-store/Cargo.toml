@@ -11,6 +11,7 @@ publish = false
 test-support = []
 
 [dependencies]
+connect-connector-api.workspace = true
 connect-protocol.workspace = true
 rusqlite.workspace = true
 serde.workspace = true

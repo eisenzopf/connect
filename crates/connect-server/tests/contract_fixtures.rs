@@ -14,6 +14,10 @@ fn each_operation_has_a_decodable_envelope_and_rejects_extra_fields() {
         "request_status",
         "close",
         "health",
+        "provider_status",
+        "call_start",
+        "call_status",
+        "call_end",
     ] {
         let envelope: UctpEnvelope =
             serde_json::from_slice(&std::fs::read(root.join(format!("{name}.json"))).unwrap())

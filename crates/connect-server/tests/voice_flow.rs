@@ -1,13 +1,14 @@
 #![allow(clippy::unwrap_used)]
 use async_trait::async_trait;
 use connect_client::{ClientConfig, ConnectClient};
+use connect_connector_api::{VoiceQuery, VoiceStart};
 use connect_connectors::{
     voice::{RemoteCall, VoiceConnector},
     Failure,
 };
 use connect_protocol::{Operation, Outcome, Response};
 use connect_server::{cli::init, config::ServerConfig, runtime::RunningServer, voice::Worker};
-use connect_store::{Scope, VoiceJob, VoiceRoute};
+use connect_store::{Scope, VoiceRoute};
 use std::{
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -23,18 +24,15 @@ struct Driver {
 }
 #[async_trait]
 impl VoiceConnector for Driver {
-    async fn inbound(
-        &self,
-        b: &connect_store::VoiceIngress,
-    ) -> Result<Vec<connect_store::InboundCall>, Failure> {
+    async fn inbound(&self, b: &VoiceQuery) -> Result<Vec<connect_store::InboundCall>, Failure> {
         if !self.incoming {
             return Ok(vec![]);
         }
         Ok(vec![connect_store::InboundCall {
             provider_id: "12345678-1234-1234-1234-123456789015".into(),
-            assistant_id: b.route.assistant_id.clone(),
+            assistant_id: b.assistant_id.clone(),
             phone_number_id: b.phone_number_id.clone(),
-            caller: b.route.destinations[0].clone(),
+            caller: "+15555550101".into(),
             created_at: chrono::Utc::now().timestamp(),
             state: "in-progress".into(),
             control_url: None,
@@ -42,7 +40,7 @@ impl VoiceConnector for Driver {
         }])
     }
 
-    async fn start(&self, _: &VoiceJob) -> Result<RemoteCall, Failure> {
+    async fn start(&self, _: &VoiceStart) -> Result<RemoteCall, Failure> {
         self.starts.fetch_add(1, Ordering::SeqCst);
         if self.uncertain {
             Err(Failure::Uncertain)

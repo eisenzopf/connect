@@ -1,26 +1,9 @@
 //! Vapi telephone call control using the upstream Rust SDK.
 use crate::{classify, Failure, Vapi};
 use async_trait::async_trait;
-use connect_store::{InboundCall, VoiceIngress, VoiceJob};
+pub use connect_connector_api::{InboundCall, RemoteCall, VoiceConnector, VoiceQuery, VoiceStart};
 use serde_json::json;
 
-/// Private control URL never crosses the public SDK or application journal.
-pub struct RemoteCall {
-    pub id: String,
-    pub state: String,
-    pub control_url: Option<String>,
-    pub ended_reason: Option<String>,
-}
-#[async_trait]
-pub trait VoiceConnector: Send + Sync {
-    async fn inbound(&self, _binding: &VoiceIngress) -> Result<Vec<InboundCall>, Failure> {
-        Ok(vec![])
-    }
-
-    async fn start(&self, job: &VoiceJob) -> Result<RemoteCall, Failure>;
-    async fn status(&self, id: &str) -> Result<RemoteCall, Failure>;
-    async fn end(&self, id: &str, control_url: Option<&str>) -> Result<RemoteCall, Failure>;
-}
 fn remote(call: vapi::Call) -> Result<RemoteCall, Failure> {
     if uuid::Uuid::parse_str(&call.id).is_err() {
         return Err(Failure::Uncertain);
@@ -64,7 +47,7 @@ fn valid_control_url(url: &str, id: &str) -> bool {
 }
 #[async_trait]
 impl VoiceConnector for Vapi {
-    async fn inbound(&self, binding: &VoiceIngress) -> Result<Vec<InboundCall>, Failure> {
+    async fn inbound(&self, binding: &VoiceQuery) -> Result<Vec<InboundCall>, Failure> {
         // Updated timestamps catch calls indexed or changed after creation.
         // Re-read an overlap, and advance the durable watermark only after import.
         let lower = binding
@@ -92,7 +75,7 @@ impl VoiceConnector for Vapi {
                 reqwest::Url::parse("https://api.vapi.ai/call").map_err(|_| Failure::Rejected)?;
             url.query_pairs_mut()
                 .append_pair("limit", "100")
-                .append_pair("assistantId", &binding.route.assistant_id)
+                .append_pair("assistantId", &binding.assistant_id)
                 .append_pair("phoneNumberId", &binding.phone_number_id)
                 .append_pair("updatedAtGe", &date(lo)?)
                 .append_pair("updatedAtLe", &date(hi)?);
@@ -159,14 +142,14 @@ impl VoiceConnector for Vapi {
         Ok(result)
     }
 
-    async fn start(&self, job: &VoiceJob) -> Result<RemoteCall, Failure> {
+    async fn start(&self, job: &VoiceStart) -> Result<RemoteCall, Failure> {
         remote(
             self.client
                 .calls()
                 .create(vapi::CreateCallRequest {
-                    assistant_id: Some(job.route.assistant_id.clone()),
-                    phone_number_id: Some(job.route.phone_number_id.clone()),
-                    customer: Some(json!({"number":job.call.destination})),
+                    assistant_id: Some(job.assistant_id.clone()),
+                    phone_number_id: Some(job.phone_number_id.clone()),
+                    customer: Some(json!({"number":job.destination})),
                     ..Default::default()
                 })
                 .await
@@ -238,25 +221,17 @@ mod inbound_tests {
     async fn discovery_uses_scoped_filters_and_rejects_truncated_history() {
         let server = MockServer::start().await;
         let vapi = Vapi::new("fixture", &server.uri()).unwrap();
-        let binding = VoiceIngress {
-            route: connect_store::VoiceRoute {
-                id: "test".into(),
-                conversation_id: "conversation".into(),
-                identity_id: "assistant".into(),
-                assistant_id: "12345678-1234-1234-1234-123456789011".into(),
-                phone_number_id: "12345678-1234-1234-1234-123456789012".into(),
-                destinations: vec!["+15555550101".into()],
-                enabled: true,
-            },
+        let binding = VoiceQuery {
+            assistant_id: "12345678-1234-1234-1234-123456789011".into(),
             phone_number_id: "12345678-1234-1234-1234-123456789013".into(),
             since: 1,
             scanned_until: 0,
             scan_until: 1000,
         };
-        let row = json!({"id":"12345678-1234-1234-1234-123456789014","type":"inboundPhoneCall","assistantId":binding.route.assistant_id,"phoneNumberId":binding.phone_number_id,"customer":{"number":"+15555550101"},"createdAt":"2026-10-07T00:00:00Z","status":"ended","endedReason":"customer-ended-call"});
+        let row = json!({"id":"12345678-1234-1234-1234-123456789014","type":"inboundPhoneCall","assistantId":binding.assistant_id,"phoneNumberId":binding.phone_number_id,"customer":{"number":"+15555550101"},"createdAt":"2026-10-07T00:00:00Z","status":"ended","endedReason":"customer-ended-call"});
         Mock::given(method("GET"))
             .and(path("/call"))
-            .and(query_param("assistantId", &binding.route.assistant_id))
+            .and(query_param("assistantId", &binding.assistant_id))
             .and(query_param("phoneNumberId", &binding.phone_number_id))
             .and(query_param("limit", "100"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!([row.clone()])))
@@ -281,22 +256,14 @@ mod inbound_tests {
     async fn saturated_windows_split_without_losing_timestamp_ties_or_ids() {
         let server = MockServer::start().await;
         let vapi = Vapi::new("fixture", &server.uri()).unwrap();
-        let binding = VoiceIngress {
-            route: connect_store::VoiceRoute {
-                id: "test".into(),
-                conversation_id: "conversation".into(),
-                identity_id: "assistant".into(),
-                assistant_id: "12345678-1234-1234-1234-123456789011".into(),
-                phone_number_id: "12345678-1234-1234-1234-123456789012".into(),
-                destinations: vec!["+15555550101".into()],
-                enabled: true,
-            },
+        let binding = VoiceQuery {
+            assistant_id: "12345678-1234-1234-1234-123456789011".into(),
             phone_number_id: "12345678-1234-1234-1234-123456789013".into(),
             since: 1,
             scanned_until: 0,
             scan_until: 3000,
         };
-        let rows:Vec<_>=(0..151).map(|n|json!({"id":uuid::Uuid::new_v4().to_string(),"type":"inboundPhoneCall","assistantId":binding.route.assistant_id,"phoneNumberId":binding.phone_number_id,"customer":{"number":"+15555550101"},"createdAt":"1970-01-01T00:00:01Z","updatedAt":chrono::DateTime::from_timestamp_millis(1500+n*5).unwrap().to_rfc3339(),"status":"ended"})).collect();
+        let rows:Vec<_>=(0..151).map(|n|json!({"id":uuid::Uuid::new_v4().to_string(),"type":"inboundPhoneCall","assistantId":binding.assistant_id,"phoneNumberId":binding.phone_number_id,"customer":{"number":"+15555550101"},"createdAt":"1970-01-01T00:00:01Z","updatedAt":chrono::DateTime::from_timestamp_millis(1500+n*5).unwrap().to_rfc3339(),"status":"ended"})).collect();
         Mock::given(method("GET"))
             .and(path("/call"))
             .respond_with(move |r: &wiremock::Request| {

@@ -1,5 +1,5 @@
 {
-  "revision": 4,
+  "revision": 5,
   "scope": "Gate 2: Vapi chat and Telnyx inbound/outbound telephone voice, controlled by local Connect SDK/API. Live SMS deferred by owner pending approval.",
   "implementation_ids": [
     "G2-001",
@@ -136,8 +136,9 @@
         "G2-025"
       ],
       "proof": "Public SDK starts one Vapi call using the owned Telnyx caller ID; the authorized handset answers and exchanges intelligible audio; call outcome and provider ID remain in the Connect conversation.",
-      "evidence_class": "live-required",
-      "required": true
+      "evidence_class": "live-recorded",
+      "required": true,
+      "evidence": "evidence/gate-2/completion-live.json"
     },
     {
       "id": "A2-10",
@@ -148,8 +149,9 @@
         "G2-027"
       ],
       "proof": "A caller dials the owned Telnyx number and talks with the assigned Vapi assistant. Verified provider readback maps the call into the explicitly authorized Connect route and conversation.",
-      "evidence_class": "live-required",
-      "required": true
+      "evidence_class": "live-recorded",
+      "required": true,
+      "evidence": "evidence/gate-2/completion-live.json"
     },
     {
       "id": "A2-11",

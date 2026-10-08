@@ -389,16 +389,7 @@ pub struct VoiceIngress {
     /// Fixed upper bound chosen before contacting the provider.
     pub scan_until: i64,
 }
-pub struct InboundCall {
-    pub provider_id: String,
-    pub assistant_id: String,
-    pub phone_number_id: String,
-    pub caller: String,
-    pub created_at: i64,
-    pub state: String,
-    pub control_url: Option<String>,
-    pub ended_reason: Option<String>,
-}
+pub use connect_connector_api::InboundCall;
 impl Store {
     pub fn configure_voice_ingress(
         &self,

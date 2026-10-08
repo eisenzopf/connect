@@ -9,3 +9,5 @@ mod transports;
 pub mod providers;
 
 pub mod voice;
+
+mod worker;

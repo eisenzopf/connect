@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env_fixture-result",
+  "in_reply_to": "env_fixture-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "health",
+        "data": {
+          "installation_id": "installation-1",
+          "schema": 6,
+          "profile": "connect-control/1"
+        }
+      }
+    }
+  },
+  "ts": "2026-10-07T00:00:00Z"
+}

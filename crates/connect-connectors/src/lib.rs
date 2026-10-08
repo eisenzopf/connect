@@ -1,33 +1,11 @@
 //! Provider adapters. Connect owns durable jobs; adapters perform one attempt.
 use async_trait::async_trait;
-use connect_store::ProviderJob;
+pub use connect_connector_api::{Completion, Connector, DeliveryRequest, Failure};
 use std::time::Duration;
 
 pub mod numbers;
 pub mod setup;
 
-pub struct Completion {
-    pub provider_id: String,
-    pub reply: Option<String>,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Failure {
-    Rejected,
-    Uncertain,
-}
-impl Failure {
-    pub fn state(self) -> &'static str {
-        match self {
-            Self::Rejected => "failed",
-            Self::Uncertain => "uncertain",
-        }
-    }
-}
-#[async_trait]
-pub trait Connector: Send + Sync {
-    fn name(&self) -> &'static str;
-    async fn deliver(&self, job: &ProviderJob) -> Result<Completion, Failure>;
-}
 pub struct Telnyx {
     pub client: telnyx::Client,
 }
@@ -54,16 +32,16 @@ impl Connector for Telnyx {
     fn name(&self) -> &'static str {
         "telnyx"
     }
-    async fn deliver(&self, job: &ProviderJob) -> Result<Completion, Failure> {
+    async fn deliver(&self, job: &DeliveryRequest) -> Result<Completion, Failure> {
         if job.body.chars().count() > 1600 {
             return Err(Failure::Rejected);
         }
-        let from = job.route.source.as_deref().ok_or(Failure::Rejected)?;
+        let from = job.source.as_deref().ok_or(Failure::Rejected)?;
         let msg = self
             .client
             .messages()
             .send(telnyx::messaging::SendMessageParams::sms(
-                &job.route.target,
+                &job.target,
                 from,
                 &job.body,
             ))
@@ -105,12 +83,12 @@ impl Connector for Vapi {
     fn name(&self) -> &'static str {
         "vapi"
     }
-    async fn deliver(&self, job: &ProviderJob) -> Result<Completion, Failure> {
+    async fn deliver(&self, job: &DeliveryRequest) -> Result<Completion, Failure> {
         let chat = self
             .client
             .chats()
             .create(vapi::CreateChatRequest {
-                assistant_id: Some(job.route.target.clone()),
+                assistant_id: Some(job.target.clone()),
                 input: Some(job.body.clone()),
                 previous_chat_id: job.previous_chat_id.clone(),
                 ..Default::default()

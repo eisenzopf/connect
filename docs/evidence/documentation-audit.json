@@ -52,7 +52,7 @@
   "gate_1_source_suite_phases": 13,
   "gate_1_package_phases": 9,
   "reviewed_head": "f44c722",
-  "gate_1_conclusion": "All 53 numbered messaging items supported; later regression and current-package qualification gaps resolved. Broader availability remains B-001; pinned local patches accepted. Gate 2 outbound telephone voice verified, inbound handset proof open; live SMS owner-deferred.",
+  "gate_1_conclusion": "All 53 numbered messaging items supported; later regression and current-package qualification gaps resolved. Broader availability remains B-001; pinned local patches accepted. Gate 2 outbound telephone voice verified, inbound answering and correlation verified; live SMS owner-deferred.",
   "implementation_judgment": {
     "orchestrator_projection": "Sound Gate 1 messaging choice explicitly recorded in frozen wire contract; not a lost media feature. Voice must still reuse rvoip orchestration/media.",
     "runtime_availability": "Missing capability, retained as explicit open v0.1 requirement; delivery assignment and acceptance semantics still needed.",

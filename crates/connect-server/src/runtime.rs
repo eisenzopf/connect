@@ -154,25 +154,40 @@ impl RunningServer {
     }
     pub async fn shutdown(mut self) -> Result<()> {
         self.adapter.begin_drain();
+        let mut failures = Vec::new();
         if let Some(voice) = self.voice.take() {
-            voice.shutdown().await?;
+            if let Err(error) = voice.shutdown().await {
+                failures.push(error.to_string());
+            }
         }
         if let Some(webhook) = self.webhook.take() {
-            webhook.shutdown().await?;
+            if let Err(error) = webhook.shutdown().await {
+                failures.push(error.to_string());
+            }
         }
         if let Some(http) = self.http.take() {
-            http.shutdown().await?;
+            if let Err(error) = http.shutdown().await {
+                failures.push(error.to_string());
+            }
         }
         if let Some(providers) = self.providers.take() {
-            providers.shutdown().await?;
+            if let Err(error) = providers.shutdown().await {
+                failures.push(error.to_string());
+            }
         }
         self.endpoint.close(0u32.into(), b"server shutdown");
         if let Some(websocket) = self.websocket.take() {
-            websocket.shutdown().await?;
+            if let Err(error) = websocket.shutdown().await {
+                failures.push(error.to_string());
+            }
         }
-        tokio::time::timeout(Duration::from_secs(5), self.endpoint.wait_idle())
+        if tokio::time::timeout(Duration::from_secs(5), self.endpoint.wait_idle())
             .await
-            .context("QUIC shutdown exceeded 5 seconds")?;
+            .is_err()
+        {
+            failures.push("QUIC shutdown exceeded 5 seconds".into());
+        }
+        anyhow::ensure!(failures.is_empty(), "{}", failures.join("; "));
         Ok(())
     }
 }

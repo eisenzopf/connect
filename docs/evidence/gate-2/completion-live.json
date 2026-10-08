@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-10-08T19:42:56.879413+00:00",
+  "recorded_at": "2026-10-08T20:11:09.277297+00:00",
   "caller_id": "+12702628454",
   "backend": "vapi-telnyx-native",
   "python_native_and_http_status_match": true,
@@ -29,9 +29,34 @@
           "assistant": 0
         }
       }
+    },
+    {
+      "connect_call": {
+        "id": "b0d31811-fe95-49fe-8f83-588c21d5bc0c",
+        "conversation_id": "381f1fc3-963c-41ba-8b61-9726e343101c",
+        "direction": "inbound",
+        "state": "ended",
+        "provider_id": "01a11d23-5290-777c-9caa-529768174144",
+        "ended_reason": "customer-ended-call"
+      },
+      "provider": {
+        "id": "01a11d23-5290-777c-9caa-529768174144",
+        "type": "inboundPhoneCall",
+        "status": "ended",
+        "phone_number_id": "3e3a446c-b755-486b-93ab-11c924350fe0",
+        "assistant_id": "3b16e6b3-0b42-4c4e-b4c5-6083f85587c6",
+        "started_at": "2026-10-08T20:10:17.002Z",
+        "ended_at": "2026-10-08T20:10:29.481Z",
+        "ended_reason": "customer-ended-call",
+        "message_role_counts": {
+          "user": 2,
+          "bot": 1,
+          "assistant": 0
+        }
+      }
     }
   ],
-  "journal_call_event_count": 4,
+  "journal_call_event_count": 6,
   "no_live_sms_sent": true,
   "remote_connect_deployed": false,
   "outbound_human_confirmation": {
@@ -45,7 +70,7 @@
     "end_terminal_call_id": "2760f213-6fb7-4db3-a2e8-90c5eaf412c0",
     "end_terminal_state": "ended"
   },
-  "inbound_audio": "awaiting-handset-call-and-confirmation",
+  "inbound_audio": "Owner confirmed the Vapi assistant answered; provider records two human turns and one assistant turn. No independent audio-quality measurement claimed.",
   "byo_sip_alternative": "Vapi credential creation still rejects HTTP 400: Application creation failed; native Telnyx backend used instead",
   "shared_application": {
     "detected": true,
@@ -102,5 +127,11 @@
       "messages_in_history": 10,
       "log_sha256": "dd1577b456597ebade61e1a4e25a0fbd2fb2d52d0490dad5ac4f96fd7d392602"
     }
-  }
+  },
+  "inbound_human_confirmation": {
+    "source": "Owner message after inbound test",
+    "message": "Ok I called and the Vapi assistant answers.",
+    "disposition": "Answering confirmed; authenticated provider readback and Connect journal correlate the inbound call to the same authorized conversation."
+  },
+  "media_path": "Handset \u2194 Telnyx \u2194 Vapi. Connect controls and records calls; it does not carry their audio."
 }

@@ -1,0 +1,26 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env_fixture-result",
+  "in_reply_to": "env_fixture-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "call",
+        "data": {
+          "id": "call-1",
+          "conversation_id": "conversation-1",
+          "route_id": "route-1",
+          "destination": "+12025550123",
+          "state": "ended",
+          "direction": "inbound",
+          "end_requested": false,
+          "provider_id": "provider-call-1",
+          "ended_reason": "customer-ended-call"
+        }
+      }
+    }
+  },
+  "ts": "2026-10-07T00:00:00Z"
+}

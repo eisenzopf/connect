@@ -5,7 +5,9 @@ cd "$script_dir/.."
 bash scripts/prepare-dependencies.sh
 bash scripts/format.sh --check
 (cd sdk/typescript && npm ci && npm run build)
-PYTHONPATH=sdk/python python3 -c 'import connect_sdk'
+npm run format:check --prefix sdk/typescript
+node --test sdk/tests/clients.test.mjs
+PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p 'test_*.py'
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 python3 scripts/check-recovery.py

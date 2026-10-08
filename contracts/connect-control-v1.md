@@ -1,6 +1,6 @@
 # Connect control profile v1
 
-Status: experimental, local Gate 1. Profile `connect-control/1`, UCTP envelope
+Status: experimental, local Gates 1–2. Profile `connect-control/1`, UCTP envelope
 version 1, raw QUIC ALPN `uctp/1`. These identifiers do not derive from crate
 semver or the datagram wire version.
 
@@ -32,6 +32,10 @@ Payload is `{ "profile": "connect-control/1", "op": "...", ... }`.
 | request_status | request_id | accepted/rejected/not_found; saved outcome when permitted |
 | close | request_id, conversation_id | closed conversation; retained history |
 | health | none | installation ID, schema, profile |
+| provider_status | conversation_id | deliveries: job/message/connector IDs, state, nullable provider_id |
+| call_start | request_id, conversation_id, route_id, destination: E.164 | durable call receipt |
+| call_status | conversation_id, call_id | current durable call state |
+| call_end | request_id, conversation_id, call_id | durable end intent |
 
 Send derives its sender from current authenticated credential state. Unknown
 fields, claimed senders, invalid IDs and excessive limits fail validation.
@@ -87,3 +91,54 @@ The optional WS parity endpoint is plaintext loopback-only and carries the
 same application profile through rvoip coordination. It is not native QUIC or
 a provider/WebRTC media endpoint. Wire fixtures, including result shapes, live
 in contracts/fixtures and run through contract_fixtures and transport_parity.
+
+## Provider messaging and telephone control
+
+All twelve operations share the same authorization, UCTP profile, request/reply
+correlation, and durable conversation journal. Provider credentials and private
+call-control URLs stay server-side. A voice route binds an assistant and provider
+number to the permitted conversation/identity; a scoped voice grant authorizes
+outbound destinations. Caller ID on an inbound telephone call is an observation,
+not authentication or permission to act as a Connect identity.
+
+`send` acknowledges durable local acceptance. `provider_status` separately reports
+provider delivery; failed/uncertain work is not silently resubmitted. Vapi chat
+context is persisted. Telnyx SMS uses programmable messaging and signed callbacks;
+live carrier delivery remains deferred pending approval.
+
+A `call` result has id, conversation_id, route_id, destination, state, direction,
+end_requested, nullable provider_id and nullable ended_reason. Start acceptance
+is not proof of ringing or audio. Replaying start/end returns the immutable saved
+receipt; query `call_status` for fresh state. End intent remains durable while
+termination is being reconciled. Ambiguous provider creation is marked uncertain
+and never automatically redialed. Recovery reconciles calls with known IDs.
+
+Authenticated provider polling discovers inbound calls and advances a durable
+watermark only after the whole batch imports successfully. Journal events include
+an optional `call`; consumers must handle events with `message: null`. Import is
+deduplicated by provider ID. Status visibility is eventual, not a live media feed.
+
+The qualified telephone path is handset ↔ Telnyx ↔ Vapi. Connect provisions and
+controls that route and records its lifecycle; the audio does not pass through
+Connect, QUIC, or a Connect WebSocket. A Telnyx SIP → Connect → Vapi audio bridge is
+separate, unimplemented Gate 3 work. Local QUIC datagram probes do not prove it.
+
+## SDK behavior and compatibility
+
+Python and TypeScript validate response profiles, correlation, outcome kinds and
+required fields. Malformed/oversized responses raise `protocol`; connection loss
+or deadline expiry raises `transport-uncertain`. Application error codes are
+preserved. A native helper protocol/transport failure closes that client; open a
+new client and recover using the original logical request ID. No automatic
+mutation retry occurs. Concurrent native requests are serialized; each exchange
+has its own deadline after reaching the front of the queue. Responses are bounded
+to 600,000 bytes, requests to 64 KiB; inbox wait must fit the configured deadline.
+
+This profile is experimental. Additive operations require a matching server;
+older servers reject unknown operations, without silent transport fallback.
+Readers tolerate additional outcome fields and unfamiliar state strings, but
+require known outcome kinds and required fields. Request fields remain strict.
+Incompatible semantics or removal of fields requires a new negotiated profile,
+not merely a crate version bump. Fixtures cover every operation, rejection of
+extra request fields, every outcome kind, and inbound call events. Rust, Python
+and TypeScript consume the same result fixtures.

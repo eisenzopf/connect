@@ -1,12 +1,13 @@
 //! Owned provider worker. One request per job, serialized chat context.
-use connect_connectors::{Connector, Telnyx, Vapi};
+use connect_connector_api::DeliveryRequest;
+use connect_connectors::{Connector, Failure, Telnyx, Vapi};
 use connect_service::Service;
 use std::{sync::Arc, time::Duration};
 use tokio_util::sync::CancellationToken;
 
 pub struct Worker {
     stop: CancellationToken,
-    task: Option<tokio::task::JoinHandle<()>>,
+    task: Option<tokio::task::JoinHandle<anyhow::Result<()>>>,
 }
 impl Worker {
     pub fn start(service: Arc<Service>) -> anyhow::Result<Self> {
@@ -40,12 +41,23 @@ impl Worker {
                 let job = tokio::task::spawn_blocking(move || store.claim_provider_job()).await;
                 match job {
                     Ok(Ok(Some(job))) => {
+                        let request = DeliveryRequest {
+                            target: job.route.target.clone(),
+                            source: job.route.source.clone(),
+                            body: job.body.clone(),
+                            previous_chat_id: job.previous_chat_id.clone(),
+                        };
                         let result = if let Some(driver) =
                             drivers.iter().find(|d| d.name() == job.route.connector)
                         {
-                            tokio::select! {_ = cancelled.cancelled()=>Err(connect_connectors::Failure::Uncertain), r=tokio::time::timeout(Duration::from_secs(35),driver.deliver(&job))=>r.unwrap_or(Err(connect_connectors::Failure::Uncertain))}
+                            tokio::select! {
+                                _ = cancelled.cancelled() => Err(Failure::Uncertain),
+                                result = tokio::time::timeout(Duration::from_secs(35), driver.deliver(&request)) => {
+                                    result.unwrap_or(Err(Failure::Uncertain))
+                                },
+                            }
                         } else {
-                            Err(connect_connectors::Failure::Rejected)
+                            Err(Failure::Rejected)
                         };
                         let store = service.store.clone();
                         let saved = tokio::task::spawn_blocking(move || match result {
@@ -68,19 +80,23 @@ impl Worker {
                             tracing::warn!(
                                 "Provider result not committed; stopping worker with uncertain job"
                             );
-                            break;
+                            anyhow::bail!("Provider result not committed; recover uncertain work");
                         }
                         service.notify_changed();
                     }
                     Ok(Ok(None)) => {
-                        tokio::select! {_ = cancelled.cancelled()=>break,_ = tokio::time::sleep(Duration::from_millis(100))=>{}}
+                        tokio::select! {
+                            _ = cancelled.cancelled() => break,
+                            _ = tokio::time::sleep(Duration::from_millis(100)) => {},
+                        }
                     }
                     _ => {
                         tracing::warn!("Provider storage unavailable; stopping worker");
-                        break;
+                        anyhow::bail!("Provider storage unavailable");
                     }
                 }
             }
+            Ok(())
         });
         Ok(Self {
             stop,
@@ -89,19 +105,11 @@ impl Worker {
     }
     pub async fn shutdown(mut self) -> anyhow::Result<()> {
         self.stop.cancel();
-        if let Some(mut task) = self.task.take() {
-            if tokio::time::timeout(Duration::from_secs(5), &mut task)
-                .await
-                .is_err()
-            {
-                task.abort();
-                let _ = task.await;
-                anyhow::bail!(
-                    "Provider worker shutdown timed out; interrupted jobs require recovery"
-                );
-            }
-        }
-        Ok(())
+        crate::worker::drain(
+            self.task.take().into_iter().collect(),
+            Duration::from_secs(5),
+        )
+        .await
     }
 }
 impl Drop for Worker {

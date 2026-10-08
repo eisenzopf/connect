@@ -518,13 +518,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "connect-connector-api"
+version = "0.1.0-alpha.1"
+dependencies = [
+ "async-trait",
+ "tokio",
+]
+
+[[package]]
 name = "connect-connectors"
 version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "connect-store",
+ "connect-connector-api",
  "fs2",
  "reqwest 0.12.28",
  "rustls",
@@ -577,6 +585,7 @@ dependencies = [
  "chrono",
  "clap",
  "connect-client",
+ "connect-connector-api",
  "connect-connectors",
  "connect-protocol",
  "connect-service",
@@ -636,6 +645,7 @@ name = "connect-store"
 version = "0.1.0-alpha.1"
 dependencies = [
  "chrono",
+ "connect-connector-api",
  "connect-protocol",
  "hex",
  "hmac",

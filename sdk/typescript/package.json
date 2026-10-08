@@ -13,7 +13,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
+    "test": "npm run build && node --test ../tests/clients.test.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -21,6 +24,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^26.6.4",
+    "prettier": "^3.9.9",
     "typescript": "^7.0.2"
   }
 }
