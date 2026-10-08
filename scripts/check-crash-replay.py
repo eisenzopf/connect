@@ -5,8 +5,9 @@ from lib.local_process import ROOT, BINARY, run, port, Server, request
 with tempfile.TemporaryDirectory(prefix='connect-crash-') as temporary:
     work=pathlib.Path(temporary)
     subprocess.run(['cargo','build','--locked','-p','connect-server','--features','test-support','--bin','connect'],cwd=ROOT,check=True)
-    fault_binary=work/'connect-faults';shutil.copy2(BINARY,fault_binary)
-    subprocess.run(['cargo','build','--locked','-p','connect-server','--bin','connect'],cwd=ROOT,check=True)
+    fault_binary=work/'connect-faults';shutil.copy2(ROOT/'target/debug/connect',fault_binary)
+    if not os.environ.get('CONNECT_BINARY'):
+        subprocess.run(['cargo','build','--locked','-p','connect-server','--bin','connect'],cwd=ROOT,check=True)
     normal=work/'connect';shutil.copy2(BINARY,normal)
     assert b'CONNECT_TEST_FAULT_STAGE' not in normal.read_bytes(), 'Normal binary contains test failpoint control'
     assert b'CONNECT_TEST_FAULT_STAGE' in fault_binary.read_bytes()

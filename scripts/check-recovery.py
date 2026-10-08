@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Qualify local recovery using independent CLI/server processes and disposable state."""
-import hashlib, json, pathlib, shutil, signal, socket, sqlite3, subprocess, tempfile, time, tomllib
+import hashlib, json, os, pathlib, shutil, signal, socket, sqlite3, subprocess, tempfile, time, tomllib
 from lib.local_process import ROOT, BINARY, run, port, Server, request, config_port
-subprocess.run(['cargo','build','--locked','-p','connect-server','--bin','connect'],cwd=ROOT,check=True)
+if not os.environ.get('CONNECT_BINARY'):
+    subprocess.run(['cargo','build','--locked','-p','connect-server','--bin','connect'],cwd=ROOT,check=True)
 
 with tempfile.TemporaryDirectory(prefix='connect-recovery-') as temporary:
     work=pathlib.Path(temporary);state=work/'state';address=f'127.0.0.1:{port()}'
@@ -46,11 +47,12 @@ with tempfile.TemporaryDirectory(prefix='connect-recovery-') as temporary:
     run('restore','--backup',tampered,'--directory',work/'never-created',success=False)
     assert not (work/'never-created').exists()
     # Actual preserved prior milestone binary, not a mock reader.
-    previous=ROOT/'.local/milestones/m1/connect';previous_state=ROOT/'.local/milestones/m1/state'
-    assert previous.is_file() and previous_state.is_dir(), 'Preserve the previous milestone binary and snapshot before running this qualification'
-    prior_manifest=json.loads((ROOT/'.local/milestones/m1/manifest.json').read_text())
+    previous=pathlib.Path(os.environ.get('CONNECT_PREVIOUS_BINARY',ROOT/'.local/milestones/m1/connect'))
+    assert previous.is_file(), 'Supply the archived schema-1 milestone binary (see docs/LOCAL_RELEASE.md)'
+    prior_manifest=json.loads(previous.with_name('manifest.json').read_text())
     assert hashlib.sha256(previous.read_bytes()).hexdigest()==prior_manifest['binary_sha256']
-    legacy=work/'legacy';shutil.copytree(previous_state,legacy);config_port(legacy,port())
+    legacy=work/'legacy'
+    run('init','--directory',legacy,'--example','review-loop','--bind',f'127.0.0.1:{port()}',binary=previous)
     old_backup=work/'old-backup'
     run('backup','--config',legacy/'operator.toml','--server-config',legacy/'server.toml','--output',old_backup)
     run('migrate','--config',legacy/'operator.toml','--server-config',legacy/'server.toml','--backup',old_backup)

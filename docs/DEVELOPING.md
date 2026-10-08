@@ -31,6 +31,25 @@ python3 scripts/check-dispatch.py
 bash scripts/check-baseline.sh
 ```
 
+`bash scripts/check-local.sh` runs the complete bounded local suite, including
+format/lint, workspace tests and doctests, pinned upstream regressions, native
+dispatch and media/TypeScript experiments, and independent process recovery.
+Logs and a JSON result stay under `.local/checks/`. A failed check exits nonzero
+and reports later steps as not run. The historical schema-1 binary and adjacent
+manifest are required for the upgrade drill; use `--previous-binary PATH` when
+they are outside `.local/milestones/m1/`. Fresh legacy state is generated rather
+than copied from someone else's installation.
+
+After committing a clean candidate source, `bash scripts/package-local.sh`
+builds an unpublished release candidate under `dist/`. It includes separate
+runtime, complete SDK source, and historical qualification archives. Run
+`python3 scripts/check-package.py /absolute/path/to/candidate-directory` to
+verify hashes, compile the extracted SDK, and exercise independent installed
+binaries with offline recovery, abrupt fault replay, backup, upgrade/rollback,
+private file modes, log redaction and shutdown. See
+[the local release instructions](LOCAL_RELEASE.md). No remote deployment is
+part of either command.
+
 Use `scripts/format.sh` for formatting. `cargo fmt --all` recursively includes
 upstream path dependencies and would invalidate their recorded patch hashes.
 Do not edit `.deps/` to fix Connect behavior; record changes as explicit patches

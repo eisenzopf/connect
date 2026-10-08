@@ -1,7 +1,7 @@
 """Bounded, task-owned local CLI process helpers. No secrets in command arguments."""
-import json, pathlib, signal, socket, subprocess, tempfile, time
+import json, os, pathlib, signal, socket, subprocess, tempfile, time
 ROOT=pathlib.Path(__file__).resolve().parents[2]
-BINARY=ROOT/'target/debug/connect'
+BINARY=pathlib.Path(os.environ.get('CONNECT_BINARY', ROOT/'target/debug/connect')).resolve()
 
 def run(*args,value=None,success=True,binary=BINARY,timeout=15):
     result=subprocess.run([str(binary),*map(str,args)],input=None if value is None else json.dumps(value),text=True,capture_output=True,timeout=timeout)

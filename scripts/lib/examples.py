@@ -1,7 +1,7 @@
 """Independent example process helpers; state is owned by each application."""
-import json,subprocess
+import json,os,pathlib,subprocess
 from .local_process import ROOT
-EXAMPLE=ROOT/'target/debug/connect-example'
+EXAMPLE=pathlib.Path(os.environ.get('CONNECT_EXAMPLE_BINARY', ROOT/'target/debug/connect-example')).resolve()
 def inspect(state):return json.loads(subprocess.check_output([str(EXAMPLE),'inspect','--state',str(state)],text=True,timeout=5))
 def worker(state,role,ms=700,env=None,binary=EXAMPLE):
     return subprocess.Popen([str(binary),role,'--config',str(state/(role+'.toml')),'--run-for-ms',str(ms)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,env=env)
