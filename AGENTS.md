@@ -1,7 +1,8 @@
 # Connect contributor conventions
 
 - Implementation contracts are `docs/connect-gate-1-implementation.html` and
-  `docs/connect-gate-2-implementation.html`; their product plans define scope.
+  `docs/connect-gate-2-implementation.html` and
+  `docs/connect-gate-3-implementation.html`; their product plans define scope.
   Preserve stable IDs and update progress with real verification evidence.
 - Keep protocol, store, service, client and server responsibilities in their
   workspace crates. Examples communicate through the public client interface.

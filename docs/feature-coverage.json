@@ -19,6 +19,9 @@
       "sources": [
         "connect-v0.1-contract.html#conversation",
         "connect-first-ten-minutes.html#apps"
+      ],
+      "gate_3_criteria": [
+        "A3-01"
       ]
     },
     {
@@ -36,6 +39,9 @@
       "sources": [
         "connect-first-ten-minutes.html#presence",
         "backlog.html#B-001"
+      ],
+      "gate_3_criteria": [
+        "A3-09"
       ]
     },
     {
@@ -52,6 +58,10 @@
       ],
       "sources": [
         "connect-v0.1-contract.html#experience"
+      ],
+      "gate_3_criteria": [
+        "A3-08",
+        "A3-12"
       ]
     },
     {
@@ -69,6 +79,10 @@
       ],
       "sources": [
         "connect-first-ten-minutes.html#sdk"
+      ],
+      "gate_3_criteria": [
+        "A3-08",
+        "A3-12"
       ]
     },
     {
@@ -116,6 +130,9 @@
       "sources": [
         "connect-technical-readiness.html#experiments",
         "connect-first-ten-minutes.html#wire"
+      ],
+      "gate_3_criteria": [
+        "A3-03"
       ]
     },
     {
@@ -132,6 +149,11 @@
       "sources": [
         "connect-v0.1-contract.html#scope",
         "connect-technical-readiness.html#map"
+      ],
+      "gate_3_criteria": [
+        "A3-04",
+        "A3-05",
+        "A3-06"
       ]
     },
     {
@@ -181,6 +203,10 @@
       "sources": [
         "connect-v0.1-contract.html#conversation",
         "connect-technical-readiness.html#map"
+      ],
+      "gate_3_criteria": [
+        "A3-07",
+        "A3-08"
       ]
     },
     {
@@ -199,6 +225,10 @@
       "sources": [
         "connect-v0.1-contract.html#boundaries",
         "connect-first-ten-minutes.html#sdk"
+      ],
+      "gate_3_criteria": [
+        "A3-06",
+        "A3-12"
       ]
     },
     {
@@ -231,6 +261,9 @@
       ],
       "sources": [
         "connect-v0.1-contract.html#proof"
+      ],
+      "gate_3_criteria": [
+        "A3-13"
       ]
     },
     {
@@ -248,6 +281,11 @@
       "sources": [
         "connect-first-ten-minutes.html#start",
         "connect-v0.1-contract.html#scope"
+      ],
+      "gate_3_criteria": [
+        "A3-01",
+        "A3-10",
+        "A3-11"
       ]
     },
     {
@@ -265,6 +303,11 @@
       ],
       "sources": [
         "connect-v0.1-contract.html#experience"
+      ],
+      "gate_3_criteria": [
+        "A3-02",
+        "A3-09",
+        "A3-12"
       ]
     },
     {
@@ -315,6 +358,10 @@
       ],
       "sources": [
         "connect-v0.1-contract.html#proof"
+      ],
+      "gate_3_criteria": [
+        "A3-11",
+        "A3-13"
       ]
     },
     {
@@ -336,6 +383,11 @@
       ],
       "sources": [
         "connect-v0.1-contract.html#proof"
+      ],
+      "gate_3_criteria": [
+        "A3-02",
+        "A3-07",
+        "A3-11"
       ]
     },
     {
@@ -365,5 +417,6 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "Gate 3 decision directions accepted; detailed implementation and acceptance proof remain outstanding. Additional assistant selection deferred to Gate 4."
+  "assignment_status": "Gate 3 directions accepted; product/implementation plans and acceptance mapping drafted for review. No Gate 3 implementation proof yet. Additional assistant selection deferred to Gate 4.",
+  "gate_3_acceptance": "gate-3-acceptance.json"
 }

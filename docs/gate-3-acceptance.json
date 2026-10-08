@@ -1,0 +1,408 @@
+{
+  "revision": 1,
+  "updated": "2026-10-08",
+  "scope": "Gate 3: persistent conversation continuity, Connect-carried two-party voice, SIP/PSTN/WebRTC, basic files and availability.",
+  "status": "planned-not-implemented",
+  "product_plan": "connect-gate-3-plan.html",
+  "implementation": "connect-gate-3-implementation.html",
+  "implementation_ids": [
+    "G3-001",
+    "G3-002",
+    "G3-003",
+    "G3-004",
+    "G3-005",
+    "G3-006",
+    "G3-007",
+    "G3-008",
+    "G3-009",
+    "G3-010",
+    "G3-011",
+    "G3-012",
+    "G3-013",
+    "G3-014",
+    "G3-015",
+    "G3-016",
+    "G3-017",
+    "G3-018",
+    "G3-019",
+    "G3-020",
+    "G3-021",
+    "G3-022",
+    "G3-023",
+    "G3-024",
+    "G3-025",
+    "G3-026",
+    "G3-027",
+    "G3-028",
+    "G3-029",
+    "G3-030",
+    "G3-031",
+    "G3-032",
+    "G3-033",
+    "G3-034",
+    "G3-035"
+  ],
+  "acceptance": [
+    {
+      "id": "A3-01",
+      "title": "Durable VoIP 3 conversation model",
+      "milestones": [
+        "G3-A",
+        "G3-E"
+      ],
+      "features": [
+        "F-01",
+        "F-15"
+      ],
+      "tasks": [
+        "G3-001",
+        "G3-002",
+        "G3-003",
+        "G3-004",
+        "G3-008",
+        "G3-009",
+        "G3-010",
+        "G3-031"
+      ],
+      "proof": "One persistent cid spans messages, bounded sessions and replacement connections. Session end cannot close it. Explicit developer create produces a separate conversation. Upgrade preserves existing history/receipts; all six nouns have one documented owner.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-02",
+      "title": "Authenticated session lifecycle",
+      "milestones": [
+        "G3-A",
+        "G3-B"
+      ],
+      "features": [
+        "F-16",
+        "F-20"
+      ],
+      "tasks": [
+        "G3-004",
+        "G3-010",
+        "G3-011",
+        "G3-014",
+        "G3-031"
+      ],
+      "proof": "Public native APIs invite/accept/reject/cancel/end and expose negotiated readiness. Forged binding, expired authority and incompatible profiles fail before effects; retries preserve logical mutation identity.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-03",
+      "title": "Connect-carried native duplex voice",
+      "milestones": [
+        "G3-B"
+      ],
+      "features": [
+        "F-07"
+      ],
+      "tasks": [
+        "G3-005",
+        "G3-008",
+        "G3-011",
+        "G3-014",
+        "G3-015",
+        "G3-016",
+        "G3-017",
+        "G3-031",
+        "G3-032"
+      ],
+      "proof": "Native client \u2194 UCTP/QUIC \u2194 Connect \u2194 Vapi duplex WebSocket supports audible two-way interaction and interruption. Local impairments meet selected thresholds; live proof identifies both legs.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-04",
+      "title": "SIP endpoint interoperability",
+      "milestones": [
+        "G3-C"
+      ],
+      "features": [
+        "F-08"
+      ],
+      "tasks": [
+        "G3-006",
+        "G3-018",
+        "G3-022",
+        "G3-031"
+      ],
+      "proof": "A named local SIP endpoint exchanges two-way audio through Connect in both directions; browser/native interoperability and advertised lifecycle controls pass.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-05",
+      "title": "Connect-carried telephone voice",
+      "milestones": [
+        "G3-C"
+      ],
+      "features": [
+        "F-08"
+      ],
+      "tasks": [
+        "G3-006",
+        "G3-019",
+        "G3-020",
+        "G3-032"
+      ],
+      "proof": "Inbound and outbound Telnyx SIP/PSTN audio traverse the local Connect bridge to Vapi WebSocket. Explicit route binding, human audio confirmation and paired teardown are recorded; direct Telnyx/Vapi audio is not substituted.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-06",
+      "title": "Browser WebRTC experience",
+      "milestones": [
+        "G3-C",
+        "G3-E"
+      ],
+      "features": [
+        "F-08",
+        "F-12"
+      ],
+      "tasks": [
+        "G3-006",
+        "G3-021",
+        "G3-022",
+        "G3-026",
+        "G3-031",
+        "G3-032"
+      ],
+      "proof": "Public browser SDK and test client establish actual two-way WebRTC audio with native/SIP peers and Vapi on the named topology; permission/ICE failures and teardown are handled.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-07",
+      "title": "Authorized reliable artifacts",
+      "milestones": [
+        "G3-D"
+      ],
+      "features": [
+        "F-11",
+        "F-20"
+      ],
+      "tasks": [
+        "G3-007",
+        "G3-008",
+        "G3-023",
+        "G3-024",
+        "G3-026",
+        "G3-027",
+        "G3-031"
+      ],
+      "proof": "Native reliable transfer and HTTP retrieve matching bytes for an authorized participant; integrity, quota, interrupted transfer, current authority, expiry/deletion and consistent backup/restore pass.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-08",
+      "title": "Artifact and control interface parity",
+      "milestones": [
+        "G3-D"
+      ],
+      "features": [
+        "F-03",
+        "F-04",
+        "F-11"
+      ],
+      "tasks": [
+        "G3-007",
+        "G3-024",
+        "G3-025",
+        "G3-027",
+        "G3-031"
+      ],
+      "proof": "Rust, Python, TypeScript native clients and HTTP/JSON share the same session/file/availability authority and errors. HTTP is control/file access, not a QUIC audio transport.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-09",
+      "title": "Basic availability and optional preference",
+      "milestones": [
+        "G3-A",
+        "G3-E"
+      ],
+      "features": [
+        "F-02",
+        "F-16"
+      ],
+      "tasks": [
+        "G3-004",
+        "G3-008",
+        "G3-013",
+        "G3-026",
+        "G3-030",
+        "G3-031"
+      ],
+      "proof": "Fresh available/unavailable observations become unknown when stale; only authorized subjects update/discover them. Expiring preferred route does not auto-contact a fallback; identity remains durable.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-10",
+      "title": "Useful context across channel changes",
+      "milestones": [
+        "G3-E"
+      ],
+      "features": [
+        "F-15"
+      ],
+      "tasks": [
+        "G3-003",
+        "G3-005",
+        "G3-012",
+        "G3-015",
+        "G3-020",
+        "G3-028",
+        "G3-029",
+        "G3-030",
+        "G3-031",
+        "G3-032"
+      ],
+      "proof": "Draft/fact in chat \u2192 voice uses it \u2192 spoken decision recorded \u2192 session ends \u2192 Connect restarts \u2192 messaging uses the decision. Repeat each required voice route; retain one cid, source provenance and observed context-delivery outcome.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-11",
+      "title": "Isolation and failure recovery",
+      "milestones": [
+        "G3-A",
+        "G3-E"
+      ],
+      "features": [
+        "F-19",
+        "F-20",
+        "F-15"
+      ],
+      "tasks": [
+        "G3-003",
+        "G3-009",
+        "G3-011",
+        "G3-012",
+        "G3-015",
+        "G3-016",
+        "G3-018",
+        "G3-022",
+        "G3-023",
+        "G3-027",
+        "G3-028",
+        "G3-030",
+        "G3-031",
+        "G3-033"
+      ],
+      "proof": "Second-conversation contrast, ambiguous caller, revoked access, duplicated/out-of-order outcome, hard kill, disk-full and uncertain provider creation preserve isolation and durable intent; no false live-session resurrection or duplicate effects.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-12",
+      "title": "Public SDK and honest capability boundaries",
+      "milestones": [
+        "G3-A",
+        "G3-B",
+        "G3-D",
+        "G3-E"
+      ],
+      "features": [
+        "F-03",
+        "F-04",
+        "F-12",
+        "F-16"
+      ],
+      "tasks": [
+        "G3-004",
+        "G3-007",
+        "G3-008",
+        "G3-014",
+        "G3-021",
+        "G3-025",
+        "G3-026",
+        "G3-031",
+        "G3-033",
+        "G3-034"
+      ],
+      "proof": "Native Rust/Python/Node can control sessions and send/receive audio on their declared native bindings. Browser WebRTC is separate and usable through a public facade. Examples use public APIs; unsupported video/profile/media modes fail explicitly.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A3-13",
+      "title": "Reproducible local candidate and review",
+      "milestones": [
+        "G3-E"
+      ],
+      "features": [
+        "F-14",
+        "F-19"
+      ],
+      "tasks": [
+        "G3-001",
+        "G3-031",
+        "G3-032",
+        "G3-033",
+        "G3-034",
+        "G3-035"
+      ],
+      "proof": "Bounded offline runner plus separate real-provider qualification, installed-candidate checks and schema/database/blob restore all pass at recorded revisions. Owner can review evidence and limits; SMS stays deferred and no remote deployment occurs.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    }
+  ],
+  "closure_rule": "Every required criterion must have actual local and, where named, live proof on the recorded candidate. No automated provider account operations; blocked live routes block Gate 3 closure. SMS is deferred separately, not waived from v0.1.",
+  "legacy_references": {
+    "G2-024": [
+      "G3-014",
+      "G3-015",
+      "G3-017"
+    ],
+    "G2-026": [
+      "G3-018",
+      "G3-020",
+      "G3-021",
+      "G3-022"
+    ]
+  },
+  "deferred": {
+    "sms": "G2-018/G2-019 resume after approval; repeat SMS context boundary before full v0.1",
+    "assistant_and_tools": "Gate 4: additional assistant selection, MCP/skill and task resumption",
+    "video": "Gate 5 delivery; minimal profile selection belongs to G3-006/G3-008"
+  },
+  "evidence": {
+    "local": null,
+    "live": null,
+    "package": null,
+    "review": null
+  }
+}

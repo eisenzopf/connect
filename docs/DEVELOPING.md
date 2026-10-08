@@ -7,9 +7,12 @@ and the affected gate’s product/delivery plan.
 [Gate 2’s plan](connect-gate-2-plan.html) defines chat and provider telephone acceptance;
 [its checklist](connect-gate-2-implementation.html) records work and evidence.
 Provider telephone call control is Gate 2. Native audio and browser WebRTC are
-Gate 3, even where older G2 item IDs are retained. Gate 3 native media work
-still needs its own product/delivery plan. Local rvoip patches remain
-accepted when pinned and reproducible. Presence/preferences are decision B-001.
+Gate 3, even where older G2 item IDs are retained. Gate 3 has a [product/delivery plan](connect-gate-3-plan.html),
+[numbered implementation plan](connect-gate-3-implementation.html) and
+[acceptance map](gate-3-acceptance.json), drafted for review. Its implementation
+and media qualification remain outstanding. Local rvoip patches remain
+accepted when pinned and reproducible. Basic availability and a small optional preference override are planned in Gate 3;
+broader presence/preferences remain decision B-001.
 
 ## Repository layout
 
@@ -78,7 +81,9 @@ licensing and contributor entry points.
 Update a numbered item with `python3 scripts/update-plan.py --item G1-001
 --status done --owner YOUR_NAME --evidence PATH_OR_COMMAND_RESULT`. The updater
 validates status, dependencies and completion evidence, and keeps the embedded
-HTML task data authoritative. Do not mark an unrun qualification as complete.
+HTML task data authoritative. This updater currently targets Gate 1 only. For Gate 3, use its HTML editor and
+save the updated document, or update the embedded task data and static task card
+together. Do not mark an unrun qualification as complete.
 
 The Gate 2 offline runner is `bash scripts/check-gate-2.sh`. It must
 not provision accounts, purchase numbers, send SMS or place calls. Keep live

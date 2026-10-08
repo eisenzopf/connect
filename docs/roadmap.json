@@ -32,8 +32,8 @@
       "id": 3,
       "name": "Native media and interoperability",
       "outcome": "Native media, session/capability/availability contracts, basic files and explicit cross-channel continuity.",
-      "status": "preparatory-work-no-audio-qualification",
-      "plan": null,
+      "status": "planned-documents-ready-for-review",
+      "plan": "connect-gate-3-plan.html",
       "milestones": [
         {
           "id": "G3-A",
@@ -41,7 +41,7 @@
           "depends_on": [
             "gate-2"
           ],
-          "outcome": "Specify the six VoIP 3.0 nouns and their lifecycle/ownership in Connect before media integration. Define durable conversation context and its bounded runtime projections, invite/accept/reject/end, negotiated route capabilities and basic availability. Select media/network and minimal video profiles. Write the Gate 3 product plan, then its numbered implementation plan.",
+          "outcome": "Specify the six VoIP 3.0 nouns and their lifecycle/ownership in Connect before media integration. Define durable conversation context and its bounded runtime projections, invite/accept/reject/end, negotiated route capabilities and basic availability. Select media/network and minimal video profiles. Implement the contracts and compatibility experiments defined in the Gate 3 product and numbered implementation plans.",
           "acceptance": "Reviewable contracts and executable rejection fixtures: unsupported route/media, unauthorized invitation, stale/unknown availability and ambiguous context binding. Record B-001 ownership/scope and the selected network/codec profile. Demonstrate that session end, connection replacement and provider-ID changes do not erase the conversation record. Explicitly identify membership/handoff limitations; preserve Session history while treating live connection/media state as transient.",
           "reuse": "rvoip/UCTP session and capability primitives; Parley conversation semantics. Review upstream gaps before adding Connect-specific protocol extensions.",
           "experiment": "E3 / E5 design",
@@ -99,7 +99,8 @@
           "status": "planned"
         }
       ],
-      "implementation": null
+      "implementation": "connect-gate-3-implementation.html",
+      "acceptance": "gate-3-acceptance.json"
     },
     {
       "id": 4,
@@ -235,7 +236,7 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 3\u20135 detailed product/implementation plans still need to be written.",
+    "Gate 3 plans and acceptance mapping are drafted for review; Gate 4\u20135 detailed plans remain unwritten.",
     "Six Gate 3 directions are accepted; codec, network, context, availability, artifact and compatibility details must be resolved through G3-A and its qualification work.",
     "Additional assistant selection/research is deferred to G4-A.",
     "Carrier approval gates the deferred live SMS lane and full v0.1 release."
@@ -243,9 +244,9 @@
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
-  "revision": 3,
+  "revision": 4,
   "document": "connect-roadmap.html",
-  "planning_status": "Owner accepted the six Gate 3 decision directions; engineering details and detailed gate plans remain to be specified. Additional assistant selection is deferred to Gate 4.",
+  "planning_status": "Gate 3 product and numbered implementation plans drafted for review; six directions accepted, engineering parameters remain subject to G3-008. Additional assistant selection is deferred to Gate 4.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Deliver basic files before Gate 4 artifact/task continuation. Design video early and qualify it in Gate 5. SMS is a parallel deferred qualification lane and a full v0.1 release blocker.",
   "parallel_lanes": [
     {
@@ -292,7 +293,7 @@
       "id": "D-03",
       "title": "Context-transfer and ambiguous-reply policy",
       "due": "G3-A",
-      "decision": "VoIP 3.0 continuity is a core architectural requirement. Retained history and accumulated context belong to the Conversation; assistant runtimes receive explicit authorized bounded projections. Session end or transport change does not close or reset the Conversation. Never infer continuity from matching IDs alone.",
+      "decision": "VoIP 3.0 continuity is a core architectural requirement. Retained history and accumulated context belong to the Conversation; assistant runtimes receive explicit authorized bounded projections. Session end or transport change does not close or reset the Conversation. Never infer continuity from matching IDs alone. Persistent is the default; only explicit developer/application intent creates a new conversation.",
       "source": "connect-first-ten-minutes.html#start",
       "status": "direction-accepted",
       "engineering_follow_up": "Specify context items, provenance, versioning/watermarks, provider delivery acknowledgments, retention and ambiguous-caller behavior. Prove useful context in both directions across chat/voice, including restart.",
@@ -341,13 +342,15 @@
     "name": "VoIP 3.0 conversation continuity",
     "sources": [
       "https://rudeless.ai/voip3",
-      "https://github.com/eisenzopf/rvoip/blob/main/docs/voip-3-conversation-model.md"
+      "https://github.com/eisenzopf/rvoip/blob/main/docs/voip-3-conversation-model.md",
+      "https://github.com/eisenzopf/rvoip/blob/main/docs/CONVERSATION_PROTOCOL.md"
     ],
     "reviewed": "2026-10-08",
     "source_status": "Conceptual working draft; not evidence of complete rvoip/Connect implementation or a replacement wire specification.",
     "core": "Conversation is the durable home for communication history and accumulated context. Sessions, Messages, Participants, Connections and Streams retain distinct responsibilities; transport/provider identifiers are bindings, not the conversation identity.",
     "context_policy": "Persist conversation history and context according to declared retention/access policy. Supply authorized bounded projections to assistant runtimes, with source references, version/watermark and delivery outcome. A summary is derived context, not a replacement for retained source history. Context unavailable at a provider boundary must be explicit.",
     "gate_3_proof": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. Repeat the SMS boundary after carrier approval; live SMS remains deferred.",
-    "scope_boundary": "The model must represent human/AI kinds, conversation roles and connection changes without losing conversation context. G3-A records gaps in current immutable membership and plans the minimum lifecycle contract; this does not declare live human handoff, multiparty mixing or cross-device transfer already implemented."
+    "scope_boundary": "The model must represent human/AI kinds, conversation roles and connection changes without losing conversation context. G3-A records gaps in current immutable membership and plans the minimum lifecycle contract; this does not declare live human handoff, multiparty mixing or cross-device transfer already implemented.",
+    "lifetime_policy": "Connect defaults to persistent conversations. New sessions, provider legs, connections and bounded runtime context views reuse the existing cid. Only explicit developer/application intent creates a new conversation; unresolved inbound binding is not an automatic split or merge."
   }
 }
