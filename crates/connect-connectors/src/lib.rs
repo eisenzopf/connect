@@ -85,6 +85,10 @@ impl Vapi {
         Self::new(&secret("VAPI_PRIVATE_KEY")?, "https://api.vapi.ai")
     }
     pub fn new(key: &str, base: &str) -> anyhow::Result<Self> {
+        // Establish the process default before entering the upstream SDK's
+        // check-then-install Once. Concurrent Telnyx/reqwest initialization can
+        // otherwise win between its check and install and poison that Once.
+        let _ = rustls::crypto::ring::default_provider().install_default();
         Ok(Self {
             client: vapi::VapiClient::builder()
                 .token(key)
