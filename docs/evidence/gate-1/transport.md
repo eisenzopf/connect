@@ -37,3 +37,16 @@ The public Rust client uses actual native QUIC and verified TLS. Raw fixture
 peers are test support, not another SDK. Optional WS is plaintext loopback-only;
 decision 005 explains its coordinator reuse and owned local lifecycle. No live
 provider, media interoperability, WAN or production claims follow from M3.
+
+## M5 shutdown regression
+
+A new pressure case keeps a WS socket open, queues 600 empty-inbox requests
+with 5-second waits, and configures a 60-second send deadline. Before the fix,
+`shutdown_cancels_a_ws_reader_blocked_on_a_full_inbound_queue` failed its
+3-second shutdown bound. The reader was blocked on `in_tx.send` and did not
+observe listener cancellation.
+
+The capacity wait now selects cancellation as well as send completion.
+`cargo test --locked -p connect-server --test transport_pressure` passes all
+4 cases, including shutdown and rebinding the released TCP port. This closes
+the discovered drain gap without changing durable application semantics.

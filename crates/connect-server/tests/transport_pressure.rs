@@ -9,6 +9,44 @@ use std::time::Duration;
 use support::Peer;
 
 #[tokio::test]
+async fn shutdown_cancels_a_ws_reader_blocked_on_a_full_inbound_queue() {
+    let temp = tempfile::tempdir().unwrap();
+    let directory = temp.path().join("state");
+    init::initialize(&directory, true, "127.0.0.1:0".parse().unwrap()).unwrap();
+    let mut config = ServerConfig::load(&directory.join("server.toml")).unwrap();
+    config.websocket_bind = Some("127.0.0.1:0".parse().unwrap());
+    config.limits.request_timeout_ms = 60_000;
+    let server = RunningServer::start(config).await.unwrap();
+    let address = server.websocket_address.unwrap();
+    let client = ClientConfig::load(&directory.join("agent.toml")).unwrap();
+    let mut observer = Peer::websocket(address).await;
+    assert!(observer.authenticate(&client.credential).await);
+    // Empty inbox waits occupy dispatch while the 256-slot input queue fills.
+    // Keep the socket open, with no application reads or client cancellation.
+    for _ in 0..600 {
+        observer
+            .send(UctpEnvelope::new(
+                MessageType::Unknown(REQUEST_TYPE.into()),
+                serde_json::to_value(Request::new(Operation::Inbox {
+                    cursor: None,
+                    limit: 100,
+                    wait_ms: 5000,
+                }))
+                .unwrap(),
+            ))
+            .await;
+    }
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    tokio::time::timeout(Duration::from_secs(3), server.shutdown())
+        .await
+        .unwrap()
+        .unwrap();
+    let listener = tokio::net::TcpListener::bind(address).await.unwrap();
+    drop(listener);
+    observer.close().await;
+}
+
+#[tokio::test]
 async fn stalled_readers_are_bounded_and_healthy_peer_recovers_all_journal_pages() {
     let temp = tempfile::tempdir().unwrap();
     let directory = temp.path().join("state");

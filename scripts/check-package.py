@@ -134,8 +134,10 @@ try:
             passed(script, 'Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults')
     report['result'] = 'passed'
     save()
+    (candidate/'QUALIFICATION.json').write_text(json.dumps(report, indent=2)+'\n')
     print('PASS local package qualification:', results/'result.json', flush=True)
 except BaseException as error:
     report.update(result='failed', error=type(error).__name__)
     save()
+    (candidate/'QUALIFICATION.json').write_text(json.dumps(report, indent=2)+'\n')
     raise

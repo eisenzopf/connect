@@ -138,8 +138,12 @@ async fn peer(
                     let Ok(envelope) = serde_json::from_str::<UctpEnvelope>(&text) else {
                         return;
                     };
-                    if in_tx.send(envelope).await.is_err() {
-                        return;
+                    // Capacity waits must observe listener shutdown too. A
+                    // pending long inbox read may otherwise keep this pump
+                    // alive after cancellation, delaying peer supervision.
+                    tokio::select! {
+                        _=stop.cancelled()=>return,
+                        result=in_tx.send(envelope)=>if result.is_err(){return},
                     }
                 }
                 Some(Ok(Message::Ping(_) | Message::Pong(_))) => {}

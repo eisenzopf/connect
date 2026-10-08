@@ -95,5 +95,6 @@ with tarfile.open(output/(candidate+'-qualification.tar.gz'), 'w:gz') as archive
     archive.add(qualification, arcname='qualification')
 archives = sorted(output.glob('*.tar.gz'))
 (output/'SHA256SUMS').write_text(''.join(f'{digest(p)}  {p.name}\n' for p in archives))
+(output/'QUALIFICATION.json').write_text(json.dumps({'candidate': candidate, 'result': 'not-run', 'scope': 'local macOS arm64 only'}, indent=2)+'\n')
 print('Local candidate:', output)
 print('Runtime archive, complete SDK source, and archived schema-1 qualification binary created. Nothing published.')
