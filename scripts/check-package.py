@@ -88,6 +88,9 @@ try:
                            stdout=log, stderr=subprocess.STDOUT, check=True, timeout=2400)
         passed('sdk-source-build', 'Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies')
         os.environ.update(CONNECT_BINARY=str(release/'bin/connect'), CONNECT_EXAMPLE_BINARY=str(release/'bin/connect-example'), CONNECT_PREVIOUS_BINARY=str(prior))
+        # Qualify the application's default diagnostics, independent of the
+        # reviewer's shell-level logging overrides (this host uses warn).
+        os.environ.pop('RUST_LOG', None)
         # Import only after choosing installed binaries, including default arguments.
         from lib.local_process import BINARY, Server, run, port, request
         from lib.examples import EXAMPLE, inspect, pair
@@ -116,6 +119,7 @@ try:
         assert canary not in logs and logical not in logs
         assert all(secret not in logs for secret in secrets)
         assert 'PRIVATE KEY' not in logs
+        logs = re.sub(r'\x1b\[[0-9;]*m', '', logs)
         assert 'application operation completed' in logs and 'operation="send"' in logs
         assert hashlib.sha256(logical.encode()).hexdigest()[:16] in logs
         for path in state.rglob('*'):
