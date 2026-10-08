@@ -3,7 +3,7 @@
   "product": "Connect",
   "identity": "Communication for people, apps, and agents",
   "priority": "Server and SDK first",
-  "release": "Local developer-alpha candidate qualified; unpublished. Full v0.1 remains planned.",
+  "release": "Gates 1 and 2 qualified within their recorded scope; full v0.1 remains unreleased.",
   "gates": [
     {
       "id": 1,
@@ -25,29 +25,203 @@
       "acceptance": "gate-2-acceptance.json",
       "offline_qualification": "evidence/gate-2/completion-qualification.json",
       "live_evidence": "evidence/gate-2/completion-live.json",
-      "package_qualification": "evidence/gate-2/completion-package.json",
+      "package_qualification": "evidence/stabilization/result.json",
       "stabilization": "evidence/stabilization/result.json"
     },
     {
       "id": 3,
       "name": "Native media and interoperability",
-      "outcome": "Native QUIC datagram audio to Vapi, Connect-carried SIP/PSTN media and browser WebRTC with qualified lifecycle and codecs.",
+      "outcome": "Native media, session/capability/availability contracts, basic files and explicit cross-channel continuity.",
       "status": "preparatory-work-no-audio-qualification",
-      "plan": null
+      "plan": null,
+      "milestones": [
+        {
+          "id": "G3-A",
+          "title": "Set the conversation and media contracts",
+          "depends_on": [
+            "gate-2"
+          ],
+          "outcome": "Define invite/accept/reject/end, negotiated route capabilities, bounded media profiles, availability freshness and explicit context-transfer policy. Select a minimal video profile now so audio interfaces can accommodate it. Write the Gate 3 product plan, then its numbered implementation plan.",
+          "acceptance": "Reviewable contracts and executable rejection fixtures: unsupported route/media, unauthorized invitation, stale/unknown availability and ambiguous context binding. Record B-001 ownership/scope and the selected network/codec profile.",
+          "reuse": "rvoip/UCTP session and capability primitives; Parley conversation semantics. Review upstream gaps before adding Connect-specific protocol extensions.",
+          "experiment": "E3 / E5 design",
+          "status": "planned"
+        },
+        {
+          "id": "G3-B",
+          "title": "Carry native QUIC audio through Connect",
+          "depends_on": [
+            "G3-A"
+          ],
+          "outcome": "Bridge reliable UCTP control and bidirectional QUIC datagram audio to Vapi’s WebSocket interface using rvoip media components.",
+          "acceptance": "Distinct client/server processes; audible two-way assistant conversation, negotiated formats, interruptions, loss/disconnect, cancellation and paired teardown. Preserve trace evidence separating QUIC and provider WebSocket legs.",
+          "reuse": "rvoip QUIC media and Vapi adapter; Parley audio-host behavior. Requalify against Connect’s pinned dependency graph.",
+          "experiment": "E3; legacy G2-024",
+          "status": "planned"
+        },
+        {
+          "id": "G3-C",
+          "title": "Prove the SIP, telephone and browser routes",
+          "depends_on": [
+            "G3-A",
+            "G3-B"
+          ],
+          "outcome": "Carry Telnyx SIP/PSTN audio through Connect to Vapi; add browser WebRTC participation and a named SIP endpoint. Keep the existing direct provider route available and labeled separately.",
+          "acceptance": "Inbound and outbound Connect-carried telephone conversations, SIP endpoint and browser microphone/speaker audio. Test each-side hangup, hold where advertised, interruptions, provider failures and the selected NAT/TURN conditions.",
+          "reuse": "rvoip SIP/WebRTC; Parley browser/SIP host; Bridgefu provider-control patterns if the chosen topology needs them. Resource creation alone is not media proof.",
+          "experiment": "E5; legacy G2-026",
+          "status": "planned"
+        },
+        {
+          "id": "G3-D",
+          "title": "Deliver the artifact foundation",
+          "depends_on": [
+            "G3-A"
+          ],
+          "outcome": "Add authorized file upload/download, conversation attachment references, integrity checks, size/retention policy and SDK methods. Provide a minimal human test surface for messages and files. This can proceed alongside media.",
+          "acceptance": "One native app shares a draft; its authorized recipient retrieves matching bytes; another identity is denied. Test interrupted transfer, restart, expiry/deletion and unsupported channel behavior.",
+          "reuse": "rvoip attachment model and Parley blob patterns are inputs, not a complete file service. Connect owns its access and lifecycle contract.",
+          "experiment": "Early portion of E8",
+          "status": "planned"
+        },
+        {
+          "id": "G3-E",
+          "title": "Keep the conversation coherent across channels",
+          "depends_on": [
+            "G3-B",
+            "G3-C",
+            "G3-D"
+          ],
+          "outcome": "Carry explicit, authorized context between native messages, Vapi chat and voice. Extend the small test client to audio. Publish permitted routes and availability with offline/unknown semantics.",
+          "acceptance": "A fact from chat is available during the mapped call and a call result returns to the intended conversation. Prove no context leaks to another caller/task, no guessing on ambiguous replies, and no silent fallback contact after a timeout.",
+          "reuse": "Parley chat/session mapping, Connect identity/journal and Thelve authority-design lessons. Call-ID correlation by itself does not prove model context transfer.",
+          "experiment": "E3 / E5 / E7 integration",
+          "status": "planned"
+        }
+      ],
+      "implementation": null
     },
     {
       "id": 4,
       "name": "Agent follow-through",
-      "outcome": "Connect MCP tools, skill, and one selected additional assistant resume the originating task after a reply.",
+      "outcome": "MCP and skill, Vapi tool use, one selected host and complete task-correlated agent/app follow-through.",
       "status": "planned",
-      "plan": null
+      "plan": null,
+      "milestones": [
+        {
+          "id": "G4-A",
+          "title": "Select and qualify one additional assistant host",
+          "depends_on": [
+            "gate-1"
+          ],
+          "outcome": "Research the exact Meta Muse, Grokbot, OpenClaw, Codex and other candidate products. Choose one installable integration using documented interfaces. Research may start during Gate 3.",
+          "acceptance": "Compare installation, scoped authentication, conversation/task binding, incoming reply delivery and continuation. Record tested versions and automatic, bounded-wait or explicit-resume behavior. Name one winner with evidence; do not imply all candidates are supported.",
+          "reuse": "Parley worker/pending-command patterns; Thelve managed-MCP design. Verify current host interfaces during this milestone.",
+          "experiment": "E6 research",
+          "status": "planned"
+        },
+        {
+          "id": "G4-B",
+          "title": "Ship tools and a useful skill",
+          "depends_on": [
+            "G3-D",
+            "G4-A"
+          ],
+          "outcome": "Expose discoverable Connect MCP tools backed by the same public operations and credentials. Package the workflow skill and JSON CLI instructions. Configure Vapi to consume the tools in both chat and voice.",
+          "acceptance": "Installed tools resolve, message, share a file, read history, wait for events and control supported sessions. Vapi makes an authorized tool call in chat and a live voice session; identity, call/chat, conversation and tool results correlate. Denials and retries match SDK behavior.",
+          "reuse": "Thelve Streamable HTTP MCP patterns; existing SDK/CLI; Parley tool-correlation lessons. A provider-specific tool callback is not automatically an MCP endpoint.",
+          "experiment": "E6 tool contract",
+          "status": "planned"
+        },
+        {
+          "id": "G4-C",
+          "title": "Complete the agent and app follow-through journeys",
+          "depends_on": [
+            "G3-E",
+            "G4-B"
+          ],
+          "outcome": "The selected assistant shares a draft, asks a human, receives the reply and continues the original task. The review app both initiates and answers independently initiated requests through public interfaces.",
+          "acceptance": "Install without user-written glue. Restart/resume, deduplicate replies/business effects, reject unauthorized actions and demonstrate the declared host wake/resume mode. Prove both entry points; a successful send alone does not pass.",
+          "reuse": "Connect durable inbox/receipts and the existing independent app example; host adapter maintains task binding. Phone/SMS journey additionally requires the SMS lane.",
+          "experiment": "E6 / E7 complete",
+          "status": "planned"
+        }
+      ],
+      "implementation": null
     },
     {
       "id": 5,
       "name": "Downloadable v0.1",
-      "outcome": "Qualify files and video, a human reference client, connector kit and independently repeatable release/recovery checks.",
+      "outcome": "Video, connector/protocol conformance, first-run setup, measured end-to-end acceptance and published v0.1.",
       "status": "planned",
-      "plan": null
+      "plan": null,
+      "milestones": [
+        {
+          "id": "G5-A",
+          "title": "Qualify the agreed video experience",
+          "depends_on": [
+            "G3-E"
+          ],
+          "outcome": "Implement the minimal two-party video profile selected in G3-A, including public SDK/session behavior and the human reference client. Files and video remain v0.1 commitments.",
+          "acceptance": "Visible video and audio between distinct clients on every advertised video path; negotiation, unsupported-profile response, access, interruption and teardown. Publish the actual topology/codecs; do not imply every provider supports video.",
+          "reuse": "rvoip VP8/H.264/WebRTC/QUIC primitives and tests; requalify the exact selected Connect path.",
+          "experiment": "Video portion of E8",
+          "status": "planned"
+        },
+        {
+          "id": "G5-B",
+          "title": "Finish the contributor and protocol extension kit",
+          "depends_on": [
+            "G3-A",
+            "G4-B"
+          ],
+          "outcome": "Extend the existing storage-independent connector API with a capability/configuration manifest, lifecycle guidance, template and shared contract harness. Publish the interoperable wire profile and conformance materials.",
+          "acceptance": "An independent contributor adds a fixture connector without changing core conversation/routing logic; explicit composition registration is allowed. A separately implemented wire client—not just the same Rust helper—negotiates and exchanges permitted requests/events using the published specification.",
+          "reuse": "Current connect-connector-api; Bridgefu provider/recipe boundaries; Parley connector guidance. No marketplace or automatic third-party code loading is required.",
+          "experiment": "Connector portion of E8; independent conformance",
+          "status": "planned"
+        },
+        {
+          "id": "G5-C",
+          "title": "Make first-run setup usable and explicit",
+          "depends_on": [
+            "G4-C"
+          ],
+          "outcome": "Finish resource selection/change preview, protected credential storage, human-contact ownership checks, inbound/outbound readiness diagnostics and interruption-safe setup. Define supported endpoint/NAT/ingress configuration without introducing a hosted service requirement.",
+          "acceptance": "A new developer installs and runs the native demo with no account; with ready accounts, chooses resources and completes authorized provider setup. Invalid keys, unreachable callbacks and unready SMS yield specific next actions. Measure setup time after install; do not claim ten minutes before measurement.",
+          "reuse": "Existing Connect provisioning/checkpoints; Parley resource handling and Thelve durable intent patterns. Confirm provenance/licensing before any additional extraction.",
+          "experiment": "E1 / E4 / E5 product setup",
+          "status": "planned"
+        },
+        {
+          "id": "G5-D",
+          "title": "Run the complete product acceptance matrix",
+          "depends_on": [
+            "G5-A",
+            "G5-B",
+            "G5-C",
+            "G2-SMS"
+          ],
+          "outcome": "Qualify files, messages, voice and video through the public SDK and reference client; rerun both agent and app journeys across declared interfaces. Publish measured limits and recovery behavior.",
+          "acceptance": "Fresh-user walkthroughs, cross-channel continuity, independent protocol client, SDK/MCP/CLI parity, credential revocation, file access/retention, restart/replay, unknown provider outcomes and network-loss/load tests. Publish supported OS/runtime, topology, concurrency, latency/loss and retention limits with evidence.",
+          "reuse": "Reuse the existing local/package/recovery harness; add the missing media, artifact, host and live-provider evidence. Local Gate 1/2 qualification is a baseline, not this release test.",
+          "experiment": "E1–E8 integrated release evidence",
+          "status": "planned"
+        },
+        {
+          "id": "G5-E",
+          "title": "Publish a reproducible developer release",
+          "depends_on": [
+            "G5-D"
+          ],
+          "outcome": "Prepare versioned server/SDK distributions, examples, tool/skill installation, source/dependency notices, specification licensing, compatibility matrix and release notes matching the tested capabilities.",
+          "acceptance": "A reviewer outside the development workspace installs the candidate, completes both supported journeys, upgrades/restores safely and follows the connector guide. Release artifacts and documentation agree. Owner reviews before publication.",
+          "reuse": "Current unpublished macOS arm64 packaging and source hashes; broader platforms require their own qualification. Existing local upstream patches remain explicit until replaced and requalified.",
+          "experiment": "Release qualification",
+          "status": "planned"
+        }
+      ],
+      "implementation": null
     }
   ],
   "source_of_truth": {
@@ -56,15 +230,91 @@
     "reuse": "connect-technical-readiness.html",
     "gate_product_plans": "connect-gate-N-plan.html",
     "gate_implementation": "connect-gate-N-implementation.html",
-    "actual_evidence": "evidence/gate-N/"
+    "actual_evidence": "evidence/gate-N/",
+    "delivery": "connect-roadmap.html (human-readable) and roadmap.json (structured milestone data)"
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Queryable availability requires delivery assignment and acceptance semantics",
-    "Gate 3 product/delivery plan missing before native media development",
-    "Full cross-channel context-transfer acceptance requires explicit integration"
+    "Gate 3–5 detailed product/implementation plans are still to be written from this proposed roadmap.",
+    "D-01–D-07 are unresolved decisions with named deadlines; assignment is not resolution.",
+    "Carrier approval gates the deferred live SMS lane and full v0.1 release."
   ],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
-  "local_patches": "Accepted for now; source-lock digests verified"
+  "local_patches": "Accepted for now; source-lock digests verified",
+  "revision": 2,
+  "document": "connect-roadmap.html",
+  "planning_status": "Future milestones proposed for owner review; no dates or implementation completion implied",
+  "sequencing_rule": "Keep gates 1–5 and their evidence IDs. Deliver basic files before Gate 4 artifact/task continuation. Design video early and qualify it in Gate 5. SMS is a parallel deferred qualification lane and a full v0.1 release blocker.",
+  "parallel_lanes": [
+    {
+      "id": "G2-SMS",
+      "title": "Return deferred SMS to live qualification",
+      "status": "deferred-external-approval",
+      "trigger": "Provider/carrier approval, eligible number assignment, consented test handset and verified reachable callback endpoint",
+      "depends_on": [
+        "gate-2"
+      ],
+      "acceptance": "Send and receive real SMS; verify a signed provider callback, message/delivery correlation, second-turn context and assistant-initiated summary/reply through authorized tools. Keep uncertain sends from being duplicated.",
+      "existing_items": [
+        "G2-018",
+        "G2-019"
+      ],
+      "blocks": [
+        "G5-D"
+      ],
+      "note": "Gate 2 retains its owner-approved closure scope. SMS is not waived from full v0.1 and need not block independent media/agent development."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-01",
+      "title": "Availability and the scope of B-001",
+      "due": "G3-A",
+      "decision": "Assign required queryable availability to G3-E; define unknown/offline/freshness, endpoint disclosure and update authority. Decide whether richer contact registries, schedules and preferences enter v0.1 or remain backlog. No permission-console project is added.",
+      "source": "backlog.html#B-001"
+    },
+    {
+      "id": "D-02",
+      "title": "Session, voice, video and network profiles",
+      "due": "G3-A",
+      "decision": "Name invitation semantics, supported codecs/topologies, Connect-carried SIP path, browser NAT/TURN conditions and minimum video profile before freezing media interfaces. Set measurable acceptance targets after spikes.",
+      "source": "connect-v0.1-contract.html#review"
+    },
+    {
+      "id": "D-03",
+      "title": "Context-transfer and ambiguous-reply policy",
+      "due": "G3-A",
+      "decision": "Specify what context transfers, whose authority permits it, the destination session/task, and behavior for unverified or ambiguous callers; deliver and prove in G3-E/G4-C.",
+      "source": "connect-first-ten-minutes.html#start"
+    },
+    {
+      "id": "D-04",
+      "title": "Artifact lifecycle and channel representation",
+      "due": "G3-A",
+      "decision": "Name upload/download transport, integrity, size/retention/deletion rules, participant authorization and when a protected link can cross SMS. Basic files must ship before G4-B/C.",
+      "source": "connect-v0.1-contract.html#conversation"
+    },
+    {
+      "id": "D-05",
+      "title": "Additional assistant and reply-delivery mode",
+      "due": "G4-A",
+      "decision": "Verify candidate identities/interfaces; select one tested host and state whether it automatically resumes, waits for a bounded interval, or requires explicit resume.",
+      "source": "connect-v0.1-contract.html#scope"
+    },
+    {
+      "id": "D-06",
+      "title": "Reachable ingress, secret storage and contact verification",
+      "due": "G3-A",
+      "decision": "Choose a supported local-development ingress strategy for required provider/MCP callbacks, secret handling and human-contact ownership checks before live tool integration. Finish polished setup/diagnostics in G5-C. No remote deployment is authorized by this roadmap.",
+      "source": "connect-first-ten-minutes.html#start"
+    },
+    {
+      "id": "D-07",
+      "title": "Published compatibility and extension surface",
+      "due": "G3-A",
+      "decision": "Specify profile versioning and supported media boundaries before adding wire operations. Finish capability manifests, an independent client test, source/specification licensing and distribution choices in G5-B/E.",
+      "source": "connect-v0.1-contract.html#boundaries"
+    }
+  ]
 }
