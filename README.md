@@ -6,7 +6,9 @@ An open communications server and SDK from [Rudeless](https://rudeless.ai). One 
 
 ## Status
 
-Connect is in development. This repository is the home for the server, SDK, and future releases. There is no published server or SDK release yet. The local Gate 1 foundation now builds and tests with native QUIC, protected initialization, persistent identities and scoped resolution. Transactional messaging, inbox recovery, local backup/restore and explicit upgrades now have unit and process evidence. Native/WS application parity, the typed Rust SDK and independent app/agent examples are locally tested. Local packaging and fresh-install qualification are still being completed against the numbered plan. The capabilities below describe the complete product we intend to build.
+Connect is in development. Gate 1 is implemented and qualified locally on macOS arm64: native UCTP/QUIC, protected initialization, persistent identities, scoped credentials, transactional messaging, history/inbox recovery, and explicit backup/restore/upgrades. The Rust SDK and independent deterministic app/agent examples are tested. A local installable candidate and complete SDK source bundle are available in this workspace; no server or SDK release has been published. Vapi, Telnyx and the remaining v0.1 integrations are next.
+
+See [the qualification result](docs/evidence/gate-1/result.json) and [local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below describe the complete product we intend to build.
 
 ## Local development
 
@@ -24,9 +26,8 @@ cargo build --locked -p connect-server -p connect-review-loop --bins
 
 See [the developer guide](docs/DEVELOPING.md) for the workspace layout and checks,
 and [the implementation checklist](docs/connect-gate-1-implementation.html) for
-progress and verification evidence. Current source builds support identities and durable native messaging through
-the typed request interface; the native SDK and app/agent examples are
-verified, while installable package qualification remains in progress.
+progress and verification evidence. The source build and installed local candidate both pass the native messaging
+journey. The sample agent is deterministic; no provider account is required.
 
 ## What we're building
 
