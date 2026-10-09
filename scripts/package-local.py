@@ -62,7 +62,7 @@ for source, destination in [
     shutil.copyfile(ROOT/source, target)
 # Keep the public review report and linked plans with the runtime SDK guide.
 # The root README is copied from docs/, so its report link needs one prefix.
-shutil.copytree(ROOT/'docs', runtime/'docs')
+shutil.copytree(ROOT/'docs', runtime/'docs', dirs_exist_ok=True)
 readme = runtime/'README.md'
 readme.write_text(readme.read_text().replace(
     '](evidence/gate-3/acceptance.html)', '](docs/evidence/gate-3/acceptance.html)'))
