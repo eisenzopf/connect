@@ -138,3 +138,11 @@ results stay under ignored `.local/` directories. The package checker verifies
 archive paths and hashes, compiles the extracted native SDK, runs installed
 native/HTTP language clients, checks restart and shutdown, and exercises
 backup-backed upgrade/restore without touching an existing installation.
+
+## Recorded Gate 3 review
+
+The [qualification report](evidence/gate-3/acceptance.html) records the clean
+source candidate, all 25 offline phases, 10 installation checks and separate
+live audio/context observations. It preserves unsuccessful trials and the
+local topology, context and transcription limits. The package is a local
+review candidate; full v0.1 and community publication remain later work.

@@ -45,7 +45,7 @@ The assistant can answer while Connect is offline, and inbound discovery catches
 up later. The Gate 3 native QUIC→Connect→Vapi WebSocket bridge is implemented
 and proven against a loopback duplex provider. A separate rvoip SIP path admits
 configured inbound calls and originates SDK-requested calls inside a durable
-Session. Real Telnyx/PSTN reachability remains live qualification.
+Session. The recorded Telnyx telephone topology is live-qualified; general carrier/NAT reachability is not inferred.
 
 ## Gate 3 session and native media boundary
 
@@ -65,9 +65,8 @@ Vapi duplex attachment, bounded context delivery, transcript/outcome import and
 restart continuity pass account-free integration tests. Local SIP and WebRTC
 adapters exchange duplex media with Vapi; WebRTC also exchanges duplex media
 with native QUIC and SIP connections in the same Session. Managed external blobs
-are integrity checked and included in consistent backup/restore. Live Vapi,
-Telnyx/PSTN, interactive browser audio and clean installed-candidate
-qualification remain Gate 3 proof work. See
+are integrity checked and included in consistent backup/restore. Native Vapi, Telnyx telephone, Chrome WebRTC and installed-candidate
+qualification pass in the recorded local scope. Read the [qualification report](evidence/gate-3/acceptance.html) for source provenance, failures and limits. See
 [decision 006](decisions/006-gate-3-contracts.html) and
 [decision 007](decisions/007-gate-3-media-profile.html).
 

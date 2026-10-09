@@ -70,8 +70,12 @@ try:
             'sdk/typescript/dist/native_audio.js',
             'examples/conversation-client/index.html',
             'examples/conversation-client/app.js',
+            'docs/index.html',
+            'docs/evidence/gate-3/acceptance.html',
+            'docs/evidence/gate-3/result.json',
         ]:
             assert (release/required).is_file(), f'Missing Gate 3 runtime asset: {required}'
+        assert '](docs/evidence/gate-3/acceptance.html)' in (release/'README.md').read_text()
         for name, checksum in manifest['files'].items():
             assert digest(release/name) == checksum
         for name in ['connect', 'connect-example']:

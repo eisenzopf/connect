@@ -147,7 +147,7 @@ transcripts or inferred successful outcomes. The
 loopback provider test proves PCMU in both directions, restart, and delivery of
 the earlier spoken decision to a subsequent assistant Session. The separately
 recorded real-account native proof carried three spoken turns over UCTP/QUIC and
-Vapi; human audibility confirmation remains part of release review.
+Vapi; independent returned-audio qualification and owner browser confirmation are recorded in the [Gate 3 report](evidence/gate-3/acceptance.html).
 The [native microphone example](../examples/conversation-client/README.md#native-microphone-and-speaker)
 uses optional local audio-device support. Python helper diagnostics inherit
 stderr by default, or can be directed to a caller-owned file via the `stderr`
@@ -197,3 +197,17 @@ For a definite rejected Vapi job, a local administrator may use
 This records an acknowledgement and retains the failed context selection. It
 never retries that job, and cannot discard an uncertain remote outcome. New
 work needs a new explicit message and mutation ID.
+
+## Qualified scope and context limits
+
+Gate 3 qualifies local macOS arm64, native PCMU/QUIC, recorded Telnyx SIP/RTP
+telephone routes and Chrome host/host UDP ICE. The public browser facade owns
+accepted input tracks during negotiation and closes them on failure or hangup.
+Native provider hangup reports `media-ended`; it is a terminal media state.
+
+Provider context selects up to 1000 newest candidates within a 32 KiB item
+budget. Public context reads default to 100 items. Omitted sources remain in
+authorized history; automatic summaries, pinned-fact retrieval and perfect
+ASR/model spelling are not claimed. A voice transcript can render a written
+name phonetically; both sources retain their attribution. See the
+[continuity evidence](evidence/gate-3/autonomous-continuity.json).

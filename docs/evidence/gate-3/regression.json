@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T21:19:45.491673+00:00",
+  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "gate_1": {
+    "command": "bash scripts/check-local.sh",
+    "result": "passed",
+    "phases": 19,
+    "private_result": ".local/checks/20261009T205334.785732Z/result.json"
+  },
+  "gate_2": {
+    "command": "bash scripts/check-gate-2.sh",
+    "result": "passed",
+    "private_log": ".local/gate-3-live/automated/final-gate-2-regression.log",
+    "preserved_failed_trial": ".local/gate-3-live/automated/gate-2-regression-first-failed.log",
+    "failed_trial_reason": "Debug example init exceeded its 15-second deadline while other verification ran; repeat in isolation passed unchanged source. Concurrency/load is a suspected cause, not a proven product diagnosis."
+  },
+  "rustdoc": {
+    "command": "RUSTDOCFLAGS=\"-D warnings\" cargo doc --locked --workspace --no-deps",
+    "result": "passed",
+    "private_log": ".local/gate-3-live/automated/final-rustdoc.log"
+  },
+  "sdk_tests": {
+    "typescript": 34,
+    "python": 14
+  },
+  "known_build_warning": "Apple debug linker reports a large __eh_frame in upstream-heavy debug binaries. Release package builds and qualification pass; no claim that this host linker warning was fixed."
+}

@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "gate": 3,
+  "scope": "Artifact lifecycle and recovery; local macOS arm64; no provider calls",
+  "recorded_at": "2026-10-09T21:31:14.799319+00:00",
+  "result": "passed",
+  "source_revision": "ecdb2b7235f4ec86b14679adc46d0718e3f719bf",
+  "aggregation": "Indexed subset of the recorded full qualification, not an additional test execution.",
+  "source_evidence": "local.json",
+  "steps": [
+    {
+      "name": "artifact-recovery",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "artifact_recovery"
+      ],
+      "log": "artifact-recovery.log",
+      "exit_code": 0,
+      "seconds": 2.75,
+      "result": "passed"
+    },
+    {
+      "name": "artifact-lifecycle",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-store",
+        "--test",
+        "gate3_artifact_lifecycle"
+      ],
+      "log": "artifact-lifecycle.log",
+      "exit_code": 0,
+      "seconds": 1.36,
+      "result": "passed"
+    },
+    {
+      "name": "transport-authority",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "transport_parity"
+      ],
+      "log": "transport-authority.log",
+      "exit_code": 0,
+      "seconds": 11.02,
+      "result": "passed"
+    },
+    {
+      "name": "language-sdk-facade",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "language_sdks"
+      ],
+      "log": "language-sdk-facade.log",
+      "exit_code": 0,
+      "seconds": 16.78,
+      "result": "passed"
+    }
+  ],
+  "installed_evidence": "package-e007de7.json",
+  "installed_checks": {
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  }
+}

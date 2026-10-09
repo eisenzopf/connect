@@ -12,9 +12,9 @@ Gate 3, even where older G2 item IDs are retained. Gate 3 has a [product/deliver
 [acceptance map](gate-3-acceptance.json). Its durable application model,
 two-peer native UCTP/QUIC audio core, loopback Vapi attachment, local SIP,
 authenticated WebRTC, cross-transport pairing and managed artifacts are
-implemented; live providers and clean installed-candidate qualification remain
-outstanding. Local rvoip patches remain
-accepted when pinned and reproducible. Basic availability and a small optional preference override are planned in Gate 3;
+implemented and qualified through offline, installed-package and separately
+invoked live checks. See the [Gate 3 review report](evidence/gate-3/acceptance.html). Local rvoip patches remain
+accepted when pinned and reproducible. Basic availability and a small expiring preference override are qualified in Gate 3;
 broader presence/preferences remain decision B-001.
 
 ## Repository layout

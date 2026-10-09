@@ -50,7 +50,7 @@ for name in ['connect', 'connect-example']:
     (runtime/'bin'/name).chmod(0o755)
 for source, destination in [
     ('LICENSE', 'LICENSE'), ('THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_NOTICES.md'),
-    ('docs/LOCAL_RELEASE.md', 'README.md'), ('docs/SDK.md', 'docs/SDK.md'),
+    ('docs/LOCAL_RELEASE.md', 'README.md'),
     ('examples/review-loop/README.md', 'docs/review-loop.md'),
     ('config/local.example.toml', 'config/local.example.toml'),
     ('dependencies/source-lock.json', 'dependencies/source-lock.json'),
@@ -60,6 +60,12 @@ for source, destination in [
     target = runtime/destination
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT/source, target)
+# Keep the public review report and linked plans with the runtime SDK guide.
+# The root README is copied from docs/, so its report link needs one prefix.
+shutil.copytree(ROOT/'docs', runtime/'docs')
+readme = runtime/'README.md'
+readme.write_text(readme.read_text().replace(
+    '](evidence/gate-3/acceptance.html)', '](docs/evidence/gate-3/acceptance.html)'))
 # Usable language clients accompany the native helper; no compiler, dependencies,
 # caches or installation state are copied into the runtime archive.
 shutil.copytree(ROOT/'sdk/python/connect_sdk', runtime/'sdk/python/connect_sdk',

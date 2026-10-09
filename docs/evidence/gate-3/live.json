@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T21:19:45.491673+00:00",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
+  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "primary_evidence": [
+    "native-final.json",
+    "browser-final.json",
+    "autonomous-pstn.json",
+    "autonomous-continuity.json"
+  ],
+  "supplemental_evidence": [
+    "autonomous-native.json",
+    "autonomous-browser.json",
+    "browser-live.json"
+  ],
+  "qualification_method": "Independent returned-audio decoding and bounded owned telephone peer under decision 008. Provider API submission alone is never a pass.",
+  "provenance": "Primary native/browser/telephone journeys and provider-end proof use the installed e007de77ecd1 executable. Earlier interruption/remote-browser-close rehearsals retain their exact working-tree provenance; referenced server handler sources are unchanged as shown here. The successful owner microphone observation is recorded separately.",
+  "supplemental_server_handler_equivalence": {
+    "crates/connect-server/src/vapi_media.rs": true,
+    "crates/connect-server/src/vapi_observer.rs": true
+  },
+  "account_restoration": "Original Telnyx number route and Vapi assistant assignment read back restored; test peer is an explicitly owned bounded fixture.",
+  "skipped_required": [],
+  "limits": [
+    "Local macOS arm64 and named network/carrier topology only.",
+    "Live SMS is deferred pending approval; video, MCP/skill, additional assistant and full v0.1 experience remain later gates.",
+    "Supplemental exact-written-code recall exposed phonetic ASR/model ambiguity; the three required route-specific spoken decisions passed.",
+    "Long-sleep SIP reachability was restored by fresh registration; the original failure cause remains unproven."
+  ]
+}

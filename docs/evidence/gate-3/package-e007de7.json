@@ -1,0 +1,62 @@
+{
+  "scope": "local macOS arm64; no remote deployment",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "result": "passed",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1-qualification.tar.gz": "4133fd81d6a1418e4d97da43ce3b98b713ce1d38ade83379e8e2479aa6b3db23",
+    "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1-source.tar.gz": "7cff26cc034d208c3ce710ae064931c4dbb99ba8bd8e35806439741481ba5ac9",
+    "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1.tar.gz": "428bb66171f77eeaf6b137329ef786f348f0d050df43ba740d2c096c0123e013"
+  },
+  "gate": 3,
+  "evidence": "installed-local-candidate",
+  "recorded_at": "2026-10-09T21:19:45.491673+00:00",
+  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "command": "python3 scripts/check-package.py dist/connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
+  "private_result": ".local/package-checks/20261009T204951.541119Z/result.json",
+  "schema": 9,
+  "binary_sha256": "3e021759483970d0f0c32746ecf3d5eac2e81fba3812c1aeeab847fa3fc2c396",
+  "manifest_sha256": "bf6d143da0808766e49df3a0649fe5f0e163035d8e0d73665ccbbb86086948ed",
+  "gate_status": "qualified-in-recorded-local-scope"
+}

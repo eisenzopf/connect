@@ -1,0 +1,59 @@
+{
+  "arch": "aarch64",
+  "four_sessions": [
+    {
+      "delivered_frames": 2468,
+      "duration_seconds": 60,
+      "injected_source_drops": 77,
+      "p95_forwarding_microseconds": 3256,
+      "reliable_artifact_bytes": 262144,
+      "session": 0
+    },
+    {
+      "delivered_frames": 2443,
+      "duration_seconds": 60,
+      "injected_source_drops": 76,
+      "p95_forwarding_microseconds": 3233,
+      "reliable_artifact_bytes": 262144,
+      "session": 1
+    },
+    {
+      "delivered_frames": 2470,
+      "duration_seconds": 60,
+      "injected_source_drops": 77,
+      "p95_forwarding_microseconds": 3300,
+      "reliable_artifact_bytes": 262144,
+      "session": 2
+    },
+    {
+      "delivered_frames": 2552,
+      "duration_seconds": 60,
+      "injected_source_drops": 79,
+      "p95_forwarding_microseconds": 3499,
+      "reliable_artifact_bytes": 262144,
+      "session": 3
+    }
+  ],
+  "logical_cpus": 14,
+  "one_session": [
+    {
+      "delivered_frames": 2374,
+      "duration_seconds": 60,
+      "injected_source_drops": 74,
+      "p95_forwarding_microseconds": 2125,
+      "reliable_artifact_bytes": 262144,
+      "session": 0
+    }
+  ],
+  "seed": 4850181421777769475,
+  "schema": 1,
+  "gate": 3,
+  "result": "passed",
+  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "working_tree": "Documentation-only changes; media source unchanged from clean ecdb2b7235f4 qualification.",
+  "command": "cargo test --locked -p connect-server --test gate3_media_pressure profile_one_and_four_concurrent_sessions_for_sixty_seconds -- --include-ignored --nocapture",
+  "threshold": {
+    "p95_forwarding_microseconds_max": 50000
+  },
+  "private_log": ".local/gate-3-live/automated/final-media-measurements.log"
+}
