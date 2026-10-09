@@ -1,31 +1,46 @@
 {
   "schema": 1,
   "status": "passed",
-  "recorded_at": "2026-10-09T21:19:45.491673+00:00",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
-  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
-  "runtime": "installed optimized binary",
+  "recorded_at": "2026-10-09T23:15:44.635600+00:00",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
   "transport": "native UCTP/QUIC -> Connect -> Vapi WebSocket",
   "three_turns": {
-    "received_frames": 2285,
-    "received_seconds": 45.7,
+    "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+    "dirty": false,
+    "transport": "native UCTP/QUIC -> Connect -> Vapi WebSocket",
+    "result": "captured",
+    "remote_end_observed": false,
+    "received_frames": 1998,
+    "received_seconds": 39.96,
+    "errors": [],
     "turn_start_seconds": [
-      2.2576987500069663,
-      16.674519333988428,
-      32.676633374998346
+      2.255765290989075,
+      15.334348875010619,
+      29.13525337498868
     ],
     "independent_answers": [
-      "The new rehearsal code is Falcon Moon, and the preferred rehearsal day is Monday.",
-      "The new Native decision is River Lantern.",
-      "The new Native decision is River Lantern."
+      "The anchor rehearsal draft states that the rehearsal code is Forest Lake, and the preferred",
+      "rehearsal day is Thursday.",
+      "I've noted that the anchor native decision is pine tree, and we'll remember this in the",
+      "conversation.",
+      "If you need me to repeat or use it, just the anchor native decision is pine tree."
     ],
-    "audio_sha256": "0f8029ab35468f7b1b83192d4ff9599bcc642adf1f816d73808ed5b47daf5531"
+    "audio_sha256": "efb33850180cd1fc8bef6e420908f8fbd35bc22977e29b9e3da3e2fb4fad3a7b"
   },
-  "draft_read": {
+  "interruption": {
     "independent_answers": [
-      "The draft rehearsal code is Quartz Harbor and the draft preferred rehearsal day is Friday."
+      "Once upon a time, on a rugged coastline, there lived a dedicated...",
+      "The anchor interruption decision is ice cream.",
+      "The anchor interruption decision is ice cream."
     ],
-    "audio_sha256": "2179b919d64dbc9d7fa05ff09bc7269c35e96be75d62600f42b95bd1d5adb2df"
+    "audio_sha256": "8b98b71c5f501ed11ec251113e8ba7658ad6b2f1757a7b1140188d1af53fa7a3",
+    "turn_start_seconds": [
+      2.360935292002978,
+      12.780995500012068,
+      29.81545900000492
+    ],
+    "behavior": "Story prefix interrupted by actual spoken instruction; Ice Cream acknowledged and recalled."
   },
   "provider_end": {
     "remote_end_observed": true,
@@ -34,15 +49,11 @@
     "helper_returncode": 0,
     "result": "passed"
   },
-  "interruption_evidence": "autonomous-native.json",
-  "decision": "decisions/008-autonomous-audio-qualification.md",
-  "preserved_trials": [
-    "The Linen Echo fixture was phonetically fused to Linneco by the independent decoder; a clear-word River Lantern fixture was verified instead.",
-    "Two additional candidate provider-hangup rehearsals failed while reading large provider HTTP responses before end-call. Their Sessions were explicitly cleaned up. The successful rehearsal uses the documented createdAtGe filter and limit=1, and the selected scoped control URL. Neither failed provider read is a remote-hangup pass."
-  ],
   "private_receipts": [
-    ".local/gate-3-live/automated/candidate-native-draft",
-    ".local/gate-3-live/automated/candidate-native-draft-question",
-    ".local/gate-3-live/automated/candidate-native-provider-end-filtered"
-  ]
+    ".local/gate-3-media-audit/anchor-native-three-turns",
+    ".local/gate-3-media-audit/anchor-native-interruption",
+    ".local/gate-3-media-audit/anchor-native-provider-end"
+  ],
+  "source_provenance": "Later dirty flag records documentation progress only; runtime and SDK bytes match clean e457960.",
+  "redaction": "Private stream identifiers omitted."
 }

@@ -1,10 +1,9 @@
 {
   "schema": 1,
   "status": "passed",
-  "recorded_at": "2026-10-09T21:19:45.491673+00:00",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
-  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
-  "runtime": "installed optimized server; public BrowserVoiceSession facade",
+  "recorded_at": "2026-10-09T23:15:44.635600+00:00",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
   "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
   "network": {
     "connectionState": "connected",
@@ -13,48 +12,59 @@
       {
         "direction": "inbound",
         "codec": "audio/opus",
-        "packets": 2219,
-        "bytes": 204113
+        "packets": 1918,
+        "bytes": 180594
       },
       {
         "direction": "outbound",
         "codec": "audio/opus",
-        "packets": 754,
-        "bytes": 58875
+        "packets": 447,
+        "bytes": 35296
       }
     ],
     "selectedPair": {
-      "id": "CPgnGBOriv_smwJvA5W",
+      "id": "CP+9+0GAhB_J7qPR6SP",
       "localType": "host",
       "remoteType": "host",
       "protocol": "udp"
     }
   },
   "three_turns": {
-    "received_samples": 2162688,
-    "sample_rate": 48000,
     "independent_answers": [
-      "The new rehearsal code is Falcon Moon, and the preferred rehearsal day is Monday.",
-      "The new browser decision is Amber Cypress.",
-      "The new browser decision is Amber Cypress."
+      "The preferred rehearsal day in the anchor rehearsal draft is Thursday.",
+      "The anchor browser decision is Yellow Sun.",
+      "The anchor browser decision is Yellow Sun."
     ],
-    "audio_sha256": "f4f58a0d8bfa9e1ad0a6ba0a5728b55508cb55c8c1fff88e289cf22e5e3ce501",
+    "audio_sha256": "87d4d050e4a73fc5de26233ca639afc4340893aa9f28c33dda28de5074beae3e",
+    "turn_start_seconds": [
+      0.00020000001788139342,
+      13.071100000023842,
+      27.0185
+    ],
     "tracks_after_hangup": [
       "ended"
     ]
   },
-  "draft_read": {
+  "interruption": {
     "independent_answers": [
-      "The draft rehearsal code is Quartz Harbor, and the draft preferred rehearsal day is Friday."
+      "Every evening, as the sun dips below the horizon, the light, the anchor interruption decision",
+      "is apple pie.",
+      "The anchor interruption decision is apple pie."
     ],
-    "audio_sha256": "b4fad0890b0df2d406195ebe83bc5bd2dc5bde8386fdbbf24dbd373577c1b133"
+    "behavior": "Story prefix interrupted by actual spoken instruction; Apple Pie acknowledged and recalled.",
+    "audio_sha256": "f5d0c2d8e988e6c9e3444b277fbf0421f49027a9db37076e098668ee645a391a"
   },
-  "artifact_roundtrip": "BrowserHttpClient uploaded received WAV; Python HttpClient downloaded and verified SHA-256 before independent decoding.",
-  "interruption_and_remote_end_evidence": [
-    "autonomous-browser.json",
-    "browser-live.json"
-  ],
-  "decision": "decisions/008-autonomous-audio-qualification.md",
-  "owner_confirmation": "browser-owner.json",
-  "scope": "Chrome 154 host/host UDP ICE on loopback. Generated input requires no microphone; owner separately confirmed the microphone conversation works. No WAN, TURN or mobile/audio-hardware qualification."
+  "provider_end": {
+    "result": "passed",
+    "provider_remote_end": true,
+    "session_state": "ended",
+    "session_reason": "media-leg-ended",
+    "input_tracks": [
+      "ended"
+    ],
+    "raw_rehearsal_result": "failed",
+    "interpretation": "Expected provider hangup interrupted the three-turn scenario; terminal-state check passed independently. Invalid unstaged scenario trial preserved separately."
+  },
+  "artifact_roundtrip": "Browser public SDK uploaded both WAV recordings; Python public HTTP SDK downloaded in 32 KiB chunks and verified SHA-256 before independent decoding.",
+  "scope": "Chrome 154 loopback host/host UDP Opus, generated input without microphone permission; owner microphone confirmation remains browser-owner.json. WAN/TURN/mobile not qualified."
 }

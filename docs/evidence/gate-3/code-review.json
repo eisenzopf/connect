@@ -1,0 +1,53 @@
+{
+  "result": "reviewed",
+  "candidate": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "patch_count": 7,
+  "patch_digest_validation": "passed",
+  "largest_production_files": [
+    [
+      733,
+      "crates/connect-store/src/conversations.rs"
+    ],
+    [
+      671,
+      "crates/connect-protocol/src/lib.rs"
+    ],
+    [
+      573,
+      "crates/connect-client/src/operations.rs"
+    ],
+    [
+      571,
+      "crates/connect-server/src/main.rs"
+    ],
+    [
+      570,
+      "crates/connect-store/src/voice.rs"
+    ],
+    [
+      552,
+      "crates/connect-store/src/sessions.rs"
+    ],
+    [
+      531,
+      "crates/connect-service/src/lib.rs"
+    ]
+  ],
+  "new_modules": {
+    "protocol/media_profile.rs": 12,
+    "server/media_profile.rs": 34
+  },
+  "reviewed": [
+    "Queue policy lives in protocol profile; server composes real adapter configs and client uses the same limit.",
+    "Opt-in upstream constructors/configuration preserve default compatibility; actual allocated SIP/WebRTC channels tested.",
+    "Physical closure cancels sends/receives; normal terminal control is distinct from transport failure; SDK Rustdocs match.",
+    "Saturation deliberately drops bounded realtime media, while reliable journal/control traffic remains independently verified.",
+    "Public SDK is used for all live text/session/artifact control; private provider monitors only drive owned test peers and end tests.",
+    "Shipped assistant prompt separates prior-history data from new live dialogue and preserves conflicting source attribution.",
+    "Long qualification/build source stability guards prevent silently mixing changed source files."
+  ],
+  "limits": [
+    "No claim that every production file is small; the atomic store dispatcher remains 733 lines.",
+    "Community acceptance awaits human review; lint/tests are evidence, not a guarantee of perfect design."
+  ]
+}

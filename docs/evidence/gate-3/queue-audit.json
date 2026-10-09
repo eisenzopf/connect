@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T23:15:44.635600+00:00",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
+  "frames_per_channel": 10,
+  "frame_ms": 20,
+  "maximum_queued_ms_per_channel": 200,
+  "policy": "Bounded loss under overload; this is per local channel, not total end-to-end latency.",
+  "upstream_patches": [
+    {
+      "path": "patches/rvoip/parley-conference.patch",
+      "sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+      "source": "Parley pinned revision"
+    },
+    {
+      "path": "patches/rvoip/connect-quic-application.patch",
+      "sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+      "source": "Connect native application-handler plumbing; opt-in only"
+    },
+    {
+      "path": "patches/rvoip/connect-session-context.patch",
+      "sha256": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+      "source": "Expose canonical Session context on authenticated inbound connection events"
+    },
+    {
+      "path": "patches/rvoip/external-session-projection.patch",
+      "sha256": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+      "source": "Project application-owned conversations and sessions into rvoip orchestration"
+    },
+    {
+      "path": "patches/rvoip/sip-terminal-media-race.patch",
+      "sha256": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+      "source": "Let exact SIP terminal signaling win a normal remote-hangup media closure race"
+    },
+    {
+      "path": "patches/rvoip/audio-queue-policy.patch",
+      "sha256": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+      "source": "Expose opt-in audio queue ceilings through core orchestration and raw QUIC stream construction; preserve upstream defaults."
+    },
+    {
+      "path": "patches/rvoip/transport-audio-queues.patch",
+      "sha256": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+      "source": "Opt-in SIP and WebRTC frame queue caps with construction tests; preserve existing 64-frame defaults."
+    }
+  ],
+  "checks": [
+    "Actual allocated SIP/WebRTC channels expose capacity 10.",
+    "RTP sequence 10,12,11,14 exercises actual reorder/loss with unchanged payload/timestamps.",
+    "Unknown stream rejects before delivery; reliable control progresses under saturation.",
+    "Production Vapi fake burst: 1000 frames, high-water 10, 990 intentional bounded-overload drops.",
+    "Current credential expiry closes active peer; unauthorized reconnect rejects.",
+    "Peer drop and active server cancellation complete within five seconds; durable recovery succeeds."
+  ],
+  "private_result": ".local/gate-3-checks/20261009T225219.040327Z/result.json"
+}

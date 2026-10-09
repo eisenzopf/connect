@@ -1,21 +1,11 @@
 {
   "schema": 1,
   "result": "passed",
-  "recorded_at": "2026-10-09T21:34:33.191226+00:00",
-  "browser": "Chrome",
-  "report": "acceptance.html",
-  "observed": [
-    "Report: 35/35 tasks, 13/13 criteria, 25 offline phases, 10 installed checks",
-    "Implementation: 35/35 complete, 0 in progress, 0 blocked",
-    "Interactive acceptance table: all 13 rows passed; matches saved static baseline"
-  ],
-  "local_link_check": {
-    "html_files": 21,
-    "file_and_anchor_links": 1192,
-    "broken": 0
-  },
-  "configured_credential_matches_in_docs": 0,
-  "screenshot_sha256": "852aa346970e33ddd067ec79c34745850822ee91c13659c6fc42c83baa079cc5",
-  "private_screenshot": ".local/gate-3-live/automated/gate-3-review.png",
-  "final_distribution_visible_in_browser": "connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50"
+  "html_files": 21,
+  "local_links_checked": 1195,
+  "broken": [],
+  "tasks": 35,
+  "done": 35,
+  "scope": "Active docs synchronized; historical Gate 1/2 review labeled separately. Stable IDs, JSON, dependency graph and links checked.",
+  "canonical_report": "acceptance.html"
 }

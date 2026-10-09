@@ -1,29 +1,45 @@
 {
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "steps": [
+    {
+      "name": "gate1",
+      "result": "passed",
+      "log": ".local/gate-3-media-audit/gate1-final.log"
+    },
+    {
+      "name": "gate2",
+      "result": "passed",
+      "log": ".local/gate-3-media-audit/gate2-final.log"
+    },
+    {
+      "name": "rustdoc",
+      "result": "passed",
+      "log": ".local/gate-3-media-audit/rustdoc-final.log"
+    }
+  ],
+  "result": "passed",
   "schema": 1,
   "status": "passed",
-  "recorded_at": "2026-10-09T21:19:45.491673+00:00",
-  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "recorded_at": "2026-10-09T23:19:10.755771+00:00",
   "gate_1": {
-    "command": "bash scripts/check-local.sh",
     "result": "passed",
     "phases": 19,
-    "private_result": ".local/checks/20261009T205334.785732Z/result.json"
+    "private_result": ".local/checks/20261009T225938.736646Z/result.json"
   },
   "gate_2": {
-    "command": "bash scripts/check-gate-2.sh",
     "result": "passed",
-    "private_log": ".local/gate-3-live/automated/final-gate-2-regression.log",
-    "preserved_failed_trial": ".local/gate-3-live/automated/gate-2-regression-first-failed.log",
-    "failed_trial_reason": "Debug example init exceeded its 15-second deadline while other verification ran; repeat in isolation passed unchanged source. Concurrency/load is a suspected cause, not a proven product diagnosis."
+    "command": "bash scripts/check-gate-2.sh",
+    "private_log": ".local/gate-3-media-audit/gate2-final.log"
   },
   "rustdoc": {
-    "command": "RUSTDOCFLAGS=\"-D warnings\" cargo doc --locked --workspace --no-deps",
     "result": "passed",
-    "private_log": ".local/gate-3-live/automated/final-rustdoc.log"
+    "command": "RUSTDOCFLAGS=\"-D warnings\" cargo doc --locked --workspace --no-deps",
+    "private_log": ".local/gate-3-media-audit/rustdoc-final.log"
   },
+  "source_equivalence": "All recorded Gate 1 runtime/test/script/SDK source input hashes still match; ongoing changes affect documentation only.",
   "sdk_tests": {
     "typescript": 34,
     "python": 14
   },
-  "known_build_warning": "Apple debug linker reports a large __eh_frame in upstream-heavy debug binaries. Release package builds and qualification pass; no claim that this host linker warning was fixed."
+  "known_build_warning": "Apple debug linker may report large __eh_frame; optimized package and qualification pass. This host warning was not claimed fixed."
 }

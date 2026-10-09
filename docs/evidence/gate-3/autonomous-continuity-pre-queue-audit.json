@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T21:17:40.828626+00:00",
+  "evidence": "live-draft-voice-restart-messaging-continuity",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
+  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "same_conversation_across_routes_and_restart": true,
+  "initial_draft": "Text draft shared through public native SDK; Quartz Harbor and Friday occur in that written source. Native/browser independent recordings and the separately attributed telephone transcript demonstrate draft-specific use. Generic questions about the earlier active rehearsal are not substituted for this proof.",
+  "routes": [
+    {
+      "route": "native UCTP/QUIC",
+      "status": "passed",
+      "new_spoken_decision": "River Lantern",
+      "source_voice_items_in_exact_delivered_selection": 3,
+      "source_sequences": [
+        1066,
+        1070,
+        1084
+      ],
+      "source_ids_sha256": [
+        "cf624d9abd35d9ee8cc624f555556cf1aba705750fbc05907f5e967c2b0dbe53",
+        "197f9696e3324a2198af9e4f067d0ab07ff5b6ed88d50ca4cdada7632e8667eb",
+        "81719487e5c69747808d39a8ed51330ef90263008631f26051cd9b2c979b90b0"
+      ],
+      "observed_after_restart": "River Lantern"
+    },
+    {
+      "route": "browser WebRTC",
+      "status": "passed",
+      "new_spoken_decision": "Amber Cypress",
+      "source_voice_items_in_exact_delivered_selection": 4,
+      "source_sequences": [
+        1068,
+        1072,
+        1074,
+        1086
+      ],
+      "source_ids_sha256": [
+        "58c79edaa97686b07a8e01e1267f0f2bb2e04da5677553af5743dc037adbab19",
+        "20f4497d38bc7700a3141f5d4e6e5645931b8d0743e752cf84b85b3998101805",
+        "75aac07cf8c7b8e55c2e5a9843795795ec35b4da34a095b99ee4e63d0d1b3aa8",
+        "47a21420eb9292b6cfa71a680b39ed8d5141dc7c6d8545af7ca76fb1115d0379"
+      ],
+      "observed_after_restart": "Amber Cypress"
+    },
+    {
+      "route": "Telnyx SIP/E.164 telephone",
+      "status": "passed",
+      "new_spoken_decision": "Cobalt Island",
+      "source_voice_items_in_exact_delivered_selection": 7,
+      "source_sequences": [
+        1120,
+        1122,
+        1126,
+        1132,
+        1212,
+        1232,
+        1254
+      ],
+      "source_ids_sha256": [
+        "55f9120f6fc53fa120bf3dae5de81528b6adc5b61c9270278e22aa7858fc0db2",
+        "ecee28f376741b133eabe841d48edef713f1307c03bb30749fec159d37ccc320",
+        "95d12fc7bc823c96b42123df7aae1570a79ed841147c2f7c6324efcb3fab538d",
+        "736084ef49b329d7b3a1c11e4a1d9ac1b7e712ff5e20e5e071fac7d0b98f671f",
+        "eac679046780c5da82c7a53b1ceab6ba15a1db71777185e4764a26d37883bf91",
+        "2c97a36bf38869eb57fead673e45c15375cdad6f3ad63f8d5340a5b3a4900cd4",
+        "e88ab4766139fd5e5af506c2590fe7f851205242b25f6d3c075c125a8b179d17"
+      ],
+      "observed_after_restart": "Cobalt Island"
+    }
+  ],
+  "observed_reply": "The new native decision is \"River Lantern.\" The new browser decision is \"Amber Cypress.\" The new outbound telephone decision is \"Cobalt Island.\" The rehearsal code is \"courts harbor,\" and the preferred rehearsal day is \"Friday.\"",
+  "delivery": {
+    "watermark": 1262,
+    "state": "delivered",
+    "selected_items": 128,
+    "omitted_items": 502,
+    "selection_sha256": "913430616b215347a2064f097e717898d37d8f6eff8a8996cbcd0f11157bb5f4"
+  },
+  "restart": "Installed optimized candidate stopped gracefully and restarted with the original database; no reset, replacement seed or voice-fact answers in the follow-up request.",
+  "supplemental_assertion": {
+    "status": "failed-exact-written-spelling",
+    "expected_written_code": "Quartz Harbor",
+    "returned_code": "courts harbor",
+    "reason": "The model used a phonetic telephone transcript rendering for the supplemental code question. All three required spoken decisions matched exactly. Original text and transcript remain separate attributed sources; no spelling was silently corrected.",
+    "private_result": ".local/gate-3-live/automated/candidate-final-restart-continuity/result.json"
+  },
+  "limits": [
+    "Model-visible context uses up to 1000 newest candidates within the current 32 KiB item budget; the public context page defaults to 100 items. Older omitted facts remain in the journal and can be retrieved through authorized history. No automatic summarization or pinned-fact retrieval is claimed.",
+    "Conflicting or phonetically ambiguous source text can produce model ambiguity; source retention/delivery does not guarantee an exact spelling in every model answer."
+  ],
+  "private_receipts": [
+    ".local/gate-3-live/automated/shared-release-draft",
+    ".local/gate-3-live/automated/candidate-native-draft-question",
+    ".local/gate-3-live/automated/candidate-browser-draft-question-upload.txt",
+    ".local/gate-3-live/automated/candidate-outbound-draft-precise",
+    ".local/gate-3-live/automated/candidate-final-restart-continuity"
+  ],
+  "earlier_inbound_continuity": "The earlier installed-candidate restart separately recalled Juniper Valley and Harbor Willow from outbound/inbound telephone exchanges. Golden Harbor from the later inbound call is also retained with session provenance; that later fact is not claimed in this final three-route answer."
+}

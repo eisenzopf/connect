@@ -147,7 +147,7 @@
               </td>
               <td class="done">
                 Prior loopback and live duplex/context proofs pass;
-                changed queue-profile qualification is in progress.
+                changed queue-profile qualification passes at clean e457960.
               </td>
             </tr>
             <tr>
@@ -158,7 +158,7 @@
               </td>
               <td class="done">
                 Prior local and Connect-carried Telnyx voice proofs pass;
-                changed queue-profile qualification is in progress.
+                changed queue-profile qualification passes at clean e457960.
               </td>
             </tr>
             <tr>
@@ -169,7 +169,7 @@
               </td>
               <td class="done">
                 Prior authenticated WebRTC and real Chrome proofs pass;
-                changed queue-profile qualification is in progress.
+                changed queue-profile qualification passes at clean e457960.
               </td>
             </tr>
             <tr>
@@ -235,7 +235,7 @@
         that total network, model and playout latency is 200 ms.
       </p>
       <p>
-        The completion audit adds real reordered RTP, unknown-stream rejection,
+        The completed audit qualifies real reordered RTP, unknown-stream rejection,
         saturation with provider queue measurements, credential expiry and
         bounded cancellation/peer-loss recovery. One- and four-Session
         60-second profiles run with deterministic source loss, delay variation
@@ -291,7 +291,7 @@
         <a href="../connect-gate-3-plan.html">Product plan</a> ·
         <a href="../connect-gate-3-implementation.html">Implementation plan</a>
       </p>
-    </main>
+    <p class="shell">Current <a href="../evidence/gate-3/queue-audit.json">queue audit</a> verifies actual SIP/WebRTC channels, Vapi burst high-water, expiry and active cancellation; <a href="../evidence/gate-3/media-profile.json">one/four-session measurements</a> retain the frozen bounds. Each channel holds at most ten 20 ms frames. Multiple stages and remote network/model/playout latency remain separate. Seven source-locked patches preserve upstream defaults.</p></main>
     <footer class="shell">Connect · media decision record</footer>
   </body>
 </html>

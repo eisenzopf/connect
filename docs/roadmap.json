@@ -32,7 +32,7 @@
       "id": 3,
       "name": "Native media and interoperability",
       "outcome": "Native media, session/capability/availability contracts, basic files and explicit cross-channel continuity.",
-      "status": "reopened-media-budget-audit",
+      "status": "qualified-in-recorded-local-scope",
       "plan": "connect-gate-3-plan.html",
       "milestones": [
         {
@@ -248,7 +248,7 @@
   "local_patches": "Accepted for now; source-lock digests verified",
   "revision": 4,
   "document": "connect-roadmap.html",
-  "planning_status": "Gates 1\u20133 qualified within recorded scope. Gate 4 and Gate 5 retain their planned work; SMS remains externally deferred.",
+  "planning_status": "Gates 1\u20133 qualified within recorded scope. Gate 4/5 remain planned; live SMS deferred pending approval.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Deliver basic files before Gate 4 artifact/task continuation. Design video early and qualify it in Gate 5. SMS is a parallel deferred qualification lane and a full v0.1 release blocker.",
   "parallel_lanes": [
     {

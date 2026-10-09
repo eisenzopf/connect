@@ -1,67 +1,62 @@
 {
   "schema": 1,
-  "recorded_at": "2026-10-09T21:13:51.341166+00:00",
   "status": "passed",
-  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
-  "runtime": "installed optimized local candidate",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
-  "decision": "decisions/008-autonomous-audio-qualification.md",
+  "recorded_at": "2026-10-09T23:15:44.635600+00:00",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
   "routes": [
     {
       "direction": "inbound",
       "status": "passed",
-      "transport": "owned telephone endpoint -> Telnyx registered SIP/RTP -> Connect -> Vapi WebSocket",
-      "receiver_audio_evidence": "Remote telephone peer received transcript, independently attributed from Connect transcripts; three complete exchanges reviewed.",
-      "observed_prior_context": "Falcon Moon / Monday",
-      "spoken_decision": "Golden Harbor",
-      "decision_repeated_after_followup": true,
-      "external_binding_states": [
-        "ended"
+      "transport": "Telnyx SIP/RTP <-> local Connect <-> Vapi WebSocket",
+      "receiver_answers": [
+        "The anchor rehearsal draft the anchor rehearsal draft, states that the rehearsal code is Forest Lake. And the preferred rehearsal day is Thursday. If you need me to",
+        "The anchor inbound telephone decision is coffee. I've noted that for future reference, If you need anything else, feel free to ask.",
+        "The inbound telephone decision is coffee. You need any further assistance, just let me know."
       ],
-      "vapi_context_state": "delivered",
-      "context_watermark": 892,
-      "distinct_sip_and_vapi_connections": true,
-      "same_durable_session_and_conversation": true,
-      "session_binding_sha256": "1eafcc9c1d5c039c038705d4ff5d50851754ce9a0c4d25bd034f4f41e01b95fc",
-      "terminal_reason": "assistant-ended-call",
-      "provider_terminal_reason": "assistant-ended-call",
-      "restoration_verified": true,
-      "private_receipts": ".local/gate-3-live/automated/candidate-inbound-phone",
-      "receiver_call_sha256": "6bfcabb16be4cef7da71ff8cb22e63cff0b211d3444942d4fd1cb113ea560970"
+      "received_audio_confirmation": "Received-side telephone peer transcript, independently attributed from Connect transcripts; semantic review confirms prior facts and new decision twice.",
+      "spoken_decision": "Coffee",
+      "distinct_sip_vapi_connections": true,
+      "session_id_sha256": "63840c0553c96becaac71c48642b76afc26c29ce644230b15d512f4194758ada",
+      "sip_binding_sha256": [
+        "facaf9f5ebb9c788376aec329d6ac358d067a5ee8f05783b384733e7e12e1e4d"
+      ],
+      "vapi_connection_sha256": "0f0ddc0be8772ca975d23fce32cbb6ce150f20df21e81426ec717abe86f980bb",
+      "provider_call_sha256": "8ba7a97a51a54a70858e766af80620c1e0b7bfbee980308e598fdf6730d54b30",
+      "provider_ref_meaning": "The stored provider_ref is the rvoip Vapi connection ID; the separate telephone receiver call is correlated by owned endpoint, unique controlled time and observed audio.",
+      "session_state": "ended",
+      "session_reason": "media-leg-ended",
+      "context_state": "delivered",
+      "watermark": 2194,
+      "private_receipts": ".local/gate-3-media-audit/anchor-inbound-phone"
     },
     {
       "direction": "outbound",
       "status": "passed",
-      "transport": "public native SDK -> Connect SIP/RTP -> Telnyx E.164 origination -> separate Vapi-managed telephone receiver; Connect Vapi WebSocket supplies assistant audio",
-      "receiver_audio_evidence": "Remote telephone peer received transcript, independently attributed from Connect transcripts; three complete exchanges reviewed.",
-      "observed_prior_context": "Quartz Harbor / Friday",
-      "spoken_decision": "Cobalt Island",
-      "decision_repeated_after_followup": true,
-      "external_binding_states": [
-        "ended"
+      "transport": "Telnyx SIP/RTP <-> local Connect <-> Vapi WebSocket",
+      "receiver_answers": [
+        "The anchor rehearsal draft includes piece facts. Rehearsal code, Forest Lake. Preferred rehearsal day, Thursday. Anchor Native Decision. Pine",
+        "I've noted that the anchor outbound telephone decision is chocolate. If anything else, just let me know.",
+        "The anchor telephone decision. Is chocolate."
       ],
-      "vapi_context_state": "delivered",
-      "context_watermark": 1104,
-      "distinct_sip_and_vapi_connections": true,
-      "same_durable_session_and_conversation": true,
-      "session_binding_sha256": "dbce327d35f39a12e78ffbea814f18bb0ede3005694d5c1f1b3f99d85eab370d",
-      "terminal_reason": "sip-connection-ended",
-      "provider_terminal_reason": "exceeded-max-duration",
-      "restoration_verified": true,
-      "private_receipts": ".local/gate-3-live/automated/candidate-outbound-draft-precise",
-      "receiver_call_sha256": "11fecac16e6cab1948c206c0f6e9dda4a2f84f7b987de7a4b04a2ab9357f8bc8"
+      "received_audio_confirmation": "Received-side telephone peer transcript, independently attributed from Connect transcripts; semantic review confirms prior facts and new decision twice.",
+      "spoken_decision": "Chocolate",
+      "distinct_sip_vapi_connections": true,
+      "session_id_sha256": "220b84843c8a6f1d3746e17214b59b2192b41bf7e19f7890a4a3a98c76751c6b",
+      "sip_binding_sha256": [
+        "f25ce16da064fb4851753c7926239e07ee74bdd2c09f402e387e911b8e2442b7"
+      ],
+      "vapi_connection_sha256": "57ae942a3bf263aceb55ab3c4f7731bd039c77741e0e73ef72adf040467411b7",
+      "provider_call_sha256": "2c992be036d8e9aec226e2c78f4b38923615708c14323f7e2cab5ed2744fd0c2",
+      "provider_ref_meaning": "The stored provider_ref is the rvoip Vapi connection ID; the separate telephone receiver call is correlated by owned endpoint, unique controlled time and observed audio.",
+      "session_state": "ended",
+      "session_reason": "automated-telephone-rehearsal-ended",
+      "context_state": "delivered",
+      "watermark": 2352,
+      "private_receipts": ".local/gate-3-media-audit/anchor-outbound-timed-phone"
     }
   ],
-  "scope": [
-    "Inbound uses owned Telnyx E.164 origination and registration into Connect; outbound additionally reaches a separate Vapi-managed E.164 receiver outside the owned Telnyx account. The backing carrier of that receiver is not asserted.",
-    "The earlier authorized handset destination received a carrier 603 rejection; this does not prove every carrier/destination or that handset now works.",
-    "UDP SIP, PCMU RTP and the recorded local NAT mapping; no arbitrary NAT, SRTP, WAN WebRTC, TURN or remote deployment qualification."
-  ],
-  "preserved_unsuccessful_trials": [
-    "Initial inbound route before fresh registration: 480 SUBSCRIBER_ABSENT / 503 NORMAL_TEMPORARY_FAILURE, not answered. Fresh registration and a later idle-period retry succeeded. The long-sleep failure cause remains unproven.",
-    "First off-account receiver trial clipped the third answer; a second receiver also spoke during response pauses. Neither is a three-turn pass.",
-    "The successful receiver uses documented two-second speaking/endpointing delays and a bounded 60-second maximum.",
-    "An ordinary code/day question answered the earlier active rehearsal facts; the explicit draft question correctly returned the distinct draft facts. No false claim that every conflicting fact is automatically superseded."
-  ],
-  "operator_restoration": "Saved Telnyx number route and original Vapi assistant assignment are restored and read back after each relevant trial; independent watchdogs guard interrupted rehearsals."
+  "restoration": "Saved Telnyx direct number route and peer settings restored and read back. Main assistant keeps the qualified shipped prompt.",
+  "preserved_metadata_failure": "Inbound final GET returned HTTP 500 after speech; later read recovered the ended call and all three exchanges. Raw failed controller result remains unchanged.",
+  "scope": "Owned Telnyx endpoints for inbound; outbound reaches a separate owned Vapi-managed E.164 receiver whose backing carrier is not asserted. UDP SIP/PCMU and recorded NAT registration only; not arbitrary carriers, SRTP or handset qualification."
 }

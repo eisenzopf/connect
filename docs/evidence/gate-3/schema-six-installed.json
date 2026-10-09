@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T23:19:24.123259+00:00",
+  "candidate_source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "previous_binary": {
+    "binary_sha256": "bcebd703627453367e6b8609e4c159533c471d1b7358b87ddd3eee19e5b23af4",
+    "schema": 6,
+    "source_revision": "8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+    "original_candidate": "connect-0.1.0-alpha.1-macos-arm64-8bf5bd31a519"
+  },
+  "new_schema": 9,
+  "behavior": [
+    "A preserved schema-6 Gate 2 binary creates a disposable installation; actual public protocol calls create history and stable mutation receipts.",
+    "Installed e457960 backups and migrates schema 6 to 9; original conversation, message, receipt and journal rows stay identical.",
+    "Restored matching backup returns to schema 6 in a separate directory; actual old binary serves and replays the same accepted receipt.",
+    "Old binary rejects upgraded schema 9; injected next-migration table conflict rolls back fully and matched restore recovers.",
+    "Original disposable source installation retains its later accepted data; the original live database is untouched."
+  ],
+  "qualification_fixture": "Private schema-six adaptation of scripts/check-recovery.py: inject sessions table conflict for the next schema-7 migration, assert retained schema 6, and add real pre-upgrade/post-restore receipt checks. Store schema-six voice-row preservation is independently covered by current store unit tests.",
+  "private_script": ".local/gate-3-media-audit/check-schema-six-installed.py",
+  "private_log": ".local/gate-3-media-audit/schema-six-installed.log",
+  "log_sha256": "a5aa6f1c345a2947d85d3e410afeee3a609b7c79354db339935e09a0e0f9c3d8"
+}

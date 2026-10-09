@@ -1,6 +1,6 @@
 {
   "scope": "local macOS arm64; no remote deployment",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
   "checks": {
     "archive-checksums": {
       "result": "passed",
@@ -45,27 +45,12 @@
   },
   "result": "passed",
   "archives": {
-    "connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50-qualification.tar.gz": "6cb4a652292408d8606da8b48672df5b5921c632cab5a93e351c5e80020250f0",
-    "connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50-source.tar.gz": "082420c66dca06e302baa354d4126b66bf07fabae4948cd8833b0a780c8fe199",
-    "connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50.tar.gz": "75ac9bedb945e9cc74da5f69be70afa81129ad8b6255226f749849fbe2c149b7"
+    "connect-0.1.0-alpha.1-macos-arm64-e457960137a3-qualification.tar.gz": "690c3459814e2c835e85fd66720b39b0e4c028be03fe17f00057bb36a54a044d",
+    "connect-0.1.0-alpha.1-macos-arm64-e457960137a3-source.tar.gz": "b861e8837a7704eefadcfb23d93cfb84717032da8227b5ebcf28b144be1a3377",
+    "connect-0.1.0-alpha.1-macos-arm64-e457960137a3.tar.gz": "24ba9234b34411723434262b24ea813997c9772a369c65bf5d5c6c91b4329a07"
   },
-  "gate": 3,
-  "evidence": "installed-local-review-distribution",
-  "recorded_at": "2026-10-09T21:35:19.107087+00:00",
-  "source_revision": "a24631ad9d503d296f7b068ba9d9c2b847e8e737",
-  "command": "python3 scripts/check-package.py dist/connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50",
-  "private_result": ".local/package-checks/20261009T213349.905677Z/result.json",
-  "schema": 9,
-  "binary_sha256": "3e021759483970d0f0c32746ecf3d5eac2e81fba3812c1aeeab847fa3fc2c396",
-  "manifest_sha256": "23b68cf359c20bde206871d1e6834438a617cd4247747f891e71dc771cdbf9b8",
-  "gate_status": "qualified-in-recorded-local-scope",
-  "live_source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
-  "source_equivalence": "Both release executables are byte-identical to the live-qualified e007de77ecd1 candidate; runtime, SDK, contract and patch sources are unchanged. This revision adds synchronized public documentation to the distribution and checks its presence.",
-  "preserved_failed_build": {
-    "source_revision": "986244c0753cc683594bbbfc56be13bdfdb41f7f",
-    "result": "failed-before-archive",
-    "reason": "Documentation copy collided with the pre-existing package docs directory. dirs_exist_ok=True corrected it; a fresh clean revision built and passed all installed checks.",
-    "private_log": ".local/gate-3-live/automated/final-docs-package-build.log"
-  },
-  "embedded_report": "The source/runtime archive contains the dated e007de77ecd1 qualification report. The current repository package.json/result.json records this later documentation distribution and its installation qualification."
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "binary_sha256": "aea69cde9b04abf91b3818634ceac75e5a0617a6babadcd36ebfd5b23db1e176",
+  "manifest_sha256": "05788ac322e8f8832e6b230eeb3021ea6ae0b7b9bda574ac28a48e4f6f43d062",
+  "private_result": ".local/package-checks/20261009T225349.751929Z/result.json"
 }

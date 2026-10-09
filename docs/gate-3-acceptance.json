@@ -2,7 +2,7 @@
   "revision": 5,
   "updated": "2026-10-09",
   "scope": "Gate 3: persistent conversation continuity, Connect-carried two-party voice, SIP/PSTN/WebRTC, basic files and availability.",
-  "status": "reopened-media-budget-audit",
+  "status": "qualified-in-recorded-local-scope",
   "product_plan": "connect-gate-3-plan.html",
   "implementation": "connect-gate-3-implementation.html",
   "implementation_ids": [
@@ -67,12 +67,10 @@
       "proof": "One persistent cid spans messages, bounded sessions and replacement connections. Session end cannot close it. Explicit developer create produces a separate conversation. Upgrade preserves existing history/receipts; all six nouns have one documented owner.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
-        "evidence/gate-3/local.json",
-        "decisions/006-gate-3-contracts.html"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+        "evidence/gate-3/local.json"
+      ]
     },
     {
       "id": "A3-02",
@@ -95,12 +93,10 @@
       "proof": "Public native APIs invite/accept/reject/cancel/end and expose negotiated readiness. Forged binding, expired authority and incompatible profiles fail before effects; retries preserve logical mutation identity.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
-        "evidence/gate-3/local.json",
-        "decisions/006-gate-3-contracts.html"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+        "evidence/gate-3/local.json"
+      ]
     },
     {
       "id": "A3-03",
@@ -125,15 +121,13 @@
       "proof": "Native client \u2194 UCTP/QUIC \u2194 Connect \u2194 Vapi duplex WebSocket supports audible two-way interaction and interruption. Local impairments meet selected thresholds; live proof identifies both legs.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json",
-        "evidence/gate-3/native-live.json",
-        "decisions/007-gate-3-media-profile.html",
         "evidence/gate-3/native-final.json",
-        "evidence/gate-3/autonomous-native.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+        "evidence/gate-3/queue-audit.json",
+        "evidence/gate-3/media-profile.json"
+      ]
     },
     {
       "id": "A3-04",
@@ -153,11 +147,10 @@
       "proof": "A named local SIP endpoint exchanges two-way audio through Connect in both directions; browser/native interoperability and advertised lifecycle controls pass.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+      ]
     },
     {
       "id": "A3-05",
@@ -177,13 +170,11 @@
       "proof": "Inbound and outbound Telnyx SIP/PSTN audio traverse the local Connect bridge to Vapi WebSocket. Explicit route binding, human or independently attributed telephone audio confirmation under decision 008 and paired teardown are recorded; direct Telnyx/Vapi audio is not substituted.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json",
-        "evidence/gate-3/pstn-live.json",
         "evidence/gate-3/autonomous-pstn.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+      ]
     },
     {
       "id": "A3-06",
@@ -207,14 +198,12 @@
       "proof": "Public browser SDK and test client establish actual two-way WebRTC audio with native/SIP peers and Vapi on the named topology; permission/ICE failures and teardown are handled.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json",
         "evidence/gate-3/browser-final.json",
-        "evidence/gate-3/autonomous-browser.json",
         "evidence/gate-3/browser-owner.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+      ]
     },
     {
       "id": "A3-07",
@@ -238,11 +227,10 @@
       "proof": "Native reliable transfer and HTTP retrieve matching bytes for an authorized participant; integrity, quota, interrupted transfer, current authority, expiry/deletion and consistent backup/restore pass.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+      ]
     },
     {
       "id": "A3-08",
@@ -265,11 +253,10 @@
       "proof": "Rust, Python, TypeScript native clients and HTTP/JSON share the same session/file/availability authority and errors. HTTP is control/file access, not a QUIC audio transport.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+      ]
     },
     {
       "id": "A3-09",
@@ -293,11 +280,10 @@
       "proof": "Fresh available/unavailable observations become unknown when stale; only authorized subjects update/discover them. Expiring preferred route does not auto-contact a fallback; identity remains durable.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+      ]
     },
     {
       "id": "A3-10",
@@ -323,12 +309,11 @@
       "proof": "Draft/fact in chat \u2192 voice uses it \u2192 spoken decision recorded \u2192 session ends \u2192 Connect restarts \u2192 messaging uses the decision. Repeat each required voice route; retain one cid, source provenance and observed context-delivery outcome.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json",
         "evidence/gate-3/autonomous-continuity.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+      ]
     },
     {
       "id": "A3-11",
@@ -361,13 +346,14 @@
       "proof": "Second-conversation contrast, ambiguous caller, revoked access, duplicated/out-of-order outcome, hard kill, disk-full and uncertain provider creation preserve isolation and durable intent; no false live-session resurrection or duplicate effects.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json",
-        "evidence/gate-3/baseline.json",
-        "evidence/gate-3/package.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+        "evidence/gate-3/package.json",
+        "evidence/gate-3/queue-audit.json",
+        "evidence/gate-3/regression.json",
+        "evidence/gate-3/schema-six-installed.json"
+      ]
     },
     {
       "id": "A3-12",
@@ -399,12 +385,11 @@
       "proof": "Native Rust/Python/Node can control sessions and send/receive audio on their declared native bindings. Browser WebRTC is separate and usable through a public facade. Examples use public APIs; unsupported video/profile/media modes fail explicitly.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json",
         "evidence/gate-3/package.json"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+      ]
     },
     {
       "id": "A3-13",
@@ -427,17 +412,16 @@
       "proof": "Bounded offline runner plus separate real-provider qualification, installed-candidate checks and schema/database/blob restore all pass at recorded revisions. Owner can review evidence and limits; SMS stays deferred and no remote deployment occurs.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
-        "evidence/gate-3/baseline.json",
         "evidence/gate-3/local.json",
         "evidence/gate-3/package.json",
         "evidence/gate-3/live.json",
         "evidence/gate-3/regression.json",
         "evidence/gate-3/result.json",
-        "evidence/gate-3/acceptance.html"
-      ],
-      "audit_note": "Historical route proofs retained; corrected queue profile and explicit fault/appropriate candidate retests are pending."
+        "evidence/gate-3/acceptance.html",
+        "evidence/gate-3/schema-six-installed.json"
+      ]
     }
   ],
   "closure_rule": "All required criteria have recorded local and named live behavior evidence for the qualified implementation and installed candidate. Offline runners never operate provider accounts. Separate live automation is explicitly authorized and uses decision 008; failed supplemental trials remain recorded. SMS is deferred separately and remains required for full v0.1.",
@@ -468,8 +452,8 @@
     "review": "evidence/gate-3/acceptance.html"
   },
   "limits": [
-    "Qualified local macOS arm64 and named topology only; not full v0.1.",
-    "32 KiB model context item budget with explicit omissions; source history retained.",
-    "Supplemental exact written spelling exposed voice ASR/model ambiguity; required route-specific decisions matched exactly."
+    "Local macOS arm64 and recorded topology only; not full v0.1.",
+    "Each configured local audio channel caps queued media at 200 ms; total media latency includes multiple stages and provider/model/network delay.",
+    "Newest-context item budget 32 KiB with explicit omissions; original authorized history retained. Current four-route decisions and draft facts recalled after restart; earlier ASR/model ambiguity remains preserved."
   ]
 }
