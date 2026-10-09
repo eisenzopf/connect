@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "result": "passed",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50",
+  "source_revision": "a24631ad9d503d296f7b068ba9d9c2b847e8e737",
+  "offline_source_revision": "ecdb2b7235f4ec86b14679adc46d0718e3f719bf",
+  "live_source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "unchanged_source_directories": [
+    "crates",
+    "sdk",
+    "contracts",
+    "dependencies",
+    "patches",
+    "examples"
+  ],
+  "changed_scope": "Documentation and package assembly/inventory checks only.",
+  "executables": {
+    "connect": "3e021759483970d0f0c32746ecf3d5eac2e81fba3812c1aeeab847fa3fc2c396",
+    "connect-example": "509789b5acb2b4e1b573fd7b7f0a5063255eb144049c5bf89baa235c00d6aff5"
+  },
+  "comparison": "Both executable hashes match the e007de77ecd1 installed live-qualified candidate.",
+  "installed_checks": 10,
+  "package_evidence": "package-a24631a.json",
+  "primary_live_evidence": "live.json",
+  "scope": "Local macOS arm64; no remote deployment or public release."
+}

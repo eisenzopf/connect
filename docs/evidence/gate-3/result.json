@@ -4,8 +4,8 @@
   "status": "qualified-in-recorded-local-scope",
   "recorded_at": "2026-10-09T21:26:44.728558+00:00",
   "scope": "Qualified local macOS arm64; unpublished owner review candidate, not full v0.1.",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
-  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50",
+  "source_revision": "a24631ad9d503d296f7b068ba9d9c2b847e8e737",
   "runtime_binary_sha256": "3e021759483970d0f0c32746ecf3d5eac2e81fba3812c1aeeab847fa3fc2c396",
   "acceptance": [
     {
@@ -162,7 +162,8 @@
     "Early telephone receiver interruption and third-answer truncation are not three-turn passes; the tuned bounded receiver passed.",
     "Two large provider HTTP reads failed before remote-end submission; explicit cleanup and a documented filtered read produced a passed installed-client remote-end test.",
     "Concurrent Gate 2 debug init exceeded its deadline; isolated unchanged-source regression passed.",
-    "The supplemental exact written-code spelling assertion remains failed; all three required voice decisions passed."
+    "The supplemental exact written-code spelling assertion remains failed; all three required voice decisions passed.",
+    "The first documentation-bundle build collided with an existing directory before creating archives. A corrected clean revision built and passed all 10 installed checks."
   ],
   "evidence": {
     "local": "local.json",
@@ -170,11 +171,14 @@
     "package": "package.json",
     "regression": "regression.json",
     "continuity": "autonomous-continuity.json",
-    "media_profile": "media-profile.json"
+    "media_profile": "media-profile.json",
+    "distribution_equivalence": "distribution-equivalence.json",
+    "documentation": "document-review.json"
   },
   "no_remote_deployment": true,
   "original_databases_preserved": true,
   "review_before_community_publication": true,
   "completed_tasks": 35,
-  "total_tasks": 35
+  "total_tasks": 35,
+  "primary_live_source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2"
 }
