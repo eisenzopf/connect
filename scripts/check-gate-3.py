@@ -13,6 +13,20 @@ import time
 from lib.local_process import ROOT
 
 os.umask(0o077)
+
+
+def source_fingerprint():
+    """Track source bytes so a long run cannot silently mix implementations."""
+    paths = subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).split(b'\0')
+    digest = hashlib.sha256()
+    for path in sorted(filter(None, paths)):
+        file = ROOT / os.fsdecode(path)
+        digest.update(path + b'\0')
+        digest.update(hashlib.sha256(file.read_bytes()).digest() if file.is_file() else b'missing')
+    return digest.hexdigest()
+
+
+fingerprint = source_fingerprint()
 directory = ROOT / '.local' / 'gate-3-checks' / datetime.datetime.now(
     datetime.timezone.utc
 ).strftime('%Y%m%dT%H%M%S.%fZ')
@@ -26,6 +40,7 @@ report = {
     'started_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
     'steps': [],
     'result': 'running',
+    'source_fingerprint_sha256': fingerprint,
     'live_qualification': 'not run; separately invoked and required for provider-route closure',
 }
 for name in [
@@ -110,7 +125,11 @@ for index, (name, command, timeout) in enumerate(steps):
         print('Inspect private log:', directory / result['log'], file=sys.stderr)
         sys.exit(1)
 
-report['result'] = 'passed'
+report['source_stable'] = source_fingerprint() == fingerprint
+report['result'] = 'passed' if report['source_stable'] else 'failed-source-changed'
 report['finished_at'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 save()
+if not report['source_stable']:
+    print('Source changed during checks; retained results require a stable-source rerun', file=sys.stderr)
+    sys.exit(1)
 print('PASS Gate 3 offline checks; result:', directory / 'result.json', flush=True)

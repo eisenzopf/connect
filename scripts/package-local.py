@@ -28,6 +28,16 @@ def digest(path):
 if digest(previous) != prior['binary_sha256']:
     parser.error('Archived milestone binary checksum mismatch')
 revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+
+
+def ensure_source_unchanged():
+    """Refuse a candidate if edits or a new commit raced the long build."""
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    dirty = subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True)
+    if head != revision or dirty.strip():
+        raise RuntimeError('Candidate source changed during packaging; use a clean new revision')
+
+
 version = tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['package']['version']
 candidate = f'connect-{version}-macos-arm64-{revision[:12]}'
 output = ROOT/'dist'/candidate
@@ -38,6 +48,7 @@ subprocess.run(['npm', 'ci', '--prefix', 'sdk/typescript'], cwd=ROOT, check=True
 subprocess.run(['npm', 'run', 'build', '--prefix', 'sdk/typescript'], cwd=ROOT, check=True)
 subprocess.run(['cargo', 'build', '--locked', '--release', '-p', 'connect-server',
                 '-p', 'connect-review-loop', '--bins'], cwd=ROOT, check=True)
+ensure_source_unchanged()
 output.mkdir(parents=True)
 runtime = output/candidate
 (runtime/'bin').mkdir(parents=True)
@@ -94,6 +105,7 @@ for package in metadata['packages']:
     notices.append({'package': identity, 'license': package.get('license'), 'source': package['source'], 'texts': sorted(texts)})
 (runtime/'licenses/registry-index.json').write_text(json.dumps(notices, indent=2)+'\n')
 files = {str(p.relative_to(runtime)): digest(p) for p in sorted(runtime.rglob('*')) if p.is_file()}
+ensure_source_unchanged()
 manifest = {'candidate': candidate, 'version': version, 'source_revision': revision,
             'schema': int(re.search(r'pub const SCHEMA_VERSION: u32 = (\d+);',
                                    (ROOT/'crates/connect-store/src/lib.rs').read_text()).group(1)),
