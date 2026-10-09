@@ -45,7 +45,7 @@
     },
     {
       "path": "patches/rvoip/transport-audio-queues.patch",
-      "sha256": "bba6a36f4c838a3a0427bbbba6329eedeab9c87cb030f2b0944432fa506719a9",
+      "sha256": "7041a846d40380649220b6cad37b6f352941d8b5a3c1180e4e14c45c8d98fa1e",
       "source": "Opt-in SIP and WebRTC frame queue caps with construction tests; preserve existing 64-frame defaults."
     }
   ]

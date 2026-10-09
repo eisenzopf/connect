@@ -126,7 +126,7 @@
 +    async fn dormant_audio_channels_honor_the_selected_budget() {
 +        let capacity = std::num::NonZeroUsize::MIN.saturating_add(9);
 +        let stream = SipMediaStream::dormant_deferred_with_capacity(Direction::Inbound, capacity);
-+        assert_eq!(stream.frames_out().max_capacity(), capacity.get());
++        assert_eq!(stream.inner.frames_out_tx.max_capacity(), capacity.get());
 +        assert_eq!(stream.inner.peer_out_tx.max_capacity(), capacity.get());
 +        assert_eq!(
 +            stream.try_frames_in().unwrap().max_capacity(),
