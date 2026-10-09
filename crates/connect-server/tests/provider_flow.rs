@@ -94,6 +94,7 @@ async fn signed_sms_vapi_reply_delivery_and_http_quic_replay_share_one_journal()
         )
         .unwrap();
     let mock = MockServer::start().await;
+    mount_assistant(&mock).await;
     Mock::given(method("POST"))
         .and(path("/chat"))
         .and(body_partial_json(json!({"input":"help with SMS question"})))
@@ -290,6 +291,7 @@ async fn owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit
         )
         .unwrap();
     let mock = MockServer::start().await;
+    mount_assistant(&mock).await;
     Mock::given(method("POST"))
         .and(path("/chat"))
         .respond_with(
@@ -304,7 +306,13 @@ async fn owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit
     let worker = Worker::with_drivers(server.service.clone(), vec![driver.clone()]).unwrap();
     client.send("send", &conv.id, "question").await.unwrap();
     tokio::time::timeout(Duration::from_secs(3), async {
-        while mock.received_requests().await.unwrap().is_empty() {
+        while !mock
+            .received_requests()
+            .await
+            .unwrap()
+            .iter()
+            .any(|request| request.method == "POST")
+        {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
     })
@@ -317,8 +325,27 @@ async fn owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit
     );
     let worker = Worker::with_drivers(server.service.clone(), vec![driver]).unwrap();
     tokio::time::sleep(Duration::from_millis(250)).await;
-    assert_eq!(mock.received_requests().await.unwrap().len(), 1);
+    assert_eq!(
+        mock.received_requests()
+            .await
+            .unwrap()
+            .iter()
+            .filter(|request| request.method == "POST")
+            .count(),
+        1
+    );
     worker.shutdown().await.unwrap();
     client.close().await;
     server.shutdown().await.unwrap();
+}
+
+async fn mount_assistant(server: &MockServer) {
+    Mock::given(method("GET"))
+        .and(path("/assistant/12345678-1234-1234-1234-123456789012"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "id":"12345678-1234-1234-1234-123456789012",
+            "model":{"messages":[{"role":"system","content":"History: {{connect_context}}"}]}
+        })))
+        .mount(server)
+        .await;
 }

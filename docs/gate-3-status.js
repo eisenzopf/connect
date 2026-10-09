@@ -20,9 +20,9 @@ function updateDocumentationIndex() {
     detail.textContent =
       'The durable session/context/availability/artifact model, native ' +
       'UCTP/QUIC audio, local SIP and authenticated WebRTC, managed files, ' +
-      'language SDKs and recovery pass the 21-phase local suite. ' +
+      'language SDKs and recovery have passing local evidence. ' +
       'Human-audibility, answered/inbound PSTN and interactive browser ' +
-      'proofs remain open. The installed candidate passes locally.';
+      'proofs remain open. Current package qualification remains open.';
   }
 }
 
@@ -38,8 +38,8 @@ function updateGate3Plan() {
   if (heroNote) {
     heroNote.innerHTML =
       'Six decision directions are accepted and implemented locally. The ' +
-      '21-phase local suite passes; human-audibility, answered/inbound PSTN, ' +
-      'interactive browser proofs remain open; the installed candidate passes. ' +
+      'Local checks pass; human-audibility, answered/inbound PSTN, ' +
+      'interactive browser proofs and current package qualification remain open. ' +
       '<a href="connect-roadmap.html#gate-3">Roadmap G3-A–G3-E</a> · ' +
       '<a href="connect-gate-3-implementation.html">Numbered implementation</a> · ' +
       '<a href="gate-3-acceptance.json">Acceptance map</a>.';
@@ -54,7 +54,7 @@ function updateGate3Plan() {
   if (reviewParagraphs[0]) {
     reviewParagraphs[0].textContent =
       'The contracts and local implementation are in place. Review the ' +
-      'recorded 21-phase local evidence, then close the remaining ' +
+      'recorded local evidence, then close the remaining ' +
       'human-audibility, answered/inbound PSTN and interactive browser checks ' +
       'without weakening the criteria.';
   }

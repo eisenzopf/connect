@@ -3,6 +3,7 @@ use async_trait::async_trait;
 pub use connect_connector_api::{Completion, Connector, DeliveryRequest, Failure};
 use std::time::Duration;
 
+mod chat_context;
 pub mod numbers;
 pub mod setup;
 
@@ -84,13 +85,35 @@ impl Connector for Vapi {
         "vapi"
     }
     async fn deliver(&self, job: &DeliveryRequest) -> Result<Completion, Failure> {
+        if job.body.chars().count() > 10_000 {
+            return Err(Failure::Rejected);
+        }
+        if job.context.is_some() {
+            let assistant = self
+                .client
+                .assistants()
+                .get(&job.target)
+                .await
+                .map_err(|error| classify(error.status_code()))?;
+            if !chat_context::supports_context(assistant.model.as_ref()) {
+                return Err(Failure::Rejected);
+            }
+        }
         let chat = self
             .client
             .chats()
             .create(vapi::CreateChatRequest {
                 assistant_id: Some(job.target.clone()),
                 input: Some(job.body.clone()),
-                previous_chat_id: job.previous_chat_id.clone(),
+                previous_chat_id: job
+                    .context
+                    .is_none()
+                    .then(|| job.previous_chat_id.clone())
+                    .flatten(),
+                extra: match &job.context {
+                    Some(context) => chat_context::overrides(context),
+                    None => serde_json::Value::Null,
+                },
                 ..Default::default()
             })
             .await

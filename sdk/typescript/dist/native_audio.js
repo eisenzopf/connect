@@ -69,24 +69,28 @@ export class NativeAudioClient {
                 clearTimeout(timer);
                 child.stdout.removeAllListeners("data");
                 const client = new NativeAudioClient(child, payload.toString("utf8"), timeoutMs);
-                client.buffer = Buffer.from(remainder);
                 child.stdout.on("data", (data) => client.receiveBytes(data));
                 child.once("exit", () => client.fail());
                 child.once("error", () => client.fail());
-                client.parseFrames();
+                client.receiveBytes(remainder);
                 resolve(client);
             });
         });
     }
     receiveBytes(chunk) {
-        if (this.closed)
-            return;
-        if (this.buffer.length + chunk.length > MAX_MEDIA_FRAME + 5) {
-            this.fail(new ConnectError("protocol", "Media helper frame exceeds bounds"));
-            return;
+        // A pipe read can coalesce many valid frames. Bound the incomplete
+        // frame buffer, rather than treating the entire read as one frame.
+        while (chunk.length && !this.closed) {
+            const capacity = MAX_MEDIA_FRAME + 5 - this.buffer.length;
+            const size = Math.min(capacity, chunk.length);
+            if (size === 0) {
+                this.fail(new ConnectError("protocol", "Media helper frame exceeds bounds"));
+                return;
+            }
+            this.buffer = Buffer.concat([this.buffer, chunk.subarray(0, size)]);
+            chunk = chunk.subarray(size);
+            this.parseFrames();
         }
-        this.buffer = Buffer.concat([this.buffer, chunk]);
-        this.parseFrames();
     }
     parseFrames() {
         while (this.buffer.length >= 5) {

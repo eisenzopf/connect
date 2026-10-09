@@ -35,7 +35,12 @@ if len(sys.argv) > 1 and sys.argv[1] == "media-stdio":
         if len(payload) != length:
             raise SystemExit(2)
         if kind == 0x02:
-            media_frame(0x82, payload)
+            if mode == "media-burst":
+                frame = b'\x82' + len(payload).to_bytes(4, 'big') + payload
+                sys.stdout.buffer.write(frame * 32)
+                sys.stdout.buffer.flush()
+            else:
+                media_frame(0x82, payload)
         elif kind == 0x03:
             break
     raise SystemExit(0)

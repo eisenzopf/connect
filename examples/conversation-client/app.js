@@ -195,11 +195,23 @@ byId("join").onclick = () =>
             value("webrtc"),
             value("credential"),
         );
-        try {
-            await voice.attach(byId("remote"));
-        } catch (error) {
-            await voice.close();
+        const activeVoice = voice;
+        void activeVoice.ended.then(() => {
+            if (voice !== activeVoice) return;
             voice = undefined;
+            byId("remote").pause();
+            byId("remote").srcObject = null;
+            byId("join").disabled = false;
+            byId("hangup").disabled = true;
+            report("Voice ended", "This voice leg ended; the conversation remains available.");
+        });
+        try {
+            await activeVoice.attach(byId("remote"));
+            if (voice !== activeVoice)
+                throw new ConnectError("webrtc-failed", "Voice ended during playback startup");
+        } catch (error) {
+            await activeVoice.close();
+            if (voice === activeVoice) voice = undefined;
             throw error;
         }
         byId("join").disabled = true;

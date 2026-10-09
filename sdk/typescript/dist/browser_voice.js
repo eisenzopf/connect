@@ -9,6 +9,11 @@ export class BrowserVoiceSession {
     remoteStream = new MediaStream();
     connectionId;
     closed = false;
+    resolveEnded = () => { };
+    /** Settles after either side ends this leg and microphone capture stops. */
+    ended = new Promise((resolve) => {
+        this.resolveEnded = resolve;
+    });
     constructor(peer, socket, localStream) {
         this.peer = peer;
         this.socket = socket;
@@ -50,6 +55,7 @@ export class BrowserVoiceSession {
         const session = new BrowserVoiceSession(peer, socket, stream);
         try {
             await session.negotiate(timeoutMs);
+            session.watchEnd();
             return session;
         }
         catch (error) {
@@ -119,11 +125,34 @@ export class BrowserVoiceSession {
                 }));
             });
         }
-        if (this.socket.readyState === WebSocket.OPEN)
+        if (this.socket.readyState === WebSocket.OPEN ||
+            this.socket.readyState === WebSocket.CONNECTING)
             this.socket.close(1000, "Connect voice ended");
         this.peer.close();
         for (const track of this.localStream.getTracks())
             track.stop();
+        this.resolveEnded();
+    }
+    watchEnd() {
+        this.socket.onclose = () => void this.close();
+        this.socket.onerror = () => void this.close();
+        this.socket.onmessage = (event) => {
+            if (typeof event.data !== "string")
+                return;
+            try {
+                const signal = JSON.parse(event.data);
+                if (signal.type === "bye" &&
+                    signal.connection_id === this.connectionId)
+                    void this.close();
+            }
+            catch {
+                void this.close();
+            }
+        };
+        this.peer.addEventListener("connectionstatechange", () => {
+            if (["failed", "closed"].includes(this.peer.connectionState))
+                void this.close();
+        });
     }
     async negotiate(timeoutMs) {
         const requestId = crypto.randomUUID();
@@ -149,11 +178,12 @@ export class BrowserVoiceSession {
             };
             this.socket.onerror = fail;
             this.socket.onclose = fail;
-            this.socket.onopen = () => this.socket.send(JSON.stringify({
+            const sendOffer = () => this.socket.send(JSON.stringify({
                 type: "offer-ready",
                 sdp: local.sdp,
                 request_id: requestId,
             }));
+            this.socket.onopen = sendOffer;
             this.socket.onmessage = async (event) => {
                 try {
                     if (typeof event.data !== "string" ||
@@ -186,6 +216,12 @@ export class BrowserVoiceSession {
                     reject(error);
                 }
             };
+            // ICE gathering can outlast the WebSocket handshake. Install the
+            // answer handler before sending, including when `open` already ran.
+            if (this.socket.readyState === WebSocket.OPEN)
+                sendOffer();
+            else if (this.socket.readyState !== WebSocket.CONNECTING)
+                fail();
         });
     }
 }

@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{fs, io::Write, path::Path};
 
+const ASSISTANT_PROMPT: &str = include_str!("../prompts/assistant.txt");
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Plan {
@@ -249,7 +251,25 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
     if state.assistant_id.is_none() {
         state.pending = Some("assistant".into());
         write_state(path, &state)?;
-        let value=v.client.post("/assistant",&json!({"name":state.name,"metadata":{"connect":true},"model":{"provider":"openai","model":"gpt-4o-mini","messages":[{"role":"system","content":"You are an assistant with a Connect presence. Reply helpfully and briefly. Never claim you sent an SMS or made a call unless a tool confirmed it."}]},"voice":{"provider":"vapi","voiceId":"Elliot"}})).await.map_err(|e|anyhow::anyhow!("Vapi assistant creation failed (status {:?}); checkpoint preserved",e.status_code()))?;
+        let assistant = json!({
+            "name": state.name,
+            "metadata": {"connect": true},
+            "model": {
+                "provider": "openai", "model": "gpt-4o-mini",
+                "messages": [{"role": "system", "content": ASSISTANT_PROMPT}],
+            },
+            "voice": {"provider": "vapi", "voiceId": "Elliot"},
+        });
+        let value = v
+            .client
+            .post("/assistant", &assistant)
+            .await
+            .map_err(|error| {
+                anyhow::anyhow!(
+                    "Vapi assistant creation failed (status {:?}); checkpoint preserved",
+                    error.status_code()
+                )
+            })?;
         state.assistant_id = Some(extract_id(&value)?);
         state.pending = None;
         write_state(path, &state)?;

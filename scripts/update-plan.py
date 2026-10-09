@@ -45,6 +45,12 @@ if args.gate == '3':
  ).replace(
   'Named future code, test scripts and evidence paths are planned outputs, not claims that they exist.',
   'Status and evidence distinguish implemented local work from remaining live qualification.',
+ ).replace(
+  'Connect · Gate 3 implementation · Planned, not implemented or qualified.',
+  'Connect · Gate 3 implementation · Partial qualification; live acceptance remains open.',
+ ).replace(
+  'The existing scripts/update-plan.py is Gate 1-specific; do not use it for G3 IDs. Use the editor above or edit embedded plan-data and its static task card together.',
+  'Use scripts/update-plan.py --gate 3 with a stable G3 item ID, or the editor above. Update the embedded plan data and static task card together.',
  )
 # Keep the saved baseline readable without JavaScript as well.
 pattern=r'(<details class="task" id="'+re.escape(args.item)+r'".*?</details>)'

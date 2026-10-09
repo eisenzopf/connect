@@ -243,14 +243,9 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let route_exists: bool = tx
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM voice_routes WHERE conversation_id=?1 AND identity_id=?2 AND enabled=1)",
-                params![conversation_id, assistant_identity_id],
-                |row| row.get(0),
-            )
-            .map_err(|_| Error::storage())?;
-        if !route_exists {
+        if crate::session_routes::vapi_assistant(&tx, conversation_id, assistant_identity_id)?
+            .is_none()
+        {
             return Err(Error::forbidden());
         }
         let session = invite(
@@ -366,50 +361,17 @@ impl Store {
             return Ok(None);
         }
         crate::conversations::authorized_conversation(&c, &actor, &session.conversation_id)?;
-        let mut voice_statement = c
-            .prepare(
-                "SELECT assistant_id FROM voice_routes WHERE conversation_id=?1 AND identity_id=?2 AND enabled=1 ORDER BY id LIMIT 2",
-            )
-            .map_err(|_| Error::storage())?;
-        let mut assistants = voice_statement
-            .query_map(
-                params![session.conversation_id, session.participant_id],
-                |row| row.get::<_, String>(0),
-            )
-            .map_err(|_| Error::storage())?
-            .collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|_| Error::storage())?;
-        let mut connector_statement = c
-            .prepare(
-                "SELECT target FROM connector_routes WHERE conversation_id=?1 AND identity_id=?2 AND connector='vapi' AND enabled=1 ORDER BY id LIMIT 2",
-            )
-            .map_err(|_| Error::storage())?;
-        assistants.extend(
-            connector_statement
-                .query_map(
-                    params![session.conversation_id, session.participant_id],
-                    |row| row.get::<_, String>(0),
-                )
-                .map_err(|_| Error::storage())?
-                .collect::<rusqlite::Result<Vec<_>>>()
-                .map_err(|_| Error::storage())?,
-        );
-        assistants.sort();
-        assistants.dedup();
-        if assistants.len() > 1 {
-            return Err(conflict(
-                "Session has more than one enabled assistant route",
-            ));
-        }
-        Ok(assistants
-            .into_iter()
-            .next()
-            .map(|assistant_id| VapiSessionRoute {
-                conversation_id: session.conversation_id,
-                session_id: session.id,
-                assistant_identity_id: session.participant_id,
-                assistant_id,
-            }))
+        Ok(crate::session_routes::vapi_assistant(
+            &c,
+            &session.conversation_id,
+            &session.participant_id,
+        )?
+        .map(|assistant_id| VapiSessionRoute {
+            conversation_id: session.conversation_id,
+            session_id: session.id,
+            assistant_identity_id: session.participant_id,
+            assistant_id,
+        }))
     }
 
     /// Record one authenticated live connection. The socket remains rvoip

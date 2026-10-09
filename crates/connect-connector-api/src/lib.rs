@@ -2,13 +2,16 @@
 //! owns authorization, durable intent, correlation, retries and journal events.
 use async_trait::async_trait;
 
-/// Only the data needed for one message delivery. No database IDs or credentials.
+/// Delivery payload and authorized history; no credentials or storage access.
 #[derive(Clone)]
 pub struct DeliveryRequest {
     pub target: String,
     pub source: Option<String>,
     pub body: String,
     pub previous_chat_id: Option<String>,
+    /// Authorized, bounded conversation projection serialized by Connect.
+    /// Adapters must keep this historical data separate from the current input.
+    pub context: Option<String>,
 }
 pub struct Completion {
     pub provider_id: String,

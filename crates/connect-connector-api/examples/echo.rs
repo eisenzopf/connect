@@ -21,6 +21,7 @@ async fn main() {
         source: None,
         body: "Hello, connector".into(),
         previous_chat_id: None,
+        context: None,
     };
     match Echo.deliver(&request).await {
         Ok(result) => println!("{}: {}", Echo.name(), result.reply.unwrap_or_default()),

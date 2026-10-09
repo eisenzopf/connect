@@ -113,6 +113,91 @@ impl Fixture {
         }
     }
 }
+
+#[test]
+fn routed_voice_accepts_enabled_vapi_connector_in_the_same_conversation() {
+    let f = fixture();
+    let caller = f
+        .store
+        .issue(
+            &f.human,
+            Scope::communications(vec![f.bot.clone()]),
+            chrono::Utc::now().timestamp() + 600,
+        )
+        .unwrap();
+    assert_eq!(
+        f.store
+            .admit_routed_inbound_session(&caller.id, &f.conversation, &f.bot)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    f.bind(false);
+    let admitted = f
+        .store
+        .admit_routed_inbound_session(&caller.id, &f.conversation, &f.bot)
+        .unwrap();
+    assert_eq!(admitted.session.state, "accepted");
+    assert_eq!(admitted.session.conversation_id, f.conversation);
+    let resolved = f
+        .store
+        .vapi_session_route(&caller.id, &admitted.session.id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(resolved.assistant_id, f.route(false).target);
+    assert_eq!(
+        f.store
+            .admit_routed_inbound_session(&f.human_key, &f.conversation, &f.bot)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert!(f
+        .store
+        .admit_routed_inbound_session(&caller.id, "other-conversation", &f.bot)
+        .is_err());
+    let mut route = f.route(false);
+    route.enabled = false;
+    f.store.configure_route(&f.operator, &route).unwrap();
+    assert_eq!(
+        f.store
+            .admit_routed_inbound_session(&caller.id, &f.conversation, &f.bot)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+}
+
+#[test]
+fn routed_voice_rejects_ambiguous_assistants_before_creating_a_session() {
+    let f = fixture();
+    let caller = f
+        .store
+        .issue(
+            &f.human,
+            Scope::communications(vec![f.bot.clone()]),
+            chrono::Utc::now().timestamp() + 600,
+        )
+        .unwrap();
+    f.bind(false);
+    let second = connect_store::VoiceRoute {
+        id: "vapi-second".into(),
+        conversation_id: f.conversation.clone(),
+        identity_id: f.bot.clone(),
+        assistant_id: "12345678-1234-1234-1234-123456789013".into(),
+        phone_number_id: "12345678-1234-1234-1234-123456789014".into(),
+        destinations: vec!["+15555550101".into()],
+        enabled: true,
+    };
+    f.store.configure_voice_route(&f.operator, &second).unwrap();
+    assert_eq!(
+        f.store
+            .admit_routed_inbound_session(&caller.id, &f.conversation, &f.bot)
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
+}
 #[test]
 fn replay_recovery_and_chat_context_do_not_duplicate_provider_work() {
     let f = fixture();

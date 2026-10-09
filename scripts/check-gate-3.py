@@ -47,6 +47,8 @@ steps = [
     ('media-pressure-smoke', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'gate3_media_pressure', '--', '--include-ignored'], 1200),
     ('vapi-duplex-media', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'gate3_vapi_media'], 900),
     ('vapi-observer-lifecycle', ['cargo', 'test', '--locked', '-p', 'connect-server', '--lib', 'vapi_observer'], 600),
+    ('provider-chat-context', ['cargo', 'test', '--locked', '-p', 'connect-connectors', '--lib', '--test', 'adapters'], 600),
+    ('provider-chat-flow', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'provider_flow'], 600),
     ('vapi-adapter-failures', ['env', 'CARGO_TARGET_DIR=target/upstream', 'cargo', 'test', '--locked', '--manifest-path', '.deps/rvoip/Cargo.toml', '-p', 'rvoip-vapi', '--test', 'mock_transport'], 1200),
     ('sip-duplex-media', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'gate3_sip_media'], 900),
     ('sip-registration-lifecycle', ['cargo', 'test', '--locked', '-p', 'connect-server', '--lib', 'sip_registration'], 600),

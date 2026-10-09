@@ -7,6 +7,9 @@ export declare class BrowserVoiceSession {
     readonly remoteStream: MediaStream;
     private connectionId?;
     private closed;
+    private resolveEnded;
+    /** Settles after either side ends this leg and microphone capture stops. */
+    readonly ended: Promise<void>;
     private constructor();
     static open(signalingUrl: string, credential: string, timeoutMs?: number): Promise<BrowserVoiceSession>;
     /** Attach remote audio and report browser playback-policy/output failure. */
@@ -14,5 +17,6 @@ export declare class BrowserVoiceSession {
     /** Inspect the negotiated path and audio counters without exposing SDP. */
     diagnostics(): Promise<VoiceDiagnostics>;
     close(): Promise<void>;
+    private watchEnd;
     private negotiate;
 }

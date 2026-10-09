@@ -46,6 +46,7 @@ impl Worker {
                             source: job.route.source.clone(),
                             body: job.body.clone(),
                             previous_chat_id: job.previous_chat_id.clone(),
+                            context: job.context.clone(),
                         };
                         let result = if let Some(driver) =
                             drivers.iter().find(|d| d.name() == job.route.connector)

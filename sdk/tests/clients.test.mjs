@@ -5,6 +5,7 @@ import {readFileSync,readdirSync} from 'node:fs';
 import {createServer} from 'node:http';
 import {NativeAudioClient,NativeClient,HttpClient,ConnectError} from '../typescript/dist/index.js';
 import {decodeResponse} from '../typescript/dist/protocol.js';
+import './browser_voice.test.mjs';
 const helper=fileURLToPath(new URL('./helper_fixture.py',import.meta.url));
 const rejects=(code)=>error=>error instanceof ConnectError&&error.code===code;
 test('browser entry point loads without Node helper modules',async()=>{const browser=await import('../typescript/dist/browser.js');assert.equal(typeof browser.BrowserHttpClient,'function');assert.equal(typeof browser.BrowserVoiceSession,'function');});
@@ -58,6 +59,12 @@ test('binary media helper carries bounded raw PCMU',async()=>{
  const media=await NativeAudioClient.open('media-ok','conversation','session','remote',helper,1000);
  try{assert.equal(media.publisherStreamId,'fixture-stream');await media.subscribe('other-stream');const frame=Uint8Array.from({length:160},(_,i)=>i);await media.sendPcmu(frame);assert.deepEqual(await media.receive(),frame);await assert.rejects(()=>media.sendPcmu(new Uint8Array(1)),rejects('invalid-request'));}finally{await media.close();}
  for(const mode of ['media-stall','media-oversize'])await assert.rejects(()=>NativeAudioClient.open(mode,'conversation','session','remote',helper,200),error=>error instanceof ConnectError);
+});
+test('native audio accepts coalesced pipe frames without weakening per-frame limits',async()=>{
+ const media=await NativeAudioClient.open('media-burst','conversation','session','remote',helper,1000);
+ try{const frame=new Uint8Array(160).fill(42);await media.sendPcmu(frame);
+  for(let i=0;i<32;i++)assert.deepEqual(await media.receive(),frame);
+ }finally{await media.close();}
 });
 for(const mode of ['fragment','stall'])test(`native ${mode} obeys deadline and closes`,async()=>{
  const c=new NativeClient(mode,helper,400);const start=Date.now();

@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "evidence": "chrome-webrtc-to-connect-to-vapi",
+  "date": "2026-10-08",
+  "status": "partial",
+  "browser": "Google Chrome 154.0.8037.99 on local macOS arm64",
+  "source_revision": "cc2d0632f0be4abbb215bea30c39ef4cd89659a1",
+  "dirty": true,
+  "source_sha256": {
+    "sdk/typescript/src/browser_voice.ts": "dc9b1f005f580d58bbeaba408dd166feb0a35c6ac7fee011fce05cc4e27199ca",
+    "crates/connect-store/src/session_routes.rs": "6647005f66380bf70480503463c0fa8b6cabf498e4aff9d2c2fd92d4a1bcf139",
+    "crates/connect-store/src/sessions.rs": "06f7583c273e71e76c92b2004990c6b21af98b92abc7d93748a40a3dc0e949e8",
+    "examples/conversation-client/app.js": "539a23bcccee3b746ffbccfe8273af48af366efc8b07e425550bc9dfff9878a8"
+  },
+  "topology": "Existing Chrome microphone and playback; loopback authenticated WebRTC signaling; configured durable conversation route; Connect media bridge; live Vapi WebSocket assistant. No WAN/TURN qualification.",
+  "observed": {
+    "connectionState": "connected",
+    "iceConnectionState": "connected",
+    "selectedPair": { "localType": "host", "remoteType": "host", "protocol": "udp" },
+    "audio": [
+      { "direction": "inbound", "codec": "audio/opus", "packets": 864, "bytes": 65228 },
+      { "direction": "outbound", "codec": "audio/opus", "packets": 901, "bytes": 72110 }
+    ],
+    "browser_playback_started": true,
+    "server_hangup": "observed in Chrome: Voice ended, Join enabled, Hang up disabled, paused output with no media source",
+    "human_audibility": "pending",
+    "three_turns": "pending",
+    "interruption": "pending",
+    "cross_channel_context": "pending"
+  },
+  "fixes": [
+    "Send the offer when the socket already opened during ICE gathering, and close a still-connecting socket on timeout.",
+    "Resolve the same enabled, conversation-scoped Vapi assistant from phone or connector routes for native and routed inbound voice.",
+    "Release microphone capture and notify the page when the server ends the WebRTC leg."
+  ],
+  "regression_checks": "28 passing TypeScript SDK tests; six passing store provider tests; passing WebRTC/Vapi server integration tests; strict workspace Clippy.",
+  "remaining": "Human audible conversation, interruption, native/SIP interactive routes, and restart-to-messaging continuity remain required before G3-022/G3-029 closure. Bidirectional RTP counters alone do not prove those behaviors."
+}

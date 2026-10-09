@@ -22,6 +22,15 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Acknowledge a definite rejected chat job without retrying it.
+    DiscardFailedChat {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        server_config: PathBuf,
+        #[arg(long)]
+        job_id: String,
+    },
     Demo {
         #[command(subcommand)]
         command: DemoCommand,
@@ -254,6 +263,18 @@ async fn main() -> Result<()> {
         )
         .init();
     match Cli::parse().command {
+        Command::DiscardFailedChat {
+            config,
+            server_config,
+            job_id,
+        } => {
+            let operator = ClientConfig::load(&config)?;
+            let server = ServerConfig::load(&server_config)?;
+            let store = connect_store::Store::open(&server.database, server.limits)?;
+            let authority = store.authenticate(&operator.credential)?;
+            store.discard_failed_chat_job(&authority, &job_id)?;
+            println!("Definite rejected chat job acknowledged; no provider retry was made.");
+        }
         Command::Demo {
             command: DemoCommand::Verify { config },
         } => connect_server::cli::demo::verify(&config).await?,

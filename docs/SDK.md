@@ -131,7 +131,7 @@ frame. The client owns a peer-global media router and processes unsolicited
 `stream.opened` announcements independently from correlated application
 requests, so history or artifact control cannot consume media-control events.
 
-When an accepted Session targets an identity with one enabled Vapi voice route,
+When an accepted Session targets an identity with one enabled Vapi phone or connector route,
 the initiator's native connection can attach the saved assistant through the
 pinned `rvoip-vapi` duplex WebSocket adapter. Connect injects the authorized
 bounded context as explicitly untrusted history, records pending/delivered/failed
@@ -172,3 +172,25 @@ chunks on reliable UCTP control and raw authenticated HTTP bytes; limits are 16
 MiB per file, 256 MiB per installation and 32 KiB decoded chunks. Blob storage,
 current authorization, resume, deletion, expiry and backup/restore are
 implemented.
+
+`BrowserVoiceSession.ended` settles after either side ends the leg and microphone
+capture stops. Applications should use it to reset their call controls and
+detach playback. A server hangup retains the parent conversation; joining again
+creates a new bounded Session in that conversation.
+
+Vapi text chat receives the same authorized projection, including final voice
+transcripts, through `assistantOverrides.variableValues.connect_context`.
+Connect-created assistants include `{{connect_context}}` in their system prompt.
+An existing assistant must include that placeholder; the connector checks its
+configuration and rejects a context-bearing chat when it is absent. Connect
+does not edit an existing assistant's prompt automatically. It submits the
+current message separately, with a 10,000-character provider limit. Full context
+delivery is journaled before dispatch; a successful response records delivery,
+while an interrupted request remains uncertain. Actual model use requires a
+separate observed reply. See [Vapi's dynamic-variable guide](https://docs.vapi.ai/chat/quickstart).
+
+For a definite rejected Vapi job, a local administrator may use
+`connect discard-failed-chat --config OPERATOR_CONFIG --server-config SERVER_CONFIG --job-id JOB_ID`.
+This records an acknowledgement and retains the failed context selection. It
+never retries that job, and cannot discard an uncertain remote outcome. New
+work needs a new explicit message and mutation ID.

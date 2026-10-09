@@ -27,6 +27,8 @@ pub struct ProviderJob {
     pub route: Route,
     pub body: String,
     pub previous_chat_id: Option<String>,
+    /// Exact serialized context selection journaled before provider dispatch.
+    pub context: Option<String>,
 }
 fn route(c: &Connection, id: &str) -> Result<Route> {
     c.query_row("SELECT id,identity_id,credential_id,conversation_id,connector,target,source,enabled FROM connector_routes WHERE id=?1", [id], |r| Ok(Route { id:r.get(0)?,identity_id:r.get(1)?,credential_id:r.get(2)?,conversation_id:r.get(3)?,connector:r.get(4)?,target:r.get(5)?,source:r.get(6)?,enabled:r.get(7)? })).map_err(|_|Error::forbidden())
@@ -191,12 +193,23 @@ impl Store {
     /// An interrupted remote mutation has unknown outcome. Never retry it by
     /// default: Telnyx SMS does not provide idempotent message submission.
     pub fn recover_provider_jobs(&self) -> Result<usize> {
-        self.connection()?
+        let mut connection = self.connection()?;
+        let tx = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        tx.execute(
+            "UPDATE context_deliveries SET state='uncertain',updated_at=?1
+             WHERE state='pending' AND id IN (SELECT 'provider-job:' || id FROM provider_jobs WHERE state='sending')",
+            [crate::now()],
+        ).map_err(|_| Error::storage())?;
+        let count = tx
             .execute(
                 "UPDATE provider_jobs SET state='uncertain' WHERE state='sending'",
                 [],
             )
-            .map_err(|_| Error::storage())
+            .map_err(|_| Error::storage())?;
+        tx.commit().map_err(|_| Error::storage())?;
+        Ok(count)
     }
     pub fn claim_provider_job(&self) -> Result<Option<ProviderJob>> {
         let mut c = self.connection()?;
@@ -237,6 +250,7 @@ impl Store {
             )
             .optional()
             .map_err(|_| Error::storage())?;
+        let context = crate::provider_chat_context::begin(&tx, &credential, &r, &id)?;
         tx.execute(
             "UPDATE provider_jobs SET state='sending' WHERE id=?1",
             [&id],
@@ -248,6 +262,7 @@ impl Store {
             route: r,
             body,
             previous_chat_id,
+            context,
         }))
     }
     pub fn finish_provider_job(
@@ -288,6 +303,7 @@ impl Store {
             params![job.id, state, provider_id],
         )
         .map_err(|_| Error::storage())?;
+        crate::provider_chat_context::finish(&tx, &job.id, state, provider_id)?;
         // A final callback may precede the API response. Reconcile its saved state.
         if r.connector == "telnyx" && state == "accepted" {
             if let Some(pid) = provider_id {

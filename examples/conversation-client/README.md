@@ -23,6 +23,8 @@ Use **Inspect voice path** during a call to see the selected ICE pair, candidate
 types, codec, and inbound/outbound audio counters. Network addresses, credentials
 and SDP are excluded. Playback startup has a deadline; output failure releases
 the microphone leg.
+Server hangup also releases capture, detaches playback and restores **Join voice**.
+The parent conversation remains available for the next call or message.
 
 ## Native microphone and speaker
 
