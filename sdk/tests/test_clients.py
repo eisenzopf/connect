@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import threading
 import time
+import tempfile
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from connect_sdk import ConnectError, HttpClient, NativeAudioClient, NativeClient
@@ -14,6 +15,16 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class NativeTests(unittest.TestCase):
+    def test_media_diagnostics_cannot_fill_an_unread_helper_pipe(self):
+        with tempfile.TemporaryFile() as diagnostics:
+            with NativeAudioClient('media-noisy', 'conversation', 'session', 'remote',
+                                   HELPER, timeout=2, stderr=diagnostics) as media:
+                frame = bytes(160)
+                media.send_pcmu(frame)
+                self.assertEqual(media.receive(), frame)
+            diagnostics.seek(0)
+            self.assertGreater(len(diagnostics.read()), 65536)
+
     def test_binary_media_helper_is_bounded_and_keeps_audio_out_of_json(self):
         with NativeAudioClient('media-ok', 'conversation', 'session', 'remote', HELPER) as media:
             self.assertEqual(media.publisher_stream_id, 'fixture-stream')

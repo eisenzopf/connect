@@ -64,6 +64,7 @@ async function refresh() {
     ]);
     const list = byId("messages");
     list.replaceChildren();
+    const displayed = new Set(history.messages.map((message) => message.id));
     for (const message of history.messages) {
         const item = document.createElement("li");
         const body = document.createElement("div");
@@ -74,7 +75,7 @@ async function refresh() {
         list.append(item);
     }
     for (const item of context.items.filter(
-        (item) => item.kind !== "message",
+        (item) => item.kind !== "message" && !displayed.has(item.source_id),
     )) {
         const row = document.createElement("li");
         const body = document.createElement("div");
@@ -194,9 +195,20 @@ byId("join").onclick = () =>
             value("webrtc"),
             value("credential"),
         );
-        await voice.attach(byId("remote"));
+        try {
+            await voice.attach(byId("remote"));
+        } catch (error) {
+            await voice.close();
+            voice = undefined;
+            throw error;
+        }
         byId("join").disabled = true;
         byId("hangup").disabled = false;
+    });
+byId("voice-diagnostics").onclick = () =>
+    act("Voice path inspected", async () => {
+        if (!voice) throw new Error("Join voice first.");
+        byId("voice-proof").textContent = JSON.stringify(await voice.diagnostics(), null, 2);
     });
 byId("hangup").onclick = () =>
     act("Voice ended", async () => {

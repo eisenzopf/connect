@@ -73,6 +73,10 @@ pub struct SipMediaConfig {
 #[serde(deny_unknown_fields)]
 /// Operator-owned settings for outbound SIP carrier access.
 pub struct SipOutboundConfig {
+    /// Optional registrar for receiving calls on this credential trunk.
+    /// rvoip refreshes the accepted registration and unregisters on shutdown.
+    #[serde(default)]
+    pub registrar_uri: Option<String>,
     /// Loose-route proxy used for every originated dialog.
     pub proxy_uri: String,
     /// SIP identity used in From and P-Asserted-Identity headers.
@@ -195,9 +199,16 @@ impl SipOutboundConfig {
     fn validate(&self) -> Result<()> {
         if !valid_sip_uri(&self.proxy_uri)
             || !valid_sip_uri(&self.identity_uri)
+            || self
+                .registrar_uri
+                .as_ref()
+                .is_some_and(|uri| !valid_sip_uri(uri))
             || self.auth_username.is_empty()
             || self.auth_username.len() > 256
-            || self.auth_username.chars().any(char::is_control)
+            || !self
+                .auth_username
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric() || "-._~".contains(character))
             || !valid_environment_name(&self.auth_password_env)
         {
             bail!("Outbound SIP trunk configuration is invalid")

@@ -248,6 +248,23 @@ fn gate_three_authority_and_provider_outcomes_fail_closed() {
         .record_session_outcome(&invited.id, "provider-connection", &report)
         .unwrap();
     assert_eq!(first_outcome, replayed_outcome);
+    let missing = store
+        .record_session_context_gap(&invited.id, "partial-provider", "end_report")
+        .unwrap();
+    assert_eq!(
+        missing,
+        store
+            .record_session_context_gap(&invited.id, "partial-provider", "end_report")
+            .unwrap()
+    );
+    assert!(missing.body.contains("connect-bridge"));
+    assert_eq!(
+        store
+            .record_session_context_gap("forged-session", "partial-provider", "end_report")
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
     assert!(!first_outcome.body.contains("not retained"));
     assert_eq!(
         store

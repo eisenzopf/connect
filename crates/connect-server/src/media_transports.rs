@@ -71,6 +71,14 @@ async fn start_sip(
     let coordinator = UnifiedCoordinator::new(listener)
         .await
         .context("Cannot bind configured SIP listener")?;
+    if let Some(outbound) = &sip.outbound {
+        if let Err(error) = crate::sip_registration::register(&coordinator, outbound).await {
+            let _ = coordinator
+                .shutdown_gracefully(Some(Duration::from_secs(5)))
+                .await;
+            return Err(error);
+        }
+    }
     let adapter = SipAdapter::new(coordinator.clone())
         .await
         .context("Cannot create SIP media adapter")?;
@@ -99,6 +107,8 @@ fn apply_outbound_trunk(
     listener.pai_uri = Some(outbound.identity_uri.clone());
     listener.outbound_proxy_uri = Some(outbound.proxy_uri.clone());
     listener.credentials = Some(Credentials::new(outbound.auth_username.clone(), password));
+    let contact = listener.sip_advertised_addr.unwrap_or(listener.bind_addr);
+    listener.contact_uri = Some(format!("sip:{}@{contact}", outbound.auth_username));
     Ok(())
 }
 
@@ -132,6 +142,7 @@ mod tests {
 
     fn trunk() -> SipOutboundConfig {
         SipOutboundConfig {
+            registrar_uri: None,
             proxy_uri: "sip:sip.telnyx.com;lr".into(),
             identity_uri: "sip:+12702628454@sip.telnyx.com".into(),
             auth_username: "connect-user".into(),
@@ -146,6 +157,10 @@ mod tests {
             .expect("valid trunk should be applied");
 
         assert_eq!(listener.local_uri, "sip:+12702628454@sip.telnyx.com");
+        assert_eq!(
+            listener.contact_uri.as_deref(),
+            Some("sip:connect-user@127.0.0.1:5060")
+        );
         assert_eq!(
             listener.pai_uri.as_deref(),
             Some(listener.local_uri.as_str())

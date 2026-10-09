@@ -1,5 +1,9 @@
 import { ConnectError } from "./errors.js";
 import { timeoutValue } from "./protocol.js";
+import {
+    voiceDiagnostics,
+    type VoiceDiagnostics,
+} from "./browser_voice_stats.js";
 
 interface Signal {
     type?: string;
@@ -78,17 +82,42 @@ export class BrowserVoiceSession {
     }
 
     /** Attach remote audio and report browser playback-policy/output failure. */
-    async attach(element: HTMLMediaElement): Promise<void> {
+    async attach(element: HTMLMediaElement, timeoutMs = 15000): Promise<void> {
+        timeoutMs = timeoutValue(timeoutMs);
         element.srcObject = this.remoteStream;
         element.autoplay = true;
+        let timer: ReturnType<typeof setTimeout> | undefined;
         try {
-            await element.play();
+            await Promise.race([
+                element.play(),
+                new Promise<never>((_, reject) => {
+                    timer = setTimeout(
+                        () =>
+                            reject(
+                                new ConnectError(
+                                    "media-output-failed",
+                                    "Remote audio playback timed out",
+                                ),
+                            ),
+                        timeoutMs,
+                    );
+                }),
+            ]);
         } catch {
+            element.pause();
+            element.srcObject = null;
             throw new ConnectError(
                 "media-output-failed",
                 "Remote audio playback could not start",
             );
+        } finally {
+            clearTimeout(timer);
         }
+    }
+
+    /** Inspect the negotiated path and audio counters without exposing SDP. */
+    diagnostics(): Promise<VoiceDiagnostics> {
+        return voiceDiagnostics(this.peer);
     }
 
     async close(): Promise<void> {

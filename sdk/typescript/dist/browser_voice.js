@@ -1,5 +1,6 @@
 import { ConnectError } from "./errors.js";
 import { timeoutValue } from "./protocol.js";
+import { voiceDiagnostics, } from "./browser_voice_stats.js";
 /** One authenticated browser WebRTC leg retained by its signaling lease. */
 export class BrowserVoiceSession {
     peer;
@@ -59,15 +60,31 @@ export class BrowserVoiceSession {
         }
     }
     /** Attach remote audio and report browser playback-policy/output failure. */
-    async attach(element) {
+    async attach(element, timeoutMs = 15000) {
+        timeoutMs = timeoutValue(timeoutMs);
         element.srcObject = this.remoteStream;
         element.autoplay = true;
+        let timer;
         try {
-            await element.play();
+            await Promise.race([
+                element.play(),
+                new Promise((_, reject) => {
+                    timer = setTimeout(() => reject(new ConnectError("media-output-failed", "Remote audio playback timed out")), timeoutMs);
+                }),
+            ]);
         }
         catch {
+            element.pause();
+            element.srcObject = null;
             throw new ConnectError("media-output-failed", "Remote audio playback could not start");
         }
+        finally {
+            clearTimeout(timer);
+        }
+    }
+    /** Inspect the negotiated path and audio counters without exposing SDP. */
+    diagnostics() {
+        return voiceDiagnostics(this.peer);
     }
     async close() {
         if (this.closed)

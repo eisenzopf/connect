@@ -15,6 +15,32 @@ struct SessionAuthority {
 }
 
 impl Store {
+    /// Record incomplete provider context as a Connect observation, rather
+    /// than inventing a provider transcript or successful end report.
+    pub fn record_session_context_gap(
+        &self,
+        session_id: &str,
+        provider_ref: &str,
+        missing: &str,
+    ) -> Result<Message> {
+        if !matches!(missing, "end_report" | "transcript_events") {
+            return Err(invalid("Invalid provider context gap"));
+        }
+        let body = serde_json::to_string(&json!({
+            "provider": "vapi", "state": "incomplete", "missing": [missing],
+            "source": "connect-bridge",
+        }))
+        .map_err(|_| Error::storage())?;
+        self.append_session_observation(
+            session_id,
+            &format!("{provider_ref}:missing-{missing}"),
+            "assistant",
+            "voice_context_status",
+            "connect-observation",
+            &body,
+        )
+    }
+
     /// Append one final provider transcript to the durable conversation.
     ///
     /// The provider stream is an internal authenticated adapter boundary. The

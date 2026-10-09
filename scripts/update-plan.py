@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Update one stable implementation item and validate the full dependency graph."""
 import argparse, datetime, html, json, pathlib, re
+from zoneinfo import ZoneInfo
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 STATES={'not-started','in-progress','blocked','done','deferred'}
 parser=argparse.ArgumentParser(description=__doc__)
@@ -16,7 +17,7 @@ source=PLAN.read_text()
 match=re.search(r'(<script id="plan-data" type="application/json">)(.*?)(</script>)',source,re.S)
 data=json.loads(match[2]); by_id={t['id']:t for t in data['tasks']}
 if args.item not in by_id: parser.error('Unknown item ID')
-task=by_id[args.item];task.update(status=args.status,owner=args.owner,evidence=args.evidence,notes=args.notes,updated=datetime.date.today().isoformat())
+task=by_id[args.item];task.update(status=args.status,owner=args.owner,evidence=args.evidence,notes=args.notes,updated=datetime.datetime.now(ZoneInfo('America/Los_Angeles')).date().isoformat())
 for item in data['tasks']:
  if item['status'] not in STATES: parser.error('Invalid status')
  if any(dep not in by_id for dep in item['depends']): parser.error('Unknown dependency')

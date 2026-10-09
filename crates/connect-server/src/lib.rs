@@ -7,9 +7,11 @@ mod media_lifecycle;
 mod media_transports;
 pub mod runtime;
 mod sip_outbound;
+mod sip_registration;
 pub mod tls;
 mod transports;
 mod vapi_media;
+mod vapi_observer;
 
 pub mod providers;
 

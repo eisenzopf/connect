@@ -35,6 +35,7 @@ advertised = "PUBLIC_IP:5060"
 media_public = "PUBLIC_IP:0"
 
 [sip.outbound]
+registrar_uri = "sip:sip.telnyx.com"
 proxy_uri = "sip:sip.telnyx.com;lr"
 identity_uri = "sip:+1OWNED_NUMBER@sip.telnyx.com"
 auth_username = "TELNYX_CONNECTION_USERNAME"
@@ -51,6 +52,12 @@ Export the password only in the server process environment. Startup fails if it
 is absent or empty. Connect applies the identity to both From and
 P-Asserted-Identity and sends originated dialogs through the configured loose
 route. SDK clients supply a SIP destination URI, never trunk credentials.
+With `registrar_uri`, startup waits for carrier acceptance. rvoip owns automatic
+refresh and removes the binding during graceful shutdown. The trunk username
+is used in Contact while the owned phone number remains the caller identity.
+Omit `registrar_uri` for trunks that do not require registration. Telnyx
+credential trunks use registration for inbound routing, including its observed
+NAT alias; see [Telnyx SIP registration](https://support-v2.telnyx.com/en/articles/4363904-sip-registration).
 `media_bind_ip` is the concrete local interface used to allocate RTP; it must
 not be the public NAT address unless that address is actually assigned locally.
 A zero public media port preserves rvoip's per-session local RTP port in SDP.

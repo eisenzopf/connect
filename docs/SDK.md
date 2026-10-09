@@ -108,6 +108,9 @@ same path passes live qualification. A wildcard signaling bind requires a
 concrete `sip.media_bind_ip` for local RTP allocation; `sip.advertised` and
 `sip.media_public` describe public mappings and are never assumed to exist on
 the host.
+An optional `sip.outbound.registrar_uri` registers the credential trunk before
+startup reports ready. rvoip handles refresh and unregister on graceful shutdown;
+the Contact identifies the trunk username, separately from caller identity.
 
 Schema 6 preserves call direction, inbound bindings, discovery watermarks and
 the credential that requested a call end. End intent survives concurrent polls
@@ -137,10 +140,18 @@ Final provider transcripts and bounded end reports are appended as
 source-attributed `voice_transcript` and `voice_outcome` context items in the
 same durable conversation. Exact replays are idempotent; changed content for a
 stable provider reference becomes an explicit source-linked correction. The
+bridge drains queued observations on teardown within a two-second deadline.
+Missing end reports and detected transcript-event loss produce explicit
+`voice_context_status` items attributed to Connect; these are not provider
+transcripts or inferred successful outcomes. The
 loopback provider test proves PCMU in both directions, restart, and delivery of
 the earlier spoken decision to a subsequent assistant Session. The separately
 recorded real-account native proof carried three spoken turns over UCTP/QUIC and
 Vapi; human audibility confirmation remains part of release review.
+The [native microphone example](../examples/conversation-client/README.md#native-microphone-and-speaker)
+uses optional local audio-device support. Python helper diagnostics inherit
+stderr by default, or can be directed to a caller-owned file via the `stderr`
+argument, so an unread internal diagnostics pipe cannot stall media.
 
 `sip_dial` stores intent before signaling. A committed rvoip SIP connection is
 registered before it becomes peer-visible, then bound to the durable Session.

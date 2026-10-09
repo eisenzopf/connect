@@ -2,15 +2,13 @@
 
 use connect_store::Store;
 use rvoip_core::{ids::ConnectionId, ids::ParticipantId, Orchestrator};
-use rvoip_vapi::{
-    VapiAdapter, VapiAgentCall, VapiAssistant, VapiAudioFormat, VapiCallOptions, VapiEvent,
-};
+use rvoip_vapi::{VapiAdapter, VapiAgentCall, VapiAssistant, VapiAudioFormat, VapiCallOptions};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 #[derive(Default)]
 pub(crate) struct VapiMedia {
     calls: HashMap<ConnectionId, VapiAgentCall>,
-    transcript_tasks: HashMap<ConnectionId, tokio::task::JoinHandle<()>>,
+    transcript_tasks: HashMap<ConnectionId, crate::vapi_observer::Observer>,
 }
 
 pub(crate) struct VapiBinding<'a> {
@@ -71,7 +69,12 @@ impl VapiMedia {
                 "vapi",
                 &context,
             )
-            .ok();
+            .map_err(|error| {
+                tracing::warn!(code = error.code, "could not journal Vapi context intent");
+                "context-intent-storage-failed"
+            })?;
+        let context_json =
+            serde_json::to_string(&context).map_err(|_| "context-serialization-failed")?;
         let options = VapiCallOptions::new(VapiAssistant::saved(route.assistant_id))
             .with_audio_format(VapiAudioFormat::MuLaw8Khz)
             .with_name("connect-session");
@@ -86,16 +89,12 @@ impl VapiMedia {
         let call = match call {
             Ok(call) => call,
             Err(error) => {
-                if let Some(delivery) = delivery {
-                    let _ = store.finish_context_delivery(&delivery, "failed", None);
-                }
+                let _ = store.finish_context_delivery(&delivery, "failed", None);
                 tracing::warn!(%error, "could not attach Vapi media leg");
                 return Err("vapi-attach-failed");
             }
         };
-        let mut call_events = call.subscribe_events();
-        let context_json =
-            serde_json::to_string(&context).unwrap_or_else(|_| "{\"items\":[]}".into());
+        let call_events = call.subscribe_events();
         let delivered = call
             .add_message(
                 "system",
@@ -106,86 +105,26 @@ impl VapiMedia {
             )
             .await
             .is_ok();
-        if let Some(delivery) = delivery {
-            let _ = store.finish_context_delivery(
-                &delivery,
-                if delivered { "delivered" } else { "failed" },
-                Some(call.vapi_connection_id().as_str()),
-            );
+        if let Err(error) = store.finish_context_delivery(
+            &delivery,
+            if delivered { "delivered" } else { "failed" },
+            Some(call.vapi_connection_id().as_str()),
+        ) {
+            let _ = call.end().await;
+            tracing::warn!(code = error.code, "could not journal Vapi context delivery");
+            return Err("context-delivery-storage-failed");
         }
         if !delivered {
             let _ = call.end().await;
             return Err("vapi-context-delivery-failed");
         }
 
-        let transcript_store = Arc::clone(store);
-        let transcript_session = binding.durable_session.to_owned();
-        let transcript_provider = call.vapi_connection_id().as_str().to_owned();
-        let transcript_task = tokio::spawn(async move {
-            let mut transcript_sequence = 0_u64;
-            let mut last_final: Option<(String, String, String)> = None;
-            loop {
-                match call_events.recv().await {
-                    Ok(VapiEvent::Transcript {
-                        role: Some(role),
-                        transcript_type: Some(transcript_type),
-                        transcript: Some(transcript),
-                    }) => {
-                        if !transcript_type.eq_ignore_ascii_case("final") {
-                            continue;
-                        }
-                        // Vapi's transcript event has no utterance ID. Give
-                        // each distinct final utterance a call-local source
-                        // reference. Immediate identical re-delivery reuses
-                        // the prior reference and remains idempotent.
-                        let provider_ref = match &last_final {
-                            Some((last_role, last_body, last_ref))
-                                if last_role == &role && last_body == &transcript =>
-                            {
-                                last_ref.clone()
-                            }
-                            _ => {
-                                let provider_ref = format!(
-                                    "{transcript_provider}:transcript:{transcript_sequence}"
-                                );
-                                transcript_sequence = transcript_sequence.saturating_add(1);
-                                last_final =
-                                    Some((role.clone(), transcript.clone(), provider_ref.clone()));
-                                provider_ref
-                            }
-                        };
-                        if let Err(error) = transcript_store.record_session_transcript(
-                            &transcript_session,
-                            &provider_ref,
-                            &role,
-                            &transcript_type,
-                            &transcript,
-                        ) {
-                            tracing::warn!(code = error.code, "could not persist Vapi transcript");
-                        }
-                    }
-                    Ok(VapiEvent::EndOfCallReport { report }) => {
-                        if let Err(error) = transcript_store.record_session_outcome(
-                            &transcript_session,
-                            &transcript_provider,
-                            &report,
-                        ) {
-                            tracing::warn!(
-                                code = error.code,
-                                "could not persist Vapi call outcome"
-                            );
-                        }
-                    }
-                    Ok(_) => {}
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                        tracing::warn!(
-                            "Vapi transcript observer lagged; provider outcome is incomplete"
-                        );
-                    }
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                }
-            }
-        });
+        let transcript_task = crate::vapi_observer::Observer::start(
+            Arc::clone(store),
+            binding.durable_session.to_owned(),
+            call.vapi_connection_id().as_str().to_owned(),
+            call_events,
+        );
         self.transcript_tasks
             .insert(binding.connection_id.clone(), transcript_task);
         self.calls.insert(binding.connection_id.clone(), call);
@@ -197,16 +136,18 @@ impl VapiMedia {
             let _ = tokio::time::timeout(Duration::from_secs(2), call.end()).await;
         }
         if let Some(task) = self.transcript_tasks.remove(connection_id) {
-            task.abort();
+            task.finish().await;
         }
     }
 
     pub(crate) async fn shutdown(mut self) {
-        for (_, call) in self.calls.drain() {
+        futures_util::future::join_all(self.calls.drain().map(|(_, call)| async move {
             let _ = tokio::time::timeout(Duration::from_secs(2), call.end()).await;
-        }
-        for (_, task) in self.transcript_tasks.drain() {
-            task.abort();
-        }
+        }))
+        .await;
+        futures_util::future::join_all(
+            self.transcript_tasks.drain().map(|(_, task)| task.finish()),
+        )
+        .await;
     }
 }

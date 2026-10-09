@@ -17,10 +17,14 @@ _MAX_MEDIA_FRAME = 4096
 
 
 class NativeAudioClient:
-    """Raw PCMU audio over a separate bounded binary helper channel."""
+    """Raw PCMU audio over a separate bounded binary helper channel.
+
+    Helper diagnostics inherit stderr by default. Supply a writable file via
+    ``stderr`` to capture them without creating an unread internal pipe.
+    """
 
     def __init__(self, config, conversation_id, session_id, remote_identity_id,
-                 executable="connect", timeout=15):
+                 executable="connect", timeout=15, stderr=None):
         self._timeout = timeout_value(timeout)
         self._read_lock = threading.Lock()
         self._write_lock = threading.Lock()
@@ -31,7 +35,7 @@ class NativeAudioClient:
                 "--conversation-id", conversation_id,
                 "--session-id", session_id,
                 "--remote-identity-id", remote_identity_id,
-            ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+            ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr, bufsize=0)
         except OSError as error:
             raise ConnectError("transport-uncertain", "Could not start Connect media helper") from error
         os.set_blocking(self._process.stdin.fileno(), False)
@@ -131,7 +135,8 @@ class NativeAudioClient:
         self._process.wait()
         self._process.stdin.close()
         self._process.stdout.close()
-        self._process.stderr.close()
+        if self._process.stderr is not None:
+            self._process.stderr.close()
 
     def close(self):
         if self._closed:
@@ -142,7 +147,8 @@ class NativeAudioClient:
             self._process.wait(timeout=3)
             self._closed = True
             self._process.stdout.close()
-            self._process.stderr.close()
+            if self._process.stderr is not None:
+                self._process.stderr.close()
         except (OSError, subprocess.TimeoutExpired):
             self._stop()
 
@@ -151,5 +157,3 @@ class NativeAudioClient:
 
     def __exit__(self, *args):
         self.close()
-
-

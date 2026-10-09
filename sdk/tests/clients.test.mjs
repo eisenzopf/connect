@@ -27,10 +27,32 @@ test('browser voice reports remote playback failure',async()=>{
  const {BrowserVoiceSession}=await import('../typescript/dist/browser.js');
  const session=Object.create(BrowserVoiceSession.prototype);
  session.remoteStream={id:'fixture-stream'};
- const element={srcObject:null,autoplay:false,play:async()=>{throw new Error('blocked');}};
+ const element={srcObject:null,autoplay:false,pause:()=>{},play:async()=>{throw new Error('blocked');}};
  await assert.rejects(()=>session.attach(element),rejects('media-output-failed'));
- assert.equal(element.srcObject,session.remoteStream);
+ assert.equal(element.srcObject,null);
  assert.equal(element.autoplay,true);
+});
+test('browser playback deadline clears an output that never starts',async()=>{
+ const {BrowserVoiceSession}=await import('../typescript/dist/browser.js');
+ const session=Object.create(BrowserVoiceSession.prototype);session.remoteStream={};
+ let paused=false;const element={srcObject:null,autoplay:false,pause:()=>{paused=true;},play:()=>new Promise(()=>{})};
+ await assert.rejects(()=>session.attach(element,10),rejects('media-output-failed'));
+ assert.equal(element.srcObject,null);assert.equal(paused,true);
+});
+test('browser diagnostics report selected path and codec without addresses',async()=>{
+ const {voiceDiagnostics}=await import('../typescript/dist/browser_voice_stats.js');
+ const stats=new Map([
+  ['transport',{type:'transport',selectedCandidatePairId:'pair'}],
+  ['pair',{id:'pair',type:'candidate-pair',localCandidateId:'local',remoteCandidateId:'remote'}],
+  ['local',{candidateType:'host',protocol:'udp',address:'private-address'}],
+  ['remote',{candidateType:'host',address:'private-address'}],
+  ['codec',{mimeType:'audio/opus'}],
+  ['inbound',{type:'inbound-rtp',kind:'audio',codecId:'codec',packetsReceived:12,bytesReceived:120}],
+  ['outbound',{type:'outbound-rtp',kind:'audio',codecId:'codec',packetsSent:15,bytesSent:150}],
+ ]);
+ const result=await voiceDiagnostics({connectionState:'connected',iceConnectionState:'connected',getStats:async()=>stats});
+ assert.equal(result.selectedPair.id,'pair');assert.equal(result.audio[0].codec,'audio/opus');
+ assert.equal(result.audio[1].packets,15);assert.ok(!JSON.stringify(result).includes('private-address'));
 });
 test('binary media helper carries bounded raw PCMU',async()=>{
  const media=await NativeAudioClient.open('media-ok','conversation','session','remote',helper,1000);

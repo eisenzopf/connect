@@ -20,6 +20,9 @@ if len(sys.argv) > 1 and sys.argv[1] == "media-stdio":
         sys.stdout.buffer.flush()
         time.sleep(10)
         raise SystemExit(0)
+    if mode == "media-noisy":
+        sys.stderr.write('media diagnostic\n' * 10000)
+        sys.stderr.flush()
     media_frame(0x81, b"fixture-stream")
     while True:
         header = sys.stdin.buffer.read(5)
