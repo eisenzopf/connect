@@ -115,7 +115,7 @@ async fn exercise(mut pair: MediaPair, index: usize, duration: Duration) -> serd
     while Instant::now() < deadline {
         let tick = Instant::now();
         // Deterministic 3% source loss and 0-100 ms delay variation. Logical
-        // sequence bytes also make delayed/reordered application input visible.
+        // Reordered RTP and queue saturation are tested in gate3_media_faults.
         if sequence.is_multiple_of(33) {
             dropped += 1;
         } else {

@@ -37,6 +37,11 @@
       "path": "patches/rvoip/sip-terminal-media-race.patch",
       "sha256": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
       "source": "Let exact SIP terminal signaling win a normal remote-hangup media closure race"
+    },
+    {
+      "path": "patches/rvoip/audio-queue-policy.patch",
+      "sha256": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+      "source": "Expose opt-in audio queue ceilings through core orchestration and raw QUIC stream construction; preserve upstream defaults."
     }
   ]
 }

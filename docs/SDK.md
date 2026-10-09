@@ -204,6 +204,9 @@ Gate 3 qualifies local macOS arm64, native PCMU/QUIC, recorded Telnyx SIP/RTP
 telephone routes and Chrome host/host UDP ICE. The public browser facade owns
 accepted input tracks during negotiation and closes them on failure or hangup.
 Native provider hangup reports `media-ended`; it is a terminal media state.
+Physical QUIC closure, including credential expiry or Session revocation, reports
+a transport error promptly instead of waiting for the audio receive deadline.
+Reconnect using a currently authorized credential to continue the Conversation.
 
 Provider context selects up to 1000 newest candidates within a 32 KiB item
 budget. Public context reads default to 100 items. Omitted sources remain in

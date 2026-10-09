@@ -146,8 +146,8 @@
                 private URL and key stay server-side
               </td>
               <td class="done">
-                Integrated; loopback duplex and context proof pass. Live
-                qualification remains open.
+                Prior loopback and live duplex/context proofs pass;
+                changed queue-profile qualification is in progress.
               </td>
             </tr>
             <tr>
@@ -157,8 +157,8 @@
                 bridge to Vapi/native; PCMU baseline
               </td>
               <td class="done">
-                Local rvoip listener and SIP↔Vapi duplex bridge pass; Telnyx
-                reachability remains open
+                Prior local and Connect-carried Telnyx voice proofs pass;
+                changed queue-profile qualification is in progress.
               </td>
             </tr>
             <tr>
@@ -168,8 +168,8 @@
                 credentials; no native-QUIC claim
               </td>
               <td class="done">
-                Authenticated local WebRTC↔Vapi duplex bridge and browser SDK
-                pass; interactive browser proof remains open
+                Prior authenticated WebRTC and real Chrome proofs pass;
+                changed queue-profile qualification is in progress.
               </td>
             </tr>
             <tr>
@@ -227,11 +227,21 @@
         </li>
       </ul>
       <p>
-        The bounded offline runner now measures these thresholds with one and
-        four concurrent two-party Sessions for 60 seconds each, deterministic
-        source loss and delay variation, and concurrent reliable artifact
-        traffic. The recorded local result passes; provider and human audible
-        checks remain separate live evidence.
+        The operating profile uses ten 20 ms frames as each local audio
+        queue's ceiling. Connect explicitly configures rvoip orchestration,
+        native QUIC streams and the Vapi adapter with this limit. The opt-in
+        upstream interfaces are preserved in a source-locked patch; upstream
+        defaults remain compatible. This is a buffering limit, not a claim
+        that total network, model and playout latency is 200 ms.
+      </p>
+      <p>
+        The completion audit adds real reordered RTP, unknown-stream rejection,
+        saturation with provider queue measurements, credential expiry and
+        bounded cancellation/peer-loss recovery. One- and four-Session
+        60-second profiles run with deterministic source loss, delay variation
+        and concurrent reliable artifact traffic. Changed-profile qualification
+        is in progress; provider and human audible checks remain separate live
+        evidence.
       </p>
       <h2>Reachability matrix</h2>
       <div class="table">

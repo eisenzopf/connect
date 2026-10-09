@@ -4,6 +4,7 @@ pub mod config;
 pub mod installation;
 mod media_ingress;
 mod media_lifecycle;
+pub mod media_profile;
 mod media_transports;
 pub mod runtime;
 mod sip_outbound;

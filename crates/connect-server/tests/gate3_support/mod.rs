@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used, dead_code)] // Shared integration fixtures use subsets per test.
 
 pub(crate) mod webrtc;
+pub(crate) mod wire_audio;
 
 use axum::{
     extract::{
@@ -12,7 +13,7 @@ use axum::{
     Json, Router,
 };
 use futures_util::StreamExt;
-use rvoip_vapi::{VapiAdapter, VapiApiKey, VapiConfig};
+use rvoip_vapi::{VapiAdapter, VapiApiKey};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
@@ -21,6 +22,7 @@ use tokio::sync::mpsc;
 struct FakeState {
     websocket_url: Arc<Mutex<String>>,
     observed: mpsc::UnboundedSender<Value>,
+    burst: bool,
 }
 
 pub(crate) struct FakeVapi {
@@ -31,12 +33,22 @@ pub(crate) struct FakeVapi {
 
 impl FakeVapi {
     pub(crate) async fn start() -> Self {
+        Self::start_profile(false).await
+    }
+
+    /// Saturate the real queue profile; retain the socket until cancelled.
+    pub(crate) async fn start_burst() -> Self {
+        Self::start_profile(true).await
+    }
+
+    async fn start_profile(burst: bool) -> Self {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let (observed, observed_rx) = mpsc::unbounded_channel();
         let state = FakeState {
             websocket_url: Arc::new(Mutex::new(format!("ws://{address}/transport"))),
             observed,
+            burst,
         };
         let router = Router::new()
             .route("/call", post(create_call))
@@ -45,15 +57,19 @@ impl FakeVapi {
         let task = tokio::spawn(async move {
             axum::serve(listener, router).await.unwrap();
         });
-        let mut config = VapiConfig::new(VapiApiKey::new("fake-private-key").unwrap())
-            .with_api_base(format!("http://{address}/").parse().unwrap())
-            .with_loopback_test_transport();
-        config.heartbeat_interval = std::time::Duration::from_secs(60);
-        config.graceful_shutdown_timeout = std::time::Duration::from_millis(100);
-        config.startup_audio_frames = 1;
-        config.jitter_target_frames = 1;
-        config.jitter_target_floor_ms = 20;
-        config.jitter_target_ceiling_ms = 20;
+        let mut config = connect_server::media_profile::vapi_config(
+            VapiApiKey::new("fake-private-key").unwrap(),
+        )
+        .with_api_base(format!("http://{address}/").parse().unwrap())
+        .with_loopback_test_transport();
+        if !burst {
+            config.heartbeat_interval = std::time::Duration::from_secs(60);
+            config.graceful_shutdown_timeout = std::time::Duration::from_millis(100);
+            config.startup_audio_frames = 1;
+            config.jitter_target_frames = 1;
+            config.jitter_target_floor_ms = 20;
+            config.jitter_target_ceiling_ms = 20;
+        }
         Self {
             adapter: VapiAdapter::new(config).unwrap(),
             observed: observed_rx,
@@ -109,6 +125,15 @@ async fn fake_socket(mut socket: WebSocket, state: FakeState) {
                     "size": bytes.len(),
                     "first": bytes.first().copied()
                 }));
+                if state.burst {
+                    // One coalesced message forces the jitter queue to drop
+                    // frames before its paced drain can consume them.
+                    socket
+                        .send(Message::Binary(vec![0x2a; 160 * 1000].into()))
+                        .await
+                        .unwrap();
+                    continue;
+                }
                 for _ in 0..20 {
                     tokio::time::sleep(std::time::Duration::from_millis(20)).await;
                     let _ = socket.send(Message::Binary(vec![0x2a; 160].into())).await;

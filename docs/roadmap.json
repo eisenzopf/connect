@@ -32,7 +32,7 @@
       "id": 3,
       "name": "Native media and interoperability",
       "outcome": "Native media, session/capability/availability contracts, basic files and explicit cross-channel continuity.",
-      "status": "qualified-in-recorded-local-scope",
+      "status": "reopened-media-budget-audit",
       "plan": "connect-gate-3-plan.html",
       "milestones": [
         {
@@ -101,7 +101,8 @@
       ],
       "implementation": "connect-gate-3-implementation.html",
       "acceptance": "gate-3-acceptance.json",
-      "evidence": "evidence/gate-3/acceptance.html"
+      "evidence": "evidence/gate-3/acceptance.html",
+      "completion_audit": "G3-016 and dependent verification/closure items reopened. The fixed 200 ms queue target and explicit reordered RTP were not fully qualified by prior checks."
     },
     {
       "id": 4,

@@ -7,7 +7,7 @@ use rvoip_core::{
     ids::StreamId,
     stream::{MediaFrame, MediaStream, StreamKind},
 };
-use rvoip_quic::QuicDatagramMediaStream;
+use rvoip_quic::{QuicDatagramMediaStream, QuicMediaQueueConfig};
 use rvoip_uctp::{
     envelope::UctpEnvelope,
     payloads::{connection, session, stream},
@@ -55,6 +55,9 @@ impl NativeAudioSession {
         if self.ended {
             return Err(ClientError::MediaEnded);
         }
+        if self.connection.close_reason().is_some() {
+            return Err(ClientError::Transport);
+        }
         if payload.len() != 160 {
             return Err(ClientError::Protocol);
         }
@@ -67,14 +70,17 @@ impl NativeAudioSession {
             payload_type: Some(0),
         };
         self.next_timestamp = self.next_timestamp.wrapping_add(160);
-        self.stream
-            .frames_out()
-            .send(frame)
-            .await
-            .map_err(|_| ClientError::Transport)
+        let frames = self.stream.frames_out();
+        tokio::select! {
+            _ = self.connection.closed() => Err(ClientError::Transport),
+            result = frames.send(frame) => result.map_err(|_| ClientError::Transport),
+        }
     }
 
     /// Receive one authorized media frame before the caller's deadline.
+    /// Reliable normal hangup returns [`ClientError::MediaEnded`]; physical
+    /// peer closure returns [`ClientError::Transport`] without waiting for
+    /// the audio deadline, including authorization expiry or revocation.
     pub async fn receive(&mut self, timeout: Duration) -> Result<NativeAudioFrame> {
         if self.ended {
             return Err(ClientError::MediaEnded);
@@ -85,11 +91,15 @@ impl NativeAudioSession {
                     tokio::select! {
                         biased;
                         event = self.events.recv() => self.accept_stream_event(event).await?,
+                        _ = self.connection.closed() => return Err(ClientError::Transport),
                         frame = inbound.recv() => return frame.ok_or(ClientError::Transport),
                     }
                 } else {
-                    let event = self.events.recv().await;
-                    self.accept_stream_event(event).await?;
+                    tokio::select! {
+                        biased;
+                        event = self.events.recv() => self.accept_stream_event(event).await?,
+                        _ = self.connection.closed() => return Err(ClientError::Transport),
+                    }
                 }
             }
         })
@@ -141,13 +151,17 @@ impl NativeAudioSession {
         }
         let codec = pcmu_codec();
         let stream_id = StreamId::from_string(opened.stream.strm_id);
-        let stream = QuicDatagramMediaStream::start(
+        let stream = QuicDatagramMediaStream::start_with_queue_config(
             stream_id.clone(),
             StreamKind::Audio,
             codec,
             Direction::Inbound,
             opened.stream.stream_local_id,
             self.connection.clone(),
+            QuicMediaQueueConfig {
+                capacity: connect_protocol::media_profile::AUDIO_QUEUE_CAPACITY,
+                ..Default::default()
+            },
         );
         let inbound = stream.try_frames_in().map_err(|_| ClientError::Transport)?;
         register_stream(
@@ -298,13 +312,17 @@ impl ConnectClient {
             tenant: None,
             subject: self.identity_id.clone(),
         };
-        let stream = QuicDatagramMediaStream::start(
+        let stream = QuicDatagramMediaStream::start_with_queue_config(
             StreamId::from_string(publisher_stream_id.clone()),
             StreamKind::Audio,
             codec,
             Direction::Inbound,
             opened.stream.stream_local_id,
             self.peer.connection.clone(),
+            QuicMediaQueueConfig {
+                capacity: connect_protocol::media_profile::AUDIO_QUEUE_CAPACITY,
+                ..Default::default()
+            },
         );
         // A point-to-point bridge (for example Vapi) can send return audio on
         // the already negotiated sendrecv stream. Multi-party subscriptions

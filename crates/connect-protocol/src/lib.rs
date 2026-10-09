@@ -1,5 +1,7 @@
 //! Transport-independent Connect application contract carried by UCTP envelopes.
 
+pub mod media_profile;
+
 use serde::{Deserialize, Serialize};
 
 pub const PROFILE: &str = "connect-control/1";

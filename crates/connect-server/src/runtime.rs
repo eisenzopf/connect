@@ -2,9 +2,9 @@ use crate::{config::ServerConfig, tls};
 use anyhow::{Context, Result};
 use connect_service::{Service, StoreSessionBindingResolver, StoreValidator};
 use connect_store::Store;
-use rvoip_core::{adapter::ConnectionAdapter, Config as RvoipConfig, Orchestrator};
+use rvoip_core::{adapter::ConnectionAdapter, Orchestrator};
 use rvoip_quic::{UctpQuicAdapter, UctpQuicConfig};
-use rvoip_vapi::{VapiAdapter, VapiApiKey, VapiConfig};
+use rvoip_vapi::{VapiAdapter, VapiApiKey};
 use std::{sync::Arc, time::Duration};
 
 /// Owned server runtime with bounded shutdown for every listener and worker.
@@ -108,7 +108,7 @@ impl RunningServer {
             .take(rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES)
             .context("Missing UCTP ALPN route")?;
         let service = Service::new(store.clone());
-        let orchestrator = Orchestrator::new(RvoipConfig::default());
+        let orchestrator = Orchestrator::new(crate::media_profile::orchestrator_config());
         let session_resolver =
             StoreSessionBindingResolver::new(store.clone(), orchestrator.clone())?;
         let vapi_media = if injected_vapi_media.is_some() {
@@ -118,7 +118,8 @@ impl RunningServer {
                 .ok()
                 .map(|value| {
                     let key = VapiApiKey::new(value).map_err(anyhow::Error::from)?;
-                    VapiAdapter::new(VapiConfig::new(key)).map_err(anyhow::Error::from)
+                    VapiAdapter::new(crate::media_profile::vapi_config(key))
+                        .map_err(anyhow::Error::from)
                 })
                 .transpose()?
         } else {
