@@ -2,10 +2,10 @@
   "schema": 1,
   "gate": 3,
   "status": "review-assembled",
-  "recorded_at": "2026-10-09T23:20:12.624105+00:00",
+  "recorded_at": "2026-10-09T23:24:10.855783+00:00",
   "scope": "Qualified local macOS arm64; unpublished owner review candidate, not full v0.1.",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
-  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d",
+  "source_revision": "a91a75abba7da1955551dcd469bfcd7f08f1c939",
   "runtime_binary_sha256": "aea69cde9b04abf91b3818634ceac75e5a0617a6babadcd36ebfd5b23db1e176",
   "acceptance": [
     {
@@ -176,7 +176,8 @@
     "queue_audit": "queue-audit.json",
     "media_profile": "media-profile.json",
     "schema_six": "schema-six-installed.json",
-    "code_review": "code-review.json"
+    "code_review": "code-review.json",
+    "distribution_equivalence": "distribution-equivalence.json"
   },
   "no_remote_deployment": true,
   "original_databases_preserved": true,
@@ -184,5 +185,14 @@
   "completed_tasks": 35,
   "total_tasks": 35,
   "primary_live_source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
-  "source_stable": true
+  "offline_qualified_source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "offline_source_stable": true,
+  "documentation_distribution": "distribution-equivalence.json",
+  "completion_audit_resolution": {
+    "status": "closed",
+    "finding": "Live adapter defaults exceeded the selected queue budget; original pressure harness did not actually inject reordered RTP.",
+    "fix": "Shared ten-frame capacities across core/QUIC/Vapi/SIP/WebRTC, source-locked opt-in interfaces preserving upstream defaults, actual queue/fault tests and current candidate retests.",
+    "additional_finding": "Prior-snapshot prompt rejected newly spoken facts; shipped template now recognizes live dialogue and preserves conflicting source attribution.",
+    "qualified_source": "e457960137a375d2ea1e9067a063065f815d29a0"
+  }
 }

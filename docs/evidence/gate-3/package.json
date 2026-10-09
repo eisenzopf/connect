@@ -1,6 +1,6 @@
 {
   "scope": "local macOS arm64; no remote deployment",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d",
   "checks": {
     "archive-checksums": {
       "result": "passed",
@@ -45,12 +45,17 @@
   },
   "result": "passed",
   "archives": {
-    "connect-0.1.0-alpha.1-macos-arm64-e457960137a3-qualification.tar.gz": "690c3459814e2c835e85fd66720b39b0e4c028be03fe17f00057bb36a54a044d",
-    "connect-0.1.0-alpha.1-macos-arm64-e457960137a3-source.tar.gz": "b861e8837a7704eefadcfb23d93cfb84717032da8227b5ebcf28b144be1a3377",
-    "connect-0.1.0-alpha.1-macos-arm64-e457960137a3.tar.gz": "24ba9234b34411723434262b24ea813997c9772a369c65bf5d5c6c91b4329a07"
+    "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d-qualification.tar.gz": "8c58e3ce421ce3fdf0acafc0cb72dbf87ebdc3a3b5eea198e6a1eebca9401748",
+    "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d-source.tar.gz": "6047f1062fd983197131e945f96dd5aa26f8421ba0cea90083f426448508cae2",
+    "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d.tar.gz": "6011f7f5e7b6db9963a3cc7239f0e7c8307f742ffb2989e64c9b4dfddad6f3d6"
   },
-  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "source_revision": "a91a75abba7da1955551dcd469bfcd7f08f1c939",
+  "recorded_at": "2026-10-09T23:24:10.754057+00:00",
+  "schema": 9,
   "binary_sha256": "aea69cde9b04abf91b3818634ceac75e5a0617a6babadcd36ebfd5b23db1e176",
-  "manifest_sha256": "05788ac322e8f8832e6b230eeb3021ea6ae0b7b9bda574ac28a48e4f6f43d062",
-  "private_result": ".local/package-checks/20261009T225349.751929Z/result.json"
+  "manifest_sha256": "5d536f3f34496940f190715d4a32715dc043c1e07c14122d867bf1bdc5a4543f",
+  "private_result": ".local/package-checks/20261009T232244.668692Z/result.json",
+  "primary_live_qualified_source": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "supplemental_installed_schema_six": "schema-six-installed.json",
+  "source_equivalence": "Only documentation changed from clean e457960; both installed executables are byte-identical. All final-bundle installation checks pass independently."
 }
