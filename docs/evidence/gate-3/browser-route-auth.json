@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "evidence": "configured-browser-route-credential-qualification",
+  "date": "2026-10-09",
+  "source_revision": "a0a0fdf01023",
+  "dirty": false,
+  "status": "partial",
+  "scope": "Local configured WebRTC route; existing Chrome microphone permission; Connect bridge to the owned live Vapi test assistant. No PSTN or WAN/TURN proof.",
+  "observed": [
+    "After restarting the local server at this revision, Chrome Join voice reached Voice connected and playback started.",
+    "Clicking Hang up returned Voice ended and Complete, enabled Join voice and disabled Hang up.",
+    "The configured credential passes admission. Two other valid credentials, including another grant for the same identity, fail the route handshake in the integration test."
+  ],
+  "checks": [
+    { "command": "cargo test --locked -p connect-service", "result": "passed" },
+    { "command": "cargo test --locked -p connect-server --test gate3_webrtc_security --test gate3_webrtc_media --test gate3_sip_webrtc", "result": "passed", "tests": 5 },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "result": "passed" },
+    { "command": "RUSTDOCFLAGS='-D warnings' cargo doc --locked --workspace --no-deps", "result": "passed" },
+    { "command": "bash scripts/format.sh --check", "result": "passed" }
+  ],
+  "private_screenshot": ".local/gate-3-live/chrome-voice-final-connected.jpg",
+  "related_evidence": ["browser-live.json", "local-ecc9094.json", "continuity-live.json"],
+  "remaining": [
+    "Human confirmation of audible three-turn browser conversations and interruption.",
+    "Browser voice continuity across channels and restart.",
+    "Connect-carried inbound/outbound PSTN qualification."
+  ]
+}

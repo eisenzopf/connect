@@ -22,7 +22,7 @@ function updateDocumentationIndex() {
       'UCTP/QUIC audio, local SIP and authenticated WebRTC, managed files, ' +
       'language SDKs and recovery have passing local evidence. ' +
       'Human-audibility, answered/inbound PSTN and interactive browser ' +
-      'proofs remain open. Current package qualification remains open.';
+      'proofs remain open. The current local package passed installation checks.';
   }
 }
 
@@ -37,9 +37,9 @@ function updateGate3Plan() {
   const heroNote = document.querySelector('.hero .small');
   if (heroNote) {
     heroNote.innerHTML =
-      'Six decision directions are accepted and implemented locally. The ' +
+      'Six decision directions are accepted and implemented locally. ' +
       'Local checks pass; human-audibility, answered/inbound PSTN, ' +
-      'interactive browser proofs and current package qualification remain open. ' +
+      'interactive browser proofs remain open. The local package passed installation checks. ' +
       '<a href="connect-roadmap.html#gate-3">Roadmap G3-A–G3-E</a> · ' +
       '<a href="connect-gate-3-implementation.html">Numbered implementation</a> · ' +
       '<a href="gate-3-acceptance.json">Acceptance map</a>.';
@@ -47,7 +47,7 @@ function updateGate3Plan() {
 
   const reviewHeading = document.querySelector('#review h2');
   if (reviewHeading) {
-    reviewHeading.textContent = 'Finish the required live and candidate proofs.';
+    reviewHeading.textContent = 'Finish the required live proofs.';
   }
 
   const reviewParagraphs = document.querySelectorAll('#review > p');
