@@ -94,6 +94,8 @@ pub fn initialize(directory: &Path, example: bool, bind: std::net::SocketAddr) -
         database: "state.sqlite3".into(),
         certificate: "certificate.der".into(),
         private_key: "private-key.der".into(),
+        sip: None,
+        webrtc: None,
         limits: Limits::default(),
     };
     private_write(

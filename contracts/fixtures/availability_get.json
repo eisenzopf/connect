@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-availability_get",
+  "ts": "2026-10-08T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "availability_get",
+    "identity_id": "identity-2"
+  }
+}

@@ -1,6 +1,6 @@
 # Connect development SDKs
 
-`connect-client` is the Gate 1 Rust SDK. It uses existing rvoip UCTP/QUIC with
+`connect-client` is the native Rust SDK. It uses existing rvoip UCTP/QUIC with
 mandatory certificate/hostname verification. The WS parity peer is a test
 harness, not this SDK or a TypeScript native package.
 
@@ -22,6 +22,13 @@ facade have separate modules. Consumers import protocol types from
 | `request(Operation)` | Full typed application operation |
 | `request_cancelled(operation, token)` | Explicit cancellation; closes physical peer |
 | `close()` | Bounded physical-peer shutdown |
+| `session_invite/accept/reject/cancel/end/get` | Durable bounded legs under an existing conversation |
+| `sip_dial/status/end` | Durable outbound SIP leg inside an accepted audio Session |
+| `open_native_audio` | Negotiated PCMU/8 kHz UCTP/QUIC datagram stream |
+| `subscribe_native_audio` | Authorized publisher subscription on the same Session |
+| `availability_set/get` | Expiring availability and preferred-route hint |
+| `context_view` | Authorized 32 KiB conversation projection with provenance and provider-delivery outcomes |
+| `artifact_begin/append/finish/get/delete` | Offset-checked, digest-verified reliable transfer operations |
 
 Client requests are serialized per client. Timeout/cancellation closes that
 physical peer; reopen it to continue. A transaction might already have committed,
@@ -53,8 +60,10 @@ python3 scripts/check-example-recovery.py
 ```
 
 The deterministic examples prove the transport/recovery interface without
-provider keys. MCP, the installable agent skill, Vapi, Telnyx and an external
-assistant are later v0.1 gates; Gate 1 does not claim those integrations.
+provider keys. Gate 3's native two-peer and native-to-Vapi audio paths are implemented in Rust.
+Python and TypeScript expose the control, context, availability, artifact and
+bounded PCMU media operations through the native helper. MCP and the installable
+skill remain Gate 4.
 
 ## Gate 2 interfaces
 
@@ -86,7 +95,19 @@ not be automatically repeated. Private provider control URLs remain server-side.
 [Voice samples](../examples/agent-presence/voice.md) include persistent request
 receipts and inbound setup. The supported Vapi native Telnyx integration provides
 the Gate 2 telephone route. The separately tested BYO SIP credential path still
-returns Vapi HTTP 400; native SIP and QUIC audio remain Gate 3.
+returns Vapi HTTP 400. Gate 3's separate SIP APIs originate and terminate a real
+rvoip SIP connection inside an accepted Connect Session; they do not reuse Vapi
+call control.
+
+Carrier origination is an operator concern. `[sip.outbound]` supplies a proxy,
+asserted identity and authentication username while referring to a password
+environment variable by name. Provider credentials never enter an SDK request,
+receipt, journal event, or committed configuration example. A successful local
+SIP peer test proves Connect's media path; Telnyx/PSTN is claimed only after the
+same path passes live qualification. A wildcard signaling bind requires a
+concrete `sip.media_bind_ip` for local RTP allocation; `sip.advertised` and
+`sip.media_public` describe public mappings and are never assumed to exist on
+the host.
 
 Schema 6 preserves call direction, inbound bindings, discovery watermarks and
 the credential that requested a call end. End intent survives concurrent polls
@@ -98,3 +119,45 @@ Discovery scans bounded updated-time windows with pagination, provider-ID
 deduplication and a durable watermark. See the sample for scan limits and delay.
 Caller ID is a routing hint, never an authorization grant. Current verification
 and live audio results are linked from the Gate 2 implementation checklist.
+
+## Gate 3 native media boundary
+
+`open_native_audio` binds an already accepted durable Session to the stock UCTP
+session/connection/stream lifecycle. Audio is PCMU, 8 kHz, mono and 20 ms per
+frame. The client owns a peer-global media router and processes unsolicited
+`stream.opened` announcements independently from correlated application
+requests, so history or artifact control cannot consume media-control events.
+
+When an accepted Session targets an identity with one enabled Vapi voice route,
+the initiator's native connection can attach the saved assistant through the
+pinned `rvoip-vapi` duplex WebSocket adapter. Connect injects the authorized
+bounded context as explicitly untrusted history, records pending/delivered/failed
+delivery state, and keeps provider credentials and WebSocket URLs server-side.
+Final provider transcripts and bounded end reports are appended as
+source-attributed `voice_transcript` and `voice_outcome` context items in the
+same durable conversation. Exact replays are idempotent; changed content for a
+stable provider reference becomes an explicit source-linked correction. The
+loopback provider test proves PCMU in both directions, restart, and delivery of
+the earlier spoken decision to a subsequent assistant Session. The separately
+recorded real-account native proof carried three spoken turns over UCTP/QUIC and
+Vapi; human audibility confirmation remains part of release review.
+
+`sip_dial` stores intent before signaling. A committed rvoip SIP connection is
+registered before it becomes peer-visible, then bound to the durable Session.
+Busy, local cancellation, no-answer, restart, and authority loss have stable
+terminal outcomes. SIP, WebRTC and native QUIC connections that name the same
+accepted Session can be paired through the rvoip media graph. Configured inbound
+routes may set `session_id`; when omitted, Connect creates a bounded inbound
+Session. Caller ID and SIP headers never select a conversation.
+
+The browser entry point uses authenticated WebRTC signaling and does not load
+the Node helper or claim browser-native QUIC. Its HTTP control facade permits
+credentialed CORS only from loopback HTTP origins; webhook-only listeners do
+not receive that layer. Microphone acquisition, ICE and signaling are bounded,
+and a stream that resolves after its deadline is stopped. The local
+interoperability suite proves WebRTC↔native QUIC and WebRTC↔SIP duplex audio.
+HTTP/JSON does not carry real-time audio. Artifact operations use bounded base64
+chunks on reliable UCTP control and raw authenticated HTTP bytes; limits are 16
+MiB per file, 256 MiB per installation and 32 KiB decoded chunks. Blob storage,
+current authorization, resume, deletion, expiry and backup/restore are
+implemented.

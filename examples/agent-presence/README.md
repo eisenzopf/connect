@@ -51,8 +51,10 @@ target/debug/connect serve --config .local/presence/server.toml --http-bind 127.
 ```
 
 `presence-init` creates human/assistant identities, scoped credentials, a shared
-conversation and its Vapi route. It requires a new directory. Both directions use
-ordinary `send`, `history`, `inbox` and `provider_status` operations.
+conversation and its Vapi route. It requires a new directory. The same route can
+answer an accepted native or browser audio Session; a Vapi phone number is not
+required for that duplex WebSocket path. Both directions use ordinary `send`,
+`history`, `inbox` and `provider_status` operations.
 
 ## Python and TypeScript
 
@@ -79,6 +81,12 @@ processed event IDs and cursor with their effects, as in `examples/review-loop`.
 `provider_status` currently returns the most recent bounded page, newest first.
 Delivery changes are read through this operation, not separate inbox events.
 The sample is a CLI demonstration; it does not implement a persistent agent runtime.
+
+For the separate Gate 3 route in which Telnyx SIP/RTP actually traverses
+Connect before reaching Vapi, follow the
+[Telnyx SIP route runbook](telnyx-sip-route.md). It preserves the current number
+route, keeps Digest credentials out of SDK requests and committed files, and
+requires public UDP reachability before any temporary provider switch.
 
 ## Add real SMS
 

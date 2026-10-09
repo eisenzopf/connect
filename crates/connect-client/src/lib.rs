@@ -22,12 +22,17 @@
 mod client;
 mod config;
 mod error;
+mod media;
 mod operations;
 
 pub use client::ConnectClient;
 pub use config::ClientConfig;
 pub use connect_protocol::{
-    Call, Conversation, Event, Identity, Message, Operation, Outcome, PROFILE,
+    Artifact, ArtifactChunk, Availability, AvailabilityState, Call, ContextItem, ContextView,
+    Conversation, Event, Identity, Message, Operation, Outcome, Session, SipLeg, PROFILE,
 };
 pub use error::{ClientError, Result};
-pub use operations::{HistoryPage, InboxPage, RequestState, SendReceipt, ServerHealth};
+pub use media::{NativeAudioFrame, NativeAudioSession};
+pub use operations::{
+    ArtifactUpload, HistoryPage, InboxPage, RequestState, SendReceipt, ServerHealth,
+};

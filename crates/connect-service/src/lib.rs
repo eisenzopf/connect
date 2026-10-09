@@ -6,10 +6,18 @@ use connect_protocol::{
 };
 use connect_store::{Actor, Store};
 use rvoip_auth_core::{BearerAuthError, BearerValidator};
-use rvoip_core::{ids::IdentityId, AuthenticatedPrincipal, IdentityAssurance};
+use rvoip_core::{
+    ids::{ConversationId, IdentityId, ParticipantId, SessionId, TenantId},
+    session::SessionMedium,
+    AuthenticatedPrincipal, IdentityAssurance, Orchestrator,
+};
 use rvoip_uctp::{
     application::{ApplicationContext, ApplicationError, ApplicationHandler},
     envelope::UctpEnvelope,
+    state::{
+        ResourceBindingError, SessionBindingResolver, UCTP_DATA_SCOPE, UCTP_SESSION_SCOPE,
+        UCTP_SUBSCRIBE_SCOPE,
+    },
     types::MessageType,
 };
 use std::sync::Arc;
@@ -165,10 +173,22 @@ impl StoreValidator {
     ) -> std::result::Result<AuthenticatedPrincipal, BearerAuthError> {
         let expires_at = chrono::DateTime::from_timestamp(actor.expires_at, 0)
             .ok_or_else(|| BearerAuthError::Invalid("expiry".into()))?;
+        let mut scopes = vec![REQUIRED_SCOPE.into()];
+        if actor.permits("session_get") {
+            scopes.extend(
+                [
+                    UCTP_SESSION_SCOPE,
+                    UCTP_DATA_SCOPE,
+                    UCTP_SUBSCRIBE_SCOPE,
+                    "webrtc:connect",
+                ]
+                .map(str::to_owned),
+            );
+        }
         let mut principal = AuthenticatedPrincipal::from_assurance(IdentityAssurance::TaskScoped {
             identity: IdentityId::from_string(actor.identity_id),
             task_id: "connect-credential".into(),
-            scopes: vec![REQUIRED_SCOPE.into()],
+            scopes,
             expires_at,
         });
         principal.subject = actor.credential_id;
@@ -179,6 +199,140 @@ impl StoreValidator {
         );
         principal.issuer = Some("connect-local".into());
         Ok(principal)
+    }
+}
+
+/// Maps an authenticated UCTP wire Session to one durable Connect Session.
+/// The resolver rechecks the credential and current conversation membership on
+/// every binding/reauthorization; identical attacker-chosen IDs cannot escape
+/// the installation namespace.
+pub struct StoreSessionBindingResolver {
+    store: Arc<Store>,
+    orchestrator: Arc<Orchestrator>,
+    namespace: String,
+}
+impl StoreSessionBindingResolver {
+    pub fn new(store: Arc<Store>, orchestrator: Arc<Orchestrator>) -> Result<Arc<Self>> {
+        Ok(Arc::new(Self {
+            namespace: store.installation_id()?,
+            store,
+            orchestrator,
+        }))
+    }
+    /// Revalidate a stored credential and project its durable Session for a
+    /// server-owned outbound transport before any peer-visible signaling.
+    pub fn project_credential(
+        &self,
+        credential_id: &str,
+        wire_session: &str,
+    ) -> std::result::Result<SessionId, ResourceBindingError> {
+        let actor = self.store.revalidate(credential_id).map_err(|error| {
+            if error.code == "storage-unavailable" {
+                ResourceBindingError::unavailable("connect-session-authority-unavailable")
+            } else {
+                ResourceBindingError::forbidden("connect-session-authority-required")
+            }
+        })?;
+        let session = self
+            .store
+            .authorize_session_binding(credential_id, wire_session)
+            .map_err(|error| {
+                if error.code == "storage-unavailable" {
+                    ResourceBindingError::unavailable("connect-session-authority-unavailable")
+                } else {
+                    ResourceBindingError::forbidden("connect-session-authority-required")
+                }
+            })?;
+        let canonical_session =
+            SessionId::from_string(format!("connect:{}:{wire_session}", self.namespace));
+        let canonical_conversation = ConversationId::from_string(format!(
+            "connect:{}:{}",
+            self.namespace, session.conversation_id
+        ));
+        let medium = match (
+            session.media.iter().any(|kind| kind == "audio"),
+            session.media.iter().any(|kind| kind == "video"),
+        ) {
+            (true, true) => SessionMedium::VoiceVideo,
+            (true, false) => SessionMedium::Voice,
+            (false, true) => SessionMedium::Video,
+            _ => SessionMedium::Mixed,
+        };
+        self.orchestrator
+            .project_external_session(
+                canonical_conversation,
+                canonical_session.clone(),
+                TenantId::from_string(self.namespace.clone()),
+                medium,
+                [ParticipantId::from_string(actor.identity_id)],
+            )
+            .map_err(|_| ResourceBindingError::unavailable("connect-session-projection-failed"))?;
+        Ok(canonical_session)
+    }
+    fn resolve(
+        &self,
+        principal: &AuthenticatedPrincipal,
+        wire_session: &SessionId,
+    ) -> std::result::Result<SessionId, ResourceBindingError> {
+        let session = self
+            .store
+            .authorize_session_binding(&principal.subject, wire_session.as_str())
+            .map_err(|error| {
+                if error.code == "storage-unavailable" {
+                    ResourceBindingError::unavailable("connect-session-authority-unavailable")
+                } else {
+                    ResourceBindingError::forbidden("connect-session-authority-required")
+                }
+            })?;
+        let canonical_session =
+            SessionId::from_string(format!("connect:{}:{}", self.namespace, wire_session));
+        let canonical_conversation = ConversationId::from_string(format!(
+            "connect:{}:{}",
+            self.namespace, session.conversation_id
+        ));
+        let medium = match (
+            session.media.iter().any(|kind| kind == "audio"),
+            session.media.iter().any(|kind| kind == "video"),
+        ) {
+            (true, true) => SessionMedium::VoiceVideo,
+            (true, false) => SessionMedium::Voice,
+            (false, true) => SessionMedium::Video,
+            _ => SessionMedium::Mixed,
+        };
+        self.orchestrator
+            .project_external_session(
+                canonical_conversation,
+                canonical_session.clone(),
+                TenantId::from_string(self.namespace.clone()),
+                medium,
+                [
+                    ParticipantId::from_string(session.initiator_id),
+                    ParticipantId::from_string(session.participant_id),
+                ],
+            )
+            .map_err(|_| ResourceBindingError::unavailable("connect-session-projection-failed"))?;
+        Ok(canonical_session)
+    }
+}
+impl SessionBindingResolver for StoreSessionBindingResolver {
+    fn resolve_session(
+        &self,
+        principal: &AuthenticatedPrincipal,
+        wire_session: &SessionId,
+    ) -> std::result::Result<SessionId, ResourceBindingError> {
+        self.resolve(principal, wire_session)
+    }
+    fn reauthorize_session(
+        &self,
+        principal: &AuthenticatedPrincipal,
+        wire_session: &SessionId,
+        canonical_session: &SessionId,
+    ) -> std::result::Result<(), ResourceBindingError> {
+        if self.resolve(principal, wire_session)? == *canonical_session {
+            Ok(())
+        } else {
+            Err(ResourceBindingError::forbidden("connect-session-mismatch"))
+        }
     }
 }
 #[async_trait]

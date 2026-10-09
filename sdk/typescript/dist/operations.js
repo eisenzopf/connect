@@ -79,6 +79,149 @@ export class Operations {
             call_id,
         });
     }
+    sessionInvite(request_id, conversation_id, participant_id, media) {
+        return this.data("session", {
+            op: "session_invite",
+            request_id,
+            conversation_id,
+            participant_id,
+            media,
+        });
+    }
+    sessionAccept(request_id, conversation_id, session_id) {
+        return this.data("session", {
+            op: "session_accept",
+            request_id,
+            conversation_id,
+            session_id,
+        });
+    }
+    sessionReject(request_id, conversation_id, session_id, reason = null) {
+        return this.data("session", {
+            op: "session_reject",
+            request_id,
+            conversation_id,
+            session_id,
+            reason,
+        });
+    }
+    sessionCancel(request_id, conversation_id, session_id) {
+        return this.data("session", {
+            op: "session_cancel",
+            request_id,
+            conversation_id,
+            session_id,
+        });
+    }
+    sessionEnd(request_id, conversation_id, session_id, reason = null) {
+        return this.data("session", {
+            op: "session_end",
+            request_id,
+            conversation_id,
+            session_id,
+            reason,
+        });
+    }
+    sessionGet(conversation_id, session_id) {
+        return this.data("session", {
+            op: "session_get",
+            conversation_id,
+            session_id,
+        });
+    }
+    sipDial(request_id, conversation_id, session_id, destination) {
+        return this.data("sip_leg", {
+            op: "sip_dial",
+            request_id,
+            conversation_id,
+            session_id,
+            destination,
+        });
+    }
+    sipStatus(conversation_id, sip_leg_id) {
+        return this.data("sip_leg", {
+            op: "sip_status",
+            conversation_id,
+            sip_leg_id,
+        });
+    }
+    sipEnd(request_id, conversation_id, sip_leg_id) {
+        return this.data("sip_leg", {
+            op: "sip_end",
+            request_id,
+            conversation_id,
+            sip_leg_id,
+        });
+    }
+    contextView(conversation_id, limit = 100) {
+        return this.data("context_view", {
+            op: "context_view",
+            conversation_id,
+            limit,
+        });
+    }
+    availabilitySet(request_id, state, expires_at, preferred_route = null) {
+        return this.data("availability", {
+            op: "availability_set",
+            request_id,
+            state,
+            preferred_route,
+            expires_at,
+        });
+    }
+    availabilityGet(identity_id) {
+        return this.data("availability", {
+            op: "availability_get",
+            identity_id,
+        });
+    }
+    artifactBegin(request_id, conversation_id, name, media_type, size, sha256, expires_at = null) {
+        return this.data("artifact", {
+            op: "artifact_begin",
+            request_id,
+            conversation_id,
+            name,
+            media_type,
+            size,
+            sha256,
+            expires_at,
+        });
+    }
+    artifactAppend(request_id, conversation_id, artifact_id, offset, data) {
+        return this.data("artifact", {
+            op: "artifact_append",
+            request_id,
+            conversation_id,
+            artifact_id,
+            offset,
+            data,
+        });
+    }
+    artifactFinish(request_id, conversation_id, artifact_id) {
+        return this.data("artifact", {
+            op: "artifact_finish",
+            request_id,
+            conversation_id,
+            artifact_id,
+        });
+    }
+    artifactGet(conversation_id, artifact_id, offset = 0, limit = 32768) {
+        return this.data("artifact_chunk", {
+            op: "artifact_get",
+            conversation_id,
+            artifact_id,
+            offset,
+            limit,
+        });
+    }
+    artifactDelete(request_id, conversation_id, artifact_id) {
+        return this.data("artifact", {
+            op: "artifact_delete",
+            request_id,
+            conversation_id,
+            artifact_id,
+        });
+    }
     health() {
         return this.data("health", { op: "health" });
     }

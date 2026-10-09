@@ -3,13 +3,18 @@ use crate::{ClientConfig, ClientError, Result};
 use connect_protocol::{Operation, Outcome, Request, Response, PROFILE, REQUEST_TYPE, RESULT_TYPE};
 use rvoip_quic::UctpQuicClient;
 use rvoip_uctp::{envelope::UctpEnvelope, substrate, types::MessageType};
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+use tokio::sync::{broadcast, oneshot};
 
 pub struct ConnectClient {
     endpoint: quinn::Endpoint,
-    peer: Arc<UctpQuicClient>,
-    inbox: tokio::sync::mpsc::Receiver<UctpEnvelope>,
-    deadline: Duration,
+    pub(crate) peer: Arc<UctpQuicClient>,
+    pending: Arc<parking_lot::Mutex<HashMap<String, oneshot::Sender<UctpEnvelope>>>>,
+    pub(crate) events: broadcast::Sender<UctpEnvelope>,
+    pub(crate) deadline: Duration,
+    pub(crate) participant_id: String,
+    pub(crate) identity_id: String,
+    pub(crate) media_router: Arc<rvoip_uctp::substrate::PeerMediaRouter>,
     disconnected: bool,
 }
 impl ConnectClient {
@@ -41,12 +46,38 @@ impl ConnectClient {
         .await
         .map_err(|_| ClientError::Timeout)?
         .map_err(|_| ClientError::Transport)?;
-        let inbox = peer.take_inbound().ok_or(ClientError::Transport)?;
+        let mut inbox = peer.take_inbound().ok_or(ClientError::Transport)?;
+        let pending = Arc::new(parking_lot::Mutex::new(HashMap::<
+            String,
+            oneshot::Sender<UctpEnvelope>,
+        >::new()));
+        let (events, _) = broadcast::channel(256);
+        let pending_for_reader = pending.clone();
+        let events_for_reader = events.clone();
+        tokio::spawn(async move {
+            while let Some(envelope) = inbox.recv().await {
+                tracing::debug!(message_type = %envelope.msg_type.as_wire_str(), "Connect client received UCTP envelope");
+                let waiter = envelope
+                    .in_reply_to
+                    .as_ref()
+                    .and_then(|id| pending_for_reader.lock().remove(id));
+                if let Some(waiter) = waiter {
+                    let _ = waiter.send(envelope);
+                } else {
+                    let _ = events_for_reader.send(envelope);
+                }
+            }
+        });
+        let media_router = rvoip_uctp::substrate::PeerMediaRouter::new();
         let mut client = Self {
             endpoint,
             peer,
-            inbox,
+            pending,
+            events,
             deadline,
+            participant_id: String::new(),
+            identity_id: config.identity_id.clone(),
+            media_router,
             disconnected: false,
         };
         let hello = UctpEnvelope::new(
@@ -67,33 +98,42 @@ impl ConnectClient {
                 serde_json::json!({"method":"bearer","credential":config.credential}),
             ))
             .await?;
-        if response.msg_type != MessageType::AuthSession
-            || response.payload["identity_id"] != config.credential_id
-        {
+        if response.msg_type != MessageType::AuthSession {
             return Err(ClientError::Authentication);
         }
+        let session: rvoip_uctp::payloads::auth::AuthSession = response
+            .decode_payload()
+            .map_err(|_| ClientError::Authentication)?;
+        if session.identity_id != config.credential_id {
+            return Err(ClientError::Authentication);
+        }
+        client.participant_id = session.participant_id;
+        std::mem::drop(rvoip_quic::spawn_datagram_reader_with_cancel(
+            client.peer.connection.clone(),
+            client.media_router.clone(),
+            None,
+            tokio_util::sync::CancellationToken::new(),
+        ));
         Ok(client)
     }
-    async fn exchange(&mut self, envelope: UctpEnvelope) -> Result<UctpEnvelope> {
+    pub(crate) async fn exchange(&mut self, envelope: UctpEnvelope) -> Result<UctpEnvelope> {
         if self.disconnected {
             return Err(ClientError::Transport);
         }
         let id = envelope.id.clone();
+        let (reply_tx, reply_rx) = oneshot::channel();
+        self.pending.lock().insert(id.clone(), reply_tx);
         let future = async {
-            self.peer
-                .send(envelope)
-                .await
-                .map_err(|_| ClientError::Transport)?;
-            while let Some(reply) = self.inbox.recv().await {
-                if reply.in_reply_to.as_ref() == Some(&id) {
-                    return Ok(reply);
-                }
+            if self.peer.send(envelope).await.is_err() {
+                self.pending.lock().remove(&id);
+                return Err(ClientError::Transport);
             }
-            Err(ClientError::Transport)
+            reply_rx.await.map_err(|_| ClientError::Transport)
         };
         match tokio::time::timeout(self.deadline, future).await {
             Ok(result) => result,
             Err(_) => {
+                self.pending.lock().remove(&id);
                 self.disconnect();
                 Err(ClientError::Timeout)
             }

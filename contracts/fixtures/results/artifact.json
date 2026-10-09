@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env-artifact-result",
+  "in_reply_to": "env-artifact-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "artifact",
+        "data": {
+          "id": "artifact-1",
+          "conversation_id": "conversation-1",
+          "owner_id": "identity-1",
+          "name": "review.txt",
+          "media_type": "text/plain",
+          "size": 5,
+          "received": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+          "state": "ready",
+          "created_at": 1791417600,
+          "expires_at": null
+        }
+      }
+    }
+  },
+  "ts": "2026-10-08T00:00:00Z"
+}

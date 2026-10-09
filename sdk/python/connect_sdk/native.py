@@ -10,7 +10,6 @@ from .errors import ConnectError
 from .operations import Operations
 from .protocol import MAX_REQUEST, MAX_RESPONSE, decode_response, expected_kind, timeout_value
 
-
 class NativeClient(Operations):
     def __init__(self, config, executable="connect", timeout=15):
         self._timeout = timeout_value(timeout)

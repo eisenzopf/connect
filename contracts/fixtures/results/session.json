@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env-session-result",
+  "in_reply_to": "env-session-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "session",
+        "data": {
+          "id": "session-1",
+          "conversation_id": "conversation-1",
+          "initiator_id": "identity-1",
+          "participant_id": "identity-2",
+          "state": "accepted",
+          "media": [
+            "audio"
+          ],
+          "created_at": 1791417600,
+          "updated_at": 1791417601,
+          "ended_reason": null
+        }
+      }
+    }
+  },
+  "ts": "2026-10-08T00:00:00Z"
+}

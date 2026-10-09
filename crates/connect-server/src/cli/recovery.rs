@@ -29,6 +29,8 @@ pub struct BackupManifest {
     pub binary_version: String,
     pub snapshot: Snapshot,
     pub files: BTreeMap<String, String>,
+    #[serde(default)]
+    pub blobs: BTreeMap<String, String>,
 }
 fn hash(path: &Path) -> Result<String> {
     use std::io::Read;
@@ -61,7 +63,10 @@ pub fn verified_manifest(directory: &Path) -> Result<BackupManifest> {
     let manifest: BackupManifest =
         serde_json::from_slice(&bounded_read(&directory.join("manifest.json"))?)
             .map_err(|_| anyhow::anyhow!("Backup manifest is invalid or incomplete"))?;
-    anyhow::ensure!(manifest.version == 1, "Unsupported backup manifest version");
+    anyhow::ensure!(
+        matches!(manifest.version, 1 | 2),
+        "Unsupported backup manifest version"
+    );
     for required in &FILES[..5] {
         anyhow::ensure!(
             manifest.files.contains_key(*required),
@@ -82,6 +87,20 @@ pub fn verified_manifest(directory: &Path) -> Result<BackupManifest> {
             &hash(&path)? == expected,
             "Backup checksum mismatch: {name}"
         );
+    }
+    let referenced = Store::artifact_blob_names(&directory.join("state.sqlite3"))?;
+    anyhow::ensure!(
+        referenced == manifest.blobs.keys().cloned().collect::<Vec<_>>(),
+        "Backup blob set does not match database references"
+    );
+    for (name, expected) in &manifest.blobs {
+        anyhow::ensure!(valid_blob_name(name), "Backup has an invalid blob name");
+        let path = directory.join("blobs").join(name);
+        anyhow::ensure!(
+            std::fs::symlink_metadata(&path)?.file_type().is_file(),
+            "Backup blob must be a regular file"
+        );
+        anyhow::ensure!(&hash(&path)? == expected, "Backup blob checksum mismatch");
     }
     anyhow::ensure!(
         Store::inspect_snapshot(&directory.join("state.sqlite3"))? == manifest.snapshot,
@@ -132,12 +151,25 @@ pub fn backup(server_path: &Path, operator_path: &Path, output: &Path) -> Result
             files.insert((*name).to_owned(), hash(&path)?);
         }
     }
+    let mut blobs = BTreeMap::new();
+    let blob_names = Store::artifact_blob_names(&output.join("state.sqlite3"))?;
+    if !blob_names.is_empty() {
+        private_directory(&output.join("blobs"))?;
+    }
+    let source_blobs = Store::blob_directory_for(&server.database);
+    for name in blob_names {
+        let source = source_blobs.join(&name);
+        let destination = output.join("blobs").join(&name);
+        copy_private_file(&source, &destination)?;
+        blobs.insert(name, hash(&destination)?);
+    }
     let manifest = BackupManifest {
-        version: 1,
+        version: 2,
         created_at: chrono::Utc::now().to_rfc3339(),
         binary_version: env!("CARGO_PKG_VERSION").into(),
         snapshot,
         files,
+        blobs,
     };
     // A partially written backup lacks this final, durable completion marker.
     private_write(
@@ -177,6 +209,15 @@ pub fn restore(
             private_write(&directory.join(name), &bounded_read(&backup.join(name))?)?;
         }
     }
+    if !manifest.blobs.is_empty() {
+        private_directory(&Store::blob_directory_for(&directory.join("state.sqlite3")))?;
+        for name in manifest.blobs.keys() {
+            copy_private_file(
+                &backup.join("blobs").join(name),
+                &Store::blob_directory_for(&directory.join("state.sqlite3")).join(name),
+            )?;
+        }
+    }
     private_write(
         &directory.join("server.toml"),
         toml::to_string_pretty(&server)?.as_bytes(),
@@ -190,6 +231,35 @@ pub fn restore(
         directory.display(),
         manifest.snapshot.schema
     );
+    Ok(())
+}
+
+fn valid_blob_name(name: &str) -> bool {
+    name.len() == 41
+        && name.ends_with(".blob")
+        && uuid::Uuid::parse_str(&name[..36]).is_ok()
+        && !name.contains(['/', '\\', '\0'])
+}
+
+fn copy_private_file(source: &Path, destination: &Path) -> Result<()> {
+    let metadata = std::fs::symlink_metadata(source)?;
+    anyhow::ensure!(
+        metadata.file_type().is_file(),
+        "Source must be a regular file"
+    );
+    let mut input = std::fs::File::open(source)?;
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut output = options.open(destination)?;
+    std::io::copy(&mut input, &mut output)?;
+    use std::io::Write as _;
+    output.flush()?;
+    output.sync_all()?;
     Ok(())
 }
 

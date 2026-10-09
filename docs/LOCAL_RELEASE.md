@@ -1,46 +1,36 @@
-# Run the qualified Gate 1 local candidate
+# Run the Gate 3 local candidate
 
-These instructions and schema 1→2 drill describe the archived Gate 1 candidate.
-They do not qualify the current Gate 2/Gate 3 development workspace. See
-[index.html](index.html) for current plans and [SDK.md](SDK.md) for development interfaces.
+This candidate packages the Connect server, native Rust helper, Python and
+TypeScript SDKs, browser facade, and the human conversation test client for
+macOS arm64. It is unpublished and performs no remote deployment. Provider-live
+evidence is recorded separately from the package qualification.
 
-This is Gate 1: the local server, native Rust SDK, and a deterministic review app
-and agent. Vapi, Telnyx, SIP/PSTN/SMS, WebRTC, files, voice/video, MCP, and an
-external assistant integration remain subsequent v0.1 gates. This candidate is
-for macOS arm64. It is not published and requires no provider account.
+## Verify and install
 
-## Install without replacing system software
-
-Verify all three supplied archives in their download directory:
+Verify all three archives in the candidate directory:
 
 ```sh
 shasum -a 256 -c SHA256SUMS
 ```
 
-Create a new local workspace. Extract the **runtime** archive into its `releases/`
-directory; retain the versioned directory name. Do not unpack the source or
-qualification archives into the runtime directory. Use the absolute path of
-`releases/<candidate-id>/bin/connect` in place of `CONNECT` below, and its sibling
-`connect-example` in place of `EXAMPLE`. These labels are placeholders, not shell
-variables. No system PATH change, daemon, tunnel, DNS, or remote server is needed.
+Extract the runtime archive into a new `releases/` directory. Keep state outside
+the extracted release. Use the absolute path of `bin/connect` below; no PATH,
+daemon, DNS, tunnel, or existing installation change is required.
 
-Run `CONNECT --version` and compare the version and binary hashes with the
-included `manifest.json`. Keep state outside `releases/`.
+## Start a private local installation
 
-## Start, communicate, restart
-
-From your new workspace, in terminal 1:
+In terminal 1:
 
 ```sh
 CONNECT init --directory state --example review-loop --bind 127.0.0.1:4433
-CONNECT serve --config state/server.toml
+CONNECT serve --config state/server.toml --http-bind 127.0.0.1:8080
 ```
 
-Choose a different loopback port with `--bind` if needed **before initializing**.
-Initialization preserves a completed existing installation; it does not reset
-credentials or state. An incomplete destination is refused. Configurations,
-credentials, the local certificate/private key, and SQLite state are protected
-local files. Never paste credentials into commands, logs, or issue reports.
+Choose free loopback ports before initialization when those ports are occupied.
+Initialization preserves a completed installation and refuses an incomplete
+destination. Configurations, credentials, the certificate/private key, SQLite
+database, and artifact blobs are private files. Never paste credentials into
+commands, logs, or issue reports.
 
 In terminal 2:
 
@@ -56,31 +46,54 @@ In terminal 3:
 EXAMPLE agent --config state/agent.toml
 ```
 
-Both processes initiate and reply using only the native SDK. The responder is
-deterministic. Each owns its own `*.work.sqlite3` file for jobs, pending replies,
-original logical request IDs, and inbox cursors. It does not read Connect's DB.
+Both example processes use only the native SDK. Each has its own work database
+for handled events, logical request IDs, replies, and inbox cursor. Stop and
+restart either worker with the same files to exercise durable continuation.
 
-Stop both workers with Ctrl-C. With the server still running:
+## Gate 3 interfaces
 
-```sh
-CONNECT demo verify --config state/operator.toml
-```
+The installed native SDK exposes persistent conversations, bounded Sessions,
+availability, context, artifacts, native PCMU audio, and SIP leg control. Python
+and TypeScript use the installed `connect` helper for UCTP/QUIC control and PCMU
+audio. HTTP provides authenticated control and raw artifact bytes; it is not an
+audio transport. The browser facade uses WebRTC and a configured loopback
+signaling listener; it does not claim browser-native QUIC.
 
-The command runs the two sibling example binaries for a bounded interval and
-checks their native conversations. Keep both binaries together. Repeat it after
-restarting the server to check continuation. Restart an exited worker using the
-same config/work file; automatic reconnection is not claimed. Cancellation does
-not undo accepted work. Reuse the same logical request ID after an uncertain
-send, or query `request_status`; never silently generate a replacement ID.
+The runtime includes `examples/conversation-client`. Serve that directory from
+a loopback origin and point it at the configured HTTP/WebRTC listeners. It uses
+the public browser SDK for history, messages, artifacts, availability, Session
+control, microphone input, and remote audio. Browser playback and microphone
+failures are surfaced to the user.
 
-For offline recovery, stop the agent, send a review request through the SDK or
-`CONNECT request --config state/reviews.toml` with a JSON operation on stdin,
-then restart the agent. The source bundle's `scripts/check-examples.py` provides
-a reproducible offline/replay scenario using the installed binaries.
+SIP and WebRTC listeners are disabled unless configured. Copy the commented
+sections in `config/local.example.toml` into the private server config and use
+credentials and durable IDs created for that installation. An inbound route can
+create a bounded Session, or its optional `session_id` can join one already
+accepted audio Session. Caller ID and SIP headers never select authorization or
+merge conversation history.
 
-## Back up, restore, upgrade
+For an outbound carrier trunk, configure `[sip.outbound]` with its loose-route
+proxy, asserted SIP identity, authentication username, and the *name* of the
+environment variable holding its Digest password. The server reads that value
+only at startup and fails closed when it is missing or empty. For the current
+Telnyx credential-connection profile, the starting values are
+`sip:sip.telnyx.com;lr` and an identity URI built from the assigned E.164 number.
+Keep this private operator configuration separate from durable conversation
+authority. A wildcard SIP listener also requires `media_bind_ip` naming a
+concrete local interface for RTP allocation; the public `advertised` and
+`media_public` addresses are SDP/signaling mappings and cannot be used as local
+bind addresses unless they are assigned to the host. Public inbound SIP/RTP
+still requires a reachable advertised address and UDP media ports; an HTTPS
+callback tunnel does not provide either.
 
-With the original server running or stopped:
+Live Vapi and Telnyx credentials stay in environment variables and are never
+part of this archive. The account-free qualification uses loopback provider,
+SIP, WebRTC, and native peers. A local loopback pass does not prove public PSTN,
+NAT, TURN, or provider reachability.
+
+## Backup, restore, and upgrade
+
+Create a verified backup before migration:
 
 ```sh
 CONNECT backup --config state/operator.toml --server-config state/server.toml --output backups/pre-upgrade
@@ -88,60 +101,40 @@ CONNECT restore --backup backups/pre-upgrade --directory restored --bind 127.0.0
 CONNECT serve --config restored/server.toml
 ```
 
-Restore requires a new directory and verifies checksums/database integrity before
-creating it. Use another port for the restored installation. It preserves the
-installation identity, journal, receipts and cursors at the backup snapshot.
-A cursor newer than that snapshot is rejected. App-owned work files and
-separately issued credential files are separate recovery material; back them up
-with their owners. Backups contain credentials and keys, not just public data.
+Backup manifest version 2 covers the SQLite snapshot and referenced artifact
+blobs. Restore requires a new directory and verifies both before publication.
+App-owned work databases and separately issued credentials remain their owners'
+recovery material.
 
-`serve` never implicitly migrates. Stop the affected server, retain a verified
-matching backup, then run:
+`serve` never migrates implicitly. Stop the affected server, retain its matching
+verified backup, then run:
 
 ```sh
 CONNECT migrate --config state/operator.toml --server-config state/server.toml --backup backups/pre-upgrade
 ```
 
-The current development migration supports schema 1–5 to 6. The historical
-Gate 1 archive qualified schema 1 to 2. Unsupported newer schemas and stale or
-foreign backups are refused. Roll back by restoring the matching **pre-upgrade**
-backup into a new directory and using the previous compatible binary. Do not
-downgrade a DB in place. Work accepted after the backup is absent from rollback.
+The candidate migrates supported schemas 1–8 to schema 9. A live Session becomes
+interrupted across restart; Connect preserves durable intent and never claims a
+socket or media pump survived. Roll back by restoring the matching pre-upgrade
+backup into a new directory and using its compatible binary.
 
-Stop foreground workers and server with Ctrl-C. Keep the installation and
-protected backups for review; do not delete unrelated directories or processes.
+## Reproduce qualification
 
-## SDK source and developer qualification
+The source archive contains the full workspace, lockfile, patches, contracts,
+tests, and dependency source lock. The separate qualification archive contains
+the historical schema-1 milestone binary and provenance manifest, without a
+database or credentials.
 
-The `-source.tar.gz` archive contains the complete workspace at the candidate's
-source revision, including Rust/Python/TypeScript SDKs, lockfile, patches, instructions,
-and numbered HTML plan. Runtime binaries require neither this archive nor Rust.
-SDK builds require the pinned Rust toolchain, native build tools, and dependency
-preparation; see `docs/DEVELOPING.md` and `docs/SDK.md` in the source archive.
-
-The runtime archive also includes `sdk/python/connect_sdk`, the built TypeScript
-client under `sdk/typescript/dist`, and `examples/agent-presence`. Native language
-clients use the installed `bin/connect` helper; HTTP/JSON is a separate local
-interface. Set `PYTHONPATH` to the extracted `sdk/python` directory or import the
-TypeScript module from its extracted path. Python 3.11+ and Node 22+ are required;
-no Rust compiler is needed to use these packaged clients. Package qualification
-exercises both native QUIC and HTTP clients from these extracted runtime files.
-
-The separate `-qualification.tar.gz` contains the actual archived schema-1
-milestone binary and its checksum/provenance manifest. It contains no old DB or
-credentials. That historical binary is not a public release or a claimed
-reproducible source build. The drill initializes fresh schema-1 state with it.
-
-From the source checkout, extract qualification material separately and run:
+From the extracted source checkout:
 
 ```sh
+bash scripts/check-gate-3.sh
 bash scripts/check-local.sh --previous-binary /absolute/path/qualification/connect-schema1
 python3 scripts/check-package.py /absolute/path/to/candidate-directory
 ```
 
-The candidate directory contains `SHA256SUMS` and the three archives. Raw logs
-and machine-readable results stay in ignored `.local/checks/` and
-`.local/package-checks/`. Qualification uses disposable loopback installations,
-synthetic requests, bounded waits, and task-owned process cleanup. Test-only
-fault binaries are built from corresponding source for crash drills; installed
-normal binaries replay the results. No test fault controls ship in the runtime.
+Gate 3's runner is bounded and account-free. Raw logs and machine-readable
+results stay under ignored `.local/` directories. The package checker verifies
+archive paths and hashes, compiles the extracted native SDK, runs installed
+native/HTTP language clients, checks restart and shutdown, and exercises
+backup-backed upgrade/restore without touching an existing installation.

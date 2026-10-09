@@ -1,7 +1,7 @@
 # Connect architecture
 
 Connect is a local communications server with a durable application model over
-UCTP/QUIC. The same twelve operations are available through the Rust client,
+UCTP/QUIC. The same typed application operations are available through the Rust client,
 Python/TypeScript native-helper SDKs, and an explicit loopback HTTP/JSON facade.
 A loopback WebSocket parity listener exercises the same control profile; it is
 not a native QUIC SDK or telephone media endpoint.
@@ -11,7 +11,7 @@ not a native QUIC SDK or telephone media endpoint.
 | Layer | Responsibility |
 |---|---|
 | connect-protocol | Profile, operations, outcomes, errors and limits; no transport/storage |
-| connect-store | SQLite transactions, identity/credentials, immutable receipts, journal, provider jobs and recovery |
+| connect-store | SQLite transactions, identity/credentials, immutable receipts, journal, sessions, context, availability, artifacts, provider jobs and recovery |
 | connect-service | Authenticated operation dispatch and application authorization |
 | connect-connector-api | Storage-independent message/voice requests and provider observations |
 | connect-connectors | Telnyx/Vapi provider adapters and callback validation |
@@ -39,13 +39,39 @@ aborts its tasks. This is not a claim of automatic worker supervision/restart.
 
 ## Voice boundary
 
-The verified route is handset ↔ Telnyx ↔ Vapi. Connect provisions, initiates,
-observes, correlates and terminates provider calls; it does not carry their audio.
+The Gate 2 verified route is handset ↔ Telnyx ↔ Vapi. Connect provisions, initiates,
+observes, correlates and terminates those provider calls; it does not carry their audio.
 The assistant can answer while Connect is offline, and inbound discovery catches
-up later. A SIP→Connect→Vapi WebSocket media bridge remains Gate 3 work. Local
-QUIC audio probes demonstrate datagrams, not that complete telephone path.
+up later. The Gate 3 native QUIC→Connect→Vapi WebSocket bridge is implemented
+and proven against a loopback duplex provider. A separate rvoip SIP path admits
+configured inbound calls and originates SDK-requested calls inside a durable
+Session. Real Telnyx/PSTN reachability remains live qualification.
 
-Schema 6 is unchanged by the stabilization pass. Existing installations, backups,
+## Gate 3 session and native media boundary
+
+Connect remains authoritative for persistent Conversations and durable Session
+intent. An authenticated UCTP resolver rechecks current credential authority and
+projects exact installation-namespaced conversation/session IDs into rvoip.
+rvoip owns live Connections, Streams, subscription routing and media pumps. The
+projection is disposable; restart records interruption and never pretends to
+restore a socket.
+
+The Rust SDK separates correlated replies from unsolicited UCTP events and
+maintains one peer-global media router. Two independent clients can publish and
+subscribe to PCMU/8 kHz streams through the local server. HTTP and native control
+share the same durable session, context, availability and artifact state.
+
+Vapi duplex attachment, bounded context delivery, transcript/outcome import and
+restart continuity pass account-free integration tests. Local SIP and WebRTC
+adapters exchange duplex media with Vapi; WebRTC also exchanges duplex media
+with native QUIC and SIP connections in the same Session. Managed external blobs
+are integrity checked and included in consistent backup/restore. Live Vapi,
+Telnyx/PSTN, interactive browser audio and clean installed-candidate
+qualification remain Gate 3 proof work. See
+[decision 006](decisions/006-gate-3-contracts.html) and
+[decision 007](decisions/007-gate-3-media-profile.html).
+
+Schema 9 contains the Gate 3 durable model and SIP-leg intent. Existing installations, backups,
 provider credentials and remote resources are not modified by source checks.
 Presence/contact preferences remain backlog decision B-001. Live SMS awaits
 carrier approval. [Wire contract](../contracts/connect-control-v1.md) ·

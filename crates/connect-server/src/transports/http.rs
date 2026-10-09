@@ -1,30 +1,34 @@
-//! Loopback HTTP/JSON facade, sharing the same service, scopes and receipts.
+//! Bounded loopback HTTP facade sharing the service's authority and receipts.
 use axum::{
-    body::Bytes,
     extract::{DefaultBodyLimit, State},
-    http::{HeaderMap, StatusCode},
+    http::{header, request::Parts, HeaderMap, HeaderName, HeaderValue, Method, StatusCode, Uri},
     response::{IntoResponse, Response},
-    routing::post,
+    routing::{post, put},
     Json, Router,
 };
 use connect_protocol::{Error, Operation, PROFILE};
 use connect_service::Service;
-use std::time::Duration;
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio_util::sync::CancellationToken;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 
 #[derive(Clone)]
-struct HttpState {
-    service: Arc<Service>,
-    verifier: Option<Arc<telnyx::webhooks::Verifier>>,
-    capacity: Arc<tokio::sync::Semaphore>,
+pub(super) struct HttpState {
+    pub(super) service: Arc<Service>,
+    pub(super) verifier: Option<Arc<telnyx::webhooks::Verifier>>,
+    pub(super) capacity: Arc<tokio::sync::Semaphore>,
 }
+
+/// A bounded HTTP listener for local SDK calls or Telnyx callbacks.
 pub struct Listener {
+    /// Actual bound address, including the selected port when configured with zero.
     pub address: SocketAddr,
     stop: CancellationToken,
     task: Option<tokio::task::JoinHandle<std::io::Result<()>>>,
 }
+
 impl Listener {
+    /// Bind the complete loopback application facade.
     pub async fn bind(
         address: SocketAddr,
         service: Arc<Service>,
@@ -32,7 +36,9 @@ impl Listener {
     ) -> anyhow::Result<Self> {
         Self::bind_mode(address, service, public_key, false).await
     }
-    /// A tunnel can expose this listener without exposing the application API.
+
+    /// Bind only the callback route. A tunnel may expose this listener without
+    /// exposing the application API.
     pub async fn bind_webhooks(
         address: SocketAddr,
         service: Arc<Service>,
@@ -40,6 +46,7 @@ impl Listener {
     ) -> anyhow::Result<Self> {
         Self::bind_mode(address, service, public_key, true).await
     }
+
     async fn bind_mode(
         address: SocketAddr,
         service: Arc<Service>,
@@ -55,14 +62,20 @@ impl Listener {
         let capacity = Arc::new(tokio::sync::Semaphore::new(
             service.store.limits().connections,
         ));
-        let app = Router::new().route("/webhooks/telnyx", post(telnyx_webhook));
+        let app = Router::new().route("/webhooks/telnyx", post(super::telnyx_http::webhook));
         let app = if webhooks_only {
             app
         } else {
             app.route("/v1/operations", post(operation))
+                .route(
+                    "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
+                    put(super::artifact_http::put_chunk).get(super::artifact_http::get_chunk),
+                )
+                .layer(browser_cors())
         };
+        let body_limit = service.store.limits().artifact_chunk_bytes.max(65_536) as usize;
         let app = app
-            .layer(DefaultBodyLimit::max(65_536))
+            .layer(DefaultBodyLimit::max(body_limit))
             .with_state(HttpState {
                 service,
                 verifier,
@@ -83,13 +96,13 @@ impl Listener {
             task: Some(task),
         })
     }
+
+    /// Stop accepting requests and wait for a bounded graceful shutdown.
     pub async fn shutdown(mut self) -> anyhow::Result<()> {
         self.stop.cancel();
         if let Some(mut task) = self.task.take() {
             match tokio::time::timeout(Duration::from_secs(6), &mut task).await {
-                Ok(result) => {
-                    result??;
-                }
+                Ok(result) => result??,
                 Err(_) => {
                     task.abort();
                     let _ = task.await;
@@ -100,6 +113,40 @@ impl Listener {
         Ok(())
     }
 }
+
+/// Browser SDK access is intentionally limited to ordinary HTTP origins on
+/// this machine. Bearer credentials must never be exposed through a wildcard
+/// origin, and the independently exposed webhook listener does not need CORS.
+fn browser_cors() -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::predicate(
+            |origin: &HeaderValue, _request: &Parts| is_loopback_origin(origin),
+        ))
+        .allow_methods([Method::GET, Method::POST, Method::PUT])
+        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
+        .expose_headers([
+            HeaderName::from_static("x-connect-offset"),
+            HeaderName::from_static("x-connect-eof"),
+        ])
+        .max_age(Duration::from_secs(600))
+}
+
+fn is_loopback_origin(origin: &HeaderValue) -> bool {
+    let Ok(origin) = origin.to_str() else {
+        return false;
+    };
+    let Ok(uri) = origin.parse::<Uri>() else {
+        return false;
+    };
+    if uri.scheme_str() != Some("http") || uri.authority().is_none() {
+        return false;
+    }
+    matches!(
+        uri.host(),
+        Some("localhost" | "127.0.0.1" | "::1" | "[::1]")
+    )
+}
+
 impl Drop for Listener {
     fn drop(&mut self) {
         self.stop.cancel();
@@ -108,20 +155,41 @@ impl Drop for Listener {
         }
     }
 }
-fn error(status: StatusCode, e: Error) -> Response {
+
+pub(super) fn error(status: StatusCode, error: Error) -> Response {
     (
         status,
         Json(connect_protocol::Response {
             profile: PROFILE.into(),
-            result: Err(e),
+            result: Err(error),
         }),
     )
         .into_response()
 }
+
+pub(super) async fn authenticated_credential(
+    state: &HttpState,
+    headers: &HeaderMap,
+) -> Result<String, Response> {
+    let Some(token) = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .map(str::to_owned)
+    else {
+        return Err(error(StatusCode::UNAUTHORIZED, Error::unauthorized()));
+    };
+    let store = state.service.store.clone();
+    match tokio::task::spawn_blocking(move || store.authenticate(&token)).await {
+        Ok(Ok(actor)) => Ok(actor.credential_id),
+        _ => Err(error(StatusCode::UNAUTHORIZED, Error::unauthorized())),
+    }
+}
+
 async fn operation(
     State(state): State<HttpState>,
     headers: HeaderMap,
-    Json(op): Json<Operation>,
+    Json(operation): Json<Operation>,
 ) -> Response {
     let Ok(_permit) = state.capacity.clone().try_acquire_owned() else {
         return error(
@@ -129,23 +197,14 @@ async fn operation(
             Error::new("capacity-exceeded", "HTTP concurrency limit reached"),
         );
     };
-    let Some(token) = headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .map(str::to_owned)
-    else {
-        return error(StatusCode::UNAUTHORIZED, Error::unauthorized());
+    let credential = match authenticated_credential(&state, &headers).await {
+        Ok(value) => value,
+        Err(response) => return response,
     };
-    let store = state.service.store.clone();
-    let actor = match tokio::task::spawn_blocking(move || store.authenticate(&token)).await {
-        Ok(Ok(actor)) => actor,
-        _ => return error(StatusCode::UNAUTHORIZED, Error::unauthorized()),
-    };
-    let result = state.service.execute(actor.credential_id, op).await;
+    let result = state.service.execute(credential, operation).await;
     let status = match &result {
-        Err(e) if e.code == "unauthorized" => StatusCode::UNAUTHORIZED,
-        Err(e) if e.code == "forbidden" => StatusCode::FORBIDDEN,
+        Err(value) if value.code == "unauthorized" => StatusCode::UNAUTHORIZED,
+        Err(value) if value.code == "forbidden" => StatusCode::FORBIDDEN,
         _ => StatusCode::OK,
     };
     (
@@ -157,101 +216,32 @@ async fn operation(
     )
         .into_response()
 }
-async fn telnyx_webhook(
-    State(state): State<HttpState>,
-    headers: HeaderMap,
-    raw: Bytes,
-) -> Response {
-    let Ok(_permit) = state.capacity.clone().try_acquire_owned() else {
-        return StatusCode::SERVICE_UNAVAILABLE.into_response();
-    };
-    let Some(verifier) = state.verifier else {
-        return StatusCode::SERVICE_UNAVAILABLE.into_response();
-    };
-    if verifier.verify_headers(&headers, &raw).is_err() {
-        return error(StatusCode::UNAUTHORIZED, Error::unauthorized());
-    }
-    let value: serde_json::Value = match serde_json::from_slice(&raw) {
-        Ok(v) => v,
-        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
-    };
-    let data = &value["data"];
-    let Some(id) = data["id"].as_str().map(str::to_owned) else {
-        return StatusCode::BAD_REQUEST.into_response();
-    };
-    let kind = data["event_type"].as_str().unwrap_or_default().to_owned();
-    let payload = data["payload"].clone();
-    let digest = connect_store::provider_event_digest(&raw);
-    let store = state.service.store.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        let required = |v: &serde_json::Value| {
-            v.as_str()
-                .filter(|s| !s.is_empty())
-                .map(str::to_owned)
-                .ok_or_else(|| Error::new("invalid-request", "Missing callback field"))
-        };
-        match kind.as_str() {
-            "message.received" => {
-                if payload["direction"]
-                    .as_str()
-                    .is_some_and(|s| s.eq_ignore_ascii_case("outbound"))
-                    || payload["autoresponse_type"]
-                        .as_str()
-                        .is_some_and(|s| !s.trim().is_empty())
-                    || matches!(
-                        payload["text"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .trim()
-                            .to_ascii_uppercase()
-                            .as_str(),
-                        "STOP"
-                            | "STOPALL"
-                            | "STOP ALL"
-                            | "UNSUBSCRIBE"
-                            | "CANCEL"
-                            | "END"
-                            | "QUIT"
-                            | "START"
-                            | "UNSTOP"
-                            | "HELP"
-                    )
-                {
-                    return Ok(false);
-                }
 
-                let from = required(&payload["from"]["phone_number"])?;
-                let to = required(&payload["to"][0]["phone_number"])?;
-                let body = required(&payload["text"])?;
-                store.receive_sms(&format!("telnyx:{id}"), &digest, &from, &to, &body)
-            }
-            "message.finalized" => {
-                let pid = required(&payload["id"])?;
-                let status = required(&payload["to"][0]["status"])?;
-                let final_state = match status.as_str() {
-                    "delivered" => "delivered",
-                    "delivery_failed" | "sending_failed" | "failed" => "failed",
-                    _ => return Ok(false),
-                };
-                store.delivery_sms(&format!("telnyx:{id}"), &digest, &pid, final_state)
-            }
-            _ => Ok(false),
+#[cfg(test)]
+mod tests {
+    use super::is_loopback_origin;
+    use axum::http::HeaderValue;
+
+    #[test]
+    fn browser_origins_are_limited_to_loopback_http() {
+        for allowed in [
+            "http://localhost:8192",
+            "http://127.0.0.1:8192",
+            "http://[::1]:8192",
+        ] {
+            let origin = HeaderValue::from_str(allowed).expect("valid origin");
+            assert!(is_loopback_origin(&origin), "should allow {allowed}");
         }
-    })
-    .await;
-    match result {
-        Ok(Ok(_)) => {
-            state.service.notify_changed();
-            StatusCode::NO_CONTENT.into_response()
+
+        for denied in [
+            "https://localhost:8192",
+            "http://localhost.example:8192",
+            "http://127.0.0.2:8192",
+            "https://example.com",
+            "null",
+        ] {
+            let origin = HeaderValue::from_str(denied).expect("valid header");
+            assert!(!is_loopback_origin(&origin), "should deny {denied}");
         }
-        Ok(Err(e)) => {
-            let status = match e.code.as_str() {
-                "forbidden" => StatusCode::FORBIDDEN,
-                "invalid-request" | "conflict" => StatusCode::BAD_REQUEST,
-                _ => StatusCode::SERVICE_UNAVAILABLE,
-            };
-            error(status, e)
-        }
-        Err(_) => StatusCode::SERVICE_UNAVAILABLE.into_response(),
     }
 }

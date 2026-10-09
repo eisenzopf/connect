@@ -6,7 +6,7 @@ import threading
 import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from connect_sdk import ConnectError, HttpClient, NativeClient
+from connect_sdk import ConnectError, HttpClient, NativeAudioClient, NativeClient
 from connect_sdk.protocol import decode_response
 
 HELPER = str(Path(__file__).with_name('helper_fixture.py').resolve())
@@ -14,6 +14,21 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class NativeTests(unittest.TestCase):
+    def test_binary_media_helper_is_bounded_and_keeps_audio_out_of_json(self):
+        with NativeAudioClient('media-ok', 'conversation', 'session', 'remote', HELPER) as media:
+            self.assertEqual(media.publisher_stream_id, 'fixture-stream')
+            media.subscribe('other-stream')
+            frame = bytes(range(160))
+            media.send_pcmu(frame)
+            self.assertEqual(media.receive(), frame)
+            with self.assertRaises(ConnectError) as error:
+                media.send_pcmu(b'short')
+            self.assertEqual(error.exception.code, 'invalid-request')
+
+        for mode in ['media-stall', 'media-oversize']:
+            with self.subTest(mode=mode), self.assertRaises(ConnectError):
+                NativeAudioClient(mode, 'conversation', 'session', 'remote', HELPER, timeout=.2)
+
     def test_partial_and_absent_responses_obey_deadline_and_reap_helper(self):
         for mode in ['fragment', 'stall']:
             with self.subTest(mode=mode):
@@ -47,7 +62,7 @@ class NativeTests(unittest.TestCase):
             with self.assertRaises(ConnectError) as error:
                 client.health()
             self.assertEqual(error.exception.code, 'forbidden')
-            self.assertEqual(client.health()['schema'], 6)
+            self.assertEqual(client.health()['schema'], 7)
 
     def test_missing_helper_has_stable_error(self):
         with self.assertRaises(ConnectError) as error:
@@ -61,6 +76,39 @@ class NativeTests(unittest.TestCase):
 
 
 class HttpTests(unittest.TestCase):
+    def test_raw_artifact_bytes_round_trip_without_base64(self):
+        artifact = {
+            'id': 'artifact', 'conversation_id': 'conversation', 'owner_id': 'owner',
+            'name': 'sample.bin', 'media_type': 'application/octet-stream',
+            'size': 4, 'received': 4, 'sha256': '0' * 64, 'state': 'uploading',
+            'created_at': 1, 'expires_at': None,
+        }
+
+        class Handler(BaseHTTPRequestHandler):
+            uploaded = None
+            def log_message(self, *args): pass
+            def do_PUT(self):
+                Handler.uploaded = self.rfile.read(int(self.headers['Content-Length']))
+                body = json.dumps({'profile': 'connect-control/1', 'result': {'Ok': {'kind': 'artifact', 'data': artifact}}}).encode()
+                self.send_response(200); self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body)
+            def do_GET(self):
+                body = b'raw!'
+                self.send_response(200); self.send_header('Content-Type', 'application/octet-stream')
+                self.send_header('X-Connect-Offset', '0'); self.send_header('X-Connect-Eof', 'true')
+                self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body)
+
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+        try:
+            client = HttpClient(f'http://127.0.0.1:{server.server_port}', 'fixture')
+            result = client.upload_artifact_chunk('conversation', 'artifact', 'append-1', 0, b'raw!')
+            self.assertEqual(result['data']['id'], 'artifact')
+            self.assertEqual(Handler.uploaded, b'raw!')
+            chunk = client.download_artifact_chunk('conversation', 'artifact', 0, 4)
+            self.assertEqual(chunk, {'data': b'raw!', 'offset': 0, 'eof': True})
+        finally:
+            server.shutdown(); server.server_close(); thread.join()
+
     def test_http_denial_validation_redirects_bounds_and_stall(self):
         class Handler(BaseHTTPRequestHandler):
             mode = 'denied'

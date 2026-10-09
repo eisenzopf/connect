@@ -15,6 +15,7 @@ pub enum Peer {
     },
     WebSocket(Box<WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>>),
 }
+
 impl Peer {
     pub fn incoming_len(&self) -> usize {
         match self {
@@ -22,6 +23,7 @@ impl Peer {
             Self::WebSocket(_) => 0,
         }
     }
+
     pub async fn quic(config: &ClientConfig) -> Self {
         let _ = rustls::crypto::ring::default_provider().install_default();
         let cert = rustls::pki_types::CertificateDer::from(
@@ -48,12 +50,14 @@ impl Peer {
             incoming,
         }
     }
+
     pub async fn websocket(address: std::net::SocketAddr) -> Self {
         let (ws, _) = tokio_tungstenite::connect_async(format!("ws://{address}"))
             .await
             .unwrap();
         Self::WebSocket(Box::new(ws))
     }
+
     pub async fn send(&mut self, envelope: UctpEnvelope) {
         match self {
             Self::Quic { client, .. } => client.send(envelope).await.unwrap(),
@@ -65,6 +69,7 @@ impl Peer {
                 .unwrap(),
         }
     }
+
     pub async fn receive(&mut self) -> UctpEnvelope {
         tokio::time::timeout(Duration::from_secs(5), async {
             match self {
@@ -81,6 +86,7 @@ impl Peer {
         .await
         .unwrap()
     }
+
     pub async fn exchange(&mut self, envelope: UctpEnvelope) -> UctpEnvelope {
         let id = envelope.id.clone();
         self.send(envelope).await;
@@ -91,6 +97,7 @@ impl Peer {
             }
         }
     }
+
     pub async fn authenticate(&mut self, token: &str) -> bool {
         let challenge=self.exchange(UctpEnvelope::new(MessageType::AuthHello,serde_json::json!({"device":{"id":"conformance-fixture","kind":"desktop","platform":"test","sdk_version":"fixture"},"auth_methods":["bearer"],"capabilities":{}}))).await;
         assert_eq!(challenge.msg_type, MessageType::AuthChallenge);
@@ -109,6 +116,7 @@ impl Peer {
             .await;
         reply.msg_type == MessageType::AuthSession
     }
+
     pub async fn request(&mut self, operation: Operation) -> connect_protocol::Result<Outcome> {
         let envelope = UctpEnvelope::new(
             MessageType::Unknown(REQUEST_TYPE.into()),
@@ -120,6 +128,7 @@ impl Peer {
         assert_eq!(response.profile, PROFILE);
         response.result
     }
+
     pub async fn close(&mut self) {
         match self {
             Self::Quic {
@@ -135,6 +144,7 @@ impl Peer {
         }
     }
 }
+
 impl Drop for Peer {
     fn drop(&mut self) {
         if let Self::Quic {

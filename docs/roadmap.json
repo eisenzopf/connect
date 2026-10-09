@@ -32,7 +32,7 @@
       "id": 3,
       "name": "Native media and interoperability",
       "outcome": "Native media, session/capability/availability contracts, basic files and explicit cross-channel continuity.",
-      "status": "planned-documents-ready-for-review",
+      "status": "implementation-local-qualified-live-gaps",
       "plan": "connect-gate-3-plan.html",
       "milestones": [
         {
@@ -45,7 +45,7 @@
           "acceptance": "Reviewable contracts and executable rejection fixtures: unsupported route/media, unauthorized invitation, stale/unknown availability and ambiguous context binding. Record B-001 ownership/scope and the selected network/codec profile. Demonstrate that session end, connection replacement and provider-ID changes do not erase the conversation record. Explicitly identify membership/handoff limitations; preserve Session history while treating live connection/media state as transient.",
           "reuse": "rvoip/UCTP session and capability primitives; Parley conversation semantics. Review upstream gaps before adding Connect-specific protocol extensions.",
           "experiment": "E3 / E5 design",
-          "status": "planned"
+          "status": "complete-local"
         },
         {
           "id": "G3-B",
@@ -57,7 +57,7 @@
           "acceptance": "Distinct client/server processes; audible two-way assistant conversation, negotiated formats, interruptions, loss/disconnect, cancellation and paired teardown. Preserve trace evidence separating QUIC and provider WebSocket legs.",
           "reuse": "rvoip QUIC media and Vapi adapter; Parley audio-host behavior. Requalify against Connect\u2019s pinned dependency graph.",
           "experiment": "E3; legacy G2-024",
-          "status": "planned"
+          "status": "technical-live-proof-human-review-open"
         },
         {
           "id": "G3-C",
@@ -70,7 +70,7 @@
           "acceptance": "Inbound and outbound Connect-carried telephone conversations, SIP endpoint and browser microphone/speaker audio. Test each-side hangup, hold where advertised, interruptions, provider failures and the selected NAT/TURN conditions. Preserve the Conversation/Session model across unlike transports; do not create separate application conversations for each provider leg.",
           "reuse": "rvoip SIP/WebRTC; Parley browser/SIP host; Bridgefu provider-control patterns if the chosen topology needs them. Resource creation alone is not media proof.",
           "experiment": "E5; legacy G2-026",
-          "status": "planned"
+          "status": "in-progress-live-qualification"
         },
         {
           "id": "G3-D",
@@ -82,7 +82,7 @@
           "acceptance": "One native app shares a draft; its authorized recipient retrieves matching bytes; another identity is denied. Test interrupted transfer, restart, expiry/deletion and unsupported channel behavior.",
           "reuse": "rvoip attachment model and Parley blob patterns are inputs, not a complete file service. Connect owns its access and lifecycle contract.",
           "experiment": "Early portion of E8",
-          "status": "planned"
+          "status": "complete-local"
         },
         {
           "id": "G3-E",
@@ -96,7 +96,7 @@
           "acceptance": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. Repeat the SMS boundary after carrier approval; live SMS remains deferred.",
           "reuse": "Parley chat/session mapping, Connect identity/journal and Thelve authority-design lessons. Call-ID correlation by itself does not prove model context transfer.",
           "experiment": "E3 / E5 / E7 integration",
-          "status": "planned"
+          "status": "in-progress-live-qualification"
         }
       ],
       "implementation": "connect-gate-3-implementation.html",
@@ -236,8 +236,8 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 3 plans and acceptance mapping are drafted for review; Gate 4\u20135 detailed plans remain unwritten.",
-    "Six Gate 3 directions are accepted; codec, network, context, availability, artifact and compatibility details must be resolved through G3-A and its qualification work.",
+    "Gate 3 has passed its 21-phase local qualification; required human-audibility, answered/inbound PSTN, interactive browser and installed-candidate proofs remain open. Gate 4\u20135 detailed plans remain unwritten.",
+    "Six Gate 3 directions are accepted and implemented locally; live route and candidate qualification must close without weakening their acceptance criteria.",
     "Additional assistant selection/research is deferred to G4-A.",
     "Carrier approval gates the deferred live SMS lane and full v0.1 release."
   ],
@@ -246,7 +246,7 @@
   "local_patches": "Accepted for now; source-lock digests verified",
   "revision": 4,
   "document": "connect-roadmap.html",
-  "planning_status": "Gate 3 product and numbered implementation plans drafted for review; six directions accepted, engineering parameters remain subject to G3-008. Additional assistant selection is deferred to Gate 4.",
+  "planning_status": "Gate 3 local qualification passed across 21 account-free phases. Human-audibility, answered/inbound PSTN, interactive browser and installed-candidate proofs remain open; additional assistant selection is deferred to Gate 4.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Deliver basic files before Gate 4 artifact/task continuation. Design video early and qualify it in Gate 5. SMS is a parallel deferred qualification lane and a full v0.1 release blocker.",
   "parallel_lanes": [
     {

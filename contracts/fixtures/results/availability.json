@@ -1,0 +1,22 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env-availability-result",
+  "in_reply_to": "env-availability-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "availability",
+        "data": {
+          "identity_id": "identity-2",
+          "state": "available",
+          "preferred_route": "native-quic",
+          "expires_at": 1791504000,
+          "observed_at": 1791417600
+        }
+      }
+    }
+  },
+  "ts": "2026-10-08T00:00:00Z"
+}

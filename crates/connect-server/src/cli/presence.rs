@@ -34,13 +34,13 @@ pub fn initialize(
     let human_key = store.issue_as(
         &authority,
         &human.id,
-        Scope::messaging(vec![assistant.id.clone()]),
+        Scope::communications(vec![assistant.id.clone()]),
         expiry,
     )?;
     let assistant_key = store.issue_as(
         &authority,
         &assistant.id,
-        Scope::messaging(vec![human.id.clone()]),
+        Scope::communications(vec![human.id.clone()]),
         expiry,
     )?;
     let human_config = ClientConfig {

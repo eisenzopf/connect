@@ -77,6 +77,18 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     if schema >= 5 {
         tables.push("voice_ingress");
     }
+    if schema >= 7 {
+        tables.extend([
+            "sessions",
+            "session_bindings",
+            "availability",
+            "artifacts",
+            "context_deliveries",
+        ]);
+    }
+    if schema >= 9 {
+        tables.push("sip_legs");
+    }
     for table in tables {
         digest.update(table.as_bytes());
         // Names are a fixed allowlist, never user-controlled SQL.
@@ -151,10 +163,11 @@ impl Store {
         let tx = c.transaction().map_err(|_| Error::storage())?;
         let snapshot = inspect(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;
+        Store::create_blob_directory(path)?;
         Ok(snapshot)
     }
 
-    /// Explicit v1→v2 migration. Caller holds the installation lock. The verified
+    /// Explicit supported-schema migration. Caller holds the installation lock. The verified
     /// backup must match all current logical state; stale backups cannot qualify.
     pub fn migrate(path: &Path, backup: &Path, expected: &Snapshot) -> Result<Snapshot> {
         if &Self::inspect_snapshot(backup)? != expected {
@@ -194,8 +207,24 @@ impl Store {
             tx.execute_batch(include_str!("../migrations/005_inbound_voice.sql"))
                 .map_err(|_| Error::storage())?;
         }
-        tx.execute_batch(include_str!("../migrations/006_voice_recovery.sql"))
+        if expected.schema < 6 {
+            tx.execute_batch(include_str!("../migrations/006_voice_recovery.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 7 {
+            tx.execute_batch(include_str!(
+                "../migrations/007_sessions_context_artifacts.sql"
+            ))
             .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 8 {
+            tx.execute_batch(include_str!("../migrations/008_artifact_expiry.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 9 {
+            tx.execute_batch(include_str!("../migrations/009_sip_legs.sql"))
+                .map_err(|_| Error::storage())?;
+        }
         let snapshot = inspect(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(snapshot)

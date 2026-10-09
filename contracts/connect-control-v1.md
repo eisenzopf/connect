@@ -1,6 +1,6 @@
 # Connect control profile v1
 
-Status: experimental, local Gates 1–2. Profile `connect-control/1`, UCTP envelope
+Status: experimental, local Gates 1–3. Profile `connect-control/1`, UCTP envelope
 version 1, raw QUIC ALPN `uctp/1`. These identifiers do not derive from crate
 semver or the datagram wire version.
 
@@ -36,6 +36,18 @@ Payload is `{ "profile": "connect-control/1", "op": "...", ... }`.
 | call_start | request_id, conversation_id, route_id, destination: E.164 | durable call receipt |
 | call_status | conversation_id, call_id | current durable call state |
 | call_end | request_id, conversation_id, call_id | durable end intent |
+| session_invite | request_id, conversation_id, participant_id, media | durable invitation inside the existing conversation |
+| session_accept / session_reject / session_cancel / session_end | request_id, conversation_id, session_id, optional reason | idempotent durable session transition |
+| session_get | conversation_id, session_id | current durable session state |
+| sip_dial | request_id, conversation_id, session_id, destination: SIP URI | durable outbound SIP leg intent |
+| sip_status | conversation_id, sip_leg_id | current durable SIP leg state |
+| sip_end | request_id, conversation_id, sip_leg_id, optional reason | durable SIP termination intent |
+| context_view | conversation_id, limit | authorized ordered context with source provenance, watermark, omission count, and bounded provider-delivery outcomes |
+| availability_set | request_id, available/unavailable, optional preferred_route, expires_at | expiring self-owned observation |
+| availability_get | identity_id | available/unavailable or unknown after expiry |
+| artifact_begin / artifact_append / artifact_finish | request_id, conversation_id, artifact metadata/chunk, optional Unix `expires_at` on begin | resumable digest-verified artifact with bounded expiry |
+| artifact_get | conversation_id, artifact_id, offset, limit | bounded reliable artifact chunk |
+| artifact_delete | request_id, conversation_id, artifact_id | durable deletion and content erasure |
 
 Send derives its sender from current authenticated credential state. Unknown
 fields, claimed senders, invalid IDs and excessive limits fail validation.
@@ -71,7 +83,8 @@ storage-unavailable. Transport errors/timeout remain distinguishable.
 
 Defaults: 16 KiB/message; 100/page; 8 participants; 100,000 journal events;
 100,000 retained operation receipts; 64 MiB retained message bodies; 5 s inbox wait; 10 s client deadline;
-64 simultaneous peers per listener; 256 outbound/coordinator queue (upstream).
+64 simultaneous peers per listener; 10,000 sessions; 16 MiB per artifact and 256 MiB total non-expired declared artifact bytes;
+32 KiB decoded artifact chunks; 256 outbound/coordinator queue (upstream).
 No automatic history expiry at Gate 1. Capacity is serialized with admission.
 Disk-full/IO failure must roll back and return failure before acceptance.
 
@@ -94,7 +107,7 @@ in contracts/fixtures and run through contract_fixtures and transport_parity.
 
 ## Provider messaging and telephone control
 
-All twelve operations share the same authorization, UCTP profile, request/reply
+All operations share the same authorization, UCTP profile, request/reply
 correlation, and durable conversation journal. Provider credentials and private
 call-control URLs stay server-side. A voice route binds an assistant and provider
 number to the permitted conversation/identity; a scoped voice grant authorizes
@@ -105,6 +118,22 @@ not authentication or permission to act as a Connect identity.
 provider delivery; failed/uncertain work is not silently resubmitted. Vapi chat
 context is persisted. Telnyx SMS uses programmable messaging and signed callbacks;
 live carrier delivery remains deferred pending approval.
+
+Gate 3 context delivery records expose only bounded state: delivery ID, Session
+ID, provider name, selected watermark, terminal state, an opaque provider
+reference, and timestamps. They never expose a provider WebSocket URL,
+credential, tool payload, or hidden assistant configuration. The canonical
+selected source items remain independently authorized by `context_view`.
+
+Final Vapi transcript events are appended to the same durable conversation as
+`voice_transcript` context items. The bound Session selects the conversation and
+maps provider `user`/`assistant` roles to its initiator/invited participant; the
+provider cannot supply an identity or conversation ID. Partial transcripts are
+not retained. Repeated delivery of the same final transcript or end report is
+idempotent. If a stable provider reference is redelivered with different
+permitted content, Connect appends a `voice_transcript_correction` or
+`voice_outcome_correction` whose JSON body names the corrected source ID. It
+never replaces the original observation.
 
 A `call` result has id, conversation_id, route_id, destination, state, direction,
 end_requested, nullable provider_id and nullable ended_reason. Start acceptance
@@ -118,10 +147,12 @@ watermark only after the whole batch imports successfully. Journal events includ
 an optional `call`; consumers must handle events with `message: null`. Import is
 deduplicated by provider ID. Status visibility is eventual, not a live media feed.
 
-The qualified telephone path is handset ↔ Telnyx ↔ Vapi. Connect provisions and
+The Gate 2 qualified telephone path is handset ↔ Telnyx ↔ Vapi. Connect provisions and
 controls that route and records its lifecycle; the audio does not pass through
 Connect, QUIC, or a Connect WebSocket. A Telnyx SIP → Connect → Vapi audio bridge is
-separate, unimplemented Gate 3 work. Local QUIC datagram probes do not prove it.
+separate Gate 3 route. Its local SIP↔Vapi and SIP↔WebRTC media paths are
+implemented; real Telnyx/PSTN reachability still requires recorded live proof.
+Local QUIC or SIP loopback tests do not prove that provider route.
 
 ## SDK behavior and compatibility
 
@@ -142,3 +173,27 @@ Incompatible semantics or removal of fields requires a new negotiated profile,
 not merely a crate version bump. Fixtures cover every operation, rejection of
 extra request fields, every outcome kind, and inbound call events. Rust, Python
 and TypeScript consume the same result fixtures.
+
+## Gate 3 conversation and session rule
+
+A conversation is the durable context boundary. A session is a bounded live leg
+inside it. Starting a new voice, video, data, WebRTC, SIP/PSTN or provider leg does
+not create a new conversation. Only an explicit `create` operation does. An
+ambiguous inbound address remains unresolved until application policy chooses a
+conversation; caller ID is never sufficient authority to merge history.
+
+Session states are `invited`, `accepted`, `ready`, `rejected`, `cancelled` and
+`ended`. A ready Session returns to accepted when all live bindings disappear;
+the journal records the interruption rather than pretending a socket survived.
+The first implementation admits one invited participant per session;
+the surrounding conversation can retain its full participant set. Live rvoip
+connections and streams are disposable projections. SQLite session intent,
+events, terminal outcomes and context provenance remain authoritative after a
+restart. A restart cannot claim to restore a socket or media pump.
+
+Availability is an expiring observation, separate from declared identity
+capabilities and verified transport reachability. Expired or absent state reads
+as `unknown`; Connect does not silently choose another route. Artifact chunks are
+padded base64 only on the bounded control/HTTP compatibility surface. They are
+not an audio transport. Native QUIC stream transfer and datagram audio use UCTP
+media facilities and keep their own framing and flow control.

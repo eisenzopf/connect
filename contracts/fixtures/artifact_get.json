@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-artifact_get",
+  "ts": "2026-10-08T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "artifact_get",
+    "conversation_id": "conversation-1",
+    "artifact_id": "artifact-1",
+    "offset": 0,
+    "limit": 32768
+  }
+}

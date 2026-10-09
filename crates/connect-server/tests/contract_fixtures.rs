@@ -18,6 +18,23 @@ fn each_operation_has_a_decodable_envelope_and_rejects_extra_fields() {
         "call_start",
         "call_status",
         "call_end",
+        "session_invite",
+        "session_accept",
+        "session_reject",
+        "session_cancel",
+        "session_end",
+        "session_get",
+        "sip_dial",
+        "sip_status",
+        "sip_end",
+        "context_view",
+        "availability_set",
+        "availability_get",
+        "artifact_begin",
+        "artifact_append",
+        "artifact_finish",
+        "artifact_get",
+        "artifact_delete",
     ] {
         let envelope: UctpEnvelope =
             serde_json::from_slice(&std::fs::read(root.join(format!("{name}.json"))).unwrap())

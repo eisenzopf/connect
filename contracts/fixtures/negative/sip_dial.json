@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-negative-sip_dial",
+  "ts": "2026-10-09T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "sip_dial",
+    "request_id": "sip-dial-1",
+    "conversation_id": "conversation-1",
+    "session_id": "session-1",
+    "destination": "sip:alice@127.0.0.1:5099",
+    "claimed_actor": "identity-other"
+  }
+}

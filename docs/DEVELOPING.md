@@ -9,8 +9,11 @@ and the affected gate’s product/delivery plan.
 Provider telephone call control is Gate 2. Native audio and browser WebRTC are
 Gate 3, even where older G2 item IDs are retained. Gate 3 has a [product/delivery plan](connect-gate-3-plan.html),
 [numbered implementation plan](connect-gate-3-implementation.html) and
-[acceptance map](gate-3-acceptance.json), drafted for review. Its implementation
-and media qualification remain outstanding. Local rvoip patches remain
+[acceptance map](gate-3-acceptance.json). Its durable application model,
+two-peer native UCTP/QUIC audio core, loopback Vapi attachment, local SIP,
+authenticated WebRTC, cross-transport pairing and managed artifacts are
+implemented; live providers and clean installed-candidate qualification remain
+outstanding. Local rvoip patches remain
 accepted when pinned and reproducible. Basic availability and a small optional preference override are planned in Gate 3;
 broader presence/preferences remain decision B-001.
 
@@ -66,6 +69,12 @@ private file modes, log redaction, installed native/HTTP language clients and sh
 [the local release instructions](LOCAL_RELEASE.md). No remote deployment is
 part of either command.
 
+`bash scripts/check-gate-3.sh` runs the focused Gate 3 offline contract, store,
+authority, native media, loopback Vapi, SIP, WebRTC, cross-transport, artifact
+and language-SDK checks. It never calls a live provider or changes an account. Its JSON and logs remain under
+`.local/gate-3-checks/`; live Vapi, Telnyx SIP/PSTN and browser evidence is a
+separate required qualification.
+
 Use `scripts/format.sh` for formatting. `cargo fmt --all` recursively includes
 upstream path dependencies and would invalidate their recorded patch hashes.
 Do not edit `.deps/` to fix Connect behavior; record changes as explicit patches
@@ -78,12 +87,11 @@ The original project-page exploration is preserved under
 `docs/concepts/connect-baseline.html`; the repository root is for build,
 licensing and contributor entry points.
 
-Update a numbered item with `python3 scripts/update-plan.py --item G1-001
+Update a numbered item with `python3 scripts/update-plan.py --gate 3 --item G3-001
 --status done --owner YOUR_NAME --evidence PATH_OR_COMMAND_RESULT`. The updater
 validates status, dependencies and completion evidence, and keeps the embedded
-HTML task data authoritative. This updater currently targets Gate 1 only. For Gate 3, use its HTML editor and
-save the updated document, or update the embedded task data and static task card
-together. Do not mark an unrun qualification as complete.
+HTML task data and static task card synchronized. Omit `--gate` for Gate 1.
+Do not mark an unrun qualification as complete.
 
 The Gate 2 offline runner is `bash scripts/check-gate-2.sh`. It must
 not provision accounts, purchase numbers, send SMS or place calls. Keep live

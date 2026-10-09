@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-negative-session_reject",
+  "ts": "2026-10-08T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "session_reject",
+    "request_id": "session-reject-1",
+    "conversation_id": "conversation-1",
+    "session_id": "session-1",
+    "reason": "busy",
+    "claimed_actor": "identity-other"
+  }
+}

@@ -64,6 +64,14 @@ try:
         assert manifest['candidate'] == candidate.name and manifest['target'] == 'aarch64-apple-darwin'
         actual = {str(p.relative_to(release)) for p in release.rglob('*') if p.is_file()}
         assert actual == set(manifest['files']) | {'manifest.json'}
+        for required in [
+            'sdk/python/connect_sdk/native_audio.py',
+            'sdk/typescript/dist/browser.js',
+            'sdk/typescript/dist/native_audio.js',
+            'examples/conversation-client/index.html',
+            'examples/conversation-client/app.js',
+        ]:
+            assert (release/required).is_file(), f'Missing Gate 3 runtime asset: {required}'
         for name, checksum in manifest['files'].items():
             assert digest(release/name) == checksum
         for name in ['connect', 'connect-example']:
@@ -146,7 +154,12 @@ try:
                                     f'http://127.0.0.1:{http_port}', str(BINARY)],
                                    input=json.dumps({'credential': credential}), text=True,
                                    env=sdk_env, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=120)
-        passed('installed-language-sdks', 'Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior')
+                subprocess.run([
+                    'node', '--input-type=module', '--eval',
+                    "const sdk=await import(process.argv[1]); if(typeof sdk.BrowserVoiceSession!=='function')throw new Error('browser facade missing')",
+                    (release/'sdk/typescript/dist/browser.js').as_uri(),
+                ], stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30)
+        passed('installed-language-sdks', 'Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently')
         for script in ['check-examples.py', 'check-recovery.py', 'check-crash-replay.py', 'check-example-recovery.py']:
             with (results/(script+'.log')).open('w') as log:
                 subprocess.run(['python3', str(ROOT/'scripts'/script)], cwd=work, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=600)

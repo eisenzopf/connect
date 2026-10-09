@@ -50,7 +50,85 @@ class Operations(ABC):
         return self.request({"op": "call_end", "request_id": request_id,
                              "conversation_id": conversation_id, "call_id": call_id})["data"]
 
+    def session_invite(self, request_id, conversation_id, participant_id, media):
+        return self.request({"op": "session_invite", "request_id": request_id,
+                             "conversation_id": conversation_id,
+                             "participant_id": participant_id, "media": media})["data"]
+
+    def session_accept(self, request_id, conversation_id, session_id):
+        return self.request({"op": "session_accept", "request_id": request_id,
+                             "conversation_id": conversation_id, "session_id": session_id})["data"]
+
+    def session_reject(self, request_id, conversation_id, session_id, reason=None):
+        return self.request({"op": "session_reject", "request_id": request_id,
+                             "conversation_id": conversation_id, "session_id": session_id,
+                             "reason": reason})["data"]
+
+    def session_cancel(self, request_id, conversation_id, session_id):
+        return self.request({"op": "session_cancel", "request_id": request_id,
+                             "conversation_id": conversation_id, "session_id": session_id})["data"]
+
+    def session_end(self, request_id, conversation_id, session_id, reason=None):
+        return self.request({"op": "session_end", "request_id": request_id,
+                             "conversation_id": conversation_id, "session_id": session_id,
+                             "reason": reason})["data"]
+
+    def session_get(self, conversation_id, session_id):
+        return self.request({"op": "session_get", "conversation_id": conversation_id,
+                             "session_id": session_id})["data"]
+
+    def sip_dial(self, request_id, conversation_id, session_id, destination):
+        return self.request({"op": "sip_dial", "request_id": request_id,
+                             "conversation_id": conversation_id, "session_id": session_id,
+                             "destination": destination})["data"]
+
+    def sip_status(self, conversation_id, sip_leg_id):
+        return self.request({"op": "sip_status", "conversation_id": conversation_id,
+                             "sip_leg_id": sip_leg_id})["data"]
+
+    def sip_end(self, request_id, conversation_id, sip_leg_id):
+        return self.request({"op": "sip_end", "request_id": request_id,
+                             "conversation_id": conversation_id,
+                             "sip_leg_id": sip_leg_id})["data"]
+
+    def context_view(self, conversation_id, limit=100):
+        return self.request({"op": "context_view", "conversation_id": conversation_id,
+                             "limit": limit})["data"]
+
+    def availability_set(self, request_id, state, expires_at, preferred_route=None):
+        return self.request({"op": "availability_set", "request_id": request_id,
+                             "state": state, "preferred_route": preferred_route,
+                             "expires_at": expires_at})["data"]
+
+    def availability_get(self, identity_id):
+        return self.request({"op": "availability_get", "identity_id": identity_id})["data"]
+
+    def artifact_begin(self, request_id, conversation_id, name, media_type, size, sha256,
+                       expires_at=None):
+        return self.request({"op": "artifact_begin", "request_id": request_id,
+                             "conversation_id": conversation_id, "name": name,
+                             "media_type": media_type, "size": size, "sha256": sha256,
+                             "expires_at": expires_at})["data"]
+
+    def artifact_append(self, request_id, conversation_id, artifact_id, offset, data):
+        return self.request({"op": "artifact_append", "request_id": request_id,
+                             "conversation_id": conversation_id, "artifact_id": artifact_id,
+                             "offset": offset, "data": data})["data"]
+
+    def artifact_finish(self, request_id, conversation_id, artifact_id):
+        return self.request({"op": "artifact_finish", "request_id": request_id,
+                             "conversation_id": conversation_id,
+                             "artifact_id": artifact_id})["data"]
+
+    def artifact_get(self, conversation_id, artifact_id, offset=0, limit=32768):
+        return self.request({"op": "artifact_get", "conversation_id": conversation_id,
+                             "artifact_id": artifact_id, "offset": offset,
+                             "limit": limit})["data"]
+
+    def artifact_delete(self, request_id, conversation_id, artifact_id):
+        return self.request({"op": "artifact_delete", "request_id": request_id,
+                             "conversation_id": conversation_id,
+                             "artifact_id": artifact_id})["data"]
+
     def health(self):
         return self.request({"op": "health"})["data"]
-
-

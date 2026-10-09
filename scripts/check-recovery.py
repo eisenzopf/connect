@@ -4,10 +4,14 @@ import argparse
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--current-only", action="store_true", help="CI source checks; excludes archived schema-1 executable qualification")
 args = parser.parse_args()
-import hashlib, json, os, pathlib, shutil, signal, socket, sqlite3, subprocess, tempfile, time, tomllib
+import hashlib, json, os, pathlib, re, shutil, signal, socket, sqlite3, subprocess, tempfile, time, tomllib
 from lib.local_process import ROOT, BINARY, run, port, Server, request, config_port
 if not os.environ.get('CONNECT_BINARY'):
     subprocess.run(['cargo','build','--locked','-p','connect-server','--bin','connect'],cwd=ROOT,check=True)
+schema_source = (ROOT / 'crates/connect-store/src/lib.rs').read_text()
+schema_match = re.search(r'pub const SCHEMA_VERSION: u32 = (\d+);', schema_source)
+assert schema_match, 'connect-store schema constant not found'
+current_schema = int(schema_match.group(1))
 
 with tempfile.TemporaryDirectory(prefix='connect-recovery-') as temporary:
     work=pathlib.Path(temporary);state=work/'state';address=f'127.0.0.1:{port()}'
@@ -45,7 +49,7 @@ with tempfile.TemporaryDirectory(prefix='connect-recovery-') as temporary:
         assert request(restored,'agent',{'op':'inbox','cursor':None,'limit':100,'wait_ms':0})==page
         run('request','--config',restored/'agent.toml',value={'op':'inbox','cursor':newer,'limit':100,'wait_ms':0},success=False)
         health=json.loads(run('health','--config',restored/'operator.toml').stdout)
-        assert health['result']['data']['schema']==6
+        assert health['result']['data']['schema']==current_schema
     tampered=work/'tampered';shutil.copytree(backup,tampered)
     (tampered/'certificate.der').write_bytes(b'altered')
     run('restore','--backup',tampered,'--directory',work/'never-created',success=False)

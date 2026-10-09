@@ -18,13 +18,17 @@ connect-service = { path = "crates/connect-service" }
 connect-client = { path = "crates/connect-client" }
 connect-connectors = { path = "crates/connect-connectors" }
 axum = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 telnyx = { version = "0.1.0", default-features = false, features = ["messaging", "numbers", "sip", "webhooks", "rustls-ring"] }
 vapi = { path = ".deps/parley/vendor/server-sdk-rust" }
-rvoip-core = { path = ".deps/rvoip/crates/foundation/rvoip-core" }
+rvoip-core = { path = ".deps/rvoip/crates/foundation/rvoip-core", features = ["opus"] }
 rvoip-uctp = { path = ".deps/rvoip/crates/uctp/rvoip-uctp" }
 rvoip-quic = { path = ".deps/rvoip/crates/uctp/rvoip-quic" }
+rvoip-vapi = { path = ".deps/rvoip/crates/extensions/rvoip-vapi" }
 rvoip-websocket = { path = ".deps/rvoip/crates/uctp/rvoip-websocket" }
+rvoip-sip = { path = ".deps/rvoip/crates/sip/rvoip-sip" }
+rvoip-webrtc = { path = ".deps/rvoip/crates/webrtc/rvoip-webrtc", features = ["comprehensive"] }
 rvoip-auth-core = { path = ".deps/rvoip/crates/identity/auth-core" }
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
@@ -52,6 +56,8 @@ tempfile = "3"
 fs2 = "0.4"
 x509-parser = "0.18"
 tokio-tungstenite = "0.29"
+base64 = "0.22"
+parking_lot = "0.12"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

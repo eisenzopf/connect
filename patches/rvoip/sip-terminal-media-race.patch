@@ -1,0 +1,20 @@
+diff --git a/crates/sip/rvoip-sip/src/media_stream.rs b/crates/sip/rvoip-sip/src/media_stream.rs
+index 43e99c8..df1a334 100644
+--- a/crates/sip/rvoip-sip/src/media_stream.rs
++++ b/crates/sip/rvoip-sip/src/media_stream.rs
+@@ -1203,6 +1203,15 @@ async fn run_media_driver(
+         failure = &mut outbound => Some(failure),
+     };
+     if let Some(failure) = failed_pump {
++        // SIP terminal signaling owns normal peer hangup. Its call-ended event
++        // closes the media subscription and cancels this retained driver, but
++        // the channel close can win the scheduler race by a few turns. Give
++        // the exact-lifetime terminal owner a short opportunity to cancel
++        // before classifying the same closure as a media failure.
++        tokio::select! {
++            _ = wait_for_media_cancel(&mut cancel_rx) => return,
++            _ = tokio::time::sleep(std::time::Duration::from_millis(50)) => {}
++        }
+         tracing::warn!(target: "rvoip_sip", failure, "SipMediaStream pump stopped unexpectedly");
+         if lifecycle.mark_failed() {
+             cancel_tx.send_replace(true);

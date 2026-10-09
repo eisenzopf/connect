@@ -10,6 +10,13 @@ KINDS = {
     "send": "accepted", "history": "history", "inbox": "inbox",
     "request_status": "request_status", "provider_status": "provider_status",
     "call_start": "call", "call_status": "call", "call_end": "call", "health": "health",
+    "session_invite": "session", "session_accept": "session", "session_reject": "session",
+    "session_cancel": "session", "session_end": "session", "session_get": "session",
+    "sip_dial": "sip_leg", "sip_status": "sip_leg", "sip_end": "sip_leg",
+    "context_view": "context_view", "availability_set": "availability",
+    "availability_get": "availability", "artifact_begin": "artifact",
+    "artifact_append": "artifact", "artifact_finish": "artifact",
+    "artifact_get": "artifact_chunk", "artifact_delete": "artifact",
 }
 
 
@@ -45,11 +52,24 @@ def valid_data(kind, data, depth=0):
         return _fields(data, ("request_id", "message_id", "conversation_id"))
     if kind == "call":
         return _fields(data, ("id", "conversation_id", "route_id", "destination", "state", "direction"), ("provider_id", "ended_reason")) and type(data.get("end_requested")) is bool
+    if kind == "session":
+        return _fields(data, ("id", "conversation_id", "initiator_id", "participant_id", "state"), ("ended_reason",)) and _array(data.get("media"), lambda x: isinstance(x, str)) and all(type(data.get(k)) is int and data[k] >= 0 for k in ("created_at", "updated_at"))
+    if kind == "sip_leg":
+        return _fields(data, ("id", "conversation_id", "session_id", "destination", "state"), ("connection_id", "ended_reason")) and type(data.get("end_requested")) is bool and all(type(data.get(k)) is int and data[k] >= 0 for k in ("created_at", "updated_at"))
+    if kind == "availability":
+        return _fields(data, ("identity_id", "state"), ("preferred_route",)) and all(k in data and (data[k] is None or (type(data[k]) is int and data[k] >= 0)) for k in ("expires_at", "observed_at"))
+    if kind == "context_view":
+        delivery = lambda x: _fields(x, ("id", "provider", "state"), ("session_id", "provider_ref")) and all(type(x.get(k)) is int and x[k] >= 0 for k in ("watermark", "created_at", "updated_at"))
+        return _fields(data, ("conversation_id",)) and all(type(data.get(k)) is int and data[k] >= 0 for k in ("watermark", "omitted")) and _array(data.get("items"), lambda x: _fields(x, ("kind", "source_id", "actor_id", "body")) and type(x.get("sequence")) is int and x["sequence"] >= 0) and _array(data.get("deliveries"), delivery)
+    if kind == "artifact":
+        return _fields(data, ("id", "conversation_id", "owner_id", "name", "media_type", "sha256", "state")) and all(type(data.get(k)) is int and data[k] >= 0 for k in ("size", "received", "created_at")) and ("expires_at" not in data or data["expires_at"] is None or (type(data["expires_at"]) is int and data["expires_at"] >= 0))
+    if kind == "artifact_chunk":
+        return valid_data("artifact", data.get("artifact"), depth + 1) and _fields(data, ("data",)) and type(data.get("offset")) is int and data["offset"] >= 0 and type(data.get("eof")) is bool
     if kind == "history":
         return _fields(data, nullable=("next",)) and _array(data.get("messages"), lambda x: _fields(x, ("id", "conversation_id", "sender", "body")))
     if kind == "inbox":
         def event(x):
-            return _fields(x, ("id", "kind", "conversation_id", "cursor")) and "message" in x and (x["message"] is None or _fields(x["message"], ("id", "conversation_id", "sender", "body"))) and (x.get("call") is None or valid_data("call", x["call"], depth + 1))
+            return _fields(x, ("id", "kind", "conversation_id", "cursor")) and "message" in x and (x["message"] is None or _fields(x["message"], ("id", "conversation_id", "sender", "body"))) and (x.get("call") is None or valid_data("call", x["call"], depth + 1)) and (x.get("session") is None or valid_data("session", x["session"], depth + 1)) and (x.get("artifact") is None or valid_data("artifact", x["artifact"], depth + 1))
         return _fields(data, nullable=("cursor",)) and _array(data.get("events"), event)
     if kind == "provider_status":
         return _array(data.get("deliveries"), lambda x: _fields(x, ("job_id", "message_id", "connector", "state"), ("provider_id",)))

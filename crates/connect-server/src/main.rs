@@ -113,6 +113,17 @@ enum Command {
         #[arg(long)]
         config: PathBuf,
     },
+    /// Carry native PCMU audio over a bounded binary helper side channel.
+    MediaStdio {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        conversation_id: String,
+        #[arg(long)]
+        session_id: String,
+        #[arg(long)]
+        remote_identity_id: String,
+    },
     VoiceIngress {
         #[arg(long)]
         config: PathBuf,
@@ -326,6 +337,20 @@ async fn main() -> Result<()> {
             connect_number.as_deref(),
         )?,
         Command::Stdio { config } => connect_server::cli::stdio::serve(&config).await?,
+        Command::MediaStdio {
+            config,
+            conversation_id,
+            session_id,
+            remote_identity_id,
+        } => {
+            connect_server::cli::media_stdio::serve(
+                &config,
+                &conversation_id,
+                &session_id,
+                &remote_identity_id,
+            )
+            .await?
+        }
         Command::VoiceIngress {
             config,
             server_config,

@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-negative-artifact_append",
+  "ts": "2026-10-08T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "artifact_append",
+    "request_id": "artifact-append-1",
+    "conversation_id": "conversation-1",
+    "artifact_id": "artifact-1",
+    "offset": 0,
+    "data": "aGVsbG8=",
+    "claimed_actor": "identity-other"
+  }
+}

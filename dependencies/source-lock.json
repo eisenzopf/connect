@@ -22,6 +22,21 @@
       "path": "patches/rvoip/connect-quic-application.patch",
       "sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
       "source": "Connect native application-handler plumbing; opt-in only"
+    },
+    {
+      "path": "patches/rvoip/connect-session-context.patch",
+      "sha256": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+      "source": "Expose canonical Session context on authenticated inbound connection events"
+    },
+    {
+      "path": "patches/rvoip/external-session-projection.patch",
+      "sha256": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+      "source": "Project application-owned conversations and sessions into rvoip orchestration"
+    },
+    {
+      "path": "patches/rvoip/sip-terminal-media-race.patch",
+      "sha256": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+      "source": "Let exact SIP terminal signaling win a normal remote-hangup media closure race"
     }
   ]
 }

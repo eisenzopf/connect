@@ -2,15 +2,16 @@
 """Update one stable implementation item and validate the full dependency graph."""
 import argparse, datetime, html, json, pathlib, re
 ROOT=pathlib.Path(__file__).resolve().parents[1]
-PLAN=ROOT/'docs/connect-gate-1-implementation.html'
 STATES={'not-started','in-progress','blocked','done','deferred'}
 parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--gate',choices=['1','2','3'],default='1')
 parser.add_argument('--item',required=True)
 parser.add_argument('--status',choices=sorted(STATES),required=True)
 parser.add_argument('--owner',default='')
 parser.add_argument('--evidence',default='')
 parser.add_argument('--notes',default='')
 args=parser.parse_args()
+PLAN=ROOT/f'docs/connect-gate-{args.gate}-implementation.html'
 source=PLAN.read_text()
 match=re.search(r'(<script id="plan-data" type="application/json">)(.*?)(</script>)',source,re.S)
 data=json.loads(match[2]); by_id={t['id']:t for t in data['tasks']}
@@ -30,7 +31,20 @@ def visit(item):
  visiting.remove(item);visited.add(item)
 for item in by_id:visit(item)
 data['updated']=task['updated']
+if args.gate == '3':
+ data['revision']=5
 source=source[:match.start(2)]+json.dumps(data,indent=2).replace('<','\\u003c')+source[match.end(2):]
+if args.gate == '3':
+ source=source.replace(
+  'Gate 3 · Implementation revision 01<br>October 8, 2026 · Planned / not started',
+  'Gate 3 · Implementation revision 05<br>October 8, 2026 · Implementation and qualification',
+ ).replace(
+  'Gate 3 · Implementation revision 05<br>October 9, 2026 · Implementation and qualification',
+  'Gate 3 · Implementation revision 05<br>October 8, 2026 · Implementation and qualification',
+ ).replace(
+  'Named future code, test scripts and evidence paths are planned outputs, not claims that they exist.',
+  'Status and evidence distinguish implemented local work from remaining live qualification.',
+ )
 # Keep the saved baseline readable without JavaScript as well.
 pattern=r'(<details class="task" id="'+re.escape(args.item)+r'".*?</details>)'
 card=re.search(pattern,source,re.S)[1]

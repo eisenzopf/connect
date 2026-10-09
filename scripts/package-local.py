@@ -68,6 +68,7 @@ shutil.copytree(ROOT/'sdk/typescript/dist', runtime/'sdk/typescript/dist')
 shutil.copyfile(ROOT/'sdk/typescript/package.json', runtime/'sdk/typescript/package.json')
 shutil.copytree(ROOT/'examples/agent-presence', runtime/'examples/agent-presence',
                 ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+shutil.copytree(ROOT/'examples/conversation-client', runtime/'examples/conversation-client')
 # Preserve dependency license/notice texts alongside a readable package index.
 # The workspace graph is a conservative superset of the two runtime binaries.
 metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--format-version=1'], cwd=ROOT))

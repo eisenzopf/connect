@@ -1,9 +1,16 @@
 //! Durable application storage. SQLite is the only application-state authority.
+mod artifacts;
+mod availability;
+mod context;
+mod conversation_queries;
 mod conversations;
 mod cursor;
 mod identity;
+mod provider_context;
 mod providers;
 mod recovery;
+mod sessions;
+mod sip_legs;
 mod voice;
 pub use providers::{event_digest as provider_event_digest, ProviderJob, Route};
 pub use voice::{InboundCall, VoiceAction, VoiceIngress, VoiceJob, VoiceRoute};
@@ -13,6 +20,7 @@ use rand::RngCore;
 use rusqlite::{Connection, OpenFlags};
 use sha2::{Digest, Sha256};
 use std::{
+    collections::HashSet,
     path::{Path, PathBuf},
     sync::{Mutex, MutexGuard},
     time::Duration,
@@ -20,12 +28,16 @@ use std::{
 
 pub use identity::{Actor, IssuedCredential, Scope};
 pub use recovery::Snapshot;
-pub const SCHEMA_VERSION: u32 = 6;
+pub use sessions::{RoutedInboundSession, VapiSessionRoute};
+pub use sip_legs::{SipLegAction, SipLegJob};
+pub const SCHEMA_VERSION: u32 = 9;
+const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
     connection: Mutex<Connection>,
     pub(crate) limits: Limits,
     path: PathBuf,
+    blob_directory: PathBuf,
 }
 impl Store {
     /// Create a new database. Refuses to reuse an existing path.
@@ -54,17 +66,29 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/006_voice_recovery.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/007_sessions_context_artifacts.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/008_artifact_expiry.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/009_sip_legs.sql"))
+            .map_err(|_| Error::storage())?;
         tx.execute(
             "INSERT INTO installation VALUES(1,?1,?2)",
             rusqlite::params![uuid::Uuid::new_v4().to_string(), random_secret()],
         )
         .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(Self {
+        let blob_directory = Self::create_blob_directory(path)?;
+        let store = Self {
             connection: Mutex::new(connection),
             limits,
             path: path.into(),
-        })
+            blob_directory,
+        };
+        store.purge_orphan_artifact_blobs(STARTUP_BLOB_CLEANUP_LIMIT)?;
+        Ok(store)
     }
     /// Open initialized state without creating a new database or resetting data.
     pub fn open(path: &Path, limits: Limits) -> Result<Self> {
@@ -80,11 +104,19 @@ impl Store {
             ));
         }
         Self::configure(&connection)?;
-        Ok(Self {
+        let blob_directory = Self::create_blob_directory(path)?;
+        let store = Self {
             connection: Mutex::new(connection),
             limits,
             path: path.into(),
-        })
+            blob_directory,
+        };
+        // A previous process may have committed deletion or crashed after an
+        // atomic blob rename but before publishing its database reference.
+        // Keep startup work bounded while ensuring those bytes are eventually
+        // erased without ever touching a referenced ready artifact.
+        store.purge_orphan_artifact_blobs(STARTUP_BLOB_CLEANUP_LIMIT)?;
+        Ok(store)
     }
     fn configure(c: &Connection) -> Result<()> {
         c.busy_timeout(Duration::from_secs(2))
@@ -117,6 +149,114 @@ impl Store {
     }
     pub fn limits(&self) -> &Limits {
         &self.limits
+    }
+
+    pub fn blob_directory_for(database: &Path) -> PathBuf {
+        database.with_extension("blobs")
+    }
+
+    pub fn blob_directory(&self) -> &Path {
+        &self.blob_directory
+    }
+
+    pub fn artifact_blob_names(database: &Path) -> Result<Vec<String>> {
+        let connection = Connection::open_with_flags(database, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|_| Error::storage())?;
+        let schema: u32 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(|_| Error::storage())?;
+        if schema < 7 {
+            return Ok(Vec::new());
+        }
+        let query = if schema >= 8 {
+            "SELECT blob_name FROM artifacts WHERE state='ready' AND blob_name IS NOT NULL AND (expires_at IS NULL OR expires_at>strftime('%s','now')) ORDER BY blob_name"
+        } else {
+            "SELECT blob_name FROM artifacts WHERE state='ready' AND blob_name IS NOT NULL ORDER BY blob_name"
+        };
+        let mut statement = connection.prepare(query).map_err(|_| Error::storage())?;
+        let names = statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|_| Error::storage())?
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(|_| Error::storage())?;
+        if names.iter().any(|name| !artifacts::valid_blob_name(name)) {
+            return Err(Error::storage());
+        }
+        Ok(names)
+    }
+
+    /// Remove at most `limit` completed or temporary blob files which are not
+    /// referenced by a ready artifact. Holding the database mutex makes the
+    /// scan mutually exclusive with finalize, so cleanup cannot race the
+    /// database transition which publishes a blob.
+    pub fn purge_orphan_artifact_blobs(&self, limit: usize) -> Result<usize> {
+        if limit == 0 {
+            return Ok(0);
+        }
+        let connection = self.connection()?;
+        let mut statement = connection
+            .prepare(
+                "SELECT blob_name FROM artifacts WHERE state='ready' AND blob_name IS NOT NULL AND (expires_at IS NULL OR expires_at>strftime('%s','now'))",
+            )
+            .map_err(|_| Error::storage())?;
+        let live = statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|_| Error::storage())?
+            .collect::<rusqlite::Result<HashSet<_>>>()
+            .map_err(|_| Error::storage())?;
+        if live.iter().any(|name| !artifacts::valid_blob_name(name)) {
+            return Err(Error::storage());
+        }
+
+        let mut removed = 0;
+        let entries = std::fs::read_dir(&self.blob_directory).map_err(|_| Error::storage())?;
+        for entry in entries {
+            if removed == limit {
+                break;
+            }
+            let entry = entry.map_err(|_| Error::storage())?;
+            let name = match entry.file_name().into_string() {
+                Ok(name) => name,
+                Err(_) => continue,
+            };
+            let is_final_orphan =
+                artifacts::valid_blob_name(&name) && !live.contains(name.as_str());
+            let is_stale_temporary = artifacts::valid_temporary_blob_name(&name);
+            if !is_final_orphan && !is_stale_temporary {
+                continue;
+            }
+            let metadata = std::fs::symlink_metadata(entry.path()).map_err(|_| Error::storage())?;
+            if metadata.file_type().is_file() {
+                std::fs::remove_file(entry.path()).map_err(|_| Error::storage())?;
+                removed += 1;
+            }
+        }
+        Ok(removed)
+    }
+
+    fn create_blob_directory(database: &Path) -> Result<PathBuf> {
+        let directory = Self::blob_directory_for(database);
+        match std::fs::create_dir(&directory) {
+            Ok(()) => {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700))
+                        .map_err(|_| Error::storage())?;
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                if !std::fs::symlink_metadata(&directory)
+                    .map_err(|_| Error::storage())?
+                    .file_type()
+                    .is_dir()
+                {
+                    return Err(Error::storage());
+                }
+            }
+            Err(_) => return Err(Error::storage()),
+        }
+        Ok(directory)
     }
 }
 pub(crate) fn now() -> i64 {

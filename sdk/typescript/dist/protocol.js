@@ -13,6 +13,23 @@ const kinds = {
     call_start: "call",
     call_status: "call",
     call_end: "call",
+    session_invite: "session",
+    session_accept: "session",
+    session_reject: "session",
+    session_cancel: "session",
+    session_end: "session",
+    session_get: "session",
+    sip_dial: "sip_leg",
+    sip_status: "sip_leg",
+    sip_end: "sip_leg",
+    context_view: "context_view",
+    availability_set: "availability",
+    availability_get: "availability",
+    artifact_begin: "artifact",
+    artifact_append: "artifact",
+    artifact_finish: "artifact",
+    artifact_get: "artifact_chunk",
+    artifact_delete: "artifact",
     health: "health",
 };
 export function expectedKind(operation) {
@@ -41,6 +58,44 @@ function array(value, test) {
 function message(value) {
     return fields(value, ["id", "conversation_id", "sender", "body"]);
 }
+function integer(value) {
+    return Number.isSafeInteger(value) && Number(value) >= 0;
+}
+function session(value) {
+    return (fields(value, [
+        "id",
+        "conversation_id",
+        "initiator_id",
+        "participant_id",
+        "state",
+    ], ["ended_reason"]) &&
+        array(value.media, (x) => typeof x === "string") &&
+        integer(value.created_at) &&
+        integer(value.updated_at));
+}
+function sipLeg(value) {
+    return (fields(value, ["id", "conversation_id", "session_id", "destination", "state"], ["connection_id", "ended_reason"]) &&
+        typeof value.end_requested === "boolean" &&
+        integer(value.created_at) &&
+        integer(value.updated_at));
+}
+function artifact(value) {
+    return (fields(value, [
+        "id",
+        "conversation_id",
+        "owner_id",
+        "name",
+        "media_type",
+        "sha256",
+        "state",
+    ]) &&
+        integer(value.size) &&
+        integer(value.received) &&
+        integer(value.created_at) &&
+        (value.expires_at === undefined ||
+            value.expires_at === null ||
+            integer(value.expires_at)));
+}
 function validData(kind, data, depth = 0) {
     if (!object(data) || depth > 8)
         return false;
@@ -67,6 +122,33 @@ function validData(kind, data, depth = 0) {
                 "state",
                 "direction",
             ], ["provider_id", "ended_reason"]) && typeof data.end_requested === "boolean");
+        case "session":
+            return session(data);
+        case "sip_leg":
+            return sipLeg(data);
+        case "availability":
+            return (fields(data, ["identity_id", "state"], ["preferred_route"]) &&
+                "expires_at" in data &&
+                (data.expires_at === null || integer(data.expires_at)) &&
+                "observed_at" in data &&
+                (data.observed_at === null || integer(data.observed_at)));
+        case "context_view":
+            return (fields(data, ["conversation_id"]) &&
+                integer(data.watermark) &&
+                integer(data.omitted) &&
+                array(data.items, (x) => fields(x, ["kind", "source_id", "actor_id", "body"]) &&
+                    integer(x.sequence)) &&
+                array(data.deliveries, (x) => fields(x, ["id", "provider", "state"], ["session_id", "provider_ref"]) &&
+                    integer(x.watermark) &&
+                    integer(x.created_at) &&
+                    integer(x.updated_at)));
+        case "artifact":
+            return artifact(data);
+        case "artifact_chunk":
+            return (artifact(data.artifact) &&
+                integer(data.offset) &&
+                typeof data.data === "string" &&
+                typeof data.eof === "boolean");
         case "history":
             return fields(data, [], ["next"]) && array(data.messages, message);
         case "inbox":
@@ -80,7 +162,9 @@ function validData(kind, data, depth = 0) {
                     "message" in x &&
                     (x.message === null || message(x.message)) &&
                     (x.call == null ||
-                        validData("call", x.call, depth + 1))));
+                        validData("call", x.call, depth + 1)) &&
+                    (x.session == null || session(x.session)) &&
+                    (x.artifact == null || artifact(x.artifact))));
         case "provider_status":
             return array(data.deliveries, (x) => fields(x, ["job_id", "message_id", "connector", "state"], ["provider_id"]));
         case "request_status":

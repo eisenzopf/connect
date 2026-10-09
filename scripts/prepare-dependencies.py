@@ -42,17 +42,20 @@ def main():
         if git(dest, 'rev-parse', 'HEAD') != source['revision'] or git(dest, 'remote', 'get-url', 'origin') != source['url']:
             raise SystemExit(f'{dest}: source identity mismatch; refusing to reset existing work')
         if name == 'rvoip':
-            expected = json.dumps(lock, sort_keys=True)
             marker = dest / '.git/connect-prepared.json'
             if marker.exists():
-                if marker.read_text() != expected:
+                try:
+                    prepared = json.loads(marker.read_text())
+                except json.JSONDecodeError as error:
+                    raise SystemExit(f'Invalid dependency preparation marker: {error}') from error
+                if prepared != lock:
                     raise SystemExit('Dependency lock changed; use a new .deps directory after preserving any changes')
                 # Verify exactly the intended patch content, including newly added files.
                 manifest = json.loads((dest / '.git/connect-files.json').read_text())
                 for relative, digest in manifest.items():
                     if hashlib.sha256((dest / relative).read_bytes()).hexdigest() != digest:
                         raise SystemExit(f'Prepared source changed: {relative}')
-                expected_status = (dest / '.git/connect-status.txt').read_text()
+                expected_status = (dest / '.git/connect-status.txt').read_text().rstrip('\n')
                 if git(dest, 'status', '--porcelain') != expected_status:
                     raise SystemExit('Unexpected prepared source changes')
                 continue
@@ -65,7 +68,7 @@ def main():
             manifest = {p: hashlib.sha256((dest / p).read_bytes()).hexdigest() for p in paths}
             (dest / '.git/connect-files.json').write_text(json.dumps(manifest, sort_keys=True))
             (dest / '.git/connect-status.txt').write_text(git(dest, 'status', '--porcelain'))
-            marker.write_text(expected)
+            marker.write_text(json.dumps(lock, sort_keys=True))
         elif git(dest, 'status', '--porcelain'):
             raise SystemExit(f'{dest}: unexpected changes')
     print('Pinned sources and patch digests verified in .deps/')

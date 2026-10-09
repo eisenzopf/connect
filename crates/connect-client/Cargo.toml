@@ -11,7 +11,9 @@ publish = false
 connect-protocol.workspace = true
 rvoip-quic.workspace = true
 rvoip-uctp.workspace = true
+rvoip-core.workspace = true
 tokio.workspace = true
+tracing.workspace = true
 tokio-util.workspace = true
 quinn.workspace = true
 rustls.workspace = true
@@ -20,6 +22,8 @@ serde_json.workspace = true
 toml.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
+parking_lot.workspace = true
+chrono.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

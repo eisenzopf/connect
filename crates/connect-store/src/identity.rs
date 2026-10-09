@@ -19,9 +19,23 @@ impl Scope {
     /// Explicit voice grant; existing messaging-only credentials remain unchanged.
     pub fn communications(recipients: Vec<String>) -> Self {
         let mut scope = Self::messaging(recipients);
-        scope
-            .operations
-            .extend(["call_start", "call_status", "call_end"].map(str::to_owned));
+        scope.operations.extend(
+            [
+                "call_start",
+                "call_status",
+                "call_end",
+                "session_invite",
+                "session_accept",
+                "session_reject",
+                "session_cancel",
+                "session_end",
+                "session_get",
+                "sip_dial",
+                "sip_status",
+                "sip_end",
+            ]
+            .map(str::to_owned),
+        );
         scope
     }
     pub fn messaging(recipients: Vec<String>) -> Self {
@@ -36,6 +50,14 @@ impl Scope {
                 "close",
                 "health",
                 "provider_status",
+                "context_view",
+                "availability_set",
+                "availability_get",
+                "artifact_begin",
+                "artifact_append",
+                "artifact_finish",
+                "artifact_get",
+                "artifact_delete",
             ]
             .iter()
             .map(|v| v.to_string())

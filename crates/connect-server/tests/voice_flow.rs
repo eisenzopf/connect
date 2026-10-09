@@ -202,7 +202,15 @@ async fn run(uncertain: bool, incoming: bool) {
         loop {
             let c = app.call_status(&conv.id, &call.id).await.unwrap();
             if !["pending", "starting"].contains(&c.state.as_str()) {
-                assert_eq!(c.state, if uncertain { "uncertain" } else { "queued" });
+                if uncertain {
+                    assert_eq!(c.state, "uncertain");
+                } else {
+                    assert!(
+                        ["queued", "in-progress"].contains(&c.state.as_str()),
+                        "unexpected provider state: {}",
+                        c.state
+                    );
+                }
                 break;
             }
             tokio::time::sleep(Duration::from_millis(20)).await;

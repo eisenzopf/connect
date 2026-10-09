@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-negative-sip_status",
+  "ts": "2026-10-09T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "sip_status",
+    "conversation_id": "conversation-1",
+    "sip_leg_id": "sip-leg-1",
+    "claimed_actor": "identity-other"
+  }
+}

@@ -1,5 +1,5 @@
-use crate::{cursor, identity::actor_from_connection, Actor, Store};
-use connect_protocol::{Conversation, Error, Event, Message, Operation, Outcome, Result};
+use crate::{identity::actor_from_connection, Actor, Store};
+use connect_protocol::{Conversation, Error, Operation, Outcome, Result};
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use sha2::{Digest, Sha256};
 
@@ -15,28 +15,7 @@ impl Store {
         actor.require(operation.name())?;
         let outcome = match operation {
             Operation::Resolve { address } => {
-                let alias = address
-                    .strip_prefix("connect:")
-                    .and_then(|a| a.strip_suffix("@local"))
-                    .ok_or_else(|| invalid("Use connect:alias@local"))?;
-                let (id, alias, capabilities): (String, String, String) = tx
-                    .query_row(
-                        "SELECT id,alias,capabilities FROM identities WHERE alias=?1",
-                        [alias],
-                        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-                    )
-                    .optional()
-                    .map_err(|_| Error::storage())?
-                    .ok_or_else(Error::forbidden)?;
-                if !actor.permits_recipient(&id) {
-                    return Err(Error::forbidden());
-                }
-                Outcome::Identity(connect_protocol::Identity {
-                    id,
-                    alias,
-                    capabilities: serde_json::from_str(&capabilities)
-                        .map_err(|_| Error::storage())?,
-                })
+                crate::conversation_queries::resolve(&tx, &actor, address)?
             }
             Operation::ProviderStatus { conversation_id } => {
                 authorized_conversation(&tx, &actor, conversation_id)?;
@@ -55,6 +34,50 @@ impl Store {
                 authorized_conversation(&tx, &actor, conversation_id)?;
                 Outcome::Call(crate::voice::get(&tx, conversation_id, call_id)?)
             }
+            Operation::SessionGet {
+                conversation_id,
+                session_id,
+            } => {
+                authorized_conversation(&tx, &actor, conversation_id)?;
+                Outcome::Session(crate::sessions::get(&tx, conversation_id, session_id)?)
+            }
+            Operation::SipStatus {
+                conversation_id,
+                sip_leg_id,
+            } => {
+                authorized_conversation(&tx, &actor, conversation_id)?;
+                Outcome::SipLeg(crate::sip_legs::status(&tx, conversation_id, sip_leg_id)?)
+            }
+            Operation::AvailabilityGet { identity_id } => {
+                if !actor.permits_recipient(identity_id) {
+                    return Err(Error::forbidden());
+                }
+                Outcome::Availability(crate::availability::get(&tx, identity_id)?)
+            }
+            Operation::ContextView {
+                conversation_id,
+                limit,
+            } => {
+                page_limit(*limit, self.limits.page_size)?;
+                authorized_conversation(&tx, &actor, conversation_id)?;
+                Outcome::ContextView(crate::context::view(&tx, &actor, conversation_id, *limit)?)
+            }
+            Operation::ArtifactGet {
+                conversation_id,
+                artifact_id,
+                offset,
+                limit,
+            } => {
+                authorized_conversation(&tx, &actor, conversation_id)?;
+                Outcome::ArtifactChunk(crate::artifacts::get_chunk(
+                    &tx,
+                    conversation_id,
+                    artifact_id,
+                    *offset,
+                    *limit,
+                    self,
+                )?)
+            }
             Operation::Health {} => {
                 let id: String = tx
                     .query_row("SELECT id FROM installation", [], |r| r.get(0))
@@ -69,140 +92,27 @@ impl Store {
                 conversation_id,
                 after,
                 limit,
-            } => {
-                let _ = authorized_conversation(&tx, &actor, conversation_id)?;
-                page_limit(*limit, self.limits.page_size)?;
-                let after = cursor::decode(
-                    &tx,
-                    &actor.identity_id,
-                    &format!("history:{conversation_id}"),
-                    after.as_deref(),
-                )?;
-                let max: i64 = tx
-                    .query_row("SELECT COALESCE(MAX(sequence),0) FROM messages", [], |r| {
-                        r.get(0)
-                    })
-                    .map_err(|_| Error::storage())?;
-                if after > max {
-                    return Err(invalid("Cursor is newer than this state snapshot"));
-                }
-                let mut statement=tx.prepare("SELECT sequence,id,conversation_id,sender,body FROM messages WHERE conversation_id=?1 AND sequence>?2 ORDER BY sequence LIMIT ?3").map_err(|_|Error::storage())?;
-                let rows = statement
-                    .query_map(params![conversation_id, after, limit], |r| {
-                        Ok((r.get::<_, i64>(0)?, message_row_offset(r, 1)?))
-                    })
-                    .map_err(|_| Error::storage())?
-                    .collect::<rusqlite::Result<Vec<_>>>()
-                    .map_err(|_| Error::storage())?;
-                let mut bounded = Vec::new();
-                let mut bytes = 0;
-                for row in rows {
-                    let size = serde_json::to_vec(&row.1)
-                        .map_err(|_| Error::storage())?
-                        .len();
-                    if bytes + size > connect_protocol::MAX_PAGE_BYTES {
-                        break;
-                    }
-                    bytes += size;
-                    bounded.push(row);
-                }
-                let next = bounded
-                    .last()
-                    .map(|(seq, _)| {
-                        cursor::encode(
-                            &tx,
-                            &actor.identity_id,
-                            &format!("history:{conversation_id}"),
-                            *seq,
-                        )
-                    })
-                    .transpose()?;
-                Outcome::History {
-                    messages: bounded.into_iter().map(|(_, m)| m).collect(),
-                    next,
-                }
-            }
+            } => crate::conversation_queries::history(
+                &tx,
+                &actor,
+                conversation_id,
+                after.as_deref(),
+                *limit,
+                self.limits.page_size,
+            )?,
             Operation::Inbox {
-                cursor: after,
+                cursor,
                 limit,
                 wait_ms,
-            } => {
-                page_limit(*limit, self.limits.page_size)?;
-                if *wait_ms > self.limits.wait_ms {
-                    return Err(invalid("Inbox wait exceeds configured limit"));
-                }
-                let after_seq = cursor::decode(&tx, &actor.identity_id, "inbox", after.as_deref())?;
-                let max: i64 = tx
-                    .query_row("SELECT COALESCE(MAX(sequence),0) FROM journal", [], |r| {
-                        r.get(0)
-                    })
-                    .map_err(|_| Error::storage())?;
-                if after_seq > max {
-                    return Err(invalid("Cursor is newer than this state snapshot"));
-                }
-                let mut statement=tx.prepare("SELECT sequence,id,conversation_id,kind,message_id,call_json FROM journal WHERE recipient=?1 AND sequence>?2 ORDER BY sequence LIMIT ?3").map_err(|_|Error::storage())?;
-                let rows = statement
-                    .query_map(params![actor.identity_id, after_seq, limit], |r| {
-                        Ok((
-                            r.get::<_, i64>(0)?,
-                            r.get::<_, String>(1)?,
-                            r.get::<_, String>(2)?,
-                            r.get::<_, String>(3)?,
-                            r.get::<_, Option<String>>(4)?,
-                            r.get::<_, Option<String>>(5)?,
-                        ))
-                    })
-                    .map_err(|_| Error::storage())?
-                    .collect::<rusqlite::Result<Vec<_>>>()
-                    .map_err(|_| Error::storage())?;
-                let mut events = Vec::new();
-                let mut next = after.clone();
-                let mut bytes = 0;
-                for (sequence, id, conversation_id, kind, message_id, call_json) in rows {
-                    let token = cursor::encode(&tx, &actor.identity_id, "inbox", sequence)?;
-                    match authorized_conversation(&tx, &actor, &conversation_id) {
-                        Ok(_) => {}
-                        Err(e) if e.code == "forbidden" => {
-                            next = Some(token);
-                            continue;
-                        }
-                        Err(e) => return Err(e),
-                    }
-                    let message = message_id
-                        .map(|id| {
-                            tx.query_row(
-                                "SELECT id,conversation_id,sender,body FROM messages WHERE id=?1",
-                                [id],
-                                |r| message_row_offset(r, 0),
-                            )
-                            .map_err(|_| Error::storage())
-                        })
-                        .transpose()?;
-                    let event = Event {
-                        id,
-                        kind,
-                        conversation_id,
-                        message,
-                        cursor: token,
-                        call: call_json
-                            .map(|s| serde_json::from_str(&s).map_err(|_| Error::storage()))
-                            .transpose()?,
-                    };
-                    let size = serde_json::to_vec(&event)
-                        .map_err(|_| Error::storage())?
-                        .len();
-                    if bytes + size > connect_protocol::MAX_PAGE_BYTES {
-                        break;
-                    }
-                    bytes += size;
-                    next = Some(event.cursor.clone());
-                    events.push(event);
-                }
-                Outcome::Inbox {
-                    events,
-                    cursor: next,
-                }
-            }
+            } => crate::conversation_queries::inbox(
+                &tx,
+                &actor,
+                cursor.as_deref(),
+                *limit,
+                *wait_ms,
+                self.limits.page_size,
+                self.limits.wait_ms,
+            )?,
             Operation::RequestStatus { request_id } => {
                 valid_id(request_id)?;
                 let saved = receipt(&tx, &actor.identity_id, request_id)?;
@@ -266,9 +176,52 @@ impl Store {
                     | Operation::CallEnd {
                         conversation_id, ..
                     }
+                    | Operation::SessionAccept {
+                        conversation_id, ..
+                    }
+                    | Operation::SessionReject {
+                        conversation_id, ..
+                    }
+                    | Operation::SessionCancel {
+                        conversation_id, ..
+                    }
+                    | Operation::SessionEnd {
+                        conversation_id, ..
+                    }
+                    | Operation::SipDial {
+                        conversation_id, ..
+                    }
+                    | Operation::SipEnd {
+                        conversation_id, ..
+                    }
+                    | Operation::ArtifactAppend {
+                        conversation_id, ..
+                    }
+                    | Operation::ArtifactFinish {
+                        conversation_id, ..
+                    }
+                    | Operation::ArtifactDelete {
+                        conversation_id, ..
+                    }
                     | Operation::Close {
                         conversation_id, ..
                     } => authorized_conversation(&tx, &actor, conversation_id)?.participants,
+                    Operation::SessionInvite {
+                        conversation_id, ..
+                    }
+                    | Operation::ArtifactBegin {
+                        conversation_id, ..
+                    } => {
+                        let conversation = authorized_conversation(&tx, &actor, conversation_id)?;
+                        if conversation.closed {
+                            return Err(Error::new(
+                                "conversation-closed",
+                                "Conversation no longer accepts new sessions or artifacts",
+                            ));
+                        }
+                        conversation.participants
+                    }
+                    Operation::AvailabilitySet { .. } => vec![actor.identity_id.clone()],
                     _ => return Err(invalid("Unsupported operation")),
                 };
                 let canonical =
@@ -318,6 +271,177 @@ impl Store {
                         call_id,
                         ..
                     } => crate::voice::end(&tx, credential_id, conversation_id, call_id, self),
+                    Operation::SessionInvite {
+                        conversation_id,
+                        participant_id,
+                        media,
+                        ..
+                    } => crate::sessions::invite(
+                        &tx,
+                        &actor,
+                        conversation_id,
+                        participant_id,
+                        media,
+                        &resources,
+                        self,
+                    )
+                    .map(Outcome::Session),
+                    Operation::SessionAccept {
+                        conversation_id,
+                        session_id,
+                        ..
+                    } => crate::sessions::transition(
+                        &tx,
+                        &actor,
+                        conversation_id,
+                        session_id,
+                        crate::sessions::Transition::Accept,
+                        &resources,
+                        self,
+                    )
+                    .map(Outcome::Session),
+                    Operation::SessionReject {
+                        conversation_id,
+                        session_id,
+                        reason,
+                        ..
+                    } => crate::sessions::transition(
+                        &tx,
+                        &actor,
+                        conversation_id,
+                        session_id,
+                        crate::sessions::Transition::Reject(reason.clone()),
+                        &resources,
+                        self,
+                    )
+                    .map(Outcome::Session),
+                    Operation::SessionCancel {
+                        conversation_id,
+                        session_id,
+                        ..
+                    } => crate::sessions::transition(
+                        &tx,
+                        &actor,
+                        conversation_id,
+                        session_id,
+                        crate::sessions::Transition::Cancel,
+                        &resources,
+                        self,
+                    )
+                    .map(Outcome::Session),
+                    Operation::SessionEnd {
+                        conversation_id,
+                        session_id,
+                        reason,
+                        ..
+                    } => crate::sessions::transition(
+                        &tx,
+                        &actor,
+                        conversation_id,
+                        session_id,
+                        crate::sessions::Transition::End(reason.clone()),
+                        &resources,
+                        self,
+                    )
+                    .map(Outcome::Session),
+                    Operation::SipDial {
+                        conversation_id,
+                        session_id,
+                        destination,
+                        ..
+                    } => crate::sip_legs::dial(
+                        &tx,
+                        &actor,
+                        credential_id,
+                        conversation_id,
+                        session_id,
+                        destination,
+                    )
+                    .map(Outcome::SipLeg),
+                    Operation::SipEnd {
+                        conversation_id,
+                        sip_leg_id,
+                        ..
+                    } => crate::sip_legs::end(&tx, &actor, conversation_id, sip_leg_id)
+                        .map(Outcome::SipLeg),
+                    Operation::AvailabilitySet {
+                        state,
+                        preferred_route,
+                        expires_at,
+                        ..
+                    } => crate::availability::set(
+                        &tx,
+                        &actor,
+                        state,
+                        preferred_route.as_deref(),
+                        *expires_at,
+                    )
+                    .map(Outcome::Availability),
+                    Operation::ArtifactBegin {
+                        conversation_id,
+                        name,
+                        media_type,
+                        size,
+                        sha256,
+                        expires_at,
+                        ..
+                    } => crate::artifacts::begin(
+                        &tx,
+                        &actor,
+                        crate::artifacts::BeginRequest {
+                            conversation_id,
+                            name,
+                            media_type,
+                            size: *size,
+                            sha256,
+                            expires_at: *expires_at,
+                            recipients: &resources,
+                        },
+                        self,
+                    )
+                    .map(Outcome::Artifact),
+                    Operation::ArtifactAppend {
+                        conversation_id,
+                        artifact_id,
+                        offset,
+                        data,
+                        ..
+                    } => crate::artifacts::append(
+                        &tx,
+                        &actor,
+                        conversation_id,
+                        artifact_id,
+                        *offset,
+                        data,
+                        self,
+                    )
+                    .map(Outcome::Artifact),
+                    Operation::ArtifactFinish {
+                        conversation_id,
+                        artifact_id,
+                        ..
+                    } => crate::artifacts::finish(
+                        &tx,
+                        &actor,
+                        conversation_id,
+                        artifact_id,
+                        &resources,
+                        self,
+                    )
+                    .map(Outcome::Artifact),
+                    Operation::ArtifactDelete {
+                        conversation_id,
+                        artifact_id,
+                        ..
+                    } => crate::artifacts::delete(
+                        &tx,
+                        &actor,
+                        conversation_id,
+                        artifact_id,
+                        &resources,
+                        self,
+                    )
+                    .map(Outcome::Artifact),
                     Operation::Create { .. } => {
                         if capacity(&tx, resources.len() as u64, 0, self)? {
                             let id = uuid::Uuid::new_v4().to_string();
@@ -390,6 +514,10 @@ impl Store {
                         let c = authorized_conversation(&tx, &actor, conversation_id)?;
                         if c.closed {
                             Ok(Outcome::Conversation(c))
+                        } else if let Err(error) =
+                            crate::sessions::ensure_conversation_closable(&tx, conversation_id)
+                        {
+                            Err(error)
                         } else if !capacity(&tx, resources.len() as u64, 0, self)? {
                             Err(Error::new(
                                 "capacity-exceeded",
@@ -457,7 +585,7 @@ fn valid_id(id: &str) -> Result<()> {
     };
     Ok(())
 }
-fn page_limit(value: u32, max: u32) -> Result<()> {
+pub(crate) fn page_limit(value: u32, max: u32) -> Result<()> {
     if value == 0 || value > max {
         Err(invalid("Page size exceeds configured bounds"))
     } else {
@@ -533,13 +661,43 @@ pub(crate) fn insert_event(
     .map_err(|_| Error::storage())?;
     Ok(())
 }
-fn message_row_offset(r: &rusqlite::Row<'_>, offset: usize) -> rusqlite::Result<Message> {
-    Ok(Message {
-        id: r.get(offset)?,
-        conversation_id: r.get(offset + 1)?,
-        sender: r.get(offset + 2)?,
-        body: r.get(offset + 3)?,
-    })
+pub(crate) fn insert_session_event(
+    c: &Connection,
+    recipient: &str,
+    session: &connect_protocol::Session,
+    kind: &str,
+) -> Result<()> {
+    c.execute(
+        "INSERT INTO journal(id,recipient,conversation_id,kind,session_json) VALUES(?1,?2,?3,?4,?5)",
+        params![
+            uuid::Uuid::new_v4().to_string(),
+            recipient,
+            session.conversation_id,
+            kind,
+            serde_json::to_string(session).map_err(|_| Error::storage())?
+        ],
+    )
+    .map_err(|_| Error::storage())?;
+    Ok(())
+}
+pub(crate) fn insert_artifact_event(
+    c: &Connection,
+    recipient: &str,
+    artifact: &connect_protocol::Artifact,
+    kind: &str,
+) -> Result<()> {
+    c.execute(
+        "INSERT INTO journal(id,recipient,conversation_id,kind,artifact_json) VALUES(?1,?2,?3,?4,?5)",
+        params![
+            uuid::Uuid::new_v4().to_string(),
+            recipient,
+            artifact.conversation_id,
+            kind,
+            serde_json::to_string(artifact).map_err(|_| Error::storage())?
+        ],
+    )
+    .map_err(|_| Error::storage())?;
+    Ok(())
 }
 struct Saved {
     digest: String,
