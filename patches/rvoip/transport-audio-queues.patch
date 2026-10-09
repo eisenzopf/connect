@@ -198,7 +198,7 @@
      let inbound_stats = Arc::new(InboundStats::default());
      let cancel = Arc::new(Notify::new());
      let send_deadline_ms = DEFAULT_INBOUND_SEND_DEADLINE_MS;
-@@ -377,3 +380,47 @@
+@@ -377,3 +380,56 @@
          ));
      }
  }
@@ -209,16 +209,25 @@
 +    #[tokio::test]
 +    async fn audio_channels_honor_the_selected_budget() {
 +        let capacity = std::num::NonZeroUsize::MIN.saturating_add(9);
-+        let track = Arc::new(TrackLocalStaticRTP::new(
-+            webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability {
-+                mime_type: "audio/opus".into(),
-+                clock_rate: 48_000,
-+                channels: 1,
-+                ..Default::default()
-+            },
++        use rtc::rtp_transceiver::rtp_sender::{
++            RTCRtpCodec, RTCRtpEncodingParameters, RtpCodecKind,
++        };
++        use webrtc::media_stream::MediaStreamTrack;
++        let track = Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
 +            "queue-audio".into(),
 +            "queue-test".into(),
-+        ));
++            "queue-test".into(),
++            RtpCodecKind::Audio,
++            vec![RTCRtpEncodingParameters {
++                codec: RTCRtpCodec {
++                    mime_type: "audio/opus".into(),
++                    clock_rate: 48_000,
++                    channels: 1,
++                    ..Default::default()
++                },
++                ..Default::default()
++            }],
++        )));
 +        let stream = from_tracks_with_dtmf_events_and_task_counter(
 +            StreamId::new(),
 +            CodecInfo {
