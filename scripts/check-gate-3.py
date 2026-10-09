@@ -51,6 +51,7 @@ steps = [
     ('provider-chat-context', ['cargo', 'test', '--locked', '-p', 'connect-connectors', '--lib', '--test', 'adapters'], 600),
     ('provider-chat-flow', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'provider_flow'], 600),
     ('vapi-adapter-failures', ['env', 'CARGO_TARGET_DIR=target/upstream', 'cargo', 'test', '--locked', '--manifest-path', '.deps/rvoip/Cargo.toml', '-p', 'rvoip-vapi', '--test', 'mock_transport'], 1200),
+    ('transport-queue-budgets', ['env', 'CARGO_TARGET_DIR=target/upstream', 'cargo', 'test', '--locked', '--manifest-path', '.deps/rvoip/Cargo.toml', '-p', 'rvoip-sip', '-p', 'rvoip-webrtc', '--lib', 'queue_budget_tests'], 1200),
     ('sip-duplex-media', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'gate3_sip_media'], 900),
     ('sip-registration-lifecycle', ['cargo', 'test', '--locked', '-p', 'connect-server', '--lib', 'sip_registration'], 600),
     ('sip-codec-failures', ['env', 'CARGO_TARGET_DIR=target/upstream', 'cargo', 'test', '--locked', '--manifest-path', '.deps/rvoip/Cargo.toml', '-p', 'rvoip-sip', '--test', 'adapter_renegotiate'], 1200),

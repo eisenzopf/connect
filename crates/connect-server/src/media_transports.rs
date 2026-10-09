@@ -8,7 +8,7 @@ use rvoip_core::{adapter::ConnectionAdapter, Orchestrator};
 use rvoip_sip::{
     api::unified::Config as SipConfig, types::Credentials, SipAdapter, UnifiedCoordinator,
 };
-use rvoip_webrtc::{WebRtcConfig, WebRtcServer, WebRtcServerBuilder};
+use rvoip_webrtc::{WebRtcServer, WebRtcServerBuilder};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 pub(crate) struct MediaTransports {
@@ -79,9 +79,13 @@ async fn start_sip(
             return Err(error);
         }
     }
-    let adapter = SipAdapter::new(coordinator.clone())
-        .await
-        .context("Cannot create SIP media adapter")?;
+    let adapter = SipAdapter::new_with_inbound_context_policy_and_queue_capacity(
+        coordinator.clone(),
+        Default::default(),
+        connect_protocol::media_profile::AUDIO_QUEUE_CAPACITY,
+    )
+    .await
+    .context("Cannot create SIP media adapter")?;
     orchestrator.register(adapter as Arc<dyn ConnectionAdapter>)?;
     Ok((Some(coordinator), Some(sip.bind)))
 }
@@ -125,7 +129,7 @@ async fn start_webrtc(
         webrtc.route.credential_id.clone(),
     ))
     .with_realm("connect");
-    let server = WebRtcServerBuilder::new(WebRtcConfig::loopback())
+    let server = WebRtcServerBuilder::new(crate::media_profile::webrtc_config())
         .with_ws(webrtc.bind.to_string())
         .with_ws_auth(Arc::new(auth))
         .build()

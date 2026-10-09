@@ -42,6 +42,11 @@
       "path": "patches/rvoip/audio-queue-policy.patch",
       "sha256": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
       "source": "Expose opt-in audio queue ceilings through core orchestration and raw QUIC stream construction; preserve upstream defaults."
+    },
+    {
+      "path": "patches/rvoip/transport-audio-queues.patch",
+      "sha256": "bba6a36f4c838a3a0427bbbba6329eedeab9c87cb030f2b0944432fa506719a9",
+      "source": "Opt-in SIP and WebRTC frame queue caps with construction tests; preserve existing 64-frame defaults."
     }
   ]
 }

@@ -24,3 +24,11 @@ pub fn vapi_config(key: VapiApiKey) -> VapiConfig {
     config.jitter_target_ceiling_ms = 200;
     config
 }
+
+/// Configure the browser audio frame channels with the negotiated queue budget.
+pub fn webrtc_config() -> rvoip_webrtc::WebRtcConfig {
+    rvoip_webrtc::WebRtcConfig {
+        audio_queue_capacity: Some(AUDIO_QUEUE_CAPACITY),
+        ..rvoip_webrtc::WebRtcConfig::loopback()
+    }
+}

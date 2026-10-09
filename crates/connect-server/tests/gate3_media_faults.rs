@@ -154,6 +154,10 @@ fn production_audio_configuration_obeys_the_frozen_queue_budget() {
     );
     let core = connect_server::media_profile::orchestrator_config();
     assert_eq!(core.audio_queue_capacity, Some(AUDIO_QUEUE_CAPACITY));
+    assert_eq!(
+        connect_server::media_profile::webrtc_config().audio_queue_capacity,
+        Some(AUDIO_QUEUE_CAPACITY)
+    );
     let provider = connect_server::media_profile::vapi_config(
         rvoip_vapi::VapiApiKey::new("fixture-only-key").unwrap(),
     );

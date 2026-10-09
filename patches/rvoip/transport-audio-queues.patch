@@ -1,0 +1,248 @@
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -1307,6 +1307,7 @@
+     /// the adapter that owns their route registry.
+     self_weak: Weak<SipAdapter>,
+     coordinator: Arc<UnifiedCoordinator>,
++    audio_queue_capacity: std::num::NonZeroUsize,
+     /// rvoip-core ConnectionId → SIP api SessionId.
+     by_connection: Arc<DashMap<ConnectionId, SipConnectionBinding>>,
+     /// SIP api SessionId → rvoip-core ConnectionId. Used by the event
+@@ -1423,6 +1424,21 @@
+         coordinator: Arc<UnifiedCoordinator>,
+         policy: SipInboundContextPolicy,
+     ) -> crate::errors::Result<Arc<Self>> {
++        Self::new_with_inbound_context_policy_and_queue_capacity(
++            coordinator,
++            policy,
++            std::num::NonZeroUsize::MIN.saturating_add(63),
++        )
++        .await
++    }
++
++    /// Construct with explicit inbound policy and a per-channel audio frame cap.
++    /// Existing constructors retain their original 64-frame capacity.
++    pub async fn new_with_inbound_context_policy_and_queue_capacity(
++        coordinator: Arc<UnifiedCoordinator>,
++        policy: SipInboundContextPolicy,
++        audio_queue_capacity: std::num::NonZeroUsize,
++    ) -> crate::errors::Result<Arc<Self>> {
+         // Open the event subscription before installing the synchronous
+         // observer. Calls already in flight before installation safely have no
+         // context; calls observed after installation cannot outrun this
+@@ -1463,6 +1479,7 @@
+         let adapter = Arc::new_cyclic(|self_weak| Self {
+             self_weak: self_weak.clone(),
+             coordinator: Arc::clone(&coordinator),
++            audio_queue_capacity,
+             by_connection: Arc::new(DashMap::new()),
+             by_session: Arc::new(DashMap::new()),
+             mapping_lock: StdMutex::new(()),
+@@ -2636,7 +2653,10 @@
+         if let Some(stream) = self.streams_cache.get(conn) {
+             return (stream.direction() == direction).then(|| Arc::clone(stream.value()));
+         }
+-        let stream = crate::media_stream::SipMediaStream::dormant_deferred(direction);
++        let stream = crate::media_stream::SipMediaStream::dormant_deferred_with_capacity(
++            direction,
++            self.audio_queue_capacity,
++        );
+         self.streams_cache.insert(conn.clone(), Arc::clone(&stream));
+         Some(stream)
+     }
+@@ -4047,7 +4067,10 @@
+         let originate_context = Self::outbound_originate_context(&request)?;
+         let session_id = SessionId::new();
+         let conn_id = ConnectionId::new();
+-        let stream = crate::media_stream::SipMediaStream::dormant_deferred(Direction::Outbound);
++        let stream = crate::media_stream::SipMediaStream::dormant_deferred_with_capacity(
++            Direction::Outbound,
++            self.audio_queue_capacity,
++        );
+         let route = SipOutboundRoute::new(
+             conn_id.clone(),
+             session_id,
+--- a/crates/sip/rvoip-sip/src/media_stream.rs
++++ b/crates/sip/rvoip-sip/src/media_stream.rs
+@@ -594,14 +594,29 @@
+     /// a publicly constructed outbound stream becomes writable when binding
+     /// completes; staged adapters use the private deferred constructor.
+     pub fn dormant(direction: Direction) -> Arc<Self> {
+-        Self::allocate_dormant(direction, true)
+-    }
+-
++        Self::allocate_dormant(direction, true, FRAME_CHANNEL_CAP)
++    }
++
++    #[cfg(test)]
+     pub(crate) fn dormant_deferred(direction: Direction) -> Arc<Self> {
+-        Self::allocate_dormant(direction, direction == Direction::Inbound)
+-    }
+-
+-    fn allocate_dormant(direction: Direction, outbound_writes_activated: bool) -> Arc<Self> {
++        Self::dormant_deferred_with_capacity(
++            direction,
++            std::num::NonZeroUsize::MIN.saturating_add(FRAME_CHANNEL_CAP - 1),
++        )
++    }
++
++    pub(crate) fn dormant_deferred_with_capacity(
++        direction: Direction,
++        capacity: std::num::NonZeroUsize,
++    ) -> Arc<Self> {
++        Self::allocate_dormant(direction, direction == Direction::Inbound, capacity.get())
++    }
++
++    fn allocate_dormant(
++        direction: Direction,
++        outbound_writes_activated: bool,
++        frame_capacity: usize,
++    ) -> Arc<Self> {
+         let stream_id = StreamId::new();
+         let codec = CodecInfo {
+             name: "g.711-mu".to_string(),
+@@ -613,9 +628,9 @@
+             // would be reporting a negotiation that has not happened.
+             payload_type: None,
+         };
+-        let (frames_in_tx, frames_in_rx) = mpsc::channel::<MediaFrame>(FRAME_CHANNEL_CAP);
+-        let (frames_out_tx, frames_out_rx) = mpsc::channel::<MediaFrame>(FRAME_CHANNEL_CAP);
+-        let (peer_out_tx, peer_out_rx) = mpsc::channel(FRAME_CHANNEL_CAP);
++        let (frames_in_tx, frames_in_rx) = mpsc::channel::<MediaFrame>(frame_capacity);
++        let (frames_out_tx, frames_out_rx) = mpsc::channel::<MediaFrame>(frame_capacity);
++        let (peer_out_tx, peer_out_rx) = mpsc::channel(frame_capacity);
+         let (cancel, _) = watch::channel(false);
+         let (codec_updates, _) = watch::channel(None);
+ 
+@@ -2486,3 +2501,20 @@
+         assert_eq!(stream.inner.lifecycle.current(), SipMediaLifecycle::Closed);
+     }
+ }
++
++#[cfg(test)]
++mod queue_budget_tests {
++    use super::*;
++    #[tokio::test]
++    async fn dormant_audio_channels_honor_the_selected_budget() {
++        let capacity = std::num::NonZeroUsize::MIN.saturating_add(9);
++        let stream = SipMediaStream::dormant_deferred_with_capacity(Direction::Inbound, capacity);
++        assert_eq!(stream.frames_out().max_capacity(), capacity.get());
++        assert_eq!(stream.inner.peer_out_tx.max_capacity(), capacity.get());
++        assert_eq!(
++            stream.try_frames_in().unwrap().max_capacity(),
++            capacity.get()
++        );
++        stream.close().await.unwrap();
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/src/adapter.rs
++++ b/crates/webrtc/rvoip-webrtc/src/adapter.rs
+@@ -2245,6 +2245,7 @@
+             negotiated_dtmf,
+             Some(Arc::clone(&self.media_tasks)),
+             Some(outbound_writer),
++            self.config.audio_queue_capacity,
+         );
+         if has_remote {
+             media.enable_webrtc_stats(
+--- a/crates/webrtc/rvoip-webrtc/src/config.rs
++++ b/crates/webrtc/rvoip-webrtc/src/config.rs
+@@ -121,6 +121,10 @@
+     /// UDP bind address passed to `PeerConnectionBuilder::with_udp_addrs`.
+     /// Use `"0.0.0.0:0"` or `"127.0.0.1:0"` for ephemeral ports.
+     pub udp_bind: String,
++
++    /// Optional per-channel audio frame cap; None preserves the 64-frame default.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub audio_queue_capacity: Option<std::num::NonZeroUsize>,
+ 
+     /// Optional bounded alternative to `udp_bind`. When present, each peer
+     /// atomically binds the first available port in this inclusive range.
+@@ -395,6 +399,7 @@
+     fn default() -> Self {
+         Self {
+             udp_bind: "0.0.0.0:0".into(),
++            audio_queue_capacity: None,
+             udp_port_range: None,
+             nat_1to1_ips: Vec::new(),
+             nat_1to1_candidate_type: Nat1To1CandidateType::Host,
+@@ -425,6 +430,7 @@
+     pub fn loopback() -> Self {
+         Self {
+             udp_bind: "127.0.0.1:0".into(),
++            audio_queue_capacity: None,
+             udp_port_range: None,
+             nat_1to1_ips: Vec::new(),
+             nat_1to1_candidate_type: Nat1To1CandidateType::Host,
+--- a/crates/webrtc/rvoip-webrtc/src/media/stream.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/stream.rs
+@@ -200,6 +200,7 @@
+         dtmf_codecs.into_iter().collect(),
+         None,
+         None,
++        None,
+     )
+ }
+ 
+@@ -215,9 +216,11 @@
+     dtmf_codecs: Vec<TelephoneEventCodec>,
+     task_counter: Option<Arc<AtomicUsize>>,
+     outbound_writer: Option<Arc<OutboundAudioRtpWriter>>,
++    audio_queue_capacity: Option<std::num::NonZeroUsize>,
+ ) -> Arc<WebRtcMediaStream> {
+-    let (frames_in_tx, frames_in_rx) = mpsc::channel(FRAME_CHANNEL_CAP);
+-    let (frames_out_tx, frames_out_rx) = mpsc::channel(FRAME_CHANNEL_CAP);
++    let capacity = audio_queue_capacity.map_or(FRAME_CHANNEL_CAP, std::num::NonZeroUsize::get);
++    let (frames_in_tx, frames_in_rx) = mpsc::channel(capacity);
++    let (frames_out_tx, frames_out_rx) = mpsc::channel(capacity);
+     let inbound_stats = Arc::new(InboundStats::default());
+     let cancel = Arc::new(Notify::new());
+     let send_deadline_ms = DEFAULT_INBOUND_SEND_DEADLINE_MS;
+@@ -377,3 +380,47 @@
+         ));
+     }
+ }
++
++#[cfg(test)]
++mod queue_budget_tests {
++    use super::*;
++    #[tokio::test]
++    async fn audio_channels_honor_the_selected_budget() {
++        let capacity = std::num::NonZeroUsize::MIN.saturating_add(9);
++        let track = Arc::new(TrackLocalStaticRTP::new(
++            webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability {
++                mime_type: "audio/opus".into(),
++                clock_rate: 48_000,
++                channels: 1,
++                ..Default::default()
++            },
++            "queue-audio".into(),
++            "queue-test".into(),
++        ));
++        let stream = from_tracks_with_dtmf_events_and_task_counter(
++            StreamId::new(),
++            CodecInfo {
++                name: "opus".into(),
++                clock_rate_hz: 48_000,
++                channels: 1,
++                fmtp: None,
++                payload_type: Some(111),
++            },
++            track,
++            1,
++            111,
++            None,
++            None,
++            Vec::new(),
++            None,
++            None,
++            Some(capacity),
++        );
++        assert_eq!(stream.frames_out().max_capacity(), capacity.get());
++        assert_eq!(
++            stream.try_frames_in().unwrap().max_capacity(),
++            capacity.get()
++        );
++        stream.close().await.unwrap();
++    }
++}
