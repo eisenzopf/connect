@@ -162,7 +162,10 @@ routes may set `session_id`; when omitted, Connect creates a bounded inbound
 Session. Caller ID and SIP headers never select a conversation.
 
 The browser entry point uses authenticated WebRTC signaling and does not load
-the Node helper or claim browser-native QUIC. Its HTTP control facade permits
+the Node helper or claim browser-native QUIC. The configured WebRTC route accepts
+only its selected credential; another valid credential, including a different
+grant for the same identity, cannot assume that route's authority. Its HTTP
+control facade permits
 credentialed CORS only from loopback HTTP origins; webhook-only listeners do
 not receive that layer. Microphone acquisition, ICE and signaling are bounded,
 and a stream that resolves after its deadline is stopped. The local

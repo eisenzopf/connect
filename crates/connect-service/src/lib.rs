@@ -162,10 +162,22 @@ fn diagnostic_ref(value: &str) -> String {
 
 pub struct StoreValidator {
     store: Arc<Store>,
+    route_credential: Option<String>,
 }
 impl StoreValidator {
     pub fn new(store: Arc<Store>) -> Arc<Self> {
-        Arc::new(Self { store })
+        Arc::new(Self {
+            store,
+            route_credential: None,
+        })
+    }
+    /// Accept only the credential selected for an administrator-configured
+    /// WebRTC route; other valid installation credentials cannot assume it.
+    pub fn for_credential(store: Arc<Store>, credential_id: String) -> Arc<Self> {
+        Arc::new(Self {
+            store,
+            route_credential: Some(credential_id),
+        })
     }
     fn principal(
         &self,
@@ -359,6 +371,13 @@ impl BearerValidator for StoreValidator {
                     BearerAuthError::Invalid("credential".into())
                 }
             })?;
+        if self
+            .route_credential
+            .as_ref()
+            .is_some_and(|credential| credential != &actor.credential_id)
+        {
+            return Err(BearerAuthError::Invalid("route credential".into()));
+        }
         self.principal(actor)
     }
 }

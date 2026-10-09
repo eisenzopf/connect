@@ -120,8 +120,11 @@ async fn start_webrtc(
     let Some(webrtc) = &config.webrtc else {
         return Ok((None, None));
     };
-    let auth = rvoip_webrtc::signaling::auth::AuthCoreHook::new(StoreValidator::new(store))
-        .with_realm("connect");
+    let auth = rvoip_webrtc::signaling::auth::AuthCoreHook::new(StoreValidator::for_credential(
+        store,
+        webrtc.route.credential_id.clone(),
+    ))
+    .with_realm("connect");
     let server = WebRtcServerBuilder::new(WebRtcConfig::loopback())
         .with_ws(webrtc.bind.to_string())
         .with_ws_auth(Arc::new(auth))

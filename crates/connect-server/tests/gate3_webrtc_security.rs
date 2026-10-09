@@ -20,6 +20,7 @@ struct RunningFixture {
     server: RunningServer,
     signaling: String,
     token: String,
+    foreign_tokens: Vec<String>,
 }
 
 async fn fixture() -> RunningFixture {
@@ -37,6 +38,20 @@ async fn fixture() -> RunningFixture {
             chrono::Utc::now().timestamp() + 3_600,
         )
         .unwrap();
+    let outsider = store.create_identity("outsider").unwrap();
+    let mut foreign_tokens = Vec::new();
+    for identity in [&app.identity_id, &outsider.id] {
+        foreign_tokens.push(
+            store
+                .issue(
+                    identity,
+                    Scope::communications(vec![agent.identity_id.clone()]),
+                    chrono::Utc::now().timestamp() + 3_600,
+                )
+                .unwrap()
+                .token,
+        );
+    }
     let conversation = match store
         .execute(
             &key.id,
@@ -68,6 +83,7 @@ async fn fixture() -> RunningFixture {
         server,
         _directory: directory,
         token: key.token,
+        foreign_tokens,
     }
 }
 
@@ -121,5 +137,21 @@ async fn invalid_credential_and_oversized_offer_never_reach_media_admission() {
         }
     }
 
+    running.server.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn other_valid_credentials_cannot_assume_the_configured_browser_route() {
+    let running = fixture().await;
+    for token in &running.foreign_tokens {
+        assert!(running.server.store.authenticate(token).is_ok());
+        assert!(connect_async(request(&running.signaling, token))
+            .await
+            .is_err());
+    }
+    let (mut socket, _) = connect_async(request(&running.signaling, &running.token))
+        .await
+        .unwrap();
+    socket.close(None).await.unwrap();
     running.server.shutdown().await.unwrap();
 }
