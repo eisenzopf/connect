@@ -8,6 +8,15 @@ use gate3_support::FakeVapi;
 
 #[tokio::test]
 async fn production_vapi_burst_is_bounded_and_cancellation_tears_down_both_legs() {
+    exercise_saturated_teardown(false).await;
+}
+
+#[tokio::test]
+async fn server_shutdown_retires_an_active_saturated_native_vapi_pair() {
+    exercise_saturated_teardown(true).await;
+}
+
+async fn exercise_saturated_teardown(server_shutdown: bool) {
     let _ = tracing_subscriber::fmt::try_init();
     let mut fake = FakeVapi::start_burst().await;
 
@@ -140,6 +149,46 @@ async fn production_vapi_burst_is_bounded_and_cancellation_tears_down_both_legs(
         .await
         .unwrap();
     let teardown = std::time::Instant::now();
+    if server_shutdown {
+        tokio::time::timeout(std::time::Duration::from_secs(5), server.shutdown())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(fake.adapter.media_health(&provider_connection).is_none());
+        println!(
+            "Active server shutdown paired teardown: {:?}",
+            teardown.elapsed()
+        );
+        assert!(matches!(
+            audio.receive(std::time::Duration::from_secs(1)).await,
+            Err(connect_client::ClientError::Transport | connect_client::ClientError::MediaEnded)
+        ));
+        client.close().await;
+        let restarted =
+            RunningServer::start(ServerConfig::load(&directory.join("server.toml")).unwrap())
+                .await
+                .unwrap();
+        app.endpoint = restarted.address;
+        let mut client = ConnectClient::open(app).await.unwrap();
+        assert_eq!(
+            client
+                .session_get(&conversation.id, &session.id)
+                .await
+                .unwrap()
+                .state,
+            "accepted"
+        );
+        assert!(client
+            .history(&conversation.id, None, 100)
+            .await
+            .unwrap()
+            .messages
+            .iter()
+            .any(|message| message.body == "Control still works."));
+        client.close().await;
+        restarted.shutdown().await.unwrap();
+        return;
+    }
     client
         .session_end(
             "burst-end",
@@ -169,6 +218,10 @@ async fn production_vapi_burst_is_bounded_and_cancellation_tears_down_both_legs(
     .await
     .unwrap();
     assert!(teardown.elapsed() < std::time::Duration::from_secs(5));
+    println!(
+        "Session cancellation paired teardown: {:?}",
+        teardown.elapsed()
+    );
     assert!(matches!(
         audio.send_pcmu(&[0x39; 160]).await,
         Err(connect_client::ClientError::Transport)
