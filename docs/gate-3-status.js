@@ -21,8 +21,8 @@ function updateDocumentationIndex() {
       'The durable session/context/availability/artifact model, native ' +
       'UCTP/QUIC audio, local SIP and authenticated WebRTC, managed files, ' +
       'language SDKs and recovery pass the 21-phase local suite. ' +
-      'Human-audibility, answered/inbound PSTN, interactive browser and ' +
-      'installed-candidate proofs remain open.';
+      'Human-audibility, answered/inbound PSTN and interactive browser ' +
+      'proofs remain open. The installed candidate passes locally.';
   }
 }
 
@@ -39,7 +39,7 @@ function updateGate3Plan() {
     heroNote.innerHTML =
       'Six decision directions are accepted and implemented locally. The ' +
       '21-phase local suite passes; human-audibility, answered/inbound PSTN, ' +
-      'interactive browser and installed-candidate proofs remain open. ' +
+      'interactive browser proofs remain open; the installed candidate passes. ' +
       '<a href="connect-roadmap.html#gate-3">Roadmap G3-A–G3-E</a> · ' +
       '<a href="connect-gate-3-implementation.html">Numbered implementation</a> · ' +
       '<a href="gate-3-acceptance.json">Acceptance map</a>.';
@@ -55,8 +55,8 @@ function updateGate3Plan() {
     reviewParagraphs[0].textContent =
       'The contracts and local implementation are in place. Review the ' +
       'recorded 21-phase local evidence, then close the remaining ' +
-      'human-audibility, answered/inbound PSTN, interactive browser and ' +
-      'installed-candidate checks without weakening the criteria.';
+      'human-audibility, answered/inbound PSTN and interactive browser checks ' +
+      'without weakening the criteria.';
   }
   if (reviewParagraphs[1]) {
     reviewParagraphs[1].textContent =
@@ -70,7 +70,7 @@ function updateGate3Plan() {
   if (footer) {
     footer.textContent =
       'Connect · a Rudeless project · Gate 3 planning revision 01 · Local ' +
-      'qualification passed; required live and candidate proofs remain open.';
+      'qualification and installed candidate passed; required live proofs remain open.';
   }
 }
 

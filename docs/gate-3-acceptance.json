@@ -344,10 +344,11 @@
       "proof": "Second-conversation contrast, ambiguous caller, revoked access, duplicated/out-of-order outcome, hard kill, disk-full and uncertain provider creation preserve isolation and durable intent; no false live-session resurrection or duplicate effects.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
         "evidence/gate-3/local.json",
-        "evidence/gate-3/baseline.json"
+        "evidence/gate-3/baseline.json",
+        "evidence/gate-3/package.json"
       ]
     },
     {
@@ -380,9 +381,10 @@
       "proof": "Native Rust/Python/Node can control sessions and send/receive audio on their declared native bindings. Browser WebRTC is separate and usable through a public facade. Examples use public APIs; unsupported video/profile/media modes fail explicitly.",
       "evidence_class": "local",
       "required": true,
-      "status": "partial",
+      "status": "passed",
       "evidence": [
-        "evidence/gate-3/local.json"
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/package.json"
       ]
     },
     {
@@ -409,7 +411,8 @@
       "status": "partial",
       "evidence": [
         "evidence/gate-3/baseline.json",
-        "evidence/gate-3/local.json"
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/package.json"
       ]
     }
   ],
@@ -438,7 +441,7 @@
       "evidence/gate-3/native-live.json",
       "evidence/gate-3/pstn-live.json"
     ],
-    "package": null,
+    "package": "evidence/gate-3/package.json",
     "review": null
   }
 }

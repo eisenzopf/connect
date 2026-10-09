@@ -236,7 +236,7 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 3 has passed its 21-phase local qualification; required human-audibility, answered/inbound PSTN, interactive browser and installed-candidate proofs remain open. Gate 4\u20135 detailed plans remain unwritten.",
+    "Gate 3 has passed its 21-phase local qualification and installed-candidate checks; required human-audibility, answered/inbound PSTN and interactive browser proofs remain open. Gate 4\u20135 detailed plans remain unwritten.",
     "Six Gate 3 directions are accepted and implemented locally; live route and candidate qualification must close without weakening their acceptance criteria.",
     "Additional assistant selection/research is deferred to G4-A.",
     "Carrier approval gates the deferred live SMS lane and full v0.1 release."
@@ -246,7 +246,7 @@
   "local_patches": "Accepted for now; source-lock digests verified",
   "revision": 4,
   "document": "connect-roadmap.html",
-  "planning_status": "Gate 3 local qualification passed across 21 account-free phases. Human-audibility, answered/inbound PSTN, interactive browser and installed-candidate proofs remain open; additional assistant selection is deferred to Gate 4.",
+  "planning_status": "Gate 3 local qualification passed across 21 account-free phases and the installed candidate passed. Human-audibility, answered/inbound PSTN and interactive browser proofs remain open; additional assistant selection is deferred to Gate 4.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Deliver basic files before Gate 4 artifact/task continuation. Design video early and qualify it in Gate 5. SMS is a parallel deferred qualification lane and a full v0.1 release blocker.",
   "parallel_lanes": [
     {

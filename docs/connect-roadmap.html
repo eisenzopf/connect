@@ -17,7 +17,7 @@ input.addEventListener('input',()=>{
 const heroPills=document.querySelectorAll('.hero .pill');
 if(heroPills[2])heroPills[2].textContent='Gate 3 locally qualified; live gaps remain';
 const heroStatus=document.querySelector('.hero .small');
-if(heroStatus)heroStatus.innerHTML='This is the delivery roadmap, not a new product contract or a dated schedule. Gates 1–2 remain qualified in their recorded scope. Gate 3 has passed its 21-phase local qualification; required human-audibility, answered/inbound PSTN, interactive browser and installed-candidate proofs remain open. Gate 4–5 detailed plans remain to be written.';
+if(heroStatus)heroStatus.innerHTML='This is the delivery roadmap, not a new product contract or a dated schedule. Gates 1–2 remain qualified in their recorded scope. Gate 3 has passed its 21-phase local qualification and installed-candidate checks; required human-audibility, answered/inbound PSTN and interactive browser proofs remain open. Gate 4–5 detailed plans remain to be written.';
 const gate3Flow=[...document.querySelectorAll('.flow a')].find(link=>link.getAttribute('href')==='#gate-3');
 if(gate3Flow){const state=gate3Flow.querySelector('span');if(state)state.textContent='Local qualification passed; live gaps';}
 const gate3=document.getElementById('gate-3');
