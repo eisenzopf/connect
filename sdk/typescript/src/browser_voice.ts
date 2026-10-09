@@ -12,6 +12,16 @@ interface Signal {
     request_id?: string;
 }
 
+/** Optional audio supplied by an application, such as processed or generated speech. */
+export interface BrowserVoiceOptions {
+    /**
+     * A live audio-only stream. The session takes ownership of its tracks and
+     * stops them on failure or hangup. Clone tracks first to retain a source.
+     * Omit this to acquire the user's microphone.
+     */
+    inputStream?: MediaStream;
+}
+
 /** One authenticated browser WebRTC leg retained by its signaling lease. */
 export class BrowserVoiceSession {
     readonly remoteStream = new MediaStream();
@@ -38,6 +48,7 @@ export class BrowserVoiceSession {
         signalingUrl: string,
         credential: string,
         timeoutMs = 15000,
+        options: BrowserVoiceOptions = {},
     ): Promise<BrowserVoiceSession> {
         timeoutMs = timeoutValue(timeoutMs);
         const parsed = new URL(signalingUrl);
@@ -57,7 +68,22 @@ export class BrowserVoiceSession {
             );
         let stream: MediaStream;
         try {
-            stream = await microphoneStream(timeoutMs);
+            if (options.inputStream) {
+                const tracks = options.inputStream.getTracks();
+                if (
+                    tracks.length === 0 ||
+                    tracks.some(
+                        (track) =>
+                            track.kind !== "audio" ||
+                            track.readyState !== "live",
+                    )
+                )
+                    throw new ConnectError(
+                        "invalid-request",
+                        "Input stream must contain live audio tracks only",
+                    );
+                stream = options.inputStream;
+            } else stream = await microphoneStream(timeoutMs);
         } catch (error) {
             if (error instanceof ConnectError) throw error;
             throw new ConnectError(
@@ -65,20 +91,29 @@ export class BrowserVoiceSession {
                 "Microphone access was denied",
             );
         }
-        const peer = new RTCPeerConnection();
-        for (const track of stream.getTracks()) peer.addTrack(track, stream);
-        peer.createDataChannel("connect-control", { ordered: true });
-        const socket = new WebSocket(signalingUrl, [
-            "rvoip.webrtc.v1",
-            `token.${credential}`,
-        ]);
-        const session = new BrowserVoiceSession(peer, socket, stream);
+        let peer: RTCPeerConnection | undefined;
+        let socket: WebSocket | undefined;
+        let session: BrowserVoiceSession | undefined;
         try {
+            peer = new RTCPeerConnection();
+            for (const track of stream.getTracks())
+                peer.addTrack(track, stream);
+            peer.createDataChannel("connect-control", { ordered: true });
+            socket = new WebSocket(signalingUrl, [
+                "rvoip.webrtc.v1",
+                `token.${credential}`,
+            ]);
+            session = new BrowserVoiceSession(peer, socket, stream);
             await session.negotiate(timeoutMs);
             session.watchEnd();
             return session;
         } catch (error) {
-            await session.close();
+            if (session) await session.close();
+            else {
+                socket?.close();
+                peer?.close();
+                for (const track of stream.getTracks()) track.stop();
+            }
             if (error instanceof ConnectError) throw error;
             throw new ConnectError(
                 "webrtc-failed",

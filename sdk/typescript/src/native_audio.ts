@@ -7,6 +7,7 @@ const MEDIA_AUDIO = 0x02;
 const MEDIA_CLOSE = 0x03;
 const MEDIA_READY = 0x81;
 const MEDIA_RECEIVED = 0x82;
+const MEDIA_ENDED = 0x83;
 const MEDIA_ERROR = 0xff;
 const MAX_MEDIA_FRAME = 4096;
 
@@ -23,6 +24,7 @@ export class NativeAudioClient {
     private readonly frames: Uint8Array[] = [];
     private readonly waiters: MediaWaiter[] = [];
     private closed = false;
+    private terminalError?: ConnectError;
 
     private constructor(
         private readonly child: ChildProcessWithoutNullStreams,
@@ -173,6 +175,15 @@ export class NativeAudioClient {
             const kind = this.buffer[0];
             const payload = Buffer.from(this.buffer.subarray(5, 5 + length));
             this.buffer = this.buffer.subarray(5 + length);
+            if (kind === MEDIA_ENDED && payload.length === 0) {
+                this.fail(
+                    new ConnectError(
+                        "media-ended",
+                        "The remote media leg ended",
+                    ),
+                );
+                return;
+            }
             if (kind === MEDIA_ERROR) {
                 this.fail(
                     new ConnectError("protocol", payload.toString("utf8")),
@@ -208,6 +219,7 @@ export class NativeAudioClient {
     ): void {
         if (this.closed) return;
         this.closed = true;
+        this.terminalError = error;
         for (const waiter of this.waiters.splice(0)) {
             clearTimeout(waiter.timer);
             waiter.reject(error);
@@ -220,10 +232,11 @@ export class NativeAudioClient {
     private write(kind: number, payload = Buffer.alloc(0)): Promise<void> {
         if (this.closed)
             return Promise.reject(
-                new ConnectError(
-                    "transport-uncertain",
-                    "Media helper is closed",
-                ),
+                this.terminalError ??
+                    new ConnectError(
+                        "transport-uncertain",
+                        "Media helper is closed",
+                    ),
             );
         if (payload.length > MAX_MEDIA_FRAME)
             return Promise.reject(
@@ -279,10 +292,11 @@ export class NativeAudioClient {
         if (frame) return Promise.resolve(frame);
         if (this.closed)
             return Promise.reject(
-                new ConnectError(
-                    "transport-uncertain",
-                    "Media helper is closed",
-                ),
+                this.terminalError ??
+                    new ConnectError(
+                        "transport-uncertain",
+                        "Media helper is closed",
+                    ),
             );
         return new Promise((resolve, reject) => {
             const waiter: MediaWaiter = {

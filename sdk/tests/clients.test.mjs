@@ -93,3 +93,11 @@ test('HTTP artifact helpers preserve raw bytes and framing',async()=>{
  finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
 test('Rust result fixtures validate in TypeScript',()=>{const dir=new URL('../../contracts/fixtures/results/',import.meta.url);for(const name of readdirSync(dir)){const response=JSON.parse(readFileSync(new URL(name,dir),'utf8')).payload;const result=response.result;if(result.Err)assert.throws(()=>decodeResponse(response,'health'),rejects(result.Err.code));else assert.deepEqual(decodeResponse(response,result.Ok.kind),result.Ok);}});
+
+test('native audio reports remote end promptly and preserves the terminal code',async()=>{
+ const media=await NativeAudioClient.open('media-ended','conversation','session','remote',helper,1000);
+ try{await assert.rejects(()=>media.receive(),rejects('media-ended'));
+  await assert.rejects(()=>media.receive(),rejects('media-ended'));
+  await assert.rejects(()=>media.sendPcmu(new Uint8Array(160)),rejects('media-ended'));
+ }finally{await media.close();}
+});

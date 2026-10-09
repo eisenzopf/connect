@@ -40,6 +40,7 @@ def run(args):
     capture = queue.Queue(maxsize=8)
     playback = queue.Queue(maxsize=25)
     stop = threading.Event()
+    remote_ended = threading.Event()
     failures = queue.Queue()
     counts = {'sent_frames': 0, 'received_frames': 0, 'device_warnings': 0}
 
@@ -70,7 +71,10 @@ def run(args):
                     counts['sent_frames'] += 1
             except Exception as error:
                 if not stop.is_set():
-                    failures.put(str(error))
+                    if getattr(error, 'code', None) == 'media-ended':
+                        remote_ended.set()
+                    else:
+                        failures.put(str(error))
                     stop.set()
 
         def receiver():
@@ -80,7 +84,10 @@ def run(args):
                     counts['received_frames'] += 1
             except Exception as error:
                 if not stop.is_set():
-                    failures.put(str(error))
+                    if getattr(error, 'code', None) == 'media-ended':
+                        remote_ended.set()
+                    else:
+                        failures.put(str(error))
                     stop.set()
 
         threads = [threading.Thread(target=task, daemon=True) for task in (sender, receiver)]
@@ -103,7 +110,7 @@ def run(args):
             for thread in threads:
                 if thread.ident is not None:
                     thread.join(timeout=2)
-    counts['ended_by'] = 'local' if failures.empty() else 'remote-or-transport'
+    counts['ended_by'] = 'remote' if remote_ended.is_set() else ('local' if failures.empty() else 'transport-failure')
     print(json.dumps(counts), flush=True)
     if not failures.empty():
         print('Audio ended: ' + failures.get(), file=sys.stderr)

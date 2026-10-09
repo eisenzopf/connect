@@ -35,6 +35,7 @@ pub struct NativeAudioSession {
     connection: quinn::Connection,
     owner: rvoip_core::identity::PrincipalOwnershipKey,
     next_timestamp: u32,
+    ended: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,6 +52,9 @@ pub struct NativeAudioFrame {
 impl NativeAudioSession {
     /// Send one 20 ms PCMU frame (160 samples at 8 kHz).
     pub async fn send_pcmu(&mut self, payload: &[u8]) -> Result<()> {
+        if self.ended {
+            return Err(ClientError::MediaEnded);
+        }
         if payload.len() != 160 {
             return Err(ClientError::Protocol);
         }
@@ -72,12 +76,16 @@ impl NativeAudioSession {
 
     /// Receive one authorized media frame before the caller's deadline.
     pub async fn receive(&mut self, timeout: Duration) -> Result<NativeAudioFrame> {
+        if self.ended {
+            return Err(ClientError::MediaEnded);
+        }
         let frame = tokio::time::timeout(timeout, async {
             loop {
                 if let Some(inbound) = self.inbound.as_mut() {
                     tokio::select! {
-                        frame = inbound.recv() => return frame.ok_or(ClientError::Transport),
+                        biased;
                         event = self.events.recv() => self.accept_stream_event(event).await?,
+                        frame = inbound.recv() => return frame.ok_or(ClientError::Transport),
                     }
                 } else {
                     let event = self.events.recv().await;
@@ -99,6 +107,15 @@ impl NativeAudioSession {
         event: std::result::Result<UctpEnvelope, tokio::sync::broadcast::error::RecvError>,
     ) -> Result<()> {
         let event = event.map_err(|_| ClientError::Transport)?;
+        if crate::media_end::is_terminal(
+            &event,
+            &self.conversation_id,
+            &self.session_id,
+            &self.connection_id,
+        )? {
+            self.ended = true;
+            return Err(ClientError::MediaEnded);
+        }
         if event.msg_type != MessageType::StreamOpened
             || event.sid.as_deref() != Some(self.session_id.as_str())
             || event.connid.as_deref() != Some(self.connection_id.as_str())
@@ -316,6 +333,7 @@ impl ConnectClient {
             connection: self.peer.connection.clone(),
             owner,
             next_timestamp: 0,
+            ended: false,
         })
     }
 

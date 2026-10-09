@@ -15,6 +15,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class NativeTests(unittest.TestCase):
+    def test_remote_media_end_is_prompt_and_distinct_from_uncertainty(self):
+        with NativeAudioClient('media-ended', 'conversation', 'session', 'remote', HELPER, timeout=1) as media:
+            for operation in [media.receive, media.receive, lambda: media.send_pcmu(bytes(160))]:
+                with self.assertRaises(ConnectError) as error:
+                    operation()
+                self.assertEqual(error.exception.code, 'media-ended')
+
     def test_media_diagnostics_cannot_fill_an_unread_helper_pipe(self):
         with tempfile.TemporaryFile() as diagnostics:
             with NativeAudioClient('media-noisy', 'conversation', 'session', 'remote',

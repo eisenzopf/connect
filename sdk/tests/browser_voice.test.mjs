@@ -6,11 +6,13 @@ import { BrowserVoiceSession } from '../typescript/dist/browser.js';
 async function withBrowser(mode, run) {
     const names = ['navigator', 'MediaStream', 'RTCPeerConnection', 'WebSocket'];
     const original = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
-    const state = { offers: [], trackStopped: false, peerClosed: false, socketClosed: false };
-    const stream = { getTracks: () => [{ stop: () => { state.trackStopped = true; } }] };
+    const state = { offers: [], trackStopped: false, peerClosed: false, socketClosed: false, microphoneRequests: 0 };
+    const stream = { getTracks: () => [{ kind: 'audio', readyState: 'live', stop: () => { state.trackStopped = true; } }] };
+    state.stream = stream;
     class Peer extends EventTarget {
         iceGatheringState = 'complete';
-        addTrack() {}
+        constructor() { super(); if (mode === 'peer-constructor') throw new Error('fixture peer failure'); }
+        addTrack() { if (mode === 'track-add') throw new Error('fixture track failure'); }
         createDataChannel() {}
         async createOffer() { await Promise.resolve(); return { type: 'offer', sdp: 'fixture-offer' }; }
         async setLocalDescription(offer) { this.localDescription = offer; }
@@ -23,6 +25,7 @@ async function withBrowser(mode, run) {
         readyState = 0;
         constructor() {
             super();
+            if (mode === 'socket-constructor') throw new Error('fixture socket failure');
             state.socket = this;
             if (mode === 'early') queueMicrotask(() => this.open());
             if (mode === 'late') setTimeout(() => this.open(), 5);
@@ -44,7 +47,7 @@ async function withBrowser(mode, run) {
         }
         close() { this.readyState = 3; state.socketClosed = true; }
     }
-    const replacements = { navigator: { mediaDevices: { getUserMedia: async () => stream } }, MediaStream: class {}, RTCPeerConnection: Peer, WebSocket: Socket };
+    const replacements = { navigator: { mediaDevices: { getUserMedia: async () => { state.microphoneRequests++; return stream; } } }, MediaStream: class {}, RTCPeerConnection: Peer, WebSocket: Socket };
     for (const name of names) Object.defineProperty(globalThis, name, { configurable: true, value: replacements[name] });
     try { await run(state); }
     finally {
@@ -94,3 +97,35 @@ test('server hangup releases browser microphone and notifies the application', a
         assert.ok(state.trackStopped && state.peerClosed && state.socketClosed);
     });
 });
+
+test('application audio uses the same signaling and is released without requesting a microphone', async () => {
+    await withBrowser('early', async state => {
+        const voice = await BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100, { inputStream: state.stream });
+        assert.equal(state.microphoneRequests, 0);
+        assert.equal(state.offers.length, 1);
+        await voice.close();
+        assert.ok(state.trackStopped);
+    });
+});
+
+test('application audio rejects empty, ended and video streams before signaling', async () => {
+    await withBrowser('early', async state => {
+        for (const tracks of [[], [{ kind: 'audio', readyState: 'ended' }], [{ kind: 'video', readyState: 'live' }]]) {
+            await assert.rejects(() => BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100, { inputStream: { getTracks: () => tracks } }), error => error.code === 'invalid-request');
+        }
+        assert.equal(state.microphoneRequests, 0);
+        assert.equal(state.offers.length, 0);
+    });
+});
+
+for (const mode of ['peer-constructor', 'track-add', 'socket-constructor']) {
+    test(`browser releases acquired audio after ${mode} failure`, async () => {
+        await withBrowser(mode, async state => {
+            await assert.rejects(() => BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100), error => error.code === 'webrtc-failed');
+            assert.equal(state.microphoneRequests, 1);
+            assert.ok(state.trackStopped);
+            if (mode !== 'peer-constructor') assert.ok(state.peerClosed);
+            assert.equal(state.offers.length, 0);
+        });
+    });
+}

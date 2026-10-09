@@ -31,3 +31,25 @@ Run `npm test --prefix sdk/typescript` and
 `PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p 'test_*.py'`
 for bounded helper/HTTP failure tests with no provider account. The complete local
 runner includes these tests plus real Rust native-helper/HTTP parity and recovery.
+
+## Voice lifetimes
+
+Rust `NativeAudioSession` and Python/TypeScript `NativeAudioClient` carry raw
+PCMU through native UCTP/QUIC. A reliable terminal event for the current media
+binding ends reception promptly: Rust returns `ClientError::MediaEnded`, and
+Python/TypeScript return `ConnectError` with code `media-ended`. Subsequent media
+operations retain that code. Transport failures remain uncertain. End the
+application-owned session explicitly when finished; a media-leg end never closes
+its durable conversation.
+
+The `@rudeless/connect/browser` entry exports `BrowserVoiceSession`. Its default
+input is the microphone. Applications can supply a live audio-only stream with
+`BrowserVoiceSession.open(url, credential, timeoutMs, { inputStream })`; the
+session owns and stops the supplied tracks. Clone tracks to retain another owner.
+The `ended` promise settles after either side ends the browser leg and capture
+stops. Browser WebRTC uses loopback signaling; it is not a native browser QUIC SDK.
+
+See [the conversation client](../examples/conversation-client/README.md) and
+[explicit live rehearsals](../scripts/live/README.md) for hardware and generated
+speech examples. Generated audio plus independent decoding can test the media
+path autonomously; it does not qualify a particular microphone or speaker.

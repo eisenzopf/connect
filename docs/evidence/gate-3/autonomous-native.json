@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "evidence": "autonomous-native-live-audio",
+  "recorded_at": "2026-10-09T20:39:11.442583+00:00",
+  "source_revision": "3400f5c7d58c09345ab1d31fd944d2c4e8972c13",
+  "dirty": true,
+  "server_business_logic_revision": "a0a0fdf01023",
+  "transport": "generated speech -> public Python NativeAudioClient -> UCTP/QUIC PCMU -> Connect -> Vapi WebSocket -> native return audio",
+  "decision": "decisions/008-autonomous-audio-qualification.md",
+  "status": "passed",
+  "three_turns": {
+    "received_frames": 2583,
+    "independent_decoder": "local faster-whisper base.en, CPU/int8; no provider transcript input",
+    "observed_answers": [
+      "Marigold Comet and Thursday",
+      "Silver Lighthouse and Marigold Comet",
+      "Silver Lighthouse"
+    ],
+    "audio_sha256": "f40b3af43098692f0629e334ef285ab42b93a7627af14e93af9368bc20d7eb95"
+  },
+  "interruption": {
+    "prompt_trigger": "one second after received speech energy; twelve-second bounded wait",
+    "first_answer": "A lighthouse keeper is responsible.",
+    "interrupted_before_detailed_answer": true,
+    "new_decision_heard_and_recalled": "Paper Tiger",
+    "turn_start_seconds": [
+      2.3285328749916516,
+      9.170787249982823,
+      25.025426166976104
+    ],
+    "audio_sha256": "9a1e57d8a1068c74621f07a866a2db8a2662dcc294f4c17ffff3767fb4c24420"
+  },
+  "hangup": {
+    "local": "public SDK close and explicit application session_end; durable conversation retained",
+    "remote": {
+      "remote_end_observed": true,
+      "session_state": "ended",
+      "reason": "automated-rehearsal-complete",
+      "helper_returncode": 0,
+      "result": "passed"
+    },
+    "regression": "Old native client ignored reliable terminal envelopes and timed out. Fixed typed MediaEnded plus binary 0x83 empty frame and SDK media-ended code; live provider-end retest exited successfully."
+  },
+  "earlier_attempts": [
+    "Initial synthesized native evidence lacked independent audio decoding.",
+    "Fixed-delay interruption did not establish overlap; counting probes produced inconsistent model behavior. Not counted as interruption passes.",
+    "Provider control say timed out; intent and failed run retained without retry.",
+    "First remote-end inventory read truncated; test session was explicitly stopped with its saved logical ID.",
+    "Second remote-end test exposed the client notification gap; failed result retained."
+  ],
+  "private_evidence": [
+    ".local/gate-3-live/automated/native-roundtrip",
+    ".local/gate-3-live/automated/native-interruption-story",
+    ".local/gate-3-live/automated/native-provider-end-v3"
+  ],
+  "limits": "Local macOS arm64; generated audio qualifies protocol/media path, not a physical microphone/speaker."
+}

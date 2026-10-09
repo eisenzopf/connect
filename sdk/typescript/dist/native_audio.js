@@ -6,6 +6,7 @@ const MEDIA_AUDIO = 0x02;
 const MEDIA_CLOSE = 0x03;
 const MEDIA_READY = 0x81;
 const MEDIA_RECEIVED = 0x82;
+const MEDIA_ENDED = 0x83;
 const MEDIA_ERROR = 0xff;
 const MAX_MEDIA_FRAME = 4096;
 /** Raw PCMU audio over a separate bounded binary helper channel. */
@@ -17,6 +18,7 @@ export class NativeAudioClient {
     frames = [];
     waiters = [];
     closed = false;
+    terminalError;
     constructor(child, publisherStreamId, timeoutMs) {
         this.child = child;
         this.timeoutMs = timeoutMs;
@@ -104,6 +106,10 @@ export class NativeAudioClient {
             const kind = this.buffer[0];
             const payload = Buffer.from(this.buffer.subarray(5, 5 + length));
             this.buffer = this.buffer.subarray(5 + length);
+            if (kind === MEDIA_ENDED && payload.length === 0) {
+                this.fail(new ConnectError("media-ended", "The remote media leg ended"));
+                return;
+            }
             if (kind === MEDIA_ERROR) {
                 this.fail(new ConnectError("protocol", payload.toString("utf8")));
                 return;
@@ -129,6 +135,7 @@ export class NativeAudioClient {
         if (this.closed)
             return;
         this.closed = true;
+        this.terminalError = error;
         for (const waiter of this.waiters.splice(0)) {
             clearTimeout(waiter.timer);
             waiter.reject(error);
@@ -139,7 +146,8 @@ export class NativeAudioClient {
     }
     write(kind, payload = Buffer.alloc(0)) {
         if (this.closed)
-            return Promise.reject(new ConnectError("transport-uncertain", "Media helper is closed"));
+            return Promise.reject(this.terminalError ??
+                new ConnectError("transport-uncertain", "Media helper is closed"));
         if (payload.length > MAX_MEDIA_FRAME)
             return Promise.reject(new ConnectError("invalid-request", "Media frame exceeds bounds"));
         const frame = Buffer.allocUnsafe(5 + payload.length);
@@ -175,7 +183,8 @@ export class NativeAudioClient {
         if (frame)
             return Promise.resolve(frame);
         if (this.closed)
-            return Promise.reject(new ConnectError("transport-uncertain", "Media helper is closed"));
+            return Promise.reject(this.terminalError ??
+                new ConnectError("transport-uncertain", "Media helper is closed"));
         return new Promise((resolve, reject) => {
             const waiter = {
                 resolve,

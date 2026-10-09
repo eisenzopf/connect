@@ -23,6 +23,7 @@ mod client;
 mod config;
 mod error;
 mod media;
+mod media_end;
 mod operations;
 
 pub use client::ConnectClient;

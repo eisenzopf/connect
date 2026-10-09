@@ -24,6 +24,11 @@ if len(sys.argv) > 1 and sys.argv[1] == "media-stdio":
         sys.stderr.write('media diagnostic\n' * 10000)
         sys.stderr.flush()
     media_frame(0x81, b"fixture-stream")
+    if mode == "media-ended":
+        time.sleep(.05)
+        media_frame(0x83)
+        time.sleep(.2)
+        sys.exit(0)
     while True:
         header = sys.stdin.buffer.read(5)
         if not header:

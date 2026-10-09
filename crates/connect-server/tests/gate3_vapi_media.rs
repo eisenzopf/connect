@@ -167,6 +167,17 @@ async fn accepted_session_bridges_native_audio_and_bounded_context_to_vapi() {
         "duplicate provider end reports must append one durable outcome"
     );
 
+    assert!(
+        matches!(
+            audio.receive(std::time::Duration::from_secs(5)).await,
+            Err(connect_client::ClientError::MediaEnded)
+        ),
+        "provider hangup must reach the native caller without an audio timeout"
+    );
+    assert!(matches!(
+        audio.send_pcmu(&[0x39; 160]).await,
+        Err(connect_client::ClientError::MediaEnded)
+    ));
     client.close_native_audio(&audio).await.unwrap();
     client.close().await;
     server.shutdown().await.unwrap();

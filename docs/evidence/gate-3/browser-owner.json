@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "evidence": "owner-browser-audio-confirmation",
+  "date": "2026-10-09",
+  "tested_server_revision": "a0a0fdf01023",
+  "browser_route": "Chrome -> local Connect WebRTC bridge -> Vapi WebSocket",
+  "observation": "The owner reported: I tested it and it worked great.",
+  "confirmed": ["Owner's browser audio experience after the signaling and route fixes."],
+  "not_inferred": ["Exact turn count, interruption timing or restart continuity.", "Native microphone/speaker or PSTN handset qualification."],
+  "follow_up": "The owner requested that subsequent end-to-end testing be performed autonomously. Separate generated-speech and received-audio decoding evidence records those checks."
+}

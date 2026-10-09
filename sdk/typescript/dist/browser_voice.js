@@ -23,7 +23,7 @@ export class BrowserVoiceSession {
                 this.remoteStream.addTrack(track);
         };
     }
-    static async open(signalingUrl, credential, timeoutMs = 15000) {
+    static async open(signalingUrl, credential, timeoutMs = 15000, options = {}) {
         timeoutMs = timeoutValue(timeoutMs);
         const parsed = new URL(signalingUrl);
         if (parsed.protocol !== "ws:" ||
@@ -37,29 +37,48 @@ export class BrowserVoiceSession {
             throw new ConnectError("invalid-request", "Credential is not WebSocket-safe");
         let stream;
         try {
-            stream = await microphoneStream(timeoutMs);
+            if (options.inputStream) {
+                const tracks = options.inputStream.getTracks();
+                if (tracks.length === 0 ||
+                    tracks.some((track) => track.kind !== "audio" ||
+                        track.readyState !== "live"))
+                    throw new ConnectError("invalid-request", "Input stream must contain live audio tracks only");
+                stream = options.inputStream;
+            }
+            else
+                stream = await microphoneStream(timeoutMs);
         }
         catch (error) {
             if (error instanceof ConnectError)
                 throw error;
             throw new ConnectError("media-denied", "Microphone access was denied");
         }
-        const peer = new RTCPeerConnection();
-        for (const track of stream.getTracks())
-            peer.addTrack(track, stream);
-        peer.createDataChannel("connect-control", { ordered: true });
-        const socket = new WebSocket(signalingUrl, [
-            "rvoip.webrtc.v1",
-            `token.${credential}`,
-        ]);
-        const session = new BrowserVoiceSession(peer, socket, stream);
+        let peer;
+        let socket;
+        let session;
         try {
+            peer = new RTCPeerConnection();
+            for (const track of stream.getTracks())
+                peer.addTrack(track, stream);
+            peer.createDataChannel("connect-control", { ordered: true });
+            socket = new WebSocket(signalingUrl, [
+                "rvoip.webrtc.v1",
+                `token.${credential}`,
+            ]);
+            session = new BrowserVoiceSession(peer, socket, stream);
             await session.negotiate(timeoutMs);
             session.watchEnd();
             return session;
         }
         catch (error) {
-            await session.close();
+            if (session)
+                await session.close();
+            else {
+                socket?.close();
+                peer?.close();
+                for (const track of stream.getTracks())
+                    track.stop();
+            }
             if (error instanceof ConnectError)
                 throw error;
             throw new ConnectError("webrtc-failed", "WebRTC negotiation failed");

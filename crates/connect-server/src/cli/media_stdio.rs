@@ -12,6 +12,7 @@ pub const AUDIO: u8 = 0x02;
 pub const CLOSE: u8 = 0x03;
 pub const READY: u8 = 0x81;
 pub const RECEIVED_AUDIO: u8 = 0x82;
+pub const ENDED: u8 = 0x83;
 pub const ERROR: u8 = 0xff;
 const MAX_FRAME: usize = 4096;
 type HelperFrame = (u8, Vec<u8>);
@@ -66,6 +67,10 @@ pub async fn serve(
                 write_frame(&mut output, RECEIVED_AUDIO, &frame.payload).await?;
             }
             Next::Audio(Err(connect_client::ClientError::Timeout)) => {}
+            Next::Audio(Err(connect_client::ClientError::MediaEnded)) => {
+                write_frame(&mut output, ENDED, &[]).await?;
+                break Ok(());
+            }
             Next::Audio(Err(error)) => break Err(error.into()),
         }
     };

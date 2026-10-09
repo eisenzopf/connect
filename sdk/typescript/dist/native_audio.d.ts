@@ -7,6 +7,7 @@ export declare class NativeAudioClient {
     private readonly frames;
     private readonly waiters;
     private closed;
+    private terminalError?;
     private constructor();
     static open(config: string, conversationId: string, sessionId: string, remoteIdentityId: string, executable?: string, timeoutMs?: number): Promise<NativeAudioClient>;
     private receiveBytes;

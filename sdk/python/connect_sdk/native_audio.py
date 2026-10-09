@@ -12,6 +12,7 @@ _MEDIA_AUDIO = 0x02
 _MEDIA_CLOSE = 0x03
 _MEDIA_READY = 0x81
 _MEDIA_RECEIVED = 0x82
+_MEDIA_ENDED = 0x83
 _MEDIA_ERROR = 0xFF
 _MAX_MEDIA_FRAME = 4096
 
@@ -29,6 +30,7 @@ class NativeAudioClient:
         self._read_lock = threading.Lock()
         self._write_lock = threading.Lock()
         self._closed = False
+        self._ended = False
         try:
             self._process = subprocess.Popen([
                 executable, "media-stdio", "--config", str(config),
@@ -67,6 +69,8 @@ class NativeAudioClient:
 
     def _read_frame(self, timeout):
         with self._read_lock:
+            if self._closed:
+                raise ConnectError("media-ended" if self._ended else "transport-uncertain", "Media helper is closed")
             deadline = time.monotonic() + timeout
             try:
                 header = self._exact(5, deadline)
@@ -74,6 +78,9 @@ class NativeAudioClient:
                 if length > _MAX_MEDIA_FRAME:
                     raise ConnectError("protocol", "Media helper frame exceeds bounds")
                 payload = self._exact(length, deadline)
+                if header[0] == _MEDIA_ENDED and not payload:
+                    self._ended = True
+                    raise ConnectError("media-ended", "The remote media leg ended")
                 if header[0] == _MEDIA_ERROR:
                     raise ConnectError("protocol", payload.decode("utf-8", "replace"))
                 return header[0], payload
@@ -86,7 +93,7 @@ class NativeAudioClient:
 
     def _write_frame(self, kind, payload=b""):
         if self._closed:
-            raise ConnectError("transport-uncertain", "Media helper is closed")
+            raise ConnectError("media-ended" if self._ended else "transport-uncertain", "Media helper is closed")
         if len(payload) > _MAX_MEDIA_FRAME:
             raise ConnectError("invalid-request", "Media frame exceeds bounds")
         frame = bytes([kind]) + len(payload).to_bytes(4, "big") + payload
