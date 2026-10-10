@@ -1,6 +1,6 @@
 {
-  "status": "fixture correction verified; full regression in progress",
-  "recorded_at": "2026-10-10T10:46:10.332897+00:00",
+  "status": "fixture correction and frozen-source full regression verified; Gate 4 remains in progress",
+  "recorded_at": "2026-10-10T11:08:27.050607+00:00",
   "source_base": "9e82c16d77149d670de7f18ad6642cf4787e2800",
   "source_sha256": {
     "Cargo.lock": "0cc9e165c69ec203b43d66f3c37ef0f8e71cee7eac559c757c9b13ca6eaebd33",
@@ -415,18 +415,23 @@
       "exit_code": 0,
       "raw_log": ".local/gate-4-planning/quic-fixed-docs.log",
       "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
-    }
-  ],
-  "running_checks": [
+    },
     {
       "command": "cargo test --locked --workspace --all-features --no-fail-fast",
+      "status": "passed",
+      "exit_code": 0,
       "raw_log": ".local/gate-4-planning/quic-fixed-workspace.log",
-      "status": "running; terminal result required"
+      "log_sha256": "c44ccd426ce465254f25f21acdcbc977c14badaa03f8e81dc5be5301c080703d",
+      "suites": 66,
+      "passed": 286,
+      "failed": 0,
+      "ignored": 1,
+      "source_manifest_rechecked": true
     }
   ],
   "review": {
     "scope": "Three focused Rust files; no upstream patches, dependency changes or schema changes. Diagnostic IDs/message bodies/secrets are not included in new log fields.",
-    "verification": "Before/after behavior evidence is retained; earlier intermittent passes were not called fixes. Source is frozen for final regression. The passing parity test finished in 0.38 seconds.",
+    "verification": "Before/after behavior evidence retained; fixed parity completed in 0.38 seconds with every assertion intact. Frozen-source full workspace regression exited 0; all 327 source digests revalidated. One pre-existing optional profile remains ignored, not passed.",
     "remaining": "The offline Gate 4 runner, task-scoped native adapter, SDK/CLI parity, MCP, installed host/provider journeys and final candidate qualification remain open."
   },
   "prior_evidence": [
