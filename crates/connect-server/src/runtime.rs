@@ -341,6 +341,10 @@ impl RunningServer {
             .await
             .is_err()
         {
+            tracing::warn!(
+                open_connections = self.endpoint.open_connections(),
+                "Native endpoint protocol drain exceeded five seconds"
+            );
             failures.push("QUIC shutdown exceeded 5 seconds".into());
         }
         anyhow::ensure!(failures.is_empty(), "{}", failures.join("; "));

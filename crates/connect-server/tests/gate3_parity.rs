@@ -7,11 +7,12 @@ use connect_store::Scope;
 use sha2::{Digest, Sha256};
 
 async fn http_operation(
+    client: &reqwest::Client,
     address: std::net::SocketAddr,
     token: &str,
     operation: &Operation,
 ) -> Outcome {
-    let response = reqwest::Client::new()
+    let response = client
         .post(format!("http://{address}/v1/operations"))
         .bearer_auth(token)
         .json(operation)
@@ -29,6 +30,18 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
     let directory = temp.path().join("state");
     init::initialize(&directory, true, "127.0.0.1:0".parse().unwrap()).unwrap();
     let config = ServerConfig::load(&directory.join("server.toml")).unwrap();
+    // TLS/proxy initialization can block on host services. Keep it off the
+    // executor and complete it before opening live QUIC peers; only loopback
+    // HTTP participates in this account-free fixture.
+    let http_client = tokio::task::spawn_blocking(|| {
+        reqwest::Client::builder()
+            .no_proxy()
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+    })
+    .await
+    .unwrap()
+    .unwrap();
     let server = RunningServer::start_local(config, Some("127.0.0.1:0".parse().unwrap()), false)
         .await
         .unwrap();
@@ -83,6 +96,7 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
         .await
         .unwrap();
     let invited = http_operation(
+        &http_client,
         http,
         &app_key.token,
         &Operation::SessionInvite {
@@ -171,6 +185,7 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
         .unwrap();
     assert_eq!(availability.state, "available");
     let observed = http_operation(
+        &http_client,
         http,
         &app_key.token,
         &Operation::AvailabilityGet {
@@ -184,6 +199,7 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
 
     let bytes = b"shared over the reliable artifact surface";
     let artifact = match http_operation(
+        &http_client,
         http,
         &app_key.token,
         &Operation::ArtifactBegin {
@@ -201,7 +217,7 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
         Outcome::Artifact(value) => value,
         _ => panic!("artifact outcome"),
     };
-    let appended_response = reqwest::Client::new()
+    let appended_response = http_client
         .put(format!(
             "http://{http}/v1/conversations/{}/artifacts/{}",
             conversation.id, artifact.id
@@ -225,6 +241,7 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
     };
     assert_eq!(appended.received, bytes.len() as u64);
     http_operation(
+        &http_client,
         http,
         &app_key.token,
         &Operation::ArtifactFinish {
@@ -240,7 +257,7 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
         .unwrap();
     assert_eq!(STANDARD.decode(chunk.data).unwrap(), bytes);
     assert!(chunk.eof);
-    let binary = reqwest::Client::new()
+    let binary = http_client
         .get(format!(
             "http://{http}/v1/conversations/{}/artifacts/{}",
             conversation.id, artifact.id
@@ -253,7 +270,7 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
     assert!(binary.status().is_success());
     assert_eq!(binary.headers()["x-connect-eof"], "true");
     assert_eq!(binary.bytes().await.unwrap(), bytes.as_slice());
-    let denied = reqwest::Client::new()
+    let denied = http_client
         .get(format!(
             "http://{http}/v1/conversations/{}/artifacts/{}?offset=0&limit=32768",
             conversation.id, artifact.id

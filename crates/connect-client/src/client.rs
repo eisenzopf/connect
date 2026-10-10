@@ -225,9 +225,24 @@ impl ConnectClient {
         }
     }
     pub async fn close(self) {
+        let path = self.peer.connection.stats().path;
+        tracing::debug!(
+            rtt_ms = path.rtt.as_millis(),
+            min_rtt_ms = path.min_rtt.as_millis(),
+            "Closing native client transport"
+        );
         self.peer.connection.close(0u32.into(), b"client shutdown");
         self.endpoint.close(0u32.into(), b"client shutdown");
-        let _ = tokio::time::timeout(Duration::from_secs(2), self.endpoint.wait_idle()).await;
+        if tokio::time::timeout(Duration::from_secs(2), self.endpoint.wait_idle())
+            .await
+            .is_err()
+        {
+            tracing::warn!(
+                open_connections = self.endpoint.open_connections(),
+                rtt_ms = path.rtt.as_millis(),
+                "Native client transport did not finish its protocol drain within two seconds"
+            );
+        }
     }
 }
 impl Drop for ConnectClient {

@@ -395,7 +395,7 @@
     }
   ],
   "proofs": [
-    "Seven actual native SDK/raw QUIC tests cover all 17 task command families, mandatory capability negotiation, unsupported profiles and retained ordinary messaging behavior.",
+    "Seven actual native SDK/raw QUIC tests cover all 16 task command families, mandatory capability negotiation, unsupported profiles and retained ordinary messaging behavior.",
     "Durable task receipts, explicit sender-only reply attribution, inbox/wait/consume, bounded recall, claims, cancellation and reconnect remain in the same conversation.",
     "Independent raw-wire requests cannot forge owner, credential or binding; foreign-conversation operations and nested task commands are denied before dispatch.",
     "Revoking the backing credential blocks cached-feature replay and new task sends. Valid task waits receive a bounded wait budget plus the exchange deadline.",
