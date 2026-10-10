@@ -17,6 +17,8 @@ pub(super) struct HttpState {
     pub(super) service: Arc<Service>,
     pub(super) verifier: Option<Arc<telnyx::webhooks::Verifier>>,
     pub(super) capacity: Arc<tokio::sync::Semaphore>,
+    pub(super) cancellation: CancellationToken,
+    pub(super) address: SocketAddr,
 }
 
 /// A bounded HTTP listener for local SDK calls or Telnyx callbacks.
@@ -62,28 +64,44 @@ impl Listener {
         let capacity = Arc::new(tokio::sync::Semaphore::new(
             service.store.limits().connections,
         ));
+        let stop = CancellationToken::new();
+        let listener = tokio::net::TcpListener::bind(address).await?;
+        let address = listener.local_addr()?;
+        let state = HttpState {
+            service,
+            verifier,
+            capacity,
+            cancellation: stop.clone(),
+            address,
+        };
+        let access = Router::new()
+            .route("/v1/task-access", post(super::task_access::exchange))
+            .route_layer(axum::middleware::from_fn_with_state(
+                state.clone(),
+                super::task_access::admit,
+            ))
+            .layer(DefaultBodyLimit::max(65_536));
         let app = Router::new().route("/webhooks/telnyx", post(super::telnyx_http::webhook));
         let app = if webhooks_only {
             app
         } else {
             app.route("/v1/operations", post(operation))
+                .merge(access)
                 .route(
                     "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
                     put(super::artifact_http::put_chunk).get(super::artifact_http::get_chunk),
                 )
                 .layer(browser_cors())
         };
-        let body_limit = service.store.limits().artifact_chunk_bytes.max(65_536) as usize;
+        let body_limit = state
+            .service
+            .store
+            .limits()
+            .artifact_chunk_bytes
+            .max(65_536) as usize;
         let app = app
             .layer(DefaultBodyLimit::max(body_limit))
-            .with_state(HttpState {
-                service,
-                verifier,
-                capacity,
-            });
-        let listener = tokio::net::TcpListener::bind(address).await?;
-        let address = listener.local_addr()?;
-        let stop = CancellationToken::new();
+            .with_state(state);
         let token = stop.clone();
         let task = tokio::spawn(async move {
             axum::serve(listener, app)
@@ -171,10 +189,15 @@ pub(super) async fn authenticated_credential(
     state: &HttpState,
     headers: &HeaderMap,
 ) -> Result<String, Response> {
-    let Some(token) = headers
-        .get(header::AUTHORIZATION)
+    let mut values = headers.get_all(header::AUTHORIZATION).iter();
+    let value = values.next();
+    if values.next().is_some() {
+        return Err(error(StatusCode::UNAUTHORIZED, Error::unauthorized()));
+    }
+    let Some(token) = value
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
+        .filter(|value| !value.is_empty() && value.len() <= 2048 && value.is_ascii())
         .map(str::to_owned)
     else {
         return Err(error(StatusCode::UNAUTHORIZED, Error::unauthorized()));

@@ -161,11 +161,14 @@ impl RunningServer {
         }
         let service = Service::with_readiness(store.clone(), discovery, readiness.clone());
         let mcp = if let Some(mcp) = &config.mcp {
-            let auth = connect_mcp::FixedBindingAuth::new(service.clone(), mcp.binding.clone())?;
-            Some(
-                connect_mcp::RunningMcp::start_local(service.clone(), Arc::new(auth), mcp.bind)
-                    .await?,
-            )
+            let auth: Arc<dyn connect_mcp::McpAuthenticator> = match &mcp.binding {
+                Some(binding) => Arc::new(connect_mcp::FixedBindingAuth::new(
+                    service.clone(),
+                    binding.clone(),
+                )?),
+                None => Arc::new(connect_mcp::LocalGrantAuth::new(service.clone())),
+            };
+            Some(connect_mcp::RunningMcp::start_local(service.clone(), auth, mcp.bind).await?)
         } else {
             None
         };

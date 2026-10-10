@@ -2,6 +2,7 @@
 mod authority;
 mod fixture;
 mod lifecycle;
+mod local_access;
 mod transactions;
 
 mod grants;

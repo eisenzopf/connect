@@ -88,6 +88,11 @@ Grant issuance is outside the model-facing command enum; five-minute grants
 cannot refresh themselves. Protected host adapters may refresh only through
 current backing authority and unchanged task scope.
 
+The [protected local task-access profile](connect-task-access-v1.md) installs
+Native/HostSession grants outside this model-facing contract. Its secret-bearing
+response is an intended developer credential exchange, never a normal task
+result, receipt or tool outcome. Provider origin registration remains separate.
+
 Limits and the executable acceptance mapping are in
 [decision 009](../docs/decisions/009-task-runtime.md). Task events have stable
 source/actor attribution. Native `Reply` takes conversation, question reference, body and logical ID under

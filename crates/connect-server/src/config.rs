@@ -40,8 +40,10 @@ pub struct ServerConfig {
 pub struct McpConfig {
     /// Local Streamable HTTP address; port zero allocates an ephemeral port.
     pub bind: SocketAddr,
-    /// Registered origin. The grant presented by each request must match it.
-    pub binding: connect_protocol::tasks::InvocationBinding,
+    /// Optional fixed registered origin. Omit for independent protected local
+    /// native/host grants; provider origins are never admitted by this mode.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub binding: Option<connect_protocol::tasks::InvocationBinding>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -134,15 +136,17 @@ impl ServerConfig {
             use connect_protocol::tasks::InvocationKind;
             anyhow::ensure!(
                 mcp.bind.ip().is_loopback()
-                    && matches!(
-                        mcp.binding.kind,
+                    && mcp.binding.as_ref().is_none_or(|binding| matches!(
+                        binding.kind,
                         InvocationKind::Native | InvocationKind::HostSession
-                    ),
+                    )),
                 "Local MCP requires a loopback listener and a native or host binding"
             );
-            mcp.binding
-                .validate()
-                .map_err(|_| anyhow::anyhow!("Invalid MCP invocation binding"))?;
+            if let Some(binding) = &mcp.binding {
+                binding
+                    .validate()
+                    .map_err(|_| anyhow::anyhow!("Invalid MCP invocation binding"))?;
+            }
         }
         if !self.bind.ip().is_loopback()
             || self

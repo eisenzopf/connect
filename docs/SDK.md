@@ -79,6 +79,13 @@ The messaging sample and provider setup instructions are in
 and its signed carrier callback proof are explicitly deferred pending approval.
 MCP tools and the installable skill are Gate 4; HTTP/JSON alone is not MCP.
 
+Gate 4 adds a [protected local developer installation exchange](TASK_ACCESS.md)
+for Native/HostSession task grants. The CLI retains the original issuance ID and
+exports the bearer into a private file for MCP host setup. It cannot issue
+provider-origin grants, and model grants cannot refresh themselves. Native SDK
+model-grant authentication and installed-host continuation remain tracked work;
+the existing native client still uses its declared backing credential contract.
+
 ## Gate 2 telephone call control
 
 Implemented methods are `call_start(request_id, conversation_id, route_id, destination)`,

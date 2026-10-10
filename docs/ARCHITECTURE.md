@@ -108,3 +108,15 @@ use public clients. No full Thelve registry or connector framework replacement
 is required. [Reuse provenance and owner authorization](evidence/gate-4/reuse-map.json)
 and [host selection](evidence/gate-4/host-selection.json) distinguish selected
 interfaces from future qualification.
+
+The application HTTP listener owns a separate protected developer exchange,
+`connect-task-access/1`, for local grant installation and explicit revocation.
+Current backing credentials authorize it; model grants cannot mint more authority.
+The store commits local binding registration and issuance atomically. The CLI
+retains issuance intent before dispatch and writes the bearer only to a protected
+file. An independent MCP listener derives each Native/HostSession task from its
+signed grant row; fixed-binding configuration remains available. Provider origins
+still need a verified adapter. The exchange is absent from the webhook listener.
+See [installation](TASK_ACCESS.md) and the [wire contract](../contracts/connect-task-access-v1.md).
+Native SDK model-grant admission and actual host continuation remain separate
+Gate 4 requirements.

@@ -57,6 +57,31 @@ impl McpAuthenticator for FixedBindingAuth {
     }
 }
 
+/// Multiple protected local installations with independently registered grants.
+/// The signed row supplies each exact origin/task, never a model parameter or
+/// correlation header. Provider origins require a separate verified adapter.
+pub struct LocalGrantAuth {
+    service: Arc<Service>,
+}
+impl LocalGrantAuth {
+    /// Compose the local grant authority; it cannot register or issue grants.
+    pub fn new(service: Arc<Service>) -> Self {
+        Self { service }
+    }
+}
+#[async_trait]
+impl McpAuthenticator for LocalGrantAuth {
+    async fn authenticate(&self, headers: &HeaderMap) -> Result<TaskInvocation, Error> {
+        let token = bearer(headers)?;
+        if headers.contains_key("x-call-id") || headers.contains_key("x-chat-id") {
+            return Err(Error::forbidden());
+        }
+        self.service
+            .authenticate_local_task_grant(token.to_owned())
+            .await
+    }
+}
+
 fn bearer(headers: &HeaderMap) -> Result<&str, Error> {
     let mut values = headers.get_all("authorization").iter();
     let value = values.next().ok_or_else(Error::forbidden)?;

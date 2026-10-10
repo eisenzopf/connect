@@ -23,6 +23,23 @@ impl Fixture {
         Self::start_permitted(mcp, vec![TaskPermission::History]).await
     }
     pub async fn start_permitted(mcp: bool, permissions: Vec<TaskPermission>) -> Self {
+        Self::start_options(mcp, false, permissions, None).await
+    }
+    pub async fn start_independent() -> Self {
+        Self::start_independent_with_connections(64).await
+    }
+    pub async fn start_independent_with_connections(connections: usize) -> Self {
+        Self::start_options(true, true, vec![TaskPermission::History], Some(connections)).await
+    }
+    pub fn directory(&self) -> &std::path::Path {
+        self._temp.path()
+    }
+    async fn start_options(
+        mcp: bool,
+        independent: bool,
+        permissions: Vec<TaskPermission>,
+        connections: Option<usize>,
+    ) -> Self {
         let temp = tempfile::tempdir().unwrap();
         let dir = temp.path().join("state");
         init::initialize(&dir, true, "127.0.0.1:0".parse().unwrap()).unwrap();
@@ -32,13 +49,17 @@ impl Fixture {
             external_id: "installed-task-runner".into(),
         };
         let mut config = ServerConfig::load(&dir.join("server.toml")).unwrap();
+        if let Some(connections) = connections {
+            config.limits.connections = connections;
+        }
         if mcp {
             config.mcp = Some(connect_server::config::McpConfig {
                 bind: "127.0.0.1:0".parse().unwrap(),
-                binding: binding.clone(),
+                binding: (!independent).then(|| binding.clone()),
             });
         }
-        let server = RunningServer::start_local(config, None, false)
+        let http = independent.then(|| "127.0.0.1:0".parse().unwrap());
+        let server = RunningServer::start_interfaces(config, http, http, false)
             .await
             .unwrap();
         let mut owner = ClientConfig::load(&dir.join("reviews.toml")).unwrap();

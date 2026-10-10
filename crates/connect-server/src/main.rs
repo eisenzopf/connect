@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 use connect_client::{ClientConfig, ConnectClient};
 use connect_protocol::Operation;
 use connect_server::{
-    cli::{init, recovery},
+    cli::{init, recovery, task_access::Command as TaskAccessCommand},
     config::ServerConfig,
     runtime::RunningServer,
 };
@@ -22,6 +22,11 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Protected loopback task grants; never a model tool or owner-token fallback.
+    TaskAccess {
+        #[command(subcommand)]
+        command: TaskAccessCommand,
+    },
     /// Acknowledge a definite rejected chat job without retrying it.
     DiscardFailedChat {
         #[arg(long)]
@@ -560,6 +565,7 @@ async fn main() -> Result<()> {
             );
             client.close().await;
         }
+        Command::TaskAccess { command } => command.execute().await?,
         Command::Request {
             config,
             task_address,

@@ -8,6 +8,7 @@ use connect_protocol::{
     Error, Result,
 };
 pub use connect_store::{IssuedTaskGrant, TaskInvocation};
+mod access;
 
 #[derive(Clone)]
 enum TaskPrincipal {

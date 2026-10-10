@@ -43,6 +43,9 @@ pub fn permissions() -> Vec<P> {
     ]
 }
 pub async fn client(f: &fixture::Fixture) -> Client {
+    client_from_grant(f.server.mcp_address.unwrap(), f.issued.expose_secret()).await
+}
+pub async fn client_from_grant(address: std::net::SocketAddr, token: &str) -> Client {
     let http = tokio::task::spawn_blocking(|| {
         reqwest_mcp::Client::builder()
             .no_proxy()
@@ -55,11 +58,8 @@ pub async fn client(f: &fixture::Fixture) -> Client {
     ClientConfig::default()
         .serve(StreamableHttpClientTransport::with_client(
             http,
-            StreamableHttpClientTransportConfig::with_uri(format!(
-                "http://{}/mcp",
-                f.server.mcp_address.unwrap()
-            ))
-            .auth_header(f.issued.expose_secret()),
+            StreamableHttpClientTransportConfig::with_uri(format!("http://{address}/mcp"))
+                .auth_header(token),
         ))
         .await
         .unwrap()

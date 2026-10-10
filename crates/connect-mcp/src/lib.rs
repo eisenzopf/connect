@@ -13,5 +13,5 @@ mod handler;
 mod listener;
 mod schemas;
 
-pub use auth::{FixedBindingAuth, McpAuthenticator};
+pub use auth::{FixedBindingAuth, LocalGrantAuth, McpAuthenticator};
 pub use listener::RunningMcp;

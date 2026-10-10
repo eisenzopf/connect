@@ -3,10 +3,12 @@
 //! The server authenticates invocation grants outside model-controlled command
 //! arguments. A task profile is explicitly required; older control clients keep
 //! their existing communication behavior without receiving task authority.
+mod access;
 mod lifecycle;
 mod models;
 mod request;
 mod validation;
+pub use access::*;
 pub use lifecycle::{EffectState, TaskState};
 pub use models::*;
 pub use request::{TaskCommand, TaskRequest};

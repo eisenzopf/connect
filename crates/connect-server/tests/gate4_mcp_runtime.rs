@@ -76,7 +76,7 @@ async fn occupied_mcp_port_fails_startup_and_releases_installation_for_retry() {
     drop(udp);
     config.mcp = Some(McpConfig {
         bind: occupied.local_addr().unwrap(),
-        binding: binding(),
+        binding: Some(binding()),
     });
     assert!(RunningServer::start(config.clone()).await.is_err());
     config.mcp = None;
@@ -96,24 +96,37 @@ fn mcp_config_has_no_secret_and_rejects_provider_origins_and_wildcard_listeners(
     let mut config = ServerConfig::load(&dir.join("server.toml")).unwrap();
     config.mcp = Some(McpConfig {
         bind: "127.0.0.1:0".parse().unwrap(),
-        binding: binding(),
+        binding: Some(binding()),
     });
     config.validate().unwrap();
     let serialized = toml::to_string(&config).unwrap();
     let decoded: ServerConfig = toml::from_str(&serialized).unwrap();
-    assert_eq!(decoded.mcp.unwrap().binding, binding());
+    assert_eq!(decoded.mcp.unwrap().binding, Some(binding()));
+    let mut independent = config.clone();
+    independent.mcp.as_mut().unwrap().binding = None;
+    independent.validate().unwrap();
+    let independent: ServerConfig =
+        toml::from_str(&toml::to_string(&independent).unwrap()).unwrap();
+    assert_eq!(independent.mcp.unwrap().binding, None);
     let bad = serialized.replace(
         "external_id = \"runtime-host\"",
         "external_id = \"runtime-host\"\ntoken = \"forged\"",
     );
     assert!(toml::from_str::<ServerConfig>(&bad).is_err());
-    config.mcp.as_mut().unwrap().binding.kind = InvocationKind::ProviderCall;
+    config.mcp.as_mut().unwrap().binding.as_mut().unwrap().kind = InvocationKind::ProviderCall;
     assert!(config.validate().is_err());
-    config.mcp.as_mut().unwrap().binding = binding();
+    config.mcp.as_mut().unwrap().binding = Some(binding());
     config.mcp.as_mut().unwrap().bind = "0.0.0.0:0".parse().unwrap();
     assert!(config.validate().is_err());
     config.mcp.as_mut().unwrap().bind = "127.0.0.1:0".parse().unwrap();
-    config.mcp.as_mut().unwrap().binding.external_id = "forged binding".into();
+    config
+        .mcp
+        .as_mut()
+        .unwrap()
+        .binding
+        .as_mut()
+        .unwrap()
+        .external_id = "forged binding".into();
     assert!(config.validate().is_err());
 }
 
