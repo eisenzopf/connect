@@ -319,28 +319,10 @@ impl Store {
         credential_id: &str,
         session_id: &str,
     ) -> Result<Session> {
-        let c = self.connection()?;
-        let actor = crate::identity::actor_from_connection(&c, credential_id)?;
-        actor.require("session_get")?;
-        let session = c
-            .query_row(
-                "SELECT id,conversation_id,initiator_id,participant_id,state,media,created_at,updated_at,ended_reason FROM sessions WHERE id=?1",
-                [session_id],
-                row,
-            )
-            .optional()
-            .map_err(|_| Error::storage())?
-            .ok_or_else(Error::forbidden)?;
-        let conversation =
-            crate::conversations::authorized_conversation(&c, &actor, &session.conversation_id)?;
-        if conversation.closed
-            || (actor.identity_id != session.initiator_id
-                && actor.identity_id != session.participant_id)
-            || !matches!(session.state.as_str(), "accepted" | "ready")
-        {
-            return Err(Error::forbidden());
-        }
-        Ok(session)
+        let mut c = self.connection()?;
+        let tx = c.transaction().map_err(|_| Error::storage())?;
+        let actor = crate::identity::actor_from_connection(&tx, credential_id)?;
+        authorize_binding(&tx, &actor, session_id)
     }
 
     /// Resolve the one enabled Vapi assistant that may answer an initiator's
@@ -549,4 +531,25 @@ fn invalid(message: &str) -> Error {
 }
 fn conflict(message: &str) -> Error {
     Error::new("conflict", message)
+}
+
+/// Common current participant and accepted-session boundary, used inside the
+/// caller's authority transaction for owner and task-specific composition.
+pub(crate) fn authorize_binding(
+    c: &Connection,
+    actor: &Actor,
+    session_id: &str,
+) -> Result<Session> {
+    actor.require("session_get")?;
+    let session = get_by_id(c, session_id)?;
+    let conversation =
+        crate::conversations::authorized_conversation(c, actor, &session.conversation_id)?;
+    if conversation.closed
+        || (actor.identity_id != session.initiator_id
+            && actor.identity_id != session.participant_id)
+        || !matches!(session.state.as_str(), "accepted" | "ready")
+    {
+        return Err(Error::forbidden());
+    }
+    Ok(session)
 }

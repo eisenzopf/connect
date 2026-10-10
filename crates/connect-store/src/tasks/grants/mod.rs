@@ -6,6 +6,7 @@ mod bindings;
 mod execution;
 mod issuance;
 mod native;
+mod native_resources;
 mod rows;
 mod secret;
 use super::{authority as tasks, storage};

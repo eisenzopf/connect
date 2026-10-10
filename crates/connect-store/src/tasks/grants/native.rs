@@ -48,17 +48,20 @@ impl Store {
         let id = task_grant_id(subject)?;
         let mut c = self.connection()?;
         let tx = c.transaction().map_err(|_| Error::storage())?;
-        let row = rows::get(&tx, id)?;
-        native_authority(
-            &tx,
-            TaskInvocation {
-                grant_id: id.into(),
-                task_id: row.grant.task_id,
-                binding: row.grant.binding,
-                installation_id: installation_id(&tx)?,
-            },
-        )
+        native_authority(&tx, invocation_for_subject(&tx, id)?)
     }
+}
+pub(super) fn invocation_for_subject(c: &rusqlite::Connection, id: &str) -> Result<TaskInvocation> {
+    let row = rows::get(c, id)?;
+    if row.grant.binding.kind != InvocationKind::Native {
+        return Err(Error::forbidden());
+    }
+    Ok(TaskInvocation {
+        grant_id: id.into(),
+        task_id: row.grant.task_id,
+        binding: row.grant.binding,
+        installation_id: installation_id(c)?,
+    })
 }
 fn native_authority(
     c: &rusqlite::Connection,
