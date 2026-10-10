@@ -1,5 +1,5 @@
 {
-  "status": "Protected local access component checks passed; full workspace regression in progress; Gate 4 remains open",
+  "status": "Protected local access component qualified at the frozen source; Gate 4 remains open",
   "scope": "Local macOS arm64, isolated account-free setup; no public ingress, deployment or live provider operations",
   "contracts": [
     "contracts/connect-task-access-v1.md",
@@ -62,6 +62,18 @@
       "result": "Terminal exit 0; links, anchors, 36-item graph, saved statuses and acceptance IDs valid",
       "log": ".local/gate-4-planning/access-docs-final.log",
       "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
+    },
+    {
+      "scope": "Frozen source full workspace regression",
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked --workspace --all-features",
+      "terminal_exit": 0,
+      "result": "316 passed; 0 failed; 1 ignored across 80 suite results",
+      "log": ".local/gate-4-planning/access-workspace-final-2.log",
+      "log_sha256": "216f956accc4d58f436c142f254281cfbe9a5159a6b7fbe36f505684bd575828",
+      "ignored": [
+        "test profile_one_and_four_concurrent_sessions_for_sixty_seconds ... ignored, Gate 3 qualification profile runs one and four sessions for 60 seconds each"
+      ],
+      "limits": "Build concurrency only; test selection, assertion/deadline thresholds and fixture behavior unchanged. An ignored check is not a pass."
     }
   ],
   "retained_attempts": [
@@ -95,16 +107,14 @@
     }
   ],
   "remaining": [
-    "Final frozen-source test and quality checks",
     "Native SDK model-grant admission",
     "Installed host assets and continuation",
     "Verified provider binding and live host/provider journeys",
-    "Full Gate 4 acceptance and candidate qualification"
+    "Full Gate 4 acceptance and candidate qualification",
+    "Whole MCP/Vapi tool response deadline and scoped native media attachment"
   ],
   "candidate_source_fingerprint_sha256": "da8e0160bec89512230e8318ce4fba321c8c681dde68869d86b01d3650c72b63",
-  "verification_pending": [
-    "Full frozen-source workspace regression (CARGO_BUILD_JOBS=4; build concurrency only, unchanged test selection/assertions)"
-  ],
+  "verification_pending": [],
   "code_review": {
     "boundary": "Protocol exchange is separate from ordinary task outcomes; store owns atomic registration/issuance; service owns dispatch; server owns admission; CLI owns protected export.",
     "secret_handling": "Debug redacts bearer; stdout prints validated metadata; arbitrary response error prose is suppressed; success grant IDs parse as UUIDs. Actual CLI behavior tests deny reflected credential text in both error prose and success ID, wrong metadata, oversized bodies and redirects.",
@@ -113,7 +123,8 @@
       "Developer access uses separate five-second admission and handler deadlines; this is not the still-required whole Vapi tool response deadline.",
       "Native model-grant SDK support, provider origin verification and installed-host continuation remain open.",
       "The earlier 7-second upload timing failure remains retained; isolated diagnostic passed without changing timing assertions.",
-      "Existing macOS large-unwind linker warnings are recorded in logs; strict Clippy and Rustdoc are separate checks."
+      "Existing macOS large-unwind linker warnings are recorded in logs; strict Clippy and Rustdoc are separate checks.",
+      "The unchanged seven-second upload assertion passed again in the full workspace run; the bounds suite finished in 5.18 seconds. The earlier timing failure remains unexplained and retained."
     ]
   },
   "source_base": "0e92a877974841e2706c80951a144273a32ee308",
@@ -570,10 +581,16 @@
     "sdk/typescript/tsconfig.json": "c747b6cc73c72063b636f1db4c636c61287cc77f7425ee13331ac571bce4d1f3"
   },
   "source_fingerprint_algorithm": "SHA-256 of sorted source_sha256 compact JSON",
-  "recorded_at": "2026-10-10T13:49:42.264014+00:00",
+  "recorded_at": "2026-10-10T14:38:54.871357+00:00",
   "related_evidence": [
     "docs/evidence/gate-4/mcp-adapter.json",
-    "docs/evidence/gate-4/task-effects-foundation.json",
-    "docs/evidence/gate-4/sdk-task-parity.json"
-  ]
+    "docs/evidence/gate-4/sdk-task-parity.json",
+    "docs/evidence/gate-4/task-effects-foundation.json"
+  ],
+  "source_checkpoint": "5ea61a14dd42287f15780d9e9d8fd02f28cb4030",
+  "source_verification": {
+    "files": 450,
+    "mismatches": 0,
+    "fingerprint": "da8e0160bec89512230e8318ce4fba321c8c681dde68869d86b01d3650c72b63"
+  }
 }

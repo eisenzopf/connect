@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-09",
+  "updated": "2026-10-10",
   "product": "Connect",
   "identity": "Communication for people, apps, and agents",
   "priority": "Server and SDK first",
@@ -135,8 +135,8 @@
           "reuse": "Thelve Streamable HTTP MCP patterns; existing SDK/CLI; Parley tool-correlation lessons. A provider-specific tool callback is not automatically an MCP endpoint.",
           "experiment": "E6 tool contract",
           "status": "in-progress",
-          "evidence": "evidence/gate-4/mcp-adapter.json",
-          "qualification": "Local MCP component: frozen-source workspace 303 passed, one existing media pressure profile ignored; strict Clippy, formatting and Rustdoc pass. Workflow skill structure/JSON input checks pass. Protected installation, actual host/skill and Vapi chat/voice tool qualification remain open."
+          "evidence": "evidence/gate-4/task-access.json",
+          "qualification": "Local protected grant installation and independent MCP admission: frozen-source workspace 316 passed, zero failed, one existing long media pressure profile explicitly ignored; strict Clippy, formatting and Rustdoc passed. Earlier fixed-binding proof remains in mcp-adapter.json; the current component proof is in task-access.json. Workflow skill structure/JSON input checks passed. Native model-grant SDK support, whole tool-response deadlines, actual host/skill installation and Vapi chat/voice tool qualification remain open."
         },
         {
           "id": "G4-C",
