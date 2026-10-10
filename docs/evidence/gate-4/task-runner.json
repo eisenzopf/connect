@@ -1,0 +1,121 @@
+{
+  "status": "Durable native public-SDK runner component qualified; G4-015 dependencies and full Gate 4 acceptance remain open",
+  "recorded_at": "2026-10-10T17:52:42.212648+00:00",
+  "qualification": "Local macOS arm64; disposable isolated servers and real child processes/public QUIC peers; no live accounts, ingress or deployment",
+  "items": [
+    "G4-015"
+  ],
+  "source_base": "408232a2467e81a6abe87492c33aaf7e8198d6e4",
+  "source_checkpoint": "128de1b7de45613350d64332e36f1cb52d6d3be6",
+  "source_verification": {
+    "base_commit": "408232a2467e81a6abe87492c33aaf7e8198d6e4",
+    "files": {
+      "Cargo.lock": "788005d237221b3608767fee2198544b31d2ff2ff55f66b52eb9826449d9fa36",
+      "examples/review-loop/Cargo.toml": "5f0d9f70c224a711a6f9685dc69e7faf8246921df128d28a77922e4fdedcf794",
+      "examples/review-loop/README.md": "1fc090c68b6c5b600f9be0644a27bbc39b56da36064144c5b22f06381fb85694",
+      "examples/review-loop/TASK_RUNNER.md": "9b8bf6cc9f1973c76732a0c80965d52998e0ea4ecc9ffaa9607a81fe6e5ebf3a",
+      "examples/review-loop/src/lib.rs": "5fb98f32e79b93858c14e4d6df640ed7f4b5ce9418d003c3f871a39cb37b8588",
+      "examples/review-loop/src/main.rs": "0008bfb63cdd7b1ae82f74b4fe806750329af2aec721b6374131643d7522a76d",
+      "examples/review-loop/src/task_runner/commands.rs": "4c6ec1263073778062d611471dbb4da33d9253697ccf95bb95392427d18eb171",
+      "examples/review-loop/src/task_runner/driver.rs": "e54601782bccad8a0d8983739f8897562b20029cb3c9d6b1852f6e0036b0c42f",
+      "examples/review-loop/src/task_runner/journal.rs": "bf23e002701388614300aa072e5edc5c6f02a4051f33b7a020f57befce009d98",
+      "examples/review-loop/src/task_runner/mod.rs": "d5cbbbb1202b53112034d44e72c580c4fa15987653e14b24b39b7a9b15c4733e",
+      "examples/review-loop/src/task_runner/reconciliation.rs": "5406e44e06e341f172e12775d04fa44578e547292a33056374c0363d0f79d298",
+      "examples/review-loop/src/task_runner/schema.sql": "9e082550e6b984fc3212d3eef375c2a95ca664872dff0a0bf122ce33bf266b31",
+      "examples/review-loop/src/task_runner/state.rs": "200ed1762cfa3eec519ceafe142a3dfa7caa4aa00a6e6c5a84909d8ec409da7a",
+      "examples/review-loop/src/task_runner/tests.rs": "8d084c54ae43edaa3b6bb94f0e9455147e1d2547771be7dd95fbac71298f2b0c",
+      "examples/review-loop/src/task_runner/workflow.rs": "f08655e734c1d27e851e20ea00454500d546a910c6502f5b932021247be9e45b",
+      "examples/review-loop/tests/support/task_fixture.rs": "a2edf2c7bc95ad838acdb09003bb76541794d3f4c18af3fa79285a9e256106aa",
+      "examples/review-loop/tests/task_recovery.rs": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19"
+    },
+    "fingerprint": "bba97cca8b9bf3976611aa29054b1aeb41180d14e1d4297679547916eb0bc1c7"
+  },
+  "upstream_source_lock_sha256": "e1809e299073bb937a9e7113503ea32464e3aa887f8afa052006daaa8d39989f",
+  "behavior": [
+    "Explicit authenticated owner/task/conversation binding persists privately. A separate Native grant handles communications; controller tokens cannot be substituted as invocation credentials.",
+    "App-owned action, handled event IDs, follow-up intent and journal cursor commit together. A persisted successful consume receipt gates the local action; competing consumers cannot count a rejection as success.",
+    "Actual abrupt child exits before dispatch, after invocation ACK, after consume ACK, after consume receipt, and before/after local commit resume original IDs. Both server and runner restart at every boundary, with one question, one response action and one follow-up.",
+    "An already running worker automatically reconnects after server restart and catches up a verified reply from the journal.",
+    "Concurrent same-file writers and independent competing worker stores fail; unassigned conversation messages do not select tasks or cause business actions.",
+    "Current revocation prevents resume without owner fallback. An explicitly issued replacement grant and restarted worker recover the existing task/state with one follow-up. Cancelling a running task stops further communication.",
+    "A server-confirmed stale consume CAS records its rejected original and atomically saves a new protected control intent after current-task inspection. Three-attempt budget applies. The actual stale-CAS process case recovers once after server/runner restart.",
+    "SQLite/API checks cover changed bindings, unrelated database preservation, rejected ordering/assignment, duplicate handling, checkpoint non-regression, unknown acceptance retaining its CAS and the public future being Send for Tokio supervision.",
+    "A unit-level uncertain tool outcome retains its handle and leaves the dispatch queue; actual provider-uncertainty process qualification remains separate.",
+    "Normal builds exclude both existing and new process fault controls; legacy and task CLI commands retain expected help."
+  ],
+  "verification": [
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-review-loop --all-features",
+      "terminal_exit": 0,
+      "result": "14 passed; zero failed/ignored: seven SQLite/API tests and seven process integration tests",
+      "log": ".local/gate-4-planning/task-runner-current.log",
+      "log_sha256": "f7988a0a07acee2f74bb0cf2ca2fd13b2561f57ac032c803415b9c5f4b8f2d97"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-review-loop --all-features --all-targets -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/task-runner-current-clippy.log",
+      "log_sha256": "8599ac1bbf4036cc5dfc435dd715cbbd24c2840a3ed1c6a9acc8d3f3c4dcbb44"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-review-loop --all-features --no-deps",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/task-runner-current-rustdoc.log",
+      "log_sha256": "a3d45cca63af53ca6bc52b28084d9d945871e893fcf4b771b1949bb46b8d3d52"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/task-runner-current-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo build --locked -p connect-review-loop --bin connect-example",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/task-runner-normal-build.log",
+      "log_sha256": "964e15553a7b98e31b2c81b62d34a9210e053e4c33f54563217f38c233bf48d7"
+    },
+    {
+      "command": "Normal binary fault-marker exclusion and legacy/task CLI help checks",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/task-runner-normal-check.log",
+      "log_sha256": "f4ba98e5b5786e17f98576dc79610125507182d8d52be776dfbc5012e731bed2"
+    },
+    {
+      "command": "python3 .local/gate-4-planning/validate-docs.py",
+      "terminal_exit": 0,
+      "result": "36 stable implementation IDs, acceptance mappings, dependency/saved-card checks and edited HTML links/anchors pass",
+      "log": ".local/gate-4-planning/task-runner-doc-links.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
+    }
+  ],
+  "review": {
+    "architecture": "Only public connect-client communication in app code; server/store dependencies are test-only setup. Private app state, outbox, journal transaction, bounded consume reconciliation and supervision are separate modules.",
+    "maximum_production_module_lines": 217,
+    "sql": "Parameterized statements; WAL/FULL commit; foreign keys; process lock; wrong-schema/binding rejection before database adoption."
+  },
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/task-runner-recovery.log",
+      "terminal_exit": 101,
+      "result": "The initial server-restart test incorrectly supplied the old QUIC address as the optional HTTP bind. The native listener restarted on a different ephemeral UDP port, causing timeout. Corrected the fixture to pin config.bind; no timeout relaxed."
+    }
+  ],
+  "limits": [
+    "Deterministic one-task app example, not an LLM/installed host qualification. Local SQLite action deduplication is not a guarantee for arbitrary external business systems or cloned independent app stores.",
+    "Known application rejection codes remain recorded; communication uncertainty does not reprepare dispatch. Short-lived grants require explicit protected issuance and restart with matching retained state.",
+    "macOS debug linker emits the retained large __eh_frame warning in integration builds. It was not suppressed and does not qualify exception-handling performance.",
+    "Targeted runner qualification does not replace earlier source-bound workspace or MCP evidence."
+  ],
+  "remaining": [
+    "G4-009/010/012/014 dependency closure and full cross-interface matrix",
+    "Actual provider uncertainty/failure and remaining integrated task/worker diagnostics",
+    "Verified Vapi chat/call tools and installed Codex continuation",
+    "Both complete product journeys, cross-channel/SMS task behavior, adversarial/load/upgrade/package qualification and A4/T-A closure"
+  ]
+}
