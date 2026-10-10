@@ -3,7 +3,8 @@
 //! Task discovery uses the same backing credential and never issues authority.
 //! The optional envelope preserves structured application errors; rejected
 //! requests still exit unsuccessfully. No request body appears in diagnostics.
-use connect_client::{ClientConfig, ClientError, ConnectClient};
+use super::client_errors::client_error;
+use connect_client::{ClientConfig, ConnectClient};
 use connect_protocol::{Error, Operation, Outcome, Response, PROFILE};
 use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -81,24 +82,4 @@ async fn exchange(
     .await;
     client.close().await;
     result
-}
-
-fn client_error(error: ClientError) -> Error {
-    match error {
-        ClientError::Application(error) => error,
-        ClientError::Configuration => Error::new(
-            "configuration",
-            "Invalid client configuration or trust material",
-        ),
-        ClientError::Authentication => {
-            Error::new("unauthorized", "Authentication or profile was rejected")
-        }
-        ClientError::Protocol => {
-            Error::new("protocol", "Response violates the negotiated contract")
-        }
-        _ => Error::new(
-            "transport-uncertain",
-            "Native exchange failed; preserve the logical request ID",
-        ),
-    }
 }

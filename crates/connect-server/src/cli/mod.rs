@@ -1,3 +1,4 @@
+mod client_errors;
 pub mod credentials;
 pub mod demo;
 pub mod init;

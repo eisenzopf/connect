@@ -24,8 +24,12 @@ See [the runnable presence example](../examples/agent-presence/README.md) and
 The SDKs separate operations, protocol validation, errors, and transports.
 TypeScript exports named result interfaces and a discriminated `Outcome` union.
 Both consume the shared wire fixtures and reject malformed/oversized results.
-Native-client failures are terminal; close the client and recover using the same
-logical mutation ID. An application rejection leaves the client usable.
+Transport and protocol failures stop the native helper; close the client and
+recover using the same logical mutation ID. Typed application rejections leave
+the client usable. The control helper reports invalid configuration as
+`configuration` and rejected credentials as `unauthorized`, including expiry on
+an existing peer. After fixing configuration or explicitly renewing a grant,
+start a new client; the helper never reloads credentials or borrows owner authority.
 
 Run `npm test --prefix sdk/typescript` and
 `PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p 'test_*.py'`

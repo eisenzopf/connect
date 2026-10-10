@@ -242,3 +242,13 @@ Host/provider grants require their own admission. Revocation, expiry, cancellati
 and backing-credential changes are checked even on already authenticated peers
 and accepted-operation replay. This is task control, not yet qualified Native
 model media attachment or installed-host/provider tool support.
+
+The Python/TypeScript control helper returns correlated typed errors for both
+startup and later requests. Invalid configuration returns `configuration`;
+authentication rejection, including grant expiry on an existing peer, returns
+`unauthorized`. The Rust client retains the verified UCTP `auth.session` expiry
+and rejects expired sessions before dispatch. Expiry after dispatch does not
+reclassify an unknown result as a rejection. A transport failure or deadline still returns
+`transport-uncertain`: preserve the logical mutation ID and reconcile acceptance.
+After fixing configuration or explicitly renewing a grant, close the helper and
+create a new client. It never reloads credentials or falls back to an owner token.

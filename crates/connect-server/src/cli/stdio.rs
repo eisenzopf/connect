@@ -1,4 +1,5 @@
 //! Bounded JSON-lines bridge to the native QUIC SDK, for language adapters.
+use super::client_errors::client_error;
 use connect_client::{ClientConfig, ClientError, ConnectClient};
 use connect_protocol::{
     tasks::{TaskCommand, TaskOutcome},
@@ -7,6 +8,7 @@ use connect_protocol::{
 use serde::Deserialize;
 use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Input {
@@ -15,8 +17,18 @@ struct Input {
     #[serde(default)]
     task_binding: Option<String>,
 }
+
+/// Serve bounded control requests using one fixed native credential.
+///
+/// Startup rejection is returned for each admitted exchange. Fixing credentials
+/// requires a new helper; an existing helper never reloads or promotes authority.
 pub async fn serve(path: &Path) -> anyhow::Result<()> {
-    let mut client = ConnectClient::open(ClientConfig::load(path)?).await?;
+    // A rejected startup is correlated with admitted input, rather than being
+    // mistaken for an unknown operation acceptance by the language adapter.
+    let mut client = match ClientConfig::load(path) {
+        Ok(config) => ConnectClient::open(config).await.map_err(client_error),
+        Err(error) => Err(client_error(error)),
+    };
     let mut input = tokio::io::BufReader::new(tokio::io::stdin());
     let mut output = tokio::io::stdout();
     loop {
@@ -30,7 +42,9 @@ pub async fn serve(path: &Path) -> anyhow::Result<()> {
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
                     if line.is_empty() {
-                        client.close().await;
+                        if let Ok(client) = client {
+                            client.close().await;
+                        }
                         return Ok(());
                     }
                     break;
@@ -44,35 +58,12 @@ pub async fn serve(path: &Path) -> anyhow::Result<()> {
             !value.id.is_empty() && value.id.len() <= 128,
             "Invalid exchange ID"
         );
-        let result = if let Some(task_id) = value.task_binding {
-            let exact_get = match &value.operation {
-                Operation::Task { request } => {
-                    request.task_profile == connect_protocol::tasks::TASK_PROFILE
-                        && matches!(&request.command, TaskCommand::Get { task_id: id } if id == &task_id)
-                }
-                _ => false,
-            };
-            if !exact_get {
-                Err(ClientError::Application(Error::new(
-                    "invalid-request",
-                    "Task bootstrap must read its exact bound task",
-                )))
-            } else {
-                client
-                    .negotiate_task(&task_id)
-                    .await
-                    .map(|record| Outcome::Task(Box::new(TaskOutcome::Record(Box::new(record)))))
-            }
-        } else {
-            client.request(value.operation).await
+        let result = match &mut client {
+            Ok(client) => exchange(client, value.operation, value.task_binding)
+                .await
+                .map_err(client_error),
+            Err(error) => Err(error.clone()),
         };
-        let result = result.map_err(|e| match e {
-            ClientError::Application(error) => error,
-            _ => Error::new(
-                "transport-uncertain",
-                "Native request failed; preserve the logical request ID",
-            ),
-        });
         let response =
             serde_json::json!({"id":value.id,"response":Response{profile:PROFILE.into(),result}});
         output
@@ -81,4 +72,31 @@ pub async fn serve(path: &Path) -> anyhow::Result<()> {
         output.write_all(b"\n").await?;
         output.flush().await?;
     }
+}
+
+async fn exchange(
+    client: &mut ConnectClient,
+    operation: Operation,
+    task_binding: Option<String>,
+) -> Result<Outcome, ClientError> {
+    let Some(task_id) = task_binding else {
+        return client.request(operation).await;
+    };
+    let exact_get = match &operation {
+        Operation::Task { request } => {
+            request.task_profile == connect_protocol::tasks::TASK_PROFILE
+                && matches!(&request.command, TaskCommand::Get { task_id: id } if id == &task_id)
+        }
+        _ => false,
+    };
+    if !exact_get {
+        return Err(ClientError::Application(Error::new(
+            "invalid-request",
+            "Task bootstrap must read its exact bound task",
+        )));
+    }
+    client
+        .negotiate_task(&task_id)
+        .await
+        .map(|record| Outcome::Task(Box::new(TaskOutcome::Record(Box::new(record)))))
 }

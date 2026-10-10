@@ -19,6 +19,7 @@ pub struct ConnectClient {
     pub(crate) media_router: Arc<rvoip_uctp::substrate::PeerMediaRouter>,
     disconnected: bool,
     task_profile: bool,
+    authenticated_until: Option<chrono::DateTime<chrono::Utc>>,
 }
 impl ConnectClient {
     pub async fn open(config: ClientConfig) -> Result<Self> {
@@ -83,6 +84,7 @@ impl ConnectClient {
             media_router,
             disconnected: false,
             task_profile: false,
+            authenticated_until: None,
         };
         let hello = UctpEnvelope::new(
             MessageType::AuthHello,
@@ -108,10 +110,11 @@ impl ConnectClient {
         let session: rvoip_uctp::payloads::auth::AuthSession = response
             .decode_payload()
             .map_err(|_| ClientError::Authentication)?;
-        if session.identity_id != config.credential_id {
+        if session.identity_id != config.credential_id || session.expires_at <= chrono::Utc::now() {
             return Err(ClientError::Authentication);
         }
         client.participant_id = session.participant_id;
+        client.authenticated_until = Some(session.expires_at);
         std::mem::drop(rvoip_quic::spawn_datagram_reader_with_cancel(
             client.peer.connection.clone(),
             client.media_router.clone(),
@@ -130,6 +133,14 @@ impl ConnectClient {
     ) -> Result<UctpEnvelope> {
         if self.disconnected {
             return Err(ClientError::Transport);
+        }
+        // The trusted auth.session supplies this expiry. Reject before sending;
+        // expiry during an exchange must not turn unknown acceptance into denial.
+        if self
+            .authenticated_until
+            .is_some_and(|expires_at| expires_at <= chrono::Utc::now())
+        {
+            return Err(ClientError::Authentication);
         }
         let id = envelope.id.clone();
         let (reply_tx, reply_rx) = oneshot::channel();
