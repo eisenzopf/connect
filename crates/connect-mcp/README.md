@@ -40,8 +40,14 @@ Every discovery and operation revalidates current task grants.
 Requests are bounded to 512 KiB, including streamed bodies. Host validation is
 restricted to the actual loopback listener authority and localhost port. Present
 browser Origins are rejected by default. At most 32 requests occupy admission;
-server shutdown cancels admission and handlers and reports a failed drain after
-five seconds. Dropping the listener cancels and aborts its owned accept task.
+one ten-second deadline covers admission, body decoding and response construction.
+Authentication retains its five-second ceiling. Parsed tools stop at 9.5 seconds
+to reserve response time; event waits use the remaining budget and leave 250 ms
+for authority revalidation and authoritative inbox projection. An incomplete
+body receives HTTP 504 at the outer deadline. These are server work limits;
+slow reader/network delivery is outside that clock. Server shutdown cancels
+admission and handlers and reports a failed drain after five seconds. Dropping
+the listener cancels and aborts its owned accept task.
 
 The server's existing `connect serve --config server.toml` command starts the
 endpoint when an explicit non-secret configuration is present:
@@ -76,6 +82,16 @@ Bounded waits return the normal task inbox outcome plus `_meta.connect` with
 cursor and resume under current authority. A pending send/effect uses the shared
 typed task outcome. A disconnected mutation must reconcile its original logical
 IDs instead of generating new ones.
+
+An abandoned or deadline-expired tool returns `transport-uncertain` when a result
+can still be constructed. `_meta.connect` retains the authenticated `task_id`,
+validated `request_id`/`step_id` when available, and `reconcile: true`. This is
+not proof of rejection or completion. Keep the original mutation inputs and
+IDs; inspect a permitted effect handle or retry the matching logical command
+under current authority to recover its original receipt. An earlier empty
+authoritative inbox page remains the normal pending result with its cursor.
+The adapter never invents a page after a timed-out read. Request cancellation
+stops the waiter, not a store transaction that may already have committed.
 
 Provider admission, protected CLI issuance/installation, native model-grant
 authentication, installed hosts and complete Gate 4 acceptance remain open.

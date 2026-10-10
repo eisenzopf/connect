@@ -1,4 +1,5 @@
 //! Admission precedes model arguments and provider correlation headers.
+use crate::budget::RequestBudget;
 use async_trait::async_trait;
 use axum::{
     extract::{Request, State},
@@ -108,6 +109,11 @@ pub(crate) async fn admit(
     mut request: Request,
     next: Next,
 ) -> Response {
+    let budget = RequestBudget::new();
+    // Cancel detached SDK handler work if this middleware future is dropped,
+    // as well as on expiry/shutdown. A dispatched mutation still needs receipt
+    // reconciliation; cancelling a waiter cannot roll back a store transaction.
+    let _request_guard = budget.cancellation.clone().drop_guard();
     let Ok(_permit) = state.capacity.try_acquire() else {
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
     };
@@ -122,10 +128,13 @@ pub(crate) async fn admit(
     // The SDK receives a verified handle, never bearer plaintext in HTTP Parts.
     request.headers_mut().remove("authorization");
     request.extensions_mut().insert(invocation);
+    request.extensions_mut().insert(budget.clone());
     // Also cancel body decoding, not just authentication and parsed tool work.
     // A client can pause a chunked body before the SDK creates request context.
     tokio::select! {
+        biased;
         _ = state.cancellation.cancelled() => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+        _ = tokio::time::sleep_until(budget.http_deadline) => StatusCode::GATEWAY_TIMEOUT.into_response(),
         response = next.run(request) => response,
     }
 }
