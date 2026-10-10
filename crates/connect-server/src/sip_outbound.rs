@@ -12,12 +12,14 @@ use rvoip_core::{
 };
 use std::{sync::Arc, time::Duration};
 use tokio_util::sync::CancellationToken;
+mod activation;
 
 pub(crate) struct Worker {
     stop: CancellationToken,
     task: Option<tokio::task::JoinHandle<anyhow::Result<()>>>,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 enum OriginationOutcome {
     Active,
     Cancelled,
@@ -73,8 +75,7 @@ impl Worker {
                     SipLegAction::Start => {
                         let result: anyhow::Result<OriginationOutcome> = async {
                             let session = resolver
-                                .project_credential(&job.credential_id, &job.leg.session_id)
-                                ?;
+                                .project_credential(&job.credential_id, &job.leg.session_id)?;
                             let prepared = orchestrator
                                 .prepare_outbound_connection(
                                     OriginateRequest::new(
@@ -97,68 +98,39 @@ impl Worker {
                                     job.leg.id.clone(),
                                 )
                                 .await?;
-                            if !check_authority(store.clone(), job.clone(), AuthorityCheck::AdmitDispatch).await? {
+                            if !check_authority(
+                                store.clone(),
+                                job.clone(),
+                                AuthorityCheck::AdmitDispatch,
+                            )
+                            .await?
+                            {
                                 return Ok(OriginationOutcome::Cancelled);
                             }
-                            let mut commit = std::pin::pin!(prepared.commit());
-                            loop {
-                                tokio::select! {
-                                    result = &mut commit => {
-                                        result?;
-                                        break;
-                                    }
-                                    _ = tokio::time::sleep(Duration::from_millis(50)) => {
-                                        let check_store = store.clone();
-                                        let check_job = job.clone();
-                                        let cancelled = tokio::task::spawn_blocking(move || {
-                                            check_store.sip_origination_cancelled(&check_job)
-                                        })
-                                        .await
-                                        .map_err(|_| connect_protocol::Error::storage())??;
-                                        if cancelled {
-                                            return Ok(if orchestrator.end_connection(connection_id.clone(), EndReason::Cancelled).await.is_ok() {
-                                                OriginationOutcome::Cancelled
-                                            } else {
-                                                OriginationOutcome::CleanupUncertain
-                                            });
-                                        }
-                                    }
-                                }
+                            let outcome = activation::wait(
+                                prepared.commit(),
+                                store.clone(),
+                                job.clone(),
+                                cancelled.clone(),
+                                || {
+                                    orchestrator
+                                        .end_connection(connection_id.clone(), EndReason::Cancelled)
+                                },
+                            )
+                            .await?;
+                            if outcome == OriginationOutcome::Active {
+                                registrar.activate_outbound(connection_id).await?;
                             }
-                            registrar.activate_outbound(connection_id).await?;
-                            anyhow::Ok(OriginationOutcome::Active)
+                            Ok(outcome)
                         }
                         .await;
-                        match result {
-                            Ok(OriginationOutcome::Cancelled) => store.finish_sip_leg_job(
-                                &job,
-                                "cancelled",
-                                Some("local-cancel-before-answer"),
-                            )?,
-                            Ok(OriginationOutcome::Active) => {
-                                store.finish_sip_leg_job(&job, "active", None)?
-                            }
-                            Ok(OriginationOutcome::CleanupUncertain) => store.finish_sip_leg_job(
-                                &job,
-                                "uncertain",
-                                Some("sip-cancellation-uncertain"),
-                            )?,
-                            Err(error)
-                                if error.downcast_ref::<connect_protocol::Error>().is_some_and(
-                                    |e| {
-                                        e.code == "storage-unavailable"
-                                            || e.code == "capacity-exceeded"
-                                    },
-                                ) =>
-                            {
-                                return Err(error)
-                            }
-                            Err(_) => store.finish_sip_leg_job(
-                                &job,
-                                "failed",
-                                Some("sip-origination-failed"),
-                            )?,
-                        }
+                        let write_store = store.clone();
+                        let write_job = job.clone();
+                        tokio::task::spawn_blocking(move || {
+                            finish_origination(&write_store, &write_job, result)
+                        })
+                        .await
+                        .map_err(|_| connect_protocol::Error::storage())??;
                     }
                     SipLegAction::End => {
                         if !check_authority(
@@ -235,3 +207,35 @@ async fn check_authority(
     .map_err(|_| connect_protocol::Error::storage())?
     .map_err(Into::into)
 }
+
+// A resolver translates storage faults to its protocol-facing 503 error. Keep
+// that distinction instead of acknowledging an origination rejection.
+fn durable_failure(error: &anyhow::Error) -> bool {
+    error
+        .downcast_ref::<connect_protocol::Error>()
+        .is_some_and(|e| matches!(e.code.as_str(), "storage-unavailable" | "capacity-exceeded"))
+        || error
+            .downcast_ref::<rvoip_uctp::state::ResourceBindingError>()
+            .is_some_and(|e| e.code == 503)
+}
+
+fn finish_origination(
+    store: &Store,
+    job: &connect_store::SipLegJob,
+    result: anyhow::Result<OriginationOutcome>,
+) -> anyhow::Result<()> {
+    let (state, reason) = match result {
+        Ok(OriginationOutcome::Active) => ("active", None),
+        Ok(OriginationOutcome::Cancelled) => ("cancelled", Some("local-cancel-before-answer")),
+        Ok(OriginationOutcome::CleanupUncertain) => {
+            ("uncertain", Some("sip-cancellation-uncertain"))
+        }
+        Err(error) if durable_failure(&error) => return Err(error),
+        Err(_) => ("failed", Some("sip-origination-failed")),
+    };
+    store.finish_sip_leg_job(job, state, reason)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests;
