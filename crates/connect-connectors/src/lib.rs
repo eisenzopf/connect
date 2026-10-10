@@ -6,6 +6,7 @@ use std::time::Duration;
 mod chat_context;
 pub mod numbers;
 pub mod setup;
+pub mod vapi_origin;
 
 pub struct Telnyx {
     pub client: telnyx::Client,

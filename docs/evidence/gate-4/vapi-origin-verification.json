@@ -1,0 +1,141 @@
+{
+  "status": "read-only-private-api-verification-component-qualified",
+  "gate_item": "G4-019",
+  "source": {
+    "base": "c72a6c3",
+    "files": {
+      "crates/connect-connectors/src/lib.rs": "972ebfab75f19b631017734849f6cb3bd1101341f0e6e6fccf678b8498c9c054",
+      "crates/connect-connectors/src/vapi_origin.rs": "9f2a82d164e0f53fdf93130b2076648c5549e8639332739401a56d4a47c114e1",
+      "crates/connect-connectors/tests/vapi_origin.rs": "205d6bf3bcfca8f682547dd36a31db72cec00a0b2feaeb42d36d395d43e06204"
+    }
+  },
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-connectors",
+        "--test",
+        "vapi_origin"
+      ],
+      "exit_code": 0,
+      "passed": 5,
+      "log": ".local/gate-4-planning/vapi-origin-final-test.log",
+      "log_sha256": "50dfab356ac8fa3af32580fb137e643dd8f5bf726bef05cfc3e4872d2b224f9e"
+    },
+    {
+      "check": "prepare",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-origin-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-connectors",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-origin-clippy.log",
+      "log_sha256": "66798d6887accdc023f426327ec66cf6b0013eeae70a1b457173fe9272d44c0b"
+    },
+    {
+      "check": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "-p",
+        "connect-connectors",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-origin-rustdoc.log",
+      "log_sha256": "6b0fbe6e7e13c9eb7154007fd146f02cd353a14dc8941ec61291198975f52e92",
+      "environment": {
+        "RUSTDOCFLAGS": "-D warnings -D rustdoc::broken_intra_doc_links"
+      }
+    },
+    {
+      "check": "type-proof",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-connectors",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-origin-type-proof.log",
+      "log_sha256": "19d3737579eaa1a3c4723591717efef63bca249f442b2b13cc68de71eec2f4bd"
+    },
+    {
+      "check": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-origin-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "platform": "local macOS arm64",
+  "sdk": "Pinned Vapi SDK from dependencies/source-lock.json; no upstream changes.",
+  "behavior": [
+    "Three successful exact private API GET modes: active call, standalone chat and active chat session; the configured assistant must match.",
+    "Twelve wrong/missing resource or assistant responses produce no verification evidence.",
+    "Ended calls (including inconsistent active status with endedAt), completed sessions and session chats presented as standalone chats are denied.",
+    "401/403/404/429/500 private API failures produce a safe unavailable error and no automatic retry through the standard connector constructor.",
+    "Eighteen empty, oversized, Unicode or path/query/fragment/encoding identifier denials occur before any provider request.",
+    "VerifiedVapiOrigin has private fields and no Deserialize; the compile-fail doctest prevents JSON from constructing verification evidence."
+  ],
+  "case_counts": {
+    "positive": 3,
+    "mismatched_response": 12,
+    "lifecycle_or_mode": 4,
+    "private_lookup_failure": 5,
+    "before_request_denial": 18,
+    "total": 42,
+    "private_http_gets": 24
+  },
+  "review": {
+    "responsibility": "Provider transport remains in connect-connectors; the helper has no store, service, grant issuance or model tool dependency.",
+    "data_minimization": "Proof keeps only mode, matched resource/assistant IDs and observation timestamp; error variants omit raw SDK/provider data.",
+    "module_lines": 156,
+    "test_lines": 170
+  },
+  "limits": [
+    "No numbered item or acceptance criterion closed.",
+    "This helper is not yet wired into protected resource creation, binding registration, grant issuance/export or the first provider tool request.",
+    "Observation is not a credential or cached current authority; task/grant checks and provider lifecycle revalidation remain required in composition.",
+    "Chat verification proves the exact standalone resource/assistant association; it does not infer an undocumented active-chat status.",
+    "No inline/squad assistant fallback. Missing saved-assistant IDs are denied.",
+    "Loopback SDK fixtures only; no live provider account read, resource mutation, model invocation or public ingress."
+  ],
+  "primary_documentation": [
+    "https://docs.vapi.ai/api-reference/sessions/get",
+    "https://docs.vapi.ai/api-reference/chats/get",
+    "https://docs.vapi.ai/tools/mcp"
+  ],
+  "additional_research": {
+    "sessions_create": "https://docs.vapi.ai/api-reference/sessions/create",
+    "sessions_update": "Current reference lists name/status/expiration/messages as PATCH request fields; assistantOverrides appears in the response schema, so arbitrary MCP/tool mutation after session creation must not be assumed.",
+    "chat_context": "Current code already uses documented assistantOverrides.variableValues with a required connect_context prompt variable; the suspected model override mismatch was disproved by source inspection and no context code was changed."
+  }
+}

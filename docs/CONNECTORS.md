@@ -84,3 +84,18 @@ persistent conversation after the leg ends.
 The [voice context evidence](evidence/gate-4/task-voice-context.json) records
 qualified local SDK/media behavior and its limits. This path does not yet constitute
 verified Vapi MCP installation or the full Gate 4 post-call/restart journey.
+
+### Verify a Vapi origin before registering its task binding
+
+`Vapi::verify_origin` uses the pinned private API SDK to match a call, standalone
+chat or chat session against protected setup's exact resource and saved-assistant
+IDs. Calls and sessions must be active; a session chat cannot masquerade as a
+standalone chat. Invalid path identifiers never reach the provider. Lookup
+failures return safe errors rather than raw provider bodies.
+
+`VerifiedVapiOrigin` is a read-only observation with private fields. It is neither
+an invocation grant nor a substitute for current task authority. Trusted setup
+must still register and issue under current authorization, handle uncertain
+creation, export only the invocation's credential and revalidate lifecycle.
+The [origin verification evidence](evidence/gate-4/vapi-origin-verification.json)
+qualifies this lookup component; first-invocation/MCP composition remains open.
