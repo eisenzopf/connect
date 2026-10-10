@@ -109,6 +109,17 @@ impl StoreSessionBindingResolver {
 #[path = "session_binding_tests.rs"]
 mod tests;
 impl SessionBindingResolver for StoreSessionBindingResolver {
+    fn authorize_envelope(
+        &self,
+        principal: &AuthenticatedPrincipal,
+        envelope: &rvoip_uctp::envelope::UctpEnvelope,
+    ) -> std::result::Result<(), ResourceBindingError> {
+        if principal.subject.starts_with(TASK_PRINCIPAL_PREFIX) {
+            super::native_media::authorize(&self.store, &self.namespace, principal, envelope)
+        } else {
+            Ok(())
+        }
+    }
     fn resolve_session(
         &self,
         principal: &AuthenticatedPrincipal,
@@ -130,7 +141,7 @@ impl SessionBindingResolver for StoreSessionBindingResolver {
     }
 }
 
-fn resource_error(error: Error) -> ResourceBindingError {
+pub(crate) fn resource_error(error: Error) -> ResourceBindingError {
     if error.code == "storage-unavailable" {
         ResourceBindingError::unavailable("connect-session-authority-unavailable")
     } else {

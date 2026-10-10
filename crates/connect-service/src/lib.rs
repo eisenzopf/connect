@@ -14,8 +14,10 @@ use std::sync::Arc;
 
 mod authenticated_operations;
 mod authentication;
+mod native_media;
 mod session_bindings;
 pub use authentication::StoreValidator;
+pub use native_media::{native_media_scope_policy, NATIVE_MEDIA_SCOPE};
 pub use session_bindings::StoreSessionBindingResolver;
 pub mod readiness;
 pub mod tasks;

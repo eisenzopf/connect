@@ -45,6 +45,7 @@ impl StoreValidator {
                 ]
                 .map(str::to_owned),
             );
+            scopes.push(crate::NATIVE_MEDIA_SCOPE.into());
         }
         let mut principal = AuthenticatedPrincipal::from_assurance(IdentityAssurance::TaskScoped {
             identity: IdentityId::from_string(actor.identity_id),
@@ -88,13 +89,17 @@ impl BearerValidator for StoreValidator {
                     .map_err(auth_error)?;
             let expires_at = chrono::DateTime::from_timestamp(authority.expires_at(), 0)
                 .ok_or_else(|| BearerAuthError::Invalid("expiry".into()))?;
+            let mut scopes = vec![REQUIRED_SCOPE.into()];
+            if authority.permits_media_attachment() {
+                scopes.push(crate::NATIVE_MEDIA_SCOPE.into());
+            }
             let mut principal =
                 AuthenticatedPrincipal::from_assurance(IdentityAssurance::TaskScoped {
                     identity: IdentityId::from_string(authority.identity_id()),
                     task_id: authority.invocation().task_id().into(),
-                    // Raw UCTP session/data/subscription scopes are intentionally not
-                    // inherited from the parent. Resource attachment needs its own guard.
-                    scopes: vec![REQUIRED_SCOPE.into()],
+                    // The dedicated media entry point is guarded per envelope and
+                    // exact resource. Parent UCTP/data/identity scopes are not inherited.
+                    scopes,
                     expires_at,
                 });
             principal.subject = authority.subject().map_err(auth_error)?;

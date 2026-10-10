@@ -2,6 +2,51 @@ use super::native_resource_fixture::MediaFixture;
 use connect_protocol::{tasks::*, Operation, Outcome};
 
 #[test]
+fn native_provider_route_cannot_inherit_the_owners_broader_context_projection() {
+    let m = MediaFixture::new();
+    let session = m.accepted_outbound("session", true);
+    let subject = m.grant(
+        &m.task,
+        "native",
+        vec![TaskPermission::SessionGet, TaskPermission::SessionInvite],
+    );
+    m.f.store
+        .configure_voice_route(
+            &m.f.key.id,
+            &crate::VoiceRoute {
+                id: "voice".into(),
+                conversation_id: m.f.cid.clone(),
+                identity_id: m.peer_id.clone(),
+                assistant_id: "12345678-1234-1234-1234-123456789012".into(),
+                phone_number_id: "12345678-1234-1234-1234-123456789013".into(),
+                destinations: vec!["+15555550101".into()],
+                enabled: true,
+            },
+        )
+        .unwrap();
+    assert!(m
+        .f
+        .store
+        .vapi_session_route(&m.f.key.id, &session.id)
+        .unwrap()
+        .is_some());
+    assert_eq!(
+        m.f.store
+            .vapi_session_route(&subject, &session.id)
+            .unwrap_err()
+            .code,
+        "unsupported-task-media-route"
+    );
+    let deliveries: u64 =
+        m.f.store
+            .connection()
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM context_deliveries", [], |r| r.get(0))
+            .unwrap();
+    assert_eq!(deliveries, 0);
+}
+
+#[test]
 fn session_in_another_conversation_is_denied_despite_current_owner_membership() {
     let m = MediaFixture::new();
     let Outcome::Conversation(other) =

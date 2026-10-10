@@ -271,6 +271,10 @@ impl Store {
             tx.execute_batch(include_str!("../migrations/014_media_end_authority.sql"))
                 .map_err(|_| Error::storage())?;
         }
+        if expected.schema < 15 {
+            tx.execute_batch(include_str!("../migrations/015_native_media_authority.sql"))
+                .map_err(|_| Error::storage())?;
+        }
         let snapshot = inspect(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(snapshot)

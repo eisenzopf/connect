@@ -106,11 +106,12 @@ async fn native_resource_projection_checks_origin_binding_and_current_authority(
         .validate_principal(grant.expose_secret())
         .await
         .unwrap();
-    // The store/resolver boundary can be qualified before granting any raw wire
-    // capability. Enabling UCTP envelope scopes remains a separate security step.
     assert_eq!(
         principal.scopes,
-        vec![connect_protocol::REQUIRED_SCOPE.to_owned()]
+        vec![
+            connect_protocol::REQUIRED_SCOPE.to_owned(),
+            crate::NATIVE_MEDIA_SCOPE.to_owned()
+        ]
     );
     let resolver =
         StoreSessionBindingResolver::new(store.clone(), Orchestrator::new(Default::default()))

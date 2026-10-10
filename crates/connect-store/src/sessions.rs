@@ -333,18 +333,26 @@ impl Store {
         credential_id: &str,
         session_id: &str,
     ) -> Result<Option<VapiSessionRoute>> {
-        let c = self.connection()?;
-        let actor = crate::identity::actor_from_connection(&c, credential_id)?;
-        actor.require("session_get")?;
-        let session = get_by_id(&c, session_id)?;
+        let mut c = self.connection()?;
+        let tx = c.transaction().map_err(|_| Error::storage())?;
+        let native = credential_id.starts_with(connect_protocol::tasks::TASK_PRINCIPAL_PREFIX);
+        let (actor, session) = if native {
+            let authority = Self::native_session_authority(&tx, credential_id, session_id)?;
+            (authority.actor, authority.session)
+        } else {
+            let actor = crate::identity::actor_from_connection(&tx, credential_id)?;
+            actor.require("session_get")?;
+            let session = get_by_id(&tx, session_id)?;
+            (actor, session)
+        };
         if actor.identity_id != session.initiator_id
             || !matches!(session.state.as_str(), "accepted" | "ready")
         {
             return Ok(None);
         }
-        crate::conversations::authorized_conversation(&c, &actor, &session.conversation_id)?;
-        Ok(crate::session_routes::vapi_assistant(
-            &c,
+        crate::conversations::authorized_conversation(&tx, &actor, &session.conversation_id)?;
+        let route = crate::session_routes::vapi_assistant(
+            &tx,
             &session.conversation_id,
             &session.participant_id,
         )?
@@ -353,7 +361,14 @@ impl Store {
             session_id: session.id,
             assistant_identity_id: session.participant_id,
             assistant_id,
-        }))
+        });
+        if native && route.is_some() {
+            return Err(Error::new(
+                "unsupported-task-media-route",
+                "Native task provider context is not yet qualified",
+            ));
+        }
+        Ok(route)
     }
 
     /// Record one authenticated live connection. The socket remains rvoip
@@ -368,22 +383,21 @@ impl Store {
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let actor = crate::identity::actor_from_connection(&tx, credential_id)?;
-        actor.require("session_get")?;
-        let current = get_by_id(&tx, session_id)?;
-        if actor.identity_id != current.initiator_id && actor.identity_id != current.participant_id
-        {
-            return Err(Error::forbidden());
-        }
-        if !matches!(current.state.as_str(), "accepted" | "ready") {
-            return Err(Error::forbidden());
-        }
+        let (actor, current, grant_id) =
+            if credential_id.starts_with(connect_protocol::tasks::TASK_PRINCIPAL_PREFIX) {
+                let authority = Self::native_session_authority(&tx, credential_id, session_id)?;
+                (authority.actor, authority.session, Some(authority.grant_id))
+            } else {
+                let actor = crate::identity::actor_from_connection(&tx, credential_id)?;
+                let session = authorize_binding(&tx, &actor, session_id)?;
+                (actor, session, None)
+            };
         let members =
             crate::conversations::authorized_conversation(&tx, &actor, &current.conversation_id)?
                 .participants;
         tx.execute(
-            "INSERT INTO session_bindings(session_id,participant_id,credential_id,connection_id,state,updated_at) VALUES(?1,?2,?3,?4,'ready',?5) ON CONFLICT(session_id,participant_id,connection_id) DO UPDATE SET credential_id=excluded.credential_id,state='ready',updated_at=excluded.updated_at",
-            params![session_id, actor.identity_id, credential_id, connection_id, now()],
+            "INSERT INTO session_bindings(session_id,participant_id,credential_id,connection_id,state,updated_at,task_grant_id) VALUES(?1,?2,?3,?4,'ready',?5,?6) ON CONFLICT(session_id,participant_id,connection_id) DO UPDATE SET credential_id=excluded.credential_id,task_grant_id=excluded.task_grant_id,state='ready',updated_at=excluded.updated_at",
+            params![session_id, actor.identity_id, actor.credential_id, connection_id, now(), grant_id],
         )
         .map_err(|_| Error::storage())?;
         if current.state != "ready" {

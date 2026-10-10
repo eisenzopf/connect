@@ -2,7 +2,7 @@
 use super::{installation_id, revalidate, rows, TaskInvocation};
 use crate::Store;
 use connect_protocol::{
-    tasks::{task_grant_id, task_grant_subject, InvocationKind},
+    tasks::{task_grant_id, task_grant_subject, InvocationKind, TaskPermission},
     Error, Result,
 };
 
@@ -13,6 +13,7 @@ pub struct NativeTaskAuthority {
     invocation: TaskInvocation,
     identity_id: String,
     expires_at: i64,
+    media_attachment: bool,
 }
 impl NativeTaskAuthority {
     /// Current task handle; private fields prevent model-selected authority.
@@ -26,6 +27,11 @@ impl NativeTaskAuthority {
     /// Signed grant expiry, already bounded by current task/parent authority.
     pub fn expires_at(&self) -> i64 {
         self.expires_at
+    }
+    /// Whether the signed operation ceiling permits session participation.
+    /// This is discovery metadata only; resource use rechecks current authority.
+    pub fn permits_media_attachment(&self) -> bool {
+        self.media_attachment
     }
     /// Distinct expected transport subject, containing no bearer plaintext.
     pub fn subject(&self) -> Result<String> {
@@ -75,5 +81,14 @@ fn native_authority(
         invocation,
         identity_id: actor.identity_id,
         expires_at: row.grant.expires_at,
+        media_attachment: row.grant.operations.contains(&TaskPermission::SessionGet)
+            && (row
+                .grant
+                .operations
+                .contains(&TaskPermission::SessionInvite)
+                || row
+                    .grant
+                    .operations
+                    .contains(&TaskPermission::SessionAccept)),
     })
 }

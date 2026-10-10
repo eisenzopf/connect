@@ -1,0 +1,66 @@
+diff --git a/crates/uctp/rvoip-uctp/src/state/coordinator.rs b/crates/uctp/rvoip-uctp/src/state/coordinator.rs
+index 37595b7..f272c87 100644
+--- a/crates/uctp/rvoip-uctp/src/state/coordinator.rs
++++ b/crates/uctp/rvoip-uctp/src/state/coordinator.rs
+@@ -1577,6 +1577,20 @@ impl UctpCoordinator {
+     /// the wire-to-core binding boundary. Initial Session invites have no
+     /// binding yet and are authorized by `resolve_session` in their handler.
+     async fn require_resource_authorization(&self, env: &UctpEnvelope) -> Result<bool> {
++        if let Some(bindings) = self.resource_bindings.get() {
++            if let Err(error) = bindings.authorize_envelope(env) {
++                self.emit_error_full(
++                    env.id.clone(),
++                    error.code,
++                    "auth",
++                    &error.reason,
++                    env.sid.clone(),
++                    env.connid.clone(),
++                )
++                .await?;
++                return Ok(false);
++            }
++        }
+         let (Some(bindings), Some(sid)) = (self.resource_bindings.get(), env.sid.as_ref()) else {
+             return Ok(true);
+         };
+diff --git a/crates/uctp/rvoip-uctp/src/state/subscription.rs b/crates/uctp/rvoip-uctp/src/state/subscription.rs
+index 9a8fb56..15efba6 100644
+--- a/crates/uctp/rvoip-uctp/src/state/subscription.rs
++++ b/crates/uctp/rvoip-uctp/src/state/subscription.rs
+@@ -131,6 +131,18 @@ pub trait SubscriptionHandler: Send + Sync {
+ /// a resolver backed by their authenticated call/session store. The default
+ /// resolver remains peer-scoped and therefore cannot cross-connect peers.
+ pub trait SessionBindingResolver: Send + Sync {
++    /// Authorize one authenticated envelope before correlation delivery,
++    /// application dispatch or any resource mutation. The default preserves
++    /// existing session-only resolvers. Stateful deployments can constrain
++    /// command types, envelope context and payload without replacing UCTP.
++    fn authorize_envelope(
++        &self,
++        _principal: &AuthenticatedPrincipal,
++        _envelope: &crate::envelope::UctpEnvelope,
++    ) -> Result<(), ResourceBindingError> {
++        Ok(())
++    }
++
+     fn resolve_session(
+         &self,
+         principal: &AuthenticatedPrincipal,
+@@ -360,6 +372,17 @@ impl PeerResourceBindings {
+         Ok(())
+     }
+ 
++    /// Apply the deployment's envelope guard using the peer's trusted
++    /// principal, never a subject supplied in the envelope payload.
++    pub fn authorize_envelope(
++        &self,
++        envelope: &crate::envelope::UctpEnvelope,
++    ) -> Result<(), ResourceBindingError> {
++        let _mutation = self.mutation.lock();
++        let principal = self.active_principal_locked()?;
++        self.resolver.authorize_envelope(&principal, envelope)
++    }
++
+     pub fn bind_session(
+         &self,
+         wire_session: &SessionId,

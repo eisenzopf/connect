@@ -1,6 +1,6 @@
 //! Resource attachment checks share one snapshot of current task authority.
 use super::{native::invocation_for_subject, revalidate};
-use crate::Store;
+use crate::{Actor, Store};
 use connect_protocol::{tasks::task_grant_id, tasks::TaskPermission, Error, Result, Session};
 use rusqlite::params;
 
@@ -21,15 +21,25 @@ impl Store {
         subject: &str,
         session_id: &str,
     ) -> Result<Session> {
-        let id = task_grant_id(subject)?;
         let mut c = self.connection()?;
         let tx = c.transaction().map_err(|_| Error::storage())?;
-        let invocation = invocation_for_subject(&tx, id)?;
-        let (grant, actor, task) = revalidate(&tx, &invocation, crate::now())?;
+        Ok(Self::native_session_authority(&tx, subject, session_id)?.session)
+    }
+
+    /// Trusted store composition only: no broad credential or cached authority
+    /// is recovered from a task subject. The caller owns the transaction.
+    pub(crate) fn native_session_authority(
+        c: &rusqlite::Connection,
+        subject: &str,
+        session_id: &str,
+    ) -> Result<NativeSessionAuthority> {
+        let id = task_grant_id(subject)?;
+        let invocation = invocation_for_subject(c, id)?;
+        let (grant, actor, task) = revalidate(c, &invocation, crate::now())?;
         if !grant.grant.operations.contains(&TaskPermission::SessionGet) {
             return Err(Error::forbidden());
         }
-        let session = crate::sessions::authorize_binding(&tx, &actor, session_id)?;
+        let session = crate::sessions::authorize_binding(c, &actor, session_id)?;
         if session.conversation_id != task.conversation_id {
             return Err(Error::forbidden());
         }
@@ -43,7 +53,7 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let linked: bool = tx
+        let linked: bool = c
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM task_effect_links l
                  JOIN task_effects e ON e.id=l.effect_id
@@ -55,6 +65,18 @@ impl Store {
         if !linked {
             return Err(Error::forbidden());
         }
-        Ok(session)
+        Ok(NativeSessionAuthority {
+            actor,
+            session,
+            grant_id: grant.grant.id,
+        })
     }
+}
+
+/// Narrow, transaction-local authority used to record native media observations.
+/// This is not exported as a transport credential or an operation capability.
+pub(crate) struct NativeSessionAuthority {
+    pub actor: Actor,
+    pub session: Session,
+    pub grant_id: String,
 }

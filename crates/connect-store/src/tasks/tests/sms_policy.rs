@@ -195,7 +195,7 @@ fn schema_twelve_upgrade_preserves_old_grant_digest_and_task_receipts() {
     f.store
         .connection()
         .unwrap()
-        .execute_batch("DROP TABLE media_end_intents; DROP TABLE media_start_admissions; DROP INDEX task_effect_media_resource; PRAGMA user_version=12")
+        .execute_batch("DROP INDEX session_bindings_task_grant; ALTER TABLE session_bindings DROP COLUMN task_grant_id; DROP TABLE media_end_intents; DROP TABLE media_start_admissions; DROP INDEX task_effect_media_resource; PRAGMA user_version=12")
         .unwrap();
     assert_eq!(
         Store::open(f.store.path(), connect_protocol::Limits::default())

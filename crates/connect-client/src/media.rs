@@ -286,7 +286,7 @@ impl ConnectClient {
             loop {
                 let envelope = events.recv().await.map_err(|_| ClientError::Transport)?;
                 if envelope.msg_type == MessageType::Error {
-                    return Err(ClientError::Protocol);
+                    return Err(negotiation_error(&envelope));
                 }
                 if envelope.msg_type == MessageType::StreamOpened
                     && envelope.sid.as_deref() == Some(session_id)
@@ -404,4 +404,21 @@ impl ConnectClient {
             .await
             .map_err(|_| ClientError::Transport)
     }
+}
+
+fn negotiation_error(envelope: &UctpEnvelope) -> ClientError {
+    let (code, message) = match envelope.payload.get("code").and_then(|v| v.as_u64()) {
+        Some(401) => (
+            "unauthenticated",
+            "Native media authentication was rejected",
+        ),
+        Some(403) => ("forbidden", "Native media is outside current authority"),
+        Some(501) => (
+            "unsupported-media-profile",
+            "Native media route is not supported by this profile",
+        ),
+        Some(503) => ("media-unavailable", "Native media route is unavailable"),
+        _ => return ClientError::Protocol,
+    };
+    ClientError::Application(connect_protocol::Error::new(code, message))
 }

@@ -23,6 +23,7 @@ mod media_authority;
 mod media_fixture;
 mod media_migration;
 mod media_recovery;
+mod native_media_migration;
 mod native_reply;
 mod native_resource_boundaries;
 mod native_resource_fixture;

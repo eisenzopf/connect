@@ -279,6 +279,7 @@ impl RunningServer {
             ))
             .with_orchestrator(orchestrator.clone());
         cfg.max_concurrent_connections = config.limits.connections;
+        cfg.coordinator_caps.scope_policy = connect_service::native_media_scope_policy();
         cfg.coordinator_caps.signaling_send_timeout =
             Duration::from_millis(config.limits.request_timeout_ms);
         let adapter = UctpQuicAdapter::new(cfg).await?;
