@@ -102,3 +102,13 @@ test('native audio reports remote end promptly and preserves the terminal code',
   await assert.rejects(()=>media.sendPcmu(new Uint8Array(160)),rejects('media-ended'));
  }finally{await media.close();}
 });
+
+test('health readiness validates observations and still accepts older servers',()=>{
+ const health={installation_id:'fixture',schema:10,profile:'connect-control/1'};
+ const wrap=data=>({profile:'connect-control/1',result:{Ok:{kind:'health',data}}});
+ assert.equal(decodeResponse(wrap(health),'health').data.schema,10);
+ const readiness={state:'unavailable',components:[{component:'provider-delivery',state:'unavailable',reason:'worker-exited',observed_at:1791600000}]};
+ assert.equal(decodeResponse(wrap({...health,readiness}),'health').data.readiness.state,'unavailable');
+ for(const invalid of [null,42,{state:'healthy',components:[]},{state:'ready',components:[{component:'x',state:'ready',reason:'bound',observed_at:'yesterday'}]}])
+  assert.throws(()=>decodeResponse(wrap({...health,readiness:invalid}),'health'),rejects('protocol'));
+});

@@ -15,6 +15,17 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class NativeTests(unittest.TestCase):
+    def test_health_readiness_validation_and_older_server_compatibility(self):
+        health = {"installation_id": "fixture", "schema": 10, "profile": "connect-control/1"}
+        def decode(data):
+            return decode_response(json.dumps({"profile": "connect-control/1", "result": {"Ok": {"kind": "health", "data": data}}}), "health")
+        self.assertEqual(decode(health)["data"]["schema"], 10)
+        readiness = {"state": "unavailable", "components": [{"component": "provider-delivery", "state": "unavailable", "reason": "worker-exited", "observed_at": 1791600000}]}
+        self.assertEqual(decode({**health, "readiness": readiness})["data"]["readiness"]["state"], "unavailable")
+        for invalid in [None, 42, {"state": "healthy", "components": []}, {"state": "ready", "components": [{"component": "x", "state": "ready", "reason": "bound", "observed_at": "yesterday"}]}]:
+            with self.assertRaises(ConnectError):
+                decode({**health, "readiness": invalid})
+
     def test_remote_media_end_is_prompt_and_distinct_from_uncertainty(self):
         with NativeAudioClient('media-ended', 'conversation', 'session', 'remote', HELPER, timeout=1) as media:
             for operation in [media.receive, media.receive, lambda: media.send_pcmu(bytes(160))]:

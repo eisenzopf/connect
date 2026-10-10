@@ -58,6 +58,14 @@ function fields(value, strings = [], nullable = []) {
 function array(value, test) {
     return Array.isArray(value) && value.every(test);
 }
+function readiness(value) {
+    const states = ["ready", "degraded", "unavailable", "uncertain"];
+    return (fields(value, ["state"]) &&
+        states.includes(String(value.state)) &&
+        array(value.components, (component) => fields(component, ["component", "state", "reason"]) &&
+            states.includes(String(component.state)) &&
+            Number.isSafeInteger(component.observed_at)));
+}
 function message(value) {
     return fields(value, ["id", "conversation_id", "sender", "body"]);
 }
@@ -203,7 +211,8 @@ function validData(kind, data, depth = 0) {
             return (fields(data, ["installation_id", "profile"]) &&
                 data.profile === "connect-control/1" &&
                 Number.isSafeInteger(data.schema) &&
-                Number(data.schema) >= 0);
+                Number(data.schema) >= 0 &&
+                (!("readiness" in data) || readiness(data.readiness)));
         default:
             return false;
     }

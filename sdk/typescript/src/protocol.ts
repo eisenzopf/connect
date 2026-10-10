@@ -67,6 +67,20 @@ function fields(
 function array(value: unknown, test: (v: unknown) => boolean): boolean {
     return Array.isArray(value) && value.every(test);
 }
+function readiness(value: unknown): boolean {
+    const states = ["ready", "degraded", "unavailable", "uncertain"];
+    return (
+        fields(value, ["state"]) &&
+        states.includes(String(value.state)) &&
+        array(
+            value.components,
+            (component) =>
+                fields(component, ["component", "state", "reason"]) &&
+                states.includes(String(component.state)) &&
+                Number.isSafeInteger(component.observed_at),
+        )
+    );
+}
 function message(value: unknown): boolean {
     return fields(value, ["id", "conversation_id", "sender", "body"]);
 }
@@ -288,7 +302,8 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
                 fields(data, ["installation_id", "profile"]) &&
                 data.profile === "connect-control/1" &&
                 Number.isSafeInteger(data.schema) &&
-                Number(data.schema) >= 0
+                Number(data.schema) >= 0 &&
+                (!("readiness" in data) || readiness(data.readiness))
             );
         default:
             return false;

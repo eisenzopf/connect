@@ -42,6 +42,13 @@ def _array(value, test):
     return isinstance(value, list) and all(test(item) for item in value)
 
 
+def _readiness(value):
+    states = ("ready", "degraded", "unavailable", "uncertain")
+    return _fields(value, ("state",)) and value["state"] in states and _array(
+        value.get("components"), lambda item: _fields(item, ("component", "state", "reason"))
+        and item["state"] in states and type(item.get("observed_at")) is int)
+
+
 def valid_data(kind, data, depth=0):
     if not isinstance(data, dict) or depth > 8:
         return False
@@ -86,7 +93,7 @@ def valid_data(kind, data, depth=0):
         nested = data.get("outcome")
         return _fields(data, ("state",)) and "outcome" in data and (nested is None or (isinstance(nested, dict) and valid_data(nested.get("kind"), nested.get("data"), depth + 1)))
     if kind == "health":
-        return _fields(data, ("installation_id", "profile")) and data["profile"] == "connect-control/1" and type(data.get("schema")) is int and data["schema"] >= 0
+        return _fields(data, ("installation_id", "profile")) and data["profile"] == "connect-control/1" and type(data.get("schema")) is int and data["schema"] >= 0 and ("readiness" not in data or _readiness(data["readiness"]))
     return False
 
 
