@@ -237,16 +237,17 @@ pub(crate) fn eligible(
     sender: &str,
     conversation: &str,
 ) -> Result<std::result::Result<String, &'static str>> {
-    let stopped: bool = c
-        .query_row(
-            "SELECT EXISTS(SELECT 1 FROM sms_controls WHERE phone=?1 AND stopped=1)",
-            [phone],
-            |r| r.get(0),
-        )
-        .map_err(|_| Error::storage())?;
-    if stopped {
+    if suppressed(c, phone)? {
         return Ok(Err("opted-out"));
     }
     let grant: Option<String> = c.query_row("SELECT g.source || ':' || g.id FROM sms_grants g JOIN sms_authorities a ON a.source=g.source WHERE g.phone=?1 AND g.sender=?2 AND g.conversation_id=?3 AND g.active=1 AND g.expires_at>?4 AND a.valid_until>?4 ORDER BY g.id LIMIT 1",params![phone,sender,conversation,crate::now()],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
     Ok(grant.ok_or("enrollment-required-or-expired"))
+}
+pub(crate) fn suppressed(c: &Connection, phone: &str) -> Result<bool> {
+    c.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sms_controls WHERE phone=?1 AND stopped=1)",
+        [phone],
+        |r| r.get(0),
+    )
+    .map_err(|_| Error::storage())
 }

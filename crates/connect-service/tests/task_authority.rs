@@ -34,6 +34,7 @@ async fn facade_revalidates_grants_and_exposes_only_non_secret_metadata() {
                 definition: TaskDefinition {
                     conversation_id: cid,
                     scope: TaskScope {
+                        sms_enrollments: Vec::new(),
                         operations: vec![TaskPermission::Send],
                         recipients: vec![owner],
                     },
@@ -135,6 +136,7 @@ async fn facade_projects_bounded_sources_and_revalidates_recall_continuation() {
                 definition: TaskDefinition {
                     conversation_id: conversation.id,
                     scope: TaskScope {
+                        sms_enrollments: Vec::new(),
                         operations: vec![TaskPermission::History],
                         recipients: vec![owner],
                     },

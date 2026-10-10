@@ -11,6 +11,7 @@ mod native_reply;
 mod owner;
 mod recall;
 mod replies;
+mod sms;
 mod storage;
 use connect_protocol::{tasks::TaskRequest, Error, Result};
 
@@ -55,3 +56,15 @@ pub(crate) fn authorize_effect_link(
 
 #[cfg(test)]
 mod tests;
+
+/// Match only a task's explicitly reviewed SMS purpose. Ordinary jobs retain
+/// their existing eligibility path; enrollment creation remains authority-owned.
+pub(crate) fn task_sms_decision(
+    c: &rusqlite::Connection,
+    job: &str,
+    phone: &str,
+    sender: &str,
+    conversation: &str,
+) -> connect_protocol::Result<Option<std::result::Result<String, &'static str>>> {
+    sms::dispatch(c, job, phone, sender, conversation)
+}

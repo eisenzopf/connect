@@ -48,6 +48,7 @@ impl Fixture {
             definition: TaskDefinition {
                 conversation_id: self.cid.clone(),
                 scope: TaskScope {
+                    sms_enrollments: Vec::new(),
                     operations: vec![TaskPermission::Send, TaskPermission::History],
                     recipients: vec![self.owner.clone()],
                 },

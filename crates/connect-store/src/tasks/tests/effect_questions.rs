@@ -87,6 +87,7 @@ fn another_task_can_answer_the_verified_initiating_question_under_its_own_grant(
                     definition: TaskDefinition {
                         conversation_id: f.cid.clone(),
                         scope: TaskScope {
+                            sms_enrollments: Vec::new(),
                             operations: vec![TaskPermission::Send],
                             recipients: vec![f.owner.clone()],
                         },

@@ -7,6 +7,28 @@ The control operation is wired in G4-013; capabilities advertise it before use.
 Old control commands retain their behavior and authority. Unknown profile/action
 or claimed owner/binding fields fail before admission.
 
+Task scope optionally contains `sms_enrollments`, a bounded list of
+`{source, grant_id, purpose}` references to immutable approved enrollment evidence.
+Absence means no task-origin SMS authority; native communication remains usable.
+Each reference must belong to the task's conversation and match the exact reviewed
+purpose. The developer selects these references at task creation; an invocation
+cannot choose or alter them. This selection neither enrolls a recipient nor renews
+consent, overrides STOP or proves that arbitrary message text fits the purpose.
+The application remains responsible for sending the requested content.
+
+At SMS dispatch, the selected evidence must match recipient, sender, conversation
+and purpose, remain active/unexpired, and have a fresh trusted authority lease.
+STOP suppression is independently enforced. No other conversation enrollment is
+borrowed as fallback. Non-dispatch is recorded as `task-sms-purpose-required`,
+`task-sms-enrollment-unavailable` or `opted-out`; storage failure remains an error
+without dispatch acknowledgement. START cannot revive cancelled effects or tasks.
+Existing ordinary SMS clients retain their current enrollment policy.
+
+Empty SMS scope is omitted from serialization, preserving existing canonical grant
+digests. Storage schema 13 marks this policy boundary so an older binary cannot
+dispatch newer task work without enforcing it. The task profile remains
+`connect-task/1`; the typed contract checkpoint is revision 4.
+
 Task states: ready → running → waiting → ready; running → completed. Any
 nonterminal state may become cancelled, failed or expired. Terminal states never
 reopen. Mutations use one stable logical request ID and expected revision where

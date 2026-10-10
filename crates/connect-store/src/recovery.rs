@@ -260,6 +260,10 @@ impl Store {
             tx.execute_batch(include_str!("../migrations/012_task_effect_authority.sql"))
                 .map_err(|_| Error::storage())?;
         }
+        if expected.schema < 13 {
+            tx.execute_batch(include_str!("../migrations/013_task_sms_policy.sql"))
+                .map_err(|_| Error::storage())?;
+        }
         let snapshot = inspect(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(snapshot)

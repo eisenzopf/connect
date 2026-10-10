@@ -15,6 +15,7 @@ pub(super) fn create(
     store: &Store,
 ) -> Result<TaskRecord> {
     authority::definition(c, actor, definition)?;
+    super::sms::admit(c, definition)?;
     let (retained,active):(u32,u32)=c.query_row("SELECT COUNT(*),COALESCE(SUM(state IN ('ready','running','waiting') AND expires_at>?1),0) FROM tasks",[timestamp],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|Error::storage())?;
     if retained >= MAX_RETAINED_TASKS || active >= MAX_ACTIVE_TASKS {
         return Err(Error::new(

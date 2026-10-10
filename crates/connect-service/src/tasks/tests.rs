@@ -46,6 +46,7 @@ impl Fixture {
                     definition: TaskDefinition {
                         conversation_id: cid,
                         scope: TaskScope {
+                            sms_enrollments: Vec::new(),
                             operations: vec![TaskPermission::Inbox],
                             recipients: vec![owner],
                         },

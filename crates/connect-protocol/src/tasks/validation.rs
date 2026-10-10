@@ -40,6 +40,28 @@ impl TaskScope {
         for recipient in &self.recipients {
             id(recipient)?;
         }
+        if self.sms_enrollments.len() > MAX_SCOPE_ITEMS
+            || (!self.sms_enrollments.is_empty()
+                && !self.operations.contains(&super::TaskPermission::Send))
+        {
+            return Err(invalid(
+                "SMS policy requires bounded enrollment references and send authority",
+            ));
+        }
+        let mut enrollments = HashSet::new();
+        for enrollment in &self.sms_enrollments {
+            if [&enrollment.source, &enrollment.grant_id]
+                .iter()
+                .any(|s| s.trim().is_empty() || s.len() > 256 || s.chars().any(char::is_control))
+                || enrollment.purpose.trim().is_empty()
+                || enrollment.purpose.len() > 2000
+                || !enrollments.insert((&enrollment.source, &enrollment.grant_id))
+            {
+                return Err(invalid(
+                    "SMS policy requires unique bounded references and an exact reviewed purpose",
+                ));
+            }
+        }
         Ok(())
     }
 }

@@ -236,12 +236,19 @@ impl Store {
             return Ok(None);
         }
         if self.connector(&r.connector)?.sms {
-            let decision = crate::sms_eligibility::eligible(
+            let source = r.source.as_deref().unwrap_or_default();
+            let decision = match crate::tasks::task_sms_decision(
                 &tx,
+                &id,
                 &r.target,
-                r.source.as_deref().unwrap_or_default(),
+                source,
                 &r.conversation_id,
-            )?;
+            )? {
+                Some(decision) => decision,
+                None => {
+                    crate::sms_eligibility::eligible(&tx, &r.target, source, &r.conversation_id)?
+                }
+            };
             match decision {
                 Ok(grant) => {
                     tx.execute("UPDATE provider_jobs SET sms_decision='allowed',sms_grant_id=?2 WHERE id=?1",params![id,grant]).map_err(|_|Error::storage())?;

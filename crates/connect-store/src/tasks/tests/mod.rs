@@ -25,3 +25,5 @@ mod recall_helpers;
 mod recall_sources;
 mod replies;
 mod reply_races;
+mod sms_fixture;
+mod sms_policy;

@@ -266,3 +266,14 @@ errors without an acknowledged state change. Matching terminal-control receipts
 remain inspectable under current owner/control scope and ACL; they cannot revive
 effects or grants. Physical media dispatch and reviewed task-specific SMS
 purpose are still required before G4-012 closes.
+
+The next G4-012 candidate implements task-specific SMS policy. Contract revision 4
+adds optional immutable `TaskScope.sms_enrollments` references: trusted source,
+grant ID and exact reviewed purpose. Admission checks existing approved evidence
+and conversation ownership. Current lease, expiry, active evidence, route match
+and STOP gate SMS dispatch only; unavailable SMS does not deny native task recall
+or unrelated communication. Empty scope denies task-origin SMS and serializes
+identically to existing scopes, preserving old invocation digests. Schema 13 is
+a semantic downgrade barrier; it changes no retained task/grant rows. Qualification
+of this candidate is in progress; the previous capacity checkpoint remains schema
+12 evidence. Physical voice/SIP guards and integrated acceptance remain open.

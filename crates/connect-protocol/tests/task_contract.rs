@@ -7,12 +7,37 @@ fn definition() -> TaskDefinition {
     TaskDefinition {
         conversation_id: "conversation-a".into(),
         scope: TaskScope {
+            sms_enrollments: Vec::new(),
             operations: vec![TaskPermission::Send, TaskPermission::History],
             recipients: vec!["human-a".into()],
         },
         expires_at: 1_300,
         initiating_event_id: None,
     }
+}
+#[test]
+fn reviewed_sms_policy_is_explicit_bounded_and_legacy_scope_serialization_is_stable() {
+    let mut scope = definition().scope;
+    let legacy = json!({"operations":["send","history"],"recipients":["human-a"]});
+    assert_eq!(serde_json::to_value(&scope).unwrap(), legacy);
+    assert_eq!(serde_json::from_value::<TaskScope>(legacy).unwrap(), scope);
+    let reference = TaskSmsEnrollment {
+        source: "reviewed".into(),
+        grant_id: "grant".into(),
+        purpose: "Review the draft".into(),
+    };
+    scope.sms_enrollments = vec![reference.clone()];
+    assert!(scope.validate().is_ok());
+    scope.sms_enrollments.push(reference.clone());
+    assert!(scope.validate().is_err());
+    scope.sms_enrollments = vec![reference];
+    scope.operations = vec![TaskPermission::History];
+    assert!(scope.validate().is_err());
+    scope.operations = vec![TaskPermission::Send];
+    scope.sms_enrollments[0].purpose = " ".into();
+    assert!(scope.validate().is_err());
+    scope.sms_enrollments[0].purpose = "x".repeat(2001);
+    assert!(scope.validate().is_err());
 }
 #[test]
 fn every_task_state_transition_and_terminal_boundary_is_defined() {

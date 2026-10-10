@@ -88,6 +88,7 @@ fn task_events_and_receipts_share_existing_installation_capacity() {
         definition: TaskDefinition {
             conversation_id: cid.clone(),
             scope: TaskScope {
+                sms_enrollments: Vec::new(),
                 operations: vec![TaskPermission::Send],
                 recipients: vec![owner.id],
             },

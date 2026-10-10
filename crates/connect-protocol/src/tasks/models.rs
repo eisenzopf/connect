@@ -71,6 +71,20 @@ impl TaskPermission {
 pub struct TaskScope {
     pub operations: Vec<TaskPermission>,
     pub recipients: Vec<String>,
+    /// Explicit reviewed enrollment purposes for task-origin SMS. Empty denies
+    /// SMS dispatch without limiting the task's other communication channels.
+    /// Omit empty policy to preserve canonical digests of existing grants.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sms_enrollments: Vec<TaskSmsEnrollment>,
+}
+/// A reference to immutable evidence supplied by a trusted enrollment authority.
+/// This reference neither enrolls a recipient nor renews or overrides consent.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TaskSmsEnrollment {
+    pub source: String,
+    pub grant_id: String,
+    pub purpose: String,
 }
 /// Developer-supplied task inputs. The authenticated actor supplies ownership.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
