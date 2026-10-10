@@ -66,6 +66,7 @@ pub(crate) fn authorize_effect_link(
     Ok(())
 }
 pub(crate) use effects::authorize_effect;
+pub(crate) use effects::{provider_task_context, provider_task_reply, ProviderTaskContext};
 
 #[cfg(test)]
 mod tests;

@@ -46,3 +46,26 @@ See [the entry contract](connector-entry-contract.md) and
 [the independent adapter test](../crates/connect-server/tests/entry_connector.rs).
 The existing Vapi/Telnyx descriptors preserve their validation and policy. New
 context adapters do not need edits to conversation authority or provider switches.
+
+### Task context and replies
+
+For a task-origin turn, Connect reconstructs context from the original invocation
+grant and the task's current authority. A History or ContextView permission allows
+a bounded, source-backed task recall page, with an explicit omitted count and
+continuation cursor. A Send-only grant supplies no history. Task turns never
+inherit the route's previous provider chat ID; doing so would bypass the local
+context ceiling through remote history. The turn still belongs to the same
+durable Connect conversation. Its authorized history comes from Connect's
+projection rather than an unrestricted remote continuation.
+
+Keep those boundaries in Connect rather than rebuilding task policy in a
+connector. Deliver the supplied context as conversation data, preserve source
+references, and return the provider ID and answer through `DeliveryResponse`.
+Connect derives the answer's task and question from the committed provider-job
+effect link. Message admission, task inbox and wakeup commit in one transaction.
+A late answer to a cancelled or expired task stays visible as unassigned
+communication and does not resume the task.
+
+The [provider task evidence](evidence/gate-4/provider-task-boundaries.json)
+distinguishes store and public-client qualification from the remaining Vapi
+MCP, voice and installed-host acceptance.

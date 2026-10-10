@@ -87,6 +87,12 @@ conversation; ending voice or a model turn never closes that conversation.
 Current authority is checked before effects and receipt replay. A durable effect
 identity survives uncertainty; an expired worker lease cannot justify a resend.
 
+Conversational provider jobs retain the original task effect's context ceiling.
+Their claims select bounded task recall under current authority and omit the
+route's remote chat continuation. Provider replies reuse the recipient reply
+transaction, deriving the task and question from the durable job/effect link;
+they cannot select a task from provider text or sender matching.
+
 These are implementation boundaries. The numbered plan records which components
 are actually delivered; research and typed fixtures are not runtime qualification.
 

@@ -71,26 +71,41 @@ pub(crate) fn begin(
     route: &Route,
     job_id: &str,
     conversational: bool,
-) -> Result<Option<String>> {
+    store: &crate::Store,
+) -> Result<(Option<String>, bool)> {
     if !conversational {
-        return Ok(None);
+        return Ok((None, false));
     }
-    let actor = actor_from_connection(connection, credential_id)?;
     let delegate = actor_from_connection(connection, &route.credential_id)?;
-    // A send-only grant does not authorize sharing conversation history.
-    if !actor.permits("context_view") || !delegate.permits("context_view") {
-        return Ok(None);
+    let context = crate::tasks::provider_task_context(connection, job_id, store)?;
+    let task_origin = !matches!(context, crate::tasks::ProviderTaskContext::Ordinary);
+    // No context permission is a definitive ceiling; never fall back to owner history.
+    if !delegate.permits("context_view") {
+        return Ok((None, task_origin));
     }
-    let selection = crate::context::view(connection, &actor, &route.conversation_id, 1000)?;
-    let serialized = serde_json::to_string(&selection).map_err(|_| Error::storage())?;
+    let (serialized, watermark) = match context {
+        crate::tasks::ProviderTaskContext::Restricted => return Ok((None, true)),
+        crate::tasks::ProviderTaskContext::Selected { json, watermark } => (json, watermark),
+        crate::tasks::ProviderTaskContext::Ordinary => {
+            let actor = actor_from_connection(connection, credential_id)?;
+            if !actor.permits("context_view") {
+                return Ok((None, false));
+            }
+            let selection = crate::context::view(connection, &actor, &route.conversation_id, 1000)?;
+            (
+                serde_json::to_string(&selection).map_err(|_| Error::storage())?,
+                selection.watermark,
+            )
+        }
+    };
     let id = format!("provider-job:{job_id}");
     let timestamp = crate::now();
     connection.execute(
         "INSERT INTO context_deliveries(id,conversation_id,session_id,provider,watermark,selection_json,state,created_at,updated_at,sequence)
          VALUES(?1,?2,NULL,?6,?3,?4,'pending',?5,?5,(SELECT COALESCE(MAX(sequence),0)+1 FROM context_deliveries))",
-        params![id,route.conversation_id,selection.watermark,serialized,timestamp,route.connector],
+        params![id,route.conversation_id,watermark,serialized,timestamp,route.connector],
     ).map_err(|_|Error::storage())?;
-    Ok(Some(serialized))
+    Ok((Some(serialized), task_origin))
 }
 
 pub(crate) fn finish(

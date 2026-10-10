@@ -13,6 +13,7 @@ mod claims;
 mod effect_crashes;
 mod effect_helpers;
 mod effect_migration;
+mod effect_provider_boundaries;
 mod effect_providers;
 mod effect_questions;
 mod effect_recovery;

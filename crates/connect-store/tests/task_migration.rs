@@ -86,8 +86,15 @@ fn rows(path: &Path) -> BTreeMap<String, Vec<Vec<Value>>> {
     names
         .into_iter()
         .map(|name| {
+            // Schema 15 adds one nullable grant reference. Compare every original
+            // field, and verify the new reference separately after migration.
+            let projection = if name == "session_bindings" {
+                "session_id,participant_id,credential_id,connection_id,stream_id,state,updated_at"
+            } else {
+                "*"
+            };
             let mut query = c
-                .prepare(&format!("SELECT * FROM {name} ORDER BY 1,2"))
+                .prepare(&format!("SELECT {projection} FROM {name} ORDER BY 1,2"))
                 .unwrap();
             let width = query.column_count();
             let data = query
@@ -139,6 +146,16 @@ fn upgrade_populated_ten_preserves_all_existing_rows_and_verified_backup() {
         matches!(store.execute("credential",&Operation::ArtifactGet {conversation_id:"conversation".into(),artifact_id:"artifact".into(),offset:0,limit:3}).unwrap(),Outcome::ArtifactChunk(chunk) if chunk.data=="YWJj" && chunk.eof)
     );
     let c = Connection::open(&db).unwrap();
+    assert_eq!(
+        c.query_row::<u64, _, _>(
+            "SELECT COUNT(*) FROM session_bindings WHERE task_grant_id IS NOT NULL",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap(),
+        0,
+        "Existing media bindings must not acquire invocation authority"
+    );
     let mut query = c.prepare("PRAGMA foreign_key_check").unwrap();
     assert!(!query.exists([]).unwrap());
     assert_eq!(

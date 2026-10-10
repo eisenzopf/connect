@@ -1,7 +1,11 @@
 //! One transaction owns task intent, ordinary operation receipt and effect journal.
 mod dispatch;
 mod links;
+mod provider;
 mod rows;
+pub(crate) use provider::{
+    context as provider_task_context, reply as provider_task_reply, Context as ProviderTaskContext,
+};
 mod state;
 use super::{authority, lifecycle, storage};
 use crate::{Actor, DiscoveryRuntime, Store};

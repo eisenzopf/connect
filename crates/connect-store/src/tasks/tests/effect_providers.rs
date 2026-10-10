@@ -2,7 +2,7 @@ use super::{effect_helpers::*, fixture::Fixture, grants, replies};
 use crate::{IssuedCredential, Route};
 use connect_protocol::{tasks::*, Outcome};
 
-fn fixture() -> (Fixture, IssuedCredential, TaskRecord) {
+pub(super) fn fixture() -> (Fixture, IssuedCredential, TaskRecord) {
     let (f, human, identity) = replies::setup();
     f.store
         .configure_route(
@@ -21,6 +21,97 @@ fn fixture() -> (Fixture, IssuedCredential, TaskRecord) {
         .unwrap();
     let task = replies::task(&f, &identity, "task");
     (f, human, task)
+}
+
+#[test]
+fn send_only_task_cannot_inherit_owner_context_or_route_chat_history() {
+    let (f, _, task) = fixture();
+    f.store
+        .execute(
+            &f.key.id,
+            &connect_protocol::Operation::Send {
+                request_id: "ordinary".into(),
+                conversation_id: f.cid.clone(),
+                body: "Prior private conversation fact".into(),
+            },
+        )
+        .unwrap();
+    let seed = f.store.claim_provider_job().unwrap().unwrap();
+    f.store
+        .finish_provider_job(&seed, "completed", Some("ordinary-chat"), None)
+        .unwrap();
+    let handle = handle(&f, &task);
+    f.store
+        .execute_task_invocation(
+            &handle,
+            &send(&f, &task, "narrow", "Only this message", false),
+        )
+        .unwrap();
+    let job = f.store.claim_provider_job().unwrap().unwrap();
+    assert!(
+        job.context.is_none(),
+        "Send-only invocation disclosed backing-owner history"
+    );
+    assert!(
+        job.previous_chat_id.is_none(),
+        "Task inherited route-wide remote history"
+    );
+}
+
+#[test]
+fn completed_provider_reply_wakes_only_its_bound_task() {
+    let (f, _, one) = fixture();
+    let recipient = one.scope.recipients[0].clone();
+    let two = replies::task(&f, &recipient, "second-task");
+    f.run(&send(&f, &one, "first", "First question", true))
+        .unwrap();
+    f.run(&send(&f, &two, "second", "Second question", true))
+        .unwrap();
+    let first = f.store.claim_provider_job().unwrap().unwrap();
+    let second = f.store.claim_provider_job().unwrap().unwrap();
+    f.store
+        .finish_provider_job(
+            &second,
+            "completed",
+            Some("second-chat"),
+            Some("Answer two"),
+        )
+        .unwrap();
+    for (task, expected) in [(&one, 0), (&two, 1)] {
+        let TaskOutcome::Inbox { events, .. } = f.run(&replies::inbox(task, None)).unwrap() else {
+            panic!("inbox")
+        };
+        assert_eq!(
+            events
+                .iter()
+                .filter(|e| matches!(e.data, TaskEventData::Reply(_)))
+                .count(),
+            expected
+        );
+    }
+    assert_eq!(
+        Fixture::record(f.run(&grants::get(&one)).unwrap()).state,
+        TaskState::Waiting
+    );
+    assert_eq!(
+        Fixture::record(f.run(&grants::get(&two)).unwrap()).state,
+        TaskState::Ready
+    );
+    f.store
+        .finish_provider_job(&first, "completed", Some("first-chat"), Some("Answer one"))
+        .unwrap();
+    let before = crate::Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store
+            .finish_provider_job(&first, "completed", Some("first-chat"), Some("Answer one"))
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
+    assert_eq!(
+        crate::Store::inspect_snapshot(f.store.path()).unwrap(),
+        before
+    );
 }
 #[test]
 fn queued_provider_effect_is_pending_and_only_recorded_completion_resolves_it() {

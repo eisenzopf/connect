@@ -267,21 +267,27 @@ impl Store {
         // An uncertain/failed conversational turn blocks subsequent turns until explicitly
         // resolved; otherwise chat context could silently lose the prior input.
         if self.connector(&r.connector)?.conversational && tx.query_row::<bool,_,_>("SELECT EXISTS(SELECT 1 FROM provider_jobs WHERE route_id=?1 AND state IN ('uncertain','failed'))",[&rid],|r|r.get(0)).map_err(|_|Error::storage())? {tx.execute("UPDATE provider_jobs SET state='blocked' WHERE id=?1",[&id]).map_err(|_|Error::storage())?;tx.commit().map_err(|_|Error::storage())?;return Ok(None);}
-        let previous_chat_id = tx
-            .query_row(
-                "SELECT chat_id FROM provider_context WHERE route_id=?1",
-                [&rid],
-                |r| r.get(0),
-            )
-            .optional()
-            .map_err(|_| Error::storage())?;
-        let context = crate::provider_chat_context::begin(
+        let (context, task_origin) = crate::provider_chat_context::begin(
             &tx,
             &credential,
             &r,
             &id,
             self.connector(&r.connector)?.conversational,
+            self,
         )?;
+        // Remote provider history is route-scoped, not grant-scoped. Task turns
+        // reconstruct only their authorized local projection, including retries.
+        let previous_chat_id = if task_origin {
+            None
+        } else {
+            tx.query_row(
+                "SELECT chat_id FROM provider_context WHERE route_id=?1",
+                [&rid],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|_| Error::storage())?
+        };
         tx.execute(
             "UPDATE provider_jobs SET state='sending' WHERE id=?1",
             [&id],
@@ -322,7 +328,15 @@ impl Store {
         }
         let r = route(&tx, &job.route.id)?;
         if let Some(body) = reply {
-            self.insert_provider_message(&tx, &r, body)?;
+            let actor = actor_from_connection(&tx, &r.credential_id)?;
+            actor.require("send")?;
+            let conversation = authorized_conversation(&tx, &actor, &r.conversation_id)?;
+            if !r.enabled || conversation.closed {
+                return Err(Error::forbidden());
+            }
+            if crate::tasks::provider_task_reply(&tx, &actor, &job.id, body, self)?.is_none() {
+                self.insert_provider_message(&tx, &r, body)?;
+            }
         }
         if state == "completed" && self.connector(&r.connector)?.conversational {
             let pid = provider_id

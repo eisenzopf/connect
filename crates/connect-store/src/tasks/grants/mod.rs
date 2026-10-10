@@ -159,3 +159,18 @@ pub(super) fn authorize_effect(
     };
     admission::authorize(c, &invocation, request, timestamp).map(|_| ())
 }
+
+/// Reconstruct the original invocation's context ceiling for provider dispatch.
+/// This view only narrows a clone; it never changes the persisted task policy.
+pub(super) fn effect_context_authority(
+    c: &Connection,
+    grant_id: &str,
+    timestamp: i64,
+) -> Result<(Actor, TaskRecord)> {
+    let row = rows::get(c, grant_id)?;
+    let (actor, mut task) = current(c, &row, &row.grant.binding, timestamp)?;
+    task.scope
+        .operations
+        .retain(|permission| row.grant.operations.contains(permission));
+    Ok((actor, task))
+}
