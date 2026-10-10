@@ -1,0 +1,93 @@
+{
+  "status": "Native task Session resource-binding component qualified; raw wire media and full Gate 4 remain open",
+  "recorded_at": "2026-10-10T18:16:39.014111+00:00",
+  "qualification": "Local macOS arm64, disposable stores and in-process service composition. Native media attachment is not enabled.",
+  "items": [
+    "G4-013"
+  ],
+  "source_base": "4f73784e673d717bac2226437894cb9edcbbe6a2",
+  "source_verification": {
+    "base_commit": "4f73784e673d717bac2226437894cb9edcbbe6a2",
+    "files": {
+      "crates/connect-service/src/lib.rs": "750b8cf6a67c352c61b3def0905a6b307a6110b3176d65e3389a115d8b54fbd4",
+      "crates/connect-service/src/session_binding_tests.rs": "bf9d73e22f120f0c355b020a9654ed81246aa89b3335e99ee09fa4f22f00ef57",
+      "crates/connect-service/src/session_bindings.rs": "ce5c6b216c7d33c36a8f7a54ed4b3f6a26813e9a1eed00e4692ef3486886b3ed",
+      "crates/connect-store/src/sessions.rs": "bfa0e87537a048e385b4772d99b61fe6e42b0072b0956b86281ee102eb64c9b5",
+      "crates/connect-store/src/tasks/grants/mod.rs": "0c05aaddc6d452d873f9594515e9820570e1d6ef31e5fe7e5f2ce020e2a16ab5",
+      "crates/connect-store/src/tasks/grants/native.rs": "e36ee58d1d25bda0c4bbe017bef6d17d859e9b8a69be19271d2579ee440d9f26",
+      "crates/connect-store/src/tasks/grants/native_resources.rs": "17ac379507d7669b5b7a691e019ae831c20d7efd27013f48c931f25fd0689c0f",
+      "crates/connect-store/src/tasks/tests/mod.rs": "03af6ec67b5f15be8ac52b87e83e34db19628184f9bf4e96fde2b793196b5bbc",
+      "crates/connect-store/src/tasks/tests/native_resource_boundaries.rs": "36e7048e9c8c410de29f49bcfb326d66967af9814756bbb34fddc4f210b2b0ff",
+      "crates/connect-store/src/tasks/tests/native_resource_fixture.rs": "00223d4f19c9c2029169d79cdf89bce3a1d2ae66bebf9d5df41b2c47cfb85af9",
+      "crates/connect-store/src/tasks/tests/native_resources.rs": "73b5ed21ec7050a5d865b621d38f5db8fe86a7866e5cc5597da1cb74a3bdaac0"
+    },
+    "fingerprint": "a69f74f17d89fdc0d67b1b63abe6c843866f42b982e64bee29e90c3e5eb40218"
+  },
+  "behavior": [
+    "Current Native grant/task/parent/membership and accepted-session checks share one SQLite read transaction.",
+    "Attachment requires SessionGet plus the participant role permission (SessionInvite for initiator, SessionAccept for invited participant), a permitted counterpart and a session effect link belonging to the exact task/conversation.",
+    "Read-only grants, unrelated or primitive sessions, another task/conversation, unknown IDs, wrong participant role and non-Native origins are denied.",
+    "Revocation, expiry, cancellation, narrowed parent authority, lost membership, conversation closure and session end deny subsequent resource authorization.",
+    "Store reopen and explicit same-task grant replacement preserve the session; revoked authority stays denied and no additional effect is created.",
+    "Service resolver validates the Native principal issuer, installation and expiry; canonical installation-scoped IDs, repeat authorization and existing owner projection are preserved.",
+    "Session binding moved into a focused service module; existing public export remains unchanged."
+  ],
+  "verification": [
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked --all-features --lib -p connect-store -p connect-service",
+      "exit_code": 0,
+      "passed": 132,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-4-planning/native-resources-component-final.log"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_native_grants --test gate3_media_authorization",
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-4-planning/native-resource-wire-regression.log"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-store -p connect-service --all-features --all-targets -- -D warnings",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/native-resource-clippy.log"
+    },
+    {
+      "command": "RUSTDOCFLAGS='-D warnings' CARGO_BUILD_JOBS=4 cargo doc --locked -p connect-store -p connect-service --all-features --no-deps",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/native-resource-rustdoc.log"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/native-resource-format.log"
+    }
+  ],
+  "retained_attempts": [
+    {
+      "result": "Initial resource fixture held the store mutex while calling the revocation API, deadlocking the test. Sample identified the nested lock; fixture fixed to hold connections only for direct SQL changes. Interrupted with exit 130, not counted as a pass.",
+      "diagnosis": ".local/gate-4-planning/native-resource-hang.sample"
+    },
+    {
+      "result": "Initial shell invocation lacked executable permission on preparation/format scripts. Build interrupted, then pinned source preparation and formatting rerun with bash before qualification."
+    }
+  ],
+  "open": [
+    "Per-envelope UCTP authorization and exact signaling/media/subscription/teardown checks before assigning any raw wire scopes to task principals.",
+    "Actual Native task-grant audio datagram/resource attachment and revocation/expiry/disconnect behavior qualification.",
+    "Native artifact byte attachment, full SDK parity, provider/host integration and remaining Gate 4 acceptance."
+  ],
+  "source_checkpoint": "7d6c1f98d2023599f703ef313c66b19edd0722e3",
+  "upstream_source_lock_sha256": "e1809e299073bb937a9e7113503ea32464e3aa887f8afa052006daaa8d39989f",
+  "related_evidence": [
+    "native-task-grants.json",
+    "task-media-authority.json"
+  ],
+  "limits": {
+    "scope": "135 component/regression tests; no current whole-workspace, installed package or actual task-grant media attestation. Existing Native principals still have only the Connect application scope.",
+    "unchanged": "No protocol/schema/dependency patch, provider operations, public ingress, deployment, Rudeless source extraction or Rudeless database change.",
+    "retained_warning": "Existing macOS debug linker __eh_frame section exceeds the compact unwind limit; recorded in wire regression log, not suppressed or performance-qualified."
+  }
+}
