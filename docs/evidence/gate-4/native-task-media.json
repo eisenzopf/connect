@@ -117,13 +117,14 @@
     }
   ],
   "pending": [
-    "Whole-workspace regression and strict Rustdoc on this frozen source.",
-    "Artifact byte qualification, full interface parity, bounded provider context, installed host, recovery/package/journey and full Gate 4 acceptance."
+    "Whole-workspace regression on the frozen bfa0865 source.",
+    "Full interface parity, bounded provider context, installed host, recovery/package/journey and full Gate 4 acceptance."
   ],
   "related_evidence": [
     "native-task-resources.json",
     "native-task-grants.json",
-    "task-media-authority.json"
+    "task-media-authority.json",
+    "native-task-artifacts.json"
   ],
   "limits": [
     "Existing macOS debug linker __eh_frame warning remains visible.",
