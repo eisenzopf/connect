@@ -1,0 +1,133 @@
+{
+  "item": "G4-012",
+  "status": "G4-012 qualified",
+  "recorded_at": "2026-10-10T23:29:38.863404+00:00",
+  "source_base": "f791c2a68900c2c399ae247c0f9d1611839649a1",
+  "source_files": {
+    "crates/connect-server/tests/gate4_sms_tasks.rs": "46b8bed093c74ecbae3f069220e6cae7235bcc72b4ee7863179d89e4f7445f84",
+    "crates/connect-server/tests/support/task_sms.rs": "8a943b748d4c4c5867779cf47636be9062d5d923aeb79b4337a120cd8edd141a"
+  },
+  "scope": "Local macOS arm64; public native QUIC task creation, protected grant/send/recall/replay, pinned Telnyx SDK and loopback API, trusted enrollment/control/final-delivery ingestion, real loopback SIP and fake Vapi media. No live accounts, signed callback ingress, carrier delivery or deployment.",
+  "requirements": [
+    {
+      "requirement": "Cancel/revoke/expiry invalidate delegated work and preserve authorized retained inspection",
+      "tests": [
+        "tasks::tests::grants::backing_revocation_and_task_cancel_invalidate_an_already_authenticated_handle",
+        "tasks::tests::effects::task_cancel_denies_even_matching_owner_replay_but_retains_effect_inspection",
+        "tasks::tests::media_authority",
+        "task_cancel_after_invite_reaches_the_peer_and_preserves_conversation",
+        "revocation_during_provider_attachment_prevents_context_export"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Task selects reviewed purpose and cannot borrow unrelated enrollment, route or stale authority",
+      "tests": [
+        "tasks::tests::sms_policy::task_dispatch_uses_its_selected_purpose_for_owner_and_invocation",
+        "tasks::tests::sms_policy::removal_and_stale_lease_cannot_fall_back_to_another_eligible_purpose",
+        "reviewed_task_sms_rechecks_stop_route_purpose_lease_and_cancel_before_dispatch"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "STOP stops queued SMS without closing unrelated task/conversation channels; START never revives cancelled effects or delegation",
+      "tests": [
+        "tasks::tests::sms_policy::stop_and_start_do_not_revive_the_old_effect_or_cancel_the_task",
+        "tasks::tests::sms_policy::start_cannot_restore_a_cancelled_sms_task_or_its_invocation",
+        "reviewed_task_sms_rechecks_stop_route_purpose_lease_and_cancel_before_dispatch"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Provider acceptance is not delivery; current authorized new send resolves only from recorded final delivery",
+      "tests": [
+        "reviewed_task_sms_rechecks_stop_route_purpose_lease_and_cancel_before_dispatch",
+        "tasks::tests::effect_providers::queued_provider_effect_is_pending_and_only_recorded_completion_resolves_it"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Failed admission/storage cannot acknowledge dispatch or consume retry intent",
+      "tests": [
+        "tasks::tests::sms_policy::sms_storage_failure_preserves_pending_job_without_dispatch_ack",
+        "tasks::tests::cancellation_budget::failed_cancellation_does_not_ack_or_consume_reservation_and_same_id_can_retry",
+        "tasks::tests::media_recovery"
+      ],
+      "status": "qualified in recorded scope"
+    }
+  ],
+  "checks": [
+    {
+      "log": ".local/gate-4-planning/reply-recovery-store.log",
+      "log_sha256": "f9d3bb38abd7e32352233c85039c3a07698e760b54c40d476831f15a25de8ddf",
+      "terminal_exit": 0,
+      "passed": 149,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-dispatch-media-current.log",
+      "log_sha256": "9ed4f2144e468390ad34e0d6e6320ee60fff3a35c601198d003021568fdb1dd0",
+      "terminal_exit": 0,
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-dispatch-revocation-current.log",
+      "log_sha256": "f782b85f59db0d8cb42e4ed4ade81ad7ad68e63d1792e7268fafff2350836003",
+      "terminal_exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-sms-public-wire-final.log",
+      "log_sha256": "f5c51920b251d7c5f17ca5b5c698a78d8687a6b9cac90f853bb6dc216ec2f0a4",
+      "terminal_exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-sms-public-clippy-final.log",
+      "log_sha256": "14dbd86221ceffe62795eb39d0af07e0da8b75948565333e9dfa66cc111d0757",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-sms-public-format-final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "terminal_exit": 0
+    }
+  ],
+  "total_behavior_passes": 153,
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/task-sms-public-wire.log",
+      "log_sha256": "ea6734b4aebaa1e4a5b9afbdb778984bb4ce910d24d922bb8712baeb6d18ce1f",
+      "terminal_exit": 101,
+      "result": "Fixture attempted to change an immutable route binding. The existing API correctly rejected it. Final test asserts conflict and an unchanged logical database snapshot, then disables the original route to prove queued dispatch observes current routing."
+    },
+    {
+      "log": ".local/gate-4-planning/task-sms-public-wire-corrected.log",
+      "log_sha256": "76beefdcbfc05c3306de789d6fbb9283d46d75f8d6d3cfbf786775302895b95a",
+      "terminal_exit": 101,
+      "result": "Fixture expected completion after API acceptance. Existing SMS semantics correctly stayed pending until final delivery. Final test asserts Pending, ingests one trusted final delivery plus its duplicate, then observes Completed with one API POST."
+    }
+  ],
+  "review": {
+    "production_changes": "None; existing Store-owned authority, immutable route, SMS policy, effect reconciliation and Worker dispatch boundaries are used. No undocumented dependency or transport changes.",
+    "test_lines": {
+      "crates/connect-server/tests/gate4_sms_tasks.rs": 196,
+      "crates/connect-server/tests/support/task_sms.rs": 165
+    },
+    "quality": "Strict server target Clippy and formatting pass on final test sources. Existing strict public production Rustdoc and Store/Service lint qualification remains applicable to unchanged production modules.",
+    "controls": "Authenticated authority/control ingestion is represented by trusted composition APIs; model-facing task arguments cannot enroll, renew or override consent. Tests distinguish native messages from SMS dispatch."
+  },
+  "not_claimed": [
+    "Actual signed SMS HTTP callback or carrier behavior (G4-028/G4-034)",
+    "First provider bootstrap or installed host/model use",
+    "Full A4-02/A4-06/T-A2/T-A7 integrated acceptance"
+  ],
+  "closure": "All G4-012 core dispatch requirements qualified after dependencies; whole Gate 4 remains active."
+}
