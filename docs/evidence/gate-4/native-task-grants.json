@@ -1,31 +1,124 @@
 {
-  "status": "Implementation in progress; final frozen-source qualification pending",
+  "status": "Native task-control component qualified; whole Gate 4 remains open",
+  "recorded_at": "2026-10-10T16:13:44.869386+00:00",
   "qualification": "Local macOS arm64, isolated account-free setup only",
   "items": [
     "G4-008",
     "G4-013",
-    "G4-014"
+    "G4-014",
+    "G4-016",
+    "G4-018"
   ],
-  "drafted": [
-    "Native-only signed task authentication with distinct transport principal",
-    "Current task facade dispatch on existing authenticated connections; no parent credential fallback",
-    "Explicit task-ID negotiation independent of directory/resolve permission",
-    "Python/TypeScript native and HTTP task-bound bootstrap; JSON CLI --task-id",
-    "Protected local Native SDK config export without the parent bearer"
+  "source_base": "aa26908d73919389ea166f6187ace6059c123195",
+  "source_checkpoint": "ca3139325003c94b5becb378581e16e3e5801d9d",
+  "source_verification": {
+    "files": 513,
+    "mismatches": 0,
+    "fingerprint": "ec8edcec228ae3bfb167da29a972ce563c46233f111ff735e259ce4c761afd80"
+  },
+  "behavior": [
+    "Signed registered Native grant authenticates a distinct application-only principal over actual UCTP/QUIC and HTTP. HostSession/provider kinds, corrupt bearer and wrong expected subject fail.",
+    "Current grant/task/parent checks apply to every command and accepted replay on existing peers. Matching fresh-grant replay returns the original result with one message; changed intent conflicts; cancellation, parent revocation and elapsed grant deny further use.",
+    "Exact task Get negotiation needs no directory/resolve permission. Wrong same-conversation task and failed bootstrap do not negotiate. Primitive operations cannot bypass the facade.",
+    "Five real language lanes (Python native/HTTP and TypeScript native/HTTP/browser), Rust and JSON CLI use only the intended Native bearer. SDK export is private, replaces the parent token and preserves existing files.",
+    "A valid raw voice invite is rejected with 403 insufficient-scope; Native grants inherit no parent session/data/subscription/WebRTC scope. Owner paths retain existing behavior."
   ],
-  "observed_checks": [
+  "verification": [
     {
-      "command": "cargo test --locked -p connect-server --all-features --test gate4_native_grants",
-      "result": "Initial two real-wire tests passed; final source not frozen yet",
-      "log": ".local/gate-4-planning/native-grant-wire-attempt-1.log"
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked --workspace --all-features",
+      "terminal_exit": 0,
+      "result": "322 passed; 0 failed; 1 ignored across 83 suite results",
+      "log": ".local/gate-4-planning/native-grant-workspace-final-3.log",
+      "log_sha256": "3788b595c4b72b2119ee2d94125fb8489fd390b3f5e27b2b6bc3de5205353c18"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked --workspace --all-features --all-targets -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/native-grant-clippy-final-3.log",
+      "log_sha256": "8a2bb46c078c0fc003ee6515c6e23db121aaa1b4151184be7ad97335e56be188"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 RUSTDOCFLAGS='-D warnings' cargo doc --locked --workspace --all-features --no-deps",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/native-grant-rustdoc-final-3.log",
+      "log_sha256": "8ce058bb071f10f48602600985d625e6cf0cfab51b1872dea9a8d62eb6fad94e"
+    },
+    {
+      "command": "PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p 'test_*.py'",
+      "terminal_exit": 0,
+      "result": "21 passed; zero failed",
+      "log": ".local/gate-4-planning/native-grant-python-final.log",
+      "log_sha256": "8103b0e6901fc998f03437b02a24e3628b76651264a702eafc75318a1f288c07"
+    },
+    {
+      "command": "node --test sdk/tests/*.test.mjs",
+      "terminal_exit": 0,
+      "result": "147 passed; zero failed",
+      "log": ".local/gate-4-planning/native-grant-node-final.log",
+      "log_sha256": "a864aaf08088761690b7ccbc0bc63b5ca0c334657485c525b09a155cb5fe28a9"
+    },
+    {
+      "command": "skill-creator/scripts/quick_validate.py skills/connect",
+      "terminal_exit": 0,
+      "result": "Skill structure valid; installed host behavior is not claimed",
+      "log": ".local/gate-4-planning/native-grant-skill-final.log",
+      "log_sha256": "db349825903d66adffea3ecf1bd8e1803043e8a71cf1a051235dabc5371f5bb0"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/native-grant-format-final-3.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "npm --prefix sdk/typescript run format:check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/native-grant-ts-format-final.log",
+      "log_sha256": "f17c3858caccd03c85616cc718a6d37a742c110df9a4249585573d6d52256f57"
+    },
+    {
+      "command": "python3 .local/gate-4-planning/validate-docs.py",
+      "terminal_exit": 0,
+      "result": "HTML links/anchors, stable IDs, 36-task dependency graph and acceptance mapping pass",
+      "log": ".local/gate-4-planning/native-grant-doc-links-final.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
     }
   ],
-  "pending": [
-    "Additional SDK/CLI parity and expiry/cancel/parent-revocation checks",
-    "Final frozen-source focused and compatibility checks",
-    "Code quality and documentation review",
-    "Scoped raw media/resource attachment",
-    "Remaining provider/host and whole Gate 4 acceptance"
+  "ignored": [
+    "test profile_one_and_four_concurrent_sessions_for_sixty_seconds ... ignored, Gate 3 qualification profile runs one and four sessions for 60 seconds each"
   ],
-  "recorded_at": "2026-10-10T14:53:23.658155+00:00"
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/native-grant-clippy-final.log",
+      "result": "Failed result_large_err in the bearer parser; corrected using the smaller Connect error at the HTTP boundary; no lint suppression"
+    },
+    {
+      "log": ".local/gate-4-planning/native-grant-clippy-final-2.log",
+      "result": "Failed service test compilation after validator extraction; explicit BearerValidator trait import restored"
+    },
+    {
+      "log": ".local/gate-4-planning/native-grant-workspace-final.log",
+      "result": "Stopped compilation after the shared parser fix invalidated the source snapshot; not a test pass"
+    },
+    {
+      "log": ".local/gate-4-planning/native-grant-workspace-final-2.log",
+      "result": "Test compilation reported the same missing trait import; stopped remaining compilation; not a test pass"
+    }
+  ],
+  "review": {
+    "new_production_modules": "Authentication 132 lines; authenticated dispatch 37; Native authority 76; local export 33. Store/service/client/server responsibilities preserved; public API docs supplied.",
+    "scope": "No database schema, dependency patch, Rudeless database, provider account, public ingress or remote deployment changes."
+  },
+  "remaining": [
+    "Scoped raw native media and HTTP artifact resource attachment",
+    "Native helper authentication/configuration/protocol error classification and expiry/reconnect parity",
+    "Full lifecycle/reply/recall/cancel and pending/uncertain matrix across SDK/MCP/provider/installed host",
+    "Durable public SDK runner and installed Codex continuation",
+    "Verified Vapi chat/call origins and context integration",
+    "Whole tool response deadline, integrated resource/recovery/upgrade/package and remaining Gate 4 acceptance"
+  ]
 }

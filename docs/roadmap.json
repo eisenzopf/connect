@@ -136,7 +136,7 @@
           "experiment": "E6 tool contract",
           "status": "in-progress",
           "evidence": "evidence/gate-4/task-access.json",
-          "qualification": "Local protected grant installation and independent MCP admission: frozen-source workspace 316 passed, zero failed, one existing long media pressure profile explicitly ignored; strict Clippy, formatting and Rustdoc passed. Earlier fixed-binding proof remains in mcp-adapter.json; the current component proof is in task-access.json. Workflow skill structure/JSON input checks passed. Native model-grant SDK support, whole tool-response deadlines, actual host/skill installation and Vapi chat/voice tool qualification remain open."
+          "qualification": "Native task-control and protected grant installation are locally qualified at source ca31393: full workspace 322 passed, zero failed, one existing optional media pressure profile ignored; strict Clippy, format and Rustdoc pass. Rust/Python/TypeScript/HTTP/CLI narrow-grant paths and current cancellation/revocation/expiry checks pass; see native-task-grants.json and task-access.json. Helper typed auth/error parity, scoped native media/artifact attachment, durable runner, whole tool-response deadlines, installed Codex continuation and verified Vapi tools remain open."
         },
         {
           "id": "G4-C",
