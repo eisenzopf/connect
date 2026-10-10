@@ -34,16 +34,20 @@ class NativeClient(Operations):
         if not (writers if writing else readers):
             raise TimeoutError()
 
-    def request(self, operation):
+    def request(self, operation, *, task_binding=None):
         expected = expected_kind(operation)
         exchange_id = str(uuid.uuid4())
-        line = json.dumps({"id": exchange_id, "operation": operation}).encode() + b"\n"
+        self._require_task_profile(operation, task_binding)
+        payload = {"id": exchange_id, "operation": operation}
+        if task_binding is not None:
+            payload["task_binding"] = task_binding
+        line = json.dumps(payload).encode() + b"\n"
         if len(line) > MAX_REQUEST:
             raise ConnectError("invalid-request", "Operation exceeds 64 KiB")
         with self._lock:
             if self._closed:
                 raise ConnectError("transport-uncertain", "Client closed; preserve logical request ID")
-            self._require_task_profile(operation)
+            self._require_task_profile(operation, task_binding)
             deadline = time.monotonic() + exchange_timeout(self._timeout, operation)
             try:
                 remaining = memoryview(line)

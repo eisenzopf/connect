@@ -5,6 +5,7 @@ mod authority;
 mod bindings;
 mod execution;
 mod issuance;
+mod native;
 mod rows;
 mod secret;
 use super::{authority as tasks, storage};
@@ -13,6 +14,7 @@ use connect_protocol::{
     tasks::{InvocationBinding, InvocationGrant, TaskRecord, TaskRequest},
     Error, Result,
 };
+pub use native::NativeTaskAuthority;
 use rusqlite::{Connection, TransactionBehavior};
 pub use secret::IssuedTaskGrant;
 

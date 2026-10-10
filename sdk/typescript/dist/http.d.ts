@@ -7,7 +7,7 @@ export declare class HttpClient extends Operations {
     private readonly baseUrl;
     private readonly timeoutMs;
     constructor(url: string, credential: string, timeoutMs?: number);
-    request(operation: Operation): Promise<Outcome>;
+    request(operation: Operation, taskBinding?: string): Promise<Outcome>;
     /** Upload one raw artifact chunk without base64 expansion. */
     uploadArtifactChunk(conversationId: string, artifactId: string, requestId: string, offset: number, data: Uint8Array): Promise<Outcome>;
     /** Download one raw artifact chunk with validated framing metadata. */

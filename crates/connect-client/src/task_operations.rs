@@ -3,6 +3,12 @@ use crate::{tasks as contract, ClientError, ConnectClient, Result};
 use connect_protocol::{Operation, Outcome};
 
 impl ConnectClient {
+    /// Negotiate the task profile by reading one explicitly bound task. This
+    /// requires no directory/resolve permission and cannot mint or widen a grant.
+    /// A matching authenticated record is required before later task requests.
+    pub async fn negotiate_task(&mut self, task_id: &str) -> Result<contract::TaskRecord> {
+        self.bootstrap_task(task_id).await
+    }
     /// Discover task support through an authorized participant's capabilities.
     /// This negotiates the profile only; each later command still checks current
     /// credential, task scope, membership, expiry and receipt authority.
@@ -26,11 +32,11 @@ impl ConnectClient {
         Ok(())
     }
 
-    /// Execute a typed command under this connection's backing credential.
-    /// Call [`Self::negotiate_tasks`] or inspect capabilities first. Mutation IDs
+    /// Execute a typed command under this connection's current credential/grant.
+    /// Call [`Self::negotiate_task`] or [`Self::negotiate_tasks`] first. Mutation IDs
     /// remain caller-owned across retry/reconnect; pending/uncertain is not success.
-    /// Narrow model invocation grants use the separately authenticated adapter
-    /// boundary, never an owner or binding argument on this method.
+    /// Native invocation grants retain their signed task binding; a command never
+    /// supplies an owner or promotes a host/provider origin.
     ///
     /// ```no_run
     /// # async fn inspect(client: &mut connect_client::ConnectClient, cid: &str, task_id: &str) -> connect_client::Result<()> {

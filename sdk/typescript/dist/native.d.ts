@@ -12,6 +12,6 @@ export declare class NativeClient extends Operations {
     constructor(config: string, executable?: string, timeoutMs?: number);
     private fail;
     private receive;
-    request(operation: Operation): Promise<Outcome>;
+    request(operation: Operation, taskBinding?: string): Promise<Outcome>;
     close(): Promise<void>;
 }

@@ -186,8 +186,11 @@ enum Command {
         #[arg(long)]
         config: PathBuf,
         /// Discover the task extension using this permitted Connect address.
-        #[arg(long)]
+        #[arg(long, conflicts_with = "task_id")]
         task_address: Option<String>,
+        /// Negotiate by reading this bound task without directory permission.
+        #[arg(long, conflicts_with = "task_address")]
+        task_id: Option<String>,
         /// Print the control response envelope for both success and rejection.
         #[arg(long)]
         envelope: bool,
@@ -569,10 +572,16 @@ async fn main() -> Result<()> {
         Command::Request {
             config,
             task_address,
+            task_id,
             envelope,
         } => {
-            connect_server::cli::request::execute(&config, task_address.as_deref(), envelope)
-                .await?;
+            connect_server::cli::request::execute(
+                &config,
+                task_address.as_deref(),
+                task_id.as_deref(),
+                envelope,
+            )
+            .await?;
         }
         Command::Revoke {
             config,

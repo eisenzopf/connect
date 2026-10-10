@@ -4,7 +4,7 @@ pub(crate) mod budget;
 mod claims;
 mod effects;
 mod grants;
-pub use grants::{IssuedTaskGrant, TaskInvocation};
+pub use grants::{IssuedTaskGrant, NativeTaskAuthority, TaskInvocation};
 mod inbox;
 mod lifecycle;
 mod native_reply;

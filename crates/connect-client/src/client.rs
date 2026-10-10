@@ -159,8 +159,35 @@ impl ConnectClient {
             .close(0u32.into(), b"exchange cancelled or timed out");
     }
     pub async fn request(&mut self, operation: Operation) -> Result<Outcome> {
+        self.request_inner(operation, false).await
+    }
+    pub(crate) async fn bootstrap_task(&mut self, task_id: &str) -> Result<tasks::TaskRecord> {
+        tasks::validate_task_identifier(task_id).map_err(ClientError::Application)?;
+        let outcome = self
+            .request_inner(
+                Operation::Task {
+                    request: Box::new(tasks::TaskRequest::new(tasks::TaskCommand::Get {
+                        task_id: task_id.into(),
+                    })),
+                },
+                true,
+            )
+            .await?;
+        let Outcome::Task(outcome) = outcome else {
+            return Err(ClientError::Protocol);
+        };
+        let tasks::TaskOutcome::Record(record) = *outcome else {
+            return Err(ClientError::Protocol);
+        };
+        if record.id != task_id {
+            return Err(ClientError::Protocol);
+        }
+        self.task_profile = true;
+        Ok(*record)
+    }
+    async fn request_inner(&mut self, operation: Operation, bootstrap: bool) -> Result<Outcome> {
         let wait = if let Operation::Task { request } = &operation {
-            if !self.task_profile {
+            if !self.task_profile && !bootstrap {
                 return Err(ClientError::Application(connect_protocol::Error::new(
                     "unsupported-profile",
                     "Discover connect-task/1 through capabilities before task requests",

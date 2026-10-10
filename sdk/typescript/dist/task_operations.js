@@ -1,6 +1,6 @@
 import { ConnectError } from "./errors.js";
-import { TASK_PROFILE } from "./tasks.js";
-/** Backing-credential task control. Narrow model grants use the protected adapter. */
+import { TASK_PROFILE, } from "./tasks.js";
+/** Explicit task negotiation under backing credentials or narrow Native grants. */
 export class TaskOperations {
     taskProfile = false;
     observeOutcome(outcome) {
@@ -9,7 +9,17 @@ export class TaskOperations {
                 outcome.data.extensions?.includes(TASK_PROFILE) ?? false;
         return outcome;
     }
-    requireTaskProfile(operation) {
+    requireTaskProfile(operation, taskBinding) {
+        if (taskBinding !== undefined) {
+            if (typeof taskBinding !== "string" ||
+                !/^[A-Za-z0-9_.:-]{1,128}$/.test(taskBinding) ||
+                operation.op !== "task" ||
+                operation.request.task_profile !== TASK_PROFILE ||
+                operation.request.command.action !== "get" ||
+                operation.request.command.task_id !== taskBinding)
+                throw new ConnectError("invalid-request", "Task bootstrap must read its exact bound task");
+            return;
+        }
         if (operation.op === "task" && !this.taskProfile)
             throw new ConnectError("unsupported-profile", "Discover connect-task/1 through capabilities before task requests");
     }
@@ -23,6 +33,22 @@ export class TaskOperations {
         this.observeOutcome(outcome);
         if (!this.taskProfile)
             throw new ConnectError("unsupported-profile", "Server does not advertise connect-task/1");
+    }
+    /** Read one bound task without directory permission or authority issuance. */
+    async negotiateTask(taskId) {
+        const outcome = await this.request({
+            op: "task",
+            request: {
+                task_profile: TASK_PROFILE,
+                command: { action: "get", task_id: taskId },
+            },
+        }, taskId);
+        if (outcome.kind !== "task" ||
+            outcome.data.kind !== "record" ||
+            outcome.data.data.id !== taskId)
+            throw new ConnectError("protocol", "Task bootstrap returned a different task");
+        this.taskProfile = true;
+        return outcome.data.data;
     }
     /** Persist mutation IDs and inputs across uncertainty. Pending is not completion. */
     async task(command) {

@@ -6,11 +6,13 @@
 mod access;
 mod lifecycle;
 mod models;
+mod principal;
 mod request;
 mod validation;
 pub use access::*;
 pub use lifecycle::{EffectState, TaskState};
 pub use models::*;
+pub use principal::{task_grant_id, task_grant_subject, TASK_PRINCIPAL_PREFIX};
 pub use request::{TaskCommand, TaskRequest};
 
 /// Required task extension profile inside the existing control application.

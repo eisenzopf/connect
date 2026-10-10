@@ -80,6 +80,15 @@ native UCTP/QUIC connection or the explicit HTTP facade. Discover support with
 the advertised extension returns `unsupported-profile`; ordinary operations
 remain usable. A new native connection needs discovery again.
 
+A Native model grant can negotiate its exact bound task without directory
+permission: call `negotiate_task(task_id)` / `negotiateTask(taskId)`. Use the
+protected SDK configuration exported by `connect task-access export-native`;
+HTTP clients receive only that Native bearer. See [installation](../docs/TASK_ACCESS.md).
+Model communication goes through task Invoke, not primitive operations or an
+owner fallback. Host/provider grants are not native credentials; raw media and
+artifact HTTP permissions are not inherited. The server rechecks current task,
+grant and parent authority on each command and replay.
+
 Use `task(command)` with the typed command union. The result distinguishes task
 records, inbox/reply/recall pages, effects, step claims and tool results.
 `pending` means the task has more work; `uncertain` means the effect requires

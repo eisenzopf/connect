@@ -6,7 +6,7 @@ export declare class BrowserHttpClient extends Operations {
     private readonly baseUrl;
     private readonly timeoutMs;
     constructor(url: string, credential: string, timeoutMs?: number);
-    request(operation: Operation): Promise<Outcome>;
+    request(operation: Operation, taskBinding?: string): Promise<Outcome>;
     uploadArtifactChunk(conversationId: string, artifactId: string, requestId: string, offset: number, data: Uint8Array): Promise<Outcome>;
     downloadArtifactChunk(conversationId: string, artifactId: string, offset: number, limit: number): Promise<{
         data: Uint8Array;

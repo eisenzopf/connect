@@ -78,16 +78,20 @@ export class NativeClient extends Operations {
             }
         }
     }
-    request(operation) {
+    request(operation, taskBinding) {
         const next = this.chain.then(() => new Promise((resolve, reject) => {
             if (this.closed) {
                 reject(new ConnectError("transport-uncertain", "Client closed"));
                 return;
             }
-            this.requireTaskProfile(operation);
+            this.requireTaskProfile(operation, taskBinding);
             const expected = expectedKind(operation);
             const id = randomUUID();
-            const line = JSON.stringify({ id, operation }) + "\n";
+            const line = JSON.stringify({
+                id,
+                operation,
+                task_binding: taskBinding,
+            }) + "\n";
             if (Buffer.byteLength(line) > MAX_REQUEST) {
                 reject(new ConnectError("invalid-request", "Operation exceeds 64 KiB"));
                 return;

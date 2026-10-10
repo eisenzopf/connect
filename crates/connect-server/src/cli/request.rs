@@ -14,9 +14,10 @@ const MAX_INPUT: u64 = 65_536;
 pub async fn execute(
     path: &Path,
     task_address: Option<&str>,
+    task_id: Option<&str>,
     envelope: bool,
 ) -> anyhow::Result<()> {
-    let result = exchange(path, task_address).await;
+    let result = exchange(path, task_address, task_id).await;
     let rejected = result.is_err();
     let bytes = if envelope {
         serde_json::to_vec(&Response {
@@ -37,7 +38,11 @@ pub async fn execute(
     Ok(())
 }
 
-async fn exchange(path: &Path, task_address: Option<&str>) -> Result<Outcome, Error> {
+async fn exchange(
+    path: &Path,
+    task_address: Option<&str>,
+    task_id: Option<&str>,
+) -> Result<Outcome, Error> {
     let mut bytes = Vec::new();
     tokio::io::stdin()
         .take(MAX_INPUT + 1)
@@ -56,16 +61,20 @@ async fn exchange(path: &Path, task_address: Option<&str>) -> Result<Outcome, Er
     let mut client = ConnectClient::open(config).await.map_err(client_error)?;
     let result = async {
         if matches!(operation, Operation::Task { .. }) {
-            let address = task_address.ok_or_else(|| {
-                Error::new(
-                    "unsupported-profile",
-                    "Task request requires --task-address for capability discovery",
-                )
-            })?;
-            client
-                .negotiate_tasks(address, operation.conversation_id())
-                .await
-                .map_err(client_error)?;
+            if let Some(task_id) = task_id {
+                client.negotiate_task(task_id).await.map_err(client_error)?;
+            } else {
+                let address = task_address.ok_or_else(|| {
+                    Error::new(
+                        "unsupported-profile",
+                        "Task request requires --task-address or --task-id for explicit discovery",
+                    )
+                })?;
+                client
+                    .negotiate_tasks(address, operation.conversation_id())
+                    .await
+                    .map_err(client_error)?;
+            }
         }
         client.request(operation).await.map_err(client_error)
     }

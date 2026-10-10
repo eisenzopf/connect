@@ -23,8 +23,8 @@ class HttpClient(Operations):
         self._credential = credential
         self._timeout = timeout_value(timeout)
 
-    def request(self, operation):
-        self._require_task_profile(operation)
+    def request(self, operation, *, task_binding=None):
+        self._require_task_profile(operation, task_binding)
         expected = expected_kind(operation)
         body = json.dumps(operation).encode()
         if len(body) > MAX_REQUEST - 1:

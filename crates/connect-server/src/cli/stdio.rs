@@ -1,6 +1,9 @@
 //! Bounded JSON-lines bridge to the native QUIC SDK, for language adapters.
 use connect_client::{ClientConfig, ClientError, ConnectClient};
-use connect_protocol::{Error, Operation, Response, PROFILE};
+use connect_protocol::{
+    tasks::{TaskCommand, TaskOutcome},
+    Error, Operation, Outcome, Response, PROFILE,
+};
 use serde::Deserialize;
 use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -9,6 +12,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 struct Input {
     id: String,
     operation: Operation,
+    #[serde(default)]
+    task_binding: Option<String>,
 }
 pub async fn serve(path: &Path) -> anyhow::Result<()> {
     let mut client = ConnectClient::open(ClientConfig::load(path)?).await?;
@@ -39,7 +44,29 @@ pub async fn serve(path: &Path) -> anyhow::Result<()> {
             !value.id.is_empty() && value.id.len() <= 128,
             "Invalid exchange ID"
         );
-        let result = client.request(value.operation).await.map_err(|e| match e {
+        let result = if let Some(task_id) = value.task_binding {
+            let exact_get = match &value.operation {
+                Operation::Task { request } => {
+                    request.task_profile == connect_protocol::tasks::TASK_PROFILE
+                        && matches!(&request.command, TaskCommand::Get { task_id: id } if id == &task_id)
+                }
+                _ => false,
+            };
+            if !exact_get {
+                Err(ClientError::Application(Error::new(
+                    "invalid-request",
+                    "Task bootstrap must read its exact bound task",
+                )))
+            } else {
+                client
+                    .negotiate_task(&task_id)
+                    .await
+                    .map(|record| Outcome::Task(Box::new(TaskOutcome::Record(Box::new(record)))))
+            }
+        } else {
+            client.request(value.operation).await
+        };
+        let result = result.map_err(|e| match e {
             ClientError::Application(error) => error,
             _ => Error::new(
                 "transport-uncertain",

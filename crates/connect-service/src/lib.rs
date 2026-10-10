@@ -4,24 +4,23 @@ use connect_protocol::{
     Error, Operation, Outcome, Request, Response, Result, PROFILE, REQUEST_TYPE, REQUIRED_SCOPE,
     RESULT_TYPE,
 };
-use connect_store::{Actor, Store};
-use rvoip_auth_core::{BearerAuthError, BearerValidator};
+use connect_store::Store;
 use rvoip_core::{
-    ids::{ConversationId, IdentityId, ParticipantId, SessionId, TenantId},
+    ids::{ConversationId, ParticipantId, SessionId, TenantId},
     session::SessionMedium,
-    AuthenticatedPrincipal, IdentityAssurance, Orchestrator,
+    AuthenticatedPrincipal, Orchestrator,
 };
 use rvoip_uctp::{
     application::{ApplicationContext, ApplicationError, ApplicationHandler},
     envelope::UctpEnvelope,
-    state::{
-        ResourceBindingError, SessionBindingResolver, UCTP_DATA_SCOPE, UCTP_SESSION_SCOPE,
-        UCTP_SUBSCRIBE_SCOPE,
-    },
+    state::{ResourceBindingError, SessionBindingResolver},
     types::MessageType,
 };
 use std::sync::Arc;
 
+mod authenticated_operations;
+mod authentication;
+pub use authentication::StoreValidator;
 pub mod readiness;
 pub mod tasks;
 
@@ -148,7 +147,8 @@ impl ApplicationHandler for Service {
                     let exchange_ref = diagnostic_ref(&envelope.id);
                     let logical_ref = operation.request_id().map(diagnostic_ref);
                     let credential_ref = diagnostic_ref(&context.principal.subject);
-                    let execution = self.execute(context.principal.subject, operation.clone());
+                    let execution =
+                        self.execute_authenticated(context.principal, operation.clone());
                     let waiting = matches!(operation, Operation::Inbox { .. })
                         || matches!(&operation, Operation::Task { request } if request.command.wait_ms().is_some());
                     let result = if waiting {
@@ -196,60 +196,6 @@ impl ApplicationHandler for Service {
 fn diagnostic_ref(value: &str) -> String {
     use sha2::{Digest, Sha256};
     hex::encode(Sha256::digest(value.as_bytes()))[..16].to_owned()
-}
-
-pub struct StoreValidator {
-    store: Arc<Store>,
-    route_credential: Option<String>,
-}
-impl StoreValidator {
-    pub fn new(store: Arc<Store>) -> Arc<Self> {
-        Arc::new(Self {
-            store,
-            route_credential: None,
-        })
-    }
-    /// Accept only the credential selected for an administrator-configured
-    /// WebRTC route; other valid installation credentials cannot assume it.
-    pub fn for_credential(store: Arc<Store>, credential_id: String) -> Arc<Self> {
-        Arc::new(Self {
-            store,
-            route_credential: Some(credential_id),
-        })
-    }
-    fn principal(
-        &self,
-        actor: Actor,
-    ) -> std::result::Result<AuthenticatedPrincipal, BearerAuthError> {
-        let expires_at = chrono::DateTime::from_timestamp(actor.expires_at, 0)
-            .ok_or_else(|| BearerAuthError::Invalid("expiry".into()))?;
-        let mut scopes = vec![REQUIRED_SCOPE.into()];
-        if actor.permits("session_get") {
-            scopes.extend(
-                [
-                    UCTP_SESSION_SCOPE,
-                    UCTP_DATA_SCOPE,
-                    UCTP_SUBSCRIBE_SCOPE,
-                    "webrtc:connect",
-                ]
-                .map(str::to_owned),
-            );
-        }
-        let mut principal = AuthenticatedPrincipal::from_assurance(IdentityAssurance::TaskScoped {
-            identity: IdentityId::from_string(actor.identity_id),
-            task_id: "connect-credential".into(),
-            scopes,
-            expires_at,
-        });
-        principal.subject = actor.credential_id;
-        principal.tenant = Some(
-            self.store
-                .installation_id()
-                .map_err(|_| BearerAuthError::Unavailable("storage".into()))?,
-        );
-        principal.issuer = Some("connect-local".into());
-        Ok(principal)
-    }
 }
 
 /// Maps an authenticated UCTP wire Session to one durable Connect Session.
@@ -385,40 +331,6 @@ impl SessionBindingResolver for StoreSessionBindingResolver {
         }
     }
 }
-#[async_trait]
-impl BearerValidator for StoreValidator {
-    async fn validate(
-        &self,
-        token: &str,
-    ) -> std::result::Result<IdentityAssurance, BearerAuthError> {
-        Ok(self.validate_principal(token).await?.assurance)
-    }
-    async fn validate_principal(
-        &self,
-        token: &str,
-    ) -> std::result::Result<AuthenticatedPrincipal, BearerAuthError> {
-        let store = self.store.clone();
-        let token = token.to_owned();
-        let actor = tokio::task::spawn_blocking(move || store.authenticate(&token))
-            .await
-            .map_err(|_| BearerAuthError::Unavailable("storage".into()))?
-            .map_err(|e| {
-                if e.code == "storage-unavailable" {
-                    BearerAuthError::Unavailable("storage".into())
-                } else {
-                    BearerAuthError::Invalid("credential".into())
-                }
-            })?;
-        if self
-            .route_credential
-            .as_ref()
-            .is_some_and(|credential| credential != &actor.credential_id)
-        {
-            return Err(BearerAuthError::Invalid("route credential".into()));
-        }
-        self.principal(actor)
-    }
-}
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)] // Panics are deliberate assertions in these fixtures.
@@ -426,6 +338,7 @@ mod tests {
     use super::*;
     use connect_protocol::Limits;
     use connect_store::Scope;
+    use rvoip_auth_core::BearerValidator;
     #[tokio::test]
     async fn inbox_wait_is_bounded_and_cancelled_with_physical_peer() {
         let dir = tempfile::tempdir().unwrap();

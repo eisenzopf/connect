@@ -14,6 +14,9 @@ use transport::{exchange, validate_address};
 
 const MAX_BYTES: usize = 65_536;
 
+mod export;
+pub use export::export_native;
+
 /// Protected local installation state. Pending intent survives a lost response;
 /// only this intended credential file contains the issued bearer plaintext.
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,14 +50,7 @@ pub async fn issue(config: &Path, address: SocketAddr, input: &Path, output: &Pa
 /// Reconcile the original protected issuance. Does not invent an ID or extend
 /// its lifetime. Refresh is an explicit new issue under current backing authority.
 pub async fn resume(config: &Path, address: SocketAddr, output: &Path) -> Result<()> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        anyhow::ensure!(
-            std::fs::symlink_metadata(output)?.permissions().mode() & 0o077 == 0,
-            "Grant file must have private permissions"
-        );
-    }
+    require_private(output)?;
     let mut file: GrantFile = serde_json::from_slice(&read_bounded(output)?)
         .map_err(|_| anyhow::anyhow!("Invalid protected grant file"))?;
     anyhow::ensure!(
@@ -87,6 +83,18 @@ pub async fn resume(config: &Path, address: SocketAddr, output: &Path) -> Result
     Ok(())
 }
 
+pub(super) fn require_private(output: &Path) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        anyhow::ensure!(
+            std::fs::symlink_metadata(output)?.permissions().mode() & 0o077 == 0,
+            "Grant file must have private permissions"
+        );
+    }
+    Ok(())
+}
+
 /// Explicit developer revocation; does not cancel the task or conversation.
 pub async fn revoke(config: &Path, address: SocketAddr, grant_id: &str) -> Result<()> {
     let request = TaskAccessRequest::new(TaskAccessCommand::Revoke {
@@ -110,7 +118,7 @@ fn report(grant: &ProtectedTaskGrant, status: &str) {
         serde_json::json!({"grant_id":grant.grant.id,"task_id":grant.grant.task_id,"expires_at":grant.grant.expires_at,"status":status})
     );
 }
-fn read_bounded(path: &Path) -> Result<Vec<u8>> {
+pub(super) fn read_bounded(path: &Path) -> Result<Vec<u8>> {
     use std::io::Read;
     let metadata = std::fs::symlink_metadata(path)?;
     anyhow::ensure!(
@@ -125,7 +133,7 @@ fn read_bounded(path: &Path) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
-fn validate_grant(
+pub(super) fn validate_grant(
     grant: &ProtectedTaskGrant,
     definition: &connect_protocol::tasks::GrantDefinition,
 ) -> Result<()> {

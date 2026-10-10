@@ -42,7 +42,7 @@ pub use identity::{Actor, IssuedCredential, Scope};
 pub use recovery::Snapshot;
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
 pub use sip_legs::{SipLegAction, SipLegJob};
-pub use tasks::{IssuedTaskGrant, TaskInvocation};
+pub use tasks::{IssuedTaskGrant, NativeTaskAuthority, TaskInvocation};
 pub const SCHEMA_VERSION: u32 = 14;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 

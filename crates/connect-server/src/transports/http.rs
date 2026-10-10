@@ -189,10 +189,19 @@ pub(super) async fn authenticated_credential(
     state: &HttpState,
     headers: &HeaderMap,
 ) -> Result<String, Response> {
+    let token = bearer_token(headers).map_err(|value| error(StatusCode::UNAUTHORIZED, value))?;
+    let store = state.service.store.clone();
+    match tokio::task::spawn_blocking(move || store.authenticate(&token)).await {
+        Ok(Ok(actor)) => Ok(actor.credential_id),
+        _ => Err(error(StatusCode::UNAUTHORIZED, Error::unauthorized())),
+    }
+}
+
+fn bearer_token(headers: &HeaderMap) -> Result<String, Error> {
     let mut values = headers.get_all(header::AUTHORIZATION).iter();
     let value = values.next();
     if values.next().is_some() {
-        return Err(error(StatusCode::UNAUTHORIZED, Error::unauthorized()));
+        return Err(Error::unauthorized());
     }
     let Some(token) = value
         .and_then(|value| value.to_str().ok())
@@ -200,13 +209,29 @@ pub(super) async fn authenticated_credential(
         .filter(|value| !value.is_empty() && value.len() <= 2048 && value.is_ascii())
         .map(str::to_owned)
     else {
-        return Err(error(StatusCode::UNAUTHORIZED, Error::unauthorized()));
+        return Err(Error::unauthorized());
     };
-    let store = state.service.store.clone();
-    match tokio::task::spawn_blocking(move || store.authenticate(&token)).await {
-        Ok(Ok(actor)) => Ok(actor.credential_id),
-        _ => Err(error(StatusCode::UNAUTHORIZED, Error::unauthorized())),
+    Ok(token)
+}
+
+async fn authenticated_application(
+    state: &HttpState,
+    headers: &HeaderMap,
+) -> Result<rvoip_core::AuthenticatedPrincipal, Response> {
+    use rvoip_auth_core::BearerValidator;
+    let token = bearer_token(headers).map_err(|value| error(StatusCode::UNAUTHORIZED, value))?;
+    let principal = connect_service::StoreValidator::new(state.service.store.clone())
+        .validate_principal(&token)
+        .await
+        .map_err(|_| error(StatusCode::UNAUTHORIZED, Error::unauthorized()))?;
+    if principal
+        .subject
+        .starts_with(connect_protocol::tasks::TASK_PRINCIPAL_PREFIX)
+        && (headers.contains_key("x-call-id") || headers.contains_key("x-chat-id"))
+    {
+        return Err(error(StatusCode::FORBIDDEN, Error::forbidden()));
     }
+    Ok(principal)
 }
 
 async fn operation(
@@ -220,11 +245,14 @@ async fn operation(
             Error::new("capacity-exceeded", "HTTP concurrency limit reached"),
         );
     };
-    let credential = match authenticated_credential(&state, &headers).await {
+    let credential = match authenticated_application(&state, &headers).await {
         Ok(value) => value,
         Err(response) => return response,
     };
-    let result = state.service.execute(credential, operation).await;
+    let result = state
+        .service
+        .execute_authenticated(credential, operation)
+        .await;
     let status = match &result {
         Err(value) if value.code == "unauthorized" => StatusCode::UNAUTHORIZED,
         Err(value) if value.code == "forbidden" => StatusCode::FORBIDDEN,

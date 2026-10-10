@@ -5,6 +5,15 @@ use std::path::PathBuf;
 /// Protected task installation, explicit recovery and revocation commands.
 #[derive(Subcommand)]
 pub enum Command {
+    /// Export a Native grant into a fresh private SDK config; never refreshes it.
+    ExportNative {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        grant_file: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+    },
     Issue {
         #[arg(long)]
         config: PathBuf,
@@ -36,6 +45,11 @@ impl Command {
     /// Execute through the bounded loopback exchange and protected files.
     pub async fn execute(self) -> anyhow::Result<()> {
         match self {
+            Self::ExportNative {
+                config,
+                grant_file,
+                output,
+            } => super::export_native(&config, &grant_file, &output),
             Self::Issue {
                 config,
                 http_address,

@@ -69,5 +69,6 @@ the authorized developer/runner; no model task-cancel tool is currently exposed.
 
 If tools are missing, report the missing Connect installation. For a developer
 explicitly using the native JSON CLI, read [references/json-cli.md](references/json-cli.md).
-The CLI's backing credential and the MCP invocation grant are distinct in the
-current implementation; this fallback does not silently exchange them.
+Use only a developer-installed Native task-grant configuration for that fallback.
+HostSession/provider MCP grants need their own adapters; missing tools do not
+authorize an owner credential or a different task.

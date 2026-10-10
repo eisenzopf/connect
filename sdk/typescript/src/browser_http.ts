@@ -36,8 +36,11 @@ export class BrowserHttpClient extends Operations {
         this.timeoutMs = timeoutValue(timeoutMs);
     }
 
-    async request(operation: Operation): Promise<Outcome> {
-        this.requireTaskProfile(operation);
+    async request(
+        operation: Operation,
+        taskBinding?: string,
+    ): Promise<Outcome> {
+        this.requireTaskProfile(operation, taskBinding);
         const expected = expectedKind(operation);
         const body = JSON.stringify(operation);
         if (new TextEncoder().encode(body).byteLength > MAX_REQUEST - 1)

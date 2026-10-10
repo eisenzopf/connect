@@ -70,12 +70,42 @@ connect task-access revoke --config .local/install/developer.toml \
   --http-address 127.0.0.1:8194 --grant-id REPLACE_WITH_GRANT_ID
 ```
 
-The exported bearer connects an independently installed task to `/mcp` on the
-MCP port. Another task has its own grant on the same server; revoking one does
-not grant or revoke authority for the other. The current native SDK continues
-to use its declared backing credential contract. It does not yet accept these
-model grants as native credentials. The actual host installer and continuation
-journey remain tracked in the [Gate 4 plan](connect-gate-4-implementation.html).
+The exported bearer connects its installed task to `/mcp` on the MCP port.
+Another task has its own grant; revoking one does not change another's authority.
+The actual host installer and continuation journey remain tracked in the
+[Gate 4 plan](connect-gate-4-implementation.html).
+
+## Native SDK and JSON CLI
+
+For native SDK use, issue a binding with `"kind": "native"`. HostSession and
+provider grants cannot be converted into native SDK authority. Export the issued
+file into a fresh private client configuration:
+
+```sh
+connect task-access export-native --config .local/install/developer.toml \
+  --grant-file .local/native-grant.json --output .local/model.toml
+connect request --config .local/model.toml --task-id TASK_ID \
+  --envelope < .local/task-request.json
+```
+
+Export replaces the parent token with the Native bearer, retains the local endpoint,
+trust material and identity metadata, and preserves existing output files. This
+local conversion never contacts the server, refreshes a grant or proves it is current.
+The server checks expiry, revocation, task and parent authority on authentication,
+each task command and replay. Keep the grant file and exported config private.
+
+Rust can build the same intended protected configuration with
+`ClientConfig::with_task_grant(&protected_grant)`. Give Python/TypeScript NativeClient
+that configuration path; explicit HTTP clients receive only the Native bearer.
+Call `negotiate_task(task_id)` / `negotiateTask(taskId)` before task commands; this
+reads the exact bound task without requiring directory/resolve permission.
+
+Native grants enter the task facade: use `task(Invoke { ... })` for permitted
+communication operations. An unwrapped `send`, history read or administrator
+operation cannot borrow the parent's permissions. Keep logical mutation IDs and
+inputs across reconnect/refresh; replay cannot revive cancelled or uncertain work.
+Raw native media attachment and HTTP artifact routes are not inherited from the
+parent credential and remain separate qualification work.
 
 [Protected exchange contract](../contracts/connect-task-access-v1.md) ·
 [Task contract](../contracts/connect-task-v1.md)

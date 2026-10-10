@@ -221,3 +221,24 @@ authorized history; automatic summaries, pinned-fact retrieval and perfect
 ASR/model spelling are not claimed. A voice transcript can render a written
 name phonetically; both sources retain their attribution. See the
 [continuity evidence](evidence/gate-3/autonomous-continuity.json).
+
+## Native task grants
+
+Use a signed Native invocation grant through the same UCTP/QUIC task facade.
+`ClientConfig::with_task_grant` replaces the parent token; the developer-only
+`connect task-access export-native` produces a private language-helper/CLI config.
+See [protected installation](TASK_ACCESS.md) for the actual command sequence.
+
+Negotiate one explicit task with Rust/Python `negotiate_task(task_id)` or
+TypeScript `negotiateTask(taskId)`. Unlike directory capability discovery, this
+requires no resolve permission. A matching task record is required before later
+task commands. The JSON CLI uses `--task-id`; it retains `--task-address` for
+capability discovery under a permitted backing credential.
+
+A Native model grant admits task commands under its current stored binding;
+communication uses `TaskCommand::Invoke`. Primitive control, administrator,
+raw artifact HTTP and raw media signaling do not inherit parent authority.
+Host/provider grants require their own admission. Revocation, expiry, cancellation
+and backing-credential changes are checked even on already authenticated peers
+and accepted-operation replay. This is task control, not yet qualified Native
+model media attachment or installed-host/provider tool support.

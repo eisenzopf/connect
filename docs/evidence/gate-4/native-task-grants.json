@@ -1,0 +1,31 @@
+{
+  "status": "Implementation in progress; final frozen-source qualification pending",
+  "qualification": "Local macOS arm64, isolated account-free setup only",
+  "items": [
+    "G4-008",
+    "G4-013",
+    "G4-014"
+  ],
+  "drafted": [
+    "Native-only signed task authentication with distinct transport principal",
+    "Current task facade dispatch on existing authenticated connections; no parent credential fallback",
+    "Explicit task-ID negotiation independent of directory/resolve permission",
+    "Python/TypeScript native and HTTP task-bound bootstrap; JSON CLI --task-id",
+    "Protected local Native SDK config export without the parent bearer"
+  ],
+  "observed_checks": [
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate4_native_grants",
+      "result": "Initial two real-wire tests passed; final source not frozen yet",
+      "log": ".local/gate-4-planning/native-grant-wire-attempt-1.log"
+    }
+  ],
+  "pending": [
+    "Additional SDK/CLI parity and expiry/cancel/parent-revocation checks",
+    "Final frozen-source focused and compatibility checks",
+    "Code quality and documentation review",
+    "Scoped raw media/resource attachment",
+    "Remaining provider/host and whole Gate 4 acceptance"
+  ],
+  "recorded_at": "2026-10-10T14:53:23.658155+00:00"
+}

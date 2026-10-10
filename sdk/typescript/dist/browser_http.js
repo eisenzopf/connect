@@ -21,8 +21,8 @@ export class BrowserHttpClient extends Operations {
         this.baseUrl = url.replace(/\/$/, "");
         this.timeoutMs = timeoutValue(timeoutMs);
     }
-    async request(operation) {
-        this.requireTaskProfile(operation);
+    async request(operation, taskBinding) {
+        this.requireTaskProfile(operation, taskBinding);
         const expected = expectedKind(operation);
         const body = JSON.stringify(operation);
         if (new TextEncoder().encode(body).byteLength > MAX_REQUEST - 1)

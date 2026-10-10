@@ -10,14 +10,32 @@ typed task outcome inside `data`. Capabilities advertise the task profile throug
 client discovers this feature with `negotiate_tasks(address, conversation_id)`
 or a capabilities query before sending typed `task(command)` requests.
 
-This native entry point uses the authenticated backing credential and the shared
-task facade. It cannot mint a grant, select an owner, register an external origin
-or supply a verified invocation binding. Narrow model invocations use the separately
-authenticated adapter boundary. Negotiation describes server support and never
-expands credential permissions. Task wait calls receive their bounded requested
-wait plus the configured client exchange budget; malformed wait durations cannot
-expand that budget beyond the ten-second task limit. Other control exchanges
-retain their existing timeout behavior.
+Native/HTTP entry points accept backing credentials for developer/controller
+operations and signed registered Native grants for model task operations. A Native
+grant authenticates as `connect-task-grant:<grant UUID>`, distinct from its parent
+credential; the service reconstructs its private invocation only from the trusted
+principal and rechecks current task/parent/grant authority in the command transaction.
+It admits only `Operation::Task`; ordinary primitive operations do not bypass the
+task facade. HostSession and provider grants use their separately verified adapters.
+Neither entry point can mint a grant, select an owner or register an external origin.
+
+For a narrow grant without directory permission, use `negotiate_task(task_id)` in
+Rust/Python or `negotiateTask(taskId)` in TypeScript. This sends a versioned Get for
+one explicit task and requires a matching record before further task requests.
+Capability discovery remains supported for backing credentials. Failed discovery
+cannot negotiate; negotiation never widens authority. Native language helpers carry
+explicit `task_binding` only with that exact versioned Get. The JSON CLI accepts
+`--task-id` or the existing `--task-address`, mutually exclusively.
+
+Raw UCTP session/data/subscription scopes are not inherited from a grant's parent.
+Existing owner media paths retain their declared permissions. Native model media
+attachment and raw HTTP artifact transfer need their own resource-bound qualification;
+this task-control boundary does not claim those capabilities. Task-wrapped declared
+communication/artifact operations still check the grant ceiling and effect ledger.
+
+Task waits receive their bounded requested wait plus the configured client exchange
+budget; malformed waits cannot expand that addition beyond ten seconds. Other
+control exchanges retain their existing timeout behavior.
 Old control commands retain their behavior and authority. Unknown profile/action
 or claimed owner/binding fields fail before admission.
 

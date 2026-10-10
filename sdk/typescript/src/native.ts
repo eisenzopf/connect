@@ -101,7 +101,7 @@ export class NativeClient extends Operations {
             }
         }
     }
-    request(operation: Operation): Promise<Outcome> {
+    request(operation: Operation, taskBinding?: string): Promise<Outcome> {
         const next = this.chain.then(
             () =>
                 new Promise<Outcome>((resolve, reject) => {
@@ -114,10 +114,15 @@ export class NativeClient extends Operations {
                         );
                         return;
                     }
-                    this.requireTaskProfile(operation);
+                    this.requireTaskProfile(operation, taskBinding);
                     const expected = expectedKind(operation);
                     const id = randomUUID();
-                    const line = JSON.stringify({ id, operation }) + "\n";
+                    const line =
+                        JSON.stringify({
+                            id,
+                            operation,
+                            task_binding: taskBinding,
+                        }) + "\n";
                     if (Buffer.byteLength(line) > MAX_REQUEST) {
                         reject(
                             new ConnectError(
