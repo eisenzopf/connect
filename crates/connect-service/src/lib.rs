@@ -64,6 +64,12 @@ impl Service {
     /// Register the wake hint before journal catch-up. Only a committed journal
     /// read proves delivery; wake hints may be coalesced or absent after restart.
     pub async fn execute(&self, credential_id: String, operation: Operation) -> Result<Outcome> {
+        if let Operation::Task { request } = operation {
+            return self
+                .execute_task(credential_id, *request)
+                .await
+                .map(|outcome| Outcome::Task(Box::new(outcome)));
+        }
         let wake = self.changed.notified();
         tokio::pin!(wake);
         wake.as_mut().enable();
@@ -143,7 +149,9 @@ impl ApplicationHandler for Service {
                     let logical_ref = operation.request_id().map(diagnostic_ref);
                     let credential_ref = diagnostic_ref(&context.principal.subject);
                     let execution = self.execute(context.principal.subject, operation.clone());
-                    let result = if matches!(operation, Operation::Inbox { .. }) {
+                    let waiting = matches!(operation, Operation::Inbox { .. })
+                        || matches!(&operation, Operation::Task { request } if request.command.wait_ms().is_some());
+                    let result = if waiting {
                         tokio::select! {
                             result = execution => result,
                             _ = context.closed.cancelled() => Err(Error::new("cancelled", "Physical peer closed; resume from the durable cursor")),

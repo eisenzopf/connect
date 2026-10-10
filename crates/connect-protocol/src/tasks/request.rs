@@ -137,6 +137,28 @@ pub enum TaskCommand {
     },
 }
 impl TaskCommand {
+    /// Conversation metadata present in the command. Task-ID reads resolve
+    /// their conversation under current authority at the store boundary.
+    pub fn conversation_id(&self) -> Option<&str> {
+        match self {
+            Self::Create { definition, .. } => Some(&definition.conversation_id),
+            Self::Replies {
+                conversation_id, ..
+            }
+            | Self::Reply {
+                conversation_id, ..
+            } => Some(conversation_id),
+            Self::Invoke { operation, .. } => operation.conversation_id(),
+            _ => None,
+        }
+    }
+    /// Only read commands may hold a physical request open for a bounded wait.
+    pub fn wait_ms(&self) -> Option<u32> {
+        match self {
+            Self::Inbox { wait_ms, .. } | Self::Wait { wait_ms, .. } => Some(*wait_ms),
+            _ => None,
+        }
+    }
     /// Scope name for the parent actor. An invocation grant has a separate ceiling.
     pub fn name(&self) -> &'static str {
         match self {

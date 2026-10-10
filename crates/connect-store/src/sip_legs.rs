@@ -257,6 +257,9 @@ impl Store {
             .ok_or_else(Error::forbidden)
     }
 
+    /// Persist a worker result without replacing an authoritative terminal
+    /// callback that raced with activation or cleanup. In particular, a late
+    /// cancellation cannot erase a failure and activation cannot reopen an end.
     pub fn finish_sip_leg_job(
         &self,
         job: &SipLegJob,
@@ -272,7 +275,7 @@ impl Store {
         let clear_end_request = u8::from(state != "active");
         self.connection()?
             .execute(
-                "UPDATE sip_legs SET state=?1,ended_reason=?2,end_requested=CASE WHEN ?3=1 THEN 0 ELSE end_requested END,updated_at=?4 WHERE id=?5",
+                "UPDATE sip_legs SET state=?1,ended_reason=?2,end_requested=CASE WHEN ?3=1 THEN 0 ELSE end_requested END,updated_at=?4 WHERE id=?5 AND state NOT IN ('ended','failed','cancelled')",
                 params![state, reason, clear_end_request, now(), job.leg.id],
             )
             .map_err(|_| Error::storage())?;

@@ -191,6 +191,7 @@ pub(crate) fn capabilities(
         None
     };
     Ok(Capabilities {
+        extensions: vec![connect_protocol::tasks::TASK_PROFILE.into()],
         identity_id: identity.id,
         conversation_id: cid.map(str::to_owned),
         routes,

@@ -25,6 +25,10 @@ pub struct CapabilityLimits {
 /// Current caller-visible routes and permissions for a resolved participant.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Capabilities {
+    /// Supported additive control profiles, not delegated permissions. Older
+    /// servers omit this field and therefore do not advertise task support.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub extensions: Vec<String>,
     pub identity_id: String,
     pub conversation_id: Option<String>,
     pub routes: Vec<RouteCapability>,

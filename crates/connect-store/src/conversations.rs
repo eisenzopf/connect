@@ -18,6 +18,11 @@ impl Store {
         operation: &Operation,
         runtime: &crate::DiscoveryRuntime,
     ) -> Result<Outcome> {
+        if let Operation::Task { request } = operation {
+            return self
+                .execute_task_with_runtime(credential_id, request, runtime)
+                .map(|outcome| Outcome::Task(Box::new(outcome)));
+        }
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)

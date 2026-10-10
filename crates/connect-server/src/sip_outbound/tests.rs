@@ -123,6 +123,36 @@ impl Drop for PendingRequest {
     }
 }
 
+#[test]
+fn a_late_worker_outcome_cannot_replace_an_observed_terminal_connection() {
+    for (failed, outcome) in [
+        (true, OriginationOutcome::Cancelled),
+        (true, OriginationOutcome::CleanupUncertain),
+        (false, OriginationOutcome::Active),
+    ] {
+        let f = Fixture::new();
+        f.store
+            .finish_sip_connection("pending-activation", failed, "observed-terminal")
+            .unwrap();
+        finish_origination(&f.store, &f.job, Ok(outcome)).unwrap();
+        assert_eq!(f.state(), if failed { "failed" } else { "ended" });
+        let Outcome::SipLeg(leg) = f
+            .store
+            .execute(
+                &f.key,
+                &Operation::SipStatus {
+                    conversation_id: f.job.leg.conversation_id.clone(),
+                    sip_leg_id: f.job.leg.id.clone(),
+                },
+            )
+            .unwrap()
+        else {
+            panic!("leg")
+        };
+        assert_eq!(leg.ended_reason.as_deref(), Some("observed-terminal"));
+    }
+}
+
 #[tokio::test]
 async fn failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched() {
     let f = Fixture::new();

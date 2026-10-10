@@ -1,6 +1,8 @@
 //! Native UCTP/QUIC exchange lifecycle. One request at a time per client.
 use crate::{ClientConfig, ClientError, Result};
-use connect_protocol::{Operation, Outcome, Request, Response, PROFILE, REQUEST_TYPE, RESULT_TYPE};
+use connect_protocol::{
+    tasks, Operation, Outcome, Request, Response, PROFILE, REQUEST_TYPE, RESULT_TYPE,
+};
 use rvoip_quic::UctpQuicClient;
 use rvoip_uctp::{envelope::UctpEnvelope, substrate, types::MessageType};
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -16,6 +18,7 @@ pub struct ConnectClient {
     pub(crate) identity_id: String,
     pub(crate) media_router: Arc<rvoip_uctp::substrate::PeerMediaRouter>,
     disconnected: bool,
+    task_profile: bool,
 }
 impl ConnectClient {
     pub async fn open(config: ClientConfig) -> Result<Self> {
@@ -79,6 +82,7 @@ impl ConnectClient {
             identity_id: config.identity_id.clone(),
             media_router,
             disconnected: false,
+            task_profile: false,
         };
         let hello = UctpEnvelope::new(
             MessageType::AuthHello,
@@ -117,6 +121,13 @@ impl ConnectClient {
         Ok(client)
     }
     pub(crate) async fn exchange(&mut self, envelope: UctpEnvelope) -> Result<UctpEnvelope> {
+        self.exchange_with_deadline(envelope, self.deadline).await
+    }
+    async fn exchange_with_deadline(
+        &mut self,
+        envelope: UctpEnvelope,
+        deadline: Duration,
+    ) -> Result<UctpEnvelope> {
         if self.disconnected {
             return Err(ClientError::Transport);
         }
@@ -130,7 +141,7 @@ impl ConnectClient {
             }
             reply_rx.await.map_err(|_| ClientError::Transport)
         };
-        match tokio::time::timeout(self.deadline, future).await {
+        match tokio::time::timeout(deadline, future).await {
             Ok(result) => result,
             Err(_) => {
                 self.pending.lock().remove(&id);
@@ -148,13 +159,36 @@ impl ConnectClient {
             .close(0u32.into(), b"exchange cancelled or timed out");
     }
     pub async fn request(&mut self, operation: Operation) -> Result<Outcome> {
+        let wait = if let Operation::Task { request } = &operation {
+            if !self.task_profile {
+                return Err(ClientError::Application(connect_protocol::Error::new(
+                    "unsupported-profile",
+                    "Discover connect-task/1 through capabilities before task requests",
+                )));
+            }
+            // A valid server wait gets its bounded wait plus the configured
+            // exchange budget. Invalid input cannot expand this to an unbounded wait.
+            request
+                .command
+                .wait_ms()
+                .unwrap_or(0)
+                .min(tasks::MAX_TOOL_WAIT_MS)
+        } else {
+            0
+        };
         let cid = operation.conversation_id().map(str::to_owned);
         let mut envelope = UctpEnvelope::new(
             MessageType::Unknown(REQUEST_TYPE.into()),
             serde_json::to_value(Request::new(operation)).map_err(|_| ClientError::Protocol)?,
         );
         envelope.cid = cid.clone();
-        let reply = self.exchange(envelope).await?;
+        let reply = self
+            .exchange_with_deadline(
+                envelope,
+                self.deadline
+                    .saturating_add(Duration::from_millis(u64::from(wait))),
+            )
+            .await?;
         if let (Some(expected), Some(actual)) = (cid.as_deref(), reply.cid.as_deref()) {
             if expected != actual {
                 return Err(ClientError::Protocol);
@@ -170,7 +204,14 @@ impl ConnectClient {
         if response.profile != PROFILE {
             return Err(ClientError::Protocol);
         }
-        response.result.map_err(ClientError::Application)
+        let outcome = response.result.map_err(ClientError::Application)?;
+        if let Outcome::Capabilities(capabilities) = &outcome {
+            self.task_profile = capabilities
+                .extensions
+                .iter()
+                .any(|p| p == tasks::TASK_PROFILE);
+        }
+        Ok(outcome)
     }
     pub async fn resolve(&mut self, address: &str) -> Result<connect_protocol::Identity> {
         match self

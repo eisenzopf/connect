@@ -3,7 +3,21 @@
 The frozen typed inputs/results are `connect_protocol::tasks`. Required profile:
 `connect-task/1`, an additive application operation inside `connect-control/1`.
 This is Connect task policy carried over UCTP, not an upstream UCTP revision.
-The control operation is wired in G4-013; capabilities advertise it before use.
+G4-013 wires `{"op":"task","request":{"task_profile":"connect-task/1", "command":...}}`
+inside the existing control request. Results use the outer `kind: "task"` and the
+typed task outcome inside `data`. Capabilities advertise the task profile through
+`extensions`; old results without that field mean no task support. The native
+client discovers this feature with `negotiate_tasks(address, conversation_id)`
+or a capabilities query before sending typed `task(command)` requests.
+
+This native entry point uses the authenticated backing credential and the shared
+task facade. It cannot mint a grant, select an owner, register an external origin
+or supply a verified invocation binding. Narrow model invocations use the separately
+authenticated adapter boundary. Negotiation describes server support and never
+expands credential permissions. Task wait calls receive their bounded requested
+wait plus the configured client exchange budget; malformed wait durations cannot
+expand that budget beyond the ten-second task limit. Other control exchanges
+retain their existing timeout behavior.
 Old control commands retain their behavior and authority. Unknown profile/action
 or claimed owner/binding fields fail before admission.
 

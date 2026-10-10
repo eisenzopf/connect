@@ -38,6 +38,11 @@ impl Request {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
+    /// Additive task policy carried by the existing control application. The
+    /// authenticated principal supplies ownership, never the request payload.
+    Task {
+        request: Box<tasks::TaskRequest>,
+    },
     Resolve {
         address: String,
     },
@@ -195,6 +200,7 @@ impl Operation {
     /// Canonical conversation routing metadata for UCTP envelopes.
     pub fn conversation_id(&self) -> Option<&str> {
         match self {
+            Self::Task { request } => request.command.conversation_id(),
             Self::Capabilities {
                 conversation_id, ..
             } => conversation_id.as_deref(),
@@ -270,6 +276,7 @@ impl Operation {
     }
     pub fn name(&self) -> &'static str {
         match self {
+            Self::Task { .. } => "task",
             Self::Resolve { .. } => "resolve",
             Self::Capabilities { .. } => "capabilities",
             Self::BrowserBinding {} => "browser_binding",
@@ -307,6 +314,7 @@ impl Operation {
     /// Additive read APIs use the existing authority for the information they expose.
     pub fn required_scope(&self) -> &'static str {
         match self {
+            Self::Task { request } => request.command.required_scope(),
             Self::Capabilities { .. } => "resolve",
             Self::BrowserBinding {} => "session_get",
             Self::ContextDeliveries { .. } => "context_view",
@@ -315,6 +323,7 @@ impl Operation {
     }
     pub fn request_id(&self) -> Option<&str> {
         match self {
+            Self::Task { request } => request.command.request_id(),
             Self::Create { request_id, .. }
             | Self::Send { request_id, .. }
             | Self::CallStart { request_id, .. }
@@ -518,6 +527,8 @@ pub struct ProviderDelivery {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
 pub enum Outcome {
+    /// Task results retain their own pending/uncertain semantics and provenance.
+    Task(Box<tasks::TaskOutcome>),
     Capabilities(Capabilities),
     BrowserBinding(BrowserBinding),
     ContextDeliveries(ContextDeliveryPage),

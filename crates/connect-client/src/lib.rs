@@ -26,9 +26,12 @@ mod error;
 mod media;
 mod media_end;
 mod operations;
+mod task_operations;
 
 pub use client::ConnectClient;
 pub use config::ClientConfig;
+/// Typed task commands/results. Invocation issuance stays in trusted composition.
+pub use connect_protocol::tasks;
 pub use connect_protocol::{
     Artifact, ArtifactChunk, Availability, AvailabilityState, BrowserBinding, Call, Capabilities,
     CapabilityLimits, ContextDeliveryPage, ContextItem, ContextView, Conversation, Event, Identity,
