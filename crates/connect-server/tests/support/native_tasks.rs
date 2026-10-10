@@ -87,6 +87,42 @@ impl Harness {
                 .unwrap(),
         )
     }
+    /// Restart the owned server against its existing database and TLS identity.
+    /// Clients reconnect through the public SDK; no task state is reconstructed.
+    pub async fn restart(self) -> Self {
+        let Self {
+            _temp,
+            server,
+            owner,
+            peer,
+            mut owner_config,
+            peer_id,
+            cid,
+        } = self;
+        owner.close().await;
+        peer.close().await;
+        server.shutdown().await.unwrap();
+        let directory = _temp.path().join("state");
+        let config = ServerConfig::load(&directory.join("server.toml")).unwrap();
+        let server =
+            RunningServer::start_local(config, Some("127.0.0.1:0".parse().unwrap()), false)
+                .await
+                .unwrap();
+        let mut peer_config = ClientConfig::load(&directory.join("agent.toml")).unwrap();
+        owner_config.endpoint = server.address;
+        peer_config.endpoint = server.address;
+        let owner = ConnectClient::open(owner_config.clone()).await.unwrap();
+        let peer = ConnectClient::open(peer_config).await.unwrap();
+        Self {
+            _temp,
+            server,
+            owner,
+            peer,
+            owner_config,
+            peer_id,
+            cid,
+        }
+    }
     pub async fn close(self) {
         self.owner.close().await;
         self.peer.close().await;
