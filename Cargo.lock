@@ -723,14 +723,19 @@ name = "connect-review-loop"
 version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "connect-client",
+ "connect-server",
+ "connect-store",
  "fs2",
  "rusqlite",
  "serde",
  "serde_json",
  "tempfile",
  "tokio",
+ "tokio-util",
+ "toml",
  "uuid",
 ]
 

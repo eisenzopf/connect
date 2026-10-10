@@ -6,6 +6,11 @@ fixed responder, not an LLM/Vapi integration. The example demonstrates a local
 SQLite business action; exactly-once external effects require an application's
 own idempotency/outbox design.
 
+The separate [durable task runner](TASK_RUNNER.md) adds explicit task binding,
+scoped invocation credentials, reply consumption, automatic reconnect and a
+transactional business checkpoint through the public SDK. Use the `task` and
+`task-inspect` commands for that workflow.
+
 Build both binaries and initialize once from the Connect checkout:
 
 ```sh

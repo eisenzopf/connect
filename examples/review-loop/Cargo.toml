@@ -20,9 +20,14 @@ uuid.workspace = true
 clap.workspace = true
 anyhow.workspace = true
 fs2.workspace = true
+tokio-util.workspace = true
+chrono.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+connect-server = { path = "../../crates/connect-server" }
+connect-store.workspace = true
+toml.workspace = true
 
 [lints]
 workspace = true
