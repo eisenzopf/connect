@@ -121,7 +121,7 @@
           "acceptance": "Compare installation, scoped authentication, conversation/task binding, incoming reply delivery and continuation. Record tested versions and automatic, bounded-wait or explicit-resume behavior. Name one winner with evidence; do not imply all candidates are supported.",
           "reuse": "Parley worker/pending-command patterns; Thelve managed-MCP design. Verify current host interfaces during this milestone.",
           "experiment": "E6 research",
-          "status": "planned"
+          "status": "in-progress"
         },
         {
           "id": "G4-B",
@@ -316,9 +316,9 @@
       "id": "D-05",
       "title": "Additional assistant and reply-delivery mode",
       "due": "G4-A",
-      "decision": "Additional assistant selection and delivery-mode research are deferred to G4-A. Vapi remains required. No additional host is selected or qualified.",
-      "source": "connect-v0.1-contract.html#scope",
-      "status": "deferred-to-gate-4"
+      "decision": "Codex CLI selected in G4-006, with exact-session resume and protected MCP installation. Vapi remains required. Actual host qualification remains G4-023.",
+      "source": "evidence/gate-4/host-selection.json",
+      "status": "selected-not-qualified"
     },
     {
       "id": "D-06",

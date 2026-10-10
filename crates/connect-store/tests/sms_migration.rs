@@ -27,7 +27,7 @@ fn schema_nine_upgrade_is_additive_backup_gated_and_preserves_existing_rows() {
     let snapshot = Store::backup_database(&database, &backup).unwrap();
     assert_eq!(snapshot.schema, 9);
     let upgraded = Store::migrate(&database, &backup, &snapshot).unwrap();
-    assert_eq!(upgraded.schema, 10);
+    assert_eq!(upgraded.schema, connect_store::SCHEMA_VERSION);
     assert_eq!(Store::inspect_snapshot(&backup).unwrap(), snapshot);
     let store = Store::open(&database, Limits::default()).unwrap();
     assert_eq!(store.installation_id().unwrap(), "preserved-installation");

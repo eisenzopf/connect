@@ -2,7 +2,7 @@
   "revision": 1,
   "updated": "2026-10-09",
   "status": "in-progress",
-  "scope": "Gate 4: task-correlated agent and app follow-through; no implementation started.",
+  "scope": "Gate 4 task-correlated agent/app follow-through. Implementation in progress; actual runtime/host acceptance remains open.",
   "product_plan": "connect-gate-4-plan.html",
   "implementation": "connect-gate-4-implementation.html",
   "entry_contract": "connect-task-authority.html",

@@ -286,7 +286,7 @@ impl Store {
                     return saved.result;
                 }
                 let receipts: u64 = tx
-                    .query_row("SELECT COUNT(*) FROM requests", [], |r| r.get(0))
+                    .query_row("SELECT (SELECT COUNT(*) FROM requests)+(SELECT COUNT(*) FROM task_requests)", [], |r| r.get(0))
                     .map_err(|_| Error::storage())?;
                 if receipts >= self.limits.operation_receipts {
                     return Err(Error::new(
@@ -670,7 +670,11 @@ pub(crate) fn authorized_conversation(
 }
 pub(crate) fn capacity(c: &Connection, events: u64, bytes: u64, store: &Store) -> Result<bool> {
     let stored_events: u64 = c
-        .query_row("SELECT COUNT(*) FROM journal", [], |r| r.get(0))
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM journal)+(SELECT COUNT(*) FROM task_events)",
+            [],
+            |r| r.get(0),
+        )
         .map_err(|_| Error::storage())?;
     let stored_bytes: u64 = c
         .query_row(

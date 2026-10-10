@@ -1,0 +1,38 @@
+{
+  "status": "Selected for implementation; not yet supported/qualified",
+  "selected_host": "OpenAI Codex CLI",
+  "version_observed": "0.162.0-alpha.17.2",
+  "observation": "Read-only installed version/help; no host task or account operation performed",
+  "rationale": "Locally available host with documented authenticated HTTP MCP and exact-session noninteractive resume. Keeps task/cid stable without retyping context. Vapi remains the other required host.",
+  "sources": [
+    "https://learn.chatgpt.com/docs/extend/mcp?surface=cli",
+    "https://learn.chatgpt.com/docs/non-interactive-mode"
+  ],
+  "prerequisites": [
+    "Installed version pinned in actual candidate evidence",
+    "User-provided model-account authentication, separate from Connect authority",
+    "Loopback task MCP listener and protected task-scoped bearer configuration",
+    "Packaged host-session binding adapter and Connect skill; no user glue"
+  ],
+  "installation_contract": "docs/CODEX_TASK_HOST.md",
+  "continuation": "Explicit resume of saved exact session ID is the minimum contract; packaged worker-triggered bounded turns must be qualified separately. Never --last across concurrent tasks. No native push claimed.",
+  "success": [
+    "Actual host discovers bounded Connect tools, reads bound task and sends a question",
+    "Reply after disconnection is recovered from durable inbox on exact-session resume",
+    "No context retyping or custom user code; original task and conversation preserved",
+    "Two tasks cannot cross-bind session, grant, reply or cursor",
+    "Installed skill/config/protected token redaction verified"
+  ],
+  "failure": [
+    "Host mock or reference runner substituted for actual Codex",
+    "New unrelated session or retyped context needed to continue",
+    "Expired/revoked grant or forged task/cid allows effect",
+    "Persisted plaintext grant in logs/receipts",
+    "Undeclared public ingress or provider operation in offline lane"
+  ],
+  "qualification_items": [
+    "G4-021",
+    "G4-023",
+    "G4-034"
+  ]
+}

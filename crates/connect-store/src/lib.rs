@@ -20,6 +20,7 @@ mod recovery;
 mod session_routes;
 mod sessions;
 mod sip_legs;
+mod tasks;
 mod voice;
 pub use providers::{event_digest as provider_event_digest, ProviderJob, Route};
 pub use voice::{InboundCall, VoiceAction, VoiceIngress, VoiceJob, VoiceRoute};
@@ -39,7 +40,7 @@ pub use identity::{Actor, IssuedCredential, Scope};
 pub use recovery::Snapshot;
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
 pub use sip_legs::{SipLegAction, SipLegJob};
-pub const SCHEMA_VERSION: u32 = 10;
+pub const SCHEMA_VERSION: u32 = 11;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
@@ -85,6 +86,8 @@ impl Store {
         tx.execute_batch(include_str!("../migrations/009_sip_legs.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/010_sms_eligibility.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/011_tasks.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute(
             "INSERT INTO installation VALUES(1,?1,?2)",

@@ -2,6 +2,7 @@
 
 mod discovery;
 pub mod media_profile;
+pub mod tasks;
 pub use discovery::*;
 
 mod readiness;

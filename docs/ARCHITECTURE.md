@@ -70,8 +70,38 @@ qualification pass in the recorded local scope. Read the [qualification report](
 [decision 006](decisions/006-gate-3-contracts.html) and
 [decision 007](decisions/007-gate-3-media-profile.html).
 
-Schema 9 contains the Gate 3 durable model and SIP-leg intent. Existing installations, backups,
+Schema 11 adds Gate 4 task tables to the Gate 3 durable model, SIP-leg intent and SMS eligibility. Existing installations, backups,
 provider credentials and remote resources are not modified by source checks.
-Presence/contact preferences remain backlog decision B-001. Live SMS awaits
-carrier approval. [Wire contract](../contracts/connect-control-v1.md) ·
+Presence/contact preferences remain backlog decision B-001. Recorded live SMS
+qualification is separate from offline source checks. [Wire contract](../contracts/connect-control-v1.md) ·
 [Contributor workflow](../CONTRIBUTING.md) · [Connector guide](CONNECTORS.md).
+
+## Gate 4 task boundary
+
+The approved [task runtime decision](decisions/009-task-runtime.md) extends the
+application contract with `connect-task/1`. A task belongs to one durable
+conversation; ending voice or a model turn never closes that conversation.
+Current authority is checked before effects and receipt replay. A durable effect
+identity survives uncertainty; an expired worker lease cannot justify a resend.
+
+These are implementation boundaries. The numbered plan records which components
+are actually delivered; research and typed fixtures are not runtime qualification.
+
+```mermaid
+flowchart LR
+  host[Codex / Vapi] --> mcp[connect-mcp: official SDK transport]
+  native[Public clients and SDK runner] --> service[connect-service: authorization and bounded waits]
+  mcp --> service
+  service --> store[connect-store: task / grant / effect / inbox transactions]
+  server[connect-server: composition and verified bindings] --> mcp
+  server --> providers[Provider adapters]
+  providers --> observations[Verified observations]
+  observations --> service
+```
+
+The MCP adapter imports protocol/service interfaces, never SQLite. The host
+adapter owns exact task-to-session mapping and protected grant refresh; examples
+use public clients. No full Thelve registry or connector framework replacement
+is required. [Reuse provenance and owner authorization](evidence/gate-4/reuse-map.json)
+and [host selection](evidence/gate-4/host-selection.json) distinguish selected
+interfaces from future qualification.

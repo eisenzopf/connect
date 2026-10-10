@@ -1,0 +1,63 @@
+{
+  "status": "Reviewed reuse boundary; no Thelve/Bridgefu source extracted yet",
+  "owner_authorization": {
+    "date": "2026-10-09",
+    "statement": "you can reuse i own rudeless",
+    "scope": "Reuse owner-controlled Rudeless/Thelve source in Connect; retain provenance and attribution for actual extraction."
+  },
+  "sources": [
+    {
+      "project": "rvoip",
+      "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+      "license": "MIT",
+      "reuse": "Existing UCTP application/auth/media paths; task policy remains Connect-owned; source-lock unchanged."
+    },
+    {
+      "project": "Parley",
+      "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+      "license": "MIT",
+      "reuse": "Existing pinned context/provider patterns; pending and unknown outcomes remain explicit."
+    },
+    {
+      "project": "Bridgefu",
+      "revision": "c4793d79e0c1810e42155d494f2ab1cc308bca11",
+      "license": "MIT",
+      "reuse": "Reviewed provider token redaction, one-use attachment/idempotency patterns; no large-file extraction."
+    },
+    {
+      "project": "Thelve",
+      "revision": "644f7075aec1ec379526742074e199eccb7079c5",
+      "license": "Proprietary Rudeless Software License 1.0; explicit owner permission recorded above",
+      "reviewed_files": [
+        {
+          "path": "crates/thelve-capability/src/managed_mcp.rs",
+          "sha256": "38b90b9e332648e82e62e72b56b073ee3eb9eb5be9a2006bcd0c97211836566f"
+        },
+        {
+          "path": "services/control-api/src/routes/managed_mcp/execution.rs",
+          "sha256": "30cb1e9cea2086b98d4096ab776458451cf37420b02c91b55d92e51823e3dd18"
+        },
+        {
+          "path": "crates/thelve-integrations/src/vapi_existing_assistant/native_mcp.rs",
+          "sha256": "943ff563c3c64884b15be0442e916f2697bfb2d084ff321a18bb331c9d17122c"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "af27a6a17004fc2d85602fd2320133f2029aeca1ff34c07dc6d695671eef8dac"
+        }
+      ],
+      "reuse": "Managed MCP projection and verified invocation binding; GET-only native-MCP recovery. Extract small cohesive helpers with source digest/attribution; do not import whole registry."
+    }
+  ],
+  "boundaries": {
+    "protocol": "Strict transport-independent task extension types; no SQL/MCP/host dependency",
+    "store": "One immediate transaction owns current authority, task state, journal/replies/grants/effects",
+    "service": "Public operation and grant checks, bounded waiting and provider-binding validation",
+    "connect-mcp (planned)": "Thin official SDK transport/tool adapter importing protocol/service only, never SQLite",
+    "server": "Composition, listener/auth bounds, verified provider hooks, supervised drain",
+    "client/sdk": "Public task operations and durable runner interfaces",
+    "selected host adapter (planned)": "Protected task/session mapping and declared explicit or worker-triggered resume; no provider switch in store",
+    "examples": "Use public SDK only; local business effect + processed marker in app transaction"
+  },
+  "upstream_changes": "None for this contract; existing seven documented patches and source-lock digests preserved."
+}

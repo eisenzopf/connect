@@ -97,6 +97,18 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
             "sms_control_events",
         ]);
     }
+    if schema >= 11 {
+        tables.extend([
+            "tasks",
+            "task_events",
+            "task_requests",
+            "task_bindings",
+            "task_grants",
+            "task_replies",
+            "task_effects",
+            "task_claims",
+        ]);
+    }
     for table in tables {
         digest.update(table.as_bytes());
         // Names are a fixed allowlist, never user-controlled SQL.
@@ -235,6 +247,10 @@ impl Store {
         }
         if expected.schema < 10 {
             tx.execute_batch(include_str!("../migrations/010_sms_eligibility.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 11 {
+            tx.execute_batch(include_str!("../migrations/011_tasks.sql"))
                 .map_err(|_| Error::storage())?;
         }
         let snapshot = inspect(&tx)?;
