@@ -14,6 +14,7 @@ pub mod tls;
 mod transports;
 mod vapi_media;
 mod vapi_observer;
+pub mod vapi_task_setup;
 
 pub mod providers;
 

@@ -9,6 +9,7 @@ use connect_protocol::{
 };
 pub use connect_store::{IssuedTaskGrant, TaskInvocation};
 mod access;
+mod provider_setup;
 
 #[derive(Clone)]
 enum TaskPrincipal {

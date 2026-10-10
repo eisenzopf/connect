@@ -1,4 +1,4 @@
-//! One transaction owns local binding registration and secret issuance.
+//! One transaction owns trusted binding registration and secret issuance.
 use super::{authority, bindings, current, rows, secret, storage, IssuedTaskGrant};
 use crate::{identity::actor_from_connection_at, Store};
 use connect_protocol::{
@@ -52,13 +52,13 @@ impl Store {
         }
         self.issue_grant_at(credential_id, request_id, definition, timestamp, true)
     }
-    fn issue_grant_at(
+    pub(super) fn issue_grant_at(
         &self,
         credential_id: &str,
         request_id: &str,
         definition: &GrantDefinition,
         timestamp: i64,
-        register_local: bool,
+        register_origin: bool,
     ) -> Result<IssuedTaskGrant> {
         connect_protocol::tasks::validate_task_identifier(request_id)?;
         let mut c = self.connection()?;
@@ -67,7 +67,7 @@ impl Store {
             .map_err(|_| Error::storage())?;
         let actor = actor_from_connection_at(&tx, credential_id, timestamp)?;
         let task = authority::issuing_task(&tx, &actor, definition, timestamp)?;
-        if !register_local {
+        if !register_origin {
             bindings::check(&tx, &task, &definition.binding, timestamp)?;
         }
         let digest = authority::intent(definition, credential_id, &task)?;
@@ -82,7 +82,7 @@ impl Store {
             let token = secret::mint(&tx, &saved.grant.id, &saved.nonce, &saved.digest)?;
             return Ok(IssuedTaskGrant::new(saved.grant, token));
         }
-        if register_local {
+        if register_origin {
             bindings::register(
                 &tx,
                 &actor,

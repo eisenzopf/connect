@@ -30,6 +30,7 @@ mod native_reply;
 mod native_resource_boundaries;
 mod native_resource_fixture;
 mod native_resources;
+mod provider_setup;
 mod recall;
 mod recall_authority;
 mod recall_helpers;

@@ -99,3 +99,25 @@ must still register and issue under current authorization, handle uncertain
 creation, export only the invocation's credential and revalidate lifecycle.
 The [origin verification evidence](evidence/gate-4/vapi-origin-verification.json)
 qualifies this lookup component; first-invocation/MCP composition remains open.
+
+### Register and issue for an existing verified resource
+
+Protected Rust composition can call `connect_server::vapi_task_setup::issue`
+with the backing credential reference, stable issuance ID, exact task and
+provider origin, expected assistant, operation subset and original expiry.
+The resource must already exist. Current authority is checked before the private
+lookup and again inside the final binding/grant transaction. A failed lookup
+cannot register an origin; a failed grant insert rolls back registration.
+Matching replay preserves the secret and expiry. Call, standalone chat and
+session chat have separate adapter namespaces.
+
+The returned `VerifiedVapiTaskGrant` supports explicit protected export through
+`issued()` and fixed MCP admission through `authenticator()`. Each MCP request
+still rechecks current grant/task/parent authority before interpreting provider
+correlation headers. Provider origins remain excluded from the public local
+task-access exchange. Neither model arguments nor headers can invoke setup.
+
+The [setup evidence](evidence/gate-4/vapi-task-setup.json) records qualification
+progress. This API does not create provider resources, handle uncertain creation,
+install tool configuration on an assistant, or solve first-invocation bootstrap.
+Those lifecycle steps and main runtime integration remain G4-019 work.
