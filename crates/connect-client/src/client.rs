@@ -233,7 +233,16 @@ impl ConnectClient {
             }
         }
         if reply.msg_type == MessageType::Error {
-            return Err(ClientError::Authentication);
+            // Envelope authorization can reject a previously authenticated
+            // task peer before the application handler creates a Response.
+            // Preserve that typed denial instead of misclassifying it as a
+            // failed initial handshake. Never copy the raw reason to callers.
+            return Err(match reply.payload.get("code").and_then(|v| v.as_u64()) {
+                Some(403) => ClientError::Application(connect_protocol::Error::forbidden()),
+                Some(401) => ClientError::Authentication,
+                Some(503) => ClientError::Application(connect_protocol::Error::storage()),
+                _ => ClientError::Protocol,
+            });
         }
         if reply.msg_type != MessageType::Unknown(RESULT_TYPE.into()) {
             return Err(ClientError::Protocol);

@@ -13,6 +13,8 @@ mod commands;
 mod handler;
 mod listener;
 mod schemas;
+mod vapi_auth;
 
 pub use auth::{FixedBindingAuth, LocalGrantAuth, McpAuthenticator};
 pub use listener::RunningMcp;
+pub use vapi_auth::{VapiBindingAuth, VapiOrigin};

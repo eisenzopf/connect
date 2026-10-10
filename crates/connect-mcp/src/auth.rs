@@ -83,7 +83,7 @@ impl McpAuthenticator for LocalGrantAuth {
     }
 }
 
-fn bearer(headers: &HeaderMap) -> Result<&str, Error> {
+pub(crate) fn bearer(headers: &HeaderMap) -> Result<&str, Error> {
     let mut values = headers.get_all("authorization").iter();
     let value = values.next().ok_or_else(Error::forbidden)?;
     if values.next().is_some() {

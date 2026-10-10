@@ -13,10 +13,23 @@ from the private authenticated principal rather than an input task/owner ID.
 Bearer plaintext is removed before the MCP SDK receives HTTP context.
 
 `FixedBindingAuth` supports an explicitly configured native or host-session
-binding. Provider call/chat admission requires a separate adapter that first
-authenticates configured narrow authority, then matches an already verified
-provider lifecycle binding. Provider correlation headers cannot create or
-replace a native/host binding.
+binding. `VapiBindingAuth` admits one already verified and registered provider
+origin. Its `VapiOrigin` selects an exact call, standalone chat or chat-session
+ID. It authenticates the configured narrow grant before matching correlation
+headers, and rejects missing, duplicate, malformed or conflicting IDs. A
+session binding covers chats within that session; each request must include
+both its session ID and a bounded chat ID. The session grant does not authorize
+another session or task. Native/host and provider grants are not interchangeable.
+
+Trusted composition must verify the provider resource, register the binding
+and export a separate grant to its protected MCP headers. This adapter does
+not perform provider lookup or webhook verification, and the default server's
+native/host configuration still rejects provider origins. Provider lifecycle
+composition, first-invocation setup and bounded task context remain open.
+The local tests use explicitly registered fixture origins; they do not qualify
+an actual Vapi account. Never use one assistant-wide bearer to select tasks
+from `X-Call-Id`, `X-Chat-Id` or `X-Session-Id`. These headers cannot create or
+replace an invocation binding. See [Vapi's MCP header contract](https://docs.vapi.ai/tools/mcp).
 
 ```rust,no_run
 # async fn start(service: std::sync::Arc<connect_service::Service>, binding: connect_protocol::tasks::InvocationBinding) -> Result<(), Box<dyn std::error::Error>> {
