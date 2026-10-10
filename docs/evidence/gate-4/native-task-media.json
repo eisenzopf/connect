@@ -1,5 +1,5 @@
 {
-  "status": "Native task-grant audio component qualified; whole-workspace regression and full Gate 4 acceptance remain open",
+  "status": "Native audio component and follow-up typed control denials qualified; whole-workspace regression, helper operating-limit review and full Gate 4 acceptance remain open",
   "recorded_at": "2026-10-10T19:11:00.195322+00:00",
   "items": [
     "G4-007",
@@ -114,21 +114,34 @@
     {
       "log": ".local/gate-4-planning/native-media-startup.sample",
       "result": "Sample during slow debug-binary startup showed dyld loader/debugger-notification frames before the test harness. Retained for operating-limit review; no deadline was relaxed."
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-workspace.log",
+      "log_sha256": "a72dd912c4bc742f958d74ed2b7e14c152041b4dcb7fcd0d623c55a2ef6efd6b",
+      "terminal_exit": 101,
+      "completed_suites": 45,
+      "observed_results": {
+        "passed": 124,
+        "failed": 1,
+        "ignored": 1
+      },
+      "result": "The frozen bfa0865 workspace run stopped at gate4_native_grants: the envelope authorization guard rejects revoked authority with raw UCTP 403, while the native control client classified every wire Error as initial authentication failure. Correcting the SDK mapping preserves typed forbidden denial without bypassing the guard. No whole-workspace pass is claimed."
     }
   ],
   "pending": [
-    "Whole-workspace regression on the frozen bfa0865 source.",
+    "Rerun whole-workspace after the correction and characterize the retained helper deadline failures; native-control-envelope-errors.json records five passing QUIC corrections and an ordinary actual Python/TypeScript helper pass.",
     "Full interface parity, bounded provider context, installed host, recovery/package/journey and full Gate 4 acceptance."
   ],
   "related_evidence": [
     "native-task-resources.json",
     "native-task-grants.json",
     "task-media-authority.json",
-    "native-task-artifacts.json"
+    "native-task-artifacts.json",
+    "native-control-envelope-errors.json"
   ],
   "limits": [
     "Existing macOS debug linker __eh_frame warning remains visible.",
-    "141 store/service and actual QUIC component tests passed; the separate whole-workspace run is still pending and no full Gate 4 attestation is made."
+    "141 store/service and actual QUIC component tests passed. The broader frozen-source run failed on typed native control denial; component passes do not imply whole-workspace or full Gate 4 qualification."
   ],
   "upstream_source_lock_sha256": "cda757ccc91da37fb6c6e7fea6c542d214f0717b117ac7df525f63fd923c439c"
 }
