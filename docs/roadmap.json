@@ -134,7 +134,9 @@
           "acceptance": "Installed tools resolve, message, share a file, read history, wait for events and control supported sessions. Vapi makes an authorized tool call in chat and a live voice session; identity, call/chat, conversation and tool results correlate. Denials and retries match SDK behavior.",
           "reuse": "Thelve Streamable HTTP MCP patterns; existing SDK/CLI; Parley tool-correlation lessons. A provider-specific tool callback is not automatically an MCP endpoint.",
           "experiment": "E6 tool contract",
-          "status": "planned"
+          "status": "in-progress",
+          "evidence": "evidence/gate-4/mcp-adapter.json",
+          "qualification": "Local MCP component: frozen-source workspace 303 passed, one existing media pressure profile ignored; strict Clippy, formatting and Rustdoc pass. Workflow skill structure/JSON input checks pass. Protected installation, actual host/skill and Vapi chat/voice tool qualification remain open."
         },
         {
           "id": "G4-C",

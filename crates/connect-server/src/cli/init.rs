@@ -89,6 +89,7 @@ pub fn initialize(directory: &Path, example: bool, bind: std::net::SocketAddr) -
         )?;
     }
     let config = ServerConfig {
+        mcp: None,
         bind,
         websocket_bind: None,
         database: "state.sqlite3".into(),

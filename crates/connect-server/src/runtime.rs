@@ -37,6 +37,9 @@ pub struct RunningServer {
     pub sip_address: Option<std::net::SocketAddr>,
     /// Actual optional authenticated WebRTC signaling address.
     pub webrtc_address: Option<std::net::SocketAddr>,
+    /// Actual optional loopback Streamable HTTP MCP listener address.
+    pub mcp_address: Option<std::net::SocketAddr>,
+    mcp: Option<connect_mcp::RunningMcp>,
 }
 impl RunningServer {
     /// Safe aggregate diagnostic: queue occupancy only, no message contents.
@@ -89,24 +92,6 @@ impl RunningServer {
         let installation = crate::installation::InstallationLock::acquire(&config.database)?;
         let store = Arc::new(Store::open(&config.database, config.limits.clone())?);
         store.integrity_check()?;
-        let mut transport = quinn::TransportConfig::default();
-        transport.max_idle_timeout(Some(Duration::from_secs(30).try_into()?));
-        let endpoint = Arc::new(
-            rvoip_uctp::substrate::make_server_endpoint(
-                config.bind,
-                tls::server_config(&config.certificate, &config.private_key)?,
-                transport,
-            )
-            .context("Cannot bind QUIC listener; choose an unused local port")?,
-        );
-        let address = endpoint.local_addr()?;
-        let mut routes = rvoip_uctp::substrate::dispatch_by_alpn(
-            endpoint.clone(),
-            &[rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES],
-        )?;
-        let rx = routes
-            .take(rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES)
-            .context("Missing UCTP ALPN route")?;
         let mut discovery = connect_store::DiscoveryRuntime {
             native_audio: true,
             sip: config
@@ -175,6 +160,16 @@ impl RunningServer {
             browser.binding.signaling_url = format!("ws://{address}");
         }
         let service = Service::with_readiness(store.clone(), discovery, readiness.clone());
+        let mcp = if let Some(mcp) = &config.mcp {
+            let auth = connect_mcp::FixedBindingAuth::new(service.clone(), mcp.binding.clone())?;
+            Some(
+                connect_mcp::RunningMcp::start_local(service.clone(), Arc::new(auth), mcp.bind)
+                    .await?,
+            )
+        } else {
+            None
+        };
+        let mcp_address = mcp.as_ref().map(|listener| listener.address);
         let sip_outbound = if config.sip.is_some() {
             Some(crate::sip_outbound::Worker::start(
                 store.clone(),
@@ -251,6 +246,27 @@ impl RunningServer {
             None
         };
         let websocket_address = websocket.as_ref().map(|w| w.address);
+        // Bind native transport after optional listener admission. A rejected
+        // optional listener must not leave a substrate accept task holding QUIC.
+        let mut transport = quinn::TransportConfig::default();
+        transport.max_idle_timeout(Some(Duration::from_secs(30).try_into()?));
+        let endpoint = Arc::new(
+            rvoip_uctp::substrate::make_server_endpoint(
+                config.bind,
+                tls::server_config(&config.certificate, &config.private_key)?,
+                transport,
+            )
+            .context("Cannot bind QUIC listener; choose an unused local port")?,
+        );
+        let address = endpoint.local_addr()?;
+        let startup = crate::startup::EndpointStartup::new(&endpoint);
+        let mut routes = rvoip_uctp::substrate::dispatch_by_alpn(
+            endpoint.clone(),
+            &[rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES],
+        )?;
+        let rx = routes
+            .take(rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES)
+            .context("Missing UCTP ALPN route")?;
         let mut cfg = UctpQuicConfig::new(endpoint.clone(), rx, validator)
             .with_application_handler(service.clone())
             .with_session_binding_resolver(session_resolver)
@@ -269,7 +285,7 @@ impl RunningServer {
             connect_protocol::ReadinessState::Ready,
             "listener-bound",
         );
-        Ok(Self {
+        let server = Self {
             _installation: installation,
             endpoint,
             adapter,
@@ -290,12 +306,21 @@ impl RunningServer {
             media_transports,
             sip_address,
             webrtc_address,
-        })
+            mcp_address,
+            mcp,
+        };
+        startup.finish();
+        Ok(server)
     }
     /// Stop intake, terminate media legs, and drain all owned resources.
     pub async fn shutdown(mut self) -> Result<()> {
         self.adapter.begin_drain();
         let mut failures = Vec::new();
+        if let Some(mcp) = self.mcp.take() {
+            if let Err(error) = mcp.shutdown().await {
+                failures.push(error.to_string());
+            }
+        }
         if let Some(voice) = self.voice.take() {
             if let Err(error) = voice.shutdown().await {
                 failures.push(error.to_string());

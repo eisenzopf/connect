@@ -16,6 +16,7 @@ not a native QUIC SDK or telephone media endpoint.
 | connect-connector-api | Storage-independent message/voice requests and provider observations |
 | connect-connectors | Telnyx/Vapi provider adapters and callback validation |
 | connect-client | Rust native UCTP/QUIC authentication and request exchange |
+| connect-mcp | Official MCP SDK transport, current-grant tool projection and service-only task dispatch |
 | connect-server | Listeners, CLI lifecycle, explicit durable-job→adapter mapping and bounded workers |
 | sdk/python, sdk/typescript | Public operations, validated types/results, helper/HTTP transports and stable errors |
 

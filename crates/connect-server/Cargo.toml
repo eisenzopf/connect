@@ -18,6 +18,7 @@ connect-store.workspace = true
 connect-service.workspace = true
 connect-client.workspace = true
 connect-connectors.workspace = true
+connect-mcp.workspace = true
 axum = { workspace = true, features = ["ws"] }
 tower-http.workspace = true
 telnyx.workspace = true
@@ -53,6 +54,8 @@ tokio-tungstenite.workspace = true
 base64.workspace = true
 
 [dev-dependencies]
+rmcp = { workspace = true, features = ["client", "transport-streamable-http-client-reqwest"] }
+reqwest-mcp = { package = "reqwest", version = "0.13.2", default-features = false, features = ["json", "stream"] }
 tempfile.workspace = true
 ed25519-dalek = "2"
 wiremock = "0.6"

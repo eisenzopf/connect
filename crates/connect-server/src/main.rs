@@ -505,6 +505,9 @@ async fn main() -> Result<()> {
             if let Some(address) = server.http_address {
                 println!("http_json={address}");
             }
+            if let Some(address) = server.mcp_address {
+                println!("mcp_streamable_http=http://{address}/mcp");
+            }
             println!(
                 "ready transport=quic alpn={} profile={} address={} schema={} websocket_parity={}",
                 rvoip_uctp::UCTP_RAW_QUIC_ALPN,

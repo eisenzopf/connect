@@ -200,7 +200,7 @@
       "id": "F-10",
       "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
       "delivery_gate": 4,
-      "status": "Not implemented; additional assistant research/selection deferred by owner to Gate 4.",
+      "status": "In progress: Codex CLI selected with versioned research evidence; local MCP adapter/tools and workflow skill draft implemented. Installed-host/skill qualification, protected setup and complete reply/resumption journeys remain open.",
       "required_evidence": "Human reply reaches originating task; documented installation and resumption",
       "v0_1_required": true,
       "milestones": [
@@ -215,6 +215,11 @@
         "A4-07",
         "A4-08",
         "A4-10"
+      ],
+      "component_evidence": [
+        "evidence/gate-4/host-selection.json",
+        "evidence/gate-4/mcp-adapter.json",
+        "evidence/gate-4/skill-draft.json"
       ]
     },
     {
@@ -497,7 +502,7 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "Gates 1\u20133 retain recorded qualification. Pre-Gate 4 repairs and live SMS conversation, recall and HELP/STOP/START are closed within recorded limits. Gate 4 has a review draft with 36 tasks and 14 criteria; implementation has not started. Gate 5 full v0.1 remains planned.",
+  "assignment_status": "Gates 1\u20133 retain recorded qualification. Pre-Gate 4 repairs and live SMS conversation, recall and HELP/STOP/START are closed within recorded limits. Gate 4 implementation is in progress under its 36-item plan and 14 acceptance criteria; component evidence does not close whole-gate acceptance. Gate 5 full v0.1 remains planned.",
   "gate_3_acceptance": "gate-3-acceptance.json",
   "gate_4_acceptance": "gate-4-acceptance.json"
 }

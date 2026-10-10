@@ -26,9 +26,22 @@ pub struct ServerConfig {
     /// Optional authenticated browser WebRTC listener and durable route.
     #[serde(default)]
     pub webrtc: Option<WebRtcMediaConfig>,
+    /// Optional local MCP endpoint. Contains correlation, never bearer secrets.
+    #[serde(default)]
+    pub mcp: Option<McpConfig>,
     /// Bounded application and transport limits.
     #[serde(default)]
     pub limits: Limits,
+}
+
+/// Trusted native/host binding for the opt-in loopback MCP listener.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct McpConfig {
+    /// Local Streamable HTTP address; port zero allocates an ephemeral port.
+    pub bind: SocketAddr,
+    /// Registered origin. The grant presented by each request must match it.
+    pub binding: connect_protocol::tasks::InvocationBinding,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -117,6 +130,20 @@ impl ServerConfig {
     }
     /// Validate the bounded local profile without opening listeners or files.
     pub fn validate(&self) -> Result<()> {
+        if let Some(mcp) = &self.mcp {
+            use connect_protocol::tasks::InvocationKind;
+            anyhow::ensure!(
+                mcp.bind.ip().is_loopback()
+                    && matches!(
+                        mcp.binding.kind,
+                        InvocationKind::Native | InvocationKind::HostSession
+                    ),
+                "Local MCP requires a loopback listener and a native or host binding"
+            );
+            mcp.binding
+                .validate()
+                .map_err(|_| anyhow::anyhow!("Invalid MCP invocation binding"))?;
+        }
         if !self.bind.ip().is_loopback()
             || self
                 .websocket_bind
@@ -274,6 +301,7 @@ mod tests {
                 },
             }),
             webrtc: None,
+            mcp: None,
             limits: Limits::default(),
         };
         assert!(config.validate().is_err());

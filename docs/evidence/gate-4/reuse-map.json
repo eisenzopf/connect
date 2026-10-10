@@ -47,6 +47,43 @@
         }
       ],
       "reuse": "Managed MCP projection and verified invocation binding; GET-only native-MCP recovery. Extract small cohesive helpers with source digest/attribution; do not import whole registry."
+    },
+    {
+      "project": "Rudeless",
+      "revision": "608404e5aa2e747806bf82ed7acfb3924f98b510",
+      "authorization": "Explicit owner reuse permission recorded above",
+      "reviewed_files": [
+        {
+          "path": "backend/src/routes/sms.rs",
+          "sha256": "236331ac2c98348763131c5597850a7df9644cb3dcd322eeecd043d9c9b6923c"
+        },
+        {
+          "path": "backend/src/routes/sms_reviews.rs",
+          "sha256": "e71f9928186c2ae06017664e37064ed66b355a718f89c3ec0bf21cae639071e8"
+        },
+        {
+          "path": "backend/migrations/0004_sms_consent.sql",
+          "sha256": "819e81d4cc4acc0d2969cf632e291f7a5b5e4e7b7d2e05a9d9f174158e51cd9f"
+        },
+        {
+          "path": "backend/migrations/0005_sms_activation.sql",
+          "sha256": "ea3f7529831d155c6a49105b5f1bcb45b47231ae74ece7a4205c9ad29227d44f"
+        },
+        {
+          "path": "backend/tests/sms_reviews.rs",
+          "sha256": "6e03da830057df9bfc181c2366cd5f0cdf68481bc596c741e22c15bf60caf4a1"
+        },
+        {
+          "path": "frontend/src/app/sms/sms-consent-form.tsx",
+          "sha256": "f713ad0bae2a8eae65a0deaf3682934cd3b40cd4d9512d269e8b7a568b6f71fd"
+        },
+        {
+          "path": "frontend/tests/sms-consent.spec.ts",
+          "sha256": "81860280fa721f514550a021749bfa61e46948b93787b7d7e0b4b476bb550f09"
+        }
+      ],
+      "reuse": "Existing consent form, reviewed approvals and installation-scoped SMS grant feed. Connect consumes the authenticated service and enforces its task purpose, freshness, expiry and STOP policy; no source extracted or database modified by this planning update.",
+      "verification_boundary": "Read-only local source review; this entry is not a new deployment or live SMS qualification."
     }
   ],
   "boundaries": {
