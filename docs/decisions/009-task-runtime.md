@@ -256,3 +256,13 @@ Current session/artifact metadata replaces stale snapshots; deleted, expired or
 unavailable artifacts expose no body or bytes. Existing message timestamps are
 explicitly absent. Task/identity/installation/resource-bound cursors do not bypass
 current authority. Public wire, SDK, MCP and actual-host recall proof remain open.
+
+G4-012 is in progress. Shared admission now protects one terminal event and one
+mutation receipt per nonterminal task under the existing quotas. Task expiry
+must be recorded before releasing that room. Terminal transitions use their
+own reservation in the same transaction; concurrent tasks cannot spend each
+other's slots. Disk/SQL failure and lowered configuration limits remain explicit
+errors without an acknowledged state change. Matching terminal-control receipts
+remain inspectable under current owner/control scope and ACL; they cannot revive
+effects or grants. Physical media dispatch and reviewed task-specific SMS
+purpose are still required before G4-012 closes.

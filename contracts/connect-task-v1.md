@@ -84,6 +84,23 @@ requires the current task, invocation, actor and artifact-get authority. Cursors
 bind installation, identity, task and recall resource; every continuation rechecks
 the current grant, credential and conversation access.
 
+Admission reserves one terminal journal entry and one mutation receipt for each
+nonterminal task within the existing installation limits. Ordinary operations,
+nonterminal progress and new admission cannot spend this room. A terminal transition
+updates state and consumes its released reservation in the same transaction.
+Elapsed time does not free a reservation before the expiry event commits. A
+write failure or a configured limit lowered below retained usage returns an
+explicit error without acknowledging cancellation; recovery retries use the
+same logical ID. The reserve protects terminal control records, not an unlimited
+number of later reconciliation observations or a filesystem write guarantee.
+
+A matching terminal lifecycle transition receipt remains inspectable under the
+current owner's task-transition scope and conversation access, as cancellation
+receipts already are. Revoked reader credentials fail. This inspection neither
+reopens the task nor revives its grants; a new transition and every effect replay
+still enforce continuation authority. Creation receipts and effect receipts do
+not gain an exception from this terminal-control rule.
+
 Contract errors use existing Connect `{code,message}` shapes. Unknown profiles:
 `unsupported-profile`; malformed input: `invalid-request`; missing current
 credential: `unauthorized`; disallowed operation/resource/binding: `forbidden`;

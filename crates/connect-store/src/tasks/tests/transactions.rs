@@ -59,8 +59,9 @@ fn concurrent_process_handles_serialize_revision_updates() {
 fn task_events_and_receipts_share_existing_installation_capacity() {
     let dir = tempfile::tempdir().unwrap();
     let limits = Limits {
-        journal_events: 2,
-        operation_receipts: 2,
+        // Conversation + task admission + its protected terminal record.
+        journal_events: 3,
+        operation_receipts: 3,
         ..Limits::default()
     };
     let store = Store::initialize(&dir.path().join("state.sqlite3"), limits).unwrap();

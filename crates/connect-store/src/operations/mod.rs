@@ -62,7 +62,7 @@ pub(crate) fn execute(
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    if receipts >= store.limits.operation_receipts {
+    if !crate::tasks::budget::fits(c, store.limits.operation_receipts, receipts, 1)? {
         return Err(Error::new(
             "capacity-exceeded",
             "Durable request receipt capacity exceeded; no acceptance recorded",

@@ -6,6 +6,7 @@ mod transactions;
 
 mod grants;
 
+mod cancellation_budget;
 mod claims;
 #[cfg(feature = "test-support")]
 mod effect_crashes;

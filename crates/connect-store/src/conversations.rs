@@ -99,7 +99,7 @@ pub(crate) fn capacity(c: &Connection, events: u64, bytes: u64, store: &Store) -
         )
         .map_err(|_| Error::storage())?;
     Ok(
-        stored_events.saturating_add(events) <= store.limits.journal_events
+        crate::tasks::budget::fits(c, store.limits.journal_events, stored_events, events)?
             && stored_bytes.saturating_add(bytes) <= store.limits.message_storage_bytes,
     )
 }

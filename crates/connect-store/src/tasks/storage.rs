@@ -80,7 +80,7 @@ pub(super) fn event_data(
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    if count >= store.limits.journal_events {
+    if !super::budget::fits(c, store.limits.journal_events, count, 1)? {
         return Err(Error::new(
             "capacity-exceeded",
             "Task journal capacity exceeded; no acceptance recorded",
@@ -164,7 +164,7 @@ pub(super) fn save_outcome(
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    if count >= store.limits.operation_receipts {
+    if !super::budget::fits(c, store.limits.operation_receipts, count, 1)? {
         return Err(Error::new(
             "capacity-exceeded",
             "Task receipt capacity exceeded; no acceptance recorded",
