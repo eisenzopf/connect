@@ -107,7 +107,7 @@
       "id": "F-06",
       "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
       "delivery_gate": "2 local / live deferred",
-      "status": "Campaign approved and number assigned. Consent-aware SMS implemented and offline-verified; production review/feed services deployed with preserved evidence, local Connect migrated with backup, initial SDK SMS delivered via signed callback. Live handset conversation and HELP/STOP/START qualification remain in progress.",
+      "status": "Reviewed enrollment is deployed and enforced. Signed callbacks, five handset conversation turns, assistant-initiated SDK sends and native UCTP/QUIC recall of SMS context are verified. Live HELP/STOP/START qualification remains in progress.",
       "required_evidence": "Approval/number readiness, consented handset and signed live callback",
       "v0_1_required": true,
       "milestones": [
@@ -285,8 +285,8 @@
       "id": "F-15",
       "required_capability": "Cross-channel conversation continuity and explicit assistant context transfer",
       "delivery_gate": "3 continuity / 4 task continuation",
-      "status": "Gate 3 qualifies retained source history, bounded context delivery, final voice observations and actual four-route decision recall after restart. Omission and ASR/model limits are explicit; SMS continuity and task resumption remain future work.",
-      "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. Repeat the SMS boundary after carrier approval; live SMS remains deferred.",
+      "status": "Gate 3 qualifies retained source history, bounded context delivery, final voice observations and actual four-route decision recall after restart. Omission and ASR/model limits are explicit; SMS-to-native SDK recall is now verified in the same conversation; task resumption remains Gate 4 work.",
+      "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; finish live HELP/STOP/START enforcement.",
       "v0_1_required": true,
       "milestones": [
         "G3-A",
@@ -444,6 +444,6 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "Gate 3: 35 tasks and 13 required criteria qualified on the recorded local topology. Gate 4 assistant/tools and Gate 5 full v0.1 remain planned; SMS approval deferred.",
+  "assignment_status": "Gate 3: 35 tasks and 13 required criteria qualified on the recorded topology. Immediate repairs and installed package verified. SMS conversation/native recall passed; keyword qualification remains open. Gate 4 tools and Gate 5 full v0.1 remain planned.",
   "gate_3_acceptance": "gate-3-acceptance.json"
 }

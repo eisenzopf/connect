@@ -17,8 +17,8 @@
     {
       "id": 2,
       "name": "Assistant chat and telephone voice",
-      "outcome": "Vapi chat and real Telnyx inbound/outbound telephone calls through local Connect SDK/API; live SMS explicitly deferred pending approval.",
-      "status": "complete-local-provider-route-sms-deferred",
+      "outcome": "Vapi chat and real Telnyx inbound/outbound telephone calls through local Connect SDK/API; SMS lane reactivated; real conversation and native SDK recall verified, keyword sequence in progress.",
+      "status": "complete-recorded-scope-sms-qualification-in-progress",
       "plan": "connect-gate-2-plan.html",
       "implementation": "connect-gate-2-implementation.html",
       "evidence": "evidence/gate-2/result.json",
@@ -93,7 +93,7 @@
             "G3-D"
           ],
           "outcome": "Prove VoIP 3.0 conversation continuity across native messages, Vapi chat and voice. Persist authorized history, artifact references and accumulated context at the Conversation level; give each runtime a bounded, attributable projection and persist its outcomes. Extend the test client to audio and basic availability.",
-          "acceptance": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. Repeat the SMS boundary after carrier approval; live SMS remains deferred.",
+          "acceptance": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; finish live HELP/STOP/START enforcement.",
           "reuse": "Parley chat/session mapping, Connect identity/journal and Thelve authority-design lessons. Call-ID correlation by itself does not prove model context transfer.",
           "experiment": "E3 / E5 / E7 integration",
           "status": "complete-local-and-live"
@@ -238,24 +238,23 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 3 has passed its 21-phase local qualification and installed-candidate checks; required human-audibility, answered/inbound PSTN and interactive browser proofs remain open. Gate 4\u20135 detailed plans remain unwritten.",
-    "Six Gate 3 directions are accepted and implemented locally; live route and candidate qualification must close without weakening their acceptance criteria.",
-    "Additional assistant selection/research is deferred to G4-A.",
-    "Carrier approval gates the deferred live SMS lane and full v0.1 release."
+    "R01\u2013R04 repaired and verified, including a fresh installed package. Live SMS conversation and native SDK recall passed; HELP/STOP/START qualification remains open before Gate 4.",
+    "R05\u2013R08 readiness, contributor reproducibility, connector seam and task-binding decisions retain their assignments in the pre-Gate 4 review.",
+    "Additional assistant selection/research is deferred to G4-A. Gate 4\u20135 detailed plans remain unwritten."
   ],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
-  "revision": 4,
+  "revision": 5,
   "document": "connect-roadmap.html",
-  "planning_status": "Gates 1\u20133 qualified within recorded scope. Gate 4/5 remain planned; live SMS deferred pending approval.",
-  "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Deliver basic files before Gate 4 artifact/task continuation. Design video early and qualify it in Gate 5. SMS is a parallel deferred qualification lane and a full v0.1 release blocker.",
+  "planning_status": "Gates 1\u20133 qualified within recorded scope; immediate repair pass and installed package verified. SMS consent, callback, conversation and native recall verified; live keyword controls in progress. Gates 4\u20135 remain planned.",
+  "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
   "parallel_lanes": [
     {
       "id": "G2-SMS",
       "title": "Return deferred SMS to live qualification",
-      "status": "deferred-external-approval",
-      "trigger": "Provider/carrier approval, eligible number assignment, consented test handset and verified reachable callback endpoint",
+      "status": "live-qualification-in-progress",
+      "trigger": "Completed: carrier approval, number assignment, self-enrollment, reviewed activation and signed callback. Remaining: HELP/STOP/START enforcement.",
       "depends_on": [
         "gate-2"
       ],
@@ -267,7 +266,8 @@
       "blocks": [
         "G5-D"
       ],
-      "note": "Gate 2 retains its owner-approved closure scope. SMS is not waived from full v0.1 and need not block independent media/agent development."
+      "note": "Historical Gate 2 closure is preserved. The owner reactivated G2-018/G2-019 for completion before Gate 4; all original acceptance requirements remain.",
+      "evidence": "evidence/pre-gate-4/closure.json"
     }
   ],
   "decisions": [
@@ -351,7 +351,7 @@
     "source_status": "Conceptual working draft; not evidence of complete rvoip/Connect implementation or a replacement wire specification.",
     "core": "Conversation is the durable home for communication history and accumulated context. Sessions, Messages, Participants, Connections and Streams retain distinct responsibilities; transport/provider identifiers are bindings, not the conversation identity.",
     "context_policy": "Persist conversation history and context according to declared retention/access policy. Supply authorized bounded projections to assistant runtimes, with source references, version/watermark and delivery outcome. A summary is derived context, not a replacement for retained source history. Context unavailable at a provider boundary must be explicit.",
-    "gate_3_proof": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. Repeat the SMS boundary after carrier approval; live SMS remains deferred.",
+    "gate_3_proof": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; finish live HELP/STOP/START enforcement.",
     "scope_boundary": "The model must represent human/AI kinds, conversation roles and connection changes without losing conversation context. G3-A records gaps in current immutable membership and plans the minimum lifecycle contract; this does not declare live human handoff, multiparty mixing or cross-device transfer already implemented.",
     "lifetime_policy": "Connect defaults to persistent conversations. New sessions, provider legs, connections and bounded runtime context views reuse the existing cid. Only explicit developer/application intent creates a new conversation; unresolved inbound binding is not an automatic split or merge."
   }

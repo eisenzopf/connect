@@ -142,8 +142,8 @@
     "recipient_form": "Original affirmative enrollment reviewed via admin session + CSRF; installation/conversation/sender-bound 24-hour grant synchronized.",
     "rudeless_deployment": "Succeeded; backend only, PostgreSQL container preserved, original consent fingerprint unchanged. Off-host backup restored in disposable local PostgreSQL.",
     "connect_migration": "Schema 9 to 10 with verified backup; existing identities, credentials, conversations, messages and routes unchanged before SMS route addition.",
-    "sms_delivery": "Initial Python HTTP SDK send delivered; signed Telnyx callback recorded allowed grant. Handset conversation and control sequence in progress.",
-    "callback_boundary": "Application API rejected with 404; unsigned webhook rejected with 401.",
+    "sms_delivery": "Initial HTTP SDK send, five handset/Vapi conversation turns and native UCTP/QUIC recall of the city from an earlier SMS all delivered in one existing conversation. HELP/STOP/START remain in progress.",
+    "callback_boundary": "Qualified release uses its built-in webhook-only listener; custom proxy removed. Public application API returns 404; unsigned webhook returns 401.",
     "voice_route": "Original Telnyx voice connection read back unchanged after SMS configuration.",
     "build": {
       "id": "98a7515f-2b8a-4c2b-ab5d-cd789db94948",
@@ -152,7 +152,6 @@
     }
   },
   "not_claimed": [
-    "new installed-package qualification",
     "fresh live voice/media qualification",
     "independent contributor installation",
     "Gate 4 implementation",
@@ -161,7 +160,10 @@
   "private_evidence": "Raw logs, credentials, handset details, database snapshots and provider identifiers remain ignored under .local; original audit reproductions are historical at a20de33.",
   "source_manifest": "source-files.json",
   "unresolved": [
-    "G2-019: real handset conversation turns, HELP acknowledgement, STOP suppression, blocked SDK send, START and resume. Recipient has been asked to begin the sequence.",
+    "G2-019 remaining: real HELP acknowledgement, STOP suppression, blocked SDK send, START and resumed delivery. Handset conversation/context and assistant-initiated sends are verified.",
     "R05\u2013R08 qualification and Gate 4 design work remain as scoped in the original review."
-  ]
+  ],
+  "repair_source_revision": "e80e81010228",
+  "rudeless_source_revision": "608404e",
+  "installed_package": "package.json"
 }
