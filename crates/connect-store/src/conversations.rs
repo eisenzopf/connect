@@ -7,13 +7,55 @@ impl Store {
     /// One transaction and current authority check own each application operation.
     /// Receipt/effect/event admission is serialized even across separate processes.
     pub fn execute(&self, credential_id: &str, operation: &Operation) -> Result<Outcome> {
+        self.execute_with_runtime(
+            credential_id,
+            operation,
+            &crate::DiscoveryRuntime::default(),
+        )
+    }
+    /// Execute with the server's configured transport snapshot; current authority stays transactional.
+    pub fn execute_with_runtime(
+        &self,
+        credential_id: &str,
+        operation: &Operation,
+        runtime: &crate::DiscoveryRuntime,
+    ) -> Result<Outcome> {
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let actor = actor_from_connection(&tx, credential_id)?;
-        actor.require(operation.name())?;
+        actor.require(operation.required_scope())?;
         let outcome = match operation {
+            Operation::Capabilities {
+                address,
+                conversation_id,
+            } => Outcome::Capabilities(crate::discovery::capabilities(
+                &tx,
+                &actor,
+                address,
+                conversation_id.as_deref(),
+                runtime,
+                self.limits(),
+            )?),
+            Operation::BrowserBinding {} => {
+                Outcome::BrowserBinding(crate::discovery::browser_binding(&tx, &actor, runtime)?)
+            }
+            Operation::ContextDeliveries {
+                conversation_id,
+                before,
+                limit,
+            } => {
+                authorized_conversation(&tx, &actor, conversation_id)?;
+                page_limit(*limit, self.limits.page_size)?;
+                Outcome::ContextDeliveries(crate::context::deliveries(
+                    &tx,
+                    &actor,
+                    conversation_id,
+                    before.as_deref(),
+                    *limit,
+                )?)
+            }
             Operation::Resolve { address } => {
                 crate::conversation_queries::resolve(&tx, &actor, address)?
             }

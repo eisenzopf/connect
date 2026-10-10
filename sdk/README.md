@@ -53,3 +53,20 @@ See [the conversation client](../examples/conversation-client/README.md) and
 [explicit live rehearsals](../scripts/live/README.md) for hardware and generated
 speech examples. Generated audio plus independent decoding can test the media
 path autonomously; it does not qualify a particular microphone or speaker.
+
+## Discovery and context inspection
+
+Use `capabilities` with an address and optional conversation to inspect authorized
+operations, configured routes, availability and limits. A configured route is not
+a provider health check or a guarantee of delivery. The legacy `resolve` response
+remains a static identity declaration.
+
+Before opening browser voice, use `browser_binding` and verify that its conversation
+and participant match the intended conversation. Its signaling URL belongs to that
+binding; request microphone access only after this preflight succeeds.
+
+`context_view` returns bounded recent receipts and separate omission counts.
+Use `context_deliveries` to page older delivery receipts newest first. Cursors
+are opaque and authorization is checked on every page, including after restart.
+Python and Rust use snake_case helpers; TypeScript uses `browserBinding`,
+`contextView` and `contextDeliveries`. See the shared wire fixtures for exact fields.

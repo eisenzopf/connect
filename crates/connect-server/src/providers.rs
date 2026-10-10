@@ -22,20 +22,44 @@ impl Worker {
             !drivers.is_empty(),
             "Provider worker requires TELNYX_API_KEY or VAPI_PRIVATE_KEY"
         );
-        Self::with_drivers(service, drivers)
+        service.store.expire_sms_authorities()?;
+        let authority = crate::sms_authority::Authority::from_env()?;
+        Self::with_authority(service, drivers, authority)
     }
     /// Public adapter boundary also used by deterministic integration fixtures.
     pub fn with_drivers(
         service: Arc<Service>,
         drivers: Vec<Arc<dyn Connector>>,
     ) -> anyhow::Result<Self> {
+        Self::with_authority(service, drivers, None)
+    }
+    fn with_authority(
+        service: Arc<Service>,
+        drivers: Vec<Arc<dyn Connector>>,
+        authority: Option<crate::sms_authority::Authority>,
+    ) -> anyhow::Result<Self> {
         service.store.recover_provider_jobs()?;
         let stop = CancellationToken::new();
         let cancelled = stop.clone();
         let task = tokio::spawn(async move {
+            let mut next_refresh = tokio::time::Instant::now();
             loop {
                 if cancelled.is_cancelled() {
                     break;
+                }
+                if let Some(authority) = &authority {
+                    if tokio::time::Instant::now() >= next_refresh {
+                        let result = tokio::select! {
+                            _ = cancelled.cancelled() => break,
+                            value = authority.refresh(service.store.clone()) => value,
+                        };
+                        if result.is_err() {
+                            tracing::warn!(
+                                "SMS enrollment refresh failed; stale grants expire automatically"
+                            );
+                        }
+                        next_refresh = tokio::time::Instant::now() + Duration::from_secs(30);
+                    }
                 }
                 let store = service.store.clone();
                 let job = tokio::task::spawn_blocking(move || store.claim_provider_job()).await;

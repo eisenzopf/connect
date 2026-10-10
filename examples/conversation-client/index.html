@@ -21,7 +21,7 @@
           >HTTP API <input id="http" value="http://127.0.0.1:3018"
         /></label>
         <label
-          >WebRTC signaling <input id="webrtc" value="ws://127.0.0.1:3020"
+          >WebRTC signaling <input id="webrtc" readonly placeholder="Read from the server before joining"
         /></label>
         <label
           >Credential <input id="credential" type="password" autocomplete="off"
@@ -49,7 +49,9 @@
             <h2>Conversation</h2>
             <span id="watermark"></span>
           </div>
-          <ol id="messages"></ol>
+          <ol id="messages"></ol><button id="more-history">Load next history page</button>
+          <p id="pending"></p><button id="retry">Retry saved action</button>
+          <details><summary>Context and delivery outcomes</summary><p id="context-state"></p><ol id="context-events"></ol><ol id="deliveries"></ol><button id="more-deliveries">Older delivery receipts</button></details>
           <form id="message-form">
             <textarea
               id="message"
@@ -84,7 +86,7 @@
             </div>
           </section>
           <section class="card">
-            <h2>Browser voice</h2>
+            <h2>Browser voice</h2><p id="voice-binding">The server binding is checked before microphone access.</p>
             <p>
               Authenticated WebRTC audio enters the configured conversation
               route and reaches the assistant through Connect.

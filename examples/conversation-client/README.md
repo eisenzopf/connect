@@ -47,3 +47,28 @@ press Enter to hang up. The example ends the Session while retaining the
 Conversation. Capture and playback queues are bounded, and audio is not saved.
 Its frame counts show media activity; human confirmation is still required to
 establish intelligibility and successful interruption.
+
+## Offline browser recovery check
+
+`scripts/check-reference-client.mjs` starts a fresh local Connect installation,
+serves this real page, and drives Chromium through the public HTTP SDK. It checks
+101-message paging, a committed send with a lost acknowledgement followed by
+reload and same-ID retry, exactly one resulting message, and voice refusal before
+microphone acquisition. It uses no provider account and leaves the existing local
+installation alone. Logs and a screenshot stay under ignored `.local/`.
+
+After building `connect` and the TypeScript SDK, provide a Playwright installation
+and Chrome executable (the qualified platform is local macOS arm64):
+
+```sh
+npm install --prefix .local/browser-tools playwright
+CONNECT_PLAYWRIGHT_MODULE="$(pwd)/.local/browser-tools/node_modules/playwright/index.mjs" \
+CONNECT_CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+node scripts/check-reference-client.mjs
+```
+
+The account-free workflow fixtures also run through `npm test --prefix sdk/typescript`.
+A saved uncertain action retains its original inputs and request ID across page
+reload; use **Retry saved action** before submitting a different action in that slot.
+A definite first-attempt rejection can be corrected without retaining an uncertain
+intent. Storage failure prevents submission rather than losing the retry identity.

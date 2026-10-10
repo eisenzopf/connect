@@ -89,6 +89,14 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     if schema >= 9 {
         tables.push("sip_legs");
     }
+    if schema >= 10 {
+        tables.extend([
+            "sms_authorities",
+            "sms_grants",
+            "sms_controls",
+            "sms_control_events",
+        ]);
+    }
     for table in tables {
         digest.update(table.as_bytes());
         // Names are a fixed allowlist, never user-controlled SQL.
@@ -223,6 +231,10 @@ impl Store {
         }
         if expected.schema < 9 {
             tx.execute_batch(include_str!("../migrations/009_sip_legs.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 10 {
+            tx.execute_batch(include_str!("../migrations/010_sms_eligibility.sql"))
                 .map_err(|_| Error::storage())?;
         }
         let snapshot = inspect(&tx)?;

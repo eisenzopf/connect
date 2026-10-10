@@ -63,6 +63,20 @@ async fn signed_sms_vapi_reply_delivery_and_http_quic_replay_share_one_journal()
         .create("conversation", vec![bot_config.identity_id.clone()])
         .await
         .unwrap();
+    let capabilities = app
+        .capabilities("connect:agent@local", Some(&conv.id))
+        .await
+        .unwrap();
+    assert!(capabilities
+        .routes
+        .iter()
+        .any(|r| r.media.contains(&"files".into())));
+    assert!(app
+        .context_deliveries(&conv.id, None, 10)
+        .await
+        .unwrap()
+        .deliveries
+        .is_empty());
     let route = Route {
         id: "vapi".into(),
         identity_id: bot_config.identity_id.clone(),
@@ -90,6 +104,28 @@ async fn signed_sms_vapi_reply_delivery_and_http_quic_replay_share_one_journal()
                 target: "+15555550101".into(),
                 source: Some("+15555550102".into()),
                 enabled: true,
+            },
+        )
+        .unwrap();
+    server
+        .store
+        .refresh_sms_grants(
+            "fixture",
+            &connect_store::SmsGrantSnapshot {
+                revision: 1,
+                grants: vec![connect_store::SmsGrant {
+                    id: "reviewed".into(),
+                    phone: "+15555550101".into(),
+                    sender: "+15555550102".into(),
+                    conversation_id: conv.id.clone(),
+                    purpose: "Requested offline fixture".into(),
+                    consent_id: "form".into(),
+                    disclosure_version: "v1".into(),
+                    disclosure_text: "Explicit fixture consent".into(),
+                    submitted_at: 1700000000,
+                    approved_at: 1700000001,
+                    expires_at: 4000000000,
+                }],
             },
         )
         .unwrap();
@@ -133,13 +169,19 @@ async fn signed_sms_vapi_reply_delivery_and_http_quic_replay_share_one_journal()
         404
     );
     let timestamp = chrono::Utc::now().timestamp();
-    for (index, text) in ["STOP", "stop all", "HELP", "START", "custom opt-out"]
+    for (index, text) in ["STOP", "stop all", "HELP", "START", "custom help"]
         .into_iter()
         .enumerate()
     {
         let mut ignored = json!({"data":{"id":format!("ignored-{index}"),"event_type":"message.received","payload":{"from":{"phone_number":"+15555550101"},"to":[{"phone_number":"+15555550102"}],"text":text}}});
+        ignored["data"]["occurred_at"] = json!(chrono::DateTime::from_timestamp(
+            timestamp - 10 + index as i64,
+            0
+        )
+        .unwrap()
+        .to_rfc3339());
         if index == 4 {
-            ignored["data"]["payload"]["autoresponse_type"] = json!("custom_stop");
+            ignored["data"]["payload"]["autoresponse_type"] = json!("HELP");
         }
         assert_eq!(
             callback(&webhook, &key, &ignored, timestamp, false)
@@ -178,6 +220,21 @@ async fn signed_sms_vapi_reply_delivery_and_http_quic_replay_share_one_journal()
             .await
             .status(),
         204
+    );
+    let mut retried = event.clone();
+    retried["meta"] = json!({"attempt":2,"delivered_to":"https://fixture.invalid/webhooks/telnyx"});
+    assert_eq!(
+        callback(&webhook, &key, &retried, timestamp, false)
+            .await
+            .status(),
+        204
+    );
+    retried["data"]["payload"]["text"] = json!("changed event body");
+    assert_eq!(
+        callback(&webhook, &key, &retried, timestamp, false)
+            .await
+            .status(),
+        400
     );
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {

@@ -11,6 +11,7 @@ publish = false
 test-support = ["connect-store/test-support", "connect-service/test-support"]
 
 [dependencies]
+reqwest.workspace = true
 connect-connector-api.workspace = true
 connect-protocol.workspace = true
 connect-store.workspace = true
@@ -53,7 +54,6 @@ base64.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-reqwest.workspace = true
 ed25519-dalek = "2"
 wiremock = "0.6"
 rusqlite.workspace = true

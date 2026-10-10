@@ -15,7 +15,9 @@
               "message_id": "message-1",
               "connector": "vapi",
               "state": "completed",
-              "provider_id": "chat-1"
+              "provider_id": "chat-1",
+              "sms_decision": null,
+              "sms_grant_id": null
             }
           ]
         }

@@ -107,7 +107,7 @@
       "id": "F-06",
       "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
       "delivery_gate": "2 local / live deferred",
-      "status": "local implementation tested; live SMS explicitly deferred pending approval",
+      "status": "Campaign approved and number assigned. Consent-aware SMS implemented and offline-verified; production review/feed services deployed with preserved evidence, local Connect migrated with backup, initial SDK SMS delivered via signed callback. Live handset conversation and HELP/STOP/START qualification remain in progress.",
       "required_evidence": "Approval/number readiness, consented handset and signed live callback",
       "v0_1_required": true,
       "milestones": [

@@ -2,6 +2,8 @@
 mod artifacts;
 mod availability;
 mod context;
+mod discovery;
+pub use discovery::{BrowserRoute, DiscoveryRuntime};
 mod conversation_queries;
 mod conversations;
 mod cursor;
@@ -9,6 +11,10 @@ mod identity;
 mod provider_chat_context;
 mod provider_context;
 mod providers;
+mod sms_eligibility;
+pub use sms_eligibility::{
+    control_kind as sms_control_kind, SmsGrant, SmsGrantSnapshot, SMS_LEASE_SECONDS,
+};
 mod recovery;
 mod session_routes;
 mod sessions;
@@ -32,7 +38,7 @@ pub use identity::{Actor, IssuedCredential, Scope};
 pub use recovery::Snapshot;
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
 pub use sip_legs::{SipLegAction, SipLegJob};
-pub const SCHEMA_VERSION: u32 = 9;
+pub const SCHEMA_VERSION: u32 = 10;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
@@ -75,6 +81,8 @@ impl Store {
         tx.execute_batch(include_str!("../migrations/008_artifact_expiry.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/009_sip_legs.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/010_sms_eligibility.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute(
             "INSERT INTO installation VALUES(1,?1,?2)",

@@ -25,12 +25,18 @@ use std::sync::Arc;
 pub struct Service {
     pub store: Arc<Store>,
     changed: tokio::sync::Notify,
+    runtime: connect_store::DiscoveryRuntime,
     #[cfg(test)]
     wait_boundary: Option<(Arc<tokio::sync::Barrier>, Arc<tokio::sync::Barrier>)>,
 }
 impl Service {
     pub fn new(store: Arc<Store>) -> Arc<Self> {
+        Self::with_runtime(store, connect_store::DiscoveryRuntime::default())
+    }
+    /// Configure discovery from successfully constructed runtime listeners and adapters.
+    pub fn with_runtime(store: Arc<Store>, runtime: connect_store::DiscoveryRuntime) -> Arc<Self> {
         Arc::new(Self {
+            runtime,
             store,
             changed: tokio::sync::Notify::new(),
             #[cfg(test)]
@@ -76,9 +82,12 @@ impl Service {
     }
     async fn run(&self, credential_id: String, operation: Operation) -> Result<Outcome> {
         let store = self.store.clone();
-        tokio::task::spawn_blocking(move || store.execute(&credential_id, &operation))
-            .await
-            .map_err(|_| Error::storage())?
+        let runtime = self.runtime.clone();
+        tokio::task::spawn_blocking(move || {
+            store.execute_with_runtime(&credential_id, &operation, &runtime)
+        })
+        .await
+        .map_err(|_| Error::storage())?
     }
 }
 #[async_trait]
@@ -492,6 +501,7 @@ mod tests {
             store,
             changed: tokio::sync::Notify::new(),
             wait_boundary: Some((reached.clone(), release.clone())),
+            runtime: Default::default(),
         });
         let waiter = service.clone();
         let waiting = tokio::spawn(async move {

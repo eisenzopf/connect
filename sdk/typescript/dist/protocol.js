@@ -3,6 +3,9 @@ export const MAX_REQUEST = 65537;
 export const MAX_RESPONSE = 600000;
 const kinds = {
     resolve: "identity",
+    capabilities: "capabilities",
+    browser_binding: "browser_binding",
+    context_deliveries: "context_deliveries",
     create: "conversation",
     close: "conversation",
     send: "accepted",
@@ -132,10 +135,33 @@ function validData(kind, data, depth = 0) {
                 (data.expires_at === null || integer(data.expires_at)) &&
                 "observed_at" in data &&
                 (data.observed_at === null || integer(data.observed_at)));
+        case "browser_binding":
+            return fields(data, ["conversation_id", "participant_id", "signaling_url"], ["session_id"]);
+        case "capabilities":
+            return (fields(data, ["identity_id"], ["conversation_id"]) &&
+                array(data.routes, (x) => fields(x, ["id", "transport", "readiness"]) &&
+                    ["configured", "unconfigured"].includes(String(x.readiness)) &&
+                    array(x.media, (v) => typeof v === "string") &&
+                    array(x.operations, (v) => typeof v === "string")) &&
+                object(data.limits) &&
+                [
+                    "message_bytes",
+                    "artifact_bytes",
+                    "artifact_chunk_bytes",
+                    "page_size",
+                    "audio_frame_ms",
+                ].every((k) => integer(data.limits[k])) &&
+                typeof data.limits.audio_codec === "string" &&
+                (data.availability === null ||
+                    validData("availability", data.availability, depth + 1)));
+        case "context_deliveries":
+            return (fields(data, [], ["next"]) && array(data.deliveries, delivery));
         case "context_view":
             return (fields(data, ["conversation_id"]) &&
                 integer(data.watermark) &&
                 integer(data.omitted) &&
+                (data.deliveries_omitted === undefined ||
+                    integer(data.deliveries_omitted)) &&
                 array(data.items, (x) => fields(x, ["kind", "source_id", "actor_id", "body"]) &&
                     integer(x.sequence)) &&
                 array(data.deliveries, (x) => fields(x, ["id", "provider", "state"], ["session_id", "provider_ref"]) &&
@@ -215,4 +241,10 @@ export function helperResponse(text, id, expected) {
     if (!object(value) || value.id !== id || !("response" in value))
         throw new ConnectError("protocol", "Mismatched helper response");
     return decodeResponse(value.response, expected);
+}
+function delivery(value) {
+    return (fields(value, ["id", "provider", "state"], ["session_id", "provider_ref"]) &&
+        integer(value.watermark) &&
+        integer(value.created_at) &&
+        integer(value.updated_at));
 }

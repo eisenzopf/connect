@@ -107,7 +107,33 @@ impl RunningServer {
         let rx = routes
             .take(rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES)
             .context("Missing UCTP ALPN route")?;
-        let service = Service::new(store.clone());
+        let mut discovery = connect_store::DiscoveryRuntime {
+            native_audio: true,
+            sip: config
+                .sip
+                .as_ref()
+                .is_some_and(|sip| sip.outbound.is_some()),
+            providers: if providers {
+                [("telnyx", "TELNYX_API_KEY"), ("vapi", "VAPI_PRIVATE_KEY")]
+                    .into_iter()
+                    .filter(|(_, key)| std::env::var_os(key).is_some())
+                    .map(|(name, _)| name.to_owned())
+                    .collect()
+            } else {
+                Vec::new()
+            },
+            vapi_audio: injected_vapi_media.is_some()
+                || (providers && std::env::var_os("VAPI_PRIVATE_KEY").is_some()),
+            browser: config.webrtc.as_ref().map(|w| connect_store::BrowserRoute {
+                credential_id: w.route.credential_id.clone(),
+                binding: connect_protocol::BrowserBinding {
+                    conversation_id: w.route.conversation_id.clone(),
+                    participant_id: w.route.assistant_identity_id.clone(),
+                    session_id: w.route.session_id.clone(),
+                    signaling_url: format!("ws://{}", w.bind),
+                },
+            }),
+        };
         let orchestrator = Orchestrator::new(crate::media_profile::orchestrator_config());
         let session_resolver =
             StoreSessionBindingResolver::new(store.clone(), orchestrator.clone())?;
@@ -137,6 +163,12 @@ impl RunningServer {
         let media_transports =
             crate::media_transports::MediaTransports::start(&config, &orchestrator, store.clone())
                 .await?;
+        if let (Some(browser), Some(address)) =
+            (&mut discovery.browser, media_transports.webrtc_address)
+        {
+            browser.binding.signaling_url = format!("ws://{address}");
+        }
+        let service = Service::with_runtime(store.clone(), discovery);
         let sip_outbound = if config.sip.is_some() {
             Some(crate::sip_outbound::Worker::start(
                 store.clone(),

@@ -20,11 +20,15 @@ traffic without a profile retains its existing dispatch path.
 
 ## Operations
 
-Payload is `{ "profile": "connect-control/1", "op": "...", ... }`.
+UCTP payload is `{ "profile": "connect-control/1", "op": "...", ... }`.
+HTTP/JSON and the CLI accept the bare operation `{ "op": "...", ... }`;
+the native SDK adds the UCTP profile wrapper. HTTP responses include the profile.
 
 | Operation | Inputs | Outcome |
 |---|---|---|
-| resolve | address: `connect:alias@local` | permitted stable identity and capabilities |
+| resolve | address: `connect:alias@local` | permitted stable identity and static media declaration |
+| capabilities | address, optional conversation_id | caller-permitted operations, configured routes, availability and limits |
+| browser_binding | none | authoritative conversation, participant, optional session and signaling URL for this credential |
 | create | request_id, participants: identity IDs | durable conversation; caller included |
 | send | request_id, conversation_id, body: UTF-8 text | accepted receipt |
 | history | conversation_id, after: opaque cursor or null, limit | ordered messages and next cursor |
@@ -32,7 +36,7 @@ Payload is `{ "profile": "connect-control/1", "op": "...", ... }`.
 | request_status | request_id | accepted/rejected/not_found; saved outcome when permitted |
 | close | request_id, conversation_id | closed conversation; retained history |
 | health | none | installation ID, schema, profile |
-| provider_status | conversation_id | deliveries: job/message/connector IDs, state, nullable provider_id |
+| provider_status | conversation_id | deliveries: job/message/connector IDs, state, nullable provider_id, sms_decision and sms_grant_id |
 | call_start | request_id, conversation_id, route_id, destination: E.164 | durable call receipt |
 | call_status | conversation_id, call_id | current durable call state |
 | call_end | request_id, conversation_id, call_id | durable end intent |
@@ -43,6 +47,7 @@ Payload is `{ "profile": "connect-control/1", "op": "...", ... }`.
 | sip_status | conversation_id, sip_leg_id | current durable SIP leg state |
 | sip_end | request_id, conversation_id, sip_leg_id, optional reason | durable SIP termination intent |
 | context_view | conversation_id, limit | authorized ordered context with source provenance, watermark, omission count, and bounded provider-delivery outcomes |
+| context_deliveries | conversation_id, before: opaque cursor or null, limit | newest-first authorized delivery receipts and next cursor |
 | availability_set | request_id, available/unavailable, optional preferred_route, expires_at | expiring self-owned observation |
 | availability_get | identity_id | available/unavailable or unknown after expiry |
 | artifact_begin / artifact_append / artifact_finish | request_id, conversation_id, artifact metadata/chunk, optional Unix `expires_at` on begin | resumable digest-verified artifact with bounded expiry |
@@ -197,3 +202,59 @@ as `unknown`; Connect does not silently choose another route. Artifact chunks ar
 padded base64 only on the bounded control/HTTP compatibility surface. They are
 not an audio transport. Native QUIC stream transfer and datagram audio use UCTP
 media facilities and keep their own framing and flow control.
+
+## Discovery and context inspection (pre-Gate 4 repairs)
+
+`capabilities(address, conversation_id?)` requires existing `resolve` authority.
+It returns only caller-permitted operations, configured routes, actual bounded
+message/file/audio limits and (with `availability_get`) the target's expiring
+availability. `configured` means the installation has that route configured;
+it does not promise an active worker, reachable peer, carrier delivery or SMS
+eligibility. Video is not advertised by this implementation. The legacy
+`resolve.capabilities` field remains a static identity declaration.
+
+`browser_binding()` requires `session_get` and the exact configured WebRTC route
+credential. The returned conversation, participant and signaling URL are the
+server's binding. The reference client compares these with its selected
+conversation/participant before acquiring a microphone.
+
+`context_deliveries(conversation_id, before?, limit)` requires `context_view` and
+current conversation authority. It returns newest-first receipts, a signed,
+identity/conversation-bound older-page cursor, and explicit `next: null` at the
+end. Insertion order is stable across outcome updates and restart. `context_view`
+now includes the newest 100 receipts and `deliveries_omitted`, independently of
+source-item `omitted`. Diagnostic pagination does not enlarge model context.
+
+## SMS eligibility (schema 10)
+
+A configured SMS route is not consent. At dispatch, Connect requires an active,
+unexpired, reviewed grant matching the exact recipient, sender number and
+conversation, plus a fresh authenticated authority snapshot and no local STOP.
+The trusted enrollment integration is a server boundary, not an agent operation.
+SDK, HTTP and QUIC message submission all use the same durable outbox check.
+`provider_status` exposes nullable `sms_decision` and `sms_grant_id` evidence.
+A message accepted into Connect can therefore have a cancelled SMS delivery;
+acceptance is not a promise of provider dispatch.
+
+Snapshots refresh every 30 seconds of worker availability and have a 90-second
+lease. Process startup invalidates old leases. Missing, stale or malformed
+snapshots cannot grant access; revoked approvals disappear on the next successful
+refresh and, on outage, the old lease expires. Revisions cannot go backwards or
+change content at the same revision. Enrollment records are immutable and
+retained for audit. Operators must synchronize clocks.
+
+Verified Telnyx STOP callbacks persist independent suppression and cancel pending
+SMS jobs. The provider's `occurred_at` orders controls; STOP wins timestamp ties.
+HELP is recorded without changing permission. START/UNSTOP require prior
+recorded enrollment; they cannot create it, override task expiry, or revive a
+cancelled message. Replayed provider events are idempotent. Signed provider
+`autoresponse_type` classifications cover custom control phrases. Telnyx sends
+its configured control acknowledgements; Connect does not duplicate them.
+Already-claimed/in-flight provider requests cannot be recalled by a later STOP.
+Unknown send outcomes remain uncertain and are never automatically resubmitted.
+
+Rudeless is the first enrollment authority. Its form records evidence, an
+administrator reviews a task-specific activation, and its authenticated feed
+publishes approved grants. Connect owns recipient suppression and dispatch
+history. A fresh form submission never clears STOP. Other applications can
+implement the same snapshot contract without adopting the Rudeless website.

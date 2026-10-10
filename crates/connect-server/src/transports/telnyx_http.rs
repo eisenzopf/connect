@@ -32,7 +32,17 @@ pub(super) async fn webhook(
     };
     let kind = data["event_type"].as_str().unwrap_or_default().to_owned();
     let payload = data["payload"].clone();
-    let digest = connect_store::provider_event_digest(&raw);
+    let occurred_at = data["occurred_at"]
+        .as_str()
+        .and_then(|v| chrono::DateTime::parse_from_rfc3339(v).ok())
+        .map(|v| v.timestamp());
+    // Signature covers the original bytes, but delivery-attempt metadata is not
+    // event identity. Telnyx may change meta.attempt when retrying the same data.
+    let event_bytes = match serde_json::to_vec(data) {
+        Ok(bytes) => bytes,
+        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
+    };
+    let digest = connect_store::provider_event_digest(&event_bytes);
     let store = state.service.store.clone();
     let result = tokio::task::spawn_blocking(move || {
         let required = |field: &serde_json::Value| {
@@ -44,12 +54,46 @@ pub(super) async fn webhook(
         };
         match kind.as_str() {
             "message.received" => {
-                if suppress_inbound_message(&payload) {
+                if payload["direction"]
+                    .as_str()
+                    .is_some_and(|v| v.eq_ignore_ascii_case("outbound"))
+                {
                     return Ok(false);
                 }
                 let from = required(&payload["from"]["phone_number"])?;
                 let to = required(&payload["to"][0]["phone_number"])?;
                 let body = required(&payload["text"])?;
+                let automatic = payload["autoresponse_type"].as_str().unwrap_or_default();
+                // Signed provider classification also covers custom stop/help phrases.
+                let control = if connect_store::sms_control_kind(automatic) == Some(Some(true)) {
+                    automatic
+                } else if connect_store::sms_control_kind(&body).is_some() {
+                    &body
+                } else {
+                    automatic
+                };
+                if connect_store::sms_control_kind(control).is_some() {
+                    let at = occurred_at.ok_or_else(|| {
+                        Error::new(
+                            "invalid-request",
+                            "SMS controls require provider occurred_at",
+                        )
+                    })?;
+                    return store.receive_sms_control(
+                        &format!("telnyx:{id}"),
+                        &digest,
+                        &from,
+                        &to,
+                        control,
+                        at,
+                    );
+                }
+                if payload["autoresponse_type"]
+                    .as_str()
+                    .is_some_and(|v| !v.trim().is_empty())
+                {
+                    return Ok(false);
+                }
                 store.receive_sms(&format!("telnyx:{id}"), &digest, &from, &to, &body)
             }
             "message.finalized" => {
@@ -81,31 +125,4 @@ pub(super) async fn webhook(
         }
         Err(_) => StatusCode::SERVICE_UNAVAILABLE.into_response(),
     }
-}
-
-fn suppress_inbound_message(payload: &serde_json::Value) -> bool {
-    payload["direction"]
-        .as_str()
-        .is_some_and(|value| value.eq_ignore_ascii_case("outbound"))
-        || payload["autoresponse_type"]
-            .as_str()
-            .is_some_and(|value| !value.trim().is_empty())
-        || matches!(
-            payload["text"]
-                .as_str()
-                .unwrap_or_default()
-                .trim()
-                .to_ascii_uppercase()
-                .as_str(),
-            "STOP"
-                | "STOPALL"
-                | "STOP ALL"
-                | "UNSUBSCRIBE"
-                | "CANCEL"
-                | "END"
-                | "QUIT"
-                | "START"
-                | "UNSTOP"
-                | "HELP"
-        )
 }

@@ -8,6 +8,20 @@ class Operations(ABC):
         """Return a validated outcome; mutations always use caller-owned IDs."""
         raise NotImplementedError
 
+    def capabilities(self, address, conversation_id=None):
+        """Return authorized configured routes and limits; not a reachability guarantee."""
+        return self.request({"op": "capabilities", "address": address,
+                             "conversation_id": conversation_id})["data"]
+
+    def browser_binding(self):
+        """Return the current credential's configured browser conversation."""
+        return self.request({"op": "browser_binding"})["data"]
+
+    def context_deliveries(self, conversation_id, before=None, limit=100):
+        """Page newest-first delivery receipts with an opaque older-page cursor."""
+        return self.request({"op": "context_deliveries", "conversation_id": conversation_id,
+                             "before": before, "limit": limit})["data"]
+
     def resolve(self, address):
         return self.request({"op": "resolve", "address": address})["data"]
 

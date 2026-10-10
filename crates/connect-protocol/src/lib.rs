@@ -1,6 +1,8 @@
 //! Transport-independent Connect application contract carried by UCTP envelopes.
 
+mod discovery;
 pub mod media_profile;
+pub use discovery::*;
 
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +36,16 @@ impl Request {
 pub enum Operation {
     Resolve {
         address: String,
+    },
+    Capabilities {
+        address: String,
+        conversation_id: Option<String>,
+    },
+    BrowserBinding {},
+    ContextDeliveries {
+        conversation_id: String,
+        before: Option<String>,
+        limit: u32,
     },
     Create {
         request_id: String,
@@ -179,6 +191,12 @@ impl Operation {
     /// Canonical conversation routing metadata for UCTP envelopes.
     pub fn conversation_id(&self) -> Option<&str> {
         match self {
+            Self::Capabilities {
+                conversation_id, ..
+            } => conversation_id.as_deref(),
+            Self::ContextDeliveries {
+                conversation_id, ..
+            } => Some(conversation_id),
             Self::Send {
                 conversation_id, ..
             }
@@ -249,6 +267,9 @@ impl Operation {
     pub fn name(&self) -> &'static str {
         match self {
             Self::Resolve { .. } => "resolve",
+            Self::Capabilities { .. } => "capabilities",
+            Self::BrowserBinding {} => "browser_binding",
+            Self::ContextDeliveries { .. } => "context_deliveries",
             Self::Create { .. } => "create",
             Self::Send { .. } => "send",
             Self::History { .. } => "history",
@@ -277,6 +298,15 @@ impl Operation {
             Self::ArtifactGet { .. } => "artifact_get",
             Self::ArtifactDelete { .. } => "artifact_delete",
             Self::Health {} => "health",
+        }
+    }
+    /// Additive read APIs use the existing authority for the information they expose.
+    pub fn required_scope(&self) -> &'static str {
+        match self {
+            Self::Capabilities { .. } => "resolve",
+            Self::BrowserBinding {} => "session_get",
+            Self::ContextDeliveries { .. } => "context_view",
+            _ => self.name(),
         }
     }
     pub fn request_id(&self) -> Option<&str> {
@@ -415,6 +445,9 @@ pub struct ContextView {
     pub omitted: u64,
     #[serde(default)]
     pub deliveries: Vec<ContextDelivery>,
+    /// Older delivery receipts excluded from this recent snapshot. Page with context_deliveries.
+    #[serde(default)]
+    pub deliveries_omitted: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -470,11 +503,20 @@ pub struct ProviderDelivery {
     pub connector: String,
     pub state: String,
     pub provider_id: Option<String>,
+    /// Dispatch eligibility decision, if this delivery uses SMS.
+    #[serde(default)]
+    pub sms_decision: Option<String>,
+    /// Opaque reference to the reviewed enrollment evidence used at dispatch.
+    #[serde(default)]
+    pub sms_grant_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
 pub enum Outcome {
+    Capabilities(Capabilities),
+    BrowserBinding(BrowserBinding),
+    ContextDeliveries(ContextDeliveryPage),
     Call(Call),
     Session(Session),
     SipLeg(SipLeg),

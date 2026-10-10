@@ -1,5 +1,13 @@
 export type Operation =
     | { op: "resolve"; address: string }
+    | { op: "capabilities"; address: string; conversation_id: string | null }
+    | { op: "browser_binding" }
+    | {
+          op: "context_deliveries";
+          conversation_id: string;
+          before: string | null;
+          limit: number;
+      }
     | { op: "create"; request_id: string; participants: string[] }
     | { op: "send"; request_id: string; conversation_id: string; body: string }
     | {
@@ -193,6 +201,7 @@ export interface ContextView {
     items: ContextItem[];
     omitted: number;
     deliveries: ContextDelivery[];
+    deliveries_omitted?: number;
 }
 export interface Artifact {
     id: string;
@@ -227,6 +236,8 @@ export interface Inbox {
     cursor: string | null;
 }
 export interface ProviderDelivery {
+    sms_decision?: string | null;
+    sms_grant_id?: string | null;
     job_id: string;
     message_id: string;
     connector: string;
@@ -246,6 +257,9 @@ export interface Health {
     profile: string;
 }
 export interface OutcomeData {
+    capabilities: Capabilities;
+    browser_binding: BrowserBinding;
+    context_deliveries: ContextDeliveryPage;
     identity: Identity;
     conversation: Conversation;
     accepted: Accepted;
@@ -265,3 +279,36 @@ export interface OutcomeData {
 export type Outcome = {
     [K in keyof OutcomeData]: { kind: K; data: OutcomeData[K] };
 }[keyof OutcomeData];
+
+/** Configured capability does not assert live provider or recipient reachability. */
+export interface RouteCapability {
+    id: string;
+    transport: string;
+    media: string[];
+    operations: string[];
+    readiness: "configured" | "unconfigured";
+}
+export interface Capabilities {
+    identity_id: string;
+    conversation_id: string | null;
+    routes: RouteCapability[];
+    availability: Availability | null;
+    limits: {
+        message_bytes: number;
+        artifact_bytes: number;
+        artifact_chunk_bytes: number;
+        page_size: number;
+        audio_frame_ms: number;
+        audio_codec: string;
+    };
+}
+export interface BrowserBinding {
+    conversation_id: string;
+    participant_id: string;
+    session_id: string | null;
+    signaling_url: string;
+}
+export interface ContextDeliveryPage {
+    deliveries: ContextDelivery[];
+    next: string | null;
+}

@@ -71,7 +71,7 @@ pub(crate) fn status(
     conversation: &str,
     limit: u32,
 ) -> Result<Vec<ProviderDelivery>> {
-    let mut st=c.prepare("SELECT j.id,j.message_id,r.connector,j.state,j.provider_id FROM provider_jobs j JOIN connector_routes r ON j.route_id=r.id WHERE r.conversation_id=?1 ORDER BY j.sequence DESC LIMIT ?2").map_err(|_|Error::storage())?;
+    let mut st=c.prepare("SELECT j.id,j.message_id,r.connector,j.state,j.provider_id,j.sms_decision,j.sms_grant_id FROM provider_jobs j JOIN connector_routes r ON j.route_id=r.id WHERE r.conversation_id=?1 ORDER BY j.sequence DESC LIMIT ?2").map_err(|_|Error::storage())?;
     let rows = st
         .query_map(params![conversation, limit], |r| {
             Ok(ProviderDelivery {
@@ -80,6 +80,8 @@ pub(crate) fn status(
                 connector: r.get(2)?,
                 state: r.get(3)?,
                 provider_id: r.get(4)?,
+                sms_decision: r.get(5)?,
+                sms_grant_id: r.get(6)?,
             })
         })
         .map_err(|_| Error::storage())?
@@ -239,6 +241,28 @@ impl Store {
             tx.commit().map_err(|_| Error::storage())?;
             return Ok(None);
         }
+        if r.connector == "telnyx" {
+            let decision = crate::sms_eligibility::eligible(
+                &tx,
+                &r.target,
+                r.source.as_deref().unwrap_or_default(),
+                &r.conversation_id,
+            )?;
+            match decision {
+                Ok(grant) => {
+                    tx.execute("UPDATE provider_jobs SET sms_decision='allowed',sms_grant_id=?2 WHERE id=?1",params![id,grant]).map_err(|_|Error::storage())?;
+                }
+                Err(reason) => {
+                    tx.execute(
+                        "UPDATE provider_jobs SET state='cancelled',sms_decision=?2 WHERE id=?1",
+                        params![id, reason],
+                    )
+                    .map_err(|_| Error::storage())?;
+                    tx.commit().map_err(|_| Error::storage())?;
+                    return Ok(None);
+                }
+            }
+        }
         // An uncertain/failed Vapi turn blocks subsequent turns until explicitly
         // resolved; otherwise chat context could silently lose the prior input.
         if r.connector=="vapi" && tx.query_row::<bool,_,_>("SELECT EXISTS(SELECT 1 FROM provider_jobs WHERE route_id=?1 AND state IN ('uncertain','failed'))",[&rid],|r|r.get(0)).map_err(|_|Error::storage())? {tx.execute("UPDATE provider_jobs SET state='blocked' WHERE id=?1",[&id]).map_err(|_|Error::storage())?;tx.commit().map_err(|_|Error::storage())?;return Ok(None);}
@@ -385,7 +409,13 @@ impl Store {
             return Ok(false);
         }
         let rid:String=tx.query_row("SELECT id FROM connector_routes WHERE connector='telnyx' AND target=?1 AND source=?2 AND enabled=1",params![from,to],|r|r.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
-        self.insert_provider_message(&tx, &route(&tx, &rid)?, body)?;
+        let route = route(&tx, &rid)?;
+        if crate::sms_eligibility::eligible(&tx, from, to, &route.conversation_id)?.is_err() {
+            // Acknowledge and record the provider event without triggering an assistant.
+            tx.commit().map_err(|_| Error::storage())?;
+            return Ok(false);
+        }
+        self.insert_provider_message(&tx, &route, body)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(true)
     }
@@ -419,7 +449,7 @@ impl Store {
         Ok(true)
     }
 }
-fn admit_event(c: &Connection, id: &str, digest: &str, max: u64) -> Result<bool> {
+pub(crate) fn admit_event(c: &Connection, id: &str, digest: &str, max: u64) -> Result<bool> {
     if id.is_empty() || id.len() > 256 || digest.len() > 128 {
         return Err(Error::new("invalid-request", "Invalid event ID or digest"));
     }

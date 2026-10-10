@@ -7,6 +7,9 @@ fn each_operation_has_a_decodable_envelope_and_rejects_extra_fields() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../contracts/fixtures");
     for name in [
         "resolve",
+        "capabilities",
+        "browser_binding",
+        "context_deliveries",
         "create",
         "send",
         "history",

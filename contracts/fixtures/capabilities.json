@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-capabilities",
+  "ts": "2026-10-08T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "capabilities",
+    "address": "connect:assistant@local",
+    "conversation_id": "conversation-1"
+  }
+}

@@ -21,6 +21,7 @@
 //! ```
 mod client;
 mod config;
+mod discovery;
 mod error;
 mod media;
 mod media_end;
@@ -29,8 +30,9 @@ mod operations;
 pub use client::ConnectClient;
 pub use config::ClientConfig;
 pub use connect_protocol::{
-    Artifact, ArtifactChunk, Availability, AvailabilityState, Call, ContextItem, ContextView,
-    Conversation, Event, Identity, Message, Operation, Outcome, Session, SipLeg, PROFILE,
+    Artifact, ArtifactChunk, Availability, AvailabilityState, BrowserBinding, Call, Capabilities,
+    CapabilityLimits, ContextDeliveryPage, ContextItem, ContextView, Conversation, Event, Identity,
+    Message, Operation, Outcome, RouteCapability, Session, SipLeg, PROFILE,
 };
 pub use error::{ClientError, Result};
 pub use media::{NativeAudioFrame, NativeAudioSession};

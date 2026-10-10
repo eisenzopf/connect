@@ -113,7 +113,7 @@ verified backup, then run:
 CONNECT migrate --config state/operator.toml --server-config state/server.toml --backup backups/pre-upgrade
 ```
 
-The candidate migrates supported schemas 1–8 to schema 9. A live Session becomes
+The candidate migrates supported schemas 1–9 to schema 10. A live Session becomes
 interrupted across restart; Connect preserves durable intent and never claims a
 socket or media pump survived. Roll back by restoring the matching pre-upgrade
 backup into a new directory and using its compatible binary.
@@ -146,3 +146,19 @@ source candidate, all 27 offline phases, 10 installation checks and separate
 live audio/context observations. It preserves unsuccessful trials and the
 local topology, context and transcription limits. The package is a local
 review candidate; full v0.1 and community publication remain later work.
+
+## Pre-Gate 4 follow-up candidate
+
+The [repair review](connect-pre-gate-4-review.html#closure) records later source
+changes and their new offline evidence. The original Gate 3 installed-package
+and live-media proofs above remain historical; they do not qualify an updated
+archive automatically. Check the candidate directory’s `QUALIFICATION.json` for
+its installation result; the source repair report may predate packaging.
+
+SMS routes additionally require an authenticated, fresh enrollment authority.
+Configure `CONNECT_SMS_AUTHORITY_URL` and `CONNECT_SMS_AUTHORITY_TOKEN` privately
+on the provider-enabled server. An approved campaign or configured route alone
+cannot authorize a message. See [SMS eligibility](connect-sms-eligibility.html)
+for reviewed task activation, the 90-second freshness limit, keyword handling,
+and the outstanding production/live checks. Database migrations are additive
+and still require the explicit verified-backup procedure above.

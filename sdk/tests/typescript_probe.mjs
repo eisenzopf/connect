@@ -14,6 +14,12 @@ try{
  const r=await native.send('typescript-send',c.id,'TypeScript over QUIC');
  assert.deepEqual(r,await http.send('typescript-send',c.id,'TypeScript over QUIC'));
  assert.deepEqual(await native.history(c.id),await http.history(c.id));
+ const caps=await native.capabilities('connect:agent@local',c.id);
+ assert.deepEqual(caps,await http.capabilities('connect:agent@local',c.id));
+ assert(caps.routes.some(r=>r.media.includes('files')));
+ assert(!caps.routes.some(r=>r.media.includes('audio')));
+ assert.deepEqual(await native.contextDeliveries(c.id),await http.contextDeliveries(c.id));
+ assert.equal((await native.contextView(c.id)).deliveries_omitted,0);
  assert.equal((await http.history(c.id)).messages.length,1);
  assert.equal((await native.requestStatus('typescript-send')).state,'accepted');
  assert.deepEqual((await native.providerStatus(c.id)).deliveries,[]);

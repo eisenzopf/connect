@@ -81,8 +81,8 @@ pub(crate) fn begin(
     let id = format!("provider-job:{job_id}");
     let timestamp = crate::now();
     connection.execute(
-        "INSERT INTO context_deliveries(id,conversation_id,session_id,provider,watermark,selection_json,state,created_at,updated_at)
-         VALUES(?1,?2,NULL,'vapi',?3,?4,'pending',?5,?5)",
+        "INSERT INTO context_deliveries(id,conversation_id,session_id,provider,watermark,selection_json,state,created_at,updated_at,sequence)
+         VALUES(?1,?2,NULL,'vapi',?3,?4,'pending',?5,?5,(SELECT COALESCE(MAX(sequence),0)+1 FROM context_deliveries))",
         params![id,route.conversation_id,selection.watermark,serialized,timestamp],
     ).map_err(|_|Error::storage())?;
     Ok(Some(serialized))

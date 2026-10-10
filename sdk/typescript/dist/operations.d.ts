@@ -3,6 +3,9 @@ import type { Operation, Outcome } from "./types.js";
 export declare abstract class Operations {
     abstract request(operation: Operation): Promise<Outcome>;
     private data;
+    capabilities(address: string, conversation_id?: string | null): Promise<import("./types.js").Capabilities>;
+    browserBinding(): Promise<import("./types.js").BrowserBinding>;
+    contextDeliveries(conversation_id: string, before?: string | null, limit?: number): Promise<import("./types.js").ContextDeliveryPage>;
     resolve(address: string): Promise<import("./types.js").Identity>;
     create(request_id: string, participants: string[]): Promise<import("./types.js").Conversation>;
     send(request_id: string, conversation_id: string, body: string): Promise<import("./types.js").Accepted>;

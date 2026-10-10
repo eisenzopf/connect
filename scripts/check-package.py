@@ -70,12 +70,18 @@ try:
             'sdk/typescript/dist/native_audio.js',
             'examples/conversation-client/index.html',
             'examples/conversation-client/app.js',
+            'examples/conversation-client/workflow.js',
             'docs/index.html',
+            'docs/connect-pre-gate-4-review.html',
+            'docs/connect-sms-eligibility.html',
             'docs/evidence/gate-3/acceptance.html',
             'docs/evidence/gate-3/result.json',
         ]:
             assert (release/required).is_file(), f'Missing Gate 3 runtime asset: {required}'
         assert '](docs/evidence/gate-3/acceptance.html)' in (release/'README.md').read_text()
+        for link in re.findall(r'\]\(([^)]+)\)', (release/'README.md').read_text()):
+            if not re.match(r'[a-zA-Z][a-zA-Z0-9+.-]*:|/|#', link):
+                assert (release/link.split('#', 1)[0]).is_file(), f'Broken runtime README link: {link}'
         for name, checksum in manifest['files'].items():
             assert digest(release/name) == checksum
         for name in ['connect', 'connect-example']:

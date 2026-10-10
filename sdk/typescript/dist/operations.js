@@ -7,6 +7,24 @@ export class Operations {
             throw new ConnectError("protocol", "Unexpected outcome");
         return result.data;
     }
+    capabilities(address, conversation_id = null) {
+        return this.data("capabilities", {
+            op: "capabilities",
+            address,
+            conversation_id,
+        });
+    }
+    browserBinding() {
+        return this.data("browser_binding", { op: "browser_binding" });
+    }
+    contextDeliveries(conversation_id, before = null, limit = 100) {
+        return this.data("context_deliveries", {
+            op: "context_deliveries",
+            conversation_id,
+            before,
+            limit,
+        });
+    }
     resolve(address) {
         return this.data("identity", { op: "resolve", address });
     }

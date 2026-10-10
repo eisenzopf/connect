@@ -72,11 +72,12 @@ for source, destination in [
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT/source, target)
 # Keep the public review report and linked plans with the runtime SDK guide.
-# The root README is copied from docs/, so its report link needs one prefix.
+# The root README is copied from docs/, so local documentation links need a prefix.
 shutil.copytree(ROOT/'docs', runtime/'docs', dirs_exist_ok=True)
 readme = runtime/'README.md'
-readme.write_text(readme.read_text().replace(
-    '](evidence/gate-3/acceptance.html)', '](docs/evidence/gate-3/acceptance.html)'))
+readme.write_text(re.sub(
+    r'\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)([^)]+)\)',
+    r'](docs/\1)', readme.read_text()))
 # Usable language clients accompany the native helper; no compiler, dependencies,
 # caches or installation state are copied into the runtime archive.
 shutil.copytree(ROOT/'sdk/python/connect_sdk', runtime/'sdk/python/connect_sdk',

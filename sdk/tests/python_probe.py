@@ -14,6 +14,12 @@ with NativeClient(path, executable) as native:
     receipt = native.send("python-send", conversation["id"], "Python over QUIC")
     assert receipt == http.send("python-send", conversation["id"], "Python over QUIC")
     assert native.history(conversation["id"]) == http.history(conversation["id"])
+    capabilities = native.capabilities("connect:agent@local", conversation["id"])
+    assert capabilities == http.capabilities("connect:agent@local", conversation["id"])
+    assert any("files" in route["media"] for route in capabilities["routes"])
+    assert not any("audio" in route["media"] for route in capabilities["routes"])
+    assert native.context_deliveries(conversation["id"]) == http.context_deliveries(conversation["id"])
+    assert native.context_view(conversation["id"])["deliveries_omitted"] == 0
     assert len(http.history(conversation["id"])["messages"]) == 1
     assert http.request_status("python-send")["state"] == "accepted"
     assert native.provider_status(conversation["id"])["deliveries"] == []

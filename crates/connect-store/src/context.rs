@@ -97,33 +97,22 @@ pub(crate) fn view(
         items.push(item);
     }
     items.reverse();
-    let mut delivery_statement = c
-        .prepare(
-            "SELECT id,session_id,provider,watermark,state,provider_ref,created_at,updated_at FROM context_deliveries WHERE conversation_id=?1 ORDER BY created_at,id LIMIT 100",
+    let page = deliveries(c, actor, conversation_id, None, 100)?;
+    let delivery_count: u64 = c
+        .query_row(
+            "SELECT COUNT(*) FROM context_deliveries WHERE conversation_id=?1",
+            [conversation_id],
+            |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    let deliveries = delivery_statement
-        .query_map([conversation_id], |row| {
-            Ok(ContextDelivery {
-                id: row.get(0)?,
-                session_id: row.get(1)?,
-                provider: row.get(2)?,
-                watermark: row.get(3)?,
-                state: row.get(4)?,
-                provider_ref: row.get(5)?,
-                created_at: row.get(6)?,
-                updated_at: row.get(7)?,
-            })
-        })
-        .map_err(|_| Error::storage())?
-        .collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|_| Error::storage())?;
+    let deliveries_omitted = delivery_count.saturating_sub(page.deliveries.len() as u64);
     Ok(ContextView {
         conversation_id: conversation_id.into(),
         watermark,
         omitted: total.saturating_sub(items.len() as u64),
         items,
-        deliveries,
+        deliveries: page.deliveries,
+        deliveries_omitted,
     })
 }
 
@@ -176,7 +165,7 @@ impl Store {
         let id = uuid::Uuid::new_v4().to_string();
         let timestamp = crate::now();
         c.execute(
-            "INSERT INTO context_deliveries(id,conversation_id,session_id,provider,watermark,selection_json,state,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?6,'pending',?7,?7)",
+            "INSERT INTO context_deliveries(id,conversation_id,session_id,provider,watermark,selection_json,state,created_at,updated_at,sequence) VALUES(?1,?2,?3,?4,?5,?6,'pending',?7,?7,(SELECT COALESCE(MAX(sequence),0)+1 FROM context_deliveries))",
             params![id, selection.conversation_id, session_id, provider, selection.watermark, serde_json::to_string(selection).map_err(|_| Error::storage())?, timestamp],
         )
         .map_err(|_| Error::storage())?;
@@ -214,4 +203,49 @@ impl Store {
         }
         Ok(())
     }
+}
+
+/// Page by immutable insertion order, newest first. Cursor binds identity and conversation.
+pub(crate) fn deliveries(
+    c: &Connection,
+    actor: &Actor,
+    cid: &str,
+    before: Option<&str>,
+    limit: u32,
+) -> Result<connect_protocol::ContextDeliveryPage> {
+    let resource = format!("context-deliveries:{cid}");
+    let boundary = crate::cursor::decode(c, &actor.identity_id, &resource, before)?;
+    let mut statement = c.prepare("SELECT sequence,id,session_id,provider,watermark,state,provider_ref,created_at,updated_at FROM context_deliveries WHERE conversation_id=?1 AND (?2=0 OR sequence<?2) ORDER BY sequence DESC LIMIT ?3").map_err(|_|Error::storage())?;
+    let mut rows = statement
+        .query_map(params![cid, boundary, limit + 1], |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                ContextDelivery {
+                    id: r.get(1)?,
+                    session_id: r.get(2)?,
+                    provider: r.get(3)?,
+                    watermark: r.get(4)?,
+                    state: r.get(5)?,
+                    provider_ref: r.get(6)?,
+                    created_at: r.get(7)?,
+                    updated_at: r.get(8)?,
+                },
+            ))
+        })
+        .map_err(|_| Error::storage())?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|_| Error::storage())?;
+    let more = rows.len() > limit as usize;
+    rows.truncate(limit as usize);
+    let next = if more {
+        rows.last()
+            .map(|(seq, _)| crate::cursor::encode(c, &actor.identity_id, &resource, *seq))
+            .transpose()?
+    } else {
+        None
+    };
+    Ok(connect_protocol::ContextDeliveryPage {
+        deliveries: rows.into_iter().map(|(_, v)| v).collect(),
+        next,
+    })
 }

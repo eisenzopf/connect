@@ -12,6 +12,28 @@ export abstract class Operations {
             throw new ConnectError("protocol", "Unexpected outcome");
         return result.data as OutcomeData[K];
     }
+    capabilities(address: string, conversation_id: string | null = null) {
+        return this.data("capabilities", {
+            op: "capabilities",
+            address,
+            conversation_id,
+        });
+    }
+    browserBinding() {
+        return this.data("browser_binding", { op: "browser_binding" });
+    }
+    contextDeliveries(
+        conversation_id: string,
+        before: string | null = null,
+        limit = 100,
+    ) {
+        return this.data("context_deliveries", {
+            op: "context_deliveries",
+            conversation_id,
+            before,
+            limit,
+        });
+    }
     resolve(address: string) {
         return this.data("identity", { op: "resolve", address });
     }

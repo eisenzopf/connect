@@ -97,13 +97,25 @@ loopback. Connect retrieves Telnyx's public verification key automatically when
 `--providers` and HTTP are enabled; `TELNYX_PUBLIC_KEY` can explicitly override it.
 An unavailable verifier rejects callbacks; signature checks cannot be bypassed.
 
-Prepare a new provider plan with the existing `assistant_id`, selected
+For first-time provisioning only, prepare a new provider plan with the existing `assistant_id`, selected
 `phone_number_id` and `callback_url`. Apply it using a **new state path**. It
 creates a dedicated messaging profile and associates only the selected number.
 Its prior voice and messaging settings are preserved in that private state file.
 Keep `create_sip: false` unless intentionally changing that number's voice route.
 An outbound voice profile is necessary for a usable outbound SIP/PSTN path;
 creating a credential connection alone does not qualify voice interoperability.
+
+If the number already belongs to an approved campaign and messaging profile,
+reuse that profile. Do not move it to a newly created profile as a test shortcut.
+Confirm carrier assignment and configure the approved HELP/STOP/START response
+texts before a live rehearsal.
+
+The recipient must submit the published opt-in form themselves. An operator
+then reviews that evidence and activates the specific sender, conversation and
+expiry through Rudeless's authenticated review service. Start the provider worker
+with private `CONNECT_SMS_AUTHORITY_URL` and `CONNECT_SMS_AUTHORITY_TOKEN` values.
+Connect requires a fresh grant at dispatch; neither route configuration nor an
+inbound message creates consent. See [the enrollment contract](../../docs/connect-sms-eligibility.html).
 
 Initialize a new local presence with both SMS numbers:
 
@@ -113,7 +125,8 @@ target/debug/connect presence-init --directory .local/sms-presence \
   --connect-number <selected-Telnyx-E164>
 ```
 
-Send an SMS from the approved human number to the Connect number. A verified
+After the reviewed grant is synchronized, send an SMS from the enrolled human
+number to the Connect number. A verified
 callback becomes a human message, Vapi produces a reply and Telnyx submits it.
 Repeated signed callbacks produce no duplicate turn. To test assistant-initiated
 contact, use `assistant.toml` with the sample and a fresh persisted request ID.
@@ -121,6 +134,11 @@ SMS is limited to 1600 characters by the adapter; longer bodies fail before
 provider submission. A network failure after submission is **uncertain**, not
 permission to repeat it. Disabled routes and revoked credentials stop subsequent
 queued work; a request already submitted may still finish externally.
+STOP persists across restart and new form submissions, cancels pending SMS, and
+never becomes an assistant prompt. HELP changes no permission. START only resumes
+a previously enrolled recipient; a current task grant is still required. Telnyx
+sends the configured keyword acknowledgements; Connect does not duplicate them.
+Inspect `provider_status` for `sms_decision` and the opaque `sms_grant_id`.
 
 ## HTTP/JSON and CLI
 

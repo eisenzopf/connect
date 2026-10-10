@@ -1,0 +1,21 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "result-browser_binding",
+  "in_reply_to": "env-browser_binding",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "browser_binding",
+        "data": {
+          "conversation_id": "conversation-1",
+          "participant_id": "identity-2",
+          "session_id": null,
+          "signaling_url": "ws://127.0.0.1:8190"
+        }
+      }
+    }
+  },
+  "ts": "2026-10-08T00:00:00Z"
+}
