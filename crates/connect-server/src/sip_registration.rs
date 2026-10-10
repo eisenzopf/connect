@@ -10,13 +10,15 @@ use std::{sync::Arc, time::Duration};
 pub(crate) async fn register(
     coordinator: &Arc<UnifiedCoordinator>,
     trunk: &SipOutboundConfig,
-) -> Result<()> {
+) -> Result<Option<rvoip_sip::RegistrationHandle>> {
     let Some(registrar) = &trunk.registrar_uri else {
-        return Ok(());
+        return Ok(None);
     };
     let password = std::env::var(&trunk.auth_password_env)
         .context("SIP registration password is unavailable")?;
-    register_with_password(coordinator, trunk, registrar, password).await
+    register_with_password(coordinator, trunk, registrar, password)
+        .await
+        .map(Some)
 }
 
 async fn register_with_password(
@@ -24,7 +26,7 @@ async fn register_with_password(
     trunk: &SipOutboundConfig,
     registrar: &str,
     password: String,
-) -> Result<()> {
+) -> Result<rvoip_sip::RegistrationHandle> {
     let (scheme, authority) = registrar
         .split_once(':')
         .context("SIP registrar URI is invalid")?;
@@ -44,7 +46,7 @@ async fn register_with_password(
             match info.status {
                 RegistrationStatus::Registered => {
                     tracing::info!("SIP trunk registration accepted");
-                    return Ok(());
+                    return Ok(handle);
                 }
                 RegistrationStatus::Failed | RegistrationStatus::Unregistered => {
                     bail!("SIP trunk registration rejected");

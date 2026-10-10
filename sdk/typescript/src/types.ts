@@ -251,10 +251,20 @@ export interface RequestStatus {
     state: string;
     outcome: Outcome | null;
 }
+export interface Readiness {
+    state: "ready" | "degraded" | "unavailable" | "uncertain";
+    components: Array<{
+        component: string;
+        state: Readiness["state"];
+        reason: string;
+        observed_at: number;
+    }>;
+}
 export interface Health {
     installation_id: string;
     schema: number;
     profile: string;
+    readiness?: Readiness;
 }
 export interface OutcomeData {
     capabilities: Capabilities;

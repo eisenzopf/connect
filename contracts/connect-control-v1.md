@@ -35,7 +35,7 @@ the native SDK adds the UCTP profile wrapper. HTTP responses include the profile
 | inbox | cursor: opaque cursor or null, limit, wait_ms | ordered journal events and last scanned cursor |
 | request_status | request_id | accepted/rejected/not_found; saved outcome when permitted |
 | close | request_id, conversation_id | closed conversation; retained history |
-| health | none | installation ID, schema, profile |
+| health | none | installation ID, schema, profile; optional runtime readiness |
 | provider_status | conversation_id | deliveries: job/message/connector IDs, state, nullable provider_id, sms_decision and sms_grant_id |
 | call_start | request_id, conversation_id, route_id, destination: E.164 | durable call receipt |
 | call_status | conversation_id, call_id | current durable call state |
@@ -258,3 +258,15 @@ administrator reviews a task-specific activation, and its authenticated feed
 publishes approved grants. Connect owns recipient suppression and dispatch
 history. A fresh form submission never clears STOP. Other applications can
 implement the same snapshot contract without adopting the Rudeless website.
+
+
+### Additive operational health observations
+
+The authenticated `health` result may include `readiness` with `state` and
+`components`. Each component has `component`, `state`, `reason`, and Unix-second
+`observed_at`. State is `ready`, `degraded`, `unavailable`, or `uncertain`; reasons
+are stable nonsecret codes. No components means uncertain. Older servers may omit
+this field. This is a sampled operational diagnostic, not a durable event,
+authorization decision, delivery acknowledgement or end-to-end reachability promise.
+SIP observations expire with the registrar's accepted lease even if a stale coarse
+state still says registered. Worker failures are not silently retried.

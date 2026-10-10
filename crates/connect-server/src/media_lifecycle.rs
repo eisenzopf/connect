@@ -17,7 +17,7 @@ use tokio_util::sync::CancellationToken;
 pub(crate) struct MediaLifecycle {
     stop: CancellationToken,
     commands: tokio::sync::mpsc::Sender<Command>,
-    task: tokio::task::JoinHandle<()>,
+    task: Option<tokio::task::JoinHandle<Result<()>>>,
 }
 
 #[derive(Clone)]
@@ -54,6 +54,7 @@ impl MediaLifecycle {
     pub(crate) fn start(
         orchestrator: Arc<Orchestrator>,
         store: Arc<Store>,
+        readiness: Arc<connect_service::readiness::OperationalReadiness>,
         vapi: Option<Arc<VapiAdapter>>,
         inbound_routes: crate::media_ingress::InboundMediaRoutes,
     ) -> Result<Self> {
@@ -63,7 +64,7 @@ impl MediaLifecycle {
         let stop = CancellationToken::new();
         let cancelled = stop.clone();
         let (commands, mut command_receiver) = tokio::sync::mpsc::channel(32);
-        let task = tokio::spawn(async move {
+        let task = crate::worker::spawn(readiness, "media-lifecycle", stop.clone(), async move {
             let mut state = MediaState::default();
             loop {
                 let event = tokio::select! {
@@ -229,11 +230,12 @@ impl MediaLifecycle {
                     );
                 }
             }
+            Ok(())
         });
         Ok(Self {
             stop,
             commands,
-            task,
+            task: Some(task),
         })
     }
 
@@ -243,11 +245,21 @@ impl MediaLifecycle {
         }
     }
 
-    pub(crate) async fn shutdown(self) -> Result<()> {
+    pub(crate) async fn shutdown(mut self) -> Result<()> {
         self.stop.cancel();
-        self.task
-            .await
-            .map_err(|error| anyhow::anyhow!("media lifecycle task failed: {error}"))
+        crate::worker::drain(
+            self.task.take().into_iter().collect(),
+            std::time::Duration::from_secs(5),
+        )
+        .await
+    }
+}
+impl Drop for MediaLifecycle {
+    fn drop(&mut self) {
+        self.stop.cancel();
+        if let Some(task) = self.task.take() {
+            task.abort();
+        }
     }
 }
 

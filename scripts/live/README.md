@@ -64,3 +64,30 @@ nonzero RTP counter alone does not prove intelligible audio or interruption.
 Phone routing and provider-initiated hangup tests require their own explicit,
 bounded operator rehearsal, with saved settings and verified restoration. See
 [the Telnyx SIP runbook](../../examples/agent-presence/telnyx-sip-route.md).
+
+## Telephone and continuity rehearsal (separate from CI)
+
+Use the checked-in `examples/agent-presence/voice.py` sample for provider-carried
+telephone calls. Supply an operator-configured route, an existing conversation,
+and a handset whose owner authorized the test. Save the caller receipt under
+`.local/`; reuse that exact file after uncertainty. All identifiers below are
+placeholders; no private account defaults are embedded in this repository.
+
+```sh
+PYTHONPATH=sdk/python python3 examples/agent-presence/voice.py start \
+  --config .local/human.toml --state .local/telephone-receipt.json \
+  --conversation CONVERSATION_ID --route ROUTE_ID --destination AUTHORIZED_E164 \
+  --executable /absolute/path/to/connect
+PYTHONPATH=sdk/python python3 examples/agent-presence/voice.py status \
+  --config .local/human.toml --state .local/telephone-receipt.json \
+  --executable /absolute/path/to/connect
+```
+
+For continuity, first send a distinctive fact through the SDK in that conversation.
+Ask about it in the call; record the actual answer, provider/session correlation,
+context selection and outcome. End the call, perform an explicitly planned server
+restart, then ask a follow-up through the SDK and inspect the preserved history.
+The direct Vapi telephone sample does not prove Connect-carried SIP media; use the
+configured SIP route and record media evidence separately for that topology.
+Record failures and missing context explicitly. Never infer recall from matching
+conversation IDs or call-state success. Keep transcripts and recipient data private.

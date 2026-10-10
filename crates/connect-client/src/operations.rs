@@ -29,6 +29,8 @@ pub struct ServerHealth {
     pub installation_id: String,
     pub schema: u32,
     pub profile: String,
+    /// Running process observations, when supported by the server.
+    pub readiness: Option<connect_protocol::Readiness>,
 }
 
 /// Metadata declared before a resumable artifact upload accepts bytes.
@@ -548,10 +550,12 @@ impl ConnectClient {
                 installation_id,
                 schema,
                 profile,
+                readiness,
             } => Ok(ServerHealth {
                 installation_id,
                 schema,
                 profile,
+                readiness,
             }),
             _ => Err(ClientError::Protocol),
         }

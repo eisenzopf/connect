@@ -514,11 +514,20 @@ async fn main() -> Result<()> {
             {
                 let mut term =
                     tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
-                tokio::select! {result=tokio::signal::ctrl_c()=>result?,_=term.recv()=>{}}
+                tokio::select! {
+                    result = tokio::signal::ctrl_c() => result?,
+                    _ = term.recv() => {},
+                    _ = server.service.readiness.failed() => {
+                        tracing::error!("Worker failed; draining server without retrying uncertain work");
+                    }
+                }
             }
             #[cfg(not(unix))]
             {
-                tokio::signal::ctrl_c().await?;
+                tokio::select! {
+                    result = tokio::signal::ctrl_c() => result?,
+                    _ = server.service.readiness.failed() => {}
+                }
             }
             server.shutdown().await?;
             println!("stopped");

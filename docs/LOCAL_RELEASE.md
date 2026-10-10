@@ -160,5 +160,59 @@ Configure `CONNECT_SMS_AUTHORITY_URL` and `CONNECT_SMS_AUTHORITY_TOKEN` privatel
 on the provider-enabled server. An approved campaign or configured route alone
 cannot authorize a message. See [SMS eligibility](connect-sms-eligibility.html)
 for reviewed task activation, the 90-second freshness limit, keyword handling,
-and the outstanding production/live checks. Database migrations are additive
+and the completed live suppression/recovery evidence. Database migrations are additive
 and still require the explicit verified-backup procedure above.
+
+## Public pre-Gate 4 entry qualification
+
+A Git checkout with full history can build the actual historical schema-6 binary
+without a privately supplied executable or ignored fixture script:
+
+```sh
+bash scripts/prepare-dependencies.sh
+python3 scripts/build-recovery-baseline.py
+python3 scripts/check-schema-six.py --previous-binary .local/recovery-baselines/8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5/connect
+python3 scripts/check-gate-3.py
+```
+
+The baseline builder exports exactly commit `8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5`,
+prepares its pinned dependencies and builds with its lockfile. Its private manifest
+records the source tree and executable digest. The recovery check validates the
+manifest and actual database schema, creates history with that old executable,
+checks retained rows and receipts after upgrade, proves the old executable refuses
+the newer schema, and restores a matching backup. An injected schema-7 table
+conflict must roll back to schema 6. No existing installation is used.
+
+Source archives without Git history require a separately built, manifest-verified
+baseline supplied with `--previous-binary`; they cannot synthesize historical Git
+objects. Do not report that check as passed when the baseline is absent.
+
+Both pull requests and main pushes run the named Gate 3 offline lane and schema-6
+recovery in CI, in addition to source checks. The lane includes the explicitly
+ignored 1/4-session pressure profile and both SIP and WebRTC allocated audio-queue
+budget tests. Account-dependent rehearsals never run in CI. Installed archives
+still require `check-package.py` as separate release qualification; no new installed
+archive is implied by a source check.
+
+## Operational readiness
+
+Authenticated `health` responses retain installation/schema/profile and add
+`readiness`: an aggregate plus named component observations with stable reasons.
+Worker-running means a local consumer is alive; provider-observed means the last
+attempt succeeded. Neither promises that a future external request will succeed.
+SIP readiness uses the registrar-accepted expiry, not only its coarse state flag.
+Pending refresh can be degraded; failed/expired registration is unavailable;
+unobservable state is uncertain. No registrar configured does not imply a valid
+registration. Inspect route configuration separately through `capabilities`.
+
+Fatal worker exit/panic wakes the CLI supervisor and drains the server. It never
+retries uncertain effects. Embedded runtimes can await `service.readiness.failed()`
+and own their shutdown policy. Registration loss changes readiness without
+replaying calls; rvoip owns transport refresh/retry. A rejected registration may
+require a controlled restart once configuration/carrier policy is corrected.
+
+The prior live long-idle telephone failure is retained as an unreproduced carrier/
+network observation. Local accelerated-lease tests now cover idle refresh,
+rejection, dropped responses, expiry and recovery, but do not establish long-term
+carrier/NAT reachability. Always-reachable telephone service is not advertised by
+this local qualification; a later live soak must be separately bounded and recorded.

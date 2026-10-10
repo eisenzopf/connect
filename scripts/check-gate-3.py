@@ -17,7 +17,7 @@ os.umask(0o077)
 
 def source_fingerprint():
     """Track source bytes so a long run cannot silently mix implementations."""
-    paths = subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).split(b'\0')
+    paths = subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=ROOT).split(b'\0')
     digest = hashlib.sha256()
     for path in sorted(filter(None, paths)):
         file = ROOT / os.fsdecode(path)
@@ -64,6 +64,7 @@ steps = [
     ('vapi-duplex-media', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'gate3_vapi_media', '--test', 'gate3_vapi_queue', '--', '--nocapture'], 900),
     ('vapi-observer-lifecycle', ['cargo', 'test', '--locked', '-p', 'connect-server', '--lib', 'vapi_observer'], 600),
     ('provider-chat-context', ['cargo', 'test', '--locked', '-p', 'connect-connectors', '--lib', '--test', 'adapters'], 600),
+    ('entry-readiness-and-connector', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'entry_connector', '--lib'], 900),
     ('provider-chat-flow', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'provider_flow'], 600),
     ('vapi-adapter-failures', ['env', 'CARGO_TARGET_DIR=target/upstream', 'cargo', 'test', '--locked', '--manifest-path', '.deps/rvoip/Cargo.toml', '-p', 'rvoip-vapi', '--test', 'mock_transport'], 1200),
     ('transport-queue-budgets', ['env', 'CARGO_TARGET_DIR=target/upstream', 'cargo', 'test', '--locked', '--manifest-path', '.deps/rvoip/Cargo.toml', '-p', 'rvoip-sip', '-p', 'rvoip-webrtc', '--lib', 'queue_budget_tests'], 1200),

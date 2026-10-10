@@ -1,6 +1,7 @@
 //! Durable application storage. SQLite is the only application-state authority.
 mod artifacts;
 mod availability;
+mod connector_registry;
 mod context;
 mod discovery;
 pub use discovery::{BrowserRoute, DiscoveryRuntime};
@@ -42,6 +43,7 @@ pub const SCHEMA_VERSION: u32 = 10;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
+    connectors: connector_registry::Registry,
     connection: Mutex<Connection>,
     pub(crate) limits: Limits,
     path: PathBuf,
@@ -92,6 +94,7 @@ impl Store {
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let store = Self {
+            connectors: Default::default(),
             connection: Mutex::new(connection),
             limits,
             path: path.into(),
@@ -116,6 +119,7 @@ impl Store {
         Self::configure(&connection)?;
         let blob_directory = Self::create_blob_directory(path)?;
         let store = Self {
+            connectors: Default::default(),
             connection: Mutex::new(connection),
             limits,
             path: path.into(),

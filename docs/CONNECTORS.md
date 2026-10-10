@@ -32,3 +32,17 @@ definite rejection, partial response/deadline ambiguity, body bounds and recover
 Register it in server composition with an explicit durable route. Dynamic runtime
 plugin loading and arbitrary connector registration through the public API are
 not implemented. Existing Telnyx/Vapi adapters show the current integration seam.
+
+## Context-bearing adapters
+
+Implement `descriptor()` alongside `name()` and `deliver()`. Use
+`Descriptor { conversational: true, ..Descriptor::one_way("your-connector") }`
+for an opaque-target assistant. Choose an address contract appropriate to the
+adapter. `Worker::with_drivers` registers descriptors; operator provisioning before
+worker startup can call `Store::register_connector` from trusted composition.
+Registration is not a public SDK operation or an authorization grant.
+
+See [the entry contract](connector-entry-contract.md) and
+[the independent adapter test](../crates/connect-server/tests/entry_connector.rs).
+The existing Vapi/Telnyx descriptors preserve their validation and policy. New
+context adapters do not need edits to conversation authority or provider switches.

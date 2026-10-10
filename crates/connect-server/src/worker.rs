@@ -2,6 +2,55 @@
 use std::time::Duration;
 use tokio::task::JoinHandle;
 
+/// Observe normal errors, unexpected completion, panic and abort immediately.
+/// Dropping a worker during requested shutdown is not an operational failure.
+pub(crate) fn spawn<F>(
+    readiness: std::sync::Arc<connect_service::readiness::OperationalReadiness>,
+    name: &'static str,
+    stop: tokio_util::sync::CancellationToken,
+    future: F,
+) -> JoinHandle<anyhow::Result<()>>
+where
+    F: std::future::Future<Output = anyhow::Result<()>> + Send + 'static,
+{
+    struct Exit {
+        readiness: std::sync::Arc<connect_service::readiness::OperationalReadiness>,
+        name: &'static str,
+        stop: tokio_util::sync::CancellationToken,
+    }
+    impl Drop for Exit {
+        fn drop(&mut self) {
+            if self.stop.is_cancelled() {
+                self.readiness.set(
+                    self.name,
+                    connect_protocol::ReadinessState::Unavailable,
+                    "stopped",
+                );
+            } else {
+                self.readiness.fail(self.name);
+            }
+        }
+    }
+    readiness.set(
+        name,
+        connect_protocol::ReadinessState::Ready,
+        "worker-running",
+    );
+    let exit = Exit {
+        readiness,
+        name,
+        stop,
+    };
+    tokio::spawn(async move {
+        let exit = exit;
+        let result = future.await;
+        if result.is_ok() && !exit.stop.is_cancelled() {
+            anyhow::bail!("Worker exited unexpectedly");
+        }
+        result
+    })
+}
+
 pub(crate) async fn drain(
     tasks: Vec<JoinHandle<anyhow::Result<()>>>,
     timeout: Duration,
@@ -47,6 +96,25 @@ mod tests {
         fn drop(&mut self) {
             self.0.store(true, Ordering::SeqCst);
         }
+    }
+    #[tokio::test]
+    async fn supervised_panic_wakes_readiness_without_waiting_for_shutdown() {
+        let readiness =
+            std::sync::Arc::new(connect_service::readiness::OperationalReadiness::default());
+        let stop = tokio_util::sync::CancellationToken::new();
+        let task = spawn(readiness.clone(), "fixture", stop, async {
+            panic!("fixture panic");
+            #[allow(unreachable_code)]
+            Ok(())
+        });
+        tokio::time::timeout(Duration::from_secs(1), readiness.failed())
+            .await
+            .expect("failure notification");
+        assert_eq!(
+            readiness.snapshot().state,
+            connect_protocol::ReadinessState::Unavailable
+        );
+        assert!(task.await.is_err());
     }
     #[tokio::test]
     async fn panic_is_reported_and_other_tasks_are_still_drained() {

@@ -19,8 +19,18 @@ impl Worker {
     ) -> anyhow::Result<Self> {
         service.store.recover_voice_calls()?;
         let stop = CancellationToken::new();
-        let discovery = tokio::spawn(discover(service.clone(), driver.clone(), stop.clone()));
-        let control = tokio::spawn(control(service, driver, stop.clone()));
+        let discovery = crate::worker::spawn(
+            service.readiness.clone(),
+            "voice-discovery",
+            stop.clone(),
+            discover(service.clone(), driver.clone(), stop.clone()),
+        );
+        let control = crate::worker::spawn(
+            service.readiness.clone(),
+            "voice-control",
+            stop.clone(),
+            control(service, driver, stop.clone()),
+        );
         Ok(Self {
             stop,
             tasks: vec![discovery, control],
@@ -56,6 +66,8 @@ async fn discover(
                 anyhow::bail!("Inbound route storage unavailable");
             }
         };
+        let mut discovery_ok = true;
+        let configured = !bindings.is_empty();
         for binding in bindings {
             let query = VoiceQuery {
                 assistant_id: binding.route.assistant_id.clone(),
@@ -74,22 +86,46 @@ async fn discover(
                     let saved = tokio::task::spawn_blocking(move || {
                         for call in calls {
                             match store.import_voice_call(&binding.route.id, &call) {
-                                Ok(_) => {},
-                                Err(error) if ["forbidden", "unauthorized"].contains(&error.code.as_str()) => {},
+                                Ok(_) => {}
+                                Err(error)
+                                    if ["forbidden", "unauthorized"]
+                                        .contains(&error.code.as_str()) => {}
                                 Err(error) => return Err(error),
                             }
                         }
                         store.complete_voice_scan(&binding)
-                    }).await;
+                    })
+                    .await;
                     if matches!(saved, Ok(Ok(()))) {
                         service.notify_changed();
                     } else {
+                        discovery_ok = false;
                         tracing::warn!("Inbound voice batch not fully committed; scan cursor preserved for retry");
                     }
                 }
-                _ => tracing::warn!("Inbound voice discovery unavailable or scan budget exceeded; cursor preserved for retry"),
+                _ => {
+                    discovery_ok = false;
+                    tracing::warn!("Inbound voice discovery unavailable or scan budget exceeded; cursor preserved for retry");
+                }
             }
         }
+        service.readiness.set(
+            "voice-discovery",
+            if discovery_ok && configured {
+                connect_protocol::ReadinessState::Ready
+            } else if configured {
+                connect_protocol::ReadinessState::Degraded
+            } else {
+                connect_protocol::ReadinessState::Uncertain
+            },
+            if discovery_ok && configured {
+                "scan-completed"
+            } else if configured {
+                "scan-incomplete"
+            } else {
+                "no-inbound-routes"
+            },
+        );
         tokio::select! {
             _ = cancelled.cancelled() => break,
             _ = tokio::time::sleep(Duration::from_secs(5)) => {},
@@ -147,8 +183,26 @@ async fn control(
         };
         // Read failures cannot invent a terminal outcome or erase accepted end intent.
         if result.is_err() && job.action == VoiceAction::Poll {
+            service.readiness.set(
+                "voice-control",
+                connect_protocol::ReadinessState::Uncertain,
+                "provider-observation-unavailable",
+            );
             continue;
         }
+        service.readiness.set(
+            "voice-control",
+            if result.is_ok() {
+                connect_protocol::ReadinessState::Ready
+            } else {
+                connect_protocol::ReadinessState::Degraded
+            },
+            if result.is_ok() {
+                "provider-observed"
+            } else {
+                "provider-operation-failed-or-uncertain"
+            },
+        );
         let store = service.store.clone();
         let saved = tokio::task::spawn_blocking(move || match result {
             Ok(remote) => store.finish_voice_job(

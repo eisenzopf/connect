@@ -1,6 +1,8 @@
 //! Storage-independent provider boundary. Adapters make one attempt; the server
 //! owns authorization, durable intent, correlation, retries and journal events.
 use async_trait::async_trait;
+mod descriptor;
+pub use descriptor::{AddressKind, Descriptor, TELNYX, VAPI};
 
 /// Delivery payload and authorized history; no credentials or storage access.
 #[derive(Clone)]
@@ -34,6 +36,10 @@ impl Failure {
 #[async_trait]
 pub trait Connector: Send + Sync {
     fn name(&self) -> &'static str;
+    /// Declare route validation and context semantics before any job is claimed.
+    fn descriptor(&self) -> Descriptor {
+        Descriptor::one_way(self.name())
+    }
     async fn deliver(&self, request: &DeliveryRequest) -> Result<Completion, Failure>;
 }
 #[derive(Clone)]

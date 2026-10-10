@@ -4,6 +4,9 @@ mod discovery;
 pub mod media_profile;
 pub use discovery::*;
 
+mod readiness;
+pub use readiness::{ComponentReadiness, Readiness, ReadinessState};
+
 use serde::{Deserialize, Serialize};
 
 pub const PROFILE: &str = "connect-control/1";
@@ -550,6 +553,8 @@ pub enum Outcome {
         installation_id: String,
         schema: u32,
         profile: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        readiness: Option<Readiness>,
     },
 }
 

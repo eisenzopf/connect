@@ -120,38 +120,19 @@ impl Store {
                 "Cannot bind closed conversation",
             ));
         }
-        if value.connector == "telnyx" {
-            let valid = |s: &str| {
-                s.starts_with('+')
-                    && (8..=16).contains(&s.len())
-                    && s[1..].chars().all(|c| c.is_ascii_digit())
-            };
-            if !valid(&value.target) || !value.source.as_deref().is_some_and(valid) {
-                return Err(Error::new(
-                    "invalid-request",
-                    "SMS routes require E.164 target and source",
-                ));
-            }
-            let duplicate:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM connector_routes WHERE connector='telnyx' AND target=?1 AND source=?2 AND id!=?3)",params![value.target,value.source,value.id],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let descriptor = self.connector(&value.connector)?;
+        crate::connector_registry::validate(descriptor, &value.target, value.source.as_deref())?;
+        if descriptor.sms {
+            let duplicate: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM connector_routes WHERE connector=?1 AND target=?2 AND source=?3 AND id!=?4)",
+                params![value.connector,value.target,value.source,value.id], |r| r.get(0),
+            ).map_err(|_| Error::storage())?;
             if duplicate {
                 return Err(Error::new(
                     "conflict",
                     "SMS number pair already belongs to another conversation",
                 ));
             }
-        } else if (value.connector == "vapi"
-            && (uuid::Uuid::parse_str(&value.target).is_err() || value.source.is_some()))
-            || value.connector.is_empty()
-            || !value
-                .connector
-                .chars()
-                .all(|c| c.is_ascii_lowercase() || c == '-')
-            || value.target.is_empty()
-        {
-            return Err(Error::new(
-                "invalid-request",
-                "Unsupported connector or assistant ID",
-            ));
         }
         let exists: bool = tx
             .query_row(
@@ -241,7 +222,7 @@ impl Store {
             tx.commit().map_err(|_| Error::storage())?;
             return Ok(None);
         }
-        if r.connector == "telnyx" {
+        if self.connector(&r.connector)?.sms {
             let decision = crate::sms_eligibility::eligible(
                 &tx,
                 &r.target,
@@ -263,9 +244,9 @@ impl Store {
                 }
             }
         }
-        // An uncertain/failed Vapi turn blocks subsequent turns until explicitly
+        // An uncertain/failed conversational turn blocks subsequent turns until explicitly
         // resolved; otherwise chat context could silently lose the prior input.
-        if r.connector=="vapi" && tx.query_row::<bool,_,_>("SELECT EXISTS(SELECT 1 FROM provider_jobs WHERE route_id=?1 AND state IN ('uncertain','failed'))",[&rid],|r|r.get(0)).map_err(|_|Error::storage())? {tx.execute("UPDATE provider_jobs SET state='blocked' WHERE id=?1",[&id]).map_err(|_|Error::storage())?;tx.commit().map_err(|_|Error::storage())?;return Ok(None);}
+        if self.connector(&r.connector)?.conversational && tx.query_row::<bool,_,_>("SELECT EXISTS(SELECT 1 FROM provider_jobs WHERE route_id=?1 AND state IN ('uncertain','failed'))",[&rid],|r|r.get(0)).map_err(|_|Error::storage())? {tx.execute("UPDATE provider_jobs SET state='blocked' WHERE id=?1",[&id]).map_err(|_|Error::storage())?;tx.commit().map_err(|_|Error::storage())?;return Ok(None);}
         let previous_chat_id = tx
             .query_row(
                 "SELECT chat_id FROM provider_context WHERE route_id=?1",
@@ -274,7 +255,13 @@ impl Store {
             )
             .optional()
             .map_err(|_| Error::storage())?;
-        let context = crate::provider_chat_context::begin(&tx, &credential, &r, &id)?;
+        let context = crate::provider_chat_context::begin(
+            &tx,
+            &credential,
+            &r,
+            &id,
+            self.connector(&r.connector)?.conversational,
+        )?;
         tx.execute(
             "UPDATE provider_jobs SET state='sending' WHERE id=?1",
             [&id],
@@ -317,7 +304,7 @@ impl Store {
         if let Some(body) = reply {
             self.insert_provider_message(&tx, &r, body)?;
         }
-        if state == "completed" && r.connector == "vapi" {
+        if state == "completed" && self.connector(&r.connector)?.conversational {
             let pid = provider_id
                 .ok_or_else(|| Error::new("invalid-request", "Missing provider chat ID"))?;
             tx.execute("INSERT INTO provider_context VALUES(?1,?2) ON CONFLICT(route_id) DO UPDATE SET chat_id=excluded.chat_id",params![r.id,pid]).map_err(|_|Error::storage())?;

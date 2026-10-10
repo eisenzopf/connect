@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '22'
@@ -30,3 +31,10 @@ jobs:
         run: python3 scripts/check-local.py --ci
       - name: Verify generated TypeScript distribution
         run: git diff --exit-code -- sdk/typescript/dist
+
+      - name: Gate 3 offline media and recovery lane (no provider accounts)
+        run: python3 scripts/check-gate-3.py
+      - name: Build public schema-6 recovery baseline
+        run: python3 scripts/build-recovery-baseline.py
+      - name: Qualify schema-6 upgrade and rollback from actual executables
+        run: python3 scripts/check-schema-six.py --previous-binary .local/recovery-baselines/8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5/connect

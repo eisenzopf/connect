@@ -13,6 +13,7 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 pub(crate) struct MediaTransports {
     sip: Option<Arc<UnifiedCoordinator>>,
+    registration: Option<crate::registration_monitor::Monitor>,
     webrtc: Option<WebRtcServer>,
     pub(crate) sip_address: Option<SocketAddr>,
     pub(crate) webrtc_address: Option<SocketAddr>,
@@ -23,11 +24,14 @@ impl MediaTransports {
         config: &ServerConfig,
         orchestrator: &Arc<Orchestrator>,
         store: Arc<Store>,
+        readiness: Arc<connect_service::readiness::OperationalReadiness>,
     ) -> Result<Self> {
-        let (sip, sip_address) = start_sip(config, orchestrator).await?;
+        let (sip, sip_address, registration) =
+            start_sip(config, orchestrator, readiness.clone()).await?;
         let (webrtc, webrtc_address) = start_webrtc(config, orchestrator, store).await?;
         Ok(Self {
             sip,
+            registration,
             webrtc,
             sip_address,
             webrtc_address,
@@ -35,6 +39,11 @@ impl MediaTransports {
     }
 
     pub(crate) async fn shutdown(&mut self, failures: &mut Vec<String>) {
+        if let Some(monitor) = self.registration.take() {
+            if let Err(error) = monitor.shutdown().await {
+                failures.push(error.to_string());
+            }
+        }
         if let Some(server) = self.webrtc.take() {
             server.shutdown_with_deadline(Duration::from_secs(5)).await;
         }
@@ -52,9 +61,14 @@ impl MediaTransports {
 async fn start_sip(
     config: &ServerConfig,
     orchestrator: &Arc<Orchestrator>,
-) -> Result<(Option<Arc<UnifiedCoordinator>>, Option<SocketAddr>)> {
+    readiness: Arc<connect_service::readiness::OperationalReadiness>,
+) -> Result<(
+    Option<Arc<UnifiedCoordinator>>,
+    Option<SocketAddr>,
+    Option<crate::registration_monitor::Monitor>,
+)> {
     let Some(sip) = &config.sip else {
-        return Ok((None, None));
+        return Ok((None, None, None));
     };
     let mut listener = SipConfig::local("connect", sip.bind.port());
     listener.bind_addr = sip.bind;
@@ -71,14 +85,31 @@ async fn start_sip(
     let coordinator = UnifiedCoordinator::new(listener)
         .await
         .context("Cannot bind configured SIP listener")?;
-    if let Some(outbound) = &sip.outbound {
-        if let Err(error) = crate::sip_registration::register(&coordinator, outbound).await {
-            let _ = coordinator
-                .shutdown_gracefully(Some(Duration::from_secs(5)))
-                .await;
-            return Err(error);
+    let registration = if let Some(outbound) = &sip.outbound {
+        match crate::sip_registration::register(&coordinator, outbound).await {
+            Ok(Some(handle)) => Some(crate::registration_monitor::Monitor::start(
+                coordinator.clone(),
+                handle,
+                readiness.clone(),
+            )),
+            Ok(None) => {
+                readiness.set(
+                    "sip-registration",
+                    connect_protocol::ReadinessState::Uncertain,
+                    "registration-not-configured",
+                );
+                None
+            }
+            Err(error) => {
+                let _ = coordinator
+                    .shutdown_gracefully(Some(Duration::from_secs(5)))
+                    .await;
+                return Err(error);
+            }
         }
-    }
+    } else {
+        None
+    };
     let adapter = SipAdapter::new_with_inbound_context_policy_and_queue_capacity(
         coordinator.clone(),
         Default::default(),
@@ -87,7 +118,7 @@ async fn start_sip(
     .await
     .context("Cannot create SIP media adapter")?;
     orchestrator.register(adapter as Arc<dyn ConnectionAdapter>)?;
-    Ok((Some(coordinator), Some(sip.bind)))
+    Ok((Some(coordinator), Some(sip.bind), registration))
 }
 
 fn apply_outbound_trunk(

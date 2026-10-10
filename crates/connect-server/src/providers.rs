@@ -38,91 +38,105 @@ impl Worker {
         drivers: Vec<Arc<dyn Connector>>,
         authority: Option<crate::sms_authority::Authority>,
     ) -> anyhow::Result<Self> {
+        for driver in &drivers {
+            anyhow::ensure!(
+                driver.name() == driver.descriptor().name,
+                "Connector name differs from descriptor"
+            );
+            service.store.register_connector(driver.descriptor())?;
+        }
         service.store.recover_provider_jobs()?;
         let stop = CancellationToken::new();
         let cancelled = stop.clone();
-        let task = tokio::spawn(async move {
-            let mut next_refresh = tokio::time::Instant::now();
-            loop {
-                if cancelled.is_cancelled() {
-                    break;
-                }
-                if let Some(authority) = &authority {
-                    if tokio::time::Instant::now() >= next_refresh {
-                        let result = tokio::select! {
-                            _ = cancelled.cancelled() => break,
-                            value = authority.refresh(service.store.clone()) => value,
-                        };
-                        if result.is_err() {
-                            tracing::warn!(
+        let task = crate::worker::spawn(
+            service.readiness.clone(),
+            "provider-delivery",
+            stop.clone(),
+            async move {
+                let mut next_refresh = tokio::time::Instant::now();
+                loop {
+                    if cancelled.is_cancelled() {
+                        break;
+                    }
+                    if let Some(authority) = &authority {
+                        if tokio::time::Instant::now() >= next_refresh {
+                            let result = tokio::select! {
+                                _ = cancelled.cancelled() => break,
+                                value = authority.refresh(service.store.clone()) => value,
+                            };
+                            if result.is_err() {
+                                tracing::warn!(
                                 "SMS enrollment refresh failed; stale grants expire automatically"
                             );
+                            }
+                            next_refresh = tokio::time::Instant::now() + Duration::from_secs(30);
                         }
-                        next_refresh = tokio::time::Instant::now() + Duration::from_secs(30);
                     }
-                }
-                let store = service.store.clone();
-                let job = tokio::task::spawn_blocking(move || store.claim_provider_job()).await;
-                match job {
-                    Ok(Ok(Some(job))) => {
-                        let request = DeliveryRequest {
-                            target: job.route.target.clone(),
-                            source: job.route.source.clone(),
-                            body: job.body.clone(),
-                            previous_chat_id: job.previous_chat_id.clone(),
-                            context: job.context.clone(),
-                        };
-                        let result = if let Some(driver) =
-                            drivers.iter().find(|d| d.name() == job.route.connector)
-                        {
-                            tokio::select! {
-                                _ = cancelled.cancelled() => Err(Failure::Uncertain),
-                                result = tokio::time::timeout(Duration::from_secs(35), driver.deliver(&request)) => {
-                                    result.unwrap_or(Err(Failure::Uncertain))
-                                },
-                            }
-                        } else {
-                            Err(Failure::Rejected)
-                        };
-                        let store = service.store.clone();
-                        let saved = tokio::task::spawn_blocking(move || match result {
-                            Ok(done) => store.finish_provider_job(
-                                &job,
-                                if done.reply.is_some() {
-                                    "completed"
-                                } else {
-                                    "accepted"
-                                },
-                                Some(&done.provider_id),
-                                done.reply.as_deref(),
-                            ),
-                            Err(failure) => {
-                                store.finish_provider_job(&job, failure.state(), None, None)
-                            }
-                        })
-                        .await;
-                        if !matches!(saved, Ok(Ok(()))) {
-                            tracing::warn!(
+                    let store = service.store.clone();
+                    let job = tokio::task::spawn_blocking(move || store.claim_provider_job()).await;
+                    match job {
+                        Ok(Ok(Some(job))) => {
+                            let request = DeliveryRequest {
+                                target: job.route.target.clone(),
+                                source: job.route.source.clone(),
+                                body: job.body.clone(),
+                                previous_chat_id: job.previous_chat_id.clone(),
+                                context: job.context.clone(),
+                            };
+                            let result = if let Some(driver) =
+                                drivers.iter().find(|d| d.name() == job.route.connector)
+                            {
+                                tokio::select! {
+                                    _ = cancelled.cancelled() => Err(Failure::Uncertain),
+                                    result = tokio::time::timeout(Duration::from_secs(35), driver.deliver(&request)) => {
+                                        result.unwrap_or(Err(Failure::Uncertain))
+                                    },
+                                }
+                            } else {
+                                Err(Failure::Rejected)
+                            };
+                            let store = service.store.clone();
+                            let saved = tokio::task::spawn_blocking(move || match result {
+                                Ok(done) => store.finish_provider_job(
+                                    &job,
+                                    if done.reply.is_some() {
+                                        "completed"
+                                    } else {
+                                        "accepted"
+                                    },
+                                    Some(&done.provider_id),
+                                    done.reply.as_deref(),
+                                ),
+                                Err(failure) => {
+                                    store.finish_provider_job(&job, failure.state(), None, None)
+                                }
+                            })
+                            .await;
+                            if !matches!(saved, Ok(Ok(()))) {
+                                tracing::warn!(
                                 "Provider result not committed; stopping worker with uncertain job"
                             );
-                            anyhow::bail!("Provider result not committed; recover uncertain work");
+                                anyhow::bail!(
+                                    "Provider result not committed; recover uncertain work"
+                                );
+                            }
+                            service.notify_changed();
                         }
-                        service.notify_changed();
-                    }
-                    Ok(Ok(None)) => {
-                        tokio::select! {
-                            _ = cancelled.cancelled() => break,
-                            _ = tokio::time::sleep(Duration::from_millis(100)) => {},
+                        Ok(Ok(None)) => {
+                            tokio::select! {
+                                _ = cancelled.cancelled() => break,
+                                _ = tokio::time::sleep(Duration::from_millis(100)) => {},
+                            }
                         }
-                    }
-                    _ => {
-                        tracing::warn!("Provider storage unavailable; stopping worker");
-                        anyhow::bail!("Provider storage unavailable");
+                        _ => {
+                            tracing::warn!("Provider storage unavailable; stopping worker");
+                            anyhow::bail!("Provider storage unavailable");
+                        }
                     }
                 }
-            }
-            Ok(())
-        });
+                Ok(())
+            },
+        );
         Ok(Self {
             stop,
             task: Some(task),

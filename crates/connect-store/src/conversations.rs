@@ -127,6 +127,7 @@ impl Store {
                 Outcome::Health {
                     installation_id: id,
                     schema: crate::SCHEMA_VERSION,
+                    readiness: None,
                     profile: connect_protocol::PROFILE.into(),
                 }
             }

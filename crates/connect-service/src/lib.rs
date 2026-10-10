@@ -22,7 +22,11 @@ use rvoip_uctp::{
 };
 use std::sync::Arc;
 
+pub mod readiness;
+
 pub struct Service {
+    /// Process-local readiness; no credentials or message contents.
+    pub readiness: Arc<readiness::OperationalReadiness>,
     pub store: Arc<Store>,
     changed: tokio::sync::Notify,
     runtime: connect_store::DiscoveryRuntime,
@@ -35,10 +39,23 @@ impl Service {
     }
     /// Configure discovery from successfully constructed runtime listeners and adapters.
     pub fn with_runtime(store: Arc<Store>, runtime: connect_store::DiscoveryRuntime) -> Arc<Self> {
+        Self::with_readiness(
+            store,
+            runtime,
+            Arc::new(readiness::OperationalReadiness::default()),
+        )
+    }
+    /// Share component observations with runtime workers; never persisted as authority.
+    pub fn with_readiness(
+        store: Arc<Store>,
+        runtime: connect_store::DiscoveryRuntime,
+        readiness: Arc<readiness::OperationalReadiness>,
+    ) -> Arc<Self> {
         Arc::new(Self {
             runtime,
             store,
             changed: tokio::sync::Notify::new(),
+            readiness,
             #[cfg(test)]
             wait_boundary: None,
         })
@@ -49,7 +66,10 @@ impl Service {
         let wake = self.changed.notified();
         tokio::pin!(wake);
         wake.as_mut().enable();
-        let result = self.run(credential_id.clone(), operation.clone()).await;
+        let mut result = self.run(credential_id.clone(), operation.clone()).await;
+        if let Ok(Outcome::Health { readiness, .. }) = &mut result {
+            *readiness = Some(self.readiness.snapshot());
+        }
         if let Operation::Inbox {
             cursor: previous,
             wait_ms,
@@ -500,6 +520,7 @@ mod tests {
         let service = Arc::new(Service {
             store,
             changed: tokio::sync::Notify::new(),
+            readiness: Arc::new(readiness::OperationalReadiness::default()),
             wait_boundary: Some((reached.clone(), release.clone())),
             runtime: Default::default(),
         });

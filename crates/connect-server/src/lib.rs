@@ -6,6 +6,7 @@ mod media_ingress;
 mod media_lifecycle;
 pub mod media_profile;
 mod media_transports;
+mod registration_monitor;
 pub mod runtime;
 mod sip_outbound;
 mod sip_registration;

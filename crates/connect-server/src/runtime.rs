@@ -134,6 +134,7 @@ impl RunningServer {
                 },
             }),
         };
+        let readiness = Arc::new(connect_service::readiness::OperationalReadiness::default());
         let orchestrator = Orchestrator::new(crate::media_profile::orchestrator_config());
         let session_resolver =
             StoreSessionBindingResolver::new(store.clone(), orchestrator.clone())?;
@@ -154,24 +155,30 @@ impl RunningServer {
         let media_lifecycle = crate::media_lifecycle::MediaLifecycle::start(
             orchestrator.clone(),
             store.clone(),
+            readiness.clone(),
             vapi_media,
             crate::media_ingress::InboundMediaRoutes {
                 sip: config.sip.as_ref().map(|value| value.route.clone()),
                 webrtc: config.webrtc.as_ref().map(|value| value.route.clone()),
             },
         )?;
-        let media_transports =
-            crate::media_transports::MediaTransports::start(&config, &orchestrator, store.clone())
-                .await?;
+        let media_transports = crate::media_transports::MediaTransports::start(
+            &config,
+            &orchestrator,
+            store.clone(),
+            readiness.clone(),
+        )
+        .await?;
         if let (Some(browser), Some(address)) =
             (&mut discovery.browser, media_transports.webrtc_address)
         {
             browser.binding.signaling_url = format!("ws://{address}");
         }
-        let service = Service::with_runtime(store.clone(), discovery);
+        let service = Service::with_readiness(store.clone(), discovery, readiness.clone());
         let sip_outbound = if config.sip.is_some() {
             Some(crate::sip_outbound::Worker::start(
                 store.clone(),
+                readiness.clone(),
                 orchestrator.clone(),
                 session_resolver.clone(),
                 media_lifecycle.registrar(),
@@ -257,6 +264,11 @@ impl RunningServer {
             Duration::from_millis(config.limits.request_timeout_ms);
         let adapter = UctpQuicAdapter::new(cfg).await?;
         orchestrator.register(adapter.clone() as Arc<dyn ConnectionAdapter>)?;
+        readiness.set(
+            "native-control",
+            connect_protocol::ReadinessState::Ready,
+            "listener-bound",
+        );
         Ok(Self {
             _installation: installation,
             endpoint,

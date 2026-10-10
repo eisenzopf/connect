@@ -30,6 +30,9 @@ impl Telnyx {
 }
 #[async_trait]
 impl Connector for Telnyx {
+    fn descriptor(&self) -> connect_connector_api::Descriptor {
+        connect_connector_api::TELNYX
+    }
     fn name(&self) -> &'static str {
         "telnyx"
     }
@@ -81,6 +84,9 @@ impl Vapi {
 }
 #[async_trait]
 impl Connector for Vapi {
+    fn descriptor(&self) -> connect_connector_api::Descriptor {
+        connect_connector_api::VAPI
+    }
     fn name(&self) -> &'static str {
         "vapi"
     }

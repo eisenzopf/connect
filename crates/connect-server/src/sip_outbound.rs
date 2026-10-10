@@ -21,6 +21,7 @@ pub(crate) struct Worker {
 impl Worker {
     pub(crate) fn start(
         store: Arc<Store>,
+        readiness: Arc<connect_service::readiness::OperationalReadiness>,
         orchestrator: Arc<Orchestrator>,
         resolver: Arc<StoreSessionBindingResolver>,
         registrar: MediaRegistrar,
@@ -28,7 +29,7 @@ impl Worker {
         store.recover_sip_legs()?;
         let stop = CancellationToken::new();
         let cancelled = stop.clone();
-        let task = tokio::spawn(async move {
+        let task = crate::worker::spawn(readiness, "sip-outbound", stop.clone(), async move {
             loop {
                 if cancelled.is_cancelled() {
                     return Ok(());
