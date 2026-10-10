@@ -106,8 +106,8 @@
     {
       "id": "F-06",
       "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
-      "delivery_gate": "2 local / live deferred",
-      "status": "Reviewed enrollment is deployed and enforced. Signed callbacks, five handset conversation turns, assistant-initiated SDK sends and native UCTP/QUIC recall of SMS context are verified. Live HELP/STOP/START qualification remains in progress.",
+      "delivery_gate": "2 local and live qualified",
+      "status": "Reviewed enrollment deployed and enforced. Signed callbacks, five handset conversation turns, native UCTP/QUIC context recall, HELP/STOP/START, blocked native SDK send/replay and resumed delivery verified. Gate 4 agent-tool/task workflows remain planned.",
       "required_evidence": "Approval/number readiness, consented handset and signed live callback",
       "v0_1_required": true,
       "milestones": [
@@ -118,7 +118,8 @@
       "sources": [
         "connect-first-ten-minutes.html#start",
         "connect-v0.1-contract.html#proof"
-      ]
+      ],
+      "evidence": "evidence/pre-gate-4/sms-live.json"
     },
     {
       "id": "F-07",

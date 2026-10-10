@@ -1,6 +1,6 @@
 {
-  "revision": 6,
-  "scope": "Gate 2: Vapi chat and Telnyx inbound/outbound telephone voice controlled by local Connect SDK/API. Approved SMS lane reactivated for consent-aware live qualification before Gate 4.",
+  "revision": 7,
+  "scope": "Gate 2: Vapi chat and Telnyx inbound/outbound telephone voice controlled by local Connect SDK/API. Approved SMS lane qualified with reviewed enrollment and live suppression/recovery before Gate 4.",
   "implementation_ids": [
     "G2-001",
     "G2-002",
@@ -116,9 +116,10 @@
         "G2-019"
       ],
       "proof": "A consented handset sends a message and receives its Vapi reply; a second turn preserves context. Demonstrate assistant-initiated contact through the SDK and correlate provider delivery/failure outcomes. Reviewed enrollment must gate dispatch; verify HELP, durable STOP suppression, a blocked SDK send, and START recovery without duplicate replies.",
-      "evidence_class": "live-in-progress",
+      "evidence_class": "live",
       "required": true,
-      "evidence": "evidence/pre-gate-4/closure.json"
+      "evidence": "evidence/pre-gate-4/sms-live.json",
+      "result": "passed"
     },
     {
       "id": "A2-08",

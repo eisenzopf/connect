@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-09",
+  "result": "passed",
+  "source_revision": "e80e81010228",
+  "scope": "Separately authorized live Telnyx SMS qualification on the local macOS arm64 Connect server; no live operations added to offline checks.",
+  "implementation_ids": [
+    "G2-018",
+    "G2-019",
+    "SMS-08"
+  ],
+  "acceptance_id": "A2-07",
+  "enrollment": "Recipient self-submitted the unchanged Rudeless form; authenticated administrator activated a 24-hour installation/conversation/sender-bound task grant.",
+  "conversation": "Initial HTTP SDK contact, five handset/Vapi conversation turns and native UCTP/QUIC recall of an earlier SMS fact in the same conversation.",
+  "controls": [
+    {
+      "keyword": "HELP",
+      "permission_changed": false,
+      "occurred_at_utc": "2026-10-10T01:23:18+00:00"
+    },
+    {
+      "keyword": "STOP",
+      "permission_changed": true,
+      "occurred_at_utc": "2026-10-10T01:23:32+00:00"
+    },
+    {
+      "keyword": "START",
+      "permission_changed": true,
+      "occurred_at_utc": "2026-10-10T01:34:37+00:00"
+    },
+    {
+      "keyword": "STOP",
+      "permission_changed": true,
+      "occurred_at_utc": "2026-10-10T02:37:25+00:00"
+    },
+    {
+      "keyword": "START",
+      "permission_changed": true,
+      "occurred_at_utc": "2026-10-10T02:39:43+00:00"
+    }
+  ],
+  "keyword_assistant_prompts": 0,
+  "acknowledgements": "Exact approved HELP/STOP/START response configuration read back from Telnyx. Telnyx owns keyword acknowledgements; Connect does not generate duplicate replies. No separate carrier delivery receipt for automatic acknowledgements is claimed.",
+  "stop_test": {
+    "native_sdk_send": "cancelled",
+    "decision": "opted-out",
+    "provider_submission": false,
+    "same_request_replay": "original receipt; no new send"
+  },
+  "start_test": {
+    "new_native_sdk_send": "delivered by signed callback",
+    "decision": "allowed",
+    "cancelled_request_replay": "still cancelled; no provider submission",
+    "new_request_replay": "original receipt"
+  },
+  "limitations": [
+    "Single self-enrolled handset, one approved campaign and one sender number.",
+    "A signed callback proves provider-reported delivery, not independent inspection of the handset screen.",
+    "Local server and temporary callback tunnel must remain running; the test grant expires after 24 hours.",
+    "This does not qualify the planned Gate 4 MCP/skill or agent task-resumption workflow."
+  ],
+  "private_evidence_sha256": {
+    "blocked-sms-result.json": "4ee8ae6bd4bd8cc0e601da21575d2a3253534d737338866b3c3f830c264b1a2b",
+    "resumed-sms-result.json": "f23910d59919ae58927cbe35eb04ba9535466308242c4eb70241a89a38d6fa53",
+    "native-sms-context-receipt.json": "15e83c730220d6bf285e4974fa9fd5db61d94762b876a47eb51d41226a0003d1"
+  }
+}

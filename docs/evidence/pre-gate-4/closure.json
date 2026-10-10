@@ -142,14 +142,16 @@
     "recipient_form": "Original affirmative enrollment reviewed via admin session + CSRF; installation/conversation/sender-bound 24-hour grant synchronized.",
     "rudeless_deployment": "Succeeded; backend only, PostgreSQL container preserved, original consent fingerprint unchanged. Off-host backup restored in disposable local PostgreSQL.",
     "connect_migration": "Schema 9 to 10 with verified backup; existing identities, credentials, conversations, messages and routes unchanged before SMS route addition.",
-    "sms_delivery": "Initial HTTP SDK send, five handset/Vapi conversation turns and native UCTP/QUIC recall of the city from an earlier SMS all delivered in one existing conversation. HELP/STOP/START remain in progress.",
+    "sms_delivery": "Passed: initial HTTP SDK send, five handset/Vapi conversation turns, native UCTP/QUIC recall of prior SMS context, and fresh post-START SDK delivery with signed callback.",
     "callback_boundary": "Qualified release uses its built-in webhook-only listener; custom proxy removed. Public application API returns 404; unsigned webhook returns 401.",
     "voice_route": "Original Telnyx voice connection read back unchanged after SMS configuration.",
     "build": {
       "id": "98a7515f-2b8a-4c2b-ab5d-cd789db94948",
       "result": "SUCCESS",
       "image_digest": "sha256:d15372b99b2ca71da6b1a5351efe7900e624b21295b7151b2fe020e79b8f8126"
-    }
+    },
+    "sms_controls": "Passed: real HELP/STOP/START callbacks, no keyword assistant prompts, native SDK send cancelled as opted-out before provider submission, same-ID replay preserved, subsequent START allowed a new delivered message while the old cancelled request remained cancelled.",
+    "sms_evidence": "sms-live.json"
   },
   "not_claimed": [
     "fresh live voice/media qualification",
@@ -160,10 +162,10 @@
   "private_evidence": "Raw logs, credentials, handset details, database snapshots and provider identifiers remain ignored under .local; original audit reproductions are historical at a20de33.",
   "source_manifest": "source-files.json",
   "unresolved": [
-    "G2-019 remaining: real HELP acknowledgement, STOP suppression, blocked SDK send, START and resumed delivery. Handset conversation/context and assistant-initiated sends are verified.",
     "R05\u2013R08 qualification and Gate 4 design work remain as scoped in the original review."
   ],
   "repair_source_revision": "e80e81010228",
   "rudeless_source_revision": "608404e",
-  "installed_package": "package.json"
+  "installed_package": "package.json",
+  "dirty_source_note": "The broad offline run used the then-uncommitted repair tree. The final installed candidate is pinned by repair_source_revision and package.json; subsequent changes are documentation only."
 }
