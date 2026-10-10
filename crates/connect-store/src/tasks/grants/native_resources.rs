@@ -1,7 +1,9 @@
 //! Resource attachment checks share one snapshot of current task authority.
 use super::{native::invocation_for_subject, revalidate};
 use crate::{Actor, Store};
-use connect_protocol::{tasks::task_grant_id, tasks::TaskPermission, Error, Result, Session};
+use connect_protocol::{
+    tasks::task_grant_id, tasks::TaskPermission, tasks::TaskRecord, Error, Result, Session,
+};
 use rusqlite::params;
 
 impl Store {
@@ -35,7 +37,7 @@ impl Store {
     ) -> Result<NativeSessionAuthority> {
         let id = task_grant_id(subject)?;
         let invocation = invocation_for_subject(c, id)?;
-        let (grant, actor, task) = revalidate(c, &invocation, crate::now())?;
+        let (grant, actor, mut task) = revalidate(c, &invocation, crate::now())?;
         if !grant.grant.operations.contains(&TaskPermission::SessionGet) {
             return Err(Error::forbidden());
         }
@@ -65,10 +67,14 @@ impl Store {
         if !linked {
             return Err(Error::forbidden());
         }
+        task.scope
+            .operations
+            .retain(|permission| grant.grant.operations.contains(permission));
         Ok(NativeSessionAuthority {
             actor,
             session,
             grant_id: grant.grant.id,
+            task,
         })
     }
 }
@@ -79,4 +85,5 @@ pub(crate) struct NativeSessionAuthority {
     pub actor: Actor,
     pub session: Session,
     pub grant_id: String,
+    pub task: TaskRecord,
 }

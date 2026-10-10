@@ -1,0 +1,184 @@
+{
+  "status": "local-native-task-voice-component-qualified",
+  "gate_items": [
+    "G4-020"
+  ],
+  "platform": "local macOS arm64",
+  "source": {
+    "base": "c09a8fe485c759754f0e307baf39786ccbfed84f",
+    "source_files": {
+      "crates/connect-server/src/vapi_media.rs": "f22c81a1e5aa1098a58b625a6a165efb3cc46d49d81c739e8adb33c01c33720d",
+      "crates/connect-server/tests/gate3_support/mod.rs": "420ed5570936b76a2a6746dfc89e0879a23a462aa30b34bd77015c40f497e67c",
+      "crates/connect-server/tests/gate4_vapi_task_voice.rs": "e7c0cee1676dc339bfd0a436dc79d738e7b63454ff42ff1b2a206093aa29559f",
+      "crates/connect-server/tests/gate4_vapi_voice_revocation.rs": "fdba0508da8b86b00d610ba94fddbbc10432141a2f2a2d05173b9090d7b050e8",
+      "crates/connect-server/tests/support/native_media.rs": "6adcf9c3c0612941f0ec5189e00418f04de1603ef067abc5ca54c536051d94d2",
+      "crates/connect-server/tests/support/native_tasks.rs": "f744d6607056c3a467e00d6d0008c705b7d079189067fc4fbb0ad1730dde335f",
+      "crates/connect-service/src/native_media.rs": "c724fa298d374268856008096018192f96ef251f6d75ec355135782a686e1012",
+      "crates/connect-store/src/lib.rs": "d624c34210774ec93a87eef48639b92a1151351a09fd4a0ad7d02e0432f3f624",
+      "crates/connect-store/src/sessions.rs": "1aa86249d9c32103988ce6787cf16b5d82c0c47e0757542b7593a2c8b862f692",
+      "crates/connect-store/src/tasks/grants/native_resources.rs": "d42a526ca9d9f068f65cc6f68e16cc5ca001deb2da1615ebc2a98fd17fa102ac",
+      "crates/connect-store/src/tasks/media_context.rs": "cc7d1b9eb23f3fafec68ace9e7a9ac67b31966db39365990071a96249f1f8285",
+      "crates/connect-store/src/tasks/mod.rs": "e9757eaf81eeb2b4ef015f6f0738b9b77b9a7f7f0db4a1c54b73424daaf71259",
+      "crates/connect-store/src/tasks/tests/media_context.rs": "6213a95d470a0546b85b9cf0e5f5afd9874e8141b628579204733be36a6a869e",
+      "crates/connect-store/src/tasks/tests/mod.rs": "881327e781369e2a9420469c72877430dd07ca66ced500ea69686e1b17c97557",
+      "crates/connect-store/src/tasks/tests/native_resource_boundaries.rs": "9ee79510cbbffd286316f1fff88244abbfd6aaa537729a1a3e697907ba4c550e"
+    },
+    "lock_sha256": "788005d237221b3608767fee2198544b31d2ff2ff55f66b52eb9826449d9fa36"
+  },
+  "implemented": [
+    "Accepted task-linked native Vapi sessions use the current grant history ceiling, not the backing owner projection.",
+    "Bounded recall and its exact persisted delivery intent share one authorization transaction.",
+    "Media-only grants supply an empty source selection; permitted history retains provenance, omissions and the opaque cursor.",
+    "After asynchronous provider attachment, the adapter revalidates the exact route and current invocation before context export."
+  ],
+  "initial_completed_checks": [
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate4_vapi_task_voice --test gate3_vapi_media --test gate4_native_media",
+      "exit_code": 0,
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-4-planning/task-voice-wire.log",
+      "log_sha256": "3f4b357291fc10e4304262129eae72408c9aec54a2afc0eb950f857dafcfd1b5",
+      "scope": "Initial SDK/media smoke before adding the controlled provider attachment revocation fixture. Production source is unchanged in the final manifest."
+    },
+    {
+      "command": "cargo test --locked -p connect-store --all-features --lib tasks::tests",
+      "exit_code": 0,
+      "passed": 141,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 1,
+      "log": ".local/gate-4-planning/task-voice-store-qualified-2.log",
+      "log_sha256": "aa4bd0c31d1a6f512927dabd8ef9be98edc6c2839aed87866f57f8b11c9367ac",
+      "scope": "Initial task unit regression before the additional bounded voice selection test."
+    }
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/task-voice-store.log",
+      "exit_code": 101,
+      "reason": "New denial assertion used unwrap_err on a non-Debug context result. Fixed the assertion to inspect the error without exposing private context via Debug."
+    },
+    {
+      "log": ".local/gate-4-planning/task-voice-store-qualified.log",
+      "exit_code": 1,
+      "reason": "Rejected Cargo invocation supplied --lib twice; no tests ran. Corrected command and retained the attempt."
+    }
+  ],
+  "running_checks": [],
+  "limits": [
+    "No numbered item or acceptance criterion is closed by these component checks.",
+    "Actual verified Vapi invocation provisioning and MCP tool use remain open.",
+    "Server/runner restart, two-task voice contrast and explicit message-channel continuation remain required by G4-027.",
+    "Fixtures use only loopback providers and isolated state; no remote deployment or live account operation."
+  ],
+  "completed_final_checks": [
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate4_vapi_voice_revocation --test gate4_vapi_task_voice --test gate3_vapi_media --test gate4_native_media",
+      "exit_code": 0,
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-4-planning/task-voice-wire-qualified.log",
+      "log_sha256": "cee69cd91f1e9d84deee4b5760608bc6c729e12462a686a2e1f61ae63d6e0d5a",
+      "behavior": [
+        "Media-only native invocation exports no backing-owner history.",
+        "History invocation exports bounded journal-provenanced history and the earlier voice transcript in a later leg.",
+        "Real native QUIC audio reaches the Vapi adapter and returns to the public client.",
+        "Final transcript and bounded outcome remain available to task recall after hangup.",
+        "Revocation while provider create is paused prevents add-message context export and records failed delivery.",
+        "Existing ordinary Vapi voice and both native task audio cases retain their behavior."
+      ]
+    },
+    {
+      "check": "prepare",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/task-voice-final-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "check": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-store",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/task-voice-final-store.log",
+      "log_sha256": "96551abbb3a7fdcc170e7b5091dc062e3b3ce654e8847d9a73248632d34afb43",
+      "passed": 190,
+      "failed": 0,
+      "ignored": 0,
+      "harnesses": 16
+    },
+    {
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/task-voice-final-clippy.log",
+      "log_sha256": "c9985600e93c4f029c1017d4f68aa38a0ac688db73b65f35068411b0858e4bd3"
+    },
+    {
+      "check": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/task-voice-final-rustdoc.log",
+      "log_sha256": "e941280f8ae23ed97d3742f27e8aaa326d5895c6c471633e49fd3e024678fac8",
+      "environment": {
+        "RUSTDOCFLAGS": "-D warnings -D rustdoc::broken_intra_doc_links"
+      }
+    },
+    {
+      "check": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/task-voice-final-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "review": {
+    "crate_boundaries": "Authority, selection and SQL remain in Store; server owns provider attachment and post-await revalidation; service keeps exact native Session admission; tests use public SDK media and protected grant exchange.",
+    "module_size": "New production selection module is 93 lines; test/fixture modules remain under 200 lines.",
+    "upstream": "No Cargo.lock, source-lock or undocumented .deps changes.",
+    "qualification": "195 focused behavioral passes; no whole-workspace/Gate 4 acceptance claim."
+  }
+}

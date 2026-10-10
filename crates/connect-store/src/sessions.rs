@@ -362,12 +362,6 @@ impl Store {
             assistant_identity_id: session.participant_id,
             assistant_id,
         });
-        if native && route.is_some() {
-            return Err(Error::new(
-                "unsupported-task-media-route",
-                "Native task provider context is not yet qualified",
-            ));
-        }
         Ok(route)
     }
 

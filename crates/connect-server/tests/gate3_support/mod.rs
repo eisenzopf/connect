@@ -23,32 +23,48 @@ struct FakeState {
     websocket_url: Arc<Mutex<String>>,
     observed: mpsc::UnboundedSender<Value>,
     burst: bool,
+    call_gate: Option<Arc<tokio::sync::Semaphore>>,
 }
 
 pub(crate) struct FakeVapi {
     pub(crate) adapter: Arc<VapiAdapter>,
     observed: mpsc::UnboundedReceiver<Value>,
     task: tokio::task::JoinHandle<()>,
+    call_gate: Option<Arc<tokio::sync::Semaphore>>,
 }
 
 impl FakeVapi {
     pub(crate) async fn start() -> Self {
-        Self::start_profile(false).await
+        Self::start_profile(false, false).await
     }
 
     /// Saturate the real queue profile; retain the socket until cancelled.
     pub(crate) async fn start_burst() -> Self {
-        Self::start_profile(true).await
+        Self::start_profile(true, false).await
     }
 
-    async fn start_profile(burst: bool) -> Self {
+    /// Pause the provider create response to exercise revocation during attachment.
+    pub(crate) async fn start_paused() -> Self {
+        Self::start_profile(false, true).await
+    }
+    pub(crate) fn release_call(&self) {
+        self.call_gate.as_ref().unwrap().add_permits(1);
+    }
+    pub(crate) async fn assert_no_message(&mut self, kind: &str) {
+        let received =
+            tokio::time::timeout(std::time::Duration::from_millis(250), self.next(kind)).await;
+        assert!(received.is_err(), "unexpected provider message: {kind}");
+    }
+    async fn start_profile(burst: bool, paused: bool) -> Self {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let (observed, observed_rx) = mpsc::unbounded_channel();
+        let call_gate = paused.then(|| Arc::new(tokio::sync::Semaphore::new(0)));
         let state = FakeState {
             websocket_url: Arc::new(Mutex::new(format!("ws://{address}/transport"))),
             observed,
             burst,
+            call_gate: call_gate.clone(),
         };
         let router = Router::new()
             .route("/call", post(create_call))
@@ -74,6 +90,7 @@ impl FakeVapi {
             adapter: VapiAdapter::new(config).unwrap(),
             observed: observed_rx,
             task,
+            call_gate,
         }
     }
 
@@ -98,6 +115,10 @@ impl Drop for FakeVapi {
 }
 
 async fn create_call(State(state): State<FakeState>) -> Json<Value> {
+    if let Some(gate) = &state.call_gate {
+        let _ = state.observed.send(json!({"type": "create-call"}));
+        gate.acquire().await.unwrap().forget();
+    }
     Json(json!({
         "id": "call-connect-gate-three",
         "status": "queued",

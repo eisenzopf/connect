@@ -72,16 +72,7 @@ pub(crate) fn authorize(
     if envelope.msg_type == MessageType::SessionInvite {
         store
             .vapi_session_route(&principal.subject, sid)
-            .map_err(|error| {
-                if error.code == "unsupported-task-media-route" {
-                    ResourceBindingError {
-                        code: 501,
-                        reason: "connect-task-provider-context-unqualified".into(),
-                    }
-                } else {
-                    super::session_bindings::resource_error(error)
-                }
-            })?;
+            .map_err(super::session_bindings::resource_error)?;
     }
     if session.media != ["audio"]
         || envelope

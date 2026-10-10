@@ -21,6 +21,7 @@ mod effects;
 mod grant_boundaries;
 mod grant_operations;
 mod media_authority;
+mod media_context;
 mod media_fixture;
 mod media_migration;
 mod media_recovery;

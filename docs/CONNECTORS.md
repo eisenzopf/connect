@@ -69,3 +69,18 @@ communication and does not resume the task.
 The [provider task evidence](evidence/gate-4/provider-task-boundaries.json)
 distinguishes store and public-client qualification from the remaining Vapi
 MCP, voice and installed-host acceptance.
+
+### Task-bound native voice context
+
+The Vapi media adapter uses `Store::prepare_vapi_session_context` to select and
+persist the exact context before attachment. Native sessions must be accepted,
+linked to the task and currently permitted by the invocation. History comes
+from bounded task recall under the grant's ceiling. A media-only invocation
+supplies an empty source selection; that does not claim the conversation has no
+history. The adapter checks the current route again after provider attachment,
+before exporting context. Transcript and outcome observations remain in the
+persistent conversation after the leg ends.
+
+The [voice context evidence](evidence/gate-4/task-voice-context.json) records
+qualified local SDK/media behavior and its limits. This path does not yet constitute
+verified Vapi MCP installation or the full Gate 4 post-call/restart journey.

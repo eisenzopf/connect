@@ -13,7 +13,10 @@ pub(crate) struct Fixture {
 }
 impl Fixture {
     pub async fn start() -> Self {
-        let mut h = Harness::start().await;
+        Self::start_with_vapi(None).await
+    }
+    pub async fn start_with_vapi(adapter: Option<std::sync::Arc<rvoip_vapi::VapiAdapter>>) -> Self {
+        let mut h = Harness::start_with_vapi(adapter).await;
         let key = h
             .server
             .store

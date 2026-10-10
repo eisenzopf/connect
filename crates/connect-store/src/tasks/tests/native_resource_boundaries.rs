@@ -30,12 +30,19 @@ fn native_provider_route_cannot_inherit_the_owners_broader_context_projection() 
         .vapi_session_route(&m.f.key.id, &session.id)
         .unwrap()
         .is_some());
-    assert_eq!(
+    assert!(m
+        .f
+        .store
+        .vapi_session_route(&subject, &session.id)
+        .unwrap()
+        .is_some());
+    let context =
         m.f.store
-            .vapi_session_route(&subject, &session.id)
-            .unwrap_err()
-            .code,
-        "unsupported-task-media-route"
+            .prepare_vapi_session_context(&subject, &session.id)
+            .unwrap();
+    let selection: TaskOutcome = serde_json::from_str(&context.json).unwrap();
+    assert!(
+        matches!(selection, TaskOutcome::Recall { sources, next: None, omitted: 0 } if sources.is_empty())
     );
     let deliveries: u64 =
         m.f.store
@@ -43,7 +50,7 @@ fn native_provider_route_cannot_inherit_the_owners_broader_context_projection() 
             .unwrap()
             .query_row("SELECT COUNT(*) FROM context_deliveries", [], |r| r.get(0))
             .unwrap();
-    assert_eq!(deliveries, 0);
+    assert_eq!(deliveries, 1);
 }
 
 #[test]

@@ -15,14 +15,23 @@ pub(crate) struct Harness {
 }
 impl Harness {
     pub async fn start() -> Self {
+        Self::start_with_vapi(None).await
+    }
+    pub async fn start_with_vapi(adapter: Option<std::sync::Arc<rvoip_vapi::VapiAdapter>>) -> Self {
         let temp = tempfile::tempdir().unwrap();
         let directory = temp.path().join("state");
         init::initialize(&directory, true, "127.0.0.1:0".parse().unwrap()).unwrap();
         let config = ServerConfig::load(&directory.join("server.toml")).unwrap();
-        let server =
-            RunningServer::start_local(config, Some("127.0.0.1:0".parse().unwrap()), false)
+        let http = Some("127.0.0.1:0".parse().unwrap());
+        let server = if let Some(adapter) = adapter {
+            RunningServer::start_with_vapi_media(config, http, adapter)
                 .await
-                .unwrap();
+                .unwrap()
+        } else {
+            RunningServer::start_local(config, http, false)
+                .await
+                .unwrap()
+        };
         let mut owner_config = ClientConfig::load(&directory.join("reviews.toml")).unwrap();
         let mut peer_config = ClientConfig::load(&directory.join("agent.toml")).unwrap();
         let credential = server

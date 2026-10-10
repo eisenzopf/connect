@@ -7,6 +7,8 @@ mod grants;
 pub use grants::{IssuedTaskGrant, NativeTaskAuthority, TaskInvocation};
 mod inbox;
 mod lifecycle;
+mod media_context;
+pub use media_context::VapiSessionContext;
 mod native_reply;
 mod owner;
 mod recall;
