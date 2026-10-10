@@ -66,6 +66,24 @@ journal sequence. Recall has a 32 KiB budget, explicit omissions and source
 provenance. A missing timestamp is explicit for legacy sources; no fabricated
 metadata. Retrieval text cannot change grants or routes.
 
+Recall traverses the existing recipient conversation journal oldest first, with
+at most 100 source entries and a 32 KiB serialized result including metadata and
+cursor. `omitted` counts eligible entries after the input cursor not returned
+in that page. An individually oversized body returns an unavailable source with
+an explicit budget note and advances the cursor; it never stalls catch-up or
+silently truncates evidence. Missing sources also remain explicit. Messages
+have no timestamp in the existing schema, so `created_at` is null with a
+timestamp-not-recorded note rather than a fabricated date. If a missing source
+also lost its attribution, `actor_id` is empty.
+
+Session and artifact bodies project current metadata rather than stale journal
+snapshots. Deleted, expired, missing or invalid artifact blobs have no body;
+recall never follows symlinks or exports file bytes/paths. Metadata is conversation
+context under history/context-view authority. Artifact byte retrieval separately
+requires the current task, invocation, actor and artifact-get authority. Cursors
+bind installation, identity, task and recall resource; every continuation rechecks
+the current grant, credential and conversation access.
+
 Contract errors use existing Connect `{code,message}` shapes. Unknown profiles:
 `unsupported-profile`; malformed input: `invalid-request`; missing current
 credential: `unauthorized`; disallowed operation/resource/binding: `forbidden`;

@@ -7,6 +7,7 @@ pub use grants::{IssuedTaskGrant, TaskInvocation};
 mod inbox;
 mod lifecycle;
 mod native_reply;
+mod recall;
 mod replies;
 mod storage;
 use crate::{identity::actor_from_connection_at, DiscoveryRuntime, Store};
@@ -152,6 +153,18 @@ impl Store {
             TaskCommand::Inbox { after, limit, .. } | TaskCommand::Wait { after, limit, .. } => {
                 let task = current.ok_or_else(Error::forbidden)?;
                 return inbox::read(&tx, &actor, &task.record, after.as_deref(), *limit, self);
+            }
+            TaskCommand::Recall { after, limit, .. } => {
+                let task = current.ok_or_else(Error::forbidden)?;
+                return recall::read(
+                    &tx,
+                    &actor,
+                    &task.record,
+                    after.as_deref(),
+                    *limit,
+                    timestamp,
+                    self,
+                );
             }
             _ => (),
         }

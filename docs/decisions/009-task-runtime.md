@@ -247,3 +247,12 @@ qualification, recall, actual host/MCP installation and full acceptance remain
 open. Component evidence is not gate or host qualification. Current checkpoint
 results are recorded in the numbered implementation plan, without changing
 earlier foundation evidence.
+
+G4-011 now implements source-backed recall in the store/service facade. It pages
+the existing recipient conversation journal oldest first under history or
+context-view authority, with a 32 KiB serialized result and explicit remaining
+entry count. Oversized/missing bodies preserve a reference and advance safely.
+Current session/artifact metadata replaces stale snapshots; deleted, expired or
+unavailable artifacts expose no body or bytes. Existing message timestamps are
+explicitly absent. Task/identity/installation/resource-bound cursors do not bypass
+current authority. Public wire, SDK, MCP and actual-host recall proof remain open.

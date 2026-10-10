@@ -225,12 +225,16 @@ pub struct TaskEvent {
 pub struct TaskSource {
     pub source_id: String,
     pub kind: String,
+    /// Empty only when a retained reference's underlying attribution is unavailable.
     pub actor_id: String,
     /// None explicitly represents legacy sources with no recorded timestamp.
     pub created_at: Option<i64>,
+    /// Journal event reference and projection/omission notes, never authority.
     pub provenance: String,
     /// Available, deleted, expired or unavailable; unavailable sources have no body.
     pub state: String,
+    /// Message text or current session/artifact metadata. Never artifact bytes,
+    /// server paths, or a replacement for an independently authorized file read.
     pub body: Option<String>,
 }
 /// Public results shared by native, HTTP, language SDK and MCP adapters.
@@ -251,9 +255,13 @@ pub enum TaskOutcome {
         events: Vec<TaskEvent>,
         next: Option<String>,
     },
+    /// Oldest-first recipient journal sources, at most 32 KiB serialized per page.
     Recall {
         sources: Vec<TaskSource>,
+        /// Last returned journal position. Reuse it to catch up after an empty page.
         next: Option<String>,
+        /// Eligible entries after the input cursor not included in this page.
+        /// Missing bodies are separately explicit in each returned source's state.
         omitted: u64,
     },
     Effect(TaskEffect),

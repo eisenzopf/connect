@@ -71,6 +71,15 @@ impl Store {
             TaskCommand::Inbox { after, limit, .. } | TaskCommand::Wait { after, limit, .. } => {
                 super::super::inbox::read(&tx, &actor, &task, after.as_deref(), *limit, self)
             }
+            TaskCommand::Recall { after, limit, .. } => super::super::recall::read(
+                &tx,
+                &actor,
+                &task,
+                after.as_deref(),
+                *limit,
+                timestamp,
+                self,
+            ),
             _ => Err(Error::new(
                 "unsupported-operation",
                 "Task operation is not implemented yet",

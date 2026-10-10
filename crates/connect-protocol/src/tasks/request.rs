@@ -98,6 +98,9 @@ pub enum TaskCommand {
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         wait_for_reply: bool,
     },
+    /// Read bounded source projections from the task's existing conversation.
+    /// `after` is a task/reader-bound journal checkpoint, not an authority token.
+    /// History or context-view authority must remain current on every page.
     Recall {
         task_id: String,
         after: Option<String>,
