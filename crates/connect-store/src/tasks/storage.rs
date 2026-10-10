@@ -59,6 +59,20 @@ pub(super) fn event(
     record: &TaskRecord,
     store: &Store,
 ) -> Result<()> {
+    let data = TaskEventData::State {
+        state: record.state,
+        revision: record.revision,
+        reason: record.reason.clone(),
+    };
+    event_data(c, actor, record, &data, store)
+}
+pub(super) fn event_data(
+    c: &Connection,
+    actor: &Actor,
+    record: &TaskRecord,
+    data: &TaskEventData,
+    store: &Store,
+) -> Result<()> {
     let count: u64 = c
         .query_row(
             "SELECT (SELECT COUNT(*) FROM journal)+(SELECT COUNT(*) FROM task_events)",
@@ -72,11 +86,6 @@ pub(super) fn event(
             "Task journal capacity exceeded; no acceptance recorded",
         ));
     }
-    let data = TaskEventData::State {
-        state: record.state,
-        revision: record.revision,
-        reason: record.reason.clone(),
-    };
     c.execute(
         "INSERT INTO task_events(id,task_id,actor_id,created_at,data_json) VALUES(?1,?2,?3,?4,?5)",
         params![
@@ -84,7 +93,7 @@ pub(super) fn event(
             record.id,
             actor.identity_id,
             record.updated_at,
-            json(&data)?
+            json(data)?
         ],
     )
     .map_err(|_| Error::storage())?;
@@ -135,6 +144,19 @@ pub(super) fn save(
     record: &TaskRecord,
     store: &Store,
 ) -> Result<TaskOutcome> {
+    let outcome = TaskOutcome::Record(Box::new(record.clone()));
+    save_outcome(c, actor, id, intent, &record.id, &outcome, store)?;
+    Ok(outcome)
+}
+pub(super) fn save_outcome(
+    c: &Connection,
+    actor: &Actor,
+    id: &str,
+    intent: &str,
+    task_id: &str,
+    outcome: &TaskOutcome,
+    store: &Store,
+) -> Result<()> {
     let count: u64 = c
         .query_row(
             "SELECT (SELECT COUNT(*) FROM requests)+(SELECT COUNT(*) FROM task_requests)",
@@ -148,11 +170,10 @@ pub(super) fn save(
             "Task receipt capacity exceeded; no acceptance recorded",
         ));
     }
-    let outcome = TaskOutcome::Record(Box::new(record.clone()));
     c.execute(
         "INSERT INTO task_requests(actor_id,id,task_id,digest,result_json) VALUES(?1,?2,?3,?4,?5)",
-        params![actor.identity_id, id, record.id, intent, json(&outcome)?],
+        params![actor.identity_id, id, task_id, intent, json(outcome)?],
     )
     .map_err(|_| Error::storage())?;
-    Ok(outcome)
+    Ok(())
 }

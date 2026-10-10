@@ -35,3 +35,9 @@ pub const MAX_TASK_INBOX_EVENTS: u32 = 1_000;
 pub const MAX_RUNNING_TASKS: u32 = 16;
 /// A claim expires without granting permission to retry a dispatched effect.
 pub const TASK_CLAIM_SECONDS: i64 = 30;
+
+/// Validate a task-profile logical or correlation identifier. This is shape
+/// validation only; possessing an identifier never grants resource authority.
+pub fn validate_task_identifier(value: &str) -> crate::Result<()> {
+    validation::id(value)
+}

@@ -79,7 +79,10 @@ random persisted nonce, grant ID and bound authority digest. Persist only
 verifier/hash plus non-secret metadata; never put bearer plaintext in receipts,
 JSON task records, Debug output or logs. A matching currently authorized grant
 issuance request can regenerate the same opaque secret after an uncertain
-response; replay does not extend expiry. Store comparisons use existing
+response; replay does not extend expiry. Grant and binding metadata each obey the configured
+operation-receipt count ceiling; matching authorized retries remain available at
+capacity. These are independent retained metadata limits, not permission to
+exceed the shared mutation-receipt or journal limits. Store comparisons use existing
 constant-time HMAC verification patterns. Secret wrappers have redacted Debug;
 issuance/export requires explicit protected configuration. Credential/grant
 rotation and task cancellation deny the old secret even if its hash matches.
@@ -94,7 +97,10 @@ bearer plaintext or expanded model authority.
 
 Task question effects persist request/reply-to bindings before dispatch. Native
 replies use the typed `Reply` command with an explicit question reference,
-conversation and stable logical request ID. This uses the sender’s current
+conversation and stable logical request ID. The native question reference is
+the question message ID from the recipient’s own inbox, uniquely mapped to an
+accepted task Send effect. Unknown, undelivered or ambiguous mappings fail
+before writing. This uses the sender’s current
 `send` authority; it cannot supply a task ID, owner or grant. The store verifies
 that the question was delivered to this authorized participant and derives its
 task. Incoming message, reply binding, task inbox and lifecycle transition share
@@ -104,7 +110,10 @@ session/task bindings or explicit reply references (e.g. a reviewed SMS task
 reply code); sender matching alone cannot distinguish tasks. Unbound messages
 stay in conversation history and an authorized unassigned view. Assignment is
 an explicit current-authorized, idempotent operation, with source event,
-assigning actor and task provenance. Never auto-split/merge conversations.
+assigning actor and task provenance. An assignment cannot overwrite an existing
+verified question reference. Native reply receipts remain the sender’s ordinary
+communication evidence under current send authority and conversation membership;
+they do not reauthorize an owner’s task or replay its effects. Never auto-split/merge conversations.
 
 Commit reply admission, inbox event and lifecycle transition before ACK. Enforce
 unique event admission/consumption per task and single explicit assignment per
@@ -208,3 +217,18 @@ its distinction from administrative task ownership.
 Typed contract fixtures close schema/transition admission only. Each runtime
 boundary still requires store/service/SDK/MCP/host behavior evidence. Final
 qualification records source/package/host versions and preserves failures.
+
+## Implementation checkpoint · invocation and inbox foundation
+
+G4-008 and G4-009 remain in progress. The store/service now implement protected
+grant issuance and discovery, exact registered binding admission, current
+credential/membership/ceiling revalidation, explicit reply assignment, atomic
+consumption, native reply admission and authenticated inbox catch-up. Service
+waits register before reading and recheck durable state after a wake. Inbox
+effect events project metadata; separate authorized effect reads own outcomes.
+
+Native reply tests seed the accepted Send effect boundary that G4-010 must
+produce transactionally; task Invoke is not yet implemented. Accepted-effect
+replay, dispatch/lease reconciliation, provider-origin integration, actual
+process crash/ACK qualification and public SDK exposure remain open. This
+checkpoint is component evidence, not gate or host qualification.

@@ -1,6 +1,11 @@
 //! Durable application task state. No media socket or host session owns its lifetime.
 mod authority;
+mod grants;
+pub use grants::{IssuedTaskGrant, TaskInvocation};
+mod inbox;
 mod lifecycle;
+mod native_reply;
+mod replies;
 mod storage;
 use crate::{identity::actor_from_connection_at, Store};
 use connect_protocol::{
@@ -28,6 +33,29 @@ impl Store {
         let actor = actor_from_connection_at(&tx, credential_id, timestamp)?;
         request.validate(timestamp)?;
         actor.require(request.command.required_scope())?;
+        if let TaskCommand::Reply {
+            request_id,
+            conversation_id,
+            reply_to,
+            body,
+        } = &request.command
+        {
+            let outcome = native_reply::execute(
+                &tx,
+                &actor,
+                native_reply::Input {
+                    request_id,
+                    conversation_id,
+                    reply_to,
+                    body,
+                },
+                &storage::digest(request)?,
+                timestamp,
+                self,
+            )?;
+            tx.commit().map_err(|_| Error::storage())?;
+            return Ok(outcome);
+        }
         // Authority precedes receipt lookup; a saved result is never a grant.
         let current = if let Some(id) = request.command.task_id() {
             Some(authority::task(&tx, &actor, id)?)
@@ -44,6 +72,29 @@ impl Store {
             ) {
                 authority::continuation(&tx, task, timestamp, true)?;
             }
+            match &request.command {
+                TaskCommand::AssignReply { event_id, .. } => {
+                    replies::authorize(&tx, &actor, &task.record, event_id, false)?;
+                }
+                TaskCommand::ConsumeReply { event_id, .. } => {
+                    replies::authorize(&tx, &actor, &task.record, event_id, true)?;
+                }
+                _ => (),
+            }
+        }
+        match &request.command {
+            TaskCommand::Replies {
+                conversation_id,
+                after,
+                limit,
+            } => {
+                return replies::list(&tx, &actor, conversation_id, after.as_deref(), *limit, self);
+            }
+            TaskCommand::Inbox { after, limit, .. } | TaskCommand::Wait { after, limit, .. } => {
+                let task = current.ok_or_else(Error::forbidden)?;
+                return inbox::read(&tx, &actor, &task.record, after.as_deref(), *limit, self);
+            }
+            _ => (),
         }
         let intent = storage::digest(request)?;
         if let Some(id) = request.command.request_id() {
@@ -98,6 +149,30 @@ impl Store {
                 }
                 lifecycle::change(&tx, &actor, record, *state, reason.clone(), timestamp, self)?
             }
+            TaskCommand::AssignReply {
+                event_id, reply_to, ..
+            } => replies::assign(
+                &tx,
+                &actor,
+                current.ok_or_else(Error::forbidden)?.record,
+                event_id,
+                reply_to.as_deref(),
+                timestamp,
+                self,
+            )?,
+            TaskCommand::ConsumeReply {
+                event_id,
+                expected_revision,
+                ..
+            } => replies::consume(
+                &tx,
+                &actor,
+                current.ok_or_else(Error::forbidden)?.record,
+                event_id,
+                *expected_revision,
+                timestamp,
+                self,
+            )?,
             _ => {
                 return Err(Error::new(
                     "unsupported-operation",

@@ -23,6 +23,7 @@ use rvoip_uctp::{
 use std::sync::Arc;
 
 pub mod readiness;
+pub mod tasks;
 
 pub struct Service {
     /// Process-local readiness; no credentials or message contents.
