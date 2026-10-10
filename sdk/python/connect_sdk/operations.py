@@ -1,8 +1,9 @@
 """Public operations shared by native and HTTP clients."""
 from abc import ABC, abstractmethod
+from .task_operations import TaskOperations
 
 
-class Operations(ABC):
+class Operations(TaskOperations, ABC):
     @abstractmethod
     def request(self, operation):
         """Return a validated outcome; mutations always use caller-owned IDs."""

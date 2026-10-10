@@ -180,6 +180,12 @@ enum Command {
     Request {
         #[arg(long)]
         config: PathBuf,
+        /// Discover the task extension using this permitted Connect address.
+        #[arg(long)]
+        task_address: Option<String>,
+        /// Print the control response envelope for both success and rejection.
+        #[arg(long)]
+        envelope: bool,
     },
     /// Revoke a credential using explicit local operator authority.
     Revoke {
@@ -551,17 +557,13 @@ async fn main() -> Result<()> {
             );
             client.close().await;
         }
-        Command::Request { config } => {
-            use std::io::Read;
-            let mut input = String::new();
-            std::io::stdin().take(65_537).read_to_string(&mut input)?;
-            anyhow::ensure!(input.len() <= 65_536, "Operation input exceeds 64 KiB");
-            let operation: Operation = serde_json::from_str(&input)
-                .map_err(|_| anyhow::anyhow!("Invalid operation JSON"))?;
-            let mut client = ConnectClient::open(ClientConfig::load(&config)?).await?;
-            let outcome = client.request(operation).await?;
-            println!("{}", serde_json::to_string(&outcome)?);
-            client.close().await;
+        Command::Request {
+            config,
+            task_address,
+            envelope,
+        } => {
+            connect_server::cli::request::execute(&config, task_address.as_deref(), envelope)
+                .await?;
         }
         Command::Revoke {
             config,

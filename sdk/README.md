@@ -70,3 +70,67 @@ Use `context_deliveries` to page older delivery receipts newest first. Cursors
 are opaque and authorization is checked on every page, including after restart.
 Python and Rust use snake_case helpers; TypeScript uses `browserBinding`,
 `contextView` and `contextDeliveries`. See the shared wire fixtures for exact fields.
+
+## Task control
+
+The `connect-task/1` extension carries durable task control on the existing
+native UCTP/QUIC connection or the explicit HTTP facade. Discover support with
+`negotiate_tasks(address, conversation_id)` in Python/Rust or
+`negotiateTasks(address, conversationId)` in TypeScript. An older server without
+the advertised extension returns `unsupported-profile`; ordinary operations
+remain usable. A new native connection needs discovery again.
+
+Use `task(command)` with the typed command union. The result distinguishes task
+records, inbox/reply/recall pages, effects, step claims and tool results.
+`pending` means the task has more work; `uncertain` means the effect requires
+reconciliation. Neither means completed. Keep task, conversation, step and
+logical request IDs across reconnects. Save returned cursors with the effects
+of consuming their events; cursors themselves never grant access.
+
+These methods use the client's backing credential. Give a developer or durable
+runner only its necessary operations and concrete recipients. Model invocations
+require the separately authenticated, task-bound adapter; these methods do not
+turn a broad credential into a narrow model grant. Ownership, credential secrets
+and verified invocation bindings are not task command arguments.
+
+```python
+from connect_sdk import NativeClient
+
+# client.toml contains an explicitly scoped developer credential.
+with NativeClient("client.toml", executable="connect") as client:
+    client.negotiate_tasks("connect:human@local", conversation_id)
+    status = client.task({"action": "get", "task_id": task_id})
+    assert status["kind"] == "record"
+```
+
+```typescript
+import { NativeClient } from '@rudeless/connect';
+
+const client = new NativeClient('client.toml', 'connect');
+try {
+  await client.negotiateTasks('connect:human@local', conversationId);
+  const status = await client.task({ action: 'get', task_id: taskId });
+  if (status.kind === 'record') console.log(status.data.state);
+} finally {
+  await client.close();
+}
+```
+
+Task inbox/wait requests receive their bounded server wait, at most ten seconds,
+in addition to the exchange timeout. This does not extend mutation deadlines or
+enable automatic retry. A transport failure closes the native helper; reopen,
+discover and reconcile using the same IDs and exact inputs.
+
+The JSON CLI discovers task support for each one-shot request:
+
+```sh
+connect request --config client.toml --task-address connect:human@local --envelope < operation.json
+```
+
+`operation.json` uses the `op: "task"` wrapper, with
+`request: { task_profile: "connect-task/1", command: ... }`. `--envelope` emits
+the control `Response` for success and application rejection; rejection exits
+nonzero. Without it, existing successful requests still print an `Outcome`.
+Inputs are bounded to 64 KiB and diagnostic errors do not echo request bodies.
+The shared [task matrix](tests/task_matrix.json) exercises real-server behavior
+through Rust, HTTP, CLI and both transports of the Python/TypeScript clients.

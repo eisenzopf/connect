@@ -1,3 +1,4 @@
+import { exchangeTimeout } from "./task_operations.js";
 import { ConnectError } from "./errors.js";
 import { Operations } from "./operations.js";
 import { decodeResponse, expectedKind, MAX_REQUEST, MAX_RESPONSE, parseJson, timeoutValue, } from "./protocol.js";
@@ -21,12 +22,13 @@ export class BrowserHttpClient extends Operations {
         this.timeoutMs = timeoutValue(timeoutMs);
     }
     async request(operation) {
+        this.requireTaskProfile(operation);
         const expected = expectedKind(operation);
         const body = JSON.stringify(operation);
         if (new TextEncoder().encode(body).byteLength > MAX_REQUEST - 1)
             throw new ConnectError("invalid-request", "Operation exceeds 64 KiB");
-        const response = await this.fetch(this.baseUrl + "/v1/operations", "POST", body, "application/json");
-        return this.decode(await this.readBounded(response, MAX_RESPONSE), expected);
+        const response = await this.fetch(this.baseUrl + "/v1/operations", "POST", body, "application/json", exchangeTimeout(this.timeoutMs, operation));
+        return this.observeOutcome(this.decode(await this.readBounded(response, MAX_RESPONSE), expected));
     }
     async uploadArtifactChunk(conversationId, artifactId, requestId, offset, data) {
         if (data.byteLength === 0 || data.byteLength > 1024 * 1024)
@@ -67,7 +69,7 @@ export class BrowserHttpClient extends Operations {
     artifactUrl(conversationId, artifactId, query) {
         return `${this.baseUrl}/v1/conversations/${encodeURIComponent(conversationId)}/artifacts/${encodeURIComponent(artifactId)}?${query}`;
     }
-    async fetch(url, method, body, contentType) {
+    async fetch(url, method, body, contentType, timeoutMs = this.timeoutMs) {
         try {
             const response = await globalThis.fetch(url, {
                 method,
@@ -77,7 +79,7 @@ export class BrowserHttpClient extends Operations {
                     authorization: "Bearer " + this.credential,
                     ...(contentType ? { "content-type": contentType } : {}),
                 },
-                signal: AbortSignal.timeout(this.timeoutMs),
+                signal: AbortSignal.timeout(timeoutMs),
             });
             if (response.status >= 300 && response.status < 400) {
                 await response.body?.cancel();

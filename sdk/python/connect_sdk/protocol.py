@@ -2,10 +2,13 @@
 import json
 import math
 from .errors import ConnectError
+from ._validation import fields as _fields, array as _array
+from .task_protocol import valid_task_outcome
 
 MAX_REQUEST = 65537
 MAX_RESPONSE = 600000
 KINDS = {
+    "task": "task",
     "capabilities": "capabilities", "browser_binding": "browser_binding", "context_deliveries": "context_deliveries",
     "resolve": "identity", "create": "conversation", "close": "conversation",
     "send": "accepted", "history": "history", "inbox": "inbox",
@@ -34,14 +37,6 @@ def timeout_value(value):
     return value
 
 
-def _fields(value, strings=(), nullable=()):
-    return isinstance(value, dict) and all(isinstance(value.get(k), str) for k in strings) and all(k in value and (value[k] is None or isinstance(value[k], str)) for k in nullable)
-
-
-def _array(value, test):
-    return isinstance(value, list) and all(test(item) for item in value)
-
-
 def _readiness(value):
     states = ("ready", "degraded", "unavailable", "uncertain")
     return _fields(value, ("state",)) and value["state"] in states and _array(
@@ -52,6 +47,8 @@ def _readiness(value):
 def valid_data(kind, data, depth=0):
     if not isinstance(data, dict) or depth > 8:
         return False
+    if kind == "task":
+        return valid_task_outcome(data, valid_data, depth)
     if kind == "identity":
         return _fields(data, ("id", "alias")) and _array(data.get("capabilities"), lambda x: isinstance(x, str))
     if kind == "conversation":
@@ -71,7 +68,7 @@ def valid_data(kind, data, depth=0):
     if kind == "capabilities":
         route = lambda x: _fields(x, ("id", "transport", "readiness")) and x["readiness"] in ("configured", "unconfigured") and all(_array(x.get(k), lambda v: isinstance(v, str)) for k in ("media", "operations"))
         limits = data.get("limits")
-        return _fields(data, ("identity_id",), ("conversation_id",)) and _array(data.get("routes"), route) and isinstance(limits, dict) and all(type(limits.get(k)) is int and limits[k] >= 0 for k in ("message_bytes", "artifact_bytes", "artifact_chunk_bytes", "page_size", "audio_frame_ms")) and isinstance(limits.get("audio_codec"), str) and "availability" in data and (data["availability"] is None or valid_data("availability", data["availability"], depth+1))
+        return ("extensions" not in data or _array(data["extensions"], lambda x: isinstance(x, str))) and _fields(data, ("identity_id",), ("conversation_id",)) and _array(data.get("routes"), route) and isinstance(limits, dict) and all(type(limits.get(k)) is int and limits[k] >= 0 for k in ("message_bytes", "artifact_bytes", "artifact_chunk_bytes", "page_size", "audio_frame_ms")) and isinstance(limits.get("audio_codec"), str) and "availability" in data and (data["availability"] is None or valid_data("availability", data["availability"], depth+1))
     if kind == "context_deliveries":
         return _fields(data, nullable=("next",)) and _array(data.get("deliveries"), _delivery)
     if kind == "context_view":

@@ -1,3 +1,4 @@
+import { exchangeTimeout } from "./task_operations.js";
 import { ConnectError } from "./errors.js";
 import { Operations } from "./operations.js";
 import { decodeResponse, expectedKind, MAX_REQUEST, MAX_RESPONSE, parseJson, timeoutValue, } from "./protocol.js";
@@ -23,6 +24,7 @@ export class HttpClient extends Operations {
         this.timeoutMs = timeoutValue(timeoutMs);
     }
     async request(operation) {
+        this.requireTaskProfile(operation);
         const expected = expectedKind(operation);
         const body = JSON.stringify(operation);
         if (Buffer.byteLength(body) > MAX_REQUEST - 1)
@@ -36,7 +38,7 @@ export class HttpClient extends Operations {
                     "content-type": "application/json",
                     authorization: "Bearer " + this.credential,
                 },
-                signal: AbortSignal.timeout(this.timeoutMs),
+                signal: AbortSignal.timeout(exchangeTimeout(this.timeoutMs, operation)),
             });
             if (response.status >= 300 && response.status < 400) {
                 await response.body?.cancel();
@@ -50,7 +52,7 @@ export class HttpClient extends Operations {
             catch {
                 throw new ConnectError("protocol", "Invalid UTF-8 response");
             }
-            return decodeResponse(parseJson(text), expected);
+            return this.observeOutcome(decodeResponse(parseJson(text), expected));
         }
         catch (error) {
             if (error instanceof ConnectError)

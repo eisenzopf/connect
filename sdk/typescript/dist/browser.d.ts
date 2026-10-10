@@ -4,3 +4,5 @@ export { BrowserVoiceSession, type BrowserVoiceOptions, } from "./browser_voice.
 export type { VoiceDiagnostics } from "./browser_voice_stats.js";
 export { ConnectError } from "./errors.js";
 export type * from "./types.js";
+export type * from "./tasks.js";
+export { TASK_PROFILE } from "./tasks.js";

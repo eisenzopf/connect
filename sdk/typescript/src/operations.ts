@@ -1,7 +1,8 @@
+import { TaskOperations } from "./task_operations.js";
 import { ConnectError } from "./errors.js";
 import type { Operation, Outcome, OutcomeData } from "./types.js";
 /** Shared public operations. Mutation IDs belong to the caller. */
-export abstract class Operations {
+export abstract class Operations extends TaskOperations {
     abstract request(operation: Operation): Promise<Outcome>;
     private async data<K extends keyof OutcomeData>(
         kind: K,

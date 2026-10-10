@@ -1,6 +1,7 @@
+import { TaskOperations } from "./task_operations.js";
 import type { Operation, Outcome } from "./types.js";
 /** Shared public operations. Mutation IDs belong to the caller. */
-export declare abstract class Operations {
+export declare abstract class Operations extends TaskOperations {
     abstract request(operation: Operation): Promise<Outcome>;
     private data;
     capabilities(address: string, conversation_id?: string | null): Promise<import("./types.js").Capabilities>;

@@ -1,3 +1,4 @@
+import { exchangeTimeout } from "./task_operations.js";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { ConnectError } from "./errors.js";
@@ -86,7 +87,7 @@ export class NativeClient extends Operations {
             const value = helperResponse(text, pending.id, pending.expected);
             this.pending = undefined;
             clearTimeout(pending.timer);
-            pending.resolve(value);
+            pending.resolve(this.observeOutcome(value));
         } catch (error) {
             const failure =
                 error instanceof ConnectError
@@ -113,6 +114,7 @@ export class NativeClient extends Operations {
                         );
                         return;
                     }
+                    this.requireTaskProfile(operation);
                     const expected = expectedKind(operation);
                     const id = randomUUID();
                     const line = JSON.stringify({ id, operation }) + "\n";
@@ -125,7 +127,10 @@ export class NativeClient extends Operations {
                         );
                         return;
                     }
-                    const timer = setTimeout(() => this.fail(), this.timeoutMs);
+                    const timer = setTimeout(
+                        () => this.fail(),
+                        exchangeTimeout(this.timeoutMs, operation),
+                    );
                     this.pending = { id, expected, resolve, reject, timer };
                     this.child.stdin.write(line);
                 }),

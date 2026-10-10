@@ -6,3 +6,6 @@ name = "connect-sdk"
 version = "0.1.0a1"
 description = "Connect SDK via native QUIC helper or local HTTP/JSON"
 requires-python = ">=3.11"
+
+[tool.setuptools.package-data]
+connect_sdk = ["py.typed"]

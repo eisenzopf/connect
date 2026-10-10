@@ -8,6 +8,7 @@ import time
 import uuid
 from .errors import ConnectError
 from .operations import Operations
+from .task_operations import exchange_timeout
 from .protocol import MAX_REQUEST, MAX_RESPONSE, decode_response, expected_kind, timeout_value
 
 class NativeClient(Operations):
@@ -42,7 +43,8 @@ class NativeClient(Operations):
         with self._lock:
             if self._closed:
                 raise ConnectError("transport-uncertain", "Client closed; preserve logical request ID")
-            deadline = time.monotonic() + self._timeout
+            self._require_task_profile(operation)
+            deadline = time.monotonic() + exchange_timeout(self._timeout, operation)
             try:
                 remaining = memoryview(line)
                 while remaining:
@@ -73,7 +75,7 @@ class NativeClient(Operations):
                         raise ValueError()
                 except (ValueError, TypeError, UnicodeError, RecursionError) as error:
                     raise ConnectError("protocol", "Malformed or mismatched helper response") from error
-                return decode_response(json.dumps(value["response"]), expected)
+                return self._observe_outcome(decode_response(json.dumps(value["response"]), expected))
             except ConnectError as error:
                 if error.code == "protocol":
                     self._stop()

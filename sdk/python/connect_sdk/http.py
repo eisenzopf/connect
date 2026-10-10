@@ -7,6 +7,7 @@ import time
 from urllib.parse import quote, urlencode, urlsplit
 from .errors import ConnectError
 from .operations import Operations
+from .task_operations import exchange_timeout
 from .protocol import MAX_REQUEST, MAX_RESPONSE, decode_response, expected_kind, timeout_value
 
 
@@ -23,14 +24,16 @@ class HttpClient(Operations):
         self._timeout = timeout_value(timeout)
 
     def request(self, operation):
+        self._require_task_profile(operation)
         expected = expected_kind(operation)
         body = json.dumps(operation).encode()
         if len(body) > MAX_REQUEST - 1:
             raise ConnectError("invalid-request", "Operation exceeds 64 KiB")
-        connection = http.client.HTTPConnection(self._host, self._port, timeout=self._timeout)
+        timeout = exchange_timeout(self._timeout, operation)
+        connection = http.client.HTTPConnection(self._host, self._port, timeout=timeout)
         timer = None
         response = None
-        deadline = time.monotonic() + self._timeout
+        deadline = time.monotonic() + timeout
         expired = threading.Event()
         try:
             connection.connect()
@@ -53,7 +56,7 @@ class HttpClient(Operations):
                 raise TimeoutError()
             if len(raw) > MAX_RESPONSE:
                 raise ConnectError("protocol", "Response exceeds bounds")
-            return decode_response(raw, expected)
+            return self._observe_outcome(decode_response(raw, expected))
         except (OSError, TimeoutError, http.client.HTTPException) as error:
             raise ConnectError("transport-uncertain", "HTTP failed; preserve logical request ID") from error
         finally:

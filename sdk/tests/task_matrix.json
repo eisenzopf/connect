@@ -1,0 +1,586 @@
+{
+  "description": "Public task behavior matrix: each transport uses an independent conversation and identical assertions; fixture grants are explicit and bounded. No provider accounts.",
+  "steps": [
+    {
+      "id": "create",
+      "actor": "owner",
+      "command": {
+        "action": "create",
+        "request_id": "${prefix}-create",
+        "definition": {
+          "conversation_id": "${cid}",
+          "scope": {
+            "operations": [
+              "send",
+              "history"
+            ],
+            "recipients": [
+              "${peer_id}"
+            ]
+          },
+          "expires_at": "${expires}",
+          "initiating_event_id": null
+        }
+      },
+      "expect": {
+        "paths": {
+          "kind": "record",
+          "data.state": "ready",
+          "data.conversation_id": "${cid}"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "task_id": "data.id",
+        "revision": "data.revision"
+      }
+    },
+    {
+      "id": "replay-create",
+      "actor": "owner",
+      "command": {
+        "action": "create",
+        "request_id": "${prefix}-create",
+        "definition": {
+          "conversation_id": "${cid}",
+          "scope": {
+            "operations": [
+              "send",
+              "history"
+            ],
+            "recipients": [
+              "${peer_id}"
+            ]
+          },
+          "expires_at": "${expires}",
+          "initiating_event_id": null
+        }
+      },
+      "expect": {
+        "paths": {
+          "data.id": "${task_id}",
+          "data.revision": "${revision}"
+        },
+        "contains": [],
+        "greater": {}
+      }
+    },
+    {
+      "id": "changed-create-input",
+      "actor": "owner",
+      "command": {
+        "action": "create",
+        "request_id": "${prefix}-create",
+        "definition": {
+          "conversation_id": "${cid}",
+          "scope": {
+            "operations": [
+              "send",
+              "history"
+            ],
+            "recipients": [
+              "${peer_id}"
+            ]
+          },
+          "expires_at": "${expires_changed}",
+          "initiating_event_id": null
+        }
+      },
+      "error": "request-conflict"
+    },
+    {
+      "id": "peer-cannot-read-task",
+      "actor": "peer",
+      "command": {
+        "action": "get",
+        "task_id": "${task_id}"
+      },
+      "error": "forbidden"
+    },
+    {
+      "id": "run",
+      "actor": "owner",
+      "command": {
+        "action": "transition",
+        "request_id": "${prefix}-run",
+        "task_id": "${task_id}",
+        "expected_revision": "${revision}",
+        "state": "running",
+        "reason": null
+      },
+      "expect": {
+        "paths": {
+          "data.state": "running"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "revision": "data.revision"
+      }
+    },
+    {
+      "id": "claim",
+      "actor": "owner",
+      "command": {
+        "action": "claim",
+        "request_id": "${prefix}-claim",
+        "task_id": "${task_id}",
+        "step_id": "review",
+        "worker_id": "worker",
+        "expected_revision": null
+      },
+      "expect": {
+        "paths": {
+          "kind": "claim",
+          "data.task_id": "${task_id}"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "claim_revision": "data.revision"
+      }
+    },
+    {
+      "id": "claim-get",
+      "actor": "owner",
+      "command": {
+        "action": "claim_get",
+        "task_id": "${task_id}",
+        "step_id": "review"
+      },
+      "expect": {
+        "paths": {
+          "data.revision": "${claim_revision}"
+        },
+        "contains": [],
+        "greater": {}
+      }
+    },
+    {
+      "id": "release-claim",
+      "actor": "owner",
+      "command": {
+        "action": "release_claim",
+        "request_id": "${prefix}-release",
+        "task_id": "${task_id}",
+        "step_id": "review",
+        "worker_id": "worker",
+        "expected_revision": "${claim_revision}"
+      },
+      "expect": {
+        "paths": {
+          "kind": "claim",
+          "data.task_id": "${task_id}",
+          "data.revision": 1
+        },
+        "contains": [],
+        "greater": {}
+      }
+    },
+    {
+      "id": "ask",
+      "actor": "owner",
+      "command": {
+        "action": "invoke",
+        "request_id": "${prefix}-ask",
+        "task_id": "${task_id}",
+        "step_id": "review",
+        "operation": {
+          "op": "send",
+          "request_id": "${prefix}-ask",
+          "conversation_id": "${cid}",
+          "body": "Approve the violet draft?"
+        },
+        "reply_to": null,
+        "wait_for_reply": true
+      },
+      "expect": {
+        "paths": {
+          "kind": "tool",
+          "data.status": "pending",
+          "data.task_id": "${task_id}"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "effect_id": "data.effect_id"
+      }
+    },
+    {
+      "id": "replay-pending",
+      "actor": "owner",
+      "command": {
+        "action": "invoke",
+        "request_id": "${prefix}-ask",
+        "task_id": "${task_id}",
+        "step_id": "review",
+        "operation": {
+          "op": "send",
+          "request_id": "${prefix}-ask",
+          "conversation_id": "${cid}",
+          "body": "Approve the violet draft?"
+        },
+        "reply_to": null,
+        "wait_for_reply": true
+      },
+      "expect": {
+        "paths": {
+          "data.status": "pending",
+          "data.effect_id": "${effect_id}"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "reconnect": true
+    },
+    {
+      "id": "effect",
+      "actor": "owner",
+      "command": {
+        "action": "effect_get",
+        "task_id": "${task_id}",
+        "effect_id": "${effect_id}"
+      },
+      "expect": {
+        "paths": {
+          "kind": "effect",
+          "data.outcome.kind": "accepted"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "question_id": "data.outcome.data.message_id"
+      }
+    },
+    {
+      "id": "first-inbox-page",
+      "actor": "owner",
+      "command": {
+        "action": "inbox",
+        "task_id": "${task_id}",
+        "after": null,
+        "limit": 1,
+        "wait_ms": 0
+      },
+      "capture": {
+        "first_cursor": "data.next",
+        "first_sequence": "data.events.0.sequence"
+      }
+    },
+    {
+      "id": "continue-inbox",
+      "actor": "owner",
+      "command": {
+        "action": "inbox",
+        "task_id": "${task_id}",
+        "after": "${first_cursor}",
+        "limit": 100,
+        "wait_ms": 0
+      },
+      "expect": {
+        "paths": {
+          "kind": "inbox"
+        },
+        "contains": [],
+        "greater": {
+          "data.events.0.sequence": "${first_sequence}"
+        }
+      },
+      "capture": {
+        "cursor": "data.next"
+      }
+    },
+    {
+      "id": "bounded-empty-wait",
+      "actor": "owner",
+      "command": {
+        "action": "wait",
+        "task_id": "${task_id}",
+        "after": "${cursor}",
+        "limit": 100,
+        "wait_ms": 250
+      },
+      "expect": {
+        "paths": {
+          "kind": "inbox",
+          "data.events": [],
+          "data.next": "${cursor}"
+        },
+        "contains": [],
+        "greater": {}
+      }
+    },
+    {
+      "id": "answer",
+      "actor": "peer",
+      "command": {
+        "action": "reply",
+        "request_id": "${prefix}-answer",
+        "conversation_id": "${cid}",
+        "reply_to": "${question_id}",
+        "body": "Approved: violet."
+      },
+      "expect": {
+        "paths": {
+          "kind": "reply_accepted",
+          "data.reply.task_id": "${task_id}",
+          "data.reply.conversation_id": "${cid}"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "reply_id": "data.reply.event_id"
+      }
+    },
+    {
+      "id": "replay-answer",
+      "actor": "peer",
+      "command": {
+        "action": "reply",
+        "request_id": "${prefix}-answer",
+        "conversation_id": "${cid}",
+        "reply_to": "${question_id}",
+        "body": "Approved: violet."
+      },
+      "expect": {
+        "paths": {
+          "data.reply.event_id": "${reply_id}"
+        },
+        "contains": [],
+        "greater": {}
+      }
+    },
+    {
+      "id": "answer-appears-in-inbox",
+      "actor": "owner",
+      "command": {
+        "action": "wait",
+        "task_id": "${task_id}",
+        "after": "${cursor}",
+        "limit": 100,
+        "wait_ms": 0
+      },
+      "expect": {
+        "paths": {},
+        "contains": [
+          {
+            "path": "data.events",
+            "field": "data.data.event_id",
+            "value": "${reply_id}"
+          }
+        ],
+        "greater": {}
+      }
+    },
+    {
+      "id": "completed-question",
+      "actor": "owner",
+      "command": {
+        "action": "invoke",
+        "request_id": "${prefix}-ask",
+        "task_id": "${task_id}",
+        "step_id": "review",
+        "operation": {
+          "op": "send",
+          "request_id": "${prefix}-ask",
+          "conversation_id": "${cid}",
+          "body": "Approve the violet draft?"
+        },
+        "reply_to": null,
+        "wait_for_reply": true
+      },
+      "expect": {
+        "paths": {
+          "data.status": "completed"
+        },
+        "contains": [],
+        "greater": {}
+      }
+    },
+    {
+      "id": "get-revision",
+      "actor": "owner",
+      "command": {
+        "action": "get",
+        "task_id": "${task_id}"
+      },
+      "expect": {
+        "paths": {
+          "data.state": "ready"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "revision": "data.revision"
+      }
+    },
+    {
+      "id": "consume",
+      "actor": "owner",
+      "command": {
+        "action": "consume_reply",
+        "request_id": "${prefix}-consume",
+        "task_id": "${task_id}",
+        "event_id": "${reply_id}",
+        "expected_revision": "${revision}"
+      },
+      "expect": {
+        "paths": {
+          "kind": "record",
+          "data.state": "ready"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "revision": "data.revision"
+      }
+    },
+    {
+      "id": "replies",
+      "actor": "owner",
+      "command": {
+        "action": "replies",
+        "conversation_id": "${cid}",
+        "after": null,
+        "limit": 100
+      },
+      "expect": {
+        "paths": {},
+        "contains": [
+          {
+            "path": "data.items",
+            "field": "event_id",
+            "value": "${reply_id}"
+          }
+        ],
+        "greater": {}
+      }
+    },
+    {
+      "id": "recall",
+      "actor": "owner",
+      "command": {
+        "action": "recall",
+        "task_id": "${task_id}",
+        "after": null,
+        "limit": 100
+      },
+      "expect": {
+        "paths": {
+          "kind": "recall",
+          "data.omitted": 0
+        },
+        "contains": [
+          {
+            "path": "data.sources",
+            "field": "body",
+            "value": "Approved: violet."
+          },
+          {
+            "path": "data.sources",
+            "field": "body",
+            "value": "Approve the violet draft?"
+          }
+        ],
+        "greater": {}
+      }
+    },
+    {
+      "id": "cancel",
+      "actor": "owner",
+      "command": {
+        "action": "cancel",
+        "request_id": "${prefix}-cancel",
+        "task_id": "${task_id}",
+        "reason": "matrix complete"
+      },
+      "expect": {
+        "paths": {
+          "data.state": "cancelled",
+          "data.reason": "matrix complete"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "capture": {
+        "cancel_revision": "data.revision"
+      }
+    },
+    {
+      "id": "replay-cancel",
+      "actor": "owner",
+      "command": {
+        "action": "cancel",
+        "request_id": "${prefix}-cancel",
+        "task_id": "${task_id}",
+        "reason": "matrix complete"
+      },
+      "expect": {
+        "paths": {
+          "data.state": "cancelled",
+          "data.revision": "${cancel_revision}"
+        },
+        "contains": [],
+        "greater": {}
+      },
+      "reconnect": true
+    },
+    {
+      "id": "cancelled-task-denies-new-effect",
+      "actor": "owner",
+      "command": {
+        "action": "invoke",
+        "request_id": "${prefix}-late",
+        "task_id": "${task_id}",
+        "step_id": "review",
+        "operation": {
+          "op": "send",
+          "request_id": "${prefix}-late",
+          "conversation_id": "${cid}",
+          "body": "Approve the violet draft?"
+        },
+        "reply_to": null,
+        "wait_for_reply": true
+      },
+      "error": "forbidden"
+    },
+    {
+      "id": "ordinary-history-still-available",
+      "actor": "owner",
+      "operation": {
+        "op": "history",
+        "conversation_id": "${cid}",
+        "after": null,
+        "limit": 100
+      },
+      "expect": {
+        "paths": {
+          "kind": "history"
+        },
+        "contains": [
+          {
+            "path": "data.messages",
+            "field": "body",
+            "value": "Approved: violet.",
+            "count": 1
+          },
+          {
+            "path": "data.messages",
+            "field": "body",
+            "value": "Approve the violet draft?",
+            "count": 1
+          }
+        ],
+        "greater": {}
+      }
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 import json
 import sys
 import time
+from pathlib import Path
 
 
 def media_frame(kind, payload=b""):
@@ -54,6 +55,23 @@ mode = sys.argv[-1]
 for number, line in enumerate(sys.stdin):
     request = json.loads(line)
     response = {"profile": "connect-control/1", "result": {"Ok": {"kind": "health", "data": {"installation_id": "fixture", "schema": 7, "profile": "connect-control/1"}}}}
+    if mode.startswith("tasks"):
+        operation = request["operation"]
+        if operation["op"] == "capabilities":
+            data = {"identity_id": "agent-a", "conversation_id": None, "routes": [], "availability": None,
+                    "limits": {"message_bytes": 65536, "artifact_bytes": 1024, "artifact_chunk_bytes": 512, "page_size": 100, "audio_frame_ms": 20, "audio_codec": "PCMU"}}
+            if mode != "tasks-old":
+                data["extensions"] = None if mode == "tasks-malformed" else ["connect-task/1"]
+            response["result"]["Ok"] = {"kind": "capabilities", "data": data}
+        elif operation["op"] == "task":
+            command = operation["request"]["command"]
+            if command["action"] in ("wait", "inbox"):
+                time.sleep(command["wait_ms"] / 1000)
+                result = {"kind": "inbox", "data": {"events": [], "next": command.get("after")}}
+            else:
+                result = json.loads((Path(__file__).parent / "task_results.json").read_text())["valid"]["reply-accepted"]
+                result["data"]["request_id"] = command.get("request_id", "fixture")
+            response["result"]["Ok"] = {"kind": "task", "data": result}
     if mode == "fragment":
         sys.stdout.write('{"id":'); sys.stdout.flush(); time.sleep(10); continue
     if mode == "stall":

@@ -1,3 +1,4 @@
+import { exchangeTimeout } from "./task_operations.js";
 import { ConnectError } from "./errors.js";
 import { Operations } from "./operations.js";
 import {
@@ -36,6 +37,7 @@ export class BrowserHttpClient extends Operations {
     }
 
     async request(operation: Operation): Promise<Outcome> {
+        this.requireTaskProfile(operation);
         const expected = expectedKind(operation);
         const body = JSON.stringify(operation);
         if (new TextEncoder().encode(body).byteLength > MAX_REQUEST - 1)
@@ -48,10 +50,13 @@ export class BrowserHttpClient extends Operations {
             "POST",
             body,
             "application/json",
+            exchangeTimeout(this.timeoutMs, operation),
         );
-        return this.decode(
-            await this.readBounded(response, MAX_RESPONSE),
-            expected,
+        return this.observeOutcome(
+            this.decode(
+                await this.readBounded(response, MAX_RESPONSE),
+                expected,
+            ),
         );
     }
 
@@ -145,6 +150,7 @@ export class BrowserHttpClient extends Operations {
         method: string,
         body?: BodyInit,
         contentType?: string,
+        timeoutMs = this.timeoutMs,
     ): Promise<Response> {
         try {
             const response = await globalThis.fetch(url, {
@@ -155,7 +161,7 @@ export class BrowserHttpClient extends Operations {
                     authorization: "Bearer " + this.credential,
                     ...(contentType ? { "content-type": contentType } : {}),
                 },
-                signal: AbortSignal.timeout(this.timeoutMs),
+                signal: AbortSignal.timeout(timeoutMs),
             });
             if (response.status >= 300 && response.status < 400) {
                 await response.body?.cancel();

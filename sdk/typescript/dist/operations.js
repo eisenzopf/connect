@@ -1,6 +1,7 @@
+import { TaskOperations } from "./task_operations.js";
 import { ConnectError } from "./errors.js";
 /** Shared public operations. Mutation IDs belong to the caller. */
-export class Operations {
+export class Operations extends TaskOperations {
     async data(kind, operation) {
         const result = await this.request(operation);
         if (result.kind !== kind)

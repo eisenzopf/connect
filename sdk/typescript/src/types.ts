@@ -1,4 +1,6 @@
+import type { TaskCommand, TaskOutcome } from "./tasks.js";
 export type Operation =
+    | { op: "task"; request: { task_profile: string; command: TaskCommand } }
     | { op: "resolve"; address: string }
     | { op: "capabilities"; address: string; conversation_id: string | null }
     | { op: "browser_binding" }
@@ -267,6 +269,7 @@ export interface Health {
     readiness?: Readiness;
 }
 export interface OutcomeData {
+    task: TaskOutcome;
     capabilities: Capabilities;
     browser_binding: BrowserBinding;
     context_deliveries: ContextDeliveryPage;
@@ -299,6 +302,7 @@ export interface RouteCapability {
     readiness: "configured" | "unconfigured";
 }
 export interface Capabilities {
+    extensions?: string[];
     identity_id: string;
     conversation_id: string | null;
     routes: RouteCapability[];

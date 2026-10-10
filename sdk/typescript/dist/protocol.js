@@ -1,7 +1,10 @@
+import { array, fields, integer, object } from "./validation.js";
+import { validTaskOutcome } from "./task_protocol.js";
 import { ConnectError } from "./errors.js";
 export const MAX_REQUEST = 65537;
 export const MAX_RESPONSE = 600000;
 const kinds = {
+    task: "task",
     resolve: "identity",
     capabilities: "capabilities",
     browser_binding: "browser_binding",
@@ -46,18 +49,6 @@ export function timeoutValue(ms) {
         throw new RangeError("Timeout must be positive and at most 60000 ms");
     return ms;
 }
-function object(value) {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function fields(value, strings = [], nullable = []) {
-    return (object(value) &&
-        strings.every((k) => typeof value[k] === "string") &&
-        nullable.every((k) => k in value &&
-            (value[k] === null || typeof value[k] === "string")));
-}
-function array(value, test) {
-    return Array.isArray(value) && value.every(test);
-}
 function readiness(value) {
     const states = ["ready", "degraded", "unavailable", "uncertain"];
     return (fields(value, ["state"]) &&
@@ -68,9 +59,6 @@ function readiness(value) {
 }
 function message(value) {
     return fields(value, ["id", "conversation_id", "sender", "body"]);
-}
-function integer(value) {
-    return Number.isSafeInteger(value) && Number(value) >= 0;
 }
 function session(value) {
     return (fields(value, [
@@ -111,6 +99,8 @@ function validData(kind, data, depth = 0) {
     if (!object(data) || depth > 8)
         return false;
     switch (kind) {
+        case "task":
+            return validTaskOutcome(data, validData, depth);
         case "identity":
             return (fields(data, ["id", "alias"]) &&
                 array(data.capabilities, (x) => typeof x === "string"));
@@ -147,6 +137,8 @@ function validData(kind, data, depth = 0) {
             return fields(data, ["conversation_id", "participant_id", "signaling_url"], ["session_id"]);
         case "capabilities":
             return (fields(data, ["identity_id"], ["conversation_id"]) &&
+                (!("extensions" in data) ||
+                    array(data.extensions, (x) => typeof x === "string")) &&
                 array(data.routes, (x) => fields(x, ["id", "transport", "readiness"]) &&
                     ["configured", "unconfigured"].includes(String(x.readiness)) &&
                     array(x.media, (v) => typeof v === "string") &&
