@@ -267,13 +267,39 @@ remain inspectable under current owner/control scope and ACL; they cannot revive
 effects or grants. Physical media dispatch and reviewed task-specific SMS
 purpose are still required before G4-012 closes.
 
-The next G4-012 candidate implements task-specific SMS policy. Contract revision 4
+The schema-13 G4-012 checkpoint implements task-specific SMS policy. Contract revision 4
 adds optional immutable `TaskScope.sms_enrollments` references: trusted source,
 grant ID and exact reviewed purpose. Admission checks existing approved evidence
 and conversation ownership. Current lease, expiry, active evidence, route match
 and STOP gate SMS dispatch only; unavailable SMS does not deny native task recall
 or unrelated communication. Empty scope denies task-origin SMS and serializes
 identically to existing scopes, preserving old invocation digests. Schema 13 is
-a semantic downgrade barrier; it changes no retained task/grant rows. Qualification
-of this candidate is in progress; the previous capacity checkpoint remains schema
-12 evidence. Physical voice/SIP guards and integrated acceptance remain open.
+a semantic downgrade barrier; it changes no retained task/grant rows. The SMS component is qualified in `docs/evidence/gate-4/task-sms-policy.json`;
+the previous capacity checkpoint remains schema-12 evidence. Integrated public
+interface and host/provider acceptance remain open.
+
+
+The current G4-012 media candidate adds schema 14. An end command retains its
+own issuer, wire request and optional protected effect in `media_end_intents`.
+A new command supersedes the current intent; a cached receipt cannot replace it.
+Claims and final dispatch validate the exact generation and current credential,
+conversation access and task/grant authority. A blocked old effect remains failed
+even if a separately authorized command subsequently ends the same resource.
+
+Physical start admission is recorded once per resource. Final admission runs
+after asynchronous SIP preparation and immediately before the provider request
+or prepared SIP commit. Repeating admission, including through another database
+handle, cannot send another request. Admission is the possibly-sent boundary:
+revocation after it cannot promise to erase a remote effect. SIP origination
+observes cancellation in flight and attempts connection cleanup; failed cleanup
+remains uncertain. Infrastructure errors roll back admission rather than being
+recorded as authorization denials. Polling and reconciliation of already dispatched
+voice work remain observations and do not borrow a revoked task's authority.
+
+Upgrade preserves old rows and verified backups. Known ordinary queued voice
+ends retain their issuer. Old task-end history is ambiguous and remains uncertain;
+old SIP ends lack the requesting credential. Both need a new explicitly authorized
+end command; migration never substitutes the dialer or a historical task grant.
+The additive schema marker prevents an older binary bypassing these boundaries.
+The candidate's targeted authority/recovery/migration and server regression checks
+are in progress; this does not close G4-012 or integrated Gate 4 acceptance.

@@ -157,6 +157,17 @@ async fn control(
                 anyhow::bail!("Voice storage unavailable");
             }
         };
+        let check_store = service.store.clone();
+        let admitted = tokio::task::spawn_blocking(move || {
+            let admitted = check_store.voice_dispatch_allowed(&job)?;
+            Ok::<_, connect_protocol::Error>((job, admitted))
+        })
+        .await
+        .map_err(|_| anyhow::anyhow!("Voice dispatch admission task failed"))??;
+        let (job, admitted) = admitted;
+        if !admitted {
+            continue;
+        }
         let request = VoiceStart {
             assistant_id: job.route.assistant_id.clone(),
             phone_number_id: job.route.phone_number_id.clone(),

@@ -195,7 +195,7 @@ fn schema_twelve_upgrade_preserves_old_grant_digest_and_task_receipts() {
     f.store
         .connection()
         .unwrap()
-        .execute_batch("PRAGMA user_version=12")
+        .execute_batch("DROP TABLE media_end_intents; DROP TABLE media_start_admissions; DROP INDEX task_effect_media_resource; PRAGMA user_version=12")
         .unwrap();
     assert_eq!(
         Store::open(f.store.path(), connect_protocol::Limits::default())
@@ -207,7 +207,7 @@ fn schema_twelve_upgrade_preserves_old_grant_digest_and_task_receipts() {
     let backup = f._dir.path().join("schema12.sqlite3");
     let expected = f.store.backup(&backup).unwrap();
     let after = Store::migrate(f.store.path(), &backup, &expected).unwrap();
-    assert_eq!(after.schema, 13);
+    assert_eq!(after.schema, crate::SCHEMA_VERSION);
     let upgraded = Store::open(f.store.path(), connect_protocol::Limits::default()).unwrap();
     assert_eq!(
         upgraded

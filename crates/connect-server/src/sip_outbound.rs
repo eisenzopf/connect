@@ -18,6 +18,18 @@ pub(crate) struct Worker {
     task: Option<tokio::task::JoinHandle<anyhow::Result<()>>>,
 }
 
+enum OriginationOutcome {
+    Active,
+    Cancelled,
+    CleanupUncertain,
+}
+
+#[derive(Clone, Copy)]
+enum AuthorityCheck {
+    ObserveCancellation,
+    AdmitDispatch,
+}
+
 impl Worker {
     pub(crate) fn start(
         store: Arc<Store>,
@@ -45,12 +57,24 @@ impl Worker {
                     }
                     continue;
                 };
+                if job.action == SipLegAction::Start
+                    && check_authority(
+                        store.clone(),
+                        job.clone(),
+                        AuthorityCheck::ObserveCancellation,
+                    )
+                    .await?
+                {
+                    check_authority(store.clone(), job.clone(), AuthorityCheck::AdmitDispatch)
+                        .await?;
+                    continue;
+                }
                 match job.action {
                     SipLegAction::Start => {
-                        let result: anyhow::Result<bool> = async {
+                        let result: anyhow::Result<OriginationOutcome> = async {
                             let session = resolver
                                 .project_credential(&job.credential_id, &job.leg.session_id)
-                                .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+                                ?;
                             let prepared = orchestrator
                                 .prepare_outbound_connection(
                                     OriginateRequest::new(
@@ -73,6 +97,9 @@ impl Worker {
                                     job.leg.id.clone(),
                                 )
                                 .await?;
+                            if !check_authority(store.clone(), job.clone(), AuthorityCheck::AdmitDispatch).await? {
+                                return Ok(OriginationOutcome::Cancelled);
+                            }
                             let mut commit = std::pin::pin!(prepared.commit());
                             loop {
                                 tokio::select! {
@@ -82,29 +109,50 @@ impl Worker {
                                     }
                                     _ = tokio::time::sleep(Duration::from_millis(50)) => {
                                         let check_store = store.clone();
-                                        let leg_id = job.leg.id.clone();
+                                        let check_job = job.clone();
                                         let cancelled = tokio::task::spawn_blocking(move || {
-                                            check_store.sip_leg_end_requested(&leg_id)
+                                            check_store.sip_origination_cancelled(&check_job)
                                         })
                                         .await
-                                        .map_err(|_| anyhow::anyhow!("SIP cancellation check failed"))??;
+                                        .map_err(|_| connect_protocol::Error::storage())??;
                                         if cancelled {
-                                            return Ok(true);
+                                            return Ok(if orchestrator.end_connection(connection_id.clone(), EndReason::Cancelled).await.is_ok() {
+                                                OriginationOutcome::Cancelled
+                                            } else {
+                                                OriginationOutcome::CleanupUncertain
+                                            });
                                         }
                                     }
                                 }
                             }
                             registrar.activate_outbound(connection_id).await?;
-                            anyhow::Ok(false)
+                            anyhow::Ok(OriginationOutcome::Active)
                         }
                         .await;
                         match result {
-                            Ok(true) => store.finish_sip_leg_job(
+                            Ok(OriginationOutcome::Cancelled) => store.finish_sip_leg_job(
                                 &job,
                                 "cancelled",
                                 Some("local-cancel-before-answer"),
                             )?,
-                            Ok(false) => store.finish_sip_leg_job(&job, "active", None)?,
+                            Ok(OriginationOutcome::Active) => {
+                                store.finish_sip_leg_job(&job, "active", None)?
+                            }
+                            Ok(OriginationOutcome::CleanupUncertain) => store.finish_sip_leg_job(
+                                &job,
+                                "uncertain",
+                                Some("sip-cancellation-uncertain"),
+                            )?,
+                            Err(error)
+                                if error.downcast_ref::<connect_protocol::Error>().is_some_and(
+                                    |e| {
+                                        e.code == "storage-unavailable"
+                                            || e.code == "capacity-exceeded"
+                                    },
+                                ) =>
+                            {
+                                return Err(error)
+                            }
                             Err(_) => store.finish_sip_leg_job(
                                 &job,
                                 "failed",
@@ -113,6 +161,15 @@ impl Worker {
                         }
                     }
                     SipLegAction::End => {
+                        if !check_authority(
+                            store.clone(),
+                            job.clone(),
+                            AuthorityCheck::AdmitDispatch,
+                        )
+                        .await?
+                        {
+                            continue;
+                        }
                         let result = match job.leg.connection_id.as_deref() {
                             Some(id) => {
                                 orchestrator
@@ -162,4 +219,19 @@ impl Drop for Worker {
             task.abort();
         }
     }
+}
+
+// Keep SQLite off the async executor, including after asynchronous preparation.
+async fn check_authority(
+    store: Arc<Store>,
+    job: connect_store::SipLegJob,
+    check: AuthorityCheck,
+) -> anyhow::Result<bool> {
+    tokio::task::spawn_blocking(move || match check {
+        AuthorityCheck::AdmitDispatch => store.sip_dispatch_allowed(&job),
+        AuthorityCheck::ObserveCancellation => store.sip_origination_cancelled(&job),
+    })
+    .await
+    .map_err(|_| connect_protocol::Error::storage())?
+    .map_err(Into::into)
 }

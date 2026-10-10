@@ -34,7 +34,14 @@ pub(super) fn apply(
             conversation_id,
             call_id,
             ..
-        } => crate::voice::end(c, credential_id, conversation_id, call_id, store),
+        } => crate::voice::end(
+            c,
+            credential_id,
+            conversation_id,
+            call_id,
+            request_id,
+            store,
+        ),
         Operation::SessionInvite {
             conversation_id,
             participant_id,
@@ -126,7 +133,8 @@ pub(super) fn apply(
             conversation_id,
             sip_leg_id,
             ..
-        } => crate::sip_legs::end(c, actor, conversation_id, sip_leg_id).map(Outcome::SipLeg),
+        } => crate::sip_legs::end(c, actor, conversation_id, sip_leg_id, request_id)
+            .map(Outcome::SipLeg),
         Operation::AvailabilitySet {
             state,
             preferred_route,

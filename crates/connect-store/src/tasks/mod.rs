@@ -50,9 +50,22 @@ pub(crate) fn authorize_effect_link(
         .map_err(|_| Error::storage())?;
     if let Some(id) = id {
         effects::authorize_effect(c, &id, timestamp)?;
+    } else if let Some(operation) = match kind {
+        "call" => Some("call_start"),
+        "sip_leg" => Some("sip_dial"),
+        _ => None,
+    } {
+        let legacy: bool = c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM task_effects WHERE json_extract(operation_json,'$.op')=?1 AND json_extract(outcome_json,'$.data.id')=?2)",
+            rusqlite::params![operation, resource], |r| r.get(0),
+        ).map_err(|_| Error::storage())?;
+        if legacy {
+            return Err(Error::forbidden());
+        }
     }
     Ok(())
 }
+pub(crate) use effects::authorize_effect;
 
 #[cfg(test)]
 mod tests;

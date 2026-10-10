@@ -31,8 +31,11 @@ pub struct VoiceJob {
     pub route: VoiceRoute,
     pub action: VoiceAction,
     pub control_url: Option<String>,
+    /// Exact claimed end generation; no bearer capability is exposed here.
+    pub end_intent_id: Option<String>,
 }
-type VoiceClaim = (String, String, String, u8, Option<String>, Option<String>);
+mod dispatch;
+mod jobs;
 
 fn invalid() -> Error {
     Error::new("invalid-request", "Invalid voice route or destination")
@@ -134,6 +137,7 @@ pub(crate) fn end(
     credential: &str,
     conversation: &str,
     id: &str,
+    request_id: &str,
     store: &Store,
 ) -> Result<Outcome> {
     let mut call = get(c, conversation, id)?;
@@ -167,6 +171,14 @@ pub(crate) fn end(
         params![id, call.state, credential],
     )
     .map_err(|_| Error::storage())?;
+    crate::media_end::record(
+        c,
+        crate::media_end::Kind::Call,
+        id,
+        credential,
+        request_id,
+        call.state != "cancelled",
+    )?;
     call = get(c, conversation, id)?;
     event(c, &call, store)?;
     Ok(Outcome::Call(call))
@@ -277,70 +289,6 @@ impl Store {
             event(&tx, &get(&tx, &conv, &id)?, self)?;
         }
         tx.commit().map_err(|_| Error::storage())
-    }
-    pub fn claim_voice_job(&self) -> Result<Option<VoiceJob>> {
-        let mut c = self.connection()?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
-        let row:Option<VoiceClaim>=tx.query_row("SELECT id,conversation_id,credential_id,end_requested,control_url,end_credential_id FROM voice_calls WHERE state='pending' OR (provider_id IS NOT NULL AND state NOT IN ('ended','failed','cancelled','forbidden','starting','ending') AND next_poll<=?1) ORDER BY end_requested DESC,sequence LIMIT 1",[crate::now()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional().map_err(|_| Error::storage())?;
-        let Some((id, conv, credential, end_requested, control_url, end_credential)) = row else {
-            return Ok(None);
-        };
-        let mut call = get(&tx, &conv, &id)?;
-        let r = route(&tx, &call.route_id)?;
-        let action = if call.state == "pending" {
-            let authorized = actor_from_connection(&tx, &credential).and_then(|a| {
-                a.require("call_start")?;
-                authorized_conversation(&tx, &a, &conv)
-            });
-            if !r.enabled || !matches!(authorized,Ok(ref c) if !c.closed) {
-                call.state = "forbidden".into();
-                tx.execute(
-                    "UPDATE voice_calls SET state='forbidden' WHERE id=?1",
-                    [&id],
-                )
-                .map_err(|_| Error::storage())?;
-                event(&tx, &call, self)?;
-                tx.commit().map_err(|_| Error::storage())?;
-                return Ok(None);
-            }
-            call.state = "starting".into();
-            VoiceAction::Start
-        } else if end_requested == 1 {
-            let authorized = end_credential
-                .as_deref()
-                .ok_or_else(Error::unauthorized)
-                .and_then(|key| actor_from_connection(&tx, key))
-                .and_then(|a| {
-                    a.require("call_end")?;
-                    authorized_conversation(&tx, &a, &conv)
-                });
-            if authorized.is_err() {
-                tx.execute("UPDATE voice_calls SET end_requested=0,end_credential_id=NULL,next_poll=0 WHERE id=?1",[&id]).map_err(|_|Error::storage())?;
-                event(&tx, &get(&tx, &conv, &id)?, self)?;
-                tx.commit().map_err(|_| Error::storage())?;
-                return Ok(None);
-            }
-            tx.execute("UPDATE voice_calls SET end_requested=2 WHERE id=?1", [&id])
-                .map_err(|_| Error::storage())?;
-            call.state = "ending".into();
-            VoiceAction::End
-        } else {
-            VoiceAction::Poll
-        };
-        tx.execute(
-            "UPDATE voice_calls SET state=?2,next_poll=?3 WHERE id=?1",
-            params![id, call.state, crate::now() + 2],
-        )
-        .map_err(|_| Error::storage())?;
-        tx.commit().map_err(|_| Error::storage())?;
-        Ok(Some(VoiceJob {
-            call,
-            route: r,
-            action,
-            control_url,
-        }))
     }
     pub fn finish_voice_job(
         &self,

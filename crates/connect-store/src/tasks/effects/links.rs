@@ -31,6 +31,26 @@ pub(super) fn register(
         _ => return Ok(()),
     };
     link(c, effect, kind, id)?;
+    let end = match kind {
+        "call_end" => Some(crate::media_end::Kind::Call),
+        "sip_end" => Some(crate::media_end::Kind::Sip),
+        _ => None,
+    };
+    if let Some(end) = end {
+        let fulfilled = match outcome {
+            Outcome::Call(v) => matches!(v.state.as_str(), "ended" | "cancelled"),
+            Outcome::SipLeg(v) => matches!(v.state.as_str(), "ended" | "cancelled"),
+            _ => false,
+        };
+        crate::media_end::protect(
+            c,
+            end,
+            id,
+            operation.request_id().ok_or_else(Error::storage)?,
+            effect,
+            fulfilled,
+        )?;
+    }
     if kind == "message" {
         let mut statement = c
             .prepare("SELECT id FROM provider_jobs WHERE message_id=?1")
@@ -55,6 +75,9 @@ fn link(c: &Connection, effect: &str, kind: &str, id: &str) -> Result<()> {
     Ok(())
 }
 pub(super) fn state(c: &Connection, effect: &str, store: &Store) -> Result<EffectState> {
+    if let Some(state) = crate::media_end::observation(c, effect)? {
+        return Ok(state);
+    }
     let mut statement = c.prepare("SELECT j.state,r.connector FROM task_effect_links l JOIN provider_jobs j ON j.id=l.resource_id JOIN connector_routes r ON r.id=j.route_id WHERE l.effect_id=?1 AND l.kind='provider_job'").map_err(|_|Error::storage())?;
     let jobs = statement
         .query_map([effect], |r| {

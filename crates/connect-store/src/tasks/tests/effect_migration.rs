@@ -3,7 +3,7 @@ use crate::{Limits, Store, SCHEMA_VERSION};
 use connect_protocol::tasks::*;
 
 fn schema_eleven(f: &Fixture) {
-    f.store.connection().unwrap().execute_batch("DROP TABLE task_effect_links; DROP TABLE task_effect_authority; DROP INDEX task_effect_question_lookup; PRAGMA user_version=11;").unwrap();
+    f.store.connection().unwrap().execute_batch("DROP TABLE media_end_intents; DROP TABLE media_start_admissions; DROP INDEX task_effect_media_resource; DROP TABLE task_effect_links; DROP TABLE task_effect_authority; DROP INDEX task_effect_question_lookup; PRAGMA user_version=11;").unwrap();
 }
 #[test]
 fn additive_schema_eleven_upgrade_preserves_tasks_grants_and_existing_state() {

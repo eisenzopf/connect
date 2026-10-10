@@ -3,6 +3,7 @@
 use crate::{conversations::authorized_conversation, now, Actor, Store};
 use connect_protocol::{Error, Result, Session, SipLeg};
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+mod dispatch;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SipLegAction {
@@ -16,6 +17,8 @@ pub struct SipLegJob {
     pub credential_id: String,
     pub actor_id: String,
     pub action: SipLegAction,
+    /// Exact claimed end generation, distinct from the dialer's authority.
+    pub end_intent_id: Option<String>,
 }
 
 fn row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SipLeg> {
@@ -79,6 +82,7 @@ pub(crate) fn end(
     actor: &Actor,
     conversation_id: &str,
     id: &str,
+    request_id: &str,
 ) -> Result<SipLeg> {
     let leg = get(c, conversation_id, id)?;
     let session = crate::sessions::get(c, conversation_id, &leg.session_id)?;
@@ -98,6 +102,14 @@ pub(crate) fn end(
         params![state, requested, now(), id],
     )
     .map_err(|_| Error::storage())?;
+    crate::media_end::record(
+        c,
+        crate::media_end::Kind::Sip,
+        id,
+        &actor.credential_id,
+        request_id,
+        requested == 1,
+    )?;
     get(c, conversation_id, id)
 }
 
@@ -141,13 +153,16 @@ impl Store {
             )
             .optional()
             .map_err(|_| Error::storage())?;
-        let Some((id, conversation_id, credential_id, actor_id)) = claimed else {
+        let Some((id, conversation_id, mut credential_id, mut actor_id)) = claimed else {
             return Ok(None);
         };
         let mut leg = get(&tx, &conversation_id, &id)?;
+        let mut end_intent_id = None;
         let action = if leg.state == "pending" {
             let allowed = (|| {
                 let actor = crate::identity::actor_from_connection(&tx, &credential_id)?;
+                actor.require("sip_dial")?;
+                crate::tasks::authorize_effect_link(&tx, "sip_leg", &id, now())?;
                 if actor.identity_id != actor_id {
                     return Err(Error::forbidden());
                 }
@@ -155,7 +170,7 @@ impl Store {
                 let session = crate::sessions::get(&tx, &conversation_id, &leg.session_id)?;
                 require_dial_authority(&actor, &session)
             })();
-            if allowed.is_err() {
+            if crate::media_end::permitted(allowed)?.is_none() {
                 tx.execute(
                     "UPDATE sip_legs SET state='failed',ended_reason='authority-revoked',updated_at=?1 WHERE id=?2",
                     params![now(), id],
@@ -166,6 +181,33 @@ impl Store {
             }
             SipLegAction::Start
         } else {
+            let authorized =
+                crate::media_end::authorize(&tx, crate::media_end::Kind::Sip, &id, now()).and_then(
+                    |(actor, intent)| {
+                        authorized_conversation(&tx, &actor, &conversation_id)?;
+                        let session = crate::sessions::get(&tx, &conversation_id, &leg.session_id)?;
+                        if actor.identity_id != session.initiator_id
+                            && actor.identity_id != session.participant_id
+                        {
+                            return Err(Error::forbidden());
+                        }
+                        Ok((actor, intent))
+                    },
+                );
+            let Some((actor, intent)) = crate::media_end::permitted(authorized)? else {
+                crate::media_end::blocked(&tx, crate::media_end::Kind::Sip, &id)?;
+                tx.execute(
+                    "UPDATE sip_legs SET end_requested=0,updated_at=?1 WHERE id=?2",
+                    params![now(), id],
+                )
+                .map_err(|_| Error::storage())?;
+                tx.commit().map_err(|_| Error::storage())?;
+                return Ok(None);
+            };
+            crate::media_end::claimed(&tx, &intent)?;
+            end_intent_id = Some(intent);
+            credential_id = actor.credential_id;
+            actor_id = actor.identity_id;
             SipLegAction::End
         };
         let state = if action == SipLegAction::Start {
@@ -185,6 +227,7 @@ impl Store {
             credential_id,
             actor_id,
             action,
+            end_intent_id,
         }))
     }
 

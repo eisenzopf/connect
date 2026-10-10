@@ -96,7 +96,9 @@ pub(crate) fn authorize_effect(c: &Connection, id: &str, timestamp: i64) -> Resu
         .query_row("SELECT task_id FROM task_effects WHERE id=?1", [id], |r| {
             r.get(0)
         })
-        .map_err(|_| Error::forbidden())?;
+        .optional()
+        .map_err(|_| Error::storage())?
+        .ok_or_else(Error::forbidden)?;
     let effect = rows::load(c, id, &task_id)?;
     rows::verify(&effect)?;
     let credential = effect

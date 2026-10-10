@@ -112,6 +112,9 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     if schema >= 12 {
         tables.extend(["task_effect_authority", "task_effect_links"]);
     }
+    if schema >= 14 {
+        tables.extend(["media_end_intents", "media_start_admissions"]);
+    }
     for table in tables {
         digest.update(table.as_bytes());
         // Names are a fixed allowlist, never user-controlled SQL.
@@ -262,6 +265,10 @@ impl Store {
         }
         if expected.schema < 13 {
             tx.execute_batch(include_str!("../migrations/013_task_sms_policy.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 14 {
+            tx.execute_batch(include_str!("../migrations/014_media_end_authority.sql"))
                 .map_err(|_| Error::storage())?;
         }
         let snapshot = inspect(&tx)?;
