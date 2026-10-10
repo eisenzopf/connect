@@ -1,0 +1,93 @@
+{
+  "status": "qualified clock correction",
+  "recorded_at": "2026-10-10T23:05:02.559407+00:00",
+  "source_base": "fe4674a41e80ce9b5031672ebeeb2cae2384140f",
+  "source_files": {
+    "crates/connect-store/src/tasks/clock.rs": "70a5f21ec09cdc7ce1562d7bff83aa249c38c0cba98c22cc9905255ce80668ce",
+    "crates/connect-store/src/tasks/grants/authentication.rs": "55ccdbe6092c02dfea16a3984231667c4e402cebf9ca157a0581821ddd352536",
+    "crates/connect-store/src/tasks/grants/execution.rs": "dbd0b1178aa936094d587cb31467b7c66718dee5c68f811691dcd6fb74479a59",
+    "crates/connect-store/src/tasks/grants/issuance.rs": "7d9f4d5a3ae51823d764d381b1dbbae2dc528b80b9bdd7010ea6c00f60d36a64",
+    "crates/connect-store/src/tasks/grants/mod.rs": "3748b17a2c6387a352439a14a946bdeae87017f3b63875de1e2c35e489a20486",
+    "crates/connect-store/src/tasks/grants/provider.rs": "fd605eacf65e1e335afaa6ebdebbbf39fffc086381b7274e424f437802b78e6d",
+    "crates/connect-store/src/tasks/mod.rs": "fb2d625b5b11da5079d5a3e8a60cc8c17165bd3c1ec192f29538ff8e21a12f84",
+    "crates/connect-store/src/tasks/owner.rs": "e492cc487ddb3d599b46d73a294e31333cbb889ee248da11988b5507d8dcd50b",
+    "crates/connect-store/src/tasks/tests/lock_expiry.rs": "be9ed04f77a4d93482ec455062d7fb924e3a42a00abaebfa3ad47268ecfc5d04",
+    "crates/connect-store/src/tasks/tests/mod.rs": "d386f0e14caac4efeb45467bca5997b269b1eba7d24b026fc1415a3dce5b9c22"
+  },
+  "items": [
+    "G4-008"
+  ],
+  "scope": "Local macOS arm64; isolated database and real public Store entry points under an explicitly retained shared Store mutex; no live accounts or deployment",
+  "problem": "Public task paths captured Unix time before awaiting the Store mutex/SQLite transaction. Authority that expired while queued could still authorize a read, binding/grant insert or task message.",
+  "baseline": {
+    "terminal_exit": 101,
+    "result": "1 test failed: all 7 scenarios accepted expired authority; registration, provider/local issuance and invocation message committed mutations. Read/authentication snapshots remained unchanged but returned obsolete authority.",
+    "log_sha256": "76542fdff8dc633395cefbec299af5f6b5efc219c8631072079af7fe49f999e1"
+  },
+  "correction": "Public task execution, invocation execution, registration, grant issuance and authentication sample the current clock only after serialized transaction admission. Fixed clocks remain private unit-test inputs. Grant format, scope, receipts and schema do not change.",
+  "intermediate_verification": {
+    "terminal_exit": 0,
+    "result": "149 Store unit tests passed, including all seven real blocked-expiry scenarios; zero failures/ignores",
+    "log_sha256": "3deee852568b49b9a602016082b2a0de9f45d93fd8646c5b6f041c17db281f9b"
+  },
+  "final_scenarios": [
+    "Owner task read",
+    "Trusted origin registration",
+    "Verified provider issuance",
+    "Local issuance",
+    "Previously registered grant issuance",
+    "Exact-bound grant authentication",
+    "Local grant authentication",
+    "Cached invocation message effect"
+  ],
+  "pending": [],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/lock-expiry-baseline.log",
+      "result": "Initial fixture compilation rejected a nonexistent Store clone and missing Invoke fields. Corrected shared Arc ownership and explicit fields before behavioral baseline."
+    },
+    {
+      "log": ".local/gate-4-planning/lock-expiry-clippy-final.log",
+      "terminal_exit": 101,
+      "result": "Strict Clippy rejected an unused private fixed-clock authentication helper after current-clock routing changed. Removed unused code; no lint suppression."
+    }
+  ],
+  "closure": "G4-008 requirements are audited in task-authority-audit.json; no integrated A4 criterion or full Gate 4 closure is inferred.",
+  "qualification": {
+    "store_units": {
+      "terminal_exit": 0,
+      "passed": 149,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "f94456e3812cf3e9129d2ee12f1d6f60a84424bb1e3671e5a9635b72f32c08cd"
+    },
+    "wire_integration": {
+      "terminal_exit": 0,
+      "passed": 15,
+      "binaries": 9,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "3fe7e93343b3c98358ed30817de68fe0e3a271334ee64feef6260674b079e900"
+    },
+    "strict_quality": {
+      "lock-expiry-clippy-corrected.log": {
+        "terminal_exit": 0,
+        "log_sha256": "06b2ff3d17846749d6ef233e299bff15e8c9242b24e9ffcf222bf89b104c45fc"
+      },
+      "lock-expiry-rustdoc-corrected.log": {
+        "terminal_exit": 0,
+        "log_sha256": "44a71ca6ee4708c83c0d5c333c0a304e1a7a047ded11beb99c2930cbc2b7f632"
+      },
+      "lock-expiry-format-corrected.log": {
+        "terminal_exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "source_identity": {
+      "frozen_rust_files": 10,
+      "mismatches": 0,
+      "cargo_lock_unchanged": true
+    },
+    "total_behavior_passes": 164
+  }
+}

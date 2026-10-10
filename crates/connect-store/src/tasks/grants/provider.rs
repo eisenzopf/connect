@@ -1,4 +1,5 @@
 //! Verified provider composition shares the existing atomic issuance transaction.
+use super::super::clock::Clock;
 use super::{authority, current, rows, IssuedTaskGrant};
 use crate::{identity::actor_from_connection_at, Store};
 use connect_protocol::{
@@ -59,6 +60,6 @@ impl Store {
         definition: &GrantDefinition,
     ) -> Result<IssuedTaskGrant> {
         provider(definition)?;
-        self.issue_grant_at(credential_id, request_id, definition, crate::now(), true)
+        self.issue_grant(credential_id, request_id, definition, Clock::Current, true)
     }
 }

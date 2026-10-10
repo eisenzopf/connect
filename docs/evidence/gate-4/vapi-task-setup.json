@@ -138,7 +138,6 @@
     }
   ],
   "remaining": [
-    "Current clock sampling after Store lock acquisition in task authority paths",
     "Provider resource creation and uncertain creation reconciliation",
     "First invocation bootstrap/install of protected MCP configuration",
     "Main runtime provider configuration",
@@ -158,7 +157,7 @@
       "store_setup_lines": 64
     },
     "boundaries": "Store owns the atomic transaction; Service bridges blocking storage; Server composes private SDK lookup and fixed MCP admission. No SQL enters MCP or examples. Existing schema, upstream sources, Cargo.lock and public model/local-grant exchanges are unchanged.",
-    "open_finding": "Public task paths capture timestamps before waiting for the Store mutex/transaction. Contention/expiry behavior must be reproduced and corrected before G4-008 closure; current scoped checks do not prove that boundary."
+    "corrected_finding": "Pre-lock timestamp capture reproduced on fe4674a was corrected and independently qualified in task-lock-expiry.json (149 final Store units and 15 native/HTTP/MCP integrations). The original 210-test component proof retains its historical source scope."
   },
   "behavior_test_totals": {
     "full_store": 195,

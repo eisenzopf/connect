@@ -1,6 +1,7 @@
 //! Owner-authorized task admission and retained control receipt inspection.
 use super::{
-    authority, claims, commit, effects, inbox, lifecycle, native_reply, recall, replies, storage,
+    authority, claims, clock::Clock, commit, effects, inbox, lifecycle, native_reply, recall,
+    replies, storage,
 };
 use crate::{identity::actor_from_connection_at, DiscoveryRuntime, Store};
 use connect_protocol::{
@@ -22,7 +23,7 @@ impl Store {
         request: &TaskRequest,
         runtime: &DiscoveryRuntime,
     ) -> Result<TaskOutcome> {
-        self.execute_task_runtime_at(credential_id, request, runtime, crate::now())
+        self.execute_task_runtime_at(credential_id, request, runtime, Clock::Current)
     }
     #[cfg(test)]
     pub(in crate::tasks) fn execute_task_at(
@@ -35,7 +36,7 @@ impl Store {
             credential_id,
             request,
             &DiscoveryRuntime::default(),
-            timestamp,
+            Clock::At(timestamp),
         )
     }
     fn execute_task_runtime_at(
@@ -43,12 +44,13 @@ impl Store {
         credential_id: &str,
         request: &TaskRequest,
         runtime: &DiscoveryRuntime,
-        timestamp: i64,
+        clock: Clock,
     ) -> Result<TaskOutcome> {
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let timestamp = clock.read();
         let actor = actor_from_connection_at(&tx, credential_id, timestamp)?;
         request.validate(timestamp)?;
         actor.require(request.command.required_scope())?;

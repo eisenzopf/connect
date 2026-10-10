@@ -2,6 +2,7 @@
 mod authority;
 pub(crate) mod budget;
 mod claims;
+mod clock;
 mod effects;
 mod grants;
 pub use grants::{IssuedTaskGrant, NativeTaskAuthority, TaskInvocation};

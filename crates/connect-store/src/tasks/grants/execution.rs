@@ -1,4 +1,5 @@
 //! Revalidated invocation execution owns the transaction through commit.
+use super::super::clock::Clock;
 use super::{admission, TaskInvocation};
 use crate::{DiscoveryRuntime, Store};
 use connect_protocol::{
@@ -23,7 +24,7 @@ impl Store {
         request: &TaskRequest,
         runtime: &DiscoveryRuntime,
     ) -> Result<TaskOutcome> {
-        self.execute_task_invocation_runtime_at(invocation, request, runtime, crate::now())
+        self.execute_task_invocation_runtime_at(invocation, request, runtime, Clock::Current)
     }
     #[cfg(test)]
     pub(in crate::tasks) fn execute_task_invocation_at(
@@ -36,7 +37,7 @@ impl Store {
             invocation,
             request,
             &DiscoveryRuntime::default(),
-            timestamp,
+            Clock::At(timestamp),
         )
     }
     fn execute_task_invocation_runtime_at(
@@ -44,12 +45,13 @@ impl Store {
         invocation: &TaskInvocation,
         request: &TaskRequest,
         runtime: &DiscoveryRuntime,
-        timestamp: i64,
+        clock: Clock,
     ) -> Result<TaskOutcome> {
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let timestamp = clock.read();
         let (actor, task) = admission::authorize(&tx, invocation, request, timestamp)?;
         let result = match &request.command {
             TaskCommand::Invoke { .. } => super::super::effects::invoke(

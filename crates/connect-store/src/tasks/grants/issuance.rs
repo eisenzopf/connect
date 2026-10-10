@@ -1,4 +1,5 @@
 //! One transaction owns trusted binding registration and secret issuance.
+use super::super::clock::Clock;
 use super::{authority, bindings, current, rows, secret, storage, IssuedTaskGrant};
 use crate::{identity::actor_from_connection_at, Store};
 use connect_protocol::{
@@ -16,8 +17,9 @@ impl Store {
         request_id: &str,
         definition: &GrantDefinition,
     ) -> Result<IssuedTaskGrant> {
-        self.issue_task_grant_at(credential_id, request_id, definition, crate::now())
+        self.issue_grant(credential_id, request_id, definition, Clock::Current, false)
     }
+    #[cfg(test)]
     pub(in crate::tasks) fn issue_task_grant_at(
         &self,
         credential_id: &str,
@@ -25,7 +27,13 @@ impl Store {
         definition: &GrantDefinition,
         timestamp: i64,
     ) -> Result<IssuedTaskGrant> {
-        self.issue_grant_at(credential_id, request_id, definition, timestamp, false)
+        self.issue_grant(
+            credential_id,
+            request_id,
+            definition,
+            Clock::At(timestamp),
+            false,
+        )
     }
     /// Atomically register a developer-selected local origin and issue its grant.
     /// Provider origins must be registered by their independently verified adapter.
@@ -35,14 +43,14 @@ impl Store {
         request_id: &str,
         definition: &GrantDefinition,
     ) -> Result<IssuedTaskGrant> {
-        self.issue_local_task_grant_at(credential_id, request_id, definition, crate::now())
+        self.issue_local_grant(credential_id, request_id, definition, Clock::Current)
     }
-    pub(in crate::tasks) fn issue_local_task_grant_at(
+    fn issue_local_grant(
         &self,
         credential_id: &str,
         request_id: &str,
         definition: &GrantDefinition,
-        timestamp: i64,
+        clock: Clock,
     ) -> Result<IssuedTaskGrant> {
         if !matches!(
             definition.binding.kind,
@@ -50,14 +58,14 @@ impl Store {
         ) {
             return Err(Error::forbidden());
         }
-        self.issue_grant_at(credential_id, request_id, definition, timestamp, true)
+        self.issue_grant(credential_id, request_id, definition, clock, true)
     }
-    pub(super) fn issue_grant_at(
+    pub(super) fn issue_grant(
         &self,
         credential_id: &str,
         request_id: &str,
         definition: &GrantDefinition,
-        timestamp: i64,
+        clock: Clock,
         register_origin: bool,
     ) -> Result<IssuedTaskGrant> {
         connect_protocol::tasks::validate_task_identifier(request_id)?;
@@ -65,6 +73,7 @@ impl Store {
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let timestamp = clock.read();
         let actor = actor_from_connection_at(&tx, credential_id, timestamp)?;
         let task = authority::issuing_task(&tx, &actor, definition, timestamp)?;
         if !register_origin {

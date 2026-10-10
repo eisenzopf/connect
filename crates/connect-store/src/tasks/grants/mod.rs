@@ -48,19 +48,11 @@ impl Store {
         task_id: &str,
         binding: &InvocationBinding,
     ) -> Result<()> {
-        self.register_task_binding_at(credential_id, task_id, binding, crate::now())
-    }
-    pub(super) fn register_task_binding_at(
-        &self,
-        credential_id: &str,
-        task_id: &str,
-        binding: &InvocationBinding,
-        timestamp: i64,
-    ) -> Result<()> {
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let timestamp = crate::now();
         let actor = actor_from_connection_at(&tx, credential_id, timestamp)?;
         actor.require("task_grant")?;
         let task = tasks::task(&tx, &actor, task_id)?;
