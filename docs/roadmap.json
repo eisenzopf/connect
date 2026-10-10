@@ -150,7 +150,8 @@
           "status": "planned"
         }
       ],
-      "implementation": null
+      "implementation": null,
+      "entry_contract": "connect-task-authority.html"
     },
     {
       "id": 5,
@@ -238,16 +239,15 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "R01\u2013R04 repaired and verified, including a fresh installed package. Live SMS conversation, native SDK recall and HELP/STOP/START suppression/recovery are verified.",
-    "R05\u2013R08 readiness, contributor reproducibility, connector seam and task-binding decisions retain their assignments in the pre-Gate 4 review.",
-    "Additional assistant selection/research is deferred to G4-A. Gate 4\u20135 detailed plans remain unwritten."
+    "Gate 4 and Gate 5 detailed product/implementation plans remain to be written.",
+    "Additional assistant research and selection remain G4-A; implement task authority T-01\u2013T-07 and qualify T-A1\u2013T-A8 before exposing task-aware tools."
   ],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
-  "revision": 6,
+  "revision": 7,
   "document": "connect-roadmap.html",
-  "planning_status": "Gates 1\u20133 qualified within recorded scope; four immediate repairs and fresh installed package verified. Reviewed SMS enrollment, conversation, context recall and live keyword suppression/recovery verified. R05\u2013R08 remain explicit qualification/design follow-ups; Gates 4\u20135 remain planned.",
+  "planning_status": "Gates 1\u20133 retain their recorded qualification. R01\u2013R07 entry repairs/qualification and R08 decisions are closed; live SMS is qualified. Ready to plan Gate 4; Gate 4 runtime and full Gate 5 release remain planned.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
   "parallel_lanes": [
     {
@@ -354,5 +354,11 @@
     "gate_3_proof": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; live HELP/STOP/START enforcement and recovery are verified.",
     "scope_boundary": "The model must represent human/AI kinds, conversation roles and connection changes without losing conversation context. G3-A records gaps in current immutable membership and plans the minimum lifecycle contract; this does not declare live human handoff, multiparty mixing or cross-device transfer already implemented.",
     "lifetime_policy": "Connect defaults to persistent conversations. New sessions, provider legs, connections and bounded runtime context views reuse the existing cid. Only explicit developer/application intent creates a new conversation; unresolved inbound binding is not an automatic split or merge."
+  },
+  "pre_gate_4_entry": {
+    "status": "closed-with-recorded-limits",
+    "review": "connect-pre-gate-4-entry.html",
+    "evidence": "evidence/pre-gate-4/entry-closure.json",
+    "task_decisions": "connect-task-authority.html"
   }
 }

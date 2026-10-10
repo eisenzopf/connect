@@ -15,12 +15,12 @@ Node 22+ and Python 3.11+. Other platforms are not qualified yet.
 4. Run `bash scripts/format.sh`, `npm ci --prefix sdk/typescript`,
    `npm run format --prefix sdk/typescript`, and `npm run build --prefix sdk/typescript`.
    Commit generated TypeScript `dist` with its source.
-5. Run `python3 scripts/check-local.py --ci` for reproducible source checks.
+5. Run `python3 scripts/check-local.py --ci` and `python3 scripts/check-gate-3.py` for reproducible source and offline media checks.
    They use disposable local state, no provider account, and no live telephone/SMS.
 6. Open a PR describing the problem, resulting behavior, checks performed, and
    any wire-contract or migration impact. Update the relevant numbered gate items.
 
-CI runs the source checks on macOS arm64. It does **not** replace release
+CI runs source checks, the full offline media lane (including pressure and allocated queue checks), and the public schema-6 upgrade/rollback drill on macOS arm64. Build its pinned baseline with `scripts/build-recovery-baseline.py`; see the release instructions for the complete commands. It does **not** replace release
 qualification: the full local runner also exercises an archived schema-1 binary,
 and `--package` verifies an installed candidate. That historical binary is not
 in Git; do not call missing historical-binary checks a pass. See
@@ -32,6 +32,4 @@ under ignored `.local/`. Never attach raw private logs to issues. Upstream fixes
 belong in digest-checked patches and their upstream PRs; avoid invisible `.deps`
 edits. Do not test a migration against someone's working database.
 
-Public review does not imply a production-ready release. Live SMS, the Connect
-media bridge, dynamic presence and broader platform qualification remain explicit
-limits; proposing them is welcome, claiming them as delivered is not.
+Public review does not imply a production-ready release. Reviewed SMS, Connect-carried media and basic availability are qualified within the recorded local topology. Agent tools/task continuation, the full connector kit, video and broader platform qualification remain planned. Read the [entry closure](docs/connect-pre-gate-4-entry.html) and its explicit limits before expanding a claim.

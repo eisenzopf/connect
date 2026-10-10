@@ -251,7 +251,7 @@
       "id": "F-13",
       "required_capability": "Contributor connector kit, template and shared contract checks",
       "delivery_gate": 5,
-      "status": "Storage-independent connector API and compiled example delivered; dynamic catalog/registration and full capability kit remain open.",
+      "status": "Storage-independent API, immutable composition descriptors and an independent context-bearing connector fixture are delivered. Full manifests, templates, media connector kit and contributor conformance remain Gate 5.",
       "required_evidence": "New connector without editing core; catalog and capability compatibility",
       "v0_1_required": true,
       "milestones": [
@@ -261,7 +261,8 @@
       "sources": [
         "connect-v0.1-contract.html#scope",
         "connect-technical-readiness.html#map"
-      ]
+      ],
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
     },
     {
       "id": "F-14",
@@ -352,7 +353,7 @@
       "id": "F-18",
       "required_capability": "Account/resource setup, protected secrets and verified contacts",
       "delivery_gate": "See milestone assignments",
-      "status": "Provisioning/readback exists; complete designed setup experience remains planned.",
+      "status": "Provisioning/readback and authenticated component readiness are implemented, including SIP registration lease/refresh observations. Complete setup, secret-store and contact-verification experience remains planned.",
       "required_evidence": "Select resources, preview changes, resume interrupted setup, verify contact ownership and report separate inbound/outbound readiness. Qualify the selected ingress/secret-store approach.",
       "v0_1_required": true,
       "milestones": [
@@ -362,13 +363,14 @@
       ],
       "sources": [
         "connect-first-ten-minutes.html#start"
-      ]
+      ],
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
     },
     {
       "id": "F-19",
       "required_capability": "Measured operating envelope and failure/recovery behavior",
       "delivery_gate": "See milestone assignments",
-      "status": "Gate 3 qualifies one/four-session 60-second profiles, real RTP reorder/loss, bounded queues, expiry, saturation, peer/server cancellation, recovery and local installed packages. Full platform/release envelope remains Gate 5.",
+      "status": "Gate 3 load/media/recovery evidence is retained. Pre-Gate 4 adds prompt worker-failure supervision, SIP lease loss/recovery, public schema-6 reproduction and full offline CI lane. Full platform/release envelope remains Gate 5.",
       "required_evidence": "Document and test retention, file size, concurrency, loss/latency, cancellation, restart, uncertain effects and diagnostics for advertised paths.",
       "v0_1_required": true,
       "milestones": [
@@ -387,13 +389,14 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
-      ]
+      ],
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
     },
     {
       "id": "F-20",
       "required_capability": "Scoped authority across files, media, tools and app actions",
       "delivery_gate": "See milestone assignments",
-      "status": "Gate 3 current authority/revocation/isolation checks pass for sessions, availability, artifacts, SIP and WebRTC. Later tools/app/video require their own checks.",
+      "status": "Gate 3 current authority/revocation/isolation passes remain valid. R08 fixes task/invocation/reply/recall decisions T-01\u2013T-07; task runtime acceptance T-A1\u2013T-A8 remains Gate 4 implementation.",
       "required_evidence": "Enforce current authorization and revocation on all added operations. Prevent cross-task/context leakage, spoofed caller authority and unauthorized file access; no per-action permission console.",
       "v0_1_required": true,
       "milestones": [
@@ -416,7 +419,8 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
-      ]
+      ],
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
     },
     {
       "id": "F-21",

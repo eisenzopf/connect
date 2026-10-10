@@ -161,11 +161,11 @@
   ],
   "private_evidence": "Raw logs, credentials, handset details, database snapshots and provider identifiers remain ignored under .local; original audit reproductions are historical at a20de33.",
   "source_manifest": "source-files.json",
-  "unresolved": [
-    "R05\u2013R08 qualification and Gate 4 design work remain as scoped in the original review."
-  ],
+  "unresolved": [],
   "repair_source_revision": "e80e81010228",
   "rudeless_source_revision": "608404e",
   "installed_package": "package.json",
-  "dirty_source_note": "The broad offline run used the then-uncommitted repair tree. The final installed candidate is pinned by repair_source_revision and package.json; subsequent changes are documentation only."
+  "dirty_source_note": "The broad offline run used the then-uncommitted repair tree. The final installed candidate is pinned by repair_source_revision and package.json; subsequent changes are documentation only.",
+  "entry_followup": "entry-closure.json",
+  "entry_followup_note": "R05\u2013R07 entry implementation/qualification and R08 decisions now closed; future task runtime/media connector kit remain explicitly planned, not missing passes."
 }

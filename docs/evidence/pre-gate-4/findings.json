@@ -167,7 +167,12 @@
         "docs/evidence/gate-3/result.json",
         1
       ]
-    ]
+    ],
+    "resolution": {
+      "status": "closed-local",
+      "evidence": "entry-closure.json",
+      "limit": "The historical live idle telephone failure remains an unreproduced carrier/network observation; no continuous external reachability or live soak is claimed."
+    }
   },
   {
     "id": "R06",
@@ -205,7 +210,12 @@
         "crates/connect-server/tests/gate3_media_pressure.rs",
         284
       ]
-    ]
+    ],
+    "resolution": {
+      "status": "closed-local",
+      "evidence": "entry-closure.json",
+      "limit": "GitHub Actions is configured but has not run remotely. A source archive without Git history requires the documented verified baseline executable."
+    }
   },
   {
     "id": "R07",
@@ -239,7 +249,12 @@
         "docs/CONNECTORS.md",
         1
       ]
-    ]
+    ],
+    "resolution": {
+      "status": "closed-entry-seam",
+      "evidence": "entry-closure.json",
+      "limit": "Existing Vapi telephone/media DTOs and Telnyx callbacks remain explicit integrations. Full generic media connector kit and independent contributor conformance remain Gate 5."
+    }
   },
   {
     "id": "R08",
@@ -269,6 +284,11 @@
         "docs/backlog.html",
         1
       ]
-    ]
+    ],
+    "resolution": {
+      "status": "closed-decision",
+      "evidence": "entry-closure.json",
+      "limit": "Task records, invocation grants, task-aware tools and host resume are Gate 4 implementation. T-A1\u2013T-A8 are not claimed as runtime passes; additional host research remains G4-A."
+    }
   }
 ]

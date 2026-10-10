@@ -1,0 +1,335 @@
+{
+  "date": "2026-10-09",
+  "result": "passed",
+  "scope": "Close remaining R05\u2013R08 entry requirements on local macOS arm64; R08 is decision closure, not Gate 4 runtime implementation.",
+  "candidate_source_revision": "99243f3962cf25e780bbd176e56a4f27c752e121",
+  "resolutions": {
+    "R05": {
+      "status": "closed-local",
+      "evidence": [
+        "Authenticated health includes component readiness. Supervised worker failure/panic wakes shutdown policy.",
+        "A failed result commit preserves uncertain work without another provider submission.",
+        "Real UDP registrar verifies accepted-lease idle refresh, rejected refresh, dropped response/expiry and recovery. A stale Registered flag cannot keep an expired lease ready."
+      ],
+      "limit": "The historical live idle telephone failure remains an unreproduced carrier/network observation; no continuous external reachability or live soak is claimed."
+    },
+    "R06": {
+      "status": "closed-local",
+      "evidence": [
+        "Public source-pinned schema-6 baseline builder and upgrade/rollback drill run in a separate clean Git checkout.",
+        "Original rows/receipts survive migration; old binary refuses new schema; injected migration failure rolls back and matching restore recovers.",
+        "PR/main workflow names the complete offline Gate 3 lane, including ignored pressure profile and allocated SIP/WebRTC queue tests.",
+        "Configurable native/browser/telephone continuity rehearsal uses checked-in public SDK samples."
+      ],
+      "limit": "GitHub Actions is configured but has not run remotely. A source archive without Git history requires the documented verified baseline executable."
+    },
+    "R07": {
+      "status": "closed-entry-seam",
+      "evidence": [
+        "Trusted descriptors select address validation, authorized context and conversational uncertainty policy.",
+        "Independent research-assistant fixture completes a context-bearing reply, native SDK receipt/replay and restart through composition only."
+      ],
+      "limit": "Existing Vapi telephone/media DTOs and Telnyx callbacks remain explicit integrations. Full generic media connector kit and independent contributor conformance remain Gate 5."
+    },
+    "R08": {
+      "status": "closed-decision",
+      "evidence": [
+        "Task authority decisions T-01\u2013T-07 and required future acceptance T-A1\u2013T-A8 are fixed in connect-task-authority.html.",
+        "First host is Vapi with the public-SDK durable worker as reference runner; automatic durable resume, bounded tool wait, explicit reply/task binding and authorized paged recall are selected."
+      ],
+      "limit": "Task records, invocation grants, task-aware tools and host resume are Gate 4 implementation. T-A1\u2013T-A8 are not claimed as runtime passes; additional host research remains G4-A."
+    }
+  },
+  "verification": {
+    "gate3": {
+      "result": "passed",
+      "phases": 28,
+      "steps": [
+        {
+          "name": "dependencies",
+          "result": "passed"
+        },
+        {
+          "name": "format",
+          "result": "passed"
+        },
+        {
+          "name": "lint",
+          "result": "passed"
+        },
+        {
+          "name": "contract-fixtures",
+          "result": "passed"
+        },
+        {
+          "name": "durable-model",
+          "result": "passed"
+        },
+        {
+          "name": "native-media-parity",
+          "result": "passed"
+        },
+        {
+          "name": "native-media-faults",
+          "result": "passed"
+        },
+        {
+          "name": "native-sdk-media-helper",
+          "result": "passed"
+        },
+        {
+          "name": "media-pressure-smoke",
+          "result": "passed"
+        },
+        {
+          "name": "vapi-duplex-media",
+          "result": "passed"
+        },
+        {
+          "name": "vapi-observer-lifecycle",
+          "result": "passed"
+        },
+        {
+          "name": "provider-chat-context",
+          "result": "passed"
+        },
+        {
+          "name": "entry-readiness-and-connector",
+          "result": "passed"
+        },
+        {
+          "name": "provider-chat-flow",
+          "result": "passed"
+        },
+        {
+          "name": "vapi-adapter-failures",
+          "result": "passed"
+        },
+        {
+          "name": "transport-queue-budgets",
+          "result": "passed"
+        },
+        {
+          "name": "sip-duplex-media",
+          "result": "passed"
+        },
+        {
+          "name": "sip-registration-lifecycle",
+          "result": "passed"
+        },
+        {
+          "name": "sip-codec-failures",
+          "result": "passed"
+        },
+        {
+          "name": "webrtc-duplex-media",
+          "result": "passed"
+        },
+        {
+          "name": "webrtc-security",
+          "result": "passed"
+        },
+        {
+          "name": "sip-webrtc-interop",
+          "result": "passed"
+        },
+        {
+          "name": "artifact-recovery",
+          "result": "passed"
+        },
+        {
+          "name": "artifact-lifecycle",
+          "result": "passed"
+        },
+        {
+          "name": "transport-authority",
+          "result": "passed"
+        },
+        {
+          "name": "language-sdk-facade",
+          "result": "passed"
+        },
+        {
+          "name": "typescript-sdk",
+          "result": "passed"
+        },
+        {
+          "name": "python-sdk",
+          "result": "passed"
+        }
+      ],
+      "source_fingerprint_sha256": "9d5ac7262494e5e01eb8192901e7e9d260229ca6152fe69e91838ba231418c60",
+      "source_stable": true
+    },
+    "contributor_runner": {
+      "result": "passed",
+      "stages": 19,
+      "steps": [
+        {
+          "name": "dependencies",
+          "result": "passed"
+        },
+        {
+          "name": "format",
+          "result": "passed"
+        },
+        {
+          "name": "lint",
+          "result": "passed"
+        },
+        {
+          "name": "typescript-sdk-install",
+          "result": "passed"
+        },
+        {
+          "name": "typescript-sdk-build",
+          "result": "passed"
+        },
+        {
+          "name": "typescript-sdk-format",
+          "result": "passed"
+        },
+        {
+          "name": "typescript-sdk-failures",
+          "result": "passed"
+        },
+        {
+          "name": "python-sdk-failures",
+          "result": "passed"
+        },
+        {
+          "name": "workspace",
+          "result": "passed"
+        },
+        {
+          "name": "connector-example",
+          "result": "passed"
+        },
+        {
+          "name": "upstream",
+          "result": "passed"
+        },
+        {
+          "name": "dispatch",
+          "result": "passed"
+        },
+        {
+          "name": "typescript-probe",
+          "result": "passed"
+        },
+        {
+          "name": "datagram-probe",
+          "result": "passed"
+        },
+        {
+          "name": "identity-process",
+          "result": "passed"
+        },
+        {
+          "name": "recovery-process",
+          "result": "passed"
+        },
+        {
+          "name": "crash-replay",
+          "result": "passed"
+        },
+        {
+          "name": "examples",
+          "result": "passed"
+        },
+        {
+          "name": "example-recovery",
+          "result": "passed"
+        }
+      ]
+    },
+    "workspace_tests": {
+      "passed": 134,
+      "ignored": 1,
+      "ignored_disposition": "The 1/4-session pressure profile was explicitly included and passed in the Gate 3 lane."
+    },
+    "fresh_checkout_schema6": "passed on unchanged serial retry; current and old executable built from documented Git sources",
+    "strict_clippy": "passed",
+    "rustdoc_warnings_denied": "passed",
+    "sdk_followup": {
+      "javascript_typescript_passed": 39,
+      "python_passed": 15,
+      "reason": "Final review added optional readiness-field shape validation after the broad source run; older responses remain accepted and malformed observations are rejected."
+    },
+    "installed_package": {
+      "result": "passed",
+      "checks": {
+        "archive-checksums": {
+          "result": "passed",
+          "detail": "All three archives match SHA256SUMS"
+        },
+        "inventory": {
+          "result": "passed",
+          "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+        },
+        "sdk-source-build": {
+          "result": "passed",
+          "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+        },
+        "installed-walkthrough": {
+          "result": "passed",
+          "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+        },
+        "restart-shutdown": {
+          "result": "passed",
+          "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+        },
+        "installed-language-sdks": {
+          "result": "passed",
+          "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+        },
+        "check-examples.py": {
+          "result": "passed",
+          "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+        },
+        "check-recovery.py": {
+          "result": "passed",
+          "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+        },
+        "check-crash-replay.py": {
+          "result": "passed",
+          "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+        },
+        "check-example-recovery.py": {
+          "result": "passed",
+          "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+        }
+      },
+      "archives": {
+        "connect-0.1.0-alpha.1-macos-arm64-99243f3962cf-qualification.tar.gz": "49d35facccf19a8345b13e868da1568666dc46b1b9c9b44026d8491a112f72ae",
+        "connect-0.1.0-alpha.1-macos-arm64-99243f3962cf-source.tar.gz": "f1ad539f243b3c414927194f5de01f2c5ec6ce9ff65ae18928cf5ba23a8ca935",
+        "connect-0.1.0-alpha.1-macos-arm64-99243f3962cf.tar.gz": "0600b38da7222ae34efa9c68e85419baa754be77e3b64d68635655e2f03e2fea"
+      },
+      "source_revision": "99243f3962cf25e780bbd176e56a4f27c752e121"
+    }
+  },
+  "attempts": [
+    {
+      "result": "startup-timeout",
+      "scenario": "First clean-checkout baseline init and first installed-candidate --version during concurrent builds",
+      "deadline_seconds": 15,
+      "disposition": "Both checks passed on unchanged reruns with the same deadlines; retained as failed attempts. Cold-start latency cause was not isolated and no latency guarantee is inferred."
+    }
+  ],
+  "source_note": "Broad Rust/media and contributor runs used the entry repair tree (8fe66da/7a743ca). Generated declarations were committed without content changes during the stable Gate 3 run. The later dbb6741 change only validates language-SDK readiness data; targeted SDK tests and the final installed package cover that change.",
+  "not_run": [
+    "Remote GitHub Actions",
+    "New live provider calls or account operations",
+    "Live carrier/NAT soak",
+    "Gate 4 task runtime acceptance T-A1\u2013T-A8",
+    "Community publication"
+  ],
+  "private_log_sha256": {
+    "entry-fresh-schema.log": "4090af5f0c682e210da639cc98aaad05210aa50741e4a41ff72127d0498bcf4e",
+    "entry-fresh-schema-retry.log": "80d50745374c0c424ed25315cb0b85f6e2e5ad4c2f4e96c62ad80300b440b073",
+    "entry-package-check.log": "1976571bb5520ba0d73b9a2d1272e4f97ca0ff99aefab539e897e0ccfafe1e29",
+    "entry-sdk-final-retry.log": "5d4a454d8ab54d9d91864ce36aacb09d644af2f1218918a74687df33707177d8",
+    "entry-python-final.log": "9c317249d7197ebb56f8d148894dd9465583826360cff84c37e420b51da231b5",
+    "entry-rustdoc.log": "045d597e5e3a8c730ab69d0f69cbaaa5ae740597d48ae71a1f70ea8b9a35e17f"
+  }
+}
