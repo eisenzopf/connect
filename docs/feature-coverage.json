@@ -65,6 +65,9 @@
       "gate_3_criteria": [
         "A3-08",
         "A3-12"
+      ],
+      "gate_4_criteria": [
+        "A4-08"
       ]
     },
     {
@@ -86,6 +89,9 @@
       "gate_3_criteria": [
         "A3-08",
         "A3-12"
+      ],
+      "gate_4_criteria": [
+        "A4-08"
       ]
     },
     {
@@ -119,7 +125,11 @@
         "connect-first-ten-minutes.html#start",
         "connect-v0.1-contract.html#proof"
       ],
-      "evidence": "evidence/pre-gate-4/sms-live.json"
+      "evidence": "evidence/pre-gate-4/sms-live.json",
+      "gate_4_criteria": [
+        "A4-06",
+        "A4-12"
+      ]
     },
     {
       "id": "F-07",
@@ -180,6 +190,10 @@
       "sources": [
         "connect-v0.1-contract.html#scope",
         "connect-first-ten-minutes.html#agents"
+      ],
+      "gate_4_criteria": [
+        "A4-09",
+        "A4-12"
       ]
     },
     {
@@ -196,6 +210,11 @@
       ],
       "sources": [
         "connect-first-ten-minutes.html#agents"
+      ],
+      "gate_4_criteria": [
+        "A4-07",
+        "A4-08",
+        "A4-10"
       ]
     },
     {
@@ -281,6 +300,9 @@
       ],
       "gate_3_criteria": [
         "A3-13"
+      ],
+      "gate_4_criteria": [
+        "A4-14"
       ]
     },
     {
@@ -288,7 +310,7 @@
       "required_capability": "Cross-channel conversation continuity and explicit assistant context transfer",
       "delivery_gate": "3 continuity / 4 task continuation",
       "status": "Gate 3 qualifies retained source history, bounded context delivery, final voice observations and actual four-route decision recall after restart. Omission and ASR/model limits are explicit; SMS-to-native SDK recall is now verified in the same conversation; task resumption remains Gate 4 work.",
-      "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; finish live HELP/STOP/START enforcement.",
+      "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; preserve verified live HELP/STOP/START enforcement in task-driven dispatch.",
       "v0_1_required": true,
       "milestones": [
         "G3-A",
@@ -306,6 +328,13 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
+      ],
+      "gate_4_criteria": [
+        "A4-01",
+        "A4-03",
+        "A4-05",
+        "A4-10",
+        "A4-12"
       ]
     },
     {
@@ -390,7 +419,12 @@
       "evidence": [
         "evidence/gate-3/acceptance.html"
       ],
-      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json",
+      "gate_4_criteria": [
+        "A4-04",
+        "A4-13",
+        "A4-14"
+      ]
     },
     {
       "id": "F-20",
@@ -420,7 +454,15 @@
       "evidence": [
         "evidence/gate-3/acceptance.html"
       ],
-      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json",
+      "gate_4_criteria": [
+        "A4-01",
+        "A4-02",
+        "A4-03",
+        "A4-05",
+        "A4-06",
+        "A4-13"
+      ]
     },
     {
       "id": "F-21",
@@ -437,6 +479,12 @@
       ],
       "sources": [
         "connect-first-ten-minutes.html#evidence"
+      ],
+      "gate_4_criteria": [
+        "A4-04",
+        "A4-10",
+        "A4-11",
+        "A4-14"
       ]
     }
   ],
@@ -449,6 +497,7 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "Gate 3: 35 tasks and 13 required criteria qualified on the recorded topology. Immediate repairs and installed package verified. SMS conversation/native recall passed; keyword qualification remains open. Gate 4 tools and Gate 5 full v0.1 remain planned.",
-  "gate_3_acceptance": "gate-3-acceptance.json"
+  "assignment_status": "Gates 1\u20133 retain recorded qualification. Pre-Gate 4 repairs and live SMS conversation, recall and HELP/STOP/START are closed within recorded limits. Gate 4 has a review draft with 36 tasks and 14 criteria; implementation has not started. Gate 5 full v0.1 remains planned.",
+  "gate_3_acceptance": "gate-3-acceptance.json",
+  "gate_4_acceptance": "gate-4-acceptance.json"
 }

@@ -102,14 +102,14 @@
       "implementation": "connect-gate-3-implementation.html",
       "acceptance": "gate-3-acceptance.json",
       "evidence": "evidence/gate-3/acceptance.html",
-      "completion_audit": "G3-016 and dependent verification/closure items reopened. The fixed 200 ms queue target and explicit reordered RTP were not fully qualified by prior checks."
+      "completion_audit": "Closed with corrected queue ceilings, reordered-RTP and current offline/installed/live qualification; see evidence/gate-3/acceptance.html and pre_gate_4_entry for later repairs and limits."
     },
     {
       "id": 4,
       "name": "Agent follow-through",
       "outcome": "MCP and skill, Vapi tool use, one selected host and complete task-correlated agent/app follow-through.",
-      "status": "planned",
-      "plan": null,
+      "status": "in-progress",
+      "plan": "connect-gate-4-plan.html",
       "milestones": [
         {
           "id": "G4-A",
@@ -150,8 +150,9 @@
           "status": "planned"
         }
       ],
-      "implementation": null,
-      "entry_contract": "connect-task-authority.html"
+      "implementation": "connect-gate-4-implementation.html",
+      "entry_contract": "connect-task-authority.html",
+      "acceptance": "gate-4-acceptance.json"
     },
     {
       "id": 5,
@@ -239,15 +240,15 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 4 and Gate 5 detailed product/implementation plans remain to be written.",
+    "Gate 4 plans are drafted for review. Gate 5 detailed product/implementation plans remain to be written.",
     "Additional assistant research and selection remain G4-A; implement task authority T-01\u2013T-07 and qualify T-A1\u2013T-A8 before exposing task-aware tools."
   ],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
-  "revision": 7,
+  "revision": 8,
   "document": "connect-roadmap.html",
-  "planning_status": "Gates 1\u20133 retain their recorded qualification. R01\u2013R07 entry repairs/qualification and R08 decisions are closed; live SMS is qualified. Ready to plan Gate 4; Gate 4 runtime and full Gate 5 release remain planned.",
+  "planning_status": "Gate 4 implementation authorized by the owner; track verified progress in connect-gate-4-implementation.html. Gates 1\u20133 and pre-Gate 4 entry retain recorded qualification; Gate 5 remains planned.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
   "parallel_lanes": [
     {

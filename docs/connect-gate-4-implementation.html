@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Connect — Numbered implementation plan</title><style>
+:root{--bg:#07111d;--panel:#0d1b2b;--text:#edf5ff;--muted:#a4b6cb;--line:#23364c;--cyan:#31d6ff;--blue:#1b74ff}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--cyan);text-underline-offset:4px}a:hover{color:white}a:focus-visible,summary:focus-visible{outline:2px solid var(--cyan);outline-offset:5px}.shell{max-width:1160px;margin:auto;padding:0 36px}header{border-bottom:1px solid var(--line)}.masthead{display:flex;justify-content:space-between;gap:24px;padding-block:23px;align-items:center}.brand{font-size:23px;font-weight:700;text-decoration:none;color:var(--text);letter-spacing:-.04em}.brand span{color:var(--cyan);margin-right:10px}.meta,.note{font-size:13px;color:var(--muted)}h1,h2,h3,p,figure{margin:0}h1,h2,h3{line-height:1.12;letter-spacing:-.035em}h1{font-size:clamp(44px,6.4vw,76px);max-width:860px}h2{font-size:clamp(28px,4vw,40px)}h3{font-size:21px}p{color:var(--muted)}strong{color:var(--text)}.hero{padding:65px 0 46px;background:radial-gradient(ellipse at 90% 0,#1b74ff30,transparent 60%)}.eyebrow,.label{font-size:11px;font-weight:650;letter-spacing:.13em;text-transform:uppercase;color:var(--cyan)}.eyebrow{margin-bottom:20px}.hero h1 span{color:var(--cyan)}.lead{font-size:22px;max-width:800px;margin-top:25px}.hero .note{max-width:790px;margin-top:21px}.pills{display:flex;gap:9px;flex-wrap:wrap;margin-top:25px}.pill{font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;color:var(--muted)}nav{position:sticky;top:0;background:#07111df5;backdrop-filter:blur(12px);z-index:2;border-block:1px solid var(--line)}.contents{display:flex;gap:12px 23px;padding-block:15px;flex-wrap:wrap}.contents a{font-size:12px;text-decoration:none;color:var(--muted)}.contents a:hover{color:var(--cyan)}section{padding:49px 0;border-bottom:1px solid var(--line)}.section-head{display:grid;grid-template-columns:45px 1fr;gap:15px;margin-bottom:25px}.number{font:13px/2 ui-monospace,monospace;color:var(--cyan)}.intro{font-size:18px;max-width:820px;margin-top:16px}.grid{display:grid;gap:18px}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.three{grid-template-columns:repeat(3,minmax(0,1fr))}.card{padding:25px;border:1px solid var(--line);border-radius:12px;background:var(--panel);min-width:0}.card .label{display:block;margin-bottom:12px}.card p{margin-top:13px;font-size:15px}.quote{font-size:25px;line-height:1.45;border-left:3px solid var(--cyan);padding:23px 27px;background:linear-gradient(100deg,#1b74ff22,transparent);margin-bottom:25px;color:var(--text)}.callout{border:1px solid #31d6ff40;border-radius:10px;background:#31d6ff09;padding:20px 24px;margin-top:23px}.callout p{font-size:15px}.spaced{margin-top:24px}.note{margin-top:18px}.steps{list-style:none;padding:0;margin:0}.steps>li{display:grid;grid-template-columns:92px minmax(0,1fr);gap:22px;padding:30px 0;border-top:1px solid var(--line)}.time{color:var(--cyan);font:13px/1.7 ui-monospace,monospace}.step p{margin-top:12px}.step h3{font-size:25px}.result{border-left:2px solid var(--blue);padding-left:17px;font-size:14px}.code-label{display:flex;justify-content:space-between;gap:16px;color:var(--muted);font-size:11px;padding:11px 17px;background:#142439;border:1px solid var(--line);border-radius:8px 8px 0 0;margin-top:18px;letter-spacing:.04em}pre{margin:0;padding:20px;background:#040c16;border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;overflow-x:auto;color:#c8eaff;font-size:13px;line-height:1.75}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}p code,td code{font-size:.88em;overflow-wrap:anywhere}.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;text-align:left;min-width:650px;font-size:14px}th{padding:15px 18px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);background:var(--panel)}td{padding:17px 18px;border-top:1px solid var(--line);color:var(--muted);vertical-align:top}td:first-child{color:var(--text);font-weight:600;width:24%}.flow{display:grid;grid-template-columns:1fr 35px 1.15fr 35px 1fr;gap:10px;align-items:center;margin-top:25px}.node{padding:24px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel);text-align:center}.node strong{display:block;margin-bottom:8px}.node p{font-size:13px}.node.core{border-color:#31d6ff65;background:#31d6ff0d}.arrow{color:var(--cyan);font-size:23px;text-align:center}figcaption{font-size:13px;color:var(--muted);margin-top:15px}.transcript{list-style:none;padding:0;margin:18px 0 0}.transcript li{padding:14px 0;border-top:1px solid var(--line);font-size:15px}.transcript b{display:block;color:var(--cyan);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}.transcript span{color:var(--muted)}details{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-top:20px}summary{cursor:pointer;padding:18px 22px;font-weight:600}.detail-body{padding:0 22px 22px}.detail-body p{font-size:14px}ul{padding-left:21px;color:var(--muted)}li+li{margin-top:8px}.checks{list-style:none;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:0 30px}.checks li{position:relative;padding:17px 0 17px 24px;border-top:1px solid var(--line);margin:0;font-size:15px}.checks li:before{content:'□';position:absolute;left:0;color:var(--cyan)}footer{padding:35px 0 50px}footer p{max-width:800px}footer a{margin-right:22px}
+@media(max-width:760px){.shell{padding-inline:22px}.hero{padding-top:42px}.lead{font-size:19px}.masthead{align-items:flex-start}.meta{text-align:right;max-width:160px}.two,.three,.checks{grid-template-columns:1fr}.section-head{grid-template-columns:28px 1fr;gap:10px}.steps>li{grid-template-columns:1fr;gap:12px}.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}.card{padding:22px}.quote{font-size:22px}.contents{gap:9px 17px}.code-label{flex-wrap:wrap;gap:4px}section{padding-block:38px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:white;color:#07111d;font-size:10pt}.shell{padding:0;max-width:none}header,nav{display:none}.hero{background:none;padding:15px 0}h1{font-size:34pt}h2{font-size:23pt}h3{font-size:15pt}p,td,li,.note,figcaption{color:#33485c!important}strong{color:#07111d}.hero h1 span,a,.label,.number,.time,.eyebrow{color:#155cc9}.card,.node,.quote,.callout,details,th,.code-label{background:#f3f7fb;color:#07111d}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f7fb;color:#07111d;font-size:9pt}.card,.steps>li,.table-wrap{break-inside:avoid}section{padding:23px 0}.flow{grid-template-columns:1fr 25px 1fr 25px 1fr}.two{grid-template-columns:1fr 1fr}footer{padding-bottom:0}}
+
+:root{--violet:#c4a5ee}button,input,select,textarea{font:inherit}button,select,input[type=search]{border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);padding:9px 12px}button{cursor:pointer}button:hover{border-color:var(--cyan)}button.primary{background:#1b74ff38;border-color:#31d6ff70}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:20px 0}.toolbar label{font-size:13px;color:var(--muted)}.toolbar input[type=search]{min-width:220px;flex:1}.save-note{font-size:13px;color:var(--muted)}.progress{height:7px;background:var(--line);border-radius:7px;overflow:hidden;margin-top:15px}.progress>span{display:block;height:100%;background:var(--cyan);width:0}.phase-head{display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:18px}.phase-count{font-size:13px;color:var(--cyan);white-space:nowrap}.task{border:1px solid var(--line);border-radius:10px;margin:12px 0;background:var(--panel);padding:0}.task[hidden],section[hidden]{display:none!important}.task summary{display:flex;gap:12px;align-items:flex-start;padding:18px;line-height:1.45}.task summary .task-number{font:12px/1.9 ui-monospace,monospace;color:var(--cyan);white-space:nowrap}.task-title{flex:1;font-size:16px}.badge{font-size:11px;border:1px solid var(--line);padding:4px 8px;border-radius:5px;white-space:nowrap;color:var(--muted)}.task[data-status=done]{border-color:#31d6ff80}.task[data-status=done] .badge{color:var(--cyan)}.task[data-status=blocked] .badge{color:var(--violet);border-color:#8365a8}.task-body{padding:0 20px 22px}.task-body p{font-size:14px;margin:12px 0}.task-body .files{font:12px/1.7 ui-monospace,monospace;overflow-wrap:anywhere}.task-edit{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line);padding-top:16px;margin-top:18px}.task-edit label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}.task-edit label.wide{grid-column:1/-1}.task-edit input,.task-edit textarea{width:100%;border:1px solid var(--line);background:#07111d;color:var(--text);padding:9px;border-radius:5px}.task-edit textarea{min-height:65px;resize:vertical}.done-line{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)}input[type=checkbox]{width:18px;height:18px;accent-color:var(--cyan)}.form-message{font-size:12px;color:var(--violet)}.sourcecode{white-space:pre-wrap;overflow-wrap:anywhere}.runstep{border-top:1px solid var(--line);padding:22px 0}.runstep h3{font-size:21px}.runstep p{margin-top:12px}.phase-intro{margin-bottom:18px}.command-note{font-size:13px;color:var(--muted)}.deps a{font:12px ui-monospace,monospace;margin-right:8px}.summary-line{display:flex;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}.summary-line strong{color:var(--cyan)}.maintain code{overflow-wrap:anywhere}.noscript{border:1px solid var(--cyan);padding:18px}.next-link{margin-top:18px}#unsaved{color:var(--cyan)}@media(max-width:760px){.task summary{flex-wrap:wrap}.task-title{flex-basis:65%}.badge{margin-left:auto}.task-edit{grid-template-columns:1fr}.task-edit label.wide{grid-column:auto}.toolbar{align-items:stretch}.phase-head{flex-wrap:wrap;gap:10px}}@media print{.toolbar,.save-note,.done-line,.form-message{display:none}.task{break-inside:avoid;background:white}.task-body{display:block!important}.task-edit input,.task-edit textarea,.task-edit select{background:white;color:#07111d;border:1px solid #aaa}.task-title{color:#07111d}.task[hidden],section[hidden]{display:block!important}.task-body p{color:#33485c}.task summary{color:#07111d}.badge{color:#33485c}details::details-content{display:block}.progress>span{background:#155cc9}}
+
+.skip{position:absolute;left:-9999px}.skip:focus{left:16px;top:10px;z-index:10;background:var(--bg);padding:12px}.task-number{color:var(--cyan)}
+</style></head><body><a class="skip" href="#main">Skip to content</a>
+<header><div class="shell masthead"><a class="brand" href="index.html"><span>↔</span>Connect</a><p class="meta">Gate 4 · Numbered implementation plan<br>October 9, 2026 · Approved · implementation beginning</p></div></header>
+<div class="hero"><div class="shell"><p class="eyebrow">Agent follow-through · approved scope</p><h1>Make the work durable.<br><span>Prove the follow-through.</span></h1><p class="lead">36 numbered items with dependencies, implementation boundaries and required proof. A local candidate, real task continuation and an honest evidence trail.</p><div class="pills"><span class="pill">Server + SDK first</span><span class="pill">VoIP 3 conversation continuity</span><span class="pill">Local macOS arm64</span><span class="pill">Not started</span></div><p class="note">Gate 4 implementation is authorized. Progress and qualification are recorded in the numbered plan. <a href="connect-pre-gate-4-entry.html">Entry evidence and limits</a> · <a href="connect-task-authority.html">Task authority decisions</a>.</p></div></div>
+<nav aria-label="Page sections"><div class="shell contents"><a href="#contract">Contract</a><a href="#tracking">Progress</a><a href="#m0">M0 · Contracts and host selection</a><a href="#m1">M1 · Durable task core</a><a href="#m2">M2 · Public interfaces and tools</a><a href="#m3">M3 · Vapi and selected host</a><a href="#m4">M4 · Agent and app follow-through</a><a href="#m5">M5 · Qualification and review</a><a href="#local">Local rollout</a><a href="#acceptance">Acceptance</a><a href="#maintenance">Updating</a></div></nav><main class="shell" id="main"><section id="contract"><h2>The approved entry is a foundation, not Gate 4 completion.</h2><p class="intro">Implement the owner-approved <a href="connect-gate-4-plan.html">product plan</a>. Preserve <a href="connect-roadmap.html#gate-4">G4-A–G4-C</a> and <a href="connect-task-authority.html">T-01–T-07 / T-A1–T-A8</a>. All 36 tasks start unchecked; future code, scripts and evidence paths named below are planned outputs.</p><p class="note">Implementation is underway; no runtime item is qualified yet. Completion requires the task’s proof and completed dependencies. Keep protocol/store/service/client/server boundaries, public-only examples and rvoip-first reuse. No remote deployment, public release or provider activity is part of the offline runner.</p></section>
+<section id="tracking"><h2>One source of truth for task progress.</h2><p class="intro">Embedded task data owns status, dependencies, owner and evidence. Use this page to update it, then save an HTML copy and replace the repository file in your commit. Edits in the tab alone are not saved to disk.</p><div class="callout"><p><strong>Persistent means persistent:</strong> new sessions, legs and bounded assistant views remain in the existing conversation. A new conversation requires explicit developer/application intent. Presence, provider observations and caller ID cannot silently merge private histories.</p></div><div class="toolbar"><input id="search" type="search" aria-label="Search implementation tasks" placeholder="Find an item, file, or acceptance check"><label>Status <select id="status-filter"><option value="all">All</option><option value="not-started">Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><button id="expand" type="button">Expand all</button><button id="collapse" type="button">Collapse all</button><button class="primary" id="save" type="button">Save updated HTML</button><button id="export" type="button">Export status JSON</button></div><p class="save-note" id="unsaved" role="status">Saved document baseline · no unsaved edits</p><div class="summary-line" id="counts" aria-live="polite">0 / 36 complete · 1 in progress · 0 blocked</div><div class="progress" aria-hidden="true"><span id="progress-bar"></span></div><p class="note">Done requires an owner, evidence and completed dependencies. Independent work can start while dependencies are in progress; completion cannot. Blocked/deferred is never a pass. Host selection stays G4-A / D-05. No item is complete merely because the entry review closed.</p><noscript><p class="note">Tasks remain readable without JavaScript. Editing and saving controls require JavaScript.</p></noscript></section><section id="m0" class="phase"><div class="phase-head"><div><p class="eyebrow">M0 · G4-A / G4-B design</p><h2>Contracts and host selection</h2></div><span class="phase-count" data-phase="M0">0 / 6 done</span></div><details class="task" id="G4-001" data-status="in-progress"><summary><span class="task-number">G4-001</span><span class="task-title">Reproduce the entry baseline</span><span class="badge">In progress</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> None</p><p class="files"><strong>Files / outputs:</strong> dependencies/source-lock.json; scripts/check-local.sh; scripts/check-gate-3.sh; planned docs/evidence/gate-4/baseline.json</p><p><strong>Implement:</strong> Record source, patches, toolchain, hardware, current schema and entry limitations. Prepare dependencies and reproduce source/Gate 3 qualification in isolated state. Preserve the qualified pre-Gate 4 binary and manifest for upgrade tests.</p><p class="result"><strong>Verify before completion:</strong> Account-free checks pass at the recorded revision; distinguish earlier live evidence from new candidate qualification. Any regression is recorded before dependent changes.</p><p><strong>Acceptance mapping:</strong> A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started">Not started</option><option value="in-progress" selected>In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value="Codex"></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision">Owner approved Gate 4 implementation. Reproducing account-free baseline and preserving the pre-Gate 4 package before runtime changes.</textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-001"><label for="check-G4-001">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: 2026-10-09</p></div></details>
+<details class="task" id="G4-002" data-status="not-started"><summary><span class="task-number">G4-002</span><span class="task-title">Freeze task lifecycle and public operation contracts</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-001">G4-001</a></p><p class="files"><strong>Files / outputs:</strong> connect-protocol; contracts/; planned docs/decisions/009-task-runtime.md</p><p><strong>Implement:</strong> Translate T-01–T-07 into typed task, step, invocation, effect and reply-binding contracts. Define transitions, cancellation/expiry races, cursors, error shapes, current authorization and negotiated application-profile compatibility. Task states proposed below are frozen here. Reuse existing UCTP primitives; task policy belongs to Connect.</p><p class="result"><strong>Verify before completion:</strong> Reviewed fixtures cover all transitions, old-client behavior, invalid bindings and replay denials; no parallel conversation lifetime or model-selected authority. Exact limits and names recorded before implementation.</p><p><strong>Acceptance mapping:</strong> A4-01 A4-02 A4-03 A4-04 A4-05 A4-06</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-002"><label for="check-G4-002">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-003" data-status="not-started"><summary><span class="task-number">G4-003</span><span class="task-title">Research named assistant hosts and Vapi tool entry points</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-001">G4-001</a></p><p class="files"><strong>Files / outputs:</strong> planned docs/evidence/gate-4/host-research.json; docs/connect-technical-readiness.html</p><p><strong>Implement:</strong> Identify exact products/repositories behind Meta Muse, Grokbot, OpenClaw, Codex and other candidates. Record primary documentation, date/version, license, install, credential isolation, MCP interface, task binding and actual wake/resume mode. Verify Vapi chat and voice MCP/tool interfaces separately, including trusted request authentication and binding inputs. Do not infer capabilities from names.</p><p class="result"><strong>Verify before completion:</strong> Evidence matrix identifies supported, unsupported and unresolved candidates. Wrong/ambiguous product identities remain unresolved. No account mutation or tool execution is needed for the research record.</p><p><strong>Acceptance mapping:</strong> A4-07 A4-09</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-003"><label for="check-G4-003">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-004" data-status="not-started"><summary><span class="task-number">G4-004</span><span class="task-title">Design invocation grants, reply assignment and bounded recall</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-002">G4-002</a> <a href="#G4-003">G4-003</a></p><p class="files"><strong>Files / outputs:</strong> connect-service; connect-store; planned docs/decisions/009-task-runtime.md</p><p><strong>Implement:</strong> Specify opaque grant creation/storage/expiry/revocation, verified provider bindings, task-scoped SDK delegation, reply-to mapping and explicit assignment of unassigned events. Define history page budgets and continuation authorization, 10-second maximum Vapi tool wait, concurrency/admission limits and redaction. Separate administrative task creation from restricted agent operations.</p><p class="result"><strong>Verify before completion:</strong> Review cross-task/cross-conversation attack fixtures and cancellation races; map each T-A1–T-A8 case to executable checks. Document trusted transport/callback boundary before exposing a tool listener.</p><p><strong>Acceptance mapping:</strong> A4-02 A4-03 A4-04 A4-05 A4-06 A4-09 A4-13</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-004"><label for="check-G4-004">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-005" data-status="not-started"><summary><span class="task-number">G4-005</span><span class="task-title">Map reuse and choose adapter/package boundaries</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-002">G4-002</a> <a href="#G4-003">G4-003</a> <a href="#G4-004">G4-004</a></p><p class="files"><strong>Files / outputs:</strong> Cargo.toml; crates/connect-connector-api; crates/connect-server; docs/ARCHITECTURE.md</p><p><strong>Implement:</strong> Inspect pinned rvoip/UCTP, Parley, Bridgefu and Thelve implementations and provenance. Choose a thin MCP adapter boundary plus host adapter and durable SDK runner. Keep store/service/client/server ownership intact; avoid provider-specific task switches in core. Record any upstream patch and source-lock digest.</p><p class="result"><strong>Verify before completion:</strong> A dependency diagram and source/license map identify reuse versus new code. MCP adapter does not import SQLite; examples do not bypass public clients. No full connector framework rewrite is required.</p><p><strong>Acceptance mapping:</strong> A4-07 A4-08 A4-09 A4-10</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-005"><label for="check-G4-005">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-006" data-status="not-started"><summary><span class="task-number">G4-006</span><span class="task-title">Select one additional host and its installation contract</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-003">G4-003</a> <a href="#G4-004">G4-004</a> <a href="#G4-005">G4-005</a></p><p class="files"><strong>Files / outputs:</strong> planned docs/evidence/gate-4/host-selection.json; planned host installation guide</p><p><strong>Implement:</strong> Choose one evidenced host in addition to Vapi. Specify tested version, required account/runtime, install assets, task-binding adapter and automatic, bounded-wait or explicit-resume behavior. A declared explicit-resume host is acceptable only if it continues the original task without retyping context or writing glue.</p><p class="result"><strong>Verify before completion:</strong> Decision has rationale, reproducible install steps, success/failure criteria and a feasible continuation mechanism. No candidate is labelled supported until G4-023 passes. If none meets requirements, record the blocker rather than substituting the reference runner for a host.</p><p><strong>Acceptance mapping:</strong> A4-07 A4-10</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-006"><label for="check-G4-006">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+</section>
+<section id="m1" class="phase"><div class="phase-head"><div><p class="eyebrow">M1 · G4-B foundation</p><h2>Durable task core</h2></div><span class="phase-count" data-phase="M1">0 / 6 done</span></div><details class="task" id="G4-007" data-status="not-started"><summary><span class="task-number">G4-007</span><span class="task-title">Persist tasks and migrate without losing existing state</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-002">G4-002</a> <a href="#G4-004">G4-004</a> <a href="#G4-005">G4-005</a></p><p class="files"><strong>Files / outputs:</strong> crates/connect-store; migration and backup/restore tests</p><p><strong>Implement:</strong> Add tasks, lifecycle events, immutable conversation/owner binding, allowed operations/recipients, expiry and initiating-event provenance. Add bounded indexes and transaction helpers using existing migration conventions. Freeze the next schema version only after checking the current schema.</p><p class="result"><strong>Verify before completion:</strong> Upgrade populated pre-Gate 4 fixtures preserves messages, receipts, sessions, artifacts and SMS eligibility. Migration failure rolls back; cancellation/expiry states survive restart. No production database deletion.</p><p><strong>Acceptance mapping:</strong> A4-01 A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-007"><label for="check-G4-007">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-008" data-status="not-started"><summary><span class="task-number">G4-008</span><span class="task-title">Enforce task authority and invocation grants</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-007">G4-007</a></p><p class="files"><strong>Files / outputs:</strong> crates/connect-service; crates/connect-store; crates/connect-protocol</p><p><strong>Implement:</strong> Implement task creation/inspection/cancel and server-minted narrow opaque invocation grants. Recheck actor credential, membership, task lifecycle and grant on execution and replay; hash stored grant secrets and redact logs. Bind provider call/chat and invocation server-side.</p><p class="result"><strong>Verify before completion:</strong> T-A1/T-A2: wrong task, cid, recipient, call/chat, spoofed header, expired grant and revoked actor all fail before effects, including accepted-operation replay. Expiry and cancellation races use fake clocks and transaction tests.</p><p><strong>Acceptance mapping:</strong> A4-01 A4-02</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-008"><label for="check-G4-008">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-009" data-status="not-started"><summary><span class="task-number">G4-009</span><span class="task-title">Commit reply bindings and durable inbox transitions</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-007">G4-007</a> <a href="#G4-008">G4-008</a></p><p class="files"><strong>Files / outputs:</strong> crates/connect-store; crates/connect-service</p><p><strong>Implement:</strong> Persist task reply-to/event bindings, inbox delivery, cursor/checkpoint and task transition atomically before acknowledgement. Preserve unassigned replies in conversation history; expose authorized list/assign with an auditable assignment event and current checks. Notifications trigger journal reads.</p><p class="result"><strong>Verify before completion:</strong> T-A1/T-A3/T-A4: simultaneous tasks in one conversation, duplicate/reordered replies and crash before/after commit route correctly. Sender identity alone cannot select a task. Explicit assignment is idempotent and unauthorized assignment fails.</p><p><strong>Acceptance mapping:</strong> A4-03 A4-04</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-009"><label for="check-G4-009">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-010" data-status="not-started"><summary><span class="task-number">G4-010</span><span class="task-title">Track effects and reconcile uncertain outcomes</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-008">G4-008</a> <a href="#G4-009">G4-009</a></p><p class="files"><strong>Files / outputs:</strong> crates/connect-store; crates/connect-service; connector dispatch boundary</p><p><strong>Implement:</strong> Persist task/step/logical-mutation effect keys before external dispatch. Link existing request receipts and provider observations. Atomically claim work with bounded leases; reclaim only safe undispatched work. Unknown outcomes remain uncertain until reconciliation, never blindly resent.</p><p class="result"><strong>Verify before completion:</strong> T-A3: crashes before dispatch, after remote acceptance and before receipt/ACK plus two competing workers produce one logical committed effect. For an unknowable remote outcome, show uncertain with no second dispatch; do not claim universal exactly-once delivery.</p><p><strong>Acceptance mapping:</strong> A4-04</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-010"><label for="check-G4-010">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-011" data-status="not-started"><summary><span class="task-number">G4-011</span><span class="task-title">Add task-authorized recall and source provenance</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-008">G4-008</a> <a href="#G4-009">G4-009</a></p><p class="files"><strong>Files / outputs:</strong> crates/connect-service; crates/connect-protocol; context/history tests</p><p><strong>Implement:</strong> Reuse the initial 32 KiB projection, then expose bounded paged retrieval within the bound conversation. Return source IDs, timestamps, provenance, omissions, cursor and unavailable/deleted outcomes. Current authorization applies to continuation pages and artifact references.</p><p class="result"><strong>Verify before completion:</strong> T-A5: retrieve an old required fact outside initial context; no second-conversation leakage or stale cursor access after revocation. Large/expired/deleted sources are explicit. Provider text cannot change grants or routing.</p><p><strong>Acceptance mapping:</strong> A4-05</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-011"><label for="check-G4-011">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-012" data-status="not-started"><summary><span class="task-number">G4-012</span><span class="task-title">Apply cancel, revoke, expiry and SMS dispatch rules</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-008">G4-008</a> <a href="#G4-009">G4-009</a> <a href="#G4-010">G4-010</a></p><p class="files"><strong>Files / outputs:</strong> crates/connect-service; crates/connect-store; SMS eligibility boundary</p><p><strong>Implement:</strong> Invalidate grants on cancel/revoke/expiry, stop pending effects and preserve authorized receipts. Check active reviewed enrollment, task purpose, route and current eligibility immediately before SMS dispatch. Keep STOP separate from unrelated task/conversation lifecycle; START cannot resurrect cancelled effects.</p><p class="result"><strong>Verify before completion:</strong> T-A2/T-A7: queue then STOP, authority-feed staleness, expiry and revocation block sends; START plus a valid reviewed grant permits only a new authorized mutation. Replay of cancelled work stays cancelled.</p><p><strong>Acceptance mapping:</strong> A4-02 A4-06</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-012"><label for="check-G4-012">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+</section>
+<section id="m2" class="phase"><div class="phase-head"><div><p class="eyebrow">M2 · G4-B</p><h2>Public interfaces and tools</h2></div><span class="phase-count" data-phase="M2">0 / 6 done</span></div><details class="task" id="G4-013" data-status="not-started"><summary><span class="task-number">G4-013</span><span class="task-title">Expose task operations in the native public client</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-008">G4-008</a> <a href="#G4-009">G4-009</a> <a href="#G4-010">G4-010</a> <a href="#G4-011">G4-011</a> <a href="#G4-012">G4-012</a></p><p class="files"><strong>Files / outputs:</strong> crates/connect-protocol; crates/connect-client; crates/connect-server</p><p><strong>Implement:</strong> Add negotiated task create/get/cancel, reply assignment, bounded history and wait/resume operation families through existing service handlers and native UCTP/QUIC control. Keep datagram media unchanged. Distinguish pending, completed, denied and uncertain outcomes.</p><p class="result"><strong>Verify before completion:</strong> Independent Rust client exercises all new operations and negative fixtures. Old profile clients keep declared behavior; unsupported profile requests fail clearly. Responses never expose opaque grants outside their intended credential exchange.</p><p><strong>Acceptance mapping:</strong> A4-01 A4-02 A4-03 A4-05 A4-08</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-013"><label for="check-G4-013">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-014" data-status="not-started"><summary><span class="task-number">G4-014</span><span class="task-title">Provide Python, TypeScript, HTTP and JSON CLI parity</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-013">G4-013</a></p><p class="files"><strong>Files / outputs:</strong> sdk/python; sdk/typescript; crates/connect-server; SDK/API documentation</p><p><strong>Implement:</strong> Extend typed SDK/native-helper control, explicit HTTP facade and JSON CLI through the same service operations. Preserve stable IDs/cursors and errors across reconnects. Define task-scoped credentials, not a broad operator token in agent examples.</p><p class="result"><strong>Verify before completion:</strong> Run a shared task lifecycle/reply/recall/cancel/error matrix through Rust, Python, TypeScript, HTTP and CLI. Malformed optional fields and timeout/pending outcomes validate correctly. A WebSocket or HTTP facade is not labelled native QUIC.</p><p><strong>Acceptance mapping:</strong> A4-08</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-014"><label for="check-G4-014">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-015" data-status="not-started"><summary><span class="task-number">G4-015</span><span class="task-title">Build the durable public-SDK reference runner</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-009">G4-009</a> <a href="#G4-010">G4-010</a> <a href="#G4-012">G4-012</a> <a href="#G4-014">G4-014</a></p><p class="files"><strong>Files / outputs:</strong> examples/review-loop; planned reusable runner support and tests</p><p><strong>Implement:</strong> Extend the public SDK worker pattern with persisted task binding, inbox checkpoint, business-effect ledger, bounded claims and automatic restart/catch-up. Keep application business effects in the application store, Connect communication authority in service/store. Support graceful drain and process supervision.</p><p class="result"><strong>Verify before completion:</strong> T-A3/T-A8: restart both server and runner at commit/effect/ACK boundaries; one task advances once. Disconnect/lost notification recovers from journal. App-local effect and checkpoint have a defined transaction/reconciliation boundary.</p><p><strong>Acceptance mapping:</strong> A4-04 A4-10 A4-11 A4-13</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-015"><label for="check-G4-015">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-016" data-status="not-started"><summary><span class="task-number">G4-016</span><span class="task-title">Implement the MCP transport and authentication adapter</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-005">G4-005</a> <a href="#G4-006">G4-006</a> <a href="#G4-013">G4-013</a></p><p class="files"><strong>Files / outputs:</strong> planned thin MCP adapter; crates/connect-server composition</p><p><strong>Implement:</strong> Using the frozen host-compatible MCP version/transport, implement lifecycle, discovery, invocation and errors as a thin adapter to public/service operations. Start locally; restrict origins/hosts where relevant, bound requests, require scoped auth and drain on shutdown. Keep provider ingress separate from an MCP session identity.</p><p class="result"><strong>Verify before completion:</strong> A real independent MCP client initializes, lists and calls tools; malformed protocol, wrong origin/auth, reconnect and cancellation tests pass. Existing credentials cannot be amplified. No live ingress or accounts in offline tests.</p><p><strong>Acceptance mapping:</strong> A4-02 A4-07 A4-08</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-016"><label for="check-G4-016">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-017" data-status="not-started"><summary><span class="task-number">G4-017</span><span class="task-title">Implement task-aware tools and bounded waits</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-011">G4-011</a> <a href="#G4-012">G4-012</a> <a href="#G4-014">G4-014</a> <a href="#G4-016">G4-016</a></p><p class="files"><strong>Files / outputs:</strong> MCP tool schemas/handlers; shared task service; protocol fixtures</p><p><strong>Implement:</strong> Expose resolve/capabilities, message, authorized artifact upload/share/read, history, event wait, task status/cancel and supported session controls. Pass only authorized artifact handles or bounded bytes, never arbitrary server paths. Persist mutation IDs before invocation and cap Vapi waits at 10 seconds with pending handles.</p><p class="result"><strong>Verify before completion:</strong> All tool schemas run through a real MCP client; forged parameters, oversized artifacts, retention, denial and repeat invocations match SDK behavior. T-A5/T-A8 pass; slow/disconnected caller can recover accepted status without duplicate work.</p><p><strong>Acceptance mapping:</strong> A4-02 A4-05 A4-08 A4-13</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-017"><label for="check-G4-017">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-018" data-status="not-started"><summary><span class="task-number">G4-018</span><span class="task-title">Package the workflow skill and JSON CLI fallback</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-006">G4-006</a> <a href="#G4-014">G4-014</a> <a href="#G4-017">G4-017</a></p><p class="files"><strong>Files / outputs:</strong> planned skills/connect/SKILL.md; host installation assets; JSON CLI examples</p><p><strong>Implement:</strong> Write a concise installable skill teaching discover, bind task, communicate, wait/resume and recover. Include explicit-recipient policy, untrusted message handling, pending/uncertain semantics, source-backed recall and tool availability checks. Package example configuration with placeholders and JSON CLI fallback.</p><p class="result"><strong>Verify before completion:</strong> Fresh fixture installation loads tools and skill using documented commands. Agent can follow the workflow without constructing transport glue; missing tool/expired authority gives a useful next step. Skill text never substitutes for server enforcement.</p><p><strong>Acceptance mapping:</strong> A4-07 A4-08</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-018"><label for="check-G4-018">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+</section>
+<section id="m3" class="phase"><div class="phase-head"><div><p class="eyebrow">M3 · G4-A qualification / G4-B</p><h2>Vapi and selected host</h2></div><span class="phase-count" data-phase="M3">0 / 6 done</span></div><details class="task" id="G4-019" data-status="not-started"><summary><span class="task-number">G4-019</span><span class="task-title">Bind Vapi tools to verified chat/call invocations</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-003">G4-003</a> <a href="#G4-008">G4-008</a> <a href="#G4-016">G4-016</a> <a href="#G4-017">G4-017</a></p><p class="files"><strong>Files / outputs:</strong> crates/connect-connectors; crates/connect-server provider/MCP composition</p><p><strong>Implement:</strong> Implement verified Vapi chat/call → actor/conversation/task → invocation binding. Use documented MCP support where available; if a provider tool callback bridge is necessary, label both boundaries and still exercise the actual Connect MCP endpoint. Reuse trusted configured binding, never model-supplied headers as identity.</p><p class="result"><strong>Verify before completion:</strong> Signed/authenticated replay fixtures cover chat and call binding, forged ids, tool retries and expired grant. Distinct concurrent calls cannot share authority. Log safe correlation IDs and outcomes only.</p><p><strong>Acceptance mapping:</strong> A4-02 A4-09</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-019"><label for="check-G4-019">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-020" data-status="not-started"><summary><span class="task-number">G4-020</span><span class="task-title">Connect Vapi context and tool results to the task runtime</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-011">G4-011</a> <a href="#G4-015">G4-015</a> <a href="#G4-019">G4-019</a></p><p class="files"><strong>Files / outputs:</strong> Vapi adapter; task context projection; provider tests</p><p><strong>Implement:</strong> Expose permitted task operations and old-source recall to Vapi, persist tool results/outcomes with provenance and correlate chat/call/session/step/effect. Return bounded pending results and route later replies only through the task-authorized channel; ending a call does not cancel the task.</p><p class="result"><strong>Verify before completion:</strong> Offline provider fixtures exercise useful source recall, completed/denied/pending tool results, disconnect and post-call continuation. T-A6/T-A8 hold without pretending to resume an ended media session.</p><p><strong>Acceptance mapping:</strong> A4-05 A4-09 A4-12 A4-13</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-020"><label for="check-G4-020">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-021" data-status="not-started"><summary><span class="task-number">G4-021</span><span class="task-title">Build the selected host adapter and install bundle</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-006">G4-006</a> <a href="#G4-015">G4-015</a> <a href="#G4-017">G4-017</a> <a href="#G4-018">G4-018</a></p><p class="files"><strong>Files / outputs:</strong> selected host adapter; installation/configuration samples</p><p><strong>Implement:</strong> Implement the selected documented host interface, task binding and declared continuation mode. Use narrow grants and existing descriptor seams for any message/context connector. Keep host-specific state outside core routing and package all required adapter glue.</p><p class="result"><strong>Verify before completion:</strong> Two concurrent tasks, process restart, denied call and retained pending handle pass fixtures. Installation contains no credentials and needs no user-written integration code. Host metadata is evidence, not authority.</p><p><strong>Acceptance mapping:</strong> A4-07 A4-10</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-021"><label for="check-G4-021">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-022" data-status="not-started"><summary><span class="task-number">G4-022</span><span class="task-title">Qualify Vapi MCP use in chat and live voice</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-019">G4-019</a> <a href="#G4-020">G4-020</a></p><p class="files"><strong>Files / outputs:</strong> planned separately invoked scripts/live Gate 4 rehearsal; redacted Vapi evidence</p><p><strong>Implement:</strong> Configure the isolated Vapi test assistant within authorized live rehearsal. Exercise an actual authorized Connect tool via chat and a Connect-carried voice session, including old-source recall and a visible result. Use scoped reachable ingress only for the rehearsal; snapshot/restore changed configuration.</p><p class="result"><strong>Verify before completion:</strong> Record actual MCP invocation and provider bridge if used, source versions and call/chat/cid/task/invocation/result correlation. Verify denial and pending behavior. Audio-only success or a provider-only webhook does not satisfy MCP proof.</p><p><strong>Acceptance mapping:</strong> A4-09 A4-12 A4-13</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-022"><label for="check-G4-022">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-023" data-status="not-started"><summary><span class="task-number">G4-023</span><span class="task-title">Qualify the selected host from a clean installation</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-018">G4-018</a> <a href="#G4-021">G4-021</a></p><p class="files"><strong>Files / outputs:</strong> planned host qualification report; install fixture</p><p><strong>Implement:</strong> Install the selected host version and delivered assets in a fresh local profile. Demonstrate tool discovery, narrow credentials, ask/reply and continuation using its declared mode. Use explicit resume if selected and report the user action; no silent automation claim.</p><p class="result"><strong>Verify before completion:</strong> A repeatable install record and captured host behavior prove the same task resumed without reconstructed context or handwritten glue. Compare cold/warm setup, unsupported modes and version limits. Research/selection alone cannot close G4-A.</p><p><strong>Acceptance mapping:</strong> A4-07 A4-10</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-023"><label for="check-G4-023">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-024" data-status="not-started"><summary><span class="task-number">G4-024</span><span class="task-title">Complete diagnostics for tasks and host workers</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-015">G4-015</a> <a href="#G4-017">G4-017</a> <a href="#G4-020">G4-020</a> <a href="#G4-021">G4-021</a></p><p class="files"><strong>Files / outputs:</strong> authenticated task diagnostics; readiness registry; SDK/test-client output</p><p><strong>Implement:</strong> Expose task status, bound conversation, last checkpoint, pending/unassigned/uncertain reasons and source references under current auth. Integrate MCP/runner/host worker supervision with existing readiness; distinguish unconfigured from failed. Add a small reference-client view through public APIs.</p><p class="result"><strong>Verify before completion:</strong> Worker crash/drain, stale host and lost notification show actionable state without secrets. Journal inspection explains why a task is waiting; readiness does not claim provider delivery. No permission dashboard or new consumer UI.</p><p><strong>Acceptance mapping:</strong> A4-03 A4-10 A4-11 A4-13</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-024"><label for="check-G4-024">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+</section>
+<section id="m4" class="phase"><div class="phase-head"><div><p class="eyebrow">M4 · G4-C</p><h2>Agent and app follow-through</h2></div><span class="phase-count" data-phase="M4">0 / 6 done</span></div><details class="task" id="G4-025" data-status="not-started"><summary><span class="task-number">G4-025</span><span class="task-title">Finish the agent-presence draft/reply journey</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-015">G4-015</a> <a href="#G4-022">G4-022</a> <a href="#G4-023">G4-023</a> <a href="#G4-024">G4-024</a></p><p class="files"><strong>Files / outputs:</strong> examples/agent-presence; selected host walkthrough; planned journey evidence</p><p><strong>Implement:</strong> Selected host starts a bound task, shares a draft, asks the human, waits through a server/runner restart, receives a bound reply and performs one visible permitted follow-up. Run independently initiated human/agent contact into the assistant as well. Use public interfaces and delivered install assets.</p><p class="result"><strong>Verify before completion:</strong> Distinct processes and one persistent conversation preserve actual draft/context and original task. Two overlapping requests remain isolated. Capture artifact digest, reply binding, effect identity and host continuation mode; successful send alone fails acceptance.</p><p><strong>Acceptance mapping:</strong> A4-04 A4-07 A4-10</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-025"><label for="check-G4-025">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-026" data-status="not-started"><summary><span class="task-number">G4-026</span><span class="task-title">Finish the connected-app journey in both directions</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-015">G4-015</a> <a href="#G4-017">G4-017</a> <a href="#G4-024">G4-024</a></p><p class="files"><strong>Files / outputs:</strong> examples/review-loop; public SDK examples; app journey evidence</p><p><strong>Implement:</strong> App initiates a review task and receives a reply; independently, another authorized participant contacts the app and it accepts/answers under explicit policy. Demonstrate one observable app-local business effect and conversation-linked result through SDK/MCP surfaces.</p><p class="result"><strong>Verify before completion:</strong> Fresh processes use no store/service internals. Restart before ACK and duplicate request/reply cause one app effect; denied identity causes none. Both directions run without ad hoc glue and expose pending/error states.</p><p><strong>Acceptance mapping:</strong> A4-04 A4-11</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-026"><label for="check-G4-026">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-027" data-status="not-started"><summary><span class="task-number">G4-027</span><span class="task-title">Prove task continuity after voice ends</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-020">G4-020</a> <a href="#G4-022">G4-022</a> <a href="#G4-024">G4-024</a></p><p class="files"><strong>Files / outputs:</strong> cross-channel fixtures; separate live rehearsal; context evidence</p><p><strong>Implement:</strong> Within one task/conversation, carry a meaningful draft/fact into voice, record a sourced decision, end the session, restart server/runner and continue through an explicitly authorized message channel. Add contrast conversation and two tasks in the same conversation.</p><p class="result"><strong>Verify before completion:</strong> T-A1/T-A5/T-A6: assistant uses the recorded decision after restart, not merely matching IDs. Expired/deleted context reports unavailable. New conversation only follows explicit developer intent; no guessed caller/task binding.</p><p><strong>Acceptance mapping:</strong> A4-03 A4-05 A4-12</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-027"><label for="check-G4-027">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-028" data-status="not-started"><summary><span class="task-number">G4-028</span><span class="task-title">Qualify task-driven SMS within reviewed enrollment</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-012">G4-012</a> <a href="#G4-020">G4-020</a> <a href="#G4-024">G4-024</a> <a href="#G4-027">G4-027</a></p><p class="files"><strong>Files / outputs:</strong> SMS task fixtures; separately invoked live rehearsal; SMS evidence</p><p><strong>Implement:</strong> Reuse the approved campaign/number and Rudeless enrollment authority; verify current reviewed consent and task purpose before live sends. Exercise task ask/reply and post-voice follow-up, HELP/STOP/START with signed callbacks. No new number/trunk is required. Preserve Telnyx-owned keyword acknowledgements.</p><p class="result"><strong>Verify before completion:</strong> T-A7: task queues an update, STOP blocks dispatch/replay, START restores only a still-valid reviewed grant; cancelled work stays cancelled and a new permitted mutation delivers. Ambiguous same-conversation SMS replies remain unassigned until explicit binding. Live proof requires current enrollment; otherwise blocked, not passed.</p><p><strong>Acceptance mapping:</strong> A4-03 A4-06 A4-12</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-028"><label for="check-G4-028">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-029" data-status="not-started"><summary><span class="task-number">G4-029</span><span class="task-title">Run adversarial authority and concurrency qualification</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-025">G4-025</a> <a href="#G4-026">G4-026</a> <a href="#G4-027">G4-027</a> <a href="#G4-028">G4-028</a></p><p class="files"><strong>Files / outputs:</strong> planned task authority test matrix; crash/reordering fixtures</p><p><strong>Implement:</strong> Run T-A1–T-A8 across server, runner, SDK/MCP and provider boundaries. Inject duplicate/reordered events, task cancellation at dispatch, grant expiry, credential revocation, malicious retrieved text, parallel invocations and disk errors.</p><p class="result"><strong>Verify before completion:</strong> All eight stable acceptance checks have source-linked behavior evidence. No cross-task reply consumption, context leak, authority escalation or blind re-dispatch after uncertain outcome. Preserve failed attempts and corrective evidence.</p><p><strong>Acceptance mapping:</strong> A4-01 A4-02 A4-03 A4-04 A4-05 A4-06 A4-13</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-029"><label for="check-G4-029">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-030" data-status="not-started"><summary><span class="task-number">G4-030</span><span class="task-title">Measure limits and complete operating guidance</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-023">G4-023</a> <a href="#G4-024">G4-024</a> <a href="#G4-025">G4-025</a> <a href="#G4-026">G4-026</a> <a href="#G4-029">G4-029</a></p><p class="files"><strong>Files / outputs:</strong> task/host operating profile; API/skill documentation</p><p><strong>Implement:</strong> Measure the G4-004 frozen limits for concurrent tasks, bounded waits, queue sizes, history/tool payloads, grant expiry and retention. Explain automatic versus explicit host resume, unassigned replies and operator reconciliation. Reconcile host research outcomes and product examples.</p><p class="result"><strong>Verify before completion:</strong> Load and timeout evidence shows bounded resource use and honest pending outcomes at the declared local profile. No provider latency is attributed to QUIC; no long-idle carrier reachability claim. Required limits cannot be weakened silently after a failed check.</p><p><strong>Acceptance mapping:</strong> A4-07 A4-10 A4-11 A4-13 A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-030"><label for="check-G4-030">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+</section>
+<section id="m5" class="phase"><div class="phase-head"><div><p class="eyebrow">M5 · G4-C closure</p><h2>Qualification and review</h2></div><span class="phase-count" data-phase="M5">0 / 6 done</span></div><details class="task" id="G4-031" data-status="not-started"><summary><span class="task-number">G4-031</span><span class="task-title">Add and run a bounded account-free Gate 4 runner</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-029">G4-029</a> <a href="#G4-030">G4-030</a></p><p class="files"><strong>Files / outputs:</strong> planned scripts/check-gate-4.py/.sh; .github/workflows/local-checks.yml</p><p><strong>Implement:</strong> Compose task/MCP/SDK/runner fixtures, isolation, crash/recovery and prior gate regressions with per-phase timeouts and owned-process cleanup. Emit source fingerprint, tool/runtime versions, commands, phase status and failures. No accounts, public ingress, remote deployment or live provider operations.</p><p class="result"><strong>Verify before completion:</strong> Run from a fresh checkout with prepared dependencies; every required offline phase passes. Missing dependency and timeout produce nonzero exit plus evidence. CI configuration is distinguished from an actually executed remote CI run.</p><p><strong>Acceptance mapping:</strong> A4-01 A4-02 A4-03 A4-04 A4-05 A4-06 A4-08 A4-13 A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-031"><label for="check-G4-031">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-032" data-status="not-started"><summary><span class="task-number">G4-032</span><span class="task-title">Test upgrade, backup, restore and rollback</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-007">G4-007</a> <a href="#G4-029">G4-029</a> <a href="#G4-031">G4-031</a></p><p class="files"><strong>Files / outputs:</strong> scripts/build-recovery-baseline.py; recovery fixtures; planned Gate 4 migration evidence</p><p><strong>Implement:</strong> Preserve current pre-Gate 4 binary/schema fixture plus public schema-6 baseline. Upgrade populated tasks/conversations/artifacts/receipts/SMS state; make a consistent snapshot, restore into a new directory/ports, and test rollback with old binary plus its matching pre-upgrade snapshot.</p><p class="result"><strong>Verify before completion:</strong> Original state remains intact. Failed migration and interrupted snapshot are recoverable; old binary refuses incompatible new schema. Recovered pending tasks recheck authority and reconcile effects without resending unknown work.</p><p><strong>Acceptance mapping:</strong> A4-01 A4-04 A4-06 A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-032"><label for="check-G4-032">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-033" data-status="not-started"><summary><span class="task-number">G4-033</span><span class="task-title">Review code and qualify an installed local candidate</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-031">G4-031</a> <a href="#G4-032">G4-032</a></p><p class="files"><strong>Files / outputs:</strong> workspace crates; scripts/format.sh; scripts/package-local.sh; scripts/check-package.py</p><p><strong>Implement:</strong> Review crate boundaries, public Rustdoc/examples, errors/cancellation/resource bounds, module size and license/patch provenance. Run strict lint/docs and relevant SDK checks. Package server, SDKs, MCP adapter, skill, host install assets and examples from a recorded source revision.</p><p class="result"><strong>Verify before completion:</strong> Installed macOS arm64 candidate outside checkout passes task/MCP/SDK/host fixture checks and upgrade smoke. No path into .deps or developer checkout is required at runtime. Review findings fixed or explicitly block closure; large modules split by responsibility.</p><p><strong>Acceptance mapping:</strong> A4-07 A4-08 A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-033"><label for="check-G4-033">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-034" data-status="not-started"><summary><span class="task-number">G4-034</span><span class="task-title">Run final bounded host/provider journey qualification</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-022">G4-022</a> <a href="#G4-023">G4-023</a> <a href="#G4-025">G4-025</a> <a href="#G4-026">G4-026</a> <a href="#G4-027">G4-027</a> <a href="#G4-028">G4-028</a> <a href="#G4-033">G4-033</a></p><p class="files"><strong>Files / outputs:</strong> separate live qualification runner; planned docs/evidence/gate-4/live.json</p><p><strong>Implement:</strong> Using the installed candidate, repeat real Vapi chat/voice tool invocation, selected-host continuation and authorized cross-channel/SMS task proof. Reuse owned isolated resources; verify consent, caller identification, configuration restoration and clean teardown. Record topology and tested versions.</p><p class="result"><strong>Verify before completion:</strong> All required live criteria pass with redacted observed effects and correlation. A network/account blocker remains open. No remote Connect deployment or automatic public ingress in offline checks; retain earlier failures and evidence limits.</p><p><strong>Acceptance mapping:</strong> A4-06 A4-07 A4-09 A4-10 A4-11 A4-12 A4-13 A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-034"><label for="check-G4-034">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-035" data-status="not-started"><summary><span class="task-number">G4-035</span><span class="task-title">Synchronize product, interface and evidence documentation</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-030">G4-030</a> <a href="#G4-033">G4-033</a> <a href="#G4-034">G4-034</a></p><p class="files"><strong>Files / outputs:</strong> docs/connect-gate-4-plan.html; implementation plan; gate-4-acceptance.json; roadmap.json; feature-coverage.json; docs/index.html</p><p><strong>Implement:</strong> Update each stable task with owner/source/command/result/evidence; link A4 and T-A criteria, hosted-product selection and actual limitations. Update user guides and local release instructions. Keep Gate 5 video, complete connector kit, conformance and publication promises intact.</p><p class="result"><strong>Verify before completion:</strong> Internal links and mappings validate; no required feature silently disappears or historical gate evidence changes. Every completion claim traces to the installed candidate. Public project copy changes, if needed, remain reviewable drafts rather than an unrequested deployment.</p><p><strong>Acceptance mapping:</strong> A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-035"><label for="check-G4-035">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+<details class="task" id="G4-036" data-status="not-started"><summary><span class="task-number">G4-036</span><span class="task-title">Close the gate and hand off for owner review</span><span class="badge">Not started</span></summary><div class="task-body"><p class="deps"><strong>Depends on:</strong> <a href="#G4-035">G4-035</a></p><p class="files"><strong>Files / outputs:</strong> planned docs/evidence/gate-4/acceptance.html and result.json; gate-4-acceptance.json</p><p><strong>Implement:</strong> Audit all 36 items and 14 acceptance criteria, source/package hashes, exact platform/host/transport limits and T-A1–T-A8. Summarize user-visible outcomes, failed attempts, unresolved items and Gate 5 handoff. Present review links before release or next-gate work.</p><p class="result"><strong>Verify before completion:</strong> No required blocked/deferred/skipped criterion is counted as passing. Closure requires all offline and separate live evidence. Community publication, remote deployment and Gate 5 implementation remain outside this approval.</p><p><strong>Acceptance mapping:</strong> A4-14</p><div class="task-edit"><label>Status<select data-field="status"><option value="not-started" selected>Not started</option><option value="in-progress">In progress</option><option value="blocked">Blocked</option><option value="done">Done</option><option value="deferred">Deferred</option></select></label><label>Owner<input data-field="owner" type="text" placeholder="Unassigned" value=""></label><label class="wide">Completion evidence<textarea data-field="evidence" placeholder="Source SHA, command/result and redacted evidence path"></textarea></label><label class="wide">Notes / blocker / scope decision<textarea data-field="notes" placeholder="Finding, next action, or deferral decision"></textarea></label></div><p class="done-line"><input type="checkbox" data-action="done" id="check-G4-036"><label for="check-G4-036">Verified complete</label></p><p class="form-message" role="status"></p><p class="note task-updated">Last updated: not started</p></div></details>
+</section>
+<section id="local"><h2>Local rollout and qualification sequence.</h2><ol class="steps spaced"><li><span class="time">01</span><div class="step"><h3>Prepare dependencies and preserve the baseline.</h3><p>Run <code>bash scripts/prepare-dependencies.sh</code>, <code>bash scripts/check-local.sh</code> and <code>bash scripts/check-gate-3.sh</code>. Record source/patch/toolchain identity and isolated output. Preserve a qualified pre-Gate 4 binary; do not modify the existing installation.</p></div></li><li><span class="time">02</span><div class="step"><h3>Bring up an isolated candidate.</h3><p>After implementing the task schema/API, use a generated configuration and private state under <code>.local/gate-4-review/</code>, distinct ports and fixture credentials. Start with fake providers and the reference runner. Health, task status, journal replay and worker shutdown must work before host installation.</p></div></li><li><span class="time">03</span><div class="step"><h3>Run the new offline lane.</h3><p>G4-031 creates <code>scripts/check-gate-4.py/.sh</code>; these commands do not exist yet. It must exercise real local MCP clients plus SDK/HTTP/CLI/task fixtures, adverse recovery and prior-gate regression with bounded waits and owned-process cleanup. Keep live keys and public ingress out of this lane.</p></div></li><li><span class="time">04</span><div class="step"><h3>Back up, migrate and rehearse recovery.</h3><p>Use disposable populated fixtures and a consistent database/artifact snapshot. G4-032 upgrades and restores into a new directory, tests migration failure and verifies rollback with the matching old binary/pre-upgrade snapshot. Preserve the source installation and its database.</p></div></li><li><span class="time">05</span><div class="step"><h3>Package and install.</h3><p>Run <code>bash scripts/format.sh</code>, strict Rust lint/docs and SDK checks, then <code>bash scripts/package-local.sh</code> and <code>python3 scripts/check-package.py /absolute/path/to/candidate-directory</code>. G4-033 extends packaging checks for tools, skill and host assets; record source and package hashes.</p></div></li><li><span class="time">06</span><div class="step"><h3>Invoke separate bounded live rehearsals.</h3><p>G4-034 uses the installed local candidate and existing authorized isolated provider resources. Verify current reviewed SMS enrollment and purpose; refresh expired grants explicitly. Configure only the required reachable MCP/callback test route, preserve and restore provider configuration, identify calls and redact evidence. No remote Connect server deployment.</p></div></li><li><span class="time">07</span><div class="step"><h3>Publish local evidence for review.</h3><p>Record redacted results under planned <code>docs/evidence/gate-4/</code>; private logs/configuration stay in ignored <code>.local/</code>, packages in <code>dist/</code>. A failed/skipped live route is not replaced by a fixture pass. Synchronize the plans and hand the candidate to the owner before Gate 5 or community publication.</p></div></li></ol></section>
+<section id="acceptance"><h2>Acceptance coverage and authority proofs.</h2><p class="intro">All 14 criteria are required and not run. Task status lives in this HTML; the JSON companion owns acceptance mappings and result references. Every T-A check appears below.</p><div class="table-wrap spaced"><table><thead><tr><th>Criterion</th><th>Numbered tasks</th><th>Authority / lane</th></tr></thead><tbody><tr><td><a href="connect-gate-4-plan.html#A4-01">A4-01 · Durable task lifecycle</a></td><td><a href="#G4-002">G4-002</a> · <a href="#G4-007">G4-007</a> · <a href="#G4-008">G4-008</a> · <a href="#G4-013">G4-013</a> · <a href="#G4-029">G4-029</a> · <a href="#G4-031">G4-031</a> · <a href="#G4-032">G4-032</a></td><td>Decision contract<br>local · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-02">A4-02 · Narrow current authority</a></td><td><a href="#G4-002">G4-002</a> · <a href="#G4-004">G4-004</a> · <a href="#G4-008">G4-008</a> · <a href="#G4-012">G4-012</a> · <a href="#G4-013">G4-013</a> · <a href="#G4-016">G4-016</a> · <a href="#G4-017">G4-017</a> · <a href="#G4-019">G4-019</a> · <a href="#G4-029">G4-029</a> · <a href="#G4-031">G4-031</a></td><td>T-A1 · T-A2<br>local · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-03">A4-03 · Explicit reply routing</a></td><td><a href="#G4-002">G4-002</a> · <a href="#G4-004">G4-004</a> · <a href="#G4-009">G4-009</a> · <a href="#G4-013">G4-013</a> · <a href="#G4-024">G4-024</a> · <a href="#G4-027">G4-027</a> · <a href="#G4-028">G4-028</a> · <a href="#G4-029">G4-029</a> · <a href="#G4-031">G4-031</a></td><td>T-A1 · T-A4<br>local · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-04">A4-04 · Durable resume and one logical effect</a></td><td><a href="#G4-002">G4-002</a> · <a href="#G4-004">G4-004</a> · <a href="#G4-009">G4-009</a> · <a href="#G4-010">G4-010</a> · <a href="#G4-015">G4-015</a> · <a href="#G4-025">G4-025</a> · <a href="#G4-026">G4-026</a> · <a href="#G4-029">G4-029</a> · <a href="#G4-031">G4-031</a> · <a href="#G4-032">G4-032</a></td><td>T-A3<br>local · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-05">A4-05 · Source-backed bounded recall</a></td><td><a href="#G4-002">G4-002</a> · <a href="#G4-004">G4-004</a> · <a href="#G4-011">G4-011</a> · <a href="#G4-013">G4-013</a> · <a href="#G4-017">G4-017</a> · <a href="#G4-020">G4-020</a> · <a href="#G4-027">G4-027</a> · <a href="#G4-029">G4-029</a> · <a href="#G4-031">G4-031</a></td><td>T-A5<br>local-and-live · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-06">A4-06 · SMS task eligibility and suppression</a></td><td><a href="#G4-002">G4-002</a> · <a href="#G4-004">G4-004</a> · <a href="#G4-012">G4-012</a> · <a href="#G4-028">G4-028</a> · <a href="#G4-029">G4-029</a> · <a href="#G4-031">G4-031</a> · <a href="#G4-032">G4-032</a> · <a href="#G4-034">G4-034</a></td><td>T-A7<br>local-and-live · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-07">A4-07 · One researched, installed additional host</a></td><td><a href="#G4-003">G4-003</a> · <a href="#G4-005">G4-005</a> · <a href="#G4-006">G4-006</a> · <a href="#G4-016">G4-016</a> · <a href="#G4-018">G4-018</a> · <a href="#G4-021">G4-021</a> · <a href="#G4-023">G4-023</a> · <a href="#G4-025">G4-025</a> · <a href="#G4-030">G4-030</a> · <a href="#G4-033">G4-033</a> · <a href="#G4-034">G4-034</a></td><td>Decision contract<br>host · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-08">A4-08 · MCP, skill and public-interface parity</a></td><td><a href="#G4-005">G4-005</a> · <a href="#G4-013">G4-013</a> · <a href="#G4-014">G4-014</a> · <a href="#G4-016">G4-016</a> · <a href="#G4-017">G4-017</a> · <a href="#G4-018">G4-018</a> · <a href="#G4-031">G4-031</a> · <a href="#G4-033">G4-033</a></td><td>Decision contract<br>local · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-09">A4-09 · Vapi invokes Connect tools in chat and voice</a></td><td><a href="#G4-003">G4-003</a> · <a href="#G4-004">G4-004</a> · <a href="#G4-005">G4-005</a> · <a href="#G4-019">G4-019</a> · <a href="#G4-020">G4-020</a> · <a href="#G4-022">G4-022</a> · <a href="#G4-034">G4-034</a></td><td>T-A2 · T-A8<br>local-and-live · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-10">A4-10 · Agent-presence follow-through</a></td><td><a href="#G4-005">G4-005</a> · <a href="#G4-006">G4-006</a> · <a href="#G4-015">G4-015</a> · <a href="#G4-021">G4-021</a> · <a href="#G4-023">G4-023</a> · <a href="#G4-024">G4-024</a> · <a href="#G4-025">G4-025</a> · <a href="#G4-030">G4-030</a> · <a href="#G4-034">G4-034</a></td><td>Decision contract<br>host-and-local · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-11">A4-11 · Connected app in both directions</a></td><td><a href="#G4-015">G4-015</a> · <a href="#G4-024">G4-024</a> · <a href="#G4-026">G4-026</a> · <a href="#G4-030">G4-030</a> · <a href="#G4-034">G4-034</a></td><td>Decision contract<br>local · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-12">A4-12 · Cross-channel task and conversation continuity</a></td><td><a href="#G4-020">G4-020</a> · <a href="#G4-022">G4-022</a> · <a href="#G4-027">G4-027</a> · <a href="#G4-028">G4-028</a> · <a href="#G4-034">G4-034</a></td><td>T-A6<br>local-and-live · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-13">A4-13 · Bounded waiting and observable recovery</a></td><td><a href="#G4-004">G4-004</a> · <a href="#G4-015">G4-015</a> · <a href="#G4-017">G4-017</a> · <a href="#G4-020">G4-020</a> · <a href="#G4-022">G4-022</a> · <a href="#G4-024">G4-024</a> · <a href="#G4-029">G4-029</a> · <a href="#G4-030">G4-030</a> · <a href="#G4-031">G4-031</a> · <a href="#G4-034">G4-034</a></td><td>T-A8<br>local-and-live · not run</td></tr><tr><td><a href="connect-gate-4-plan.html#A4-14">A4-14 · Reproducible candidate and evidence closure</a></td><td><a href="#G4-001">G4-001</a> · <a href="#G4-007">G4-007</a> · <a href="#G4-030">G4-030</a> · <a href="#G4-031">G4-031</a> · <a href="#G4-032">G4-032</a> · <a href="#G4-033">G4-033</a> · <a href="#G4-034">G4-034</a> · <a href="#G4-035">G4-035</a> · <a href="#G4-036">G4-036</a></td><td>Decision contract<br>local-and-live · not run</td></tr></tbody></table></div><p class="note"><a href="gate-4-acceptance.json">Structured acceptance map</a> · <a href="connect-task-authority.html">T-A1–T-A8 definitions</a>. G4-029 is the integrated authority check; component tasks also verify each boundary before host/tool exposure.</p></section>
+<section id="maintenance"><h2>Keep progress attached to proof.</h2><ol><li>Assign an owner and mark in progress when implementation begins. Do not check items off for drafting their requirements.</li><li>Record source SHA, commands, observed behavior, limits and redacted evidence. Preserve failed attempts and subsequent corrections.</li><li>Mark done only after dependencies and the stated proof pass. Reopen completed dependents before reopening their prerequisite.</li><li>Save updated HTML and replace the repository copy, or use the update script. Browser edits alone do not change disk files; exported JSON is a snapshot.</li><li>Update acceptance results, product plan, roadmap and feature coverage when scope or evidence changes. Preserve stable IDs. Required blocked/deferred/skipped work prevents closure.</li><li>Review public Rustdoc, crate boundaries, readable module responsibilities, errors and lifecycle cleanup as work proceeds. Compilation or a checklist is not code-quality attestation.</li></ol><p class="note">Use <code>scripts/update-plan.py --gate 4 --item G4-001 --status in-progress --owner NAME --notes DETAILS</code>. Done requires an owner, evidence and completed dependencies. The page remains readable offline without JavaScript; its editor uses no browser storage.</p><p class="spaced"><a href="connect-gate-4-plan.html">Product plan</a> · <a href="connect-roadmap.html#gate-4">Roadmap</a> · <a href="index.html">Documentation hub</a></p></section>
+</main>
+<footer class="shell"><p class="note">Connect · a Rudeless project · Gate 4 approved implementation scope. <a href="index.html">Documentation hub</a> <a href="connect-roadmap.html#gate-4">Roadmap</a></p></footer><script id="plan-data" type="application/json">{
+  "title": "Gate 4 implementation plan",
+  "revision": 1,
+  "updated": "2026-10-09",
+  "status": "in-progress",
+  "target": "Local macOS arm64; account-free offline checks and separate bounded authorized live qualification; no remote deployment",
+  "tasks": [
+    {
+      "id": "G4-001",
+      "phase": "M0",
+      "title": "Reproduce the entry baseline",
+      "depends": [],
+      "files": "dependencies/source-lock.json; scripts/check-local.sh; scripts/check-gate-3.sh; planned docs/evidence/gate-4/baseline.json",
+      "work": "Record source, patches, toolchain, hardware, current schema and entry limitations. Prepare dependencies and reproduce source/Gate 3 qualification in isolated state. Preserve the qualified pre-Gate 4 binary and manifest for upgrade tests.",
+      "verify": "Account-free checks pass at the recorded revision; distinguish earlier live evidence from new candidate qualification. Any regression is recorded before dependent changes.",
+      "acceptance": "A4-14",
+      "status": "in-progress",
+      "owner": "Codex",
+      "evidence": "",
+      "notes": "Owner approved Gate 4 implementation. Reproducing account-free baseline and preserving the pre-Gate 4 package before runtime changes.",
+      "updated": "2026-10-09"
+    },
+    {
+      "id": "G4-002",
+      "phase": "M0",
+      "title": "Freeze task lifecycle and public operation contracts",
+      "depends": [
+        "G4-001"
+      ],
+      "files": "connect-protocol; contracts/; planned docs/decisions/009-task-runtime.md",
+      "work": "Translate T-01\u2013T-07 into typed task, step, invocation, effect and reply-binding contracts. Define transitions, cancellation/expiry races, cursors, error shapes, current authorization and negotiated application-profile compatibility. Task states proposed below are frozen here. Reuse existing UCTP primitives; task policy belongs to Connect.",
+      "verify": "Reviewed fixtures cover all transitions, old-client behavior, invalid bindings and replay denials; no parallel conversation lifetime or model-selected authority. Exact limits and names recorded before implementation.",
+      "acceptance": "A4-01 A4-02 A4-03 A4-04 A4-05 A4-06",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-003",
+      "phase": "M0",
+      "title": "Research named assistant hosts and Vapi tool entry points",
+      "depends": [
+        "G4-001"
+      ],
+      "files": "planned docs/evidence/gate-4/host-research.json; docs/connect-technical-readiness.html",
+      "work": "Identify exact products/repositories behind Meta Muse, Grokbot, OpenClaw, Codex and other candidates. Record primary documentation, date/version, license, install, credential isolation, MCP interface, task binding and actual wake/resume mode. Verify Vapi chat and voice MCP/tool interfaces separately, including trusted request authentication and binding inputs. Do not infer capabilities from names.",
+      "verify": "Evidence matrix identifies supported, unsupported and unresolved candidates. Wrong/ambiguous product identities remain unresolved. No account mutation or tool execution is needed for the research record.",
+      "acceptance": "A4-07 A4-09",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-004",
+      "phase": "M0",
+      "title": "Design invocation grants, reply assignment and bounded recall",
+      "depends": [
+        "G4-002",
+        "G4-003"
+      ],
+      "files": "connect-service; connect-store; planned docs/decisions/009-task-runtime.md",
+      "work": "Specify opaque grant creation/storage/expiry/revocation, verified provider bindings, task-scoped SDK delegation, reply-to mapping and explicit assignment of unassigned events. Define history page budgets and continuation authorization, 10-second maximum Vapi tool wait, concurrency/admission limits and redaction. Separate administrative task creation from restricted agent operations.",
+      "verify": "Review cross-task/cross-conversation attack fixtures and cancellation races; map each T-A1\u2013T-A8 case to executable checks. Document trusted transport/callback boundary before exposing a tool listener.",
+      "acceptance": "A4-02 A4-03 A4-04 A4-05 A4-06 A4-09 A4-13",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-005",
+      "phase": "M0",
+      "title": "Map reuse and choose adapter/package boundaries",
+      "depends": [
+        "G4-002",
+        "G4-003",
+        "G4-004"
+      ],
+      "files": "Cargo.toml; crates/connect-connector-api; crates/connect-server; docs/ARCHITECTURE.md",
+      "work": "Inspect pinned rvoip/UCTP, Parley, Bridgefu and Thelve implementations and provenance. Choose a thin MCP adapter boundary plus host adapter and durable SDK runner. Keep store/service/client/server ownership intact; avoid provider-specific task switches in core. Record any upstream patch and source-lock digest.",
+      "verify": "A dependency diagram and source/license map identify reuse versus new code. MCP adapter does not import SQLite; examples do not bypass public clients. No full connector framework rewrite is required.",
+      "acceptance": "A4-07 A4-08 A4-09 A4-10",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-006",
+      "phase": "M0",
+      "title": "Select one additional host and its installation contract",
+      "depends": [
+        "G4-003",
+        "G4-004",
+        "G4-005"
+      ],
+      "files": "planned docs/evidence/gate-4/host-selection.json; planned host installation guide",
+      "work": "Choose one evidenced host in addition to Vapi. Specify tested version, required account/runtime, install assets, task-binding adapter and automatic, bounded-wait or explicit-resume behavior. A declared explicit-resume host is acceptable only if it continues the original task without retyping context or writing glue.",
+      "verify": "Decision has rationale, reproducible install steps, success/failure criteria and a feasible continuation mechanism. No candidate is labelled supported until G4-023 passes. If none meets requirements, record the blocker rather than substituting the reference runner for a host.",
+      "acceptance": "A4-07 A4-10",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-007",
+      "phase": "M1",
+      "title": "Persist tasks and migrate without losing existing state",
+      "depends": [
+        "G4-002",
+        "G4-004",
+        "G4-005"
+      ],
+      "files": "crates/connect-store; migration and backup/restore tests",
+      "work": "Add tasks, lifecycle events, immutable conversation/owner binding, allowed operations/recipients, expiry and initiating-event provenance. Add bounded indexes and transaction helpers using existing migration conventions. Freeze the next schema version only after checking the current schema.",
+      "verify": "Upgrade populated pre-Gate 4 fixtures preserves messages, receipts, sessions, artifacts and SMS eligibility. Migration failure rolls back; cancellation/expiry states survive restart. No production database deletion.",
+      "acceptance": "A4-01 A4-14",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-008",
+      "phase": "M1",
+      "title": "Enforce task authority and invocation grants",
+      "depends": [
+        "G4-007"
+      ],
+      "files": "crates/connect-service; crates/connect-store; crates/connect-protocol",
+      "work": "Implement task creation/inspection/cancel and server-minted narrow opaque invocation grants. Recheck actor credential, membership, task lifecycle and grant on execution and replay; hash stored grant secrets and redact logs. Bind provider call/chat and invocation server-side.",
+      "verify": "T-A1/T-A2: wrong task, cid, recipient, call/chat, spoofed header, expired grant and revoked actor all fail before effects, including accepted-operation replay. Expiry and cancellation races use fake clocks and transaction tests.",
+      "acceptance": "A4-01 A4-02",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-009",
+      "phase": "M1",
+      "title": "Commit reply bindings and durable inbox transitions",
+      "depends": [
+        "G4-007",
+        "G4-008"
+      ],
+      "files": "crates/connect-store; crates/connect-service",
+      "work": "Persist task reply-to/event bindings, inbox delivery, cursor/checkpoint and task transition atomically before acknowledgement. Preserve unassigned replies in conversation history; expose authorized list/assign with an auditable assignment event and current checks. Notifications trigger journal reads.",
+      "verify": "T-A1/T-A3/T-A4: simultaneous tasks in one conversation, duplicate/reordered replies and crash before/after commit route correctly. Sender identity alone cannot select a task. Explicit assignment is idempotent and unauthorized assignment fails.",
+      "acceptance": "A4-03 A4-04",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-010",
+      "phase": "M1",
+      "title": "Track effects and reconcile uncertain outcomes",
+      "depends": [
+        "G4-008",
+        "G4-009"
+      ],
+      "files": "crates/connect-store; crates/connect-service; connector dispatch boundary",
+      "work": "Persist task/step/logical-mutation effect keys before external dispatch. Link existing request receipts and provider observations. Atomically claim work with bounded leases; reclaim only safe undispatched work. Unknown outcomes remain uncertain until reconciliation, never blindly resent.",
+      "verify": "T-A3: crashes before dispatch, after remote acceptance and before receipt/ACK plus two competing workers produce one logical committed effect. For an unknowable remote outcome, show uncertain with no second dispatch; do not claim universal exactly-once delivery.",
+      "acceptance": "A4-04",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-011",
+      "phase": "M1",
+      "title": "Add task-authorized recall and source provenance",
+      "depends": [
+        "G4-008",
+        "G4-009"
+      ],
+      "files": "crates/connect-service; crates/connect-protocol; context/history tests",
+      "work": "Reuse the initial 32 KiB projection, then expose bounded paged retrieval within the bound conversation. Return source IDs, timestamps, provenance, omissions, cursor and unavailable/deleted outcomes. Current authorization applies to continuation pages and artifact references.",
+      "verify": "T-A5: retrieve an old required fact outside initial context; no second-conversation leakage or stale cursor access after revocation. Large/expired/deleted sources are explicit. Provider text cannot change grants or routing.",
+      "acceptance": "A4-05",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-012",
+      "phase": "M1",
+      "title": "Apply cancel, revoke, expiry and SMS dispatch rules",
+      "depends": [
+        "G4-008",
+        "G4-009",
+        "G4-010"
+      ],
+      "files": "crates/connect-service; crates/connect-store; SMS eligibility boundary",
+      "work": "Invalidate grants on cancel/revoke/expiry, stop pending effects and preserve authorized receipts. Check active reviewed enrollment, task purpose, route and current eligibility immediately before SMS dispatch. Keep STOP separate from unrelated task/conversation lifecycle; START cannot resurrect cancelled effects.",
+      "verify": "T-A2/T-A7: queue then STOP, authority-feed staleness, expiry and revocation block sends; START plus a valid reviewed grant permits only a new authorized mutation. Replay of cancelled work stays cancelled.",
+      "acceptance": "A4-02 A4-06",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-013",
+      "phase": "M2",
+      "title": "Expose task operations in the native public client",
+      "depends": [
+        "G4-008",
+        "G4-009",
+        "G4-010",
+        "G4-011",
+        "G4-012"
+      ],
+      "files": "crates/connect-protocol; crates/connect-client; crates/connect-server",
+      "work": "Add negotiated task create/get/cancel, reply assignment, bounded history and wait/resume operation families through existing service handlers and native UCTP/QUIC control. Keep datagram media unchanged. Distinguish pending, completed, denied and uncertain outcomes.",
+      "verify": "Independent Rust client exercises all new operations and negative fixtures. Old profile clients keep declared behavior; unsupported profile requests fail clearly. Responses never expose opaque grants outside their intended credential exchange.",
+      "acceptance": "A4-01 A4-02 A4-03 A4-05 A4-08",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-014",
+      "phase": "M2",
+      "title": "Provide Python, TypeScript, HTTP and JSON CLI parity",
+      "depends": [
+        "G4-013"
+      ],
+      "files": "sdk/python; sdk/typescript; crates/connect-server; SDK/API documentation",
+      "work": "Extend typed SDK/native-helper control, explicit HTTP facade and JSON CLI through the same service operations. Preserve stable IDs/cursors and errors across reconnects. Define task-scoped credentials, not a broad operator token in agent examples.",
+      "verify": "Run a shared task lifecycle/reply/recall/cancel/error matrix through Rust, Python, TypeScript, HTTP and CLI. Malformed optional fields and timeout/pending outcomes validate correctly. A WebSocket or HTTP facade is not labelled native QUIC.",
+      "acceptance": "A4-08",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-015",
+      "phase": "M2",
+      "title": "Build the durable public-SDK reference runner",
+      "depends": [
+        "G4-009",
+        "G4-010",
+        "G4-012",
+        "G4-014"
+      ],
+      "files": "examples/review-loop; planned reusable runner support and tests",
+      "work": "Extend the public SDK worker pattern with persisted task binding, inbox checkpoint, business-effect ledger, bounded claims and automatic restart/catch-up. Keep application business effects in the application store, Connect communication authority in service/store. Support graceful drain and process supervision.",
+      "verify": "T-A3/T-A8: restart both server and runner at commit/effect/ACK boundaries; one task advances once. Disconnect/lost notification recovers from journal. App-local effect and checkpoint have a defined transaction/reconciliation boundary.",
+      "acceptance": "A4-04 A4-10 A4-11 A4-13",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-016",
+      "phase": "M2",
+      "title": "Implement the MCP transport and authentication adapter",
+      "depends": [
+        "G4-005",
+        "G4-006",
+        "G4-013"
+      ],
+      "files": "planned thin MCP adapter; crates/connect-server composition",
+      "work": "Using the frozen host-compatible MCP version/transport, implement lifecycle, discovery, invocation and errors as a thin adapter to public/service operations. Start locally; restrict origins/hosts where relevant, bound requests, require scoped auth and drain on shutdown. Keep provider ingress separate from an MCP session identity.",
+      "verify": "A real independent MCP client initializes, lists and calls tools; malformed protocol, wrong origin/auth, reconnect and cancellation tests pass. Existing credentials cannot be amplified. No live ingress or accounts in offline tests.",
+      "acceptance": "A4-02 A4-07 A4-08",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-017",
+      "phase": "M2",
+      "title": "Implement task-aware tools and bounded waits",
+      "depends": [
+        "G4-011",
+        "G4-012",
+        "G4-014",
+        "G4-016"
+      ],
+      "files": "MCP tool schemas/handlers; shared task service; protocol fixtures",
+      "work": "Expose resolve/capabilities, message, authorized artifact upload/share/read, history, event wait, task status/cancel and supported session controls. Pass only authorized artifact handles or bounded bytes, never arbitrary server paths. Persist mutation IDs before invocation and cap Vapi waits at 10 seconds with pending handles.",
+      "verify": "All tool schemas run through a real MCP client; forged parameters, oversized artifacts, retention, denial and repeat invocations match SDK behavior. T-A5/T-A8 pass; slow/disconnected caller can recover accepted status without duplicate work.",
+      "acceptance": "A4-02 A4-05 A4-08 A4-13",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-018",
+      "phase": "M2",
+      "title": "Package the workflow skill and JSON CLI fallback",
+      "depends": [
+        "G4-006",
+        "G4-014",
+        "G4-017"
+      ],
+      "files": "planned skills/connect/SKILL.md; host installation assets; JSON CLI examples",
+      "work": "Write a concise installable skill teaching discover, bind task, communicate, wait/resume and recover. Include explicit-recipient policy, untrusted message handling, pending/uncertain semantics, source-backed recall and tool availability checks. Package example configuration with placeholders and JSON CLI fallback.",
+      "verify": "Fresh fixture installation loads tools and skill using documented commands. Agent can follow the workflow without constructing transport glue; missing tool/expired authority gives a useful next step. Skill text never substitutes for server enforcement.",
+      "acceptance": "A4-07 A4-08",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-019",
+      "phase": "M3",
+      "title": "Bind Vapi tools to verified chat/call invocations",
+      "depends": [
+        "G4-003",
+        "G4-008",
+        "G4-016",
+        "G4-017"
+      ],
+      "files": "crates/connect-connectors; crates/connect-server provider/MCP composition",
+      "work": "Implement verified Vapi chat/call \u2192 actor/conversation/task \u2192 invocation binding. Use documented MCP support where available; if a provider tool callback bridge is necessary, label both boundaries and still exercise the actual Connect MCP endpoint. Reuse trusted configured binding, never model-supplied headers as identity.",
+      "verify": "Signed/authenticated replay fixtures cover chat and call binding, forged ids, tool retries and expired grant. Distinct concurrent calls cannot share authority. Log safe correlation IDs and outcomes only.",
+      "acceptance": "A4-02 A4-09",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-020",
+      "phase": "M3",
+      "title": "Connect Vapi context and tool results to the task runtime",
+      "depends": [
+        "G4-011",
+        "G4-015",
+        "G4-019"
+      ],
+      "files": "Vapi adapter; task context projection; provider tests",
+      "work": "Expose permitted task operations and old-source recall to Vapi, persist tool results/outcomes with provenance and correlate chat/call/session/step/effect. Return bounded pending results and route later replies only through the task-authorized channel; ending a call does not cancel the task.",
+      "verify": "Offline provider fixtures exercise useful source recall, completed/denied/pending tool results, disconnect and post-call continuation. T-A6/T-A8 hold without pretending to resume an ended media session.",
+      "acceptance": "A4-05 A4-09 A4-12 A4-13",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-021",
+      "phase": "M3",
+      "title": "Build the selected host adapter and install bundle",
+      "depends": [
+        "G4-006",
+        "G4-015",
+        "G4-017",
+        "G4-018"
+      ],
+      "files": "selected host adapter; installation/configuration samples",
+      "work": "Implement the selected documented host interface, task binding and declared continuation mode. Use narrow grants and existing descriptor seams for any message/context connector. Keep host-specific state outside core routing and package all required adapter glue.",
+      "verify": "Two concurrent tasks, process restart, denied call and retained pending handle pass fixtures. Installation contains no credentials and needs no user-written integration code. Host metadata is evidence, not authority.",
+      "acceptance": "A4-07 A4-10",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-022",
+      "phase": "M3",
+      "title": "Qualify Vapi MCP use in chat and live voice",
+      "depends": [
+        "G4-019",
+        "G4-020"
+      ],
+      "files": "planned separately invoked scripts/live Gate 4 rehearsal; redacted Vapi evidence",
+      "work": "Configure the isolated Vapi test assistant within authorized live rehearsal. Exercise an actual authorized Connect tool via chat and a Connect-carried voice session, including old-source recall and a visible result. Use scoped reachable ingress only for the rehearsal; snapshot/restore changed configuration.",
+      "verify": "Record actual MCP invocation and provider bridge if used, source versions and call/chat/cid/task/invocation/result correlation. Verify denial and pending behavior. Audio-only success or a provider-only webhook does not satisfy MCP proof.",
+      "acceptance": "A4-09 A4-12 A4-13",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-023",
+      "phase": "M3",
+      "title": "Qualify the selected host from a clean installation",
+      "depends": [
+        "G4-018",
+        "G4-021"
+      ],
+      "files": "planned host qualification report; install fixture",
+      "work": "Install the selected host version and delivered assets in a fresh local profile. Demonstrate tool discovery, narrow credentials, ask/reply and continuation using its declared mode. Use explicit resume if selected and report the user action; no silent automation claim.",
+      "verify": "A repeatable install record and captured host behavior prove the same task resumed without reconstructed context or handwritten glue. Compare cold/warm setup, unsupported modes and version limits. Research/selection alone cannot close G4-A.",
+      "acceptance": "A4-07 A4-10",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-024",
+      "phase": "M3",
+      "title": "Complete diagnostics for tasks and host workers",
+      "depends": [
+        "G4-015",
+        "G4-017",
+        "G4-020",
+        "G4-021"
+      ],
+      "files": "authenticated task diagnostics; readiness registry; SDK/test-client output",
+      "work": "Expose task status, bound conversation, last checkpoint, pending/unassigned/uncertain reasons and source references under current auth. Integrate MCP/runner/host worker supervision with existing readiness; distinguish unconfigured from failed. Add a small reference-client view through public APIs.",
+      "verify": "Worker crash/drain, stale host and lost notification show actionable state without secrets. Journal inspection explains why a task is waiting; readiness does not claim provider delivery. No permission dashboard or new consumer UI.",
+      "acceptance": "A4-03 A4-10 A4-11 A4-13",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-025",
+      "phase": "M4",
+      "title": "Finish the agent-presence draft/reply journey",
+      "depends": [
+        "G4-015",
+        "G4-022",
+        "G4-023",
+        "G4-024"
+      ],
+      "files": "examples/agent-presence; selected host walkthrough; planned journey evidence",
+      "work": "Selected host starts a bound task, shares a draft, asks the human, waits through a server/runner restart, receives a bound reply and performs one visible permitted follow-up. Run independently initiated human/agent contact into the assistant as well. Use public interfaces and delivered install assets.",
+      "verify": "Distinct processes and one persistent conversation preserve actual draft/context and original task. Two overlapping requests remain isolated. Capture artifact digest, reply binding, effect identity and host continuation mode; successful send alone fails acceptance.",
+      "acceptance": "A4-04 A4-07 A4-10",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-026",
+      "phase": "M4",
+      "title": "Finish the connected-app journey in both directions",
+      "depends": [
+        "G4-015",
+        "G4-017",
+        "G4-024"
+      ],
+      "files": "examples/review-loop; public SDK examples; app journey evidence",
+      "work": "App initiates a review task and receives a reply; independently, another authorized participant contacts the app and it accepts/answers under explicit policy. Demonstrate one observable app-local business effect and conversation-linked result through SDK/MCP surfaces.",
+      "verify": "Fresh processes use no store/service internals. Restart before ACK and duplicate request/reply cause one app effect; denied identity causes none. Both directions run without ad hoc glue and expose pending/error states.",
+      "acceptance": "A4-04 A4-11",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-027",
+      "phase": "M4",
+      "title": "Prove task continuity after voice ends",
+      "depends": [
+        "G4-020",
+        "G4-022",
+        "G4-024"
+      ],
+      "files": "cross-channel fixtures; separate live rehearsal; context evidence",
+      "work": "Within one task/conversation, carry a meaningful draft/fact into voice, record a sourced decision, end the session, restart server/runner and continue through an explicitly authorized message channel. Add contrast conversation and two tasks in the same conversation.",
+      "verify": "T-A1/T-A5/T-A6: assistant uses the recorded decision after restart, not merely matching IDs. Expired/deleted context reports unavailable. New conversation only follows explicit developer intent; no guessed caller/task binding.",
+      "acceptance": "A4-03 A4-05 A4-12",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-028",
+      "phase": "M4",
+      "title": "Qualify task-driven SMS within reviewed enrollment",
+      "depends": [
+        "G4-012",
+        "G4-020",
+        "G4-024",
+        "G4-027"
+      ],
+      "files": "SMS task fixtures; separately invoked live rehearsal; SMS evidence",
+      "work": "Reuse the approved campaign/number and Rudeless enrollment authority; verify current reviewed consent and task purpose before live sends. Exercise task ask/reply and post-voice follow-up, HELP/STOP/START with signed callbacks. No new number/trunk is required. Preserve Telnyx-owned keyword acknowledgements.",
+      "verify": "T-A7: task queues an update, STOP blocks dispatch/replay, START restores only a still-valid reviewed grant; cancelled work stays cancelled and a new permitted mutation delivers. Ambiguous same-conversation SMS replies remain unassigned until explicit binding. Live proof requires current enrollment; otherwise blocked, not passed.",
+      "acceptance": "A4-03 A4-06 A4-12",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-029",
+      "phase": "M4",
+      "title": "Run adversarial authority and concurrency qualification",
+      "depends": [
+        "G4-025",
+        "G4-026",
+        "G4-027",
+        "G4-028"
+      ],
+      "files": "planned task authority test matrix; crash/reordering fixtures",
+      "work": "Run T-A1\u2013T-A8 across server, runner, SDK/MCP and provider boundaries. Inject duplicate/reordered events, task cancellation at dispatch, grant expiry, credential revocation, malicious retrieved text, parallel invocations and disk errors.",
+      "verify": "All eight stable acceptance checks have source-linked behavior evidence. No cross-task reply consumption, context leak, authority escalation or blind re-dispatch after uncertain outcome. Preserve failed attempts and corrective evidence.",
+      "acceptance": "A4-01 A4-02 A4-03 A4-04 A4-05 A4-06 A4-13",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-030",
+      "phase": "M4",
+      "title": "Measure limits and complete operating guidance",
+      "depends": [
+        "G4-023",
+        "G4-024",
+        "G4-025",
+        "G4-026",
+        "G4-029"
+      ],
+      "files": "task/host operating profile; API/skill documentation",
+      "work": "Measure the G4-004 frozen limits for concurrent tasks, bounded waits, queue sizes, history/tool payloads, grant expiry and retention. Explain automatic versus explicit host resume, unassigned replies and operator reconciliation. Reconcile host research outcomes and product examples.",
+      "verify": "Load and timeout evidence shows bounded resource use and honest pending outcomes at the declared local profile. No provider latency is attributed to QUIC; no long-idle carrier reachability claim. Required limits cannot be weakened silently after a failed check.",
+      "acceptance": "A4-07 A4-10 A4-11 A4-13 A4-14",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-031",
+      "phase": "M5",
+      "title": "Add and run a bounded account-free Gate 4 runner",
+      "depends": [
+        "G4-029",
+        "G4-030"
+      ],
+      "files": "planned scripts/check-gate-4.py/.sh; .github/workflows/local-checks.yml",
+      "work": "Compose task/MCP/SDK/runner fixtures, isolation, crash/recovery and prior gate regressions with per-phase timeouts and owned-process cleanup. Emit source fingerprint, tool/runtime versions, commands, phase status and failures. No accounts, public ingress, remote deployment or live provider operations.",
+      "verify": "Run from a fresh checkout with prepared dependencies; every required offline phase passes. Missing dependency and timeout produce nonzero exit plus evidence. CI configuration is distinguished from an actually executed remote CI run.",
+      "acceptance": "A4-01 A4-02 A4-03 A4-04 A4-05 A4-06 A4-08 A4-13 A4-14",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-032",
+      "phase": "M5",
+      "title": "Test upgrade, backup, restore and rollback",
+      "depends": [
+        "G4-007",
+        "G4-029",
+        "G4-031"
+      ],
+      "files": "scripts/build-recovery-baseline.py; recovery fixtures; planned Gate 4 migration evidence",
+      "work": "Preserve current pre-Gate 4 binary/schema fixture plus public schema-6 baseline. Upgrade populated tasks/conversations/artifacts/receipts/SMS state; make a consistent snapshot, restore into a new directory/ports, and test rollback with old binary plus its matching pre-upgrade snapshot.",
+      "verify": "Original state remains intact. Failed migration and interrupted snapshot are recoverable; old binary refuses incompatible new schema. Recovered pending tasks recheck authority and reconcile effects without resending unknown work.",
+      "acceptance": "A4-01 A4-04 A4-06 A4-14",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-033",
+      "phase": "M5",
+      "title": "Review code and qualify an installed local candidate",
+      "depends": [
+        "G4-031",
+        "G4-032"
+      ],
+      "files": "workspace crates; scripts/format.sh; scripts/package-local.sh; scripts/check-package.py",
+      "work": "Review crate boundaries, public Rustdoc/examples, errors/cancellation/resource bounds, module size and license/patch provenance. Run strict lint/docs and relevant SDK checks. Package server, SDKs, MCP adapter, skill, host install assets and examples from a recorded source revision.",
+      "verify": "Installed macOS arm64 candidate outside checkout passes task/MCP/SDK/host fixture checks and upgrade smoke. No path into .deps or developer checkout is required at runtime. Review findings fixed or explicitly block closure; large modules split by responsibility.",
+      "acceptance": "A4-07 A4-08 A4-14",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-034",
+      "phase": "M5",
+      "title": "Run final bounded host/provider journey qualification",
+      "depends": [
+        "G4-022",
+        "G4-023",
+        "G4-025",
+        "G4-026",
+        "G4-027",
+        "G4-028",
+        "G4-033"
+      ],
+      "files": "separate live qualification runner; planned docs/evidence/gate-4/live.json",
+      "work": "Using the installed candidate, repeat real Vapi chat/voice tool invocation, selected-host continuation and authorized cross-channel/SMS task proof. Reuse owned isolated resources; verify consent, caller identification, configuration restoration and clean teardown. Record topology and tested versions.",
+      "verify": "All required live criteria pass with redacted observed effects and correlation. A network/account blocker remains open. No remote Connect deployment or automatic public ingress in offline checks; retain earlier failures and evidence limits.",
+      "acceptance": "A4-06 A4-07 A4-09 A4-10 A4-11 A4-12 A4-13 A4-14",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-035",
+      "phase": "M5",
+      "title": "Synchronize product, interface and evidence documentation",
+      "depends": [
+        "G4-030",
+        "G4-033",
+        "G4-034"
+      ],
+      "files": "docs/connect-gate-4-plan.html; implementation plan; gate-4-acceptance.json; roadmap.json; feature-coverage.json; docs/index.html",
+      "work": "Update each stable task with owner/source/command/result/evidence; link A4 and T-A criteria, hosted-product selection and actual limitations. Update user guides and local release instructions. Keep Gate 5 video, complete connector kit, conformance and publication promises intact.",
+      "verify": "Internal links and mappings validate; no required feature silently disappears or historical gate evidence changes. Every completion claim traces to the installed candidate. Public project copy changes, if needed, remain reviewable drafts rather than an unrequested deployment.",
+      "acceptance": "A4-14",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    },
+    {
+      "id": "G4-036",
+      "phase": "M5",
+      "title": "Close the gate and hand off for owner review",
+      "depends": [
+        "G4-035"
+      ],
+      "files": "planned docs/evidence/gate-4/acceptance.html and result.json; gate-4-acceptance.json",
+      "work": "Audit all 36 items and 14 acceptance criteria, source/package hashes, exact platform/host/transport limits and T-A1\u2013T-A8. Summarize user-visible outcomes, failed attempts, unresolved items and Gate 5 handoff. Present review links before release or next-gate work.",
+      "verify": "No required blocked/deferred/skipped criterion is counted as passing. Closure requires all offline and separate live evidence. Community publication, remote deployment and Gate 5 implementation remain outside this approval.",
+      "acceptance": "A4-14",
+      "status": "not-started",
+      "owner": "",
+      "evidence": "",
+      "notes": "",
+      "updated": ""
+    }
+  ]
+}</script><script id="plan-app">
+(() => {
+'use strict';
+const data = JSON.parse(document.getElementById('plan-data').textContent);
+const tasks = data.tasks, byId = new Map(tasks.map(t => [t.id,t]));
+const labels = {'not-started':'Not started','in-progress':'In progress',blocked:'Blocked',done:'Done',deferred:'Deferred'};
+let dirty = false;
+const $ = id => document.getElementById(id);
+const safe = value => String(value ?? '');
+function dateNow(){ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
+function markDirty(){ dirty=true; data.updated=dateNow(); $('unsaved').textContent='Unsaved edits — save updated HTML and replace the repository copy to keep them.'; }
+function completionErrors(t){
+ const e=[];
+ if(!t.owner.trim())e.push('Assign an owner first.');
+ if(!t.evidence.trim())e.push('Add completion evidence first.');
+ const pending=t.depends.filter(id => !byId.has(id) || byId.get(id).status!=='done');
+ if(pending.length)e.push('Complete dependencies: '+pending.join(', ')+'.');
+ return e;
+}
+function refreshTask(t){
+ const el=$(t.id); if(!el)return;
+ el.dataset.status=t.status;
+ el.querySelector('.task-title').textContent=t.title;
+ el.querySelector('.badge').textContent=labels[t.status]||t.status;
+ el.querySelector('.files').textContent='Files / outputs: '+t.files;
+ const paragraphs=el.querySelectorAll('.task-body > p');
+ paragraphs[2].replaceChildren(Object.assign(document.createElement('strong'),{textContent:'Implement: '}),document.createTextNode(t.work));
+ paragraphs[3].replaceChildren(Object.assign(document.createElement('strong'),{textContent:'Verify before completion: '}),document.createTextNode(t.verify));
+ paragraphs[4].textContent='Acceptance mapping: '+(t.acceptance||'Milestone evidence');
+ const dep=el.querySelector('.deps'); dep.replaceChildren(Object.assign(document.createElement('strong'),{textContent:'Depends on: '}));
+ if(!t.depends.length)dep.append(document.createTextNode('None'));
+ for(const id of t.depends){const a=document.createElement('a');a.href='#'+id;a.textContent=id;dep.append(a,document.createTextNode(' '));}
+ for(const f of ['status','owner','evidence','notes'])el.querySelector('[data-field="'+f+'"]').value=safe(t[f]);
+ el.querySelector('[data-action=done]').checked=t.status==='done';
+ el.querySelector('.task-updated').textContent='Last updated: '+(t.updated||'not started');
+}
+function refreshCounts(){
+ const done=tasks.filter(t=>t.status==='done').length, blocked=tasks.filter(t=>t.status==='blocked').length;
+ const active=tasks.filter(t=>t.status==='in-progress').length;
+ $('counts').textContent=done+' / '+tasks.length+' complete · '+active+' in progress · '+blocked+' blocked';
+ $('progress-bar').style.width=(100*done/tasks.length)+'%';
+ for(const el of document.querySelectorAll('[data-phase]')){ const rows=tasks.filter(t=>t.phase===el.dataset.phase);el.textContent=rows.filter(t=>t.status==='done').length+' / '+rows.length+' done'; }
+}
+function filter(){
+ const q=$('search').value.toLowerCase().trim(),s=$('status-filter').value;
+ for(const t of tasks){const el=$(t.id);if(el)el.hidden=!( (s==='all'||s===t.status) && (!q||[t.id,t.title,t.files,t.work,t.verify,t.acceptance,t.owner,t.notes].join(' ').toLowerCase().includes(q)) );}
+ for(const el of document.querySelectorAll('section.phase'))el.hidden=![...el.querySelectorAll('.task')].some(t=>!t.hidden);
+}
+function updateStatus(t,status){
+ const el=$(t.id),msg=el.querySelector('.form-message');
+ let errors=status==='done'?completionErrors(t):[];
+ if(t.status==='done'&&status!=='done'){
+  const doneChildren=tasks.filter(x=>x.status==='done'&&x.depends.includes(t.id));
+  if(doneChildren.length)errors.push('Reopen completed dependents first: '+doneChildren.map(x=>x.id).join(', ')+'.');
+ }
+ if(errors.length){msg.textContent=errors.join(' ');refreshTask(t);el.open=true;return;}
+ t.status=status;t.updated=dateNow();msg.textContent='';refreshTask(t);markDirty();refreshCounts();filter();
+}
+// New tasks added to plan-data receive a card from the existing structural template.
+const template=document.querySelector('.task').cloneNode(true);
+for(const t of tasks){
+ if(!$(t.id)){
+  const section=$(t.phase.toLowerCase());
+  if(!section)throw new Error('Unknown task phase: '+t.phase);
+  const card=template.cloneNode(true);card.id=t.id;card.removeAttribute('open');card.hidden=false;
+  card.querySelector('.task-number').textContent=t.id;
+  card.querySelector('[data-action=done]').id='check-'+t.id;
+  card.querySelector('.done-line label').htmlFor='check-'+t.id;
+  card.querySelector('.form-message').textContent='';section.append(card);
+ }
+ refreshTask(t);const el=$(t.id);if(!el)continue;
+ el.querySelector('[data-field=status]').addEventListener('change',e=>updateStatus(t,e.target.value));
+ el.querySelector('[data-action=done]').addEventListener('change',e=>updateStatus(t,e.target.checked?'done':'in-progress'));
+ for(const field of ['owner','evidence','notes'])el.querySelector('[data-field="'+field+'"]').addEventListener('input',e=>{
+  if((field==='evidence'||field==='owner')&&t.status==='done'&&!e.target.value.trim()){el.querySelector('.form-message').textContent='Reopen this item before removing its owner or completion evidence.';e.target.value=t[field];return;}
+  t[field]=e.target.value;t.updated=dateNow();el.querySelector('.task-updated').textContent='Last updated: '+t.updated;markDirty();
+ });
+}
+$('search').addEventListener('input',filter);$('status-filter').addEventListener('change',filter);
+$('expand').addEventListener('click',()=>document.querySelectorAll('.task:not([hidden])').forEach(el=>el.open=true));
+$('collapse').addEventListener('click',()=>document.querySelectorAll('.task').forEach(el=>el.open=false));
+function download(content,name,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+$('export').addEventListener('click',()=>download(JSON.stringify(data,null,2),'connect-gate-4-status.json','application/json'));
+$('save').addEventListener('click',()=>{
+ const invalid=tasks.filter(t=>t.status==='done'&&completionErrors(t).length);
+ if(invalid.length){$('unsaved').textContent='Fix completion evidence/dependencies before saving: '+invalid.map(t=>t.id).join(', ');return;}
+ $('plan-data').textContent=JSON.stringify(data,null,2).replace(/</g,'\\u003c');
+ const clone=document.documentElement.cloneNode(true);
+ clone.querySelector('#unsaved').textContent='Saved document baseline · no unsaved edits';
+ clone.querySelector('#search').setAttribute('value','');
+ clone.querySelectorAll('#status-filter option').forEach(o=>o.removeAttribute('selected'));
+ clone.querySelectorAll('[hidden]').forEach(el=>el.removeAttribute('hidden'));
+ clone.querySelectorAll('.task').forEach(el=>el.removeAttribute('open'));
+ // Mirror field values for static/no-JS readers; JSON remains authoritative.
+ for(const t of tasks){const el=clone.querySelector('[id="'+t.id+'"]');if(!el)continue;
+  el.querySelector('[data-field=owner]').setAttribute('value',t.owner);
+  for(const f of ['evidence','notes'])el.querySelector('[data-field="'+f+'"]').textContent=t[f];
+  el.querySelectorAll('[data-field=status] option').forEach(o=>{o.removeAttribute('selected');if(o.value===t.status)o.setAttribute('selected','');});
+  const cb=el.querySelector('[data-action=done]');cb.removeAttribute('checked');if(t.status==='done')cb.setAttribute('checked','');
+  el.querySelector('.form-message').textContent='';
+ }
+ download('<!doctype html>\n'+clone.outerHTML,'connect-gate-4-implementation.html','text/html');
+ dirty=false;$('unsaved').textContent='Download requested — replace the repository HTML with the saved copy. The original file is not changed automatically.';
+});
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+window.addEventListener('beforeprint',()=>{for(const el of document.querySelectorAll('.task')){el.dataset.printOpen=String(el.open);el.open=true;}});
+window.addEventListener('afterprint',()=>{for(const el of document.querySelectorAll('.task')){el.open=el.dataset.printOpen==='true';delete el.dataset.printOpen;}});
+function openAnchor(){const id=decodeURIComponent(location.hash.slice(1));const el=$(id);if(el?.classList.contains('task')){el.hidden=false;el.closest('section').hidden=false;el.open=true;el.scrollIntoView({block:'start'});}}
+window.addEventListener('hashchange',openAnchor);refreshCounts();filter();openAnchor();
+const maintenanceNote=document.querySelector('#maintenance .note');
+if(maintenanceNote)maintenanceNote.innerHTML='Use <code>scripts/update-plan.py --gate 4</code> to update task status, evidence and notes while preserving dependency validation and the embedded plan data.';
+})();
+</script></body></html>

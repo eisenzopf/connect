@@ -1,0 +1,524 @@
+{
+  "revision": 1,
+  "updated": "2026-10-09",
+  "status": "in-progress",
+  "scope": "Gate 4: task-correlated agent and app follow-through; no implementation started.",
+  "product_plan": "connect-gate-4-plan.html",
+  "implementation": "connect-gate-4-implementation.html",
+  "entry_contract": "connect-task-authority.html",
+  "implementation_ids": [
+    "G4-001",
+    "G4-002",
+    "G4-003",
+    "G4-004",
+    "G4-005",
+    "G4-006",
+    "G4-007",
+    "G4-008",
+    "G4-009",
+    "G4-010",
+    "G4-011",
+    "G4-012",
+    "G4-013",
+    "G4-014",
+    "G4-015",
+    "G4-016",
+    "G4-017",
+    "G4-018",
+    "G4-019",
+    "G4-020",
+    "G4-021",
+    "G4-022",
+    "G4-023",
+    "G4-024",
+    "G4-025",
+    "G4-026",
+    "G4-027",
+    "G4-028",
+    "G4-029",
+    "G4-030",
+    "G4-031",
+    "G4-032",
+    "G4-033",
+    "G4-034",
+    "G4-035",
+    "G4-036"
+  ],
+  "acceptance": [
+    {
+      "id": "A4-01",
+      "title": "Durable task lifecycle",
+      "milestones": [
+        "G4-B"
+      ],
+      "features": [
+        "F-15",
+        "F-20"
+      ],
+      "task_decisions": [
+        "T-01"
+      ],
+      "authority_checks": [],
+      "tasks": [
+        "G4-002",
+        "G4-007",
+        "G4-008",
+        "G4-013",
+        "G4-029",
+        "G4-031",
+        "G4-032"
+      ],
+      "proof": "Task identity, owner, conversation, scope, expiry and lifecycle survive restart; ending a session does not end a task or its conversation. Existing history and receipts survive migration.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-02",
+      "title": "Narrow current authority",
+      "milestones": [
+        "G4-B"
+      ],
+      "features": [
+        "F-20"
+      ],
+      "task_decisions": [
+        "T-02",
+        "T-07"
+      ],
+      "authority_checks": [
+        "T-A1",
+        "T-A2"
+      ],
+      "tasks": [
+        "G4-002",
+        "G4-004",
+        "G4-008",
+        "G4-012",
+        "G4-013",
+        "G4-016",
+        "G4-017",
+        "G4-019",
+        "G4-029",
+        "G4-031"
+      ],
+      "proof": "Two tasks with the same participants cannot share authority. Forged cid/header/call binding, expired grant and revoked actor fail on first execution and replay.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-03",
+      "title": "Explicit reply routing",
+      "milestones": [
+        "G4-B",
+        "G4-C"
+      ],
+      "features": [
+        "F-15",
+        "F-20"
+      ],
+      "task_decisions": [
+        "T-03"
+      ],
+      "authority_checks": [
+        "T-A1",
+        "T-A4"
+      ],
+      "tasks": [
+        "G4-002",
+        "G4-004",
+        "G4-009",
+        "G4-013",
+        "G4-024",
+        "G4-027",
+        "G4-028",
+        "G4-029",
+        "G4-031"
+      ],
+      "proof": "Bound replies reach only the intended task; duplicates and reordering preserve history. Unbound/ambiguous messages remain inspectable and unassigned until authorized explicit assignment.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-04",
+      "title": "Durable resume and one logical effect",
+      "milestones": [
+        "G4-B",
+        "G4-C"
+      ],
+      "features": [
+        "F-19",
+        "F-21"
+      ],
+      "task_decisions": [
+        "T-04",
+        "T-05"
+      ],
+      "authority_checks": [
+        "T-A3"
+      ],
+      "tasks": [
+        "G4-002",
+        "G4-004",
+        "G4-009",
+        "G4-010",
+        "G4-015",
+        "G4-025",
+        "G4-026",
+        "G4-029",
+        "G4-031",
+        "G4-032"
+      ],
+      "proof": "Commit inbox/transition before ACK; crashes and competing workers cannot repeat a committed application effect. Unknown provider outcomes reconcile or remain uncertain without blind retry.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-05",
+      "title": "Source-backed bounded recall",
+      "milestones": [
+        "G4-B",
+        "G4-C"
+      ],
+      "features": [
+        "F-15",
+        "F-20"
+      ],
+      "task_decisions": [
+        "T-06"
+      ],
+      "authority_checks": [
+        "T-A5"
+      ],
+      "tasks": [
+        "G4-002",
+        "G4-004",
+        "G4-011",
+        "G4-013",
+        "G4-017",
+        "G4-020",
+        "G4-027",
+        "G4-029",
+        "G4-031"
+      ],
+      "proof": "Retrieve an authorized old fact outside the initial 32 KiB projection, with source/provenance/cursor. No other-conversation leakage; retention and revoked access remain explicit.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-06",
+      "title": "SMS task eligibility and suppression",
+      "milestones": [
+        "G4-C"
+      ],
+      "features": [
+        "F-06",
+        "F-20"
+      ],
+      "task_decisions": [
+        "T-07"
+      ],
+      "authority_checks": [
+        "T-A7"
+      ],
+      "tasks": [
+        "G4-002",
+        "G4-004",
+        "G4-012",
+        "G4-028",
+        "G4-029",
+        "G4-031",
+        "G4-032",
+        "G4-034"
+      ],
+      "proof": "Approved, reviewed enrollment gates task sends at dispatch. HELP/STOP/START follow the published program; STOP blocks queued sends and replay. START does not resurrect cancelled work.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-07",
+      "title": "One researched, installed additional host",
+      "milestones": [
+        "G4-A",
+        "G4-B",
+        "G4-C"
+      ],
+      "features": [
+        "F-10"
+      ],
+      "task_decisions": [
+        "T-01",
+        "T-04"
+      ],
+      "authority_checks": [],
+      "tasks": [
+        "G4-003",
+        "G4-005",
+        "G4-006",
+        "G4-016",
+        "G4-018",
+        "G4-021",
+        "G4-023",
+        "G4-025",
+        "G4-030",
+        "G4-033",
+        "G4-034"
+      ],
+      "proof": "Exact product/version, installation, authority and continuation mode are evidenced. One host beyond Vapi installs with supplied assets and continues the original task; no handwritten glue or context reconstruction.",
+      "evidence_class": "host",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-08",
+      "title": "MCP, skill and public-interface parity",
+      "milestones": [
+        "G4-B"
+      ],
+      "features": [
+        "F-03",
+        "F-04",
+        "F-10"
+      ],
+      "task_decisions": [
+        "T-02",
+        "T-04",
+        "T-06"
+      ],
+      "authority_checks": [],
+      "tasks": [
+        "G4-005",
+        "G4-013",
+        "G4-014",
+        "G4-016",
+        "G4-017",
+        "G4-018",
+        "G4-031",
+        "G4-033"
+      ],
+      "proof": "Real MCP lifecycle/discovery/tool calls and installed skill cover resolve, message, artifacts, history, event wait, task controls and supported sessions. SDK/HTTP/CLI operations enforce the same authority, IDs, receipts and errors.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-09",
+      "title": "Vapi invokes Connect tools in chat and voice",
+      "milestones": [
+        "G4-B",
+        "G4-C"
+      ],
+      "features": [
+        "F-09"
+      ],
+      "task_decisions": [
+        "T-02",
+        "T-04"
+      ],
+      "authority_checks": [
+        "T-A2",
+        "T-A8"
+      ],
+      "tasks": [
+        "G4-003",
+        "G4-004",
+        "G4-005",
+        "G4-019",
+        "G4-020",
+        "G4-022",
+        "G4-034"
+      ],
+      "proof": "Real Vapi chat and Connect-carried voice invoke the actual Connect MCP path with verified task/call/chat/result binding. Label any provider callback adapter; provider-only webhook or working audio alone is insufficient.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-10",
+      "title": "Agent-presence follow-through",
+      "milestones": [
+        "G4-C"
+      ],
+      "features": [
+        "F-10",
+        "F-15",
+        "F-21"
+      ],
+      "task_decisions": [
+        "T-01",
+        "T-03",
+        "T-04",
+        "T-05"
+      ],
+      "authority_checks": [],
+      "tasks": [
+        "G4-005",
+        "G4-006",
+        "G4-015",
+        "G4-021",
+        "G4-023",
+        "G4-024",
+        "G4-025",
+        "G4-030",
+        "G4-034"
+      ],
+      "proof": "Selected assistant shares a draft, asks a human, receives the bound reply after restart and performs one visible follow-up on the original task. Independently initiated communication into the assistant works too.",
+      "evidence_class": "host-and-local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-11",
+      "title": "Connected app in both directions",
+      "milestones": [
+        "G4-C"
+      ],
+      "features": [
+        "F-21"
+      ],
+      "task_decisions": [
+        "T-01",
+        "T-03",
+        "T-04",
+        "T-05"
+      ],
+      "authority_checks": [],
+      "tasks": [
+        "G4-015",
+        "G4-024",
+        "G4-026",
+        "G4-030",
+        "G4-034"
+      ],
+      "proof": "An independent public-SDK app initiates a review and answers another participant\u2019s independent request. Artifact access, reply correlation, restart, denials and one observable business effect pass.",
+      "evidence_class": "local",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-12",
+      "title": "Cross-channel task and conversation continuity",
+      "milestones": [
+        "G4-C"
+      ],
+      "features": [
+        "F-06",
+        "F-09",
+        "F-15"
+      ],
+      "task_decisions": [
+        "T-01",
+        "T-03",
+        "T-04",
+        "T-06"
+      ],
+      "authority_checks": [
+        "T-A6"
+      ],
+      "tasks": [
+        "G4-020",
+        "G4-022",
+        "G4-027",
+        "G4-028",
+        "G4-034"
+      ],
+      "proof": "Use an actual prior fact in voice, retain the sourced decision, end the session, restart and continue the same task through another approved channel, including the reviewed SMS lane. Contrast tasks/conversations cannot leak.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-13",
+      "title": "Bounded waiting and observable recovery",
+      "milestones": [
+        "G4-B",
+        "G4-C"
+      ],
+      "features": [
+        "F-19",
+        "F-20"
+      ],
+      "task_decisions": [
+        "T-04",
+        "T-05",
+        "T-07"
+      ],
+      "authority_checks": [
+        "T-A8"
+      ],
+      "tasks": [
+        "G4-004",
+        "G4-015",
+        "G4-017",
+        "G4-020",
+        "G4-022",
+        "G4-024",
+        "G4-029",
+        "G4-030",
+        "G4-031",
+        "G4-034"
+      ],
+      "proof": "Vapi tool wait is at most ten seconds; pending returns a task handle. Disconnection recovers via journal/status; readiness and task diagnostics distinguish waiting/uncertain/failed from completed effects. Frozen resource limits pass.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    },
+    {
+      "id": "A4-14",
+      "title": "Reproducible candidate and evidence closure",
+      "milestones": [
+        "G4-C"
+      ],
+      "features": [
+        "F-14",
+        "F-19",
+        "F-21"
+      ],
+      "task_decisions": [
+        "T-01",
+        "T-07"
+      ],
+      "authority_checks": [],
+      "tasks": [
+        "G4-001",
+        "G4-007",
+        "G4-030",
+        "G4-031",
+        "G4-032",
+        "G4-033",
+        "G4-034",
+        "G4-035",
+        "G4-036"
+      ],
+      "proof": "All required offline, installed, host and bounded live checks pass at identified source/package versions. Upgrade/restore/rollback preserve data, code quality review is resolved, docs agree and platform/host limits are published for owner review.",
+      "evidence_class": "local-and-live",
+      "required": true,
+      "status": "not-run",
+      "evidence": []
+    }
+  ],
+  "closure_rule": "All required A4-01\u2013A4-14 and T-A1\u2013T-A8 pass with source-linked evidence, including separately invoked bounded live qualification. A blocked, skipped or deferred required check prevents closure.",
+  "limits": [
+    "Local macOS arm64 only; no remote Connect deployment or public release.",
+    "Host remains unselected until G4-006 and unqualified until G4-023.",
+    "Entry decisions and earlier live results are not Gate 4 runtime evidence."
+  ]
+}
