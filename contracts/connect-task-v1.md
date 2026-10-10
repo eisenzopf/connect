@@ -16,6 +16,34 @@ Effect states: prepared → dispatched/cancelled; dispatched → succeeded/faile
 uncertain; uncertain → succeeded/failed from attributed reconciliation only.
 An expired lease cannot turn possible dispatch back into prepared work.
 
+Contract revision 3 adds owner-authorized runner coordination: `Claim`,
+`ClaimGet` and `ReleaseClaim`. A fresh claim requires no prior revision;
+renewal/reclaim uses the exact retained revision. Leases last at most 30 seconds,
+within task and credential lifetime, and at most 16 may be active. Matching
+request replay returns the original lease without extending it. Reclaim is
+denied once the step has a durable dispatched, uncertain or terminal effect;
+read/reconcile that effect instead. Worker IDs are coordination labels, not
+credentials. Narrow model invocation grants cannot acquire runner authority.
+
+`Invoke.wait_for_reply` explicitly marks a message question. It defaults to
+false and is omitted when false, preserving previous serialized inputs. Only
+Send may wait or carry `reply_to`. That reference must be a delivered initiating
+event or a reply assigned to the calling task. An assistant answering another
+task's verified question uses its own current send grant; the recipient task is
+derived from the question, never borrowed as authority. An accepted question can
+have a succeeded communication effect while its tool result stays pending until
+the specific attributed answer exists. Other replies cannot satisfy that wait.
+
+Effects retain the original logical request ID. The store derives a separate
+wire receipt ID from task, step and logical ID so two tasks cannot alias an
+account-level receipt. The operation receipt, local mutation, effect intent,
+authority reference and journal events commit atomically. Known business
+rejections retain an optional effect `error`; missing `error` in older results
+defaults to none. Infrastructure failure rolls back rather than accepting a
+partial operation. Queued provider jobs stay pending; unknown remote outcomes
+stay uncertain without redispatch. Legacy effects without protected dispatch
+metadata remain read-only and cannot be promoted by assuming missing jobs passed.
+
 Task input cannot supply owner, credential or provider authority. Creation derives
 those from authenticated state and validates existing conversation membership,
 concrete recipient/operation subsets and expiry. Provider call/chat correlation
@@ -44,6 +72,9 @@ credential: `unauthorized`; disallowed operation/resource/binding: `forbidden`;
 stale or illegal state: `task-state-conflict` / `effect-state-conflict`; mismatched
 logical intent: `request-conflict`; capacity: `capacity-exceeded`; storage failure:
 `storage-unavailable`. Pending and uncertain tool results never claim completion.
+Lease conflicts use `task-claim-conflict`; a step that requires effect inspection
+instead of reclamation uses `effect-reconciliation-required`. A known provider
+failure uses `provider-failed` and retains its accepted local outcome separately.
 
 Typed fixtures prove admission and exhaustive state transitions. Runtime denial,
 crash/recovery, provider and actual host evidence are separate required items.

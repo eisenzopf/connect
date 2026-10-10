@@ -328,6 +328,7 @@ fn narrow_grant_cannot_use_admin_commands_generic_inbox_or_another_conversation(
                 body: "forbidden".into(),
             }),
             reply_to: None,
+            wait_for_reply: false,
         },
     ] {
         assert_eq!(

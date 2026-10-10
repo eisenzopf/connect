@@ -2,8 +2,8 @@
 use super::storage::{load, StoredTask};
 use crate::{conversations::authorized_conversation, identity::actor_from_connection_at, Actor};
 use connect_protocol::{
-    tasks::{TaskDefinition, TaskState},
-    Error, Result,
+    tasks::{TaskDefinition, TaskPermission, TaskRecord, TaskState},
+    Error, Operation, Outcome, Result,
 };
 use rusqlite::Connection;
 
@@ -70,5 +70,56 @@ pub(super) fn continuation(
             initiating_event_id: task.record.initiating_event_id.clone(),
         },
     )?;
+    Ok(())
+}
+
+/// Delegate only communication in the task ceiling. Reads share the approved
+/// conversation context; mutations cannot publish outside its recipient ceiling.
+pub(super) fn operation(
+    c: &Connection,
+    actor: &Actor,
+    task: &TaskRecord,
+    operation: &Operation,
+) -> Result<()> {
+    let permission = TaskPermission::for_operation(operation)?;
+    if !task.scope.operations.contains(&permission) {
+        return Err(Error::forbidden());
+    }
+    actor.require(operation.required_scope())?;
+    match operation {
+        Operation::Inbox { .. } | Operation::RequestStatus { .. } => return Err(Error::forbidden()),
+        Operation::Resolve { address } | Operation::Capabilities { address, .. } => {
+            if let Operation::Capabilities {
+                conversation_id, ..
+            } = operation
+            {
+                if conversation_id.as_deref() != Some(task.conversation_id.as_str()) {
+                    return Err(Error::forbidden());
+                }
+            }
+            let Outcome::Identity(identity) =
+                crate::conversation_queries::resolve(c, actor, address)?
+            else {
+                return Err(Error::storage());
+            };
+            if identity.id != task.owner_id && !task.scope.recipients.contains(&identity.id) {
+                return Err(Error::forbidden());
+            }
+        }
+        _ => {
+            if operation.conversation_id() != Some(task.conversation_id.as_str()) {
+                return Err(Error::forbidden());
+            }
+            let conversation = authorized_conversation(c, actor, &task.conversation_id)?;
+            if operation.request_id().is_some()
+                && conversation
+                    .participants
+                    .iter()
+                    .any(|id| id != &task.owner_id && !task.scope.recipients.contains(id))
+            {
+                return Err(Error::forbidden());
+            }
+        }
+    }
     Ok(())
 }

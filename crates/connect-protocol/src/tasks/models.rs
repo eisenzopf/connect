@@ -157,6 +157,9 @@ pub struct TaskEffect {
     pub request_id: String,
     pub state: EffectState,
     pub outcome: Option<Box<crate::Outcome>>,
+    /// Known rejection/delivery failure; uncertainty is represented by state.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<crate::Error>,
 }
 /// A reply explicitly assigned to one task; unassigned history has no task ID.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -203,6 +206,7 @@ pub enum TaskEventData {
     },
     Reply(TaskReply),
     Effect(TaskEffect),
+    Claim(TaskStepClaim),
 }
 /// Journal entry with stable source attribution and commit order.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -253,6 +257,7 @@ pub enum TaskOutcome {
         omitted: u64,
     },
     Effect(TaskEffect),
+    Claim(Option<TaskStepClaim>),
     Tool(TaskToolResult),
     /// Incoming message and explicit task assignment are committed before ACK.
     /// A terminal/unavailable task may leave the retained reply unassigned.

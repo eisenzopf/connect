@@ -218,7 +218,7 @@ Typed contract fixtures close schema/transition admission only. Each runtime
 boundary still requires store/service/SDK/MCP/host behavior evidence. Final
 qualification records source/package/host versions and preserves failures.
 
-## Implementation checkpoint · invocation and inbox foundation
+## Implementation checkpoint · invocation, inbox and effect foundation
 
 G4-008 and G4-009 remain in progress. The store/service now implement protected
 grant issuance and discovery, exact registered binding admission, current
@@ -227,8 +227,23 @@ consumption, native reply admission and authenticated inbox catch-up. Service
 waits register before reading and recheck durable state after a wake. Inbox
 effect events project metadata; separate authorized effect reads own outcomes.
 
-Native reply tests seed the accepted Send effect boundary that G4-010 must
-produce transactionally; task Invoke is not yet implemented. Accepted-effect
-replay, dispatch/lease reconciliation, provider-origin integration, actual
-process crash/ACK qualification and public SDK exposure remain open. This
-checkpoint is component evidence, not gate or host qualification.
+G4-010 now produces the accepted Send boundary transactionally through the shared
+ordinary operation engine. Native question/reply and agent-to-agent response
+tests use that real boundary. Explicit `wait_for_reply` binds pending completion
+to the specific answered question. Effects namespace underlying receipt IDs by
+task/step/logical mutation, retain known errors, and derive pending/uncertain
+provider observations from durable jobs. Provider messaging dispatch rechecks
+the original task and grant even while the account credential remains valid.
+
+Contract revision 3 adds CAS `Claim`/`ClaimGet`/`ReleaseClaim` commands under owner
+scopes. Leases are bounded to 30 seconds and 16 active steps; matching replay
+does not renew them. A durable nonprepared effect prevents reclamation. Model
+grants cannot acquire worker authority. Actual child-process exit before and
+after task commit is qualified separately with explicit test-support binaries.
+
+G4-008/G4-009/G4-010 remain in progress. Media start/end task authority at physical
+dispatch, integrated provider-origin binding, SDK runner/app transaction and ACK
+qualification, recall, actual host/MCP installation and full acceptance remain
+open. Component evidence is not gate or host qualification. Current checkpoint
+results are recorded in the numbered implementation plan, without changing
+earlier foundation evidence.

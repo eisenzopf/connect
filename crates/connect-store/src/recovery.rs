@@ -109,6 +109,9 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
             "task_claims",
         ]);
     }
+    if schema >= 12 {
+        tables.extend(["task_effect_authority", "task_effect_links"]);
+    }
     for table in tables {
         digest.update(table.as_bytes());
         // Names are a fixed allowlist, never user-controlled SQL.
@@ -251,6 +254,10 @@ impl Store {
         }
         if expected.schema < 11 {
             tx.execute_batch(include_str!("../migrations/011_tasks.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 12 {
+            tx.execute_batch(include_str!("../migrations/012_task_effect_authority.sql"))
                 .map_err(|_| Error::storage())?;
         }
         let snapshot = inspect(&tx)?;

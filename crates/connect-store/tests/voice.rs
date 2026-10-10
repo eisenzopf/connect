@@ -594,5 +594,5 @@ fn schema_five_upgrade_retains_inbound_bindings_and_reconciles_legacy_end_intent
 // These legacy migration fixtures deliberately reconstruct old schemas in
 // temporary databases. Remove Gate 4 tables too; they never existed at v3–5.
 fn remove_gate_four_fixture_tables(connection: &rusqlite::Connection) {
-    connection.execute_batch("DROP TABLE task_grants; DROP TABLE task_bindings; DROP TABLE task_claims; DROP TABLE task_effects; DROP TABLE task_replies; DROP TABLE task_requests; DROP TABLE task_events; DROP TABLE tasks;").unwrap();
+    connection.execute_batch("DROP TABLE task_effect_links; DROP TABLE task_effect_authority; DROP TABLE task_grants; DROP TABLE task_bindings; DROP TABLE task_claims; DROP TABLE task_effects; DROP TABLE task_replies; DROP TABLE task_requests; DROP TABLE task_events; DROP TABLE tasks;").unwrap();
 }

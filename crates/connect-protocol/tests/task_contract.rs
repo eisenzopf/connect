@@ -167,6 +167,7 @@ fn nested_admin_commands_and_rekeyed_mutations_are_denied() {
             step_id: "step-a".into(),
             operation: Box::new(operation),
             reply_to: None,
+            wait_for_reply: false,
         })
     };
     let send = |id: &str| Operation::Send {
@@ -203,6 +204,95 @@ fn nested_admin_commands_and_rekeyed_mutations_are_denied() {
         "forbidden"
     );
     assert!(TaskPermission::for_operation(&Operation::Health {}).is_err());
+}
+
+#[test]
+fn explicit_question_intent_is_additive_but_only_messages_can_await_or_bind_replies() {
+    let json = serde_json::json!({"task_profile":TASK_PROFILE,"command":{"action":"invoke","request_id":"ask","task_id":"task","step_id":"step","operation":{"op":"send","request_id":"ask","conversation_id":"conversation","body":"question"},"reply_to":null}});
+    let mut request: TaskRequest = serde_json::from_value(json.clone()).unwrap();
+    request.validate(1_000).unwrap();
+    assert_eq!(serde_json::to_value(&request).unwrap(), json);
+    let TaskCommand::Invoke {
+        wait_for_reply,
+        operation,
+        ..
+    } = &mut request.command
+    else {
+        panic!("invoke")
+    };
+    *wait_for_reply = true;
+    **operation = Operation::History {
+        conversation_id: "conversation".into(),
+        after: None,
+        limit: 10,
+    };
+    assert_eq!(request.validate(1_000).unwrap_err().code, "invalid-request");
+    let TaskCommand::Invoke {
+        wait_for_reply,
+        reply_to,
+        ..
+    } = &mut request.command
+    else {
+        panic!("invoke")
+    };
+    *wait_for_reply = false;
+    *reply_to = Some("event".into());
+    assert_eq!(request.validate(1_000).unwrap_err().code, "invalid-request");
+}
+
+#[test]
+fn effect_error_metadata_reads_older_results_without_fabricating_a_failure() {
+    let old = serde_json::json!({"id":"effect","task_id":"task","step_id":"step","request_id":"send","state":"succeeded","outcome":null});
+    let effect: TaskEffect = serde_json::from_value(old.clone()).unwrap();
+    assert!(effect.error.is_none());
+    assert_eq!(serde_json::to_value(&effect).unwrap(), old);
+}
+
+#[test]
+fn runner_lease_commands_have_stable_owner_scopes_and_validated_identifiers() {
+    let commands = [
+        TaskCommand::Claim {
+            request_id: "claim".into(),
+            task_id: "task".into(),
+            step_id: "step".into(),
+            worker_id: "worker".into(),
+            expected_revision: None,
+        },
+        TaskCommand::ClaimGet {
+            task_id: "task".into(),
+            step_id: "step".into(),
+        },
+        TaskCommand::ReleaseClaim {
+            request_id: "release".into(),
+            task_id: "task".into(),
+            step_id: "step".into(),
+            worker_id: "worker".into(),
+            expected_revision: 0,
+        },
+    ];
+    for (command, scope) in
+        commands
+            .into_iter()
+            .zip(["task_claim", "task_claim_get", "task_release_claim"])
+    {
+        assert_eq!(command.required_scope(), scope);
+        assert_eq!(command.task_id(), Some("task"));
+        let request = TaskRequest::new(command);
+        request.validate(1_000).unwrap();
+        let copy: TaskRequest =
+            serde_json::from_str(&serde_json::to_string(&request).unwrap()).unwrap();
+        assert_eq!(copy, request);
+    }
+    assert_eq!(
+        TaskRequest::new(TaskCommand::ClaimGet {
+            task_id: "task".into(),
+            step_id: "../unsafe".into()
+        })
+        .validate(1_000)
+        .unwrap_err()
+        .code,
+        "invalid-request"
+    );
 }
 #[test]
 fn pending_and_uncertain_results_do_not_claim_an_outcome() {

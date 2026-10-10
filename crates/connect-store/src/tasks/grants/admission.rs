@@ -3,7 +3,7 @@ use super::{revalidate, TaskInvocation};
 use crate::Actor;
 use connect_protocol::{
     tasks::{TaskCommand, TaskPermission, TaskRecord, TaskRequest},
-    Error, Operation, Outcome, Result,
+    Error, Operation, Result,
 };
 use rusqlite::Connection;
 
@@ -42,50 +42,7 @@ pub(super) fn authorize(
             if !permits(TaskPermission::for_operation(operation)?) {
                 return Err(Error::forbidden());
             }
-            actor.require(operation.required_scope())?;
-            match operation.as_ref() {
-                // Generic account inbox/receipt lookup would disclose other tasks.
-                Operation::Inbox { .. } | Operation::RequestStatus { .. } => {
-                    return Err(Error::forbidden())
-                }
-                Operation::Resolve { address } | Operation::Capabilities { address, .. } => {
-                    if let Operation::Capabilities {
-                        conversation_id, ..
-                    } = operation.as_ref()
-                    {
-                        if conversation_id.as_deref() != Some(task.conversation_id.as_str()) {
-                            return Err(Error::forbidden());
-                        }
-                    }
-                    let identity = match crate::conversation_queries::resolve(c, &actor, address)? {
-                        Outcome::Identity(identity) => identity,
-                        _ => return Err(Error::storage()),
-                    };
-                    if identity.id != task.owner_id && !task.scope.recipients.contains(&identity.id)
-                    {
-                        return Err(Error::forbidden());
-                    }
-                }
-                _ => {
-                    if operation.conversation_id() != Some(task.conversation_id.as_str()) {
-                        return Err(Error::forbidden());
-                    }
-                    let conversation = crate::conversations::authorized_conversation(
-                        c,
-                        &actor,
-                        &task.conversation_id,
-                    )?;
-                    // Existing sends publish to the immutable room. Do not quietly
-                    // contact a participant outside this task's recipient ceiling.
-                    if conversation
-                        .participants
-                        .iter()
-                        .any(|id| id != &task.owner_id && !task.scope.recipients.contains(id))
-                    {
-                        return Err(Error::forbidden());
-                    }
-                }
-            }
+            super::super::authority::operation(c, &actor, &task, operation)?;
         }
         _ => return Err(Error::forbidden()),
     }

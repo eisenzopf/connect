@@ -93,6 +93,7 @@ fn an_immutable_room_cannot_broadcast_outside_the_task_recipient_ceiling() {
             step_id: "step".into(),
             operation: Box::new(operation),
             reply_to: None,
+            wait_for_reply: false,
         });
         assert_eq!(
             f.store
@@ -144,6 +145,7 @@ fn an_inbox_grant_cannot_use_the_generic_account_inbox() {
             wait_ms: 0,
         }),
         reply_to: None,
+        wait_for_reply: false,
     });
     assert_eq!(
         f.store

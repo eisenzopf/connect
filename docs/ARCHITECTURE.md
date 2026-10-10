@@ -70,7 +70,9 @@ qualification pass in the recorded local scope. Read the [qualification report](
 [decision 006](decisions/006-gate-3-contracts.html) and
 [decision 007](decisions/007-gate-3-media-profile.html).
 
-Schema 11 adds Gate 4 task tables to the Gate 3 durable model, SIP-leg intent and SMS eligibility. Existing installations, backups,
+Schema 11 adds Gate 4 task tables; schema 12 adds protected effect authority and
+provider-resource correlation without rebuilding earlier tables. These extend
+the Gate 3 durable model, SIP-leg intent and SMS eligibility. Existing installations, backups,
 provider credentials and remote resources are not modified by source checks.
 Presence/contact preferences remain backlog decision B-001. Recorded live SMS
 qualification is separate from offline source checks. [Wire contract](../contracts/connect-control-v1.md) ·

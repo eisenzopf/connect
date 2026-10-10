@@ -2,15 +2,13 @@
 mod admission;
 mod authority;
 mod bindings;
+mod execution;
 mod rows;
 mod secret;
 use super::{authority as tasks, storage};
 use crate::{identity::actor_from_connection_at, Actor, Store};
 use connect_protocol::{
-    tasks::{
-        GrantDefinition, InvocationBinding, InvocationGrant, TaskCommand, TaskOutcome, TaskRecord,
-        TaskRequest,
-    },
+    tasks::{GrantDefinition, InvocationBinding, InvocationGrant, TaskRecord, TaskRequest},
     Error, Result,
 };
 use rusqlite::{params, Connection, TransactionBehavior};
@@ -192,37 +190,6 @@ impl Store {
         let (row, _, _) = revalidate(&tx, invocation, crate::now())?;
         Ok(row.grant)
     }
-    /// Execute under a narrow authenticated invocation. Current authority is
-    /// checked inside the transaction again, including on a cached handle.
-    pub fn execute_task_invocation(
-        &self,
-        invocation: &TaskInvocation,
-        request: &TaskRequest,
-    ) -> Result<TaskOutcome> {
-        self.execute_task_invocation_at(invocation, request, crate::now())
-    }
-    pub(super) fn execute_task_invocation_at(
-        &self,
-        invocation: &TaskInvocation,
-        request: &TaskRequest,
-        timestamp: i64,
-    ) -> Result<TaskOutcome> {
-        let mut c = self.connection()?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
-        let (actor, task) = admission::authorize(&tx, invocation, request, timestamp)?;
-        match &request.command {
-            TaskCommand::Get { .. } => Ok(TaskOutcome::Record(Box::new(task))),
-            TaskCommand::Inbox { after, limit, .. } | TaskCommand::Wait { after, limit, .. } => {
-                super::inbox::read(&tx, &actor, &task, after.as_deref(), *limit, self)
-            }
-            _ => Err(Error::new(
-                "unsupported-operation",
-                "Task operation is not implemented yet",
-            )),
-        }
-    }
     /// Revocation remains available to a currently authorized owner after expiry.
     pub fn revoke_task_grant(&self, credential_id: &str, grant_id: &str) -> Result<()> {
         let mut c = self.connection()?;
@@ -283,4 +250,20 @@ fn current(
         return Err(Error::forbidden());
     }
     Ok((actor, task.record))
+}
+/// Reconstruct authority only from the committed effect's protected grant row.
+pub(super) fn authorize_effect(
+    c: &Connection,
+    grant_id: &str,
+    request: &TaskRequest,
+    timestamp: i64,
+) -> Result<()> {
+    let row = rows::get(c, grant_id)?;
+    let invocation = TaskInvocation {
+        grant_id: grant_id.into(),
+        task_id: row.grant.task_id.clone(),
+        binding: row.grant.binding.clone(),
+        installation_id: installation_id(c)?,
+    };
+    admission::authorize(c, &invocation, request, timestamp).map(|_| ())
 }

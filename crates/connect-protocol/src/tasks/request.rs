@@ -93,6 +93,10 @@ pub enum TaskCommand {
         operation: Box<Operation>,
         /// Binds a question to an existing task reply; not an authority selector.
         reply_to: Option<String>,
+        /// Explicit question intent. The server waits for an attributed reply;
+        /// it never infers a question or task routing from message text.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        wait_for_reply: bool,
     },
     Recall {
         task_id: String,
@@ -108,6 +112,25 @@ pub enum TaskCommand {
     EffectGet {
         task_id: String,
         effect_id: String,
+    },
+    /// Runner coordination only; possessing a worker ID does not confer authority.
+    Claim {
+        request_id: String,
+        task_id: String,
+        step_id: String,
+        worker_id: String,
+        expected_revision: Option<u64>,
+    },
+    ClaimGet {
+        task_id: String,
+        step_id: String,
+    },
+    ReleaseClaim {
+        request_id: String,
+        task_id: String,
+        step_id: String,
+        worker_id: String,
+        expected_revision: u64,
     },
 }
 impl TaskCommand {
@@ -127,6 +150,9 @@ impl TaskCommand {
             Self::Recall { .. } => "task_recall",
             Self::Wait { .. } => "task_wait",
             Self::EffectGet { .. } => "task_effect_get",
+            Self::Claim { .. } => "task_claim",
+            Self::ClaimGet { .. } => "task_claim_get",
+            Self::ReleaseClaim { .. } => "task_release_claim",
         }
     }
     /// Stable logical identity for mutations, independent of tool/request envelope IDs.
@@ -139,6 +165,9 @@ impl TaskCommand {
             | Self::Reply { request_id, .. }
             | Self::ConsumeReply { request_id, .. }
             | Self::Invoke { request_id, .. } => Some(request_id),
+            Self::Claim { request_id, .. } | Self::ReleaseClaim { request_id, .. } => {
+                Some(request_id)
+            }
             _ => None,
         }
     }
@@ -156,6 +185,9 @@ impl TaskCommand {
             | Self::Recall { task_id, .. }
             | Self::Wait { task_id, .. }
             | Self::EffectGet { task_id, .. } => Some(task_id),
+            Self::Claim { task_id, .. }
+            | Self::ClaimGet { task_id, .. }
+            | Self::ReleaseClaim { task_id, .. } => Some(task_id),
         }
     }
     /// Native replies preserve ordinary sender authority. They never borrow a

@@ -373,7 +373,7 @@ fn upload_resume_conflicts_digest_authority_quota_and_delete_are_bounded() {
                 media_type: "application/octet-stream".into(),
                 size: expiring_bytes.len() as u64,
                 sha256: digest(expiring_bytes),
-                expires_at: Some(chrono::Utc::now().timestamp() + 1),
+                expires_at: Some(chrono::Utc::now().timestamp() + 60),
             },
         )
         .unwrap()
@@ -410,7 +410,15 @@ fn upload_resume_conflicts_digest_authority_quota_and_delete_are_bounded() {
         .blob_directory()
         .join(format!("{}.blob", expiring.id));
     assert!(expiring_blob.is_file());
-    std::thread::sleep(std::time::Duration::from_millis(1_100));
+    // Advance this isolated fixture's retained expiry after the upload commits;
+    // a one-second wall-clock deadline can race compilation and CPU contention.
+    rusqlite::Connection::open(&fixture.database)
+        .unwrap()
+        .execute(
+            "UPDATE artifacts SET expires_at=?1 WHERE id=?2",
+            rusqlite::params![chrono::Utc::now().timestamp() - 1, expiring.id],
+        )
+        .unwrap();
     assert_eq!(
         fixture
             .store

@@ -1,5 +1,7 @@
 //! Durable application task state. No media socket or host session owns its lifetime.
 mod authority;
+mod claims;
+mod effects;
 mod grants;
 pub use grants::{IssuedTaskGrant, TaskInvocation};
 mod inbox;
@@ -7,7 +9,7 @@ mod lifecycle;
 mod native_reply;
 mod replies;
 mod storage;
-use crate::{identity::actor_from_connection_at, Store};
+use crate::{identity::actor_from_connection_at, DiscoveryRuntime, Store};
 use connect_protocol::{
     tasks::{TaskCommand, TaskOutcome, TaskRequest, TaskState},
     Error, Result,
@@ -18,12 +20,36 @@ impl Store {
     /// Admit a typed task command with current authority and one serialized
     /// transaction. Service/client exposure is a separate application extension.
     pub fn execute_task(&self, credential_id: &str, request: &TaskRequest) -> Result<TaskOutcome> {
-        self.execute_task_at(credential_id, request, crate::now())
+        self.execute_task_with_runtime(credential_id, request, &DiscoveryRuntime::default())
     }
+    /// Use configured discovery rather than a synthetic default for nested tools.
+    pub fn execute_task_with_runtime(
+        &self,
+        credential_id: &str,
+        request: &TaskRequest,
+        runtime: &DiscoveryRuntime,
+    ) -> Result<TaskOutcome> {
+        self.execute_task_runtime_at(credential_id, request, runtime, crate::now())
+    }
+    #[cfg(test)]
     fn execute_task_at(
         &self,
         credential_id: &str,
         request: &TaskRequest,
+        timestamp: i64,
+    ) -> Result<TaskOutcome> {
+        self.execute_task_runtime_at(
+            credential_id,
+            request,
+            &DiscoveryRuntime::default(),
+            timestamp,
+        )
+    }
+    fn execute_task_runtime_at(
+        &self,
+        credential_id: &str,
+        request: &TaskRequest,
+        runtime: &DiscoveryRuntime,
         timestamp: i64,
     ) -> Result<TaskOutcome> {
         let mut connection = self.connection()?;
@@ -53,7 +79,7 @@ impl Store {
                 timestamp,
                 self,
             )?;
-            tx.commit().map_err(|_| Error::storage())?;
+            commit(tx, request)?;
             return Ok(outcome);
         }
         // Authority precedes receipt lookup; a saved result is never a grant.
@@ -68,7 +94,9 @@ impl Store {
         if let Some(task) = &current {
             if !matches!(
                 request.command,
-                TaskCommand::Get { .. } | TaskCommand::Cancel { .. }
+                TaskCommand::Get { .. }
+                    | TaskCommand::Cancel { .. }
+                    | TaskCommand::EffectGet { .. }
             ) {
                 authority::continuation(&tx, task, timestamp, true)?;
             }
@@ -83,6 +111,37 @@ impl Store {
             }
         }
         match &request.command {
+            TaskCommand::Claim { .. }
+            | TaskCommand::ClaimGet { .. }
+            | TaskCommand::ReleaseClaim { .. } => {
+                let task = current.ok_or_else(Error::forbidden)?;
+                let outcome = claims::execute(&tx, &actor, &task.record, request, timestamp, self)?;
+                commit(tx, request)?;
+                return Ok(outcome);
+            }
+            TaskCommand::Invoke { .. } => {
+                let task = current.ok_or_else(Error::forbidden)?;
+                let result = effects::invoke(
+                    effects::Execution {
+                        c: &tx,
+                        actor: &actor,
+                        task: &task.record,
+                        store: self,
+                        runtime,
+                        timestamp,
+                    },
+                    request,
+                    None,
+                )?;
+                commit(tx, request)?;
+                return result;
+            }
+            TaskCommand::EffectGet { effect_id, .. } => {
+                let task = current.ok_or_else(Error::forbidden)?;
+                let result = effects::get(&tx, &actor, &task.record, effect_id, timestamp, self)?;
+                commit(tx, request)?;
+                return Ok(result);
+            }
             TaskCommand::Replies {
                 conversation_id,
                 after,
@@ -185,9 +244,48 @@ impl Store {
         } else {
             TaskOutcome::Record(Box::new(record))
         };
-        tx.commit().map_err(|_| Error::storage())?;
+        commit(tx, request)?;
         Ok(outcome)
     }
+}
+
+/// Qualification hooks are compiled only into explicit test-support binaries.
+pub(super) fn commit(tx: rusqlite::Transaction<'_>, request: &TaskRequest) -> Result<()> {
+    #[cfg(feature = "test-support")]
+    if let Some(id) = request.command.request_id() {
+        crate::fault_point("task-before-commit", id);
+    }
+    tx.commit().map_err(|_| Error::storage())?;
+    #[cfg(feature = "test-support")]
+    if let Some(id) = request.command.request_id() {
+        crate::fault_point("task-after-commit", id);
+    }
+    #[cfg(not(feature = "test-support"))]
+    let _ = request;
+    Ok(())
+}
+
+/// Ordinary jobs have no effect link. Task jobs must retain their original
+/// delegation at dispatch, even when the account-level credential still works.
+pub(crate) fn authorize_effect_link(
+    c: &rusqlite::Connection,
+    kind: &str,
+    resource: &str,
+    timestamp: i64,
+) -> Result<()> {
+    use rusqlite::OptionalExtension;
+    let id: Option<String> = c
+        .query_row(
+            "SELECT effect_id FROM task_effect_links WHERE kind=?1 AND resource_id=?2",
+            rusqlite::params![kind, resource],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?;
+    if let Some(id) = id {
+        effects::authorize_effect(c, &id, timestamp)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

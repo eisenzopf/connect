@@ -9,6 +9,7 @@ mod conversation_queries;
 mod conversations;
 mod cursor;
 mod identity;
+mod operations;
 mod provider_chat_context;
 mod provider_context;
 mod providers;
@@ -41,7 +42,7 @@ pub use recovery::Snapshot;
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
 pub use sip_legs::{SipLegAction, SipLegJob};
 pub use tasks::{IssuedTaskGrant, TaskInvocation};
-pub const SCHEMA_VERSION: u32 = 11;
+pub const SCHEMA_VERSION: u32 = 12;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
@@ -89,6 +90,8 @@ impl Store {
         tx.execute_batch(include_str!("../migrations/010_sms_eligibility.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/011_tasks.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/012_task_effect_authority.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute(
             "INSERT INTO installation VALUES(1,?1,?2)",

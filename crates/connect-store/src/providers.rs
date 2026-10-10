@@ -204,6 +204,19 @@ impl Store {
             return Ok(None);
         };
         let r = route(&tx, &rid)?;
+        match crate::tasks::authorize_effect_link(&tx, "provider_job", &id, crate::now()) {
+            Ok(()) => (),
+            Err(e) if matches!(e.code.as_str(), "forbidden" | "unauthorized") => {
+                tx.execute(
+                    "UPDATE provider_jobs SET state='cancelled' WHERE id=?1",
+                    [&id],
+                )
+                .map_err(|_| Error::storage())?;
+                tx.commit().map_err(|_| Error::storage())?;
+                return Ok(None);
+            }
+            Err(e) => return Err(e),
+        }
         let allowed = (|| {
             let actor = actor_from_connection(&tx, &credential)?;
             actor.require("send")?;

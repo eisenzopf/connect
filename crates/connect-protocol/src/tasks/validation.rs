@@ -134,10 +134,16 @@ impl TaskCommand {
                 step_id,
                 operation,
                 reply_to,
+                wait_for_reply,
                 ..
             } => {
                 id(step_id)?;
                 TaskPermission::for_operation(operation)?;
+                if *wait_for_reply && !matches!(operation.as_ref(), Operation::Send { .. }) {
+                    return Err(invalid(
+                        "Only an explicit message question can await a reply",
+                    ));
+                }
                 if operation
                     .request_id()
                     .is_some_and(|nested| nested != request_id)
@@ -147,6 +153,9 @@ impl TaskCommand {
                     ));
                 }
                 if let Some(value) = reply_to {
+                    if !matches!(operation.as_ref(), Operation::Send { .. }) {
+                        return Err(invalid("Only a message can reference a task reply"));
+                    }
                     id(value)?;
                 }
             }
@@ -177,6 +186,16 @@ impl TaskCommand {
             }
             Self::Recall { after, limit, .. } => page(after, *limit)?,
             Self::EffectGet { effect_id, .. } => id(effect_id)?,
+            Self::Claim {
+                step_id, worker_id, ..
+            }
+            | Self::ReleaseClaim {
+                step_id, worker_id, ..
+            } => {
+                id(step_id)?;
+                id(worker_id)?;
+            }
+            Self::ClaimGet { step_id, .. } => id(step_id)?,
             Self::Get { .. } => (),
         }
         Ok(())

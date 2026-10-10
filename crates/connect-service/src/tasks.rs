@@ -107,10 +107,11 @@ impl Service {
         request: TaskRequest,
     ) -> Result<TaskOutcome> {
         let store = self.store.clone();
+        let runtime = self.runtime.clone();
         tokio::task::spawn_blocking(move || match principal {
-            TaskPrincipal::Owner(id) => store.execute_task(&id, &request),
+            TaskPrincipal::Owner(id) => store.execute_task_with_runtime(&id, &request, &runtime),
             TaskPrincipal::Invocation(invocation) => {
-                store.execute_task_invocation(&invocation, &request)
+                store.execute_task_invocation_with_runtime(&invocation, &request, &runtime)
             }
         })
         .await
