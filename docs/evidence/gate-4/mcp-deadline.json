@@ -1,0 +1,101 @@
+{
+  "status": "MCP shared deadline and ACK recovery component qualified; G4-016/G4-017 and whole Gate 4 remain in progress",
+  "recorded_at": "2026-10-10T17:13:03.965494+00:00",
+  "qualification": "Local macOS arm64; isolated loopback server, actual official MCP clients and native SDK observation; no provider account operations",
+  "items": [
+    "G4-016",
+    "G4-017"
+  ],
+  "source_base": "a750c194d04ec5d1973397586d9d0f7daf4fc7e6",
+  "source_checkpoint": "eb5d0ceb0df798bfb2e6768182167b7473f17a36",
+  "source_verification": {
+    "changed_files": {
+      "crates/connect-mcp/README.md": "f84d1e013938bf948b6495455a1a5afa55ff8fb4cdb6316c4362c5aee3966b91",
+      "crates/connect-mcp/src/auth.rs": "d2448a8626a57a1e105b9576e75cd7ea1418660b2a814487645eb3b9d5f45933",
+      "crates/connect-mcp/src/budget.rs": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+      "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+      "crates/connect-mcp/src/lib.rs": "849d9fa58983c4d989d61af8d6b161911576abf70a5e7b03a9d04fcea277d5ba",
+      "crates/connect-server/tests/gate4_mcp_ack_recovery.rs": "644cdb051712746af7792f21c0748980680ff11cbb6dcd2b1ece6ac9050e157b",
+      "crates/connect-server/tests/gate4_mcp_auth_deadline.rs": "adc3e468a11c5333b3e71e7276b65da12db0cf96b80ad5021731e286c63977fa",
+      "crates/connect-server/tests/gate4_mcp_body_deadline.rs": "88e3168b78efc68fab7855ad614b168983647c4a7821f88d49394797a4316eaa",
+      "crates/connect-server/tests/gate4_mcp_deadline.rs": "b00044d6e3cd7811e4e1e249b92e183c0dffbb62e977b8e37f6d3c25e2da4e84",
+      "crates/connect-server/tests/gate4_mcp_late_body.rs": "168822e7dd8c3f0b1e68c62e783b53c820b4c7ceb2c99c5dd86fd33a858ae237",
+      "crates/connect-server/tests/support/mcp_ack_proxy.rs": "a91e7cff18b6230b9f931b769dfa04f539831c3985f1e4b46923aa3b00126041"
+    },
+    "fingerprint": "b8b01037b389acaa255966d29b0baa330aee13dfd7a9fa0da33fd62aafcd0925",
+    "mismatches": 0
+  },
+  "behavior": [
+    "A two-second verified admission delay followed by maximum requested event wait completes below ten seconds; the empty page is authoritative, has pending=true and its exact cursor is usable on a fresh wait.",
+    "Authentication remains bounded to five seconds; timeout releases admission, and a subsequent request authenticates normally. Existing 32-request admission and shutdown tests still pass.",
+    "An authenticated incomplete chunked body receives HTTP 504 at the shared ten-second cutoff; a fresh independent client can read its bound task afterwards.",
+    "A tool body decoded after the 9.5-second cutoff returns structured transport-uncertain with its authenticated task handle and reconcile=true. It does not pretend to complete a task or fabricate an inbox page; matching recovery produces one message.",
+    "A loopback proxy receives an actual accepted send response but withholds it from the caller. A new MCP connection repeats the same request_id and step_id and recovers the original structured receipt with exactly one visible message.",
+    "Validated logical IDs accompany tool outcomes; bearer plaintext and model authority selectors do not enter correlation metadata. Cancellation cancels the waiter, not an already dispatched durable store transaction.",
+    "All previous MCP discovery/version, host/origin, expiry/revocation, schema, operation parity, artifact/recall, listener lifecycle, capacity and streamed shutdown checks pass."
+  ],
+  "limits": {
+    "http_response_construction_seconds": 10,
+    "authentication_seconds": 5,
+    "tool_cutoff_seconds": 9.5,
+    "wait_projection_reserve_ms": 250,
+    "scope": "These bound server work from admission to response construction; slow reader/network delivery and arbitrary scheduler/build contention are not qualified performance guarantees.",
+    "source_boundary": "Targeted MCP integration and strict quality qualification only. Earlier whole-workspace evidence remains tied to its original source revisions.",
+    "unchanged": "No timer/size/capacity ceiling relaxed, no protocol/store schema or dependency patch changed, no Rudeless extraction/database or remote deployment/provider operation."
+  },
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/mcp-deadline-baseline.log",
+      "terminal_exit": 101,
+      "result": "The real independent MCP client measured 12.011505125 seconds for slow admission plus maximum wait, violating the ten-second requirement. Corrected by propagating one shared budget and retaining an earlier response reserve."
+    }
+  ],
+  "verification": [
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_mcp_ack_recovery --test gate4_mcp_auth_deadline --test gate4_mcp_authority --test gate4_mcp_body_deadline --test gate4_mcp_capacity --test gate4_mcp_deadline --test gate4_mcp_late_body --test gate4_mcp_operation_parity --test gate4_mcp_runtime --test gate4_mcp_streaming --test gate4_mcp_tools --test gate4_mcp_transport",
+      "terminal_exit": 0,
+      "result": "18 passed; zero failed/ignored across 12 integration binaries",
+      "log": ".local/gate-4-planning/mcp-deadline-final.log",
+      "log_sha256": "301f6d9dc04ce05d8d321ae7721321b70844e499b2d36a8c749c24fe4302ed83"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-mcp -p connect-server --all-features --all-targets -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/mcp-deadline-clippy.log",
+      "log_sha256": "8e72b26fcb1a7aa9ab4eda0d208c544175385654d6fd5df8bced22a94e1de4ea"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-mcp -p connect-server --all-features --no-deps",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/mcp-deadline-rustdoc.log",
+      "log_sha256": "4d8b17cde3825c73bd4a7025be1bb3379477399f1dd4c3eb67c21e47a657cff6"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/mcp-deadline-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "python3 .local/gate-4-planning/validate-docs.py",
+      "terminal_exit": 0,
+      "result": "Stable 36-task graph, acceptance mappings, links/anchors and saved progress pass",
+      "log": ".local/gate-4-planning/mcp-deadline-doc-links.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
+    }
+  ],
+  "review": {
+    "budget_module_lines": 34,
+    "handler_lines": 155,
+    "architecture": "Official rmcp retains transport ownership; adapter owns budgets, authenticated tool projection and safe correlation only. No SQLite access in adapter or reference clients. ACK proxy has explicit bounded drain and Drop cancellation/abort."
+  },
+  "remaining": [
+    "Full lifecycle/reply/recall/cancel/pending parity matrix and native scoped media/resources",
+    "Verified provider chat/call origins, context and actual Vapi tool use",
+    "Durable public SDK runner, installed Codex continuation and full end-to-end journeys",
+    "Retention/adversarial/load/upgrade/package and all remaining Gate 4 acceptance"
+  ]
+}
