@@ -18,4 +18,4 @@ with socket.socket() as listener:
     }))
     temporary.replace(path)
     # A fixture fails closed even if the implementation under test leaks it.
-    time.sleep(10)
+    time.sleep(60)

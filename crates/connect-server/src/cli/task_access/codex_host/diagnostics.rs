@@ -30,6 +30,24 @@ pub struct HostObservation {
     pub attempts: Option<u32>,
 }
 impl HostObservation {
+    /// Operational projection of the supervised launcher's retained state.
+    /// A held lock remains uncertain; a completed turn still needs explicit resume.
+    pub fn readiness(&self) -> connect_protocol::ComponentReadiness {
+        use connect_client::task_diagnostics::WorkerCondition as W;
+        let condition = match self.state {
+            HostState::Unconfigured => W::Unconfigured,
+            HostState::NotStarted => W::NotStarted,
+            HostState::TurnActive => W::OwnershipObserved,
+            HostState::TurnComplete => W::ExplicitResumeRequired,
+            HostState::Interrupted | HostState::MissingSession => W::RecoveryRequired,
+            HostState::ChangedDuringSample => W::ChangedDuringSample,
+            HostState::InvalidInstallation
+            | HostState::BindingMismatch
+            | HostState::InvalidState
+            | HostState::LockUnavailable => W::InvalidMetadata,
+        };
+        condition.component("codex-host")
+    }
     fn empty(state: HostState) -> Self {
         Self {
             state,
@@ -45,6 +63,14 @@ impl HostObservation {
 /// are read with existing private/bounded checks; no log/session content is read,
 /// lock file created, grant refreshed or replacement session started.
 pub fn inspect(directory: Option<&Path>, task_id: &str) -> HostObservation {
+    inspect_with_lock_probe(directory, task_id, lock)
+}
+
+fn inspect_with_lock_probe(
+    directory: Option<&Path>,
+    task_id: &str,
+    probe: impl FnOnce(&Path) -> anyhow::Result<bool>,
+) -> HostObservation {
     let Some(directory) = directory else {
         return HostObservation::empty(HostState::Unconfigured);
     };
@@ -63,7 +89,7 @@ pub fn inspect(directory: Option<&Path>, task_id: &str) -> HostObservation {
     };
     let path = directory.join("host.lock");
     let lock = match std::fs::symlink_metadata(&path) {
-        Ok(_) => match lock(&path) {
+        Ok(_) => match probe(&path) {
             Ok(value) => Some(value),
             Err(_) => return HostObservation::empty(HostState::LockUnavailable),
         },
@@ -128,3 +154,7 @@ fn lock(path: &Path) -> anyhow::Result<bool> {
         Err(error) => Err(error.into()),
     }
 }
+
+#[cfg(test)]
+#[path = "diagnostics_tests.rs"]
+mod tests;

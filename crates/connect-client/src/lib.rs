@@ -35,8 +35,9 @@ pub use config::ClientConfig;
 pub use connect_protocol::tasks;
 pub use connect_protocol::{
     Artifact, ArtifactChunk, Availability, AvailabilityState, BrowserBinding, Call, Capabilities,
-    CapabilityLimits, ContextDeliveryPage, ContextItem, ContextView, Conversation, Event, Identity,
-    Message, Operation, Outcome, RouteCapability, Session, SipLeg, PROFILE,
+    CapabilityLimits, ComponentReadiness, ContextDeliveryPage, ContextItem, ContextView,
+    Conversation, Event, Identity, Message, Operation, Outcome, Readiness, ReadinessState,
+    RouteCapability, Session, SipLeg, PROFILE,
 };
 pub use error::{ClientError, Result};
 pub use media::{NativeAudioFrame, NativeAudioSession};

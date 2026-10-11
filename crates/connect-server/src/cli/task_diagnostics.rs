@@ -10,6 +10,7 @@ struct Report {
     #[serde(flatten)]
     task: connect_client::task_diagnostics::TaskDiagnostics,
     codex_worker: HostObservation,
+    execution_readiness: connect_protocol::Readiness,
 }
 
 /// Metadata-only task view. Each checkpoint belongs to its particular read lane.
@@ -47,8 +48,12 @@ impl Arguments {
                     self.limit,
                 )
                 .await?;
-            let codex_worker =
-                diagnostics::inspect(self.codex_installation.as_deref(), &self.task_id);
+            let selected = self.codex_installation;
+            let task_id = self.task_id.clone();
+            let codex_worker = tokio::task::spawn_blocking(move || {
+                diagnostics::inspect(selected.as_deref(), &task_id)
+            })
+            .await?;
             let current = client.negotiate_task(&self.task_id).await?;
             anyhow::ensure!(
                 current.conversation_id == task.task.conversation_id,
@@ -59,7 +64,12 @@ impl Arguments {
             task.task.revision = current.revision;
             task.task.expires_at = current.expires_at;
             task.task.updated_at = current.updated_at;
-            Ok::<_, anyhow::Error>(Report { task, codex_worker })
+            let execution_readiness = task.execution_readiness(&[codex_worker.readiness()]);
+            Ok::<_, anyhow::Error>(Report {
+                task,
+                codex_worker,
+                execution_readiness,
+            })
         }
         .await;
         client.close().await;

@@ -36,6 +36,25 @@ pub struct Readiness {
     pub state: ReadinessState,
     pub components: Vec<ComponentReadiness>,
 }
+impl Readiness {
+    /// Aggregate configured observations conservatively. Optional absence does
+    /// not mask failures; without a configured observation readiness is unknown.
+    pub fn from_components(components: Vec<ComponentReadiness>) -> Self {
+        let state = [
+            ReadinessState::Unavailable,
+            ReadinessState::Degraded,
+            ReadinessState::Uncertain,
+        ]
+        .into_iter()
+        .find(|state| components.iter().any(|c| c.configured && c.state == *state))
+        .unwrap_or(if components.iter().any(|c| c.configured) {
+            ReadinessState::Ready
+        } else {
+            ReadinessState::Uncertain
+        });
+        Self { state, components }
+    }
+}
 #[cfg(test)]
 #[path = "readiness_tests.rs"]
 mod tests;

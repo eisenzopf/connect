@@ -38,6 +38,10 @@ async fn stopped_incomplete_turn_keeps_exact_session_and_metadata_omits_private_
     let observation = inspect(Some(&dir), &f.task.id);
     assert_eq!(observation.state, HostState::Interrupted);
     assert_eq!(
+        observation.readiness().reason,
+        "original-worker-recovery-required"
+    );
+    assert_eq!(
         observation.session_id.as_deref(),
         saved["session_id"].as_str()
     );
@@ -89,9 +93,17 @@ async fn owned_launcher_lock_then_deadline_reports_active_then_retained_interrup
     assert!(!running.is_finished());
     let active = inspect(Some(&dir), &f.task.id);
     assert_eq!(active.state, HostState::TurnActive);
+    assert_eq!(
+        active.readiness().state,
+        connect_protocol::ReadinessState::Uncertain
+    );
     assert!(running.await.unwrap().is_err());
     let stopped = inspect(Some(&dir), &f.task.id);
     assert_eq!(stopped.state, HostState::Interrupted);
+    assert_eq!(
+        stopped.readiness().state,
+        connect_protocol::ReadinessState::Unavailable
+    );
     assert_eq!(stopped.session_id, active.session_id);
     assert_eq!(stopped.run_id, active.run_id);
     f.close().await;
@@ -169,6 +181,12 @@ async fn independent_cli_reports_local_worker_and_current_revocation_denies_repo
     );
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["codex_worker"]["state"], "not-started");
+    assert_eq!(report["execution_readiness"]["state"], "unavailable");
+    assert!(report["execution_readiness"]["components"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c["component"] == "codex-host" && c["reason"] == "worker-not-started"));
     assert_eq!(report["task"]["task_id"], f.task.id);
     assert_eq!(
         Store::inspect_snapshot(f.server.store.path()).unwrap(),

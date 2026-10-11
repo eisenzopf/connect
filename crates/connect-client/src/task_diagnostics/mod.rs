@@ -1,6 +1,10 @@
 //! Bounded diagnostics composed through existing authenticated public interfaces.
 mod models;
 mod projection;
+mod readiness;
+pub use readiness::WorkerCondition;
+#[cfg(test)]
+mod readiness_tests;
 #[cfg(test)]
 mod tests;
 use crate::{ClientError, ConnectClient, Result};

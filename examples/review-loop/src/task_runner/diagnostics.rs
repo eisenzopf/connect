@@ -26,11 +26,27 @@ pub struct WorkerObservation {
     pub statistics: Option<Statistics>,
 }
 
+impl WorkerObservation {
+    /// Conservative lifecycle projection; ownership never attests progress.
+    pub fn readiness(&self) -> connect_client::ComponentReadiness {
+        use connect_client::task_diagnostics::WorkerCondition as W;
+        let condition = match self.state {
+            WorkerState::Unconfigured => W::Unconfigured,
+            WorkerState::NotStarted => W::NotStarted,
+            WorkerState::LockHeld => W::OwnershipObserved,
+            WorkerState::Stopped => W::Stopped,
+            WorkerState::StoppedWithPendingWork => W::RecoveryRequired,
+        };
+        condition.component("task-runner")
+    }
+}
+
 /// Reference-client report; Connect data comes exclusively from the public SDK.
 #[derive(Debug, Serialize)]
 pub struct Report {
     pub task: TaskDiagnostics,
     pub runner: WorkerObservation,
+    pub execution_readiness: connect_client::Readiness,
 }
 
 /// Inspect only the selected application's state and authenticated task. Never
@@ -61,7 +77,12 @@ pub async fn inspect(
             "Task binding changed"
         );
         task.changed_during_sample |= first.revision != task.task.revision;
-        Ok(Report { task, runner })
+        let execution_readiness = task.execution_readiness(&[runner.readiness()]);
+        Ok(Report {
+            task,
+            runner,
+            execution_readiness,
+        })
     }
     .await;
     client.close().await;

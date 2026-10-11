@@ -5,9 +5,10 @@ import os
 import subprocess
 import sys
 import time
-import urllib.request
 import uuid
 from pathlib import Path
+
+Path("fixture-phase").write_text("entered")
 
 args = sys.argv[1:]
 state = json.loads(Path("host-state.json").read_text())
@@ -42,10 +43,12 @@ if mode.startswith("descendant-"):
          str(Path.cwd() / "descendant.json")], stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL if mode == "descendant-complete" else None,
     )
-    deadline = time.monotonic() + 3
+    Path("fixture-phase").write_text("waiting-descendant")
+    deadline = time.monotonic() + 20
     while not Path("descendant.json").exists():
         assert time.monotonic() < deadline
         time.sleep(0.01)
+    Path("fixture-phase").write_text("descendant-ready")
     if mode == "descendant-invalid":
         print("invalid JSONL", flush=True)
     if mode == "descendant-exit":
@@ -60,6 +63,8 @@ if mode == "stall":
     sys.exit(1)
 if mode == "missing":
     sys.exit(2)
+import urllib.request
+
 headers = {
     "Content-Type": "application/json",
     "Accept": "application/json, text/event-stream",

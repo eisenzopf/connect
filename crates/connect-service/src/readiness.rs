@@ -63,19 +63,7 @@ impl OperationalReadiness {
             .values()
             .cloned()
             .collect();
-        let state = [
-            ReadinessState::Unavailable,
-            ReadinessState::Degraded,
-            ReadinessState::Uncertain,
-        ]
-        .into_iter()
-        .find(|s| components.iter().any(|c| c.configured && c.state == *s))
-        .unwrap_or(if !components.iter().any(|c| c.configured) {
-            ReadinessState::Uncertain
-        } else {
-            ReadinessState::Ready
-        });
-        Readiness { state, components }
+        Readiness::from_components(components)
     }
 }
 #[cfg(test)]

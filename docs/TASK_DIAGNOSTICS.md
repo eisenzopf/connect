@@ -138,5 +138,44 @@ separately and can change after inspection.
 
 [Worker inspection evidence](evidence/gate-4/worker-diagnostics.json) records 24
 local behavior checks, strict quality checks and the retained fixture failure.
-Selected-host qualification, full external-worker supervision/readiness audit
-and the changing-metadata branch remain open; G4-024 is still in progress.
+That earlier audit covers the original inspection views. The combined readiness
+projection and changing-metadata case are recorded separately below. G4-024
+remains in progress pending selected-host and integrated qualification.
+
+## Combined execution readiness
+
+Both diagnostic commands now include `execution_readiness`, using the existing
+readiness component shape. It combines the authenticated server snapshot with
+only the explicitly selected local host or runner. The original
+`server_readiness`, `codex_worker` and `runner` observations remain separate.
+This is an operator-local view; it does not register an external worker with
+the server, create a remote heartbeat, or turn local metadata into authority.
+
+| Observation | Execution component | Meaning |
+| --- | --- | --- |
+| No worker selected | Unconfigured | No worker availability was established. A healthy server alone leaves combined execution readiness uncertain. |
+| Selected but not started | Unavailable | Start the original configured worker. |
+| Ownership lock held | Uncertain | Ownership was observed; model progress and provider delivery are unknown. |
+| Runner stopped | Unavailable | Automatic continuation is not running. |
+| Pending work or interrupted host | Unavailable | Reconcile the original worker/session and saved mutation IDs. |
+| Host turn completed | Degraded | This host requires explicit resume; a completed turn does not complete the Connect task. |
+| Metadata changed during inspection | Uncertain | Retry the sample; mixed session/run metadata is omitted. |
+| Invalid installation, binding or state | Unavailable | Repair the selected installation; no credential fallback occurs. |
+
+A server failure remains visible alongside worker reasons. A changed task revision
+adds `task-changed-during-sample`; it does not silently present older journal pages
+as one atomic snapshot. The readiness projection includes only stable reason
+codes and component labels. It performs no communication or task mutation.
+
+Rust integrations can compose their own trusted local observations with
+`WorkerCondition::component` and `TaskDiagnostics::execution_readiness`.
+`Readiness::from_components` provides the common conservative aggregation rule;
+optional unconfigured components never mask a configured failure.
+
+[Execution-readiness evidence](evidence/gate-4/worker-execution-readiness.json)
+records 53 passing targeted local checks, including worker failure/recovery,
+current-authority denial, unchanged checkpoints and changing host metadata.
+Strict Clippy, Rustdoc and repository formatting pass. Earlier fixture startup
+failures are retained; their original transient cause was not independently
+established. Selected-host, installed-candidate and integrated acceptance remain
+open, so this component does not complete G4-024 or Gate 4.

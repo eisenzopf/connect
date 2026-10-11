@@ -13,6 +13,12 @@ use serde::Deserialize;
 use std::{path::Path, time::Duration};
 use tokio::{net::TcpStream, process::Command};
 
+// Leave room for cold interpreter startup while retaining one absolute,
+// explicitly configured deadline. Outer observation includes CLI startup.
+const TURN_SECONDS: u64 = 8;
+const STARTUP_SECONDS: u64 = 20;
+const CLEANUP_SECONDS: u64 = 3;
+
 #[derive(Deserialize)]
 struct Descendant {
     pid: u32,
@@ -21,7 +27,7 @@ struct Descendant {
     port: u16,
 }
 async fn observe(path: &Path) -> Descendant {
-    tokio::time::timeout(Duration::from_secs(3), async {
+    tokio::time::timeout(Duration::from_secs(STARTUP_SECONDS), async {
         loop {
             if let Ok(bytes) = std::fs::read(path) {
                 return serde_json::from_slice(&bytes).unwrap();
@@ -30,7 +36,15 @@ async fn observe(path: &Path) -> Descendant {
         }
     })
     .await
-    .unwrap()
+    .unwrap_or_else(|_| {
+        let parent = path.parent().unwrap();
+        let phase = std::fs::read_to_string(parent.join("fixture-phase"))
+            .unwrap_or_else(|_| "not-entered".into());
+        panic!(
+            "Fixture marker {} unavailable; host phase={phase}",
+            path.file_name().unwrap().to_string_lossy()
+        )
+    })
 }
 async fn listener_alive(child: &Descendant) -> bool {
     TcpStream::connect((std::net::Ipv4Addr::LOCALHOST, child.port))
@@ -83,8 +97,15 @@ async fn exercise(mode: &str, abort: bool) {
     assert_eq!(control.pid, neighbor.id().unwrap());
     assert_eq!(control.group, control.pid);
     let workdir = dir.clone();
+    let started = tokio::time::Instant::now();
     let running = tokio::spawn(async move {
-        codex_host::run(&workdir, &binary, Some(&workdir.join("prompt.txt")), 2).await
+        codex_host::run(
+            &workdir,
+            &binary,
+            Some(&workdir.join("prompt.txt")),
+            TURN_SECONDS,
+        )
+        .await
     });
     let child = observe(&dir.join("descendant.json")).await;
     assert_eq!(child.group, child.parent);
@@ -111,6 +132,10 @@ async fn exercise(mode: &str, abort: bool) {
             "{error}"
         );
     }
+    assert!(
+        started.elapsed() < Duration::from_secs(TURN_SECONDS + CLEANUP_SECONDS),
+        "Host deadline restarted or cleanup exceeded its bound"
+    );
     gone(&child).await;
     assert!(listener_alive(&control).await);
     assert!(neighbor.try_wait().unwrap().is_none());
@@ -164,7 +189,11 @@ async fn fresh_launcher_reaps_group_before_returning_deadline_failure() {
         .arg(&dir)
         .arg("--codex-binary")
         .arg(&binary)
-        .args(["--timeout-seconds", "2", "--prompt-file"])
+        .args([
+            "--timeout-seconds",
+            &TURN_SECONDS.to_string(),
+            "--prompt-file",
+        ])
         .arg(dir.join("prompt.txt"))
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -173,10 +202,13 @@ async fn fresh_launcher_reaps_group_before_returning_deadline_failure() {
         .unwrap();
     let child = observe(&dir.join("descendant.json")).await;
     let saved = host::state(&dir);
-    let result = tokio::time::timeout(Duration::from_secs(5), launcher.wait_with_output())
-        .await
-        .unwrap()
-        .unwrap();
+    let result = tokio::time::timeout(
+        Duration::from_secs(TURN_SECONDS + CLEANUP_SECONDS),
+        launcher.wait_with_output(),
+    )
+    .await
+    .unwrap()
+    .unwrap();
     assert!(!result.status.success());
     assert!(result.stdout.is_empty());
     assert!(String::from_utf8_lossy(&result.stderr).contains("deadline"));
@@ -204,7 +236,7 @@ async fn confirmed_normal_exit_also_stops_a_worker_that_closed_its_output_pipe()
     let (dir, binary) = host::install(&f);
     host::mode(&dir, "descendant-complete");
     let before = Store::inspect_snapshot(f.server.store.path()).unwrap();
-    codex_host::run(&dir, &binary, Some(&dir.join("prompt.txt")), 2)
+    codex_host::run(&dir, &binary, Some(&dir.join("prompt.txt")), TURN_SECONDS)
         .await
         .unwrap();
     let child = observe(&dir.join("descendant.json")).await;

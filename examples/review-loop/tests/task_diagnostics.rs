@@ -30,6 +30,14 @@ async fn crashed_worker_pending_intent_is_visible_without_restarting_or_consumin
         .unwrap();
     assert_eq!(report.runner.state, WorkerState::StoppedWithPendingWork);
     assert_eq!(
+        report.execution_readiness.state,
+        connect_client::ReadinessState::Unavailable
+    );
+    assert_eq!(
+        report.runner.readiness().reason,
+        "original-worker-recovery-required"
+    );
+    assert_eq!(
         report.runner.statistics.as_ref().unwrap().pending_commands,
         1
     );
@@ -42,6 +50,7 @@ async fn crashed_worker_pending_intent_is_visible_without_restarting_or_consumin
     );
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(value["runner"]["state"], "stopped-with-pending-work");
+    assert_eq!(value["execution_readiness"]["state"], "unavailable");
     let text = String::from_utf8(output.stdout).unwrap();
     assert!(!text.contains("Please review draft") && !text.contains(&f.owner_config.credential));
     assert_eq!(
@@ -77,12 +86,20 @@ async fn stopped_waiting_worker_catches_up_reply_after_server_restart_and_never_
         .await
         .unwrap();
     assert_eq!(running.runner.state, WorkerState::LockHeld);
+    assert_eq!(
+        running.execution_readiness.state,
+        connect_client::ReadinessState::Uncertain
+    );
     assert_eq!(running.task.task.state, TaskState::Waiting);
     stop(&mut app).await;
     let stopped = diagnostics::inspect(&config, &f.task.id, Some(&f.state()), 100)
         .await
         .unwrap();
     assert_eq!(stopped.runner.state, WorkerState::Stopped);
+    assert_eq!(
+        stopped.execution_readiness.state,
+        connect_client::ReadinessState::Unavailable
+    );
     let checkpoint = stopped.runner.checkpoint_sequence.unwrap();
     f.restart().await;
     f.answer(&question).await;
