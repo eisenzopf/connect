@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "items": [
+    "G4-023",
+    "G4-030"
+  ],
+  "recorded_at": "2026-10-11T15:46:17.527803+00:00",
+  "status": "local 16-host profile passed; full items remain open",
+  "source_base": "c314f64ceed10af80b92a9bd0ecb3e7470d1d05e",
+  "source_inputs_sha256": {
+    "scripts/check-host-capacity.py": "f816b0bd29e2ce4e5460049129f0f648a760825f44bfb612fda138952c05cff6",
+    "scripts/lib/host_profile.py": "1d19d1f80c29333742f13308d63fddd8960bc4d04de5cc4e751897282f85c5c3",
+    "scripts/lib/host_profile_peer.py": "0136f60110587f54a72f8a62d6ee655e82e97ba3c789ef5665a899178828167f",
+    "scripts/lib/host_profile_observation.py": "3f87d1c932ad5d0bd97cfe3ca158f34c21a6581b63266ca766266fd086431dfa",
+    "scripts/lib/profile_metrics.py": "92ddc2f8294ff88f9063f601256d224e215a38ecc7f09d53a2a6971782bd91a7",
+    "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+    "examples/agent-presence/tests/incoming_runtime_peer.py": "14f789135b6a2d4b1edfe339c3ecec3ec7aa8fbb9ab412b00df0ad0cea476d8b",
+    "crates/connect-server/tests/fixtures/codex-packaged-runtime.py": "7b130701f92ab95ea2bcbd3a7caf2619aea033face70fcd039a692a8a662afbb",
+    "crates/connect-server/tests/fixtures/codex-workflow-tools.js": "6b8118ebc2e8ef7a8a56b83a76f5c3b4139554cde87e759c223e5a3c0ad21878",
+    "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+    "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+    "sdk/python/connect_sdk/protocol.py": "e0deab0cb9989a302973c5aaf44252d295a537f0e5bcfc4cbcd6c7aeecd495c3",
+    "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+    "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+    "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+    "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+    "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+    "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+    "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+    "examples/agent-presence/incoming/intake.py": "de2f597b403524a8d6953d89cdf5c9a81e99ccc2eef837d10b5b2009acd22c54",
+    "examples/agent-presence/incoming/host.py": "15e3094706ba66b7a331849d5f7cdb2e9582a76148ff9361621e7a9323cb3ed5",
+    "examples/agent-presence/incoming/__init__.py": "29a9d24765a5fa844c4720c75ceadd0d86e647e4b65ce7f9dc73965643894e4f",
+    "examples/agent-presence/incoming/state.py": "7910e387b2d9ecc0fd9c354e21ab2ccd45b6a880275949a16230998dbc107784"
+  },
+  "binary_sha256": "d039d55321183f88c76ce07795c2a5693dd075ae2c7d6146302ddac1fb9cb5f9",
+  "binary_source": "b4f5fde421222f9124c00bf6f5aa278680d279f7 release candidate",
+  "codex_version": "codex-cli 0.162.0-alpha.17.2",
+  "codex_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "result": ".local/host-capacity/20261011T154241.765273Z/result.json",
+  "result_sha256": "664994c73192ad5b7ea33dd1c35fa79581c12c67223587c89bc773b18b3a60a7",
+  "supervised_result": ".local/gate-4-planning/host-capacity-qualified/result.json",
+  "supervised_result_sha256": "a46b6880aba82f75ded7103a34f125dd825c876f497a8dfe4ce7152fc4ab3598",
+  "source_stable": true,
+  "leftover_supervisor_group_members": [],
+  "elapsed_seconds": 14.057,
+  "phases": [
+    {
+      "name": "cold-sixteen-hosts",
+      "status": "passed",
+      "seconds": 6.083,
+      "exchanges": 16,
+      "server_sampled_peak_rss_bytes": 37961728,
+      "database_apparent_bytes": 4853768,
+      "latency_ms": {
+        "p50": 5371.392,
+        "p95": 5551.084,
+        "maximum": 5667.147
+      }
+    },
+    {
+      "name": "warm-sixteen-exact-resumes-after-server-restart",
+      "status": "passed",
+      "seconds": 3.215,
+      "exchanges": 16,
+      "server_sampled_peak_rss_bytes": 35225600,
+      "database_apparent_bytes": 647168,
+      "latency_ms": {
+        "p50": 2868.228,
+        "p95": 3034.288,
+        "maximum": 3037.481
+      }
+    }
+  ],
+  "server_rss": {
+    "samples": 19,
+    "sampled_peak_bytes": 37961728,
+    "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+  },
+  "observations": {
+    "cold_simultaneous_hosts": {
+      "count": 16,
+      "rss_bytes": 1716191232,
+      "scope": "Codex main processes only; excludes child tools and driver; gated idle sample"
+    },
+    "cold_cleanup": {
+      "observed_host_groups": 16,
+      "live_members_after_completion": [],
+      "verified_tool_triplets": 16
+    },
+    "warm_simultaneous_hosts": {
+      "count": 16,
+      "rss_bytes": 1745027072,
+      "scope": "Codex main processes only; excludes child tools and driver; gated idle sample"
+    },
+    "warm_cleanup": {
+      "observed_host_groups": 16,
+      "live_members_after_completion": [],
+      "verified_tool_triplets": 16
+    }
+  },
+  "behavior": [
+    "Sixteen actual selected Codex processes simultaneously reached a scripted Responses barrier after protected HostSession grant installation and MCP discovery. PID/executable observations verify actual running hosts.",
+    "Every host performs actual task status, source-backed recall and send through Connect MCP. The verifier reads the runtime event journal, not assistant completion text, and checks task, conversation, provenance and accepted receipt.",
+    "After an owned server restart, sixteen fresh launcher processes resume their exact saved Codex session and replay the original task effect. All sixteen receipts match their cold result; each conversation still has one incoming request and one source-backed reply.",
+    "A further application checkpoint replay starts no model turn. Operator and task bearer strings are absent from scripted Responses inputs.",
+    "Both cold and warm rounds leave no live members in any of the sixteen observed host process groups. The outer supervisor also records no inherited process leaks."
+  ],
+  "measurements": "Cold and warm command durations include a deliberate one-second gated observation plus startup/setup/MCP work; they are not provider or QUIC latency. Codex RSS is a gated idle sample of 16 main processes only, excluding child tools. Server RSS is sampled every 0.5 seconds. Other offline qualification ran on the host during measurement; no throughput/SLO or overall machine memory claim.",
+  "verifier": {
+    "tests": 6,
+    "status": "passed",
+    "log": ".local/gate-4-planning/host-capacity-verifier.log",
+    "log_sha256": "1a5eea5c0b37bca09e33403d67f3c80a2e8543ad0339f036be7bfc2893e691f0",
+    "negative_controls": [
+      "Completed prose without MCP calls",
+      "MCP error inside a completed turn",
+      "Wrong task or source binding",
+      "Different effect on warm replay",
+      "A surviving owned process group"
+    ]
+  },
+  "runner_checks": {
+    "tests": 18,
+    "status": "passed",
+    "log": ".local/gate-4-planning/host-profile-runner-tests.log",
+    "log_sha256": "36a725d3df3a147562295e9fa5f93f5c9b7291e5a3b6b6d3d0e7cfc72f489a65",
+    "phase_selection": "Full runner includes host-capacity; source-only excludes it. Missing explicit Codex selection exits 2 before profile setup."
+  },
+  "earlier_attempt": {
+    "status": "passed earlier narrower profile; superseded by explicit event-result and group-exit validation",
+    "result": ".local/host-capacity/20261011T153801.183075Z/result.json"
+  },
+  "scope": "Actual Codex CLI and Connect release binary; loopback scripted Responses; no model inference, carriers, public ingress or production state. Sixteen is a measured host count, not a new host admission ceiling. This is distinct from the sixteen reference-runner step-lease limit.",
+  "remaining": [
+    "Whole G4-023 host/model product acceptance and prerequisite closure.",
+    "Actual reference-runner process concurrency, remaining MCP operating loads, grant/retention and retired voice-setup measurements.",
+    "Full-source runner inclusion of this added profile on a later qualifying revision."
+  ]
+}

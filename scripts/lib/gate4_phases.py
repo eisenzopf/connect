@@ -28,6 +28,7 @@ def phases(source_only=False):
     if not source_only:
         steps.append(('installed-host', [*server, *[arg for name in HOST_TESTS for arg in ('--test', name)],
                                         '--', '--ignored', '--test-threads=1'], 1800))
+        steps.append(('host-capacity', [sys.executable, 'scripts/check-host-capacity.py'], 540))
     steps += [
         ('upstream-regression', ['bash', 'scripts/check-baseline.sh'], 3600),
         ('upstream-vapi', ['env', 'CARGO_TARGET_DIR=target/upstream', *cargo,

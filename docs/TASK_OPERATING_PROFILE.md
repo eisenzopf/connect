@@ -85,12 +85,56 @@ repeated retirement profile with memory observations and capacity/restart
 behavior. Do not remove closed markers simply to reduce the map: any replacement
 must preserve the no-fallback and original-intent guarantees.
 
+## Sixteen concurrent assistant hosts
+
+The separate [host-concurrency result](evidence/gate-4/host-concurrency.json)
+qualifies sixteen actual Codex CLI processes against one Connect server. It
+uses the shipped protected host composer, native Python SDK and a recorded
+release binary. The Responses endpoints are scripted loopback fixtures; no
+model account or inference is involved.
+
+```sh
+python3 scripts/check-host-capacity.py \
+  --binary /absolute/path/to/connect \
+  --codex-binary /absolute/path/to/codex
+```
+
+This explicit profile has a 480-second budget and keeps private state and logs
+under `.local/host-capacity/`. The complete Gate 4 runner also selects it using
+its explicit Codex configuration; source-only runs omit it. It requires the
+source archive's qualification fixtures as well as the application and SDK.
+
+All sixteen hosts must reach the first Responses request together. A one-second
+gate permits two process observations before allowing actual MCP calls. Each
+host reads its task and initiating source, then sends one attributed reply.
+The verifier checks the actual MCP event results and public conversation history.
+After server restart, sixteen fresh launchers resume their exact saved sessions
+and return the original accepted receipts. Another application checkpoint replay
+must create no host turn. All observed host process groups must exit.
+
+The qualified run took 6.083 seconds for cold setup/work and 3.215 seconds for
+warm resume/work; the full driver, including teardown, took 14.057 seconds.
+Sampled server RSS peaked at 36.2 MiB. The gated sixteen-process Codex main-process
+RSS totals were about 1.60 GiB cold and 1.63 GiB warm. Those host samples exclude
+child tools; they are neither peak total memory nor a resource guarantee.
+Other offline checks ran on this machine during measurement. Command timings
+include the deliberate gate and local initialization, not real-model latency.
+
+Sixteen is the measured assistant-host count, **not a new host admission limit**.
+It is separate from the sixteen simultaneous reference-runner step leases above.
+The profile does not prove model reasoning or sixteen reference-runner processes.
+Six negative-control/positive-control verifier tests reject completed prose with
+missing or failed tools, wrong bindings, changed warm receipts and surviving
+process groups.
+
 ## Work still required
 
-This profile does not qualify 16 actual simultaneous host workers, complete
-MCP payload/deadline operating loads, grant refresh and expiry under sustained
-load, age-based retention, retained voice-setup metadata, installed packages,
-real-model journeys or all Gate 4 acceptance criteria. The separate
+Remaining operating work includes actual reference-runner process concurrency,
+complete MCP payload/deadline loads, grant refresh and expiry under sustained
+load, age-based retention and retained voice-setup metadata. The
+[installed local candidate](evidence/gate-4/package-candidate.json) separately
+passes its package checks; real-model journeys, whole-item dependencies and
+full Gate 4 acceptance remain open. The separate
 [shared MCP capacity audit](evidence/gate-4/mcp-shared-capacity.json) retains
 its own request/listener admission and lifecycle evidence.
 

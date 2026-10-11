@@ -778,71 +778,667 @@
     "limit": "Unchanged isolated repeat; no deadline, product or fixture correction. Original not-entered startup failure remains unexplained and the full run remains failed. A new complete run is still required."
   },
   "current_full_run_checkpoint": {
-    "recorded_at": "2026-10-11T15:26:54.404879+00:00",
+    "recorded_at": "2026-10-11T15:46:17.526693+00:00",
+    "status": "passed",
     "source_revision": "b4f5fde421222f9124c00bf6f5aa278680d279f7",
-    "status": "running",
-    "active_phase": "workspace",
+    "source_stable": true,
+    "dirty": false,
     "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T152548.839167Z/result.json",
-    "snapshot": ".local/gate-4-planning/full-b4f5fde-start.json",
-    "snapshot_sha256": "3138ff4aea155a3128af90791e48bc5de3fb79e840cf14329335c2d20e5eb1e4",
-    "completed_steps": [
+    "result_sha256": "16224665a0b4af51b38284d6fad9c42550004bdef1f13dd19c4b102f353390a8",
+    "steps": [
       {
         "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 0.195
       },
       {
         "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 0.594
       },
       {
         "name": "typescript-install",
+        "command": [
+          "npm",
+          "ci",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 300,
+        "log": "typescript-install.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 0.693
       },
       {
         "name": "typescript-tests",
+        "command": [
+          "npm",
+          "test",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 300,
+        "log": "typescript-tests.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 3.653
       },
       {
         "name": "typescript-format",
+        "command": [
+          "npm",
+          "run",
+          "format:check",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 120,
+        "log": "typescript-format.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 0.478
       },
       {
         "name": "typescript-distribution",
+        "command": [
+          "git",
+          "diff",
+          "--exit-code",
+          "--",
+          "sdk/typescript/dist"
+        ],
+        "timeout_seconds": 60,
+        "log": "typescript-distribution.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 0.075
       },
       {
         "name": "python-sdk",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "sdk/tests",
+          "-p",
+          "test_*.py"
+        ],
+        "timeout_seconds": 300,
+        "log": "python-sdk.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 3.525
       },
       {
         "name": "agent-incoming-unit",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_incoming*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-unit.log",
         "status": "passed",
-        "seconds": 0.134
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.134,
+        "python_tests": {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        }
       },
       {
         "name": "runner-failure-tests",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_qualification*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "runner-failure-tests.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 1.497
       },
       {
         "name": "lint",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "timeout_seconds": 2400,
+        "log": "lint.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 3.328
       },
       {
         "name": "rustdoc",
+        "command": [
+          "cargo",
+          "doc",
+          "--locked",
+          "--workspace",
+          "--all-features",
+          "--no-deps"
+        ],
+        "timeout_seconds": 2400,
+        "log": "rustdoc.log",
         "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
         "seconds": 3.71
+      },
+      {
+        "name": "workspace",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-features",
+          "--",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 7200,
+        "log": "workspace.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 502.658,
+        "rust_tests": {
+          "passed": 502,
+          "failed": 0,
+          "ignored": 8
+        },
+        "ignored_follow_up": [
+          "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+          "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+          "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+          "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+          "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+          "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+          "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+          "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
+        ]
+      },
+      {
+        "name": "media-pressure",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate3_media_pressure",
+          "--",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1200,
+        "log": "media-pressure.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 121.482,
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "installed-host",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_codex_runtime",
+          "--test",
+          "gate4_codex_call_intent",
+          "--test",
+          "gate4_codex_reply_workflow",
+          "--test",
+          "gate4_codex_packaged_runtime",
+          "--test",
+          "gate4_codex_draft_journey",
+          "--",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1800,
+        "log": "installed-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 20.471,
+        "rust_tests": {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "upstream-regression",
+        "command": [
+          "bash",
+          "scripts/check-baseline.sh"
+        ],
+        "timeout_seconds": 3600,
+        "log": "upstream-regression.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 34.168,
+        "rust_tests": {
+          "passed": 942,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "upstream-vapi",
+        "command": [
+          "env",
+          "CARGO_TARGET_DIR=target/upstream",
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-vapi",
+          "--test",
+          "mock_transport"
+        ],
+        "timeout_seconds": 1200,
+        "log": "upstream-vapi.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 4.651,
+        "rust_tests": {
+          "passed": 20,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "upstream-queues",
+        "command": [
+          "env",
+          "CARGO_TARGET_DIR=target/upstream",
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-sip",
+          "-p",
+          "rvoip-webrtc",
+          "--lib",
+          "queue_budget_tests"
+        ],
+        "timeout_seconds": 1200,
+        "log": "upstream-queues.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.658,
+        "rust_tests": {
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "upstream-codec",
+        "command": [
+          "env",
+          "CARGO_TARGET_DIR=target/upstream",
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-sip",
+          "--test",
+          "adapter_renegotiate"
+        ],
+        "timeout_seconds": 1200,
+        "log": "upstream-codec.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.536,
+        "rust_tests": {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "current-binaries",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--bin",
+          "connect"
+        ],
+        "timeout_seconds": 1200,
+        "log": "current-binaries.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.312
+      },
+      {
+        "name": "agent-incoming-public",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_public_intake.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-public.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 7.645,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "agent-incoming-host",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_installed_incoming.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "agent-incoming-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.91,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "native-task-capacity",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-task-capacity.py"
+        ],
+        "timeout_seconds": 960,
+        "log": "native-task-capacity.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 58.519
+      },
+      {
+        "name": "schema-six-build",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/build-recovery-baseline.py",
+          "--schema",
+          "6"
+        ],
+        "timeout_seconds": 7500,
+        "log": "schema-six-build.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.311
+      },
+      {
+        "name": "schema-ten-build",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/build-recovery-baseline.py",
+          "--schema",
+          "10"
+        ],
+        "timeout_seconds": 7500,
+        "log": "schema-ten-build.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.777
+      },
+      {
+        "name": "historical-task-recovery",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-gate4-recovery.py",
+          "--previous-binary",
+          ".local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect"
+        ],
+        "timeout_seconds": 660,
+        "log": "historical-task-recovery.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 4.205
+      },
+      {
+        "name": "dispatch",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-dispatch.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "dispatch.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.722
+      },
+      {
+        "name": "identity",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-identity.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "identity.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 7.75
+      },
+      {
+        "name": "typescript-probe",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-typescript.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "typescript-probe.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.353
+      },
+      {
+        "name": "crash-replay",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-crash-replay.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "crash-replay.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 10.939
+      },
+      {
+        "name": "examples",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-examples.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "examples.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 13.648
+      },
+      {
+        "name": "example-recovery",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-example-recovery.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "example-recovery.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 17.825
+      },
+      {
+        "name": "current-recovery",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-recovery.py",
+          "--current-only"
+        ],
+        "timeout_seconds": 660,
+        "log": "current-recovery.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.693
+      },
+      {
+        "name": "datagram-example",
+        "command": [
+          "cargo",
+          "run",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--example",
+          "quic_audio"
+        ],
+        "timeout_seconds": 600,
+        "log": "datagram-example.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.015
       }
     ],
-    "limit": "Intermediate checkpoint, not completed qualification. This source includes the combined voice-to-SMS test and corrected recovery/package helpers. Earlier failed full runs and separate installed package proof remain recorded. Historical build phases may reuse the checksum-verified cached inputs recorded in historical_input_cache."
+    "limit": "All 33 required offline phases passed at b4f5fde, including 502 workspace cases and all eight explicit ignored-case follow-ups. Cached historical inputs remain identified in historical_input_cache. Later host-concurrency profile/checker code is a separate focused qualification; no live providers, real-model reasoning or whole Gate 4 closure is claimed."
   },
   "historical_input_cache": {
     "recorded_at": "2026-10-11T14:35:32.002584+00:00",
