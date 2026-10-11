@@ -157,6 +157,30 @@ async fn app_and_server_restarts_retain_actual_provider_uncertainty_without_redi
     };
     assert_eq!(conversation_id, f.task.conversation_id);
 
+    // Public diagnostic journal retains the actual uncertainty and original
+    // reconciliation identities without reading outcomes or replaying work.
+    let snapshot =
+        connect_store::Store::inspect_snapshot(f.server.as_ref().unwrap().store.path()).unwrap();
+    let diagnostic = connect_review_loop::task_runner::diagnostics::inspect(
+        &f.directory.join("invocation.toml"),
+        &f.task.id,
+        Some(&f.state()),
+        100,
+    )
+    .await
+    .unwrap();
+    let connect_client::task_diagnostics::DiagnosticSection::Available(journal) =
+        diagnostic.task.journal
+    else {
+        panic!("diagnostic journal");
+    };
+    assert!(journal.items.iter().any(|item| matches!(&item.observation, connect_client::task_diagnostics::DiagnosticObservation::Effect { effect_id: id, request_id: request, state: EffectState::Uncertain, .. } if id == effect_id && request == request_id)));
+    assert_eq!(saved_question(&f.state()), recovered);
+    assert_eq!(
+        connect_store::Store::inspect_snapshot(f.server.as_ref().unwrap().store.path()).unwrap(),
+        snapshot
+    );
+
     // A second app restart catches up the same journal without treating the
     // uncertain provider result as a review response or a reason to send again.
     app = f.spawn(None, None);

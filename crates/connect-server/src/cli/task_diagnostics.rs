@@ -1,8 +1,16 @@
 //! Reference diagnostic view through the public SDK, without Store access.
+use super::task_access::codex_host::diagnostics::{self, HostObservation};
 use anyhow::Result;
 use clap::Args;
 use connect_client::{task_diagnostics::DiagnosticCursors, ClientConfig, ConnectClient};
 use std::path::PathBuf;
+
+#[derive(serde::Serialize)]
+struct Report {
+    #[serde(flatten)]
+    task: connect_client::task_diagnostics::TaskDiagnostics,
+    codex_worker: HostObservation,
+}
 
 /// Metadata-only task view. Each checkpoint belongs to its particular read lane.
 #[derive(Args)]
@@ -11,6 +19,8 @@ pub struct Arguments {
     config: PathBuf,
     #[arg(long)]
     task_id: String,
+    #[arg(long)]
+    codex_installation: Option<PathBuf>,
     #[arg(long)]
     after: Option<String>,
     #[arg(long)]
@@ -25,17 +35,33 @@ impl Arguments {
     /// owner credential. Always close the connection, including a failed sample.
     pub async fn execute(self) -> Result<()> {
         let mut client = ConnectClient::open(ClientConfig::load(&self.config)?).await?;
-        let result = client
-            .task_diagnostics(
-                &self.task_id,
-                &DiagnosticCursors {
-                    journal: self.after,
-                    sources: self.sources_after,
-                    unassigned: self.unassigned_after,
-                },
-                self.limit,
-            )
-            .await;
+        let result = async {
+            let mut task = client
+                .task_diagnostics(
+                    &self.task_id,
+                    &DiagnosticCursors {
+                        journal: self.after,
+                        sources: self.sources_after,
+                        unassigned: self.unassigned_after,
+                    },
+                    self.limit,
+                )
+                .await?;
+            let codex_worker =
+                diagnostics::inspect(self.codex_installation.as_deref(), &self.task_id);
+            let current = client.negotiate_task(&self.task_id).await?;
+            anyhow::ensure!(
+                current.conversation_id == task.task.conversation_id,
+                "Task binding changed"
+            );
+            task.changed_during_sample |= current.revision != task.task.revision;
+            task.task.state = current.state;
+            task.task.revision = current.revision;
+            task.task.expires_at = current.expires_at;
+            task.task.updated_at = current.updated_at;
+            Ok::<_, anyhow::Error>(Report { task, codex_worker })
+        }
+        .await;
         client.close().await;
         println!("{}", serde_json::to_string_pretty(&result?)?);
         Ok(())

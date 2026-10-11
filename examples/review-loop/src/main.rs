@@ -16,6 +16,17 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Inspect an authenticated task and its separately owned app checkpoint.
+    TaskDiagnostics {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        task_id: String,
+        #[arg(long)]
+        state: Option<PathBuf>,
+        #[arg(long,default_value_t=100,value_parser=clap::value_parser!(u32).range(1..=100))]
+        limit: u32,
+    },
     Reviews(Run),
     Agent(Run),
     /// Explicit task-scoped runner with durable app state and reconnects.
@@ -55,6 +66,17 @@ struct Run {
 #[tokio::main]
 async fn main() -> Result<()> {
     match Cli::parse().command {
+        Command::TaskDiagnostics {
+            config,
+            task_id,
+            state,
+            limit,
+        } => {
+            let report =
+                task_runner::diagnostics::inspect(&config, &task_id, state.as_deref(), limit)
+                    .await?;
+            println!("{}", serde_json::to_string(&report)?);
+        }
         Command::Task(run) => {
             let stop = tokio_util::sync::CancellationToken::new();
             let execution = task_runner::run(

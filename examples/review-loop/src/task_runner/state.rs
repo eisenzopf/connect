@@ -132,7 +132,7 @@ fn statistics(c: &Connection) -> Result<Statistics> {
     Ok(result)
 }
 
-fn statistics_at(c: &Connection) -> Result<Statistics> {
+pub(super) fn statistics_at(c: &Connection) -> Result<Statistics> {
     let binding: String = c.query_row(
         "SELECT value FROM runner_metadata WHERE key='binding'",
         [],

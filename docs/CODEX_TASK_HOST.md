@@ -222,3 +222,17 @@ continuation, reply attribution and shared-server isolation with deterministic
 programs. It does not prove real-model reasoning, full artifact and independent
 incoming-contact journeys, production packaged-launcher model use or a final
 installed candidate. G4-023 is in progress, alongside G4-018/G4-021.
+
+Inspect a retained installation without launching or resuming it:
+
+```sh
+connect task-diagnostics --config .local/native-task.toml --task-id TASK_ID \
+  --codex-installation .local/codex-task
+```
+
+The caller supplies separate current Native/owner authority for task reads;
+inspection never converts the installed HostSession grant or falls back to a
+backing credential. It reports private retained session/turn metadata without
+prompts, bearer secrets or logs. An interrupted turn preserves its original
+session; a missing session requires repair. A completed turn does not complete
+the task. See [task diagnostics](TASK_DIAGNOSTICS.md).

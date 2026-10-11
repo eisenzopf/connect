@@ -128,3 +128,16 @@ review response. The fixture inspects only the application's own outbox and
 uses public clients for Connect's jobs, history and effect receipt. This proves
 recovery in that controlled case, not live Vapi support or external exactly-once
 delivery.
+
+Inspect task and local worker state without starting it:
+
+```sh
+connect-example task-diagnostics --config .local/invocation.toml \
+  --task-id TASK_ID --state .local/runner.sqlite3
+```
+
+This uses the public SDK plus a read-only snapshot of this app's private state.
+Task/owner/conversation bindings must match. A stopped runner can have pending
+intents or an unread bound reply; inspection consumes neither. A held process
+lock is an ownership observation, not a provider-delivery claim. See
+[task diagnostics](../../docs/TASK_DIAGNOSTICS.md) for states and sampling limits.

@@ -5,6 +5,7 @@
 //! A persisted consume receipt gates each local action; action, follow-up intent,
 //! handled events and checkpoint then commit together in the application store.
 mod commands;
+pub mod diagnostics;
 mod driver;
 mod journal;
 mod reconciliation;

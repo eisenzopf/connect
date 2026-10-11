@@ -1,6 +1,7 @@
 //! Explicit Codex continuation: one protected installation maps to one session.
 //! Host completion is not task completion. All communication authority remains
 //! checked by Connect; saved session metadata grants no permissions.
+pub mod diagnostics;
 mod install;
 mod process;
 mod state;

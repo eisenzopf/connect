@@ -75,15 +75,68 @@ supervision. Cancelling shutdown retains abort ownership; it cannot detach a
 listener and leave a ready observation.
 
 External Codex sessions and reference runners are separate processes. Their
-local worker inspection and stale-state qualification remain in G4-024; server
-readiness alone does not attest those workers. Existing local host observations
-and app-owned state can help operator repair, but never mint communication
-authority. No permission dashboard or consumer interface is added here.
+local inspection is described below; server readiness alone does not attest
+those workers. Protected metadata and app-owned state help operator repair,
+but never mint communication authority. No permission dashboard or consumer
+interface is added here.
 
 [Task access](TASK_ACCESS.md) · [Codex host](CODEX_TASK_HOST.md) ·
 [Gate 4 implementation](connect-gate-4-implementation.html#G4-024)
 
-[Local component evidence](evidence/gate-4/task-diagnostics-component.json) records
+The earlier 34a9d1f [component checkpoint](evidence/gate-4/task-diagnostics-component.json) records
 203 behavior checks and three documentation compilations at frozen source inputs.
 It explicitly retains the two initial fixture failures and the open worker and
 uncertainty qualifications; G4-024 is not complete.
+
+## Local host and runner observations
+
+Inspect one explicitly selected Codex installation alongside the task:
+
+```sh
+connect task-diagnostics --config .local/native-task.toml --task-id TASK_ID \
+  --codex-installation .local/codex-task
+```
+
+`codex_worker` reports `unconfigured` when no installation is selected. A valid
+export without saved adapter state reports `not-started`. A held adapter lock
+reports `turn-active`; it does not prove the child model is healthy. A completed
+host turn reports `turn-complete` even when the task is still waiting. After a
+stopped incomplete turn, `interrupted` retains the exact session/run IDs;
+`missing-session` requires repair of the original intent. Binding, private-file,
+asset and lock failures are explicit. `changed-during-sample` asks the caller to
+retry inspection when retained state changes around the lock probe.
+
+The inspector validates the existing protected installation and retained binding,
+reads bounded private metadata, and omits prompts, bearer secrets, logs and
+session contents. A successful probe releases its shared lock immediately.
+The CLI rechecks the authenticated task after local sampling before printing;
+its final task state/revision are updated and concurrent revision changes remain
+explicit. Metadata observations confer no authority or permission to replay work.
+
+The reference app provides a separate SDK client view:
+
+```sh
+connect-example task-diagnostics --config .local/invocation.toml \
+  --task-id TASK_ID --state .local/runner.sqlite3 --limit 100
+```
+
+It authenticates the task before inspecting its own private database and checks
+current authority again through the SDK after the snapshot. The stored owner,
+task and conversation must match. Inspection opens SQLite read-only, does not
+create/migrate state, and keeps commands, outcomes and text out of the report.
+The checkpoint sequence must agree with committed app events. SQLite work runs
+on a blocking worker rather than the async I/O thread.
+
+`lock-held` is an ownership hint. `stopped-with-pending-work` means retained
+commands or a staged page need reconciliation; it does not dispatch them.
+`stopped` does not mean the task is completed. `not-started` means no selected
+state file was found, not proof that no earlier app state existed elsewhere.
+A saved checkpoint may lag a new bound reply in the task journal. Resume only
+the original configured runner/state; diagnostic reads never acknowledge that
+reply or replace its task. These local observations and remote pages are sampled
+separately and can change after inspection.
+
+[Worker inspection evidence](evidence/gate-4/worker-diagnostics.json) records 24
+local behavior checks, strict quality checks and the retained fixture failure.
+Selected-host qualification, full external-worker supervision/readiness audit
+and the changing-metadata branch remain open; G4-024 is still in progress.
