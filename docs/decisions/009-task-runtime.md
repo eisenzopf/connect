@@ -218,7 +218,12 @@ Typed contract fixtures close schema/transition admission only. Each runtime
 boundary still requires store/service/SDK/MCP/host behavior evidence. Final
 qualification records source/package/host versions and preserves failures.
 
-## Implementation checkpoint · invocation, inbox and effect foundation
+## Historical implementation checkpoints · invocation, inbox and effect foundation
+
+The paragraphs below retain the earlier implementation snapshots, including
+what was open at each checkpoint. Current item status and evidence are in the
+[numbered implementation plan](../connect-gate-4-implementation.html#tracking);
+these historical paragraphs do not override its completion records.
 
 G4-008 and G4-009 remain in progress. The store/service now implement protected
 grant issuance and discovery, exact registered binding admission, current
@@ -303,3 +308,24 @@ end command; migration never substitutes the dialer or a historical task grant.
 The additive schema marker prevents an older binary bypassing these boundaries.
 The candidate's targeted authority/recovery/migration and server regression checks
 are in progress; this does not close G4-012 or integrated Gate 4 acceptance.
+
+## Current core qualification · October 10, 2026
+
+G4-007–G4-012 now pass their complete item audits within the recorded local
+macOS arm64 scope. The current records qualify task persistence, current
+invocation authority after database lock admission, durable reply assignment
+and consumption, effect recovery without blind redispatch, bounded source
+recall and current task-specific dispatch authority. Physical loopback SIP,
+native Vapi voice fixtures and public task SMS delivery/cancellation checks
+are included. They do not attest installed assistant hosts or live providers.
+
+- [Current authority and expiry](../evidence/gate-4/task-authority-audit.json)
+- [Reply assignment and restart recovery](../evidence/gate-4/reply-inbox-recovery.json)
+- [Effects and uncertain external acceptance](../evidence/gate-4/task-effect-recovery-audit.json)
+- [Bounded source recall](../evidence/gate-4/task-recall-audit.json)
+- [Dispatch, SMS purpose and STOP/START](../evidence/gate-4/task-dispatch-audit.json)
+
+The 36 implementation items, A4 criteria and T-A1–T-A8 remain the full gate
+contract. Component closure does not replace provider bootstrap, installed
+hosts, the complete agent/app journeys or final package qualification. No
+new task cancellation delegation has been added to this contract.

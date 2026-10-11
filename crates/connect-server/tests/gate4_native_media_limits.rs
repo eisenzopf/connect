@@ -1,3 +1,4 @@
+//! Read-only media grants and ambiguous provider routes fail without side effects.
 #![allow(clippy::unwrap_used)]
 #[path = "support/native_grants.rs"]
 mod grants;
@@ -10,7 +11,7 @@ use connect_client::{tasks::TaskPermission, ConnectClient};
 use media::Fixture;
 
 #[tokio::test]
-async fn read_only_and_unqualified_provider_routes_fail_before_creating_media_or_context() {
+async fn read_only_and_ambiguous_provider_routes_fail_before_creating_media_or_context() {
     let mut f = Fixture::start().await;
     let (_, setup_config) = f.grant("setup", 120, Fixture::permissions()).await;
     let mut setup = ConnectClient::open(setup_config).await.unwrap();
@@ -41,14 +42,29 @@ async fn read_only_and_unqualified_provider_routes_fail_before_creating_media_or
             },
         )
         .unwrap();
+    // A supported Vapi route is no longer categorically denied. Two different
+    // enabled assistants for this participant cannot silently choose one.
+    f.h.server
+        .store
+        .configure_route(
+            &f.h.owner_config.credential_id,
+            &connect_store::Route {
+                id: "conflicting-chat".into(),
+                identity_id: f.h.peer_id.clone(),
+                credential_id: f.peer_config.credential_id.clone(),
+                conversation_id: f.h.cid.clone(),
+                connector: "vapi".into(),
+                target: "12345678-1234-1234-1234-123456789015".into(),
+                source: None,
+                enabled: true,
+            },
+        )
+        .unwrap();
     let before = connect_store::Store::inspect_snapshot(f.h.server.store.path()).unwrap();
     let rejected = setup
         .open_native_audio(&f.h.cid, &session.id, &f.h.peer_id)
         .await;
-    assert_eq!(
-        grants::code(rejected.err().unwrap()),
-        "unsupported-media-profile"
-    );
+    assert_eq!(grants::code(rejected.err().unwrap()), "forbidden");
     assert_eq!(
         connect_store::Store::inspect_snapshot(f.h.server.store.path()).unwrap(),
         before

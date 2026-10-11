@@ -2,17 +2,16 @@
 #![allow(clippy::unwrap_used)]
 #[path = "support/task_matrix.rs"]
 mod task_matrix;
+#[path = "support/task_matrix_process.rs"]
+mod task_matrix_process;
 use connect_client::{ClientConfig, ClientError, ConnectClient};
 use connect_protocol::{tasks::TaskRequest, Operation, Outcome, Response, PROFILE};
 use connect_server::{cli::init, config::ServerConfig, runtime::RunningServer};
 use connect_store::Scope;
 use serde_json::json;
-use std::{
-    path::{Path, PathBuf},
-    process::Stdio,
-    time::Duration,
-};
+use std::{path::PathBuf, process::Stdio, time::Duration};
 use task_matrix::Bindings;
+use task_matrix_process::{cli, language, MatrixContext};
 use tokio::io::AsyncWriteExt;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -185,16 +184,6 @@ async fn public_clients_share_task_lifecycle_replies_recall_replay_and_denial() 
     server.shutdown().await.unwrap();
 }
 
-struct MatrixContext<'a> {
-    owner: &'a ClientConfig,
-    peer: &'a ClientConfig,
-    owner_path: &'a Path,
-    peer_path: &'a Path,
-    url: &'a str,
-    http: &'a reqwest::Client,
-    root: &'a Path,
-}
-
 async fn run(context: &MatrixContext<'_>, lane: &str, mut bindings: Bindings) {
     let MatrixContext {
         owner,
@@ -315,83 +304,4 @@ async fn run(context: &MatrixContext<'_>, lane: &str, mut bindings: Bindings) {
     for client in clients.into_iter().flatten() {
         client.close().await;
     }
-}
-
-async fn cli(path: &Path, input: &[u8], discover: bool) -> std::process::Output {
-    let mut command = tokio::process::Command::new(env!("CARGO_BIN_EXE_connect"));
-    command
-        .arg("request")
-        .arg("--config")
-        .arg(path)
-        .arg("--envelope");
-    if discover {
-        command.arg("--task-address").arg("connect:reviews@local");
-    }
-    let mut child = command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true)
-        .spawn()
-        .unwrap();
-    child.stdin.take().unwrap().write_all(input).await.unwrap();
-    tokio::time::timeout(Duration::from_secs(20), child.wait_with_output())
-        .await
-        .unwrap()
-        .unwrap()
-}
-
-async fn language(context: &MatrixContext<'_>, lane: &str, mut bindings: Bindings) {
-    let MatrixContext {
-        root,
-        owner_path,
-        peer_path,
-        url,
-        owner,
-        peer,
-        ..
-    } = *context;
-    let python = lane.starts_with("python-");
-    let mut command = tokio::process::Command::new(if python { "python3" } else { "node" });
-    command
-        .arg(root.join(if python {
-            "sdk/tests/task_matrix_probe.py"
-        } else {
-            "sdk/tests/task_matrix_probe.mjs"
-        }))
-        .arg(owner_path)
-        .arg(peer_path)
-        .arg(url)
-        .arg(env!("CARGO_BIN_EXE_connect"))
-        .arg(lane.split('-').nth(1).unwrap());
-    if python {
-        command.env("PYTHONPATH", root.join("sdk/python"));
-    }
-    bindings.insert(
-        "credentials".into(),
-        json!({"owner":owner.credential,"peer":peer.credential}),
-    );
-    let mut child = command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true)
-        .spawn()
-        .unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(&serde_json::to_vec(&bindings).unwrap())
-        .await
-        .unwrap();
-    let output = tokio::time::timeout(Duration::from_secs(60), child.wait_with_output())
-        .await
-        .unwrap()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{lane} failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
 }

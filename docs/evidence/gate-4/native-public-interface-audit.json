@@ -1,0 +1,76 @@
+{
+  "recorded_at": "2026-10-11T00:08:23.377945+00:00",
+  "source_base": "6009f7870f13d9bc065aeda7c0723c21469a50f9",
+  "item": "G4-013",
+  "status": "G4-013 qualified",
+  "qualification_record": "public-interface-qualification.json",
+  "dependencies": [
+    "task-authority-audit.json",
+    "reply-inbox-recovery.json",
+    "task-effect-recovery-audit.json",
+    "task-recall-audit.json",
+    "task-dispatch-audit.json"
+  ],
+  "requirements": [
+    {
+      "requirement": "All 16 typed task command families use negotiated existing UCTP/QUIC control and the shared service; ordinary communication remains usable",
+      "tests": [
+        "native_task_profile_is_explicit_and_does_not_expand_messaging_authority",
+        "native_question_reply_recall_and_terminal_receipts_keep_the_same_conversation",
+        "native_claim_assignment_cancel_and_reconnect_use_retained_records",
+        "public_clients_share_task_lifecycle_replies_recall_replay_and_denial"
+      ],
+      "proof": "Current native integration suite plus the shared 32-step Rust lane",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Pending, completed, denied and uncertain are distinct; IDs, bounded journal cursors and assignment survive reconnect/restart",
+      "tests": [
+        "valid_task_wait_has_its_wait_budget_plus_the_exchange_deadline",
+        "accepted_task_send_without_receipt_is_not_redispatched_after_server_restart",
+        "native_claim_assignment_cancel_and_reconnect_use_retained_records",
+        "unassigned_reply_and_assignment_survive_restart_with_exact_task_catch_up"
+      ],
+      "proof": "Current typed outcome/recovery integrations; source-backed replies and preserved original effects",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Profile and forged authority failures cannot borrow parent, another conversation, task or origin",
+      "tests": [
+        "caller_claimed_authority_is_rejected_before_admission_on_the_wire",
+        "another_conversation_and_nested_task_command_cannot_escape_task_scope",
+        "narrow_native_grant_negotiates_exact_task_and_enforces_current_scope_on_replay",
+        "native_entry_rejects_host_provider_corrupt_and_wrong_subject_tokens",
+        "parent_revocation_is_checked_after_native_authentication",
+        "elapsed_grant_denies_an_existing_peer_and_an_accepted_read_replay"
+      ],
+      "proof": "Actual raw-wire/SDK clients and current grant/lifecycle negatives; old-profile ordinary messaging and JSON health remain usable",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Opaque grants only leave the protected credential exchange; model clients use a separate narrow configuration",
+      "tests": [
+        "protected_export_and_language_clients_share_narrow_native_grant_without_parent_fallback"
+      ],
+      "proof": "Protected export does not log tokens, retains existing files, uses mode 0600 and replaces the parent credential; task result contracts contain no bearer field",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Task attachment preserves the existing reliable artifact and datagram media semantics under current narrow resource authority",
+      "tests": [
+        "task_grant_native_audio_round_trip_detaches_and_reconnects_without_new_conversation",
+        "an_invited_task_participant_accepts_and_joins_voice_with_its_own_narrow_grant",
+        "scoped_media_envelopes_cannot_amplify_authority_or_forge_context",
+        "current_grant_revoke_cancel_and_expiry_close_actual_task_audio_peers",
+        "native_artifact_bytes_resume_and_reads_apply_current_scope_and_deletion",
+        "grant_revocation_prevents_upload_continuation_without_losing_accepted_bytes"
+      ],
+      "proof": "Actual bidirectional QUIC audio and binary artifact bytes; resource/participant/CID scope, revoke/expiry/cancel and reconnect are checked",
+      "status": "qualified in the recorded local scope"
+    }
+  ],
+  "not_claimed": [
+    "Installed language packages, host/model or full provider journeys",
+    "Whole A4-08 or Gate 4 acceptance; dependencies on later tools/host/journey/package proofs remain"
+  ]
+}

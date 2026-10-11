@@ -1,0 +1,59 @@
+{
+  "recorded_at": "2026-10-11T00:08:23.377945+00:00",
+  "source_base": "6009f7870f13d9bc065aeda7c0723c21469a50f9",
+  "item": "G4-014",
+  "status": "G4-014 qualified",
+  "qualification_record": "public-interface-qualification.json",
+  "requirements": [
+    {
+      "requirement": "Rust, Python, TypeScript, explicit HTTP and JSON CLI execute the shared lifecycle/reply/recall/cancel/error matrix",
+      "tests": [
+        "public_clients_share_task_lifecycle_replies_recall_replay_and_denial"
+      ],
+      "proof": "Seven lanes each execute 32 identical steps, including all 16 command families, changed-input denial and bounded waits",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Logical IDs, cursors, explicit assignment attribution and known outcomes remain stable over reconnect",
+      "tests": [
+        "public_clients_share_task_lifecycle_replies_recall_replay_and_denial"
+      ],
+      "proof": "Replayed create/send/reply/cancel/assign preserve IDs and revisions; assignment uses recipient journal event, not accepted message ID",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Task-scoped credentials are exported separately and do not fall back to an operator token",
+      "tests": [
+        "protected_export_and_language_clients_share_narrow_native_grant_without_parent_fallback",
+        "native_helpers_classify_startup_and_existing_peer_expiry_without_owner_fallback"
+      ],
+      "proof": "Five language/browser narrow-grant lanes plus actual JSON CLI/Rust tests; wrong task/origin, corrupt/configuration failure, primitive bypass and current expiry are rejected",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Typed SDK decoders reject malformed optional fields and preserve pending/uncertain; valid waits add only their bounded budget",
+      "tests": [
+        "TaskTests.test_typed_result_families_and_legacy_optional_fields",
+        "TaskTests.test_malformed_optional_fields_states_and_nested_outcomes",
+        "TaskTests.test_additional_wait_is_bounded_and_not_applied_to_mutations",
+        "task result validates/rejects fixture variants in sdk/tests/tasks.test.mjs"
+      ],
+      "proof": "21 Python and 147 Node cases pass; shared task fixtures include 14 valid variants and 29 malformed variants, including optional SMS, extra authority, malformed outcome and uncertain-without-effect",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "CLI errors remain machine-readable and bounded; HTTP/browser facade is explicitly distinct from native QUIC",
+      "tests": [
+        "public_clients_share_task_lifecycle_replies_recall_replay_and_denial",
+        "protected_export_and_language_clients_share_narrow_native_grant_without_parent_fallback"
+      ],
+      "proof": "Malformed/oversized JSON yields invalid-request without echo; task discovery required; legacy health output retained; actual helper versus HTTP lanes are labelled separately",
+      "status": "qualified in the recorded local scope"
+    }
+  ],
+  "not_claimed": [
+    "MCP complete tool set or installed host/model parity",
+    "Installed distributable/package or operating-limit guarantees",
+    "Full A4-08 integrated acceptance"
+  ]
+}

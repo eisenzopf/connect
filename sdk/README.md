@@ -147,3 +147,10 @@ nonzero. Without it, existing successful requests still print an `Outcome`.
 Inputs are bounded to 64 KiB and diagnostic errors do not echo request bodies.
 The shared [task matrix](tests/task_matrix.json) exercises real-server behavior
 through Rust, HTTP, CLI and both transports of the Python/TypeScript clients.
+Its 32 steps include explicit assignment of an unassigned reply, recipient
+assignment denial, attributed owner assignment and matching replay after
+reconnect. Message IDs and recipient journal event IDs are distinct: assign
+the event returned by the task reply inbox. The separate narrow-grant matrix
+checks the Python/TypeScript native and HTTP clients, browser HTTP client and
+JSON CLI without an owner credential fallback. HTTP remains an explicit
+facade; the native clients use the UCTP/QUIC helper.
