@@ -5,6 +5,13 @@ use std::path::PathBuf;
 /// Protected task installation, explicit recovery and revocation commands.
 #[derive(Subcommand)]
 pub enum Command {
+    /// Adopt an owner-issued renewal while retaining the exact saved host session.
+    RenewCodex {
+        #[arg(long)]
+        installation: PathBuf,
+        #[arg(long)]
+        grant_file: PathBuf,
+    },
     /// Start or explicitly resume the exact session in a protected Codex export.
     RunCodex {
         #[arg(long)]
@@ -65,6 +72,10 @@ impl Command {
     /// Execute through the bounded loopback exchange and protected files.
     pub async fn execute(self) -> anyhow::Result<()> {
         match self {
+            Self::RenewCodex {
+                installation,
+                grant_file,
+            } => super::codex_host::renew(&installation, &grant_file),
             Self::RunCodex {
                 installation,
                 codex_binary,

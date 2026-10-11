@@ -11,8 +11,19 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 async fn stalled(f: &fixture::Fixture) -> tokio::net::TcpStream {
     let address = f.server.http_address.unwrap();
     let mut socket = tokio::net::TcpStream::connect(address).await.unwrap();
-    let headers = format!("POST /v1/task-access HTTP/1.1\r\nHost: {address}\r\nAuthorization: Bearer {}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n1\r\n{{\r\n",f.owner.credential);
+    let headers = format!("POST /v1/task-access HTTP/1.1\r\nHost: {address}\r\nAuthorization: Bearer {}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nExpect: 100-continue\r\nConnection: close\r\n\r\n",f.owner.credential);
     socket.write_all(headers.as_bytes()).await.unwrap();
+    // Hyper sends Continue when the authenticated handler polls the body.
+    // Observe admission on the wire instead of assuming a successful TCP write
+    // means the request already owns a capacity slot.
+    let expected = b"HTTP/1.1 100 Continue\r\n\r\n";
+    let mut admitted = vec![0; expected.len()];
+    tokio::time::timeout(Duration::from_secs(2), socket.read_exact(&mut admitted))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(admitted, expected);
+    socket.write_all(b"1\r\n{\r\n").await.unwrap();
     socket
 }
 async fn response(mut socket: tokio::net::TcpStream) -> String {
@@ -51,9 +62,10 @@ async fn authenticated_slow_body_releases_admission_at_its_deadline() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn capacity_and_body_bounds_hold_and_shutdown_cancels_admitted_uploads() {
+    let client = access::http();
     let f = fixture::Fixture::start_independent_with_connections(2).await;
     for token in [&f.owner.credential, "invalid"] {
-        let response = access::http()
+        let response = client
             .post(access::url(&f))
             .bearer_auth(token)
             .header("content-type", "application/json")
@@ -72,26 +84,20 @@ async fn capacity_and_body_bounds_hold_and_shutdown_cancels_admitted_uploads() {
     let a = stalled(&f).await;
     let b = stalled(&f).await;
     let request = access::request(&f.task.id, "capacity-denied", InvocationKind::Native);
-    let started = tokio::time::Instant::now();
-    loop {
-        let probe = access::http()
+    let probe = tokio::time::timeout(
+        Duration::from_secs(2),
+        client
             .post(access::url(&f))
             .bearer_auth(&f.owner.credential)
             .json(&request)
-            .send()
-            .await
-            .unwrap();
-        if probe.status() == reqwest::StatusCode::SERVICE_UNAVAILABLE {
-            let body: connect_protocol::tasks::TaskAccessResponse = probe.json().await.unwrap();
-            assert_eq!(body.result.unwrap_err().code, "capacity-exceeded");
-            break;
-        }
-        assert!(
-            started.elapsed() < Duration::from_secs(2),
-            "slow bodies did not hold admission slots"
-        );
-        tokio::time::sleep(Duration::from_millis(20)).await;
-    }
+            .send(),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(probe.status(), reqwest::StatusCode::SERVICE_UNAVAILABLE);
+    let body: connect_protocol::tasks::TaskAccessResponse = probe.json().await.unwrap();
+    assert_eq!(body.result.unwrap_err().code, "capacity-exceeded");
     tokio::time::timeout(Duration::from_secs(4), f.close())
         .await
         .unwrap();

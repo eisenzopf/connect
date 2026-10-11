@@ -57,6 +57,10 @@ pub(super) async fn execute(
             command.env(key, value);
         }
     }
+    anyhow::ensure!(
+        tokio::time::Instant::now() < deadline,
+        "Host turn deadline exceeded before spawn; original intent retained"
+    );
     let mut owned = OwnedChild::spawn(&mut command)?;
     let result = tokio::time::timeout_at(
         deadline,

@@ -23,13 +23,26 @@ impl Fixture {
         Self::start_permitted(mcp, vec![TaskPermission::History]).await
     }
     pub async fn start_permitted(mcp: bool, permissions: Vec<TaskPermission>) -> Self {
-        Self::start_options(mcp, false, permissions, None).await
+        Self::start_options(mcp, false, permissions, None, 180).await
+    }
+    pub async fn start_permitted_with_grant_ttl(
+        permissions: Vec<TaskPermission>,
+        ttl: i64,
+    ) -> Self {
+        Self::start_options(true, false, permissions, None, ttl).await
     }
     pub async fn start_independent() -> Self {
         Self::start_independent_with_connections(64).await
     }
     pub async fn start_independent_with_connections(connections: usize) -> Self {
-        Self::start_options(true, true, vec![TaskPermission::History], Some(connections)).await
+        Self::start_options(
+            true,
+            true,
+            vec![TaskPermission::History],
+            Some(connections),
+            180,
+        )
+        .await
     }
     pub fn directory(&self) -> &std::path::Path {
         self._temp.path()
@@ -39,6 +52,7 @@ impl Fixture {
         independent: bool,
         permissions: Vec<TaskPermission>,
         connections: Option<usize>,
+        grant_ttl: i64,
     ) -> Self {
         let temp = tempfile::tempdir().unwrap();
         let dir = temp.path().join("state");
@@ -148,7 +162,7 @@ impl Fixture {
                     task_id: task.id.clone(),
                     binding: binding.clone(),
                     operations: permissions,
-                    expires_at: chrono::Utc::now().timestamp() + 180,
+                    expires_at: chrono::Utc::now().timestamp() + grant_ttl,
                 },
             )
             .await

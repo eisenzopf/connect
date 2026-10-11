@@ -8,10 +8,18 @@ use std::{net::SocketAddr, path::Path};
 
 pub(super) struct Installation {
     pub file: GrantFile,
+    /// Stable installation identity; renewal changes the active bearer, not this ID.
+    pub original_grant_id: String,
     pub digest: String,
     pub config: String,
 }
 pub(super) fn load(directory: &Path) -> Result<Installation> {
+    load_inner(directory, true)
+}
+pub(super) fn load_for_renewal(directory: &Path) -> Result<Installation> {
+    load_inner(directory, false)
+}
+fn load_inner(directory: &Path, current: bool) -> Result<Installation> {
     let meta = std::fs::symlink_metadata(directory)?;
     anyhow::ensure!(
         meta.file_type().is_dir(),
@@ -36,7 +44,7 @@ pub(super) fn load(directory: &Path) -> Result<Installation> {
         file.profile == TASK_ACCESS_PROFILE,
         "Unsupported grant profile"
     );
-    file.request.validate(chrono::Utc::now().timestamp())?;
+    super::renewal::validate(&file, false)?;
     let TaskAccessCommand::Issue { definition, .. } = &file.request.command else {
         anyhow::bail!("Missing retained issuance intent");
     };
@@ -78,9 +86,13 @@ pub(super) fn load(directory: &Path) -> Result<Installation> {
             || saved == super::super::codex::legacy_configuration(uri).as_bytes(),
         "MCP configuration has changed"
     );
+    let original_grant_id = grant.grant.id.clone();
+    let digest = hex::encode(Sha256::digest(&bytes));
+    let file = super::renewal::select(directory, file, &digest, current)?;
     Ok(Installation {
         file,
-        digest: hex::encode(Sha256::digest(&bytes)),
+        original_grant_id,
+        digest,
         config,
     })
 }

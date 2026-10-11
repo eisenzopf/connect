@@ -116,7 +116,7 @@ fn inspect_with_lock_probe(
     };
     if saved.installation != installation.digest
         || saved.task_id != task_id
-        || saved.grant_id != grant.grant.id
+        || saved.grant_id != installation.original_grant_id
     {
         return HostObservation::empty(HostState::BindingMismatch);
     }

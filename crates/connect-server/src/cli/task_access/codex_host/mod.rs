@@ -7,9 +7,11 @@ pub mod diagnostics;
 mod group_status;
 mod install;
 mod process;
+mod renewal;
 mod state;
 use anyhow::{Context, Result};
 use fs2::FileExt;
+pub use renewal::renew;
 use std::{path::Path, time::Duration};
 
 /// Start or explicitly resume the saved exact Codex session. A missing session
@@ -25,8 +27,16 @@ pub async fn run(
         (1..=300).contains(&seconds),
         "Host turn budget must be 1–300 seconds"
     );
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(seconds);
     let directory = std::fs::canonicalize(directory)?;
+    install::load(&directory)?;
+    let _lock = lock(&directory)?;
     let installation = install::load(&directory)?;
+    run_locked(&directory, binary, prompt, deadline, installation).await
+}
+
+fn lock(directory: &Path) -> Result<std::fs::File> {
+    super::require_private(directory)?;
     let lock_path = directory.join("host.lock");
     if !lock_path.try_exists()? {
         super::private_write(&lock_path, b"")?;
@@ -36,6 +46,16 @@ pub async fn run(
     let lock = std::fs::OpenOptions::new().write(true).open(lock_path)?;
     lock.try_lock_exclusive()
         .context("This installation already has an active host turn")?;
+    Ok(lock)
+}
+
+async fn run_locked(
+    directory: &Path,
+    binary: &Path,
+    prompt: Option<&Path>,
+    deadline: tokio::time::Instant,
+    installation: install::Installation,
+) -> Result<()> {
     let grant = installation
         .file
         .grant
@@ -53,11 +73,11 @@ pub async fn run(
             Ok::<_, anyhow::Error>(text)
         })
         .transpose()?;
-    let mut state = if let Some(mut state) = state::State::load(&directory)? {
+    let mut state = if let Some(mut state) = state::State::load(directory)? {
         anyhow::ensure!(
             state.installation == installation.digest
                 && state.task_id == grant.grant.task_id
-                && state.grant_id == grant.grant.id,
+                && state.grant_id == installation.original_grant_id,
             "Saved host state belongs to a different installation"
         );
         anyhow::ensure!(state.session_id.is_some(), "Session ID was not saved after launch; inspect retained intent and Codex session records, never start a replacement automatically");
@@ -76,30 +96,30 @@ pub async fn run(
             .attempts
             .checked_add(1)
             .context("Host attempt counter exhausted")?;
-        state.save(&directory)?;
+        state.save(directory)?;
         state
     } else {
         let state = state::State {
             profile: "connect-codex-host/1".into(),
             installation: installation.digest,
             task_id: grant.grant.task_id.clone(),
-            grant_id: grant.grant.id.clone(),
+            grant_id: installation.original_grant_id,
             session_id: None,
             run_id: uuid::Uuid::new_v4().to_string(),
             prompt: supplied.context("A first host turn requires a protected prompt file")?,
             completed: false,
             attempts: 1,
         };
-        state.create(&directory)?;
+        state.create(directory)?;
         state
     };
     process::execute(
-        &directory,
+        directory,
         binary,
         &installation.config,
         grant.expose_secret(),
         &mut state,
-        tokio::time::Instant::now() + Duration::from_secs(seconds),
+        deadline,
     )
     .await?;
     println!(

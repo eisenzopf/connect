@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "recorded_at": "2026-10-11T11:24:44.200932+00:00",
-  "status": "process supervisor and diagnostics correction verified; full corrected-source run pending",
+  "status": "full offline qualification failed at HTTP capacity fixture; corrective verification pending",
   "items": [
     "G4-031"
   ],
@@ -150,7 +150,7 @@
     "source_revision": "2e37d23dfc451626323bd7037dd6700ad2de9d20",
     "dirty": false,
     "mode": "complete-offline",
-    "status": "running",
+    "status": "failed",
     "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
     "versions": {
       "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
@@ -161,9 +161,9 @@
       "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
       "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
     },
-    "observed_at": "2026-10-11T11:51:51.843643+00:00",
+    "observed_at": "2026-10-11T12:09:50.840761+00:00",
     "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T114923.907984Z/result.json",
-    "active_phase": "workspace",
+    "active_phase": null,
     "passed_phases": [
       "dependencies",
       "format",
@@ -177,6 +177,60 @@
       "rustdoc"
     ],
     "total_phases": 30,
-    "evidence_limit": "Checkpoint only; workspace and later phases remain incomplete. The corrected diagnostic tests also pass in this workspace execution."
+    "evidence_limit": "Second full run failed at task-access capacity admission; both unchanged tests pass in isolation. Original cause not established. A wire-level Continue admission barrier and preconstructed HTTP client are under verification; budgets are not relaxed.",
+    "failed_phase": {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 7200,
+      "log": "workspace.log",
+      "status": "failed",
+      "exit_code": 101,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 708.834,
+      "rust_tests": {
+        "passed": 210,
+        "failed": 1,
+        "ignored": 6
+      }
+    },
+    "not_run": [
+      "media-pressure",
+      "installed-host",
+      "upstream-regression",
+      "upstream-vapi",
+      "upstream-queues",
+      "upstream-codec",
+      "current-binaries",
+      "native-task-capacity",
+      "schema-six-build",
+      "schema-ten-build",
+      "historical-task-recovery",
+      "dispatch",
+      "identity",
+      "typescript-probe",
+      "crash-replay",
+      "examples",
+      "example-recovery",
+      "current-recovery",
+      "datagram-example"
+    ],
+    "result_sha256": "405b93cc749debc4dfb37d12862ed8a7b367d68408af649330d17449451daa63"
+  },
+  "task_access_isolated": {
+    "path": ".local/gate-4-fresh-493d5c3/.local/task-access-bounds-isolated.log",
+    "sha256": "67477816db56dba9ba33bc0170201ed29c57f42327d2f6db982bf0d62b5734dc",
+    "passed": 2,
+    "failed": 0,
+    "exit_code": 0,
+    "scope": "unchanged built binary from 2e37d23; does not erase full-run failure"
   }
 }

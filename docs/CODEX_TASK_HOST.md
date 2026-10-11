@@ -36,11 +36,31 @@ Connect notifications are hints; the task journal provides missed replies.
 
 ## Credential refresh and failure behavior
 
-The protected adapter retains the backing credential reference and verifies its
-current authority before issuing a new bounded grant. An expired model token
-cannot refresh itself. Cancellation, backing revocation, expired delegation or
-lost membership prevents refresh and effects. Secrets are not printed in logs,
-Debug records, task receipts or the model's instructions.
+The required renewal path uses protected composition: the owner/application
+issues a new bounded grant with its current backing credential, then supplies it
+to the host adapter. An expired model token cannot refresh itself. Cancellation,
+backing revocation, expired delegation or lost membership prevents issuance and
+effects. The backing credential is never passed to the model process.
+
+The new `renew-codex` implementation is under qualification. After issuing a
+replacement through [task-access](TASK_ACCESS.md), use:
+
+```sh
+connect task-access renew-codex --installation .local/codex-review \
+  --grant-file .local/renewed-task-grant.json
+connect task-access run-codex --installation .local/codex-review
+```
+
+Renewal requires the exact original task, invocation binding and operation
+list. It holds the host lock and atomically saves a private credential pointer;
+it leaves the original export, session UUID, prompt and interrupted run intent
+unchanged. The original `host-state.json` grant ID remains installation identity;
+actual MCP authorization and server effect records use the selected current
+grant. An incomplete or mismatched renewal is an error, never permission to
+fall back to the original credential. A successful file adoption reports
+`renewed-not-invoked`; it does not attest current server permission or delivery.
+Every MCP invocation still checks current authority. The owner can automate
+issuance/adoption around explicit resume without per-tool approval prompts.
 
 An unavailable model account leaves the task waiting, with a visible host error.
 A disconnected MCP request returns pending/uncertain according to durable effect
@@ -121,8 +141,9 @@ replacement. Inspect the retained intent and actual host session records through
 protected operator repair. A changed task mapping, modified skill/configuration,
 missing completion manifest, expired grant or active installation lock is an
 explicit error. Current server revocation still denies MCP even if the saved
-local grant file has not changed. Automatic wake, grant renewal and session
-reconstruction are not implemented by this command.
+local grant file has not changed. Automatic wake, automatic grant issuance and
+session reconstruction are not implemented by `run-codex`. Protected adoption
+of an owner-issued replacement is the separate `renew-codex` operation above.
 
 ## Owned process cleanup
 
