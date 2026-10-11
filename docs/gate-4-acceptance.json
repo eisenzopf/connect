@@ -390,10 +390,11 @@
         "evidence/gate-4/mcp-transport-audit.json",
         "evidence/gate-4/task-tools-audit.json",
         "evidence/gate-4/codex-workflow-export.json",
-        "evidence/gate-4/package-candidate.json"
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/mcp-session-controls.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Native/HTTP/CLI/language and real MCP components passed. The extracted 32f4fad skill, SDKs and runtime wiring pass installed checks. The current full run stopped at worker startup; its unchanged capacity diagnostic passed, and remaining checks passed separately; installed wiring does not qualify model instruction following.",
+      "remaining": "Native/HTTP/CLI/language and real MCP components passed. The extracted 32f4fad skill, SDKs and runtime wiring pass installed checks. The current full run stopped at worker startup; its unchanged capacity diagnostic passed, and remaining checks passed separately; installed wiring does not qualify model instruction following. Additional real MCP session signaling and continued-task checks pass separately after 9235d79; the 41-phase run at 9235d79 remains in progress.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]

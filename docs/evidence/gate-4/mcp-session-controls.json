@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "status": "local signaling success path qualified; whole A4-08 and Gate 4 remain open",
+  "recorded_at": "2026-10-11T21:48:21.678544+00:00",
+  "source_base": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
+  "source_sha256": {
+    "crates/connect-server/tests/gate4_mcp_sessions.rs": "6e43673ab96eaebd6af131a156a33a561ac933b8dfb240b27daf2ceca4b6a21d",
+    "crates/connect-server/tests/support/mcp_fixture.rs": "543296fc701cef47a8b61707da6d450ac61f261cf347e318d64d1adfada9cb03",
+    "crates/connect-server/tests/support/mcp_client.rs": "ed45444d6c499050f8ed26b532d576b21d1c25cfc3c15e00074458b6df9fc329"
+  },
+  "scope": "Local real MCP endpoint and native public SDK, signaling only; no external providers or media claim",
+  "coverage_gap": "Existing 23-operation MCP/native matrix checks seven successful operations and sixteen known denials. The new test adds successful session invite, accept, reject, cancel, end and get operations, original-receipt replay and post-session task/conversation context.",
+  "execution": {
+    "command": "cargo test --locked -p connect-server --all-features --test gate4_mcp_sessions -- --nocapture --test-threads=1",
+    "log": ".local/gate-4-review/mcp-sessions-attempt-2.log",
+    "status": "passed",
+    "exit_code": 0,
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0
+  },
+  "startup_observation": {
+    "sample": ".local/gate-4-review/mcp-sessions-startup-sample.txt",
+    "sha256": "0877a69bf6104f1f955520a3c907f29f083723c395ede40769a71f5eda3ee90b",
+    "observation": "One-second read-only sample of PID 76080 records all 784 samples at _dyld_start, footprint 112 KiB, no binary image descriptions. Rust/Connect test execution is not established by this sample.",
+    "boundary": "Observed delay is before application execution. This neither identifies its OS cause nor proves that the historical 16-worker failure has the same cause. No process was restarted or terminated.",
+    "outcome": "The originally sampled process later ran and failed on the recorded incorrect test expectation. The corrected second attempt passed. The OS cause of the pre-application delay and the historical capacity failure remain unassigned."
+  },
+  "pending": [
+    "Complete current offline and installed-candidate reconciliation.",
+    "Session signaling success is not audio/media, live provider/model tool use, or whole Gate 4 acceptance."
+  ],
+  "retained_failures": [
+    {
+      "log": ".local/gate-4-review/mcp-sessions-attempt-1.log",
+      "exit_code": 101,
+      "cause": "Test expected ready after tool execution; contract and effect admission correctly transition to running. All preceding successful session control assertions passed. Corrected the test to require running; production code unchanged."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate4_mcp_sessions -- --nocapture --test-threads=1",
+      "exit_code": 0,
+      "log": ".local/gate-4-review/mcp-sessions-attempt-2.log",
+      "sha256": "445fa2a8081a46750e3ef6b4393f95f931348000b2fa50a5263538f3de51b826"
+    },
+    {
+      "command": "cargo clippy --locked -p connect-server --all-features --test gate4_mcp_sessions -- -D warnings",
+      "exit_code": 0,
+      "log": ".local/gate-4-review/mcp-sessions-clippy.log",
+      "sha256": "4b49b74f83ee9dbeb052625e7bb7ffe6223db687fb673f3349ac94dc73b07271"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0,
+      "log": ".local/gate-4-review/mcp-sessions-format-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "verified_behavior": [
+    "Real Streamable HTTP MCP endpoint and independent native UCTP/QUIC client perform inbound accept/end, inbound reject and outbound invite/cancel.",
+    "Session reads agree with the native public SDK; repeated mutation IDs return the original receipt.",
+    "Ending, rejecting and cancelling the legs does not end the running task or change the conversation. A subsequent message is observed by the peer and recalled through MCP."
+  ],
+  "source_boundary": "Only a new integration test and documentation were added after 9235d79. The concurrent 41-phase run remains frozen at 9235d79 and does not include this test; this is separately recorded additional coverage."
+}

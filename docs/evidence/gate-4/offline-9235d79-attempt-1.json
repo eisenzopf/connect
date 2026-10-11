@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "status": "running; not an acceptance pass",
+  "recorded_at": "2026-10-11T21:36:59.587338+00:00",
+  "source_revision": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
+  "source_dirty": false,
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "private_report": ".local/gate-4-checks/20261011T213619.464535Z/result.json",
+  "worktree": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
+  "active_phase_at_snapshot": "workspace",
+  "passed_phases_at_snapshot": [
+    "dependencies",
+    "format",
+    "typescript-install",
+    "typescript-tests",
+    "typescript-format",
+    "typescript-distribution",
+    "python-sdk",
+    "agent-incoming-unit",
+    "runner-failure-tests",
+    "voice-rehearsal-unit",
+    "chat-rehearsal-unit",
+    "lint",
+    "rustdoc"
+  ],
+  "required_phases": 41,
+  "boundary": "Single-revision complete-offline qualification is ongoing. No component or gate status becomes complete from this snapshot. Prior failed invocations remain retained."
+}
