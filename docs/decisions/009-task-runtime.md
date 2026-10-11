@@ -433,7 +433,9 @@ Turnkey operator installation, restart reattachment, aggregate setup-listener
 limits and actual provider/model behavior
 remain separate unfinished work. The bootstrap guide and numbered plan identify
 those limits. The individual component records preserve their scope; G4-019
-closure comes from the subsequent binding audit. G4-020 remains open.
+closure comes from the subsequent binding audit. G4-020's local context/tool
+runtime is qualified by the subsequent continuation audit; actual model and
+complete journey qualification remain open.
 
 ### Exact-resource recovery
 
@@ -455,5 +457,13 @@ records five new recovery cases and 21 affected integration checks with strict
 lint and Rustdoc results. The subsequent
 [G4-019 binding audit](../evidence/gate-4/vapi-binding-audit.json) verifies the whole
 local item, including distinct concurrent first calls, with 34 checks and
-unchanged frozen inputs. Post-call continuation and actual provider/model
-qualification remain open in the numbered plan.
+unchanged frozen inputs. The subsequent
+[G4-020 continuation audit](../evidence/gate-4/vapi-continuation-audit.json) passes
+31 behavior checks against 93 unchanged frozen inputs. A slow provider effect
+survives MCP disconnect; a new chat invocation after call end and server restart
+uses the original task's retained voice decision and explicit human reply for
+one follow-up. A successful question send remains pending until its answer;
+bounded inbox metadata requires a permitted effect-status read for the outcome.
+An ended call is not used to authorize later tools or recreate media. Actual
+provider/model, installed-host and complete journey qualification remain open in
+the numbered plan.

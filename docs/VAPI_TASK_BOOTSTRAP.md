@@ -71,6 +71,30 @@ voice context uses the native caller's history permission. Ending voice leaves
 the task and conversation intact, and supported final transcripts enter that
 conversation's journal for later recall.
 
+## Tool results and continuation
+
+An unanswered question sent with `connect_send` and `wait_for_reply: true`
+stays pending even after the send effect is `succeeded`: committing the question
+and receiving its answer are separate observations. Use
+`connect_effect_status` when the invocation has `RequestStatus` permission to
+retrieve that effect's accepted message reference. Task inbox pages deliberately
+omit effect outcome bodies so journal catch-up remains bounded.
+
+`connect_task_wait` returns a bounded pending result and a journal cursor when
+there is no new event. A disconnected client can reuse that cursor under current
+authority. Preserve the original request and step IDs when inspecting or retrying
+the same logical operation; reconnecting is not a reason to send it again.
+Business rejection can persist one failed effect without a message or provider
+job. Matching replay returns that failure without creating another effect.
+
+An ended provider call cannot authorize later MCP operations. To continue in
+chat, prepare a new chat-session invocation on the **existing task and
+conversation**, with the needed configured operations. Recall retrieves retained
+voice sources and subsequent replies with their original provenance. The new
+invocation can use that information for a permitted message without recreating
+the call or its media connection. Invocation setup is developer composition;
+agents still perform their configured operations without per-action prompts.
+
 ## Recovery and limits
 
 Keep the original private directory after an uncertain POST. Do not repeat the
@@ -125,5 +149,9 @@ actual host qualification.
 The [G4-019 binding item audit](evidence/gate-4/vapi-binding-audit.json) now verifies
 the local binding contract, including two overlapping calls to the same assistant,
 concurrent first callbacks, independent effects and teardown. It combines those
-checks with origin, lifecycle and recovery proofs. Actual provider/model behavior
-and the G4-020 continuation audit remain separate work.
+checks with origin, lifecycle and recovery proofs. The
+[G4-020 continuation audit](evidence/gate-4/vapi-continuation-audit.json) now
+qualifies the local context/tool runtime with 31 behavior checks, including
+bounded pending, disconnect, server restart and a useful follow-up from retained
+voice and reply sources. Actual provider/model behavior, installed-host and
+complete journey qualification remain separate work.

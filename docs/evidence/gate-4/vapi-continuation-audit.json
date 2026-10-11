@@ -1,0 +1,406 @@
+{
+  "item": "G4-020",
+  "status": "local-item-qualified",
+  "recorded_at": "2026-10-11T04:04:34.960019+00:00",
+  "source_base": "b23abf014023d38724ef6971ac1889a5d3d587de",
+  "source_files": {
+    "Cargo.lock": "e01d6633125f1c70e922a5cc241376ab2f33bb6f4e999183e7ed1b5534010e3f",
+    "crates/connect-connectors/src/vapi_origin.rs": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b",
+    "crates/connect-connectors/tests/vapi_origin.rs": "36940d944e6cf1f5de6f84befa27c6eb7f795d8ceb14f42b0ff3547a98089611",
+    "crates/connect-mcp/src/arguments.rs": "cdf760e00142049e73b6023f7318945adbccd3d7947878b6360118aec1427f7d",
+    "crates/connect-mcp/src/auth.rs": "9216321950a8e2fd492f116e4debb0459dbaf5096a880d75fad7a4c73d3f8c94",
+    "crates/connect-mcp/src/budget.rs": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+    "crates/connect-mcp/src/catalog.rs": "11e846ee563e5b656ff0496895c81d9bfc89ecbd5896d52b12227259d14150df",
+    "crates/connect-mcp/src/commands.rs": "fa0a4762cc89f3d93a28ac348cb12ce27b817c36579b86a9573e31a3ca8980e5",
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/lib.rs": "2cb7ac484e046122f5f80148c9a1455160a684dd99fa45075718acda3ef3e6b7",
+    "crates/connect-mcp/src/listener.rs": "5183bafeceb8fa492ef0b385b89aed876e37e8a41437f180c18f7935db7c88ae",
+    "crates/connect-mcp/src/schemas.rs": "e330e9172f52bec891a153f86a5dddcea871fab133802f00491ddeab74576fe2",
+    "crates/connect-mcp/src/vapi_auth.rs": "d310999324d2b423699471e4576b7995302604f230fc5a73a2a70944149b08de",
+    "crates/connect-server/src/vapi_bootstrap/admission.rs": "0bd5e44852d4941e5c45c8fdc20fa699b250e26b0fb95398cd455be8f59aaf3a",
+    "crates/connect-server/src/vapi_bootstrap/binding.rs": "6423d7ca0f5c3e4c7ebcfd91a2b2eb235d8e746e7507489de8c134437cdf88ad",
+    "crates/connect-server/src/vapi_bootstrap/call.rs": "8de88a75e616b686b973c58608c429aacf39a41943db19da9da188eeb6e9853f",
+    "crates/connect-server/src/vapi_bootstrap/creation.rs": "dc1eab858a3d1eadd8d455547b0c03648bb251575e7abc3eee574015704a29ff",
+    "crates/connect-server/src/vapi_bootstrap/dispatch.rs": "1a776f5b26323da49ec521465783fd06f3ef765d04394907a1052d67f1aa6788",
+    "crates/connect-server/src/vapi_bootstrap/media.rs": "ebbe5fcdfc0d580fb86647c13e8b4fd8527abd638f6dbbefa75256c1a08c24d9",
+    "crates/connect-server/src/vapi_bootstrap/mod.rs": "e14be8ab119ea13fb8c4b485c178109303b7d515cf37bf51783726deee4f3df5",
+    "crates/connect-server/src/vapi_bootstrap/recovery.rs": "449142eeac248921ff49ded98a8cb8e4548cbfa24598cd9e13c0b78e3166d287",
+    "crates/connect-server/src/vapi_bootstrap/state.rs": "2155e0106cf126b92fb6023f75abfd64d19796923e0a67c212b11dba49a4b25d",
+    "crates/connect-server/src/vapi_media.rs": "086ed29b48b534f524990d2369038349c6e10233da7297dfad19eb8163be71d7",
+    "crates/connect-server/src/vapi_task_setup.rs": "897861f005b62736679a55c97b6d3da88e0e75d2cc88129547c841c9d8626a34",
+    "crates/connect-server/tests/gate4_mcp_deadline.rs": "b00044d6e3cd7811e4e1e249b92e183c0dffbb62e977b8e37f6d3c25e2da4e84",
+    "crates/connect-server/tests/gate4_mcp_recall.rs": "26406dd70bbefc07c9881621a45215dcaa0ecef78b54cf8819ffe03f21dab41a",
+    "crates/connect-server/tests/gate4_mcp_retention.rs": "6b28318fc09355eb64b0ae8f0db66b8eef5232d58be54cd4c2c6b0b7b1622706",
+    "crates/connect-server/tests/gate4_provider_tasks.rs": "ed45cabf6096c29d193b5206e85124a69b4bd1e3efba04e34ab11b676777dc8e",
+    "crates/connect-server/tests/gate4_reply_recovery.rs": "eafd4430e498aa87555e348dcb20ddc400a4778048b30b0106fa800159a96212",
+    "crates/connect-server/tests/gate4_vapi_admission_hook.rs": "38148297e8fcacc64460777d04766e23b8a68117e772085e678e40eb42c2344e",
+    "crates/connect-server/tests/gate4_vapi_bootstrap.rs": "74fbef0a6f89e7487a7ca8b5f9af5021f3bbf3e761f72651ef2ef68802f9d57f",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_denials.rs": "06afaefd1318a800f3c874918c44f25eb6f603bd44e0f740d9647efa6640ff14",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_preparation.rs": "b9064da972a6380236135728b0ee86a4d9c247e2ae27f1b35fd7689aa23144f5",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_races.rs": "2d5942d99bba1ed2c6d7a31d840438fac228cfd43fef456b559127a26ace0895",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_recovery.rs": "8c1437a3e0f8d8e1ceda9d619051b0303b6297643b9c951f97101b8318f947fd",
+    "crates/connect-server/tests/gate4_vapi_call_bootstrap.rs": "3ffc4b426439470f6d6d6cdf12c14d2a515ac62ca1853b7d3245d1b86bd2df10",
+    "crates/connect-server/tests/gate4_vapi_call_isolation.rs": "7ebd51316810f17ee3a956ef75cd699b54b820a9de5a81e7d247d14f716fcfa7",
+    "crates/connect-server/tests/gate4_vapi_call_recovery.rs": "6094f39f607ad6f428d3678c69cd53824b4955a71acb7e075956c42cbdc4039d",
+    "crates/connect-server/tests/gate4_vapi_mcp_binding.rs": "0c06b869159b2696acbbf26703efdb5a2acd456d6adf657adcef6987d0ed9210",
+    "crates/connect-server/tests/gate4_vapi_mcp_lifecycle.rs": "92fc75ebe526b47519eaeffe58786fe42cc4f7e44bbfef6a3c18cc30a7d7afd5",
+    "crates/connect-server/tests/gate4_vapi_pending_continuation.rs": "43e0bb28b3320dcea4bc006123f14ba9e052ba80daa2f7a15a80cec6c37e6e3c",
+    "crates/connect-server/tests/gate4_vapi_post_call.rs": "637166122c5ce8fe4a4d600dc899bec040f2a6b3243a9a67c77e9281d2948043",
+    "crates/connect-server/tests/gate4_vapi_recovery_revocation.rs": "c3307185f418b6e77ae859240d3c9343f0ee6488c08b10cf08936c07a5a01a0b",
+    "crates/connect-server/tests/gate4_vapi_setup_denials.rs": "5bbeec30a2453988847972b9402e1a9690da4b863a2982deaa81b0952b856f94",
+    "crates/connect-server/tests/gate4_vapi_setup_races.rs": "3a85a9b3f3a9ab7211055f1754346ed03ceb053e696b94a992b3db7177005f82",
+    "crates/connect-server/tests/gate4_vapi_task_voice.rs": "e7c0cee1676dc339bfd0a436dc79d738e7b63454ff42ff1b2a206093aa29559f",
+    "crates/connect-server/tests/gate4_vapi_verified_setup.rs": "c3a81bc09a150177ea1c72fae0ff7b0fed22df934590abc61f99f5f59923ff16",
+    "crates/connect-server/tests/gate4_vapi_voice_revocation.rs": "fdba0508da8b86b00d610ba94fddbbc10432141a2f2a2d05173b9090d7b050e8",
+    "crates/connect-server/tests/support/mcp_fixture.rs": "4d30f765d5592d9047fbab027d626e916dece07417ff5d0aa3da7fbeef975a01",
+    "crates/connect-server/tests/support/native_grants.rs": "dff676f56f19be8d1c7df5de2a73179875a8b452efb5a17bc14a74065ada4544",
+    "crates/connect-server/tests/support/native_media.rs": "6adcf9c3c0612941f0ec5189e00418f04de1603ef067abc5ca54c536051d94d2",
+    "crates/connect-server/tests/support/native_tasks.rs": "7b4578d2f8efb761c795198bd3b2cde9f9a676fbf074a2954ab2a39ec7a78e4d",
+    "crates/connect-server/tests/support/paused_vapi_lookup.rs": "85ef2cddeba2873b618c189370962bf0ea6a0a7a9e91256ab8a73b22d6a10ffb",
+    "crates/connect-server/tests/support/provider_task_flow.rs": "71ab20f269981f7c6160e0febd4005f52f6db5c4741bc68e3efba5b47728bbcb",
+    "crates/connect-server/tests/support/vapi_bindings.rs": "c1a46b195321a34ec46a339a594cbbf33acca53c065ac940b09430fef7b2a71f",
+    "crates/connect-server/tests/support/vapi_bootstrap.rs": "89ed0c1945769aa30f3b7fb9c32f2d2f25aaec02e9acbc20c0f39d702ed6eb32",
+    "crates/connect-server/tests/support/vapi_call_isolation_support.rs": "936a03c7ac64d4850128400b14347dc74f88a848e900500a20ef168d95b48c59",
+    "crates/connect-server/tests/support/vapi_call_setup.rs": "b5cbd3694e9c18c7d55ddf691469dd2c52a9049818b0946331ab2826f0b05a8d",
+    "crates/connect-server/tests/support/vapi_setup.rs": "fc5163d74772cfb0e94f83c0b2d343975b384542e6725c76a9bb4fbb23ef47b8",
+    "crates/connect-server/tests/support/vapi_task_runtime.rs": "a74f11d55bb8b0991f35faad4dc63098fe8778d9f3970b60e25c095b932db2f9",
+    "crates/connect-server/tests/support/vapi_task_tools.rs": "169ffed2325e6819eaf86f4c4bdc9d63ee046900c74b32386d214590c4465b4a",
+    "crates/connect-server/tests/support/vapi_two_calls.rs": "47ec72878523cb9efc282acbf8d24f57b5e7f3fe37ac62ace2f0b993ed746d94",
+    "crates/connect-service/src/tasks/provider_setup.rs": "a00c8b81b24173713fcd9238348465e9721436f39f5a693b8d45da5ccb87239c",
+    "crates/connect-store/src/provider_chat_context.rs": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852",
+    "crates/connect-store/src/providers.rs": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa",
+    "crates/connect-store/src/tasks/effects/dispatch.rs": "49a3283cd61ad1b0ce6b50a64ffb3ef6826525c6e9905a8c721f1b919ede00b8",
+    "crates/connect-store/src/tasks/effects/links.rs": "c4fdface0aefd293a3789a9d2cbf8efa51d8866f7721fca8ab33af691796ce45",
+    "crates/connect-store/src/tasks/effects/mod.rs": "81b83aac026b7d5ca59a700e25a70ce7783faf09cab6389fa7830434dd962935",
+    "crates/connect-store/src/tasks/effects/provider.rs": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f",
+    "crates/connect-store/src/tasks/effects/rows.rs": "f314c04889244f1fb84e62be29f57dfc7e87d9e0678058b027474bb7d2201508",
+    "crates/connect-store/src/tasks/effects/state.rs": "d36ccdd09dac3c706c2e5cb9aae610cbeca4538801926e34994d62ebd6d42328",
+    "crates/connect-store/src/tasks/grants/admission.rs": "129f807a1aea048bb40b7078916f4f87e4f58f0025bde5d5e629c78a6b2c3023",
+    "crates/connect-store/src/tasks/grants/authentication.rs": "55ccdbe6092c02dfea16a3984231667c4e402cebf9ca157a0581821ddd352536",
+    "crates/connect-store/src/tasks/grants/authority.rs": "7d9bde002afde04e9011b78c44da18c22dedb0e12a413a7bcb373bd3200b4fd9",
+    "crates/connect-store/src/tasks/grants/bindings.rs": "114527fe66e2791efd94aeed64618a938dd975f730163d65a0857bb7542a4628",
+    "crates/connect-store/src/tasks/grants/execution.rs": "cda5eea891ba6c76c420d91a730421ffea191b7ec14978a3c71c65c586a3d574",
+    "crates/connect-store/src/tasks/grants/issuance.rs": "7d9f4d5a3ae51823d764d381b1dbbae2dc528b80b9bdd7010ea6c00f60d36a64",
+    "crates/connect-store/src/tasks/grants/mod.rs": "3748b17a2c6387a352439a14a946bdeae87017f3b63875de1e2c35e489a20486",
+    "crates/connect-store/src/tasks/grants/native.rs": "a3a2a30795b229b2e3853e882328ed301be5339787643fa8112cc5adf1b2ae87",
+    "crates/connect-store/src/tasks/grants/native_resources.rs": "d42a526ca9d9f068f65cc6f68e16cc5ca001deb2da1615ebc2a98fd17fa102ac",
+    "crates/connect-store/src/tasks/grants/provider.rs": "fd605eacf65e1e335afaa6ebdebbbf39fffc086381b7274e424f437802b78e6d",
+    "crates/connect-store/src/tasks/grants/rows.rs": "cbbe40e71212c52c472fabe5cbea9930f2a9d40091cc1fdf85f912da233436a8",
+    "crates/connect-store/src/tasks/grants/secret.rs": "25bdf051e44bee51e6c220f69a9764a063416a18cbb857b6a140cc4cc593d417",
+    "crates/connect-store/src/tasks/inbox.rs": "39c1f625d539ce5e51a18e3637ece3f445c893e65696163976908123a9a77de8",
+    "crates/connect-store/src/tasks/media_context.rs": "cc7d1b9eb23f3fafec68ace9e7a9ac67b31966db39365990071a96249f1f8285",
+    "crates/connect-store/src/tasks/media_setup.rs": "e41447b082edfae68528c6c7bbe81aae61515dc3a29df2bf3c2b99bc061efff0",
+    "crates/connect-store/src/tasks/recall.rs": "73d4e78874aaf0b8d1d38325e53419a65f8f6c08a21193c17141eaefbf54af8d",
+    "crates/connect-store/src/tasks/tests/effect_provider_boundaries.rs": "973971f9ae2d5e0cef0870e8d1579c9709c08f31bacde0718526d39f06016d0d",
+    "crates/connect-store/src/tasks/tests/effect_providers.rs": "d8d91afd0e224b5b01e60c9e7927f3227a30a372be2ba9ad65037ded52343134",
+    "crates/connect-store/src/tasks/tests/media_context.rs": "6213a95d470a0546b85b9cf0e5f5afd9874e8141b628579204733be36a6a869e",
+    "crates/connect-store/src/tasks/tests/provider_setup.rs": "1c755ea35c4ec608a13fa998ddc00ea328c07d3b8d9aff3addb956c346465a87",
+    "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+    "patches/rvoip/vapi-call-admission.patch": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa"
+  },
+  "scope": "Local macOS arm64; temporary state, actual public QUIC SDK/native audio, actual stateless MCP SDK, protected composition, real provider worker and pinned Vapi SDK against authenticated loopback APIs. No live provider/model operation, public ingress, deployment or production database access.",
+  "requirements": [
+    {
+      "requirement": "Expose configured task operations and useful old-source recall to Vapi",
+      "tests": [
+        "gate4_vapi_call_bootstrap",
+        "gate4_vapi_post_call",
+        "gate4_provider_tasks",
+        "gate4_mcp_recall"
+      ],
+      "result": "Real MCP discovery and typed calls use a privately verified provider binding. Common bounded recall retrieves a fact beyond the initial context page with source attribution; provider context respects the invocation history ceiling."
+    },
+    {
+      "requirement": "Persist tool results/outcomes and correlate conversation, task, call/session, step and effect",
+      "tests": [
+        "gate4_vapi_post_call",
+        "gate4_vapi_pending_continuation",
+        "gate4_vapi_task_voice"
+      ],
+      "result": "Final native voice sources retain exact journal provenance after restart. The task-bound effect status read returns the persisted question reference; the late reply is explicitly attributed to that question and task. Inbox metadata omits outcome bodies by design."
+    },
+    {
+      "requirement": "Return bounded pending results and recover after host disconnect",
+      "tests": [
+        "gate4_vapi_pending_continuation",
+        "gate4_mcp_deadline"
+      ],
+      "result": "A controlled slow private SDK request remains pending. A maximum MCP wait returns before ten seconds, with an unchanged empty-page cursor. The host disconnects before provider completion and reconnects to one exact reply and a completed original receipt; no second provider POST or job."
+    },
+    {
+      "requirement": "Route later replies only through the configured task channel under current authority",
+      "tests": [
+        "gate4_provider_tasks",
+        "gate4_reply_recovery",
+        "gate4_vapi_recovery_revocation",
+        "tasks::tests::effect_provider"
+      ],
+      "result": "Two tasks sharing one conversation do not wake from each other's provider replies. Cancellation, expiry, revocation, duplicate completion, ambiguous assignment, uncertainty and rollback preserve their existing boundaries. New post-call chat has no call/session/SIP tools."
+    },
+    {
+      "requirement": "Ending voice does not cancel the task; useful post-call continuation survives restart",
+      "tests": [
+        "gate4_vapi_post_call",
+        "gate4_vapi_task_voice",
+        "tasks::tests::media_context"
+      ],
+      "result": "Voice ends with a retained decision. The owned server restarts against its existing database; the original task remains Waiting in the original conversation. An explicit human reply affects only that task. A fresh chat invocation recalls the unchanged decision and new reply, derives a follow-up from those returned bodies and creates one message on replay without another call."
+    },
+    {
+      "requirement": "Completed, denied and pending outcomes preserve provenance and current access",
+      "tests": [
+        "gate4_vapi_pending_continuation",
+        "gate4_mcp_retention",
+        "gate4_vapi_voice_revocation",
+        "gate4_vapi_bootstrap_recovery"
+      ],
+      "result": "An invalid business send records one failed effect without sending; matching failure replay preserves the snapshot. An uncertain creation retains its original intent rather than retrying a POST. Expired artifact bytes and revoked context remain unavailable; retained source references remain explicit."
+    }
+  ],
+  "integration_summary": {
+    "passed": 15,
+    "failed": 0,
+    "ignored": 0,
+    "cargo_built_artifacts": 12,
+    "maximum_parallel_artifacts": 3,
+    "per_artifact_deadline_seconds": 600,
+    "build_command": "cargo test --locked -p connect-server --all-features --no-run --message-format=json with the twelve explicit integration targets",
+    "build_log": ".local/gate-4-planning/vapi-continuation-final-qa-build.log",
+    "build_log_sha256": "565f68dcc2811ce80ae69e0848f3566cf9b8be45413b0e62a662889495dd15c4"
+  },
+  "integration_artifacts": [
+    {
+      "test": "gate4_mcp_deadline",
+      "executable": "target/debug/deps/gate4_mcp_deadline-6b7c2b706a5163bf",
+      "binary_sha256": "60cfaf95c14aaf13660622fea4e3f517293d6bb4ced7066bd1bdb5c3a8c4dc1c",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_mcp_deadline.log",
+      "log_sha256": "e470339ac7c782084963eec5aca0bd78b361e0891f513abd1ec429e04a12aa47",
+      "passed": 1
+    },
+    {
+      "test": "gate4_mcp_recall",
+      "executable": "target/debug/deps/gate4_mcp_recall-080b10057605645e",
+      "binary_sha256": "e491d51e480ff747aae6d65a95d66c143d217d63e8753953f0dcf75237f819b6",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_mcp_recall.log",
+      "log_sha256": "26aafa2514729486ec4843b6623906a13c32600f89147d12e92e37f9780ca9f7",
+      "passed": 1
+    },
+    {
+      "test": "gate4_mcp_retention",
+      "executable": "target/debug/deps/gate4_mcp_retention-cb1515a4ab85d811",
+      "binary_sha256": "ab558d6799a6c6a27b70c493cf856c1f368855af4c3028b465ed04579d570a72",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_mcp_retention.log",
+      "log_sha256": "d2236817aa60e87328e4fb5e450684e63abbf944686a943935759063984c602f",
+      "passed": 1
+    },
+    {
+      "test": "gate4_provider_tasks",
+      "executable": "target/debug/deps/gate4_provider_tasks-3af08cf944205187",
+      "binary_sha256": "ae7638dc0306b3fc5940fef5a428c3f53ddbfc76a710811b274566ee0460bf59",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_provider_tasks.log",
+      "log_sha256": "4754b06bcef5ee18f74c13c8b83cd79e83b65a8e03318054f2bba96cec94c39d",
+      "passed": 1
+    },
+    {
+      "test": "gate4_reply_recovery",
+      "executable": "target/debug/deps/gate4_reply_recovery-47d35295050747e5",
+      "binary_sha256": "fbcf0185c52ce2c1d6c49a65245adf8496bc18785b482bb595f0196255bf5e2b",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_reply_recovery.log",
+      "log_sha256": "7652d6bde5f533c14e9061c95e81809139b7b7a9de53e8a3290ad16c1e8e1799",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_bootstrap_recovery",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap_recovery-be4b90131b5b2f67",
+      "binary_sha256": "4f4e9638bf683a2c024fee492a7655913ba1047917698fc8b8aeb57367a135ad",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_vapi_bootstrap_recovery.log",
+      "log_sha256": "ff89f02e7b0a8dc0b72e43a5bdf6be748ec0cef647d34324c1b82a4321e5d668",
+      "passed": 3
+    },
+    {
+      "test": "gate4_vapi_call_bootstrap",
+      "executable": "target/debug/deps/gate4_vapi_call_bootstrap-61c467b80e8f5ac1",
+      "binary_sha256": "41129157d47fc4ab03e1579e6f89d873bbe78219981bf35eb61daf0e04dafbcc",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_vapi_call_bootstrap.log",
+      "log_sha256": "aa8afdbdb8eda05b5d257213b4dff3be0792372d5cf4dfd9e57d34c8038b30f1",
+      "passed": 2
+    },
+    {
+      "test": "gate4_vapi_pending_continuation",
+      "executable": "target/debug/deps/gate4_vapi_pending_continuation-68f0cd8ebf531d8f",
+      "binary_sha256": "e467b9ba921c02c553e95437f9769cad85092232c12d83a5468dc0e1cc776017",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_vapi_pending_continuation.log",
+      "log_sha256": "47f9b3bc09517feaa468650771676cf68acc5a26196124de0a6f461f10c46c38",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_post_call",
+      "executable": "target/debug/deps/gate4_vapi_post_call-51087386eb3e3a70",
+      "binary_sha256": "f473753b4f3a39722c0ae36bdb15ec728ddde107f60b3467db1f3c36ddb35614",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_vapi_post_call.log",
+      "log_sha256": "05b0d1961b4a27215d566ef354137dab6445f44c03de87a49b4ba158926d9eba",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_recovery_revocation",
+      "executable": "target/debug/deps/gate4_vapi_recovery_revocation-12fae43d183e5a90",
+      "binary_sha256": "f80dcba280470120327cb13f805066bf941b05ebfc518b20f444e2802de9b2cb",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_vapi_recovery_revocation.log",
+      "log_sha256": "a01b976af00f4a43f41f5d61696beb801f90c002b8edc70e72c1bf6e94e19116",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_task_voice",
+      "executable": "target/debug/deps/gate4_vapi_task_voice-d0ca83a4773b518e",
+      "binary_sha256": "9629c4671ff2b5448a26035c2d83ba9156c6f37701217c6e564ed6b7dfcd09e5",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_vapi_task_voice.log",
+      "log_sha256": "1ca219cde1e59d42b28dea7434e375822d776ab1cd94d5d4315269b72b652025",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_voice_revocation",
+      "executable": "target/debug/deps/gate4_vapi_voice_revocation-bc2b0fb61b0a491d",
+      "binary_sha256": "9674029fd73ca45091fdd7f36e479658edeb2a294ac0a5ad6721d568d0c622da",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-continuation-final-qa-gate4_vapi_voice_revocation.log",
+      "log_sha256": "156e0d47276ee9a2495d3b1decae0e4a02c54eb869e3c1211ff16b3818651362",
+      "passed": 1
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo test --locked -p connect-store --all-features --lib tasks::tests::effect_provider",
+      "terminal_exit": 0,
+      "result": "12 passed; 0 failed; 0 ignored; 144 other tests deliberately filtered",
+      "log": ".local/gate-4-planning/vapi-continuation-final-store-providers.log",
+      "log_sha256": "9a405deda197221c60cd77a711cb691a789dd287d40d36a3468f0a855f12cd26"
+    },
+    {
+      "command": "cargo test --locked -p connect-store --all-features --lib tasks::tests::media_context",
+      "terminal_exit": 0,
+      "result": "4 passed; 0 failed; 0 ignored; 152 other tests deliberately filtered",
+      "log": ".local/gate-4-planning/vapi-continuation-final-store-media.log",
+      "log_sha256": "d362c83b76072c6e566a4a9a359ad466f605891834db7c2a07007bea8c7d1888"
+    },
+    {
+      "command": "cargo clippy --locked -p connect-server --all-features --test gate4_vapi_pending_continuation --test gate4_vapi_post_call -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Final new tests and shared helpers passed strict lint",
+      "log": ".local/gate-4-planning/vapi-continuation-final-clippy.log",
+      "log_sha256": "605c07531b01ee005e12503435b28978628be0fa2313cddc5cb00eea6ea7b409"
+    },
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "terminal_exit": 0,
+      "result": "Passed; tracked source-lock inputs remain unchanged",
+      "log": ".local/gate-4-planning/vapi-continuation-final-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-continuation-final-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "python3 .local/gate-4-planning/validate-docs.py",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-continuation-final-docs.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
+    },
+    {
+      "command": "git diff --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-continuation-final-diff.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "behavior_total": 31,
+  "component_evidence": [
+    "provider-task-boundaries.json",
+    "task-voice-context.json",
+    "vapi-call-bootstrap.json",
+    "vapi-bootstrap-recovery.json",
+    "vapi-binding-audit.json"
+  ],
+  "code_review": {
+    "production_change": "No production or upstream edits. Four isolated integration-test/fixture files qualify the already implemented task runtime.",
+    "boundaries": "Tests use public clients and MCP for modeled interactions. Store access is restricted to protected configuration and inspection. Connector verifies private origin; Server owns setup/lifecycle; Store owns task/journal/effect authority; rvoip owns the native/provider media bridge.",
+    "readability": "Two scenario modules (253 and 352 lines) and two shared helper modules (129 and 133 lines), with module Rustdoc. No new public library API or monolithic production module.",
+    "source_snapshot": "All 93 frozen input digests verified after runtime and strict quality checks. Dependency preparation and formatting passed.",
+    "public_rustdoc": "Public API source is unchanged. Prior strict affected Rustdoc in vapi-bootstrap-recovery.json remains historical applicable evidence; no new Rustdoc run is claimed."
+  },
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/vapi-pending-test-initial.log",
+      "log_sha256": "b5d98ec4990e5c3fce596e4c408c33308eeb48e279a85592c2add70a4e0044d7",
+      "terminal_exit": 101,
+      "reason": "Wrong fixture enum name EffectState::Completed; compilation failed before any behavior check."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-continuation-tests-initial.log",
+      "log_sha256": "3300da6e8b2ceac20cddb1f887902ec494d3ec6c4f0d988acca9455a7429e8e9",
+      "terminal_exit": 101,
+      "reason": "Wrong fixture enum name TaskState::Created; compilation failed before the voice behavior check."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-continuation-tests-corrected.log",
+      "log_sha256": "70a4599675e184ff151e7f6111e441ff801a652c51b5fb741e1464a61f45e456",
+      "terminal_exit": 101,
+      "reason": "Fixture incorrectly expected a business rejection to leave the entire journal unchanged. It now checks one failed effect, no message/job and unchanged matching failure replay."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-continuation-initial-qa-gate4_vapi_post_call.log",
+      "log_sha256": "520f717dc9370bd43819a9419dc611cea37824df9547af0cea8024890ec372a7",
+      "terminal_exit": 101,
+      "reason": "An unanswered question was incorrectly expected to return Completed; the contract requires Pending."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-post-call-pending-test.log",
+      "log_sha256": "a7c363bc45fab3470029b33303b25766ad6ff7db5df457ed7305f0b272aaa4cc",
+      "terminal_exit": 101,
+      "reason": "Fixture tried to obtain an outcome body from the deliberately bounded inbox. It now uses an explicitly permitted effect-status read."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-post-call-status-test.log",
+      "log_sha256": "069b53c76faa159139b79b0dee19a12b6adbf3e18f1c8c0b8e94d7af395e324c",
+      "terminal_exit": 101,
+      "reason": "Fixture attempted another MCP recall after the provider had ended the call; HTTP 401 correctly denied the inactive origin."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-post-call-origin-diagnostic.log",
+      "log_sha256": "bd5ab5e21408bcf2c20e01691d09e8b0fc73ba5eef0ad29f5275ee63bf149992",
+      "terminal_exit": 101,
+      "reason": "Safe tool name and backtrace pinpointed the ended-call recall. Owner inspection now captures the retained source solely for pre/post comparison; fresh chat MCP performs actual continuation. No authority was relaxed."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-post-call-pending-format.log",
+      "log_sha256": "846e4b804f93ddcb2c2c716a78069dd195379077256c91ca20164b850ef4c845",
+      "terminal_exit": 126,
+      "reason": "The format script is not executable; invoking it with bash passed. No source was changed by the rejected invocation."
+    }
+  ],
+  "limits": [
+    "Actual Vapi cloud/model behavior and operator installation remain separate work.",
+    "Post-call continuation uses a new protected chat invocation on the existing task. It does not reattach the ended media connection.",
+    "The voice test owner inspects the pre-restart source for equality comparison; the fresh chat MCP client retrieves the sources and forms the follow-up from their returned bodies.",
+    "These component proofs cover the provider portions of T-A6/T-A8. Installed-host, reference-runner and complete journey qualification remain G4-025/G4-027/G4-034; no complete T-A/A4 or gate closure is inferred.",
+    "No performance, package, upgrade or separate live qualification claim."
+  ],
+  "remaining_gate_work": "G4-018 and G4-021 through G4-036 remain open in the numbered plan.",
+  "completion_claim": "The complete local implementation and verification contract for G4-020 is qualified; Gate 4 and its aggregate acceptance criteria remain unfinished."
+}
