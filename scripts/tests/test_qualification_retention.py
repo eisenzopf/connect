@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.gate4_phases import phases
-from lib.retention_profile import forbidden, expired_files, terminal_records
+from lib.retention_profile import classify_task_status, forbidden, expired_files, terminal_records
 
 
 def reply(value):
@@ -15,6 +15,34 @@ def reply(value):
 
 
 class RetentionVerifierTests(unittest.TestCase):
+    def test_expiry_crossing_distinguishes_all_three_authority_checks(self):
+        responses = [
+            ((401, b''), 'http_denied'),
+            (reply({'isError': True, 'structuredContent': {'code': 'forbidden'}}), 'tool_denied'),
+            ((200, json.dumps({'jsonrpc': '2.0', 'id': 1, 'error': {
+                'code': -32600, 'message': 'Task authority is no longer current'}}).encode()), 'rpc_denied'),
+        ]
+        for response, expected in responses:
+            self.assertEqual(classify_task_status((response, 99.9, 100.1), 'task', 100), expected)
+            with self.assertRaisesRegex(AssertionError, 'before its configured expiry'):
+                classify_task_status((response, 99, 99.9), 'task', 100)
+
+    def test_success_must_have_started_before_expiry_and_match_the_task(self):
+        response = reply({'structuredContent': {'data': {'id': 'task'}}})
+        self.assertEqual(classify_task_status((response, 99.9, 100.1), 'task', 100), 'active')
+        with self.assertRaisesRegex(AssertionError, 'started after expiry'):
+            classify_task_status((response, 100, 100.1), 'task', 100)
+        with self.assertRaises(AssertionError):
+            classify_task_status((response, 99.9, 100.1), 'another-task', 100)
+
+    def test_unrelated_errors_cannot_count_as_expiry_denials(self):
+        for response in [(503, b''),
+                         reply({'isError': True, 'structuredContent': {'code': 'transport-uncertain'}}),
+                         (200, json.dumps({'jsonrpc': '2.0', 'id': 1, 'error': {
+                             'code': -32600, 'message': 'unrelated failure'}}).encode())]:
+            with self.assertRaises(AssertionError):
+                classify_task_status((response, 99.9, 100.1), 'task', 100)
+
     def test_expired_read_requires_a_business_denial_not_transport_failure(self):
         denial = reply({'isError': True, 'structuredContent': {'code': 'forbidden'}})
         forbidden(denial)

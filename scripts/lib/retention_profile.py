@@ -90,17 +90,48 @@ def cleanup(state, jobs, live, owner, report):
     report.checkpoint(expired_blobs_removed_on_restart=32, live_control_blob_preserved=True)
 
 
+def task_status_observation(job):
+    """Bracket the request so boundary denials cannot hide early rejection."""
+    started = time.time()
+    response = job['endpoint'].request(encode('connect_task_status', {}))
+    return response, started, time.time()
+
+
+def classify_task_status(observation, task_id, expiry):
+    """Admission and execution independently recheck the same expiry boundary."""
+    response, started, finished = observation
+    assert started <= finished, 'Clock moved backwards during expiry observation'
+    if response[0] == 401:
+        kind = 'http_denied'
+    else:
+        assert response[0] == 200, response[0]
+        rpc = json.loads(response[1])
+        assert rpc['jsonrpc'] == '2.0' and rpc['id'] == 1
+        if 'error' in rpc:
+            assert 'result' not in rpc
+            assert rpc['error']['code'] == -32600
+            assert rpc['error']['message'] == 'Task authority is no longer current'
+            kind = 'rpc_denied'
+        elif rpc['result'].get('isError') is True:
+            forbidden(response)
+            kind = 'tool_denied'
+        else:
+            assert started < expiry, 'Request started after expiry but succeeded'
+            assert success(response)['structuredContent']['data']['id'] == task_id
+            return 'active'
+    assert finished >= expiry, 'Task was denied before its configured expiry'
+    return kind
+
+
 def task_expiry(jobs, task_expiry_at, report):
     with report.phase('task-expiry-under-load-denies-further-tools'):
-        counts = {200: 0, 401: 0}
+        counts = {kind: 0 for kind in ('active', 'http_denied', 'rpc_denied', 'tool_denied')}
         while time.time() < task_expiry_at + .05:
-            responses = burst(lambda i: jobs[i]['endpoint'].request(encode('connect_task_status', {})), report)
-            for job, response in zip(jobs, responses):
-                assert response[0] in counts
-                counts[response[0]] += 1
-                if response[0] == 200:
-                    assert success(response)['structuredContent']['data']['id'] == job['task']['id']
+            observations = burst(lambda i: task_status_observation(jobs[i]), report)
+            for job, observation in zip(jobs, observations):
+                counts[classify_task_status(observation, job['task']['id'], task_expiry_at)] += 1
             time.sleep(.05)
+        assert counts['active'] >= len(jobs), 'Missing active-task observations before expiry'
         responses = burst(lambda i: jobs[i]['endpoint'].request(encode('connect_task_status', {})), report)
         assert all(response[0] == 401 for response in responses)
         report.checkpoint(task_expiry_responses=counts, expired_task_tools_denied=32)

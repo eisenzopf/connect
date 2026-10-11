@@ -71,5 +71,10 @@
     "next_action": "Retain original failure. New pre-cleanup observations and preserved primary timeout are qualified with a real deliberately delayed 16-process fixture. Current normal capacity passed; historical startup cause remains unresolved. Use captured process metadata if initialization failure recurs.",
     "installed_diagnostic": "docs/evidence/gate-4/offline-32f4fad-remaining.json",
     "diagnostic_improvement": "docs/evidence/gate-4/runner-startup-diagnostics.json"
+  },
+  "retention_expiry_verifier": {
+    "status": "corrected and locally qualified; original failed full invocation retained",
+    "evidence": "docs/evidence/gate-4/retention-expiry-boundary.json",
+    "detail": "The verifier now distinguishes boundary HTTP/RPC/tool authority denials. All five real retention phases and 48 verifier tests pass without changing limits or production code."
   }
 }

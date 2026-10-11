@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "status": "expiry-boundary verifier correction qualified locally; full run remains failed",
+  "recorded_at": "2026-10-11T21:58:01.737228+00:00",
+  "source_base": "b6bcb07",
+  "source_files_sha256": {
+    "scripts/lib/retention_profile.py": "3d44a042776bdbd2d20f824fb60f26c3d5f5d3c4afe207197178a73c2cd0328b",
+    "scripts/tests/test_qualification_retention.py": "0e268670a5f140190728ccaa54407e48269a544da4101082bb8e5e3a353c64ec"
+  },
+  "scope": "Local macOS arm64, 32 tasks, real server/MCP/native SDK; no provider or model account",
+  "retained_failure": {
+    "path": ".local/retention-load/20261011T215304.496691Z/result.json",
+    "sha256": "14076eca5b705d4214f3e9f78f9b09a498c3021903984216a4da8afc788f000d"
+  },
+  "diagnosis": "HTTP admission, handler grant lookup and execution each revalidate authority. Crossing expiry can produce HTTP 200 containing a JSON-RPC authority error or MCP forbidden result. These are denials, not successful operations. The previous verifier incorrectly required every HTTP 200 to contain successful task status.",
+  "correction": "Record request start/end timestamps; accept only exact authority-denial responses when observed at/after expiry, reject early denials and unrelated errors, and reject successful requests begun at/after expiry. Final fresh post-expiry requests must still all receive HTTP 401. Require pre-expiry active observations for the complete cohort.",
+  "unchanged_limits": {
+    "tasks": 32,
+    "task_seconds": 45,
+    "artifact_seconds": 12,
+    "artifact_bytes_each": 65536,
+    "chunk_bytes": 32768
+  },
+  "budget_seconds": 180,
+  "qualified_profile": {
+    "path": ".local/retention-load/20261011T215603.111853Z/result.json",
+    "sha256": "a1c2e9d33856dc274ea5a72a1256f02a2f2ad51a75521f236e400f1d1977ace9"
+  },
+  "owned_phase": {
+    "path": ".local/gate-4-review/retention-boundary-20261011T215603.022984Z/result.json",
+    "sha256": "6c114daec410a7e5935cd0ea589f06d61642114c18631569bec828759dd417f3"
+  },
+  "binary_sha256": "6b9d800c32da9c2728a2c2541c5791a0f698b4287f8cc527d71dd01f08440e14",
+  "phases": [
+    {
+      "name": "thirty-two-expiring-files-and-bounded-chunks",
+      "status": "passed",
+      "seconds": 1.757
+    },
+    {
+      "name": "artifact-expiry-denies-cached-bytes-and-retains-provenance",
+      "status": "passed",
+      "seconds": 10.348
+    },
+    {
+      "name": "restart-cleans-expired-bytes-but-preserves-sources",
+      "status": "passed",
+      "seconds": 0.221
+    },
+    {
+      "name": "task-expiry-under-load-denies-further-tools",
+      "status": "passed",
+      "seconds": 30.668
+    },
+    {
+      "name": "restart-preserves-expired-task-records-and-conversations",
+      "status": "passed",
+      "seconds": 0.753
+    }
+  ],
+  "task_expiry_responses": {
+    "active": 12864,
+    "http_denied": 0,
+    "rpc_denied": 25,
+    "tool_denied": 7
+  },
+  "fresh_post_expiry_http_401": 32,
+  "renewals_denied": 32,
+  "unit_checks": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -p test_qualification*.py",
+    "passed": 48,
+    "failed": 0,
+    "ignored": 0,
+    "log": {
+      "path": ".local/gate-4-review/retention-boundary-unit.log",
+      "sha256": "087507216b7958eefa6bfba6a4625ce0f75b6e8e8e838342ff0fe6a6e065e093"
+    }
+  },
+  "boundary": "No production code or lifetime/admission/deadline limit changed. This verifies the corrected profile, not the original failed full invocation or its twelve unrun phases."
+}
