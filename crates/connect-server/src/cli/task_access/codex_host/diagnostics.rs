@@ -10,6 +10,7 @@ use std::{fs::File, io, path::Path};
 pub enum HostState {
     Unconfigured,
     InvalidInstallation,
+    GrantExpired,
     BindingMismatch,
     InvalidState,
     LockUnavailable,
@@ -39,7 +40,9 @@ impl HostObservation {
             HostState::NotStarted => W::NotStarted,
             HostState::TurnActive => W::OwnershipObserved,
             HostState::TurnComplete => W::ExplicitResumeRequired,
-            HostState::Interrupted | HostState::MissingSession => W::RecoveryRequired,
+            HostState::Interrupted | HostState::MissingSession | HostState::GrantExpired => {
+                W::RecoveryRequired
+            }
             HostState::ChangedDuringSample => W::ChangedDuringSample,
             HostState::InvalidInstallation
             | HostState::BindingMismatch
@@ -74,7 +77,9 @@ fn inspect_with_lock_probe(
     let Some(directory) = directory else {
         return HostObservation::empty(HostState::Unconfigured);
     };
-    let Ok(installation) = install::load(directory) else {
+    // A well-formed expired grant is retained recovery evidence, not corrupt
+    // metadata. This path never supplies its bearer to a host or authorizes I/O.
+    let Ok(installation) = install::load_for_renewal(directory) else {
         return HostObservation::empty(HostState::InvalidInstallation);
     };
     let Some(grant) = &installation.file.grant else {
@@ -82,6 +87,9 @@ fn inspect_with_lock_probe(
     };
     if grant.grant.task_id != task_id {
         return HostObservation::empty(HostState::BindingMismatch);
+    }
+    if grant.grant.expires_at <= chrono::Utc::now().timestamp() {
+        return HostObservation::empty(HostState::GrantExpired);
     }
     let initial = match state::State::load(directory) {
         Ok(value) => value,

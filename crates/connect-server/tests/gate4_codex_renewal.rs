@@ -86,6 +86,18 @@ async fn real_expiry_then_renewal_resumes_the_same_session_without_rewriting_ori
     })
     .await
     .unwrap();
+    let original = original_files(&dir);
+    let observation = codex_host::diagnostics::inspect(Some(&dir), &f.task.id);
+    assert_eq!(
+        observation.state,
+        codex_host::diagnostics::HostState::GrantExpired
+    );
+    assert_eq!(
+        observation.readiness().state,
+        connect_protocol::ReadinessState::Unavailable
+    );
+    assert!(observation.session_id.is_none() && observation.run_id.is_none());
+    assert_eq!(original_files(&dir), original);
     assert!(codex_host::run(&dir, &binary, None, 15).await.is_err());
     let file = replacement(&f).await;
     let originals = original_files(&dir);

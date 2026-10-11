@@ -105,6 +105,10 @@ stopped incomplete turn, `interrupted` retains the exact session/run IDs;
 `missing-session` requires repair of the original intent. Binding, private-file,
 asset and lock failures are explicit. `changed-during-sample` asks the caller to
 retry inspection when retained state changes around the lock probe.
+`grant-expired` means the protected installation is intact but its selected
+grant needs owner-issued renewal before another turn. It reports unavailable;
+inspection neither renews the grant nor resumes the host. Use `task-access
+renew-codex` with a currently issued replacement that preserves the exact binding.
 
 The inspector validates the existing protected installation and retained binding,
 reads bounded private metadata, and omits prompts, bearer secrets, logs and

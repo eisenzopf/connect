@@ -186,9 +186,23 @@ try:
         passed('installed-language-sdks', 'Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently')
         report['gate4_installed'] = qualify(release, source, codex_binary, results/'gate4-installed')
         passed('installed-gate4-agent', 'Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback')
+        from lib.package_faults import prepare
+        from lib.qualification_process import run_phase
+        from lib.qualification_report import environment
+        faults, report['qualification_fixtures'] = prepare(source, results/'qualification-fixtures', manifest)
+        passed('qualification-fixture-build', 'Exact extracted source; owned compilation phase; test-only controls isolated from installed runtime binaries')
+        legacy_env = environment(codex_binary)
+        legacy_env.update(CONNECT_BINARY=str(BINARY), CONNECT_EXAMPLE_BINARY=str(EXAMPLE),
+                          CONNECT_TEST_BINARY=str(BINARY), PYTHONPATH=str(release/'sdk/python'),
+                          CONNECT_PREVIOUS_BINARY=str(prior),
+                          CONNECT_TEST_FAULT_BINARY=str(faults/'connect'),
+                          CONNECT_EXAMPLE_FAULT_BINARY=str(faults/'connect-example'))
         for script in ['check-examples.py', 'check-recovery.py', 'check-crash-replay.py', 'check-example-recovery.py']:
-            with (results/(script+'.log')).open('w') as log:
-                subprocess.run(['python3', str(ROOT/'scripts'/script)], cwd=work, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=600)
+            phase = run_phase(script, ['python3', str(source/'scripts'/script)], 600, results, work, legacy_env)
+            report.setdefault('legacy_phases', []).append(phase)
+            save()
+            if phase['status'] != 'passed':
+                raise RuntimeError('Installed behavior check failed: '+script)
             passed(script, 'Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults')
     report['result'] = 'passed'
     save()

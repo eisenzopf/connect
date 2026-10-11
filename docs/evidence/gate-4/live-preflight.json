@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "recorded_at": "2026-10-11T22:26:43.977191+00:00",
-  "status": "read-only preflight blocked for automated client; no live journey executed",
+  "status": "Read-only service access verified with truthful Connect product header; historical 1010 failures retained; live journeys not yet executed",
   "scope": "Separate Gate 4 live preparation; not part of the account-free runner",
   "checks": [
     {
@@ -31,9 +31,33 @@
     "No provider account configuration changed, no call placed, no SMS sent, and no database modified."
   ],
   "remaining": [
-    "Resolve legitimate automated service access before retrying the denied endpoints.",
-    "Verify current reviewed SMS enrollment and scope before any task-driven send.",
-    "Use final installed candidate for the required actual host/provider journeys."
+    "Verify selected reviewed enrollment against exact task purpose, conversation and current grant before send.",
+    "Use the final installed candidate for actual Vapi chat/voice, host continuation and SMS journey proof."
   ],
-  "offline_run": "docs/evidence/gate-4/offline-d47be55-attempt-1.json"
+  "offline_run": "docs/evidence/gate-4/offline-d47be55-attempt-1.json",
+  "product_header_observation": {
+    "recorded_at": "2026-10-11T23:31:59.824581+00:00",
+    "headers": {
+      "User-Agent": "Connect/0.1.0-alpha.1",
+      "Accept": "application/json"
+    },
+    "checks": [
+      {
+        "name": "sms-feed",
+        "method": "GET",
+        "status": 200,
+        "response_sha256": "4d0a4904c58d7762f1219264025cc73f3ca0f1b2aa20369473ad057a44cbbbff",
+        "edge_1010": false
+      },
+      {
+        "name": "vapi-assistant",
+        "method": "GET",
+        "status": 200,
+        "response_sha256": "03f05ade2ae6777710901f8519bf2bf5fb06dd0bd39d3c4831767d615d8e638a",
+        "edge_1010": false
+      }
+    ],
+    "private_report_sha256": "21690e686094d71c5f4043ada72277aa6fa3c13febdb5b064083570bc2f21aa3",
+    "scope": "Authenticated GET only; no changes to WAF/site configuration, provider resources or consent records."
+  }
 }

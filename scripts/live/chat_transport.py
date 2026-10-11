@@ -81,6 +81,7 @@ def worker(path):
                       http.client.HTTPConnection(url.hostname, url.port, timeout=30))
         connection.request(method, route, body=body, headers={
             "Authorization": "Bearer " + os.environ["VAPI_PRIVATE_KEY"],
+            "User-Agent": "Connect/0.1.0-alpha.1",
             "Content-Type": "application/json", "Accept": "application/json"})
         response = connection.getresponse()
         http_status = response.status

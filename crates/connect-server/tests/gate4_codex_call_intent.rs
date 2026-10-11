@@ -67,9 +67,16 @@ async fn persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect
     );
     let requests = c.responses.requests();
     assert_eq!(requests.len(), 4);
-    assert!(serde_json::to_string(&requests[0])
+    let skill = include_str!("../../../skills/connect/SKILL.md");
+    let body = skill.split_once("\n---\n").unwrap().1.trim();
+    assert!(requests[0]["input"]
+        .as_array()
         .unwrap()
-        .contains("Before a communication tool call, have the host/runner durably retain"));
+        .iter()
+        .flat_map(|item| item["content"].as_array().into_iter().flatten())
+        .any(|content| content["text"]
+            .as_str()
+            .is_some_and(|text| text.contains(body))));
     assert!(requests[2]["input"]
         .as_array()
         .unwrap()

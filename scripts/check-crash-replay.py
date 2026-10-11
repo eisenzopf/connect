@@ -4,11 +4,14 @@ import json, os, pathlib, shutil, subprocess, tempfile, tomllib
 from lib.local_process import ROOT, BINARY, run, port, Server, request
 with tempfile.TemporaryDirectory(prefix='connect-crash-') as temporary:
     work=pathlib.Path(temporary)
-    subprocess.run(['cargo','build','--locked','-p','connect-server','--features','test-support','--bin','connect'],cwd=ROOT,check=True)
-    fault_binary=work/'connect-faults';shutil.copy2(ROOT/'target/debug/connect',fault_binary)
+    prepared=os.environ.get('CONNECT_TEST_FAULT_BINARY')
+    if not prepared:
+        subprocess.run(['cargo','build','--locked','-p','connect-server','--features','test-support','--bin','connect'],cwd=ROOT,check=True)
+    fault_source=pathlib.Path(prepared).resolve(strict=True) if prepared else ROOT/'target/debug/connect'
+    fault_binary=work/'connect-faults';shutil.copy2(fault_source,fault_binary)
     # Building the fault variant overwrites this path even when the caller
     # explicitly selected it. External installed binaries remain untouched.
-    if BINARY == (ROOT/'target/debug/connect').resolve():
+    if not prepared and BINARY == (ROOT/'target/debug/connect').resolve():
         subprocess.run(['cargo','build','--locked','-p','connect-server','--bin','connect'],cwd=ROOT,check=True)
     normal=work/'connect';shutil.copy2(BINARY,normal)
     assert b'CONNECT_TEST_FAULT_STAGE' not in normal.read_bytes(), 'Normal binary contains test failpoint control'

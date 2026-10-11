@@ -5,14 +5,18 @@ from lib.local_process import ROOT,BINARY,Server,run,port,request
 from lib.examples import EXAMPLE,inspect,worker,finish,pair
 with tempfile.TemporaryDirectory(prefix='connect-example-recovery-') as temporary:
     work=pathlib.Path(temporary)
-    subprocess.run(['cargo','build','--locked','-p','connect-review-loop','--features','test-support','--bin','connect-example'],cwd=ROOT,check=True)
-    fault_binary=work/'connect-example-faults';shutil.copy2(ROOT/'target/debug/connect-example',fault_binary)
+    prepared=os.environ.get('CONNECT_EXAMPLE_FAULT_BINARY')
+    if not prepared:
+        subprocess.run(['cargo','build','--locked','-p','connect-review-loop','--features','test-support','--bin','connect-example'],cwd=ROOT,check=True)
+    fault_source=pathlib.Path(prepared).resolve(strict=True) if prepared else ROOT/'target/debug/connect-example'
+    fault_binary=work/'connect-example-faults';shutil.copy2(fault_source,fault_binary)
     # Restore local normal artifacts after the fault build, even when explicitly
     # selected by the qualification runner. Never replace installed binaries.
-    if (BINARY == (ROOT/'target/debug/connect').resolve()
+    if not prepared and (BINARY == (ROOT/'target/debug/connect').resolve()
             or EXAMPLE == (ROOT/'target/debug/connect-example').resolve()):
         subprocess.run(['cargo','build','--locked','-p','connect-review-loop','-p','connect-server','--bins'],cwd=ROOT,check=True)
     assert b'CONNECT_EXAMPLE_FAULT_STAGE' not in EXAMPLE.read_bytes()
+    assert b'CONNECT_EXAMPLE_FAULT_STAGE' in fault_binary.read_bytes()
     for stage in ['before-effect','after-effect','after-server-ack']:
         state=work/stage
         run('init','--directory',state,'--example','review-loop','--bind',f'127.0.0.1:{port()}')
