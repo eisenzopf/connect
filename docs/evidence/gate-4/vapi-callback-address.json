@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T19:48:33.428199+00:00",
+  "status": "local callback address component qualified; installed/cloud path remains separate",
+  "items": [
+    "G4-022",
+    "G4-033"
+  ],
+  "source_base": "6ea3e3c8cf605d8ae1726f083d762f504ee953ca",
+  "source_delta_sha256": {
+    "crates/connect-server/src/vapi_bootstrap/media.rs": "18de98e72ba6b0ac47f0037d0475dc7065934d3ddc29b2b8445c19a4a8258b47",
+    "crates/connect-server/tests/gate4_vapi_callback_proxy.rs": "f10c24c0ba2828e86336e767ea5df226581fc2f2e852d0b5a876cac8091e242b",
+    "crates/connect-server/tests/gate4_vapi_callback_urls.rs": "2e1acdbcd416120c31fbea70ac59c5fa1094f32aa88b57c6535d75340a8d283f",
+    "crates/connect-server/tests/support/callback_forwarder.rs": "8096aadc12c174e6823fb36f5b2caced6ea0395897ce10d2e7ec8a3c639847b0"
+  },
+  "source_fingerprint": {
+    "files": 780,
+    "sha256": "006aa3ce9ebd159f9175b4ec7a71b23c26d85c81ff47fa950ad40b34e38ff25b"
+  },
+  "scope": "local loopback only; advertised URL configuration and owned proxy, no provider accounts or public ingress",
+  "result": {
+    "path": ".local/gate-4-planning/vapi-callback-20261011T193454Z/result.json",
+    "sha256": "daf5e40a420d18107b779a641503d648515d28b03d01d13dff1ed5f6679d9f58"
+  },
+  "steps": [
+    {
+      "name": "prepare",
+      "status": "passed",
+      "seconds": 0.248,
+      "log": {
+        "path": ".local/gate-4-planning/vapi-callback-20261011T193454Z/prepare.log",
+        "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "format",
+      "status": "passed",
+      "seconds": 0.711,
+      "log": {
+        "path": ".local/gate-4-planning/vapi-callback-20261011T193454Z/format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "callbacks",
+      "status": "passed",
+      "seconds": 291.128,
+      "log": {
+        "path": ".local/gate-4-planning/vapi-callback-20261011T193454Z/callbacks.log",
+        "sha256": "dd0f44c0d05d5aea68ed2f7cb61fb156f5d308f99fa985d2147fb03855ae272e"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "lint",
+      "status": "passed",
+      "seconds": 67.334,
+      "log": {
+        "path": ".local/gate-4-planning/vapi-callback-20261011T193454Z/lint.log",
+        "sha256": "369efcdf2fb8f5b52faf387936a3926b90c6efd690c1c9f83e90388362f03277"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "rustdoc",
+      "status": "passed",
+      "seconds": 364.415,
+      "log": {
+        "path": ".local/gate-4-planning/vapi-callback-20261011T193454Z/rustdoc.log",
+        "sha256": "056aa45fd6c17eb6f7ba7da581b8e2bf9bab7db36c1fbbc4c4d41d1e8157bf8d"
+      },
+      "leftover_group_members": []
+    }
+  ],
+  "behavior": [
+    "Provider request carries the exact operator-advertised URL, and an independent real MCP client follows it through an owned local HTTP proxy to recall authorized source context.",
+    "The proxy rewrites backend Host and preserves Authorization, Origin and provider correlation. Wrong origin/host and absent bearer are rejected; cancellation denies subsequent callbacks. Host/origin validation was not weakened.",
+    "Actual native UCTP/QUIC duplex PCMU remains paired with the Vapi call while its task tools use the mapped callback.",
+    "Nine invalid URLs create no private intent, Store mutation or provider request. A saved HTTPS URL does not open public ingress; the listener stays loopback.",
+    "The durable task/session setup cannot be replaced by another callback URL. Server/proxy shutdown releases both listeners."
+  ],
+  "counts": {
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0
+  },
+  "quality": "Prepared source-lock inputs, formatting, affected strict Clippy and public server Rustdoc with warnings denied all pass; no inherited process-group members remain.",
+  "retained_attempts": [
+    {
+      "record": {
+        "path": ".local/gate-4-planning/vapi-callback-address-interrupted.json",
+        "sha256": "c4665bcf9aaa985460d6dc8a35be157f77c5cd9f30149d91981962c3c6c93e69"
+      },
+      "outcome": "Initial dependency compile stopped before callback tests: review found the raw TCP fixture retained a disallowed Host. Replaced with a documented HTTP proxy; no pass or test failure claimed for that interrupted compile."
+    },
+    {
+      "result": {
+        "path": ".local/gate-4-planning/vapi-callback-20261011T185316Z/result.json",
+        "sha256": "5b2dc43138bded7fbbff395862b2f3c65b92e948069d0e66c1f9a0f64e53ac33"
+      },
+      "outcome": "The private provider simulator correctly rejected the fixture SDK key with HTTP 401. Corrected the fixture to the simulator's expected key and removed an unused mut; production authority checks were unchanged."
+    }
+  ],
+  "limits": [
+    "Complete 39-phase 3a272c9 offline baseline predates this additive API.",
+    "This uses loopback simulators and a proxy fixture; it does not qualify actual Vapi cloud reachability, live provider/model behavior or a packaged release.",
+    "A pre-harness OS observation reported the owned callback test process as uninterruptible; a bounded sampling attempt timed out and the original process later completed. No cause is assigned to that observation or to the earlier separate CLI startup finding."
+  ]
+}

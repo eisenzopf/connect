@@ -1,0 +1,514 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T19:29:55.317924+00:00",
+  "status": "passed on clean frozen baseline; later callback/operator changes require separate qualification",
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "source_revision": "3a272c92b6047c04ec3dc60e7599fde0a82b377b",
+  "source_stable": true,
+  "dirty": false,
+  "started_at": "2026-10-11T18:21:47.520455+00:00",
+  "finished_at": "2026-10-11T19:27:48.099070+00:00",
+  "mode": "complete-offline",
+  "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.7.0",
+    "npm": "12.0.2",
+    "codex": "codex-cli 0.162.0-alpha.17.2",
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+  },
+  "source_fingerprint": {
+    "files": 777,
+    "sha256": "cce09e4156c43e8ca3e79ca1a7ce60c3a25e709b754b7cd25bf92212c2ed614f"
+  },
+  "private_result": {
+    "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/result.json",
+    "sha256": "4848a41f07ba882507c24881a5bdfa381493fb30f5d02b87e13df1e7ad5965c1"
+  },
+  "phases": [
+    {
+      "name": "dependencies",
+      "status": "passed",
+      "seconds": 0.251,
+      "timeout_seconds": 600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/dependencies.log",
+        "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "format",
+      "status": "passed",
+      "seconds": 0.682,
+      "timeout_seconds": 120,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "typescript-install",
+      "status": "passed",
+      "seconds": 0.858,
+      "timeout_seconds": 300,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/typescript-install.log",
+        "sha256": "7eb547907a2035f8324fc19e570f51be0f8618635f82446575d646ac198a8f7c"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "typescript-tests",
+      "status": "passed",
+      "seconds": 3.579,
+      "timeout_seconds": 300,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/typescript-tests.log",
+        "sha256": "400c049cd772536b3ebbf919e7de2347fe7dd7196cc0934b425167902b609dfe"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "typescript-format",
+      "status": "passed",
+      "seconds": 0.515,
+      "timeout_seconds": 120,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/typescript-format.log",
+        "sha256": "f17c3858caccd03c85616cc718a6d37a742c110df9a4249585573d6d52256f57"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "typescript-distribution",
+      "status": "passed",
+      "seconds": 0.075,
+      "timeout_seconds": 60,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/typescript-distribution.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "python-sdk",
+      "status": "passed",
+      "seconds": 3.501,
+      "timeout_seconds": 300,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/python-sdk.log",
+        "sha256": "4a3d5cff2db351da1acb4513deb423ac64426d9f5bc7dabec65fb02cbc333df9"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "agent-incoming-unit",
+      "status": "passed",
+      "seconds": 0.192,
+      "timeout_seconds": 120,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/agent-incoming-unit.log",
+        "sha256": "4f1c31223fdd6e717fe53daeea28b7235d8f1e8109b99662437f258c5b9dc3d0"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "runner-failure-tests",
+      "status": "passed",
+      "seconds": 1.553,
+      "timeout_seconds": 120,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/runner-failure-tests.log",
+        "sha256": "00051ce1d87f1e61e05037e85414e2823fb2f1f85d8ecdf5aaff46a7eeeffc28"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "lint",
+      "status": "passed",
+      "seconds": 2.559,
+      "timeout_seconds": 2400,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/lint.log",
+        "sha256": "8c498c7905845d5c3ba102c4650fbea397821426c609e375675c269ea79a2f6b"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "rustdoc",
+      "status": "passed",
+      "seconds": 4.514,
+      "timeout_seconds": 2400,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/rustdoc.log",
+        "sha256": "8e89619e746e14cd209c3415b9b59bc2dab4c6c0aa59e3b1e2cfe2b947eb2e82"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "workspace",
+      "status": "passed",
+      "seconds": 1593.014,
+      "timeout_seconds": 7200,
+      "rust_tests": {
+        "passed": 514,
+        "failed": 0,
+        "ignored": 9
+      },
+      "ignored_follow_up": [
+        "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+        "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+        "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+        "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+        "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+        "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+        "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+        "retired_setups_reuse_capacity_through_the_full_session_limit",
+        "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
+      ],
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/workspace.log",
+        "sha256": "5767c13f7a7b04813a6c3dbb844c21e4e61a5da927e743fa3dabadaa6de07ea9"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "media-pressure",
+      "status": "passed",
+      "seconds": 122.354,
+      "timeout_seconds": 1200,
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/media-pressure.log",
+        "sha256": "505ffaf1d464cb9a45820cc5f6791a9b80c312b00ecf013dd8567bf7aa932892"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "installed-host",
+      "status": "passed",
+      "seconds": 20.452,
+      "timeout_seconds": 1800,
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/installed-host.log",
+        "sha256": "0e85ddba4b2a5ad467eae00a5a6e0e7c2bd6d17af781235770ed9fd7e6e9c738"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "upstream-regression",
+      "status": "passed",
+      "seconds": 38.627,
+      "timeout_seconds": 3600,
+      "rust_tests": {
+        "passed": 942,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/upstream-regression.log",
+        "sha256": "1554062590ac732c3b8dc00e25058e794fc2b422b3056c23847b87acb9b4c210"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "upstream-vapi",
+      "status": "passed",
+      "seconds": 4.603,
+      "timeout_seconds": 1200,
+      "rust_tests": {
+        "passed": 20,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/upstream-vapi.log",
+        "sha256": "91a0c6fe2e050d8ab400991a9093e903dc0c063d5c5746663baeb4788c0b4a9f"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "upstream-queues",
+      "status": "passed",
+      "seconds": 0.708,
+      "timeout_seconds": 1200,
+      "rust_tests": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/upstream-queues.log",
+        "sha256": "602803e419babb0d0a9e73fc4000af9c257e209f3c3910d2a77921b79542f106"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "upstream-codec",
+      "status": "passed",
+      "seconds": 0.588,
+      "timeout_seconds": 1200,
+      "rust_tests": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/upstream-codec.log",
+        "sha256": "4dc91fffe36abb747e477bd7b643bd565a36c4cb1dec19ec16079fa47d5fa4c1"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "current-binaries",
+      "status": "passed",
+      "seconds": 17.557,
+      "timeout_seconds": 1200,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/current-binaries.log",
+        "sha256": "b4c4950690e5be03f5e06287e2951bccd2a493baade80b0f0a62cad6c7679309"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "host-capacity",
+      "status": "passed",
+      "seconds": 19.453,
+      "timeout_seconds": 540,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/host-capacity.log",
+        "sha256": "e2d7505a5b76d361b2fab5dc37316dd170016c862e03fe5545d7d4bb11f42ea1"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "agent-incoming-public",
+      "status": "passed",
+      "seconds": 0.877,
+      "timeout_seconds": 120,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/agent-incoming-public.log",
+        "sha256": "35c952f6411fe5050d7a7d1118e64fc00729c994abadfb728a936d8cbd4d0f4a"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "agent-incoming-host",
+      "status": "passed",
+      "seconds": 2.806,
+      "timeout_seconds": 240,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/agent-incoming-host.log",
+        "sha256": "698c029f385fcd8dc79324eb60f616590fcefb540a044f1aa2bacf62d2eb0388"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "native-task-capacity",
+      "status": "passed",
+      "seconds": 53.762,
+      "timeout_seconds": 960,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/native-task-capacity.log",
+        "sha256": "e97bc65ad34e51fac56d64474b80f1b9fee2d3154db881b71be370e65a3c0496"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "reference-runner-capacity",
+      "status": "passed",
+      "seconds": 3.591,
+      "timeout_seconds": 300,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/reference-runner-capacity.log",
+        "sha256": "ef83a5b43ef741040d5284be4968bec166d38e148ebb81a624892ec2bd753740"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "mcp-operating-load",
+      "status": "passed",
+      "seconds": 31.037,
+      "timeout_seconds": 240,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/mcp-operating-load.log",
+        "sha256": "912f0650c20fdafbf514b2b0d2660baa8498041700423d86d800b9cf2a6ce190"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "grant-lifecycle-load",
+      "status": "passed",
+      "seconds": 13.902,
+      "timeout_seconds": 240,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/grant-lifecycle-load.log",
+        "sha256": "689a856397a66abfa3930a70fb96aa61ed5ce4ea532b210c9a17c2346eaf4710"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "task-artifact-retention",
+      "status": "passed",
+      "seconds": 46.177,
+      "timeout_seconds": 240,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/task-artifact-retention.log",
+        "sha256": "c620b94e37c0b02830aec60b32c708ec122d5c2dd33f6882defb81ae749a38e8"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "voice-setup-retirement",
+      "status": "passed",
+      "seconds": 1881.427,
+      "timeout_seconds": 3600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/voice-setup-retirement.log",
+        "sha256": "c16077584c13431cdb2de64c1a574f92befc24e2ba15ab4df8ab233c812520f6"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "schema-six-build",
+      "status": "passed",
+      "seconds": 0.345,
+      "timeout_seconds": 7500,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/schema-six-build.log",
+        "sha256": "a2a72c450cf9d7bd32dd79bf03f2847f402f9d44eb1fcf2a9a101d9993251c1b"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "schema-ten-build",
+      "status": "passed",
+      "seconds": 0.763,
+      "timeout_seconds": 7500,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/schema-ten-build.log",
+        "sha256": "3920c513367abfb16c55f2c3e3588f71777795452e16b83bdfb1ece6e4765447"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "historical-task-recovery",
+      "status": "passed",
+      "seconds": 6.261,
+      "timeout_seconds": 660,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/historical-task-recovery.log",
+        "sha256": "f3b46bda760c089d4ab3e980706c367dbe27e988336fdf941aec8aac01133935"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "dispatch",
+      "status": "passed",
+      "seconds": 9.531,
+      "timeout_seconds": 600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/dispatch.log",
+        "sha256": "ddad478bb1f5e1df2a174c032c9c254456c06f37d6a0f4aa629793f77191608a"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "identity",
+      "status": "passed",
+      "seconds": 8.08,
+      "timeout_seconds": 600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/identity.log",
+        "sha256": "ed3f13f9df4fb13530545f0d55130651eac38bbbb5b16a30e3132ee3ab1c88de"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "typescript-probe",
+      "status": "passed",
+      "seconds": 1.327,
+      "timeout_seconds": 600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/typescript-probe.log",
+        "sha256": "1fd5506332a63cb01de46be5f4e8527a5ad1783806a1cf2b20e2cc2f011341bf"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "crash-replay",
+      "status": "passed",
+      "seconds": 25.46,
+      "timeout_seconds": 600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/crash-replay.log",
+        "sha256": "6b2f8c1cf26a32497952a2a54de36163a538af0984e33854bbfe357fc49614dd"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "examples",
+      "status": "passed",
+      "seconds": 13.947,
+      "timeout_seconds": 600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/examples.log",
+        "sha256": "2694bf6d44b2593c79b088f18b9362b3659864f74a0a14587b9110d1dcf9092d"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "example-recovery",
+      "status": "passed",
+      "seconds": 18.394,
+      "timeout_seconds": 600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/example-recovery.log",
+        "sha256": "006c4ba48801ef16f9dd5ba714d8ce6637decf8d0d5039cda0b3c164e7534f14"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "current-recovery",
+      "status": "passed",
+      "seconds": 1.673,
+      "timeout_seconds": 660,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/current-recovery.log",
+        "sha256": "522f640f6614259445cc99ccacb14d8fea6e0b80173a45a4721b0716f3a674bf"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "datagram-example",
+      "status": "passed",
+      "seconds": 3.238,
+      "timeout_seconds": 600,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/datagram-example.log",
+        "sha256": "c2afe9c9622dfabc2aa2c4226a469544d6210f269a5e16f72ed4f1f5e66372c0"
+      },
+      "leftover_group_members": []
+    }
+  ],
+  "coverage_limits": [
+    "This is complete offline qualification for 3a272c9 only. The newer advertised callback API and isolated Vapi operator CLI are not included.",
+    "Installed Codex uses scripted loopback Responses, not a model account. Providers and carriers are local simulators.",
+    "No public ingress, remote deployment, live provider/model qualification or current installed release candidate is claimed.",
+    "All nine intentionally ignored workspace tests have required explicit follow-up phases; none is silently omitted.",
+    "G4-029 acceptance traceability, later source integration/candidate qualification and actual host/provider acceptance remain open."
+  ]
+}

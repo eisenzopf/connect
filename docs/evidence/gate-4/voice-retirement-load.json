@@ -872,5 +872,26 @@
     "seconds": 1639.963,
     "timeout_seconds": 3300,
     "leftover_group_members": []
+  },
+  "full_offline_repeat": {
+    "source_revision": "3a272c92b6047c04ec3dc60e7599fde0a82b377b",
+    "result": {
+      "path": ".local/gate-4-fresh-493d5c3/.local/voice-retirement/20261011T185457.207726Z/result.json",
+      "sha256": "7dfb912ae9cb7e47ee1488bbcc6463ce4a96adb37b5803f6e98b53439c68763b"
+    },
+    "status": "passed",
+    "measurements": {
+      "retired_setups": 10000,
+      "batches": 313,
+      "point_samples": 628,
+      "whole_process_sampled_peak_rss_bytes": 64290816,
+      "initial_process_rss_bytes": 47513600,
+      "final_retired_process_rss_bytes": 63438848,
+      "restarted_process_rss_bytes": 64290816,
+      "database_apparent_peak_bytes": 97845808,
+      "retained_binding_digest": "f10a343081e2b8f29513ef05161817966a547f4937d1adedd78591f62521827b",
+      "memory_scope": "Whole isolated Rust test process: server, clients and local API fixture. Point samples at batch boundaries; excludes Cargo/compiler and can miss transient peaks."
+    },
+    "integrated_report": "docs/evidence/gate-4/offline-3a272c9.json"
   }
 }

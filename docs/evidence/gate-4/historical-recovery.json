@@ -402,5 +402,15 @@
   "related_prior_evidence": [
     "docs/evidence/gate-4/task-persistence.json",
     "docs/evidence/gate-4/task-effect-recovery-audit.json"
-  ]
+  ],
+  "schema_16_full_offline_requalification": {
+    "source_revision": "3a272c92b6047c04ec3dc60e7599fde0a82b377b",
+    "status": "passed",
+    "result": {
+      "path": ".local/gate-4-fresh-493d5c3/.local/gate4-recovery/20261011T192619.856190Z/result.json",
+      "sha256": "3f468a11161404cb3c2341c9df95b26950bc84242346a8b5c9e1c41fed43b676"
+    },
+    "integrated_report": "docs/evidence/gate-4/offline-3a272c9.json",
+    "scope": "Schema-10 and schema-6 executable upgrade/refusal/rollback, task reply/current authority and interrupted snapshot phases all passed. Older schema-15 evidence remains historical."
+  }
 }

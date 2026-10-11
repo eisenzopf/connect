@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "recorded_at": "2026-10-11T11:24:44.200932+00:00",
-  "status": "component corrections verified; full integrated offline run remains required",
+  "status": "complete 39-phase offline baseline qualified; later implementation and final gate acceptance remain open",
   "items": [
     "G4-031"
   ],
@@ -30,7 +30,7 @@
     }
   },
   "limits": [
-    "Full source-only/full offline runs and fresh-checkout evidence remain open.",
+    "Fresh-checkout complete offline baseline at 3a272c9 passed; current callback/operator integration and installed candidate still require qualification.",
     "Detached sessions and top-level force-kill require an external supervisor; inherited-group ownership is not arbitrary process-tree containment.",
     "CI job is configuration, not a remote execution claim.",
     "No live account, inference, provider or deployment operation is included."
@@ -2594,5 +2594,11 @@
     "private_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/result.json",
     "required_phase_count": 39,
     "scope": "Complete offline qualification with actual installed Codex and scripted loopback Responses; no inference, live provider operations or deployment. Progress is provisional until final source and process cleanup checks pass."
+  },
+  "latest_complete_offline": {
+    "source_revision": "3a272c92b6047c04ec3dc60e7599fde0a82b377b",
+    "status": "passed",
+    "evidence": "docs/evidence/gate-4/offline-3a272c9.json",
+    "scope": "39/39 phases, stable clean source, local macOS arm64; predates new callback/operator changes"
   }
 }

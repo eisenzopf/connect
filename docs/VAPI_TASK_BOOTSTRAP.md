@@ -16,8 +16,11 @@ authority.
 1. Create the conversation and task through the public client. Keep their IDs.
 2. Choose one new private setup directory for this invocation. Compose
    `vapi_bootstrap::BootstrapAuth` with the service, configured private Vapi SDK
-   client and that directory. Start a separate `connect_mcp::RunningMcp::start_local_auxiliary`
-   listener with this authenticator. An unprepared directory denies requests.
+   client and that directory. Start an auxiliary listener from the server's
+   shared `connect_mcp::McpCapacity` with this authenticator. The standalone
+   `RunningMcp::start_local_auxiliary` convenience creates its own capacity pool
+   and is only appropriate for an isolated endpoint. An unprepared directory
+   denies requests.
 3. Call `vapi_bootstrap::prepare` with the actual MCP URL, current backing
    credential **reference**, stable issuance request ID, existing task,
    saved assistant ID, `OriginKind::ChatSession`, operation subset and expiry.
@@ -70,6 +73,31 @@ the creation receipt. Tool results remain tied to the original task; bounded
 voice context uses the native caller's history permission. Ending voice leaves
 the task and conversation intact, and supported final transcripts enter that
 conversation's journal for later recall.
+
+## Advertised callback address
+
+The additive `RunningServer::prepare_vapi_task_session_with_callback` API
+accepts an optional operator-selected MCP URL. `None` keeps the original local
+URL. The listener still binds loopback and uses the server's shared capacity;
+the override changes only the URL saved in the immutable setup and sent to Vapi.
+It requires HTTPS or explicit loopback HTTP, exactly `/mcp`, and no embedded
+credentials, query or fragment. An invalid URL is rejected before a listener or
+private intent is created. It cannot replace another setup on the same session.
+
+An operator proxy must map that URL to the returned local listener and rewrite
+HTTP `Host` to the backend address, such as `127.0.0.1:PORT`. Preserve
+`Authorization`, provider correlation headers and `Origin` when present. Connect
+continues validating host, origin, independently verified provider identity and
+current task authority. Merely forwarding TCP to the backend while preserving
+a different HTTP Host does not satisfy this mapping. The API does not create a
+proxy, DNS record, TLS termination or public ingress.
+
+The [callback component checks](evidence/gate-4/vapi-callback-address.json) pass
+through an owned loopback HTTP proxy and simulator, including rejection and
+cancellation. They do not establish public reachability or actual cloud-provider
+compatibility. A shipped operator setup
+and installed Vapi rehearsal remain open under G4-022/G4-033/G4-034. Existing
+full-run evidence predates this additive API.
 
 ## Tool results and continuation
 

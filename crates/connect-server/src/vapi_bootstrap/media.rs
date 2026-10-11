@@ -60,6 +60,35 @@ impl crate::runtime::RunningServer {
         directory: &Path,
         provider: Arc<Vapi>,
     ) -> Result<SocketAddr> {
+        self.prepare_vapi_task_session_with_callback(
+            session_id, definition, directory, provider, None,
+        )
+        .await
+    }
+
+    /// Install protected voice setup with an operator-selected callback URL.
+    ///
+    /// The returned listener always binds loopback. An advertised URL only
+    /// changes the address saved in the immutable provider setup; it does not
+    /// create ingress, a proxy or broader authority. The operator must route
+    /// that address to the returned listener and rewrite HTTP Host to its local
+    /// address. Authorization, Origin and provider correlation headers must be
+    /// preserved; backend host/origin validation stays enabled.
+    /// HTTPS or explicit loopback HTTP
+    /// is required, with path `/mcp` and no credentials, query or fragment.
+    /// `None` advertises the local listener, preserving the local-only default.
+    /// Invalid URLs are rejected before allocating a listener or private intent.
+    pub async fn prepare_vapi_task_session_with_callback(
+        &self,
+        session_id: &str,
+        definition: Definition,
+        directory: &Path,
+        provider: Arc<Vapi>,
+        advertised_mcp_url: Option<&str>,
+    ) -> Result<SocketAddr> {
+        if let Some(url) = advertised_mcp_url {
+            super::validate_url(url)?;
+        }
         anyhow::ensure!(
             definition.origin == OriginKind::Call,
             "Voice setup requires Call origin"
@@ -91,10 +120,11 @@ impl crate::runtime::RunningServer {
             .await?;
         let address = listener.address;
         let expires_at = definition.expires_at;
+        let local_url = format!("http://{address}/mcp");
         if let Err(error) = super::prepare(
             self.service.clone(),
             definition,
-            &format!("http://{address}/mcp"),
+            advertised_mcp_url.unwrap_or(&local_url),
             directory,
         )
         .await

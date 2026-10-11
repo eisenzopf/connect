@@ -41,6 +41,26 @@
     },
     "next_action": "Review the minimal protected runtime composition/CLI entry point and deliver its local provider-simulator checks, keeping setup secrets and authority outside agent arguments. Build the separately invoked rehearsal without adding live operations to offline qualification. Full first-run product usability remains Gate 5.",
     "scope": "Review finding only; no provider account, production configuration, public ingress or runtime authority changed.",
-    "callback_address_gap": "The voice helper passes its loopback listener URL directly into the immutable bootstrap intent. A live rehearsal also needs an explicit advertised callback URL and operator-managed ingress mapping; an external tunnel alone would not replace the saved loopback URL. This must be locally tested without creating public ingress."
+    "callback_address_gap": "The voice helper passes its loopback listener URL directly into the immutable bootstrap intent. A live rehearsal also needs an explicit advertised callback URL and operator-managed ingress mapping; an external tunnel alone would not replace the saved loopback URL. This must be locally tested without creating public ingress.",
+    "callback_progress": {
+      "recorded_at": "2026-10-11T19:00:51.133960+00:00",
+      "status": "local component qualified",
+      "implementation": "Additive prepare_vapi_task_session_with_callback API preserves the existing local default, validates an advertised URL before side effects, and still uses the owned shared-capacity loopback listener. The operator proxy rewrites backend Host while preserving Authorization, Origin and provider correlation; host/origin checks stay enabled.",
+      "checks_pending": [],
+      "interrupted_attempt": "Initial dependency compilation was intentionally stopped before callback tests ran: code review found the raw TCP fixture preserved a disallowed advertised Host. It is not a test pass or failure. The corrected fixture models an HTTP proxy with documented Host rewriting.",
+      "source_sha256": {
+        "crates/connect-server/src/vapi_bootstrap/media.rs": "18de98e72ba6b0ac47f0037d0475dc7065934d3ddc29b2b8445c19a4a8258b47",
+        "crates/connect-server/tests/gate4_vapi_callback_proxy.rs": "f10c24c0ba2828e86336e767ea5df226581fc2f2e852d0b5a876cac8091e242b",
+        "crates/connect-server/tests/gate4_vapi_callback_urls.rs": "2e1acdbcd416120c31fbea70ac59c5fa1094f32aa88b57c6535d75340a8d283f",
+        "crates/connect-server/tests/support/callback_forwarder.rs": "8096aadc12c174e6823fb36f5b2caced6ea0395897ce10d2e7ec8a3c639847b0"
+      },
+      "evidence_boundary": "Frozen-source 3a272c9 complete offline run is separate and predates this additive callback API. No installed Vapi or actual provider qualification is inferred.",
+      "qualification": "docs/evidence/gate-4/vapi-callback-address.json"
+    },
+    "operator_progress": {
+      "status": "implemented and locally qualified in 510b350; integration/package run next",
+      "evidence": "docs/evidence/gate-4/vapi-task-host.json",
+      "scope": "8 connector units, 31 server units, 27 integrations, strict workspace all-target Clippy and Rustdoc; no actual provider/model or release pass"
+    }
   }
 }
