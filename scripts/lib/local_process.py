@@ -14,10 +14,10 @@ def port():
         sock.bind(('127.0.0.1',0));return sock.getsockname()[1]
 
 class Server:
-    def __init__(self,state,work=None,binary=BINARY,env=None,expected_exit=0,extra_args=()):
-        self.state=state;self.binary=binary;self.env=env;self.expected_exit=expected_exit;self.extra_args=extra_args
+    def __init__(self,state,work=None,binary=BINARY,env=None,expected_exit=0,extra_args=(),log_path=None):
+        self.state=state;self.binary=binary;self.env=env;self.expected_exit=expected_exit;self.extra_args=extra_args;self.log_path=log_path
     def __enter__(self):
-        self.log=tempfile.TemporaryFile(mode='w+')
+        self.log=open(self.log_path,'w+') if self.log_path else tempfile.TemporaryFile(mode='w+')
         self.process=subprocess.Popen([str(self.binary),'serve','--config',str(self.state/'server.toml'),*map(str,self.extra_args)],stdout=self.log,stderr=self.log,env=self.env)
         deadline=time.monotonic()+10
         try:

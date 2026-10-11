@@ -495,3 +495,10 @@ authentication/drain, ten-second response and body-size limits are unchanged.
 Voice setup endpoints close on call end or original grant expiry; retained
 closed metadata prevents an untooled fallback and preserves recovery intent.
 This local implementation still requires full G4-030 operating measurement.
+
+The [local task operating profile](../TASK_OPERATING_PROFILE.md) now exercises
+the full active/retained task and unconsumed-reply ceilings through public
+Python SDK and native QUIC operations, plus 16 live step leases, journal paging,
+an empty maximum-duration native wait and server restart. Its measured server
+RSS and end-to-end latency do not qualify concurrent host-worker throughput,
+whole-process memory or the remaining G4-030 acceptance scope.

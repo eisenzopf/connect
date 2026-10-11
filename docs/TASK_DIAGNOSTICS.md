@@ -179,3 +179,8 @@ Strict Clippy, Rustdoc and repository formatting pass. Earlier fixture startup
 failures are retained; their original transient cause was not independently
 established. Selected-host, installed-candidate and integrated acceptance remain
 open, so this component does not complete G4-024 or Gate 4.
+
+The [local task operating profile](TASK_OPERATING_PROFILE.md) measures actual
+SDK admission at task, lease and reply capacity, with bounded paging, waiting
+and restart checks. Its measurements qualify those specific limits; they do
+not replace the worker readiness or installed-host checks above.
