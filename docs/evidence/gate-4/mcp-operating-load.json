@@ -1,0 +1,264 @@
+{
+  "schema": 1,
+  "items": [
+    "G4-030",
+    "G4-031"
+  ],
+  "recorded_at": "2026-10-11T16:14:02.924094+00:00",
+  "status": "local MCP load and deadline component passed; whole items remain open",
+  "source_revision": "442c01093007dcaca7fb5cc70d6971eb819f9797",
+  "source_stable": true,
+  "source_inputs_sha256": {
+    "scripts/check-mcp-load.py": "4538680dd52d9d868597abc8d23a98c032da196dbafe9b9c1e7002388d72f070",
+    "scripts/lib/mcp_load_http.py": "a40440e2b860bc6cbec66c0b0ef246ce61b832c1a69ff3fd12970e73ee3b1cde",
+    "scripts/lib/mcp_load_profile.py": "b4b653ac76599236bff114ea4961772ac83bf6a46f69e41a7f53a95db54e72bf",
+    "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+    "scripts/lib/profile_metrics.py": "92ddc2f8294ff88f9063f601256d224e215a38ecc7f09d53a2a6971782bd91a7",
+    "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+    "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+    "sdk/python/connect_sdk/protocol.py": "e0deab0cb9989a302973c5aaf44252d295a537f0e5bcfc4cbcd6c7aeecd495c3",
+    "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+    "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+    "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+    "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+    "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+    "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+    "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a"
+  },
+  "binary_sha256": "49d52de2163dcca26d24ef8530136c0a793b5ce751bae0c5f6e2e10622ace7f5",
+  "binary_profile": "normal debug server at source_revision; no test-support features",
+  "result": ".local/gate-4-fresh-493d5c3/.local/mcp-load/20261011T161150.826747Z/result.json",
+  "result_sha256": "c7421d35600b4b5a08084de24d9b7e7ce675397e83bf593c346680b484704468",
+  "supervised_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/added-mcp-load-qualified/result.json",
+  "supervised_result_sha256": "1e44e7951053801cbb626150a2c5df09e06ecabb8ac21efa8a7a77fae5922e10",
+  "supervised_phases": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.134
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.602
+    },
+    {
+      "name": "runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "runner-failure-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.514
+    },
+    {
+      "name": "current-binaries",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-review-loop",
+        "--bin",
+        "connect",
+        "--bin",
+        "connect-example"
+      ],
+      "timeout_seconds": 1200,
+      "log": "current-binaries.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.252
+    },
+    {
+      "name": "mcp-operating-load",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-mcp-load.py"
+      ],
+      "timeout_seconds": 240,
+      "log": "mcp-operating-load.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 33.233
+    }
+  ],
+  "elapsed_seconds": 33.084,
+  "phases": [
+    {
+      "name": "maximum-framing-and-overflow-bursts",
+      "status": "passed",
+      "seconds": 0.107,
+      "exchanges": 160,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 2226000,
+      "latency_ms": {
+        "p50": 15.797,
+        "p95": 26.464,
+        "maximum": 28.366
+      }
+    },
+    {
+      "name": "saturated-near-limit-body-deadline-1",
+      "status": "passed",
+      "seconds": 10.017,
+      "exchanges": 32,
+      "server_sampled_peak_rss_bytes": 192528384,
+      "database_apparent_bytes": 2226000,
+      "latency_ms": {
+        "p50": 10002.391,
+        "p95": 10003.213,
+        "maximum": 10004.803
+      }
+    },
+    {
+      "name": "saturated-near-limit-body-deadline-2",
+      "status": "passed",
+      "seconds": 10.02,
+      "exchanges": 32,
+      "server_sampled_peak_rss_bytes": 201834496,
+      "database_apparent_bytes": 2226000,
+      "latency_ms": {
+        "p50": 10002.08,
+        "p95": 10005.077,
+        "maximum": 10005.821
+      }
+    },
+    {
+      "name": "thirty-two-maximum-waits-and-cursor-recovery",
+      "status": "passed",
+      "seconds": 9.282,
+      "exchanges": 32,
+      "server_sampled_peak_rss_bytes": 205783040,
+      "database_apparent_bytes": 2226000,
+      "latency_ms": {
+        "p50": 9269.488,
+        "p95": 9273.627,
+        "maximum": 9274.818
+      }
+    },
+    {
+      "name": "bounded-tool-history-under-bursts",
+      "status": "passed",
+      "seconds": 0.84,
+      "exchanges": 352,
+      "server_sampled_peak_rss_bytes": 216760320,
+      "database_apparent_bytes": 2226000,
+      "latency_ms": {
+        "p50": 41.992,
+        "p95": 73.372,
+        "maximum": 88.524
+      }
+    }
+  ],
+  "server_rss": {
+    "samples": 60,
+    "sampled_peak_bytes": 216760320,
+    "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+  },
+  "observations": {
+    "maximum_jsonrpc_body_bytes": 524288,
+    "accepted_maximum_bodies": 96,
+    "oversized_content_length_denied": 32,
+    "oversized_chunked_denied": 32,
+    "stalled_wave_1": {
+      "admitted": 32,
+      "held_body_bytes_each": 524287,
+      "excess_status": 503,
+      "timeouts": 32,
+      "deadline_status": 504,
+      "recovered_status": 200
+    },
+    "stalled_wave_2": {
+      "admitted": 32,
+      "held_body_bytes_each": 524287,
+      "excess_status": 503,
+      "timeouts": 32,
+      "deadline_status": 504,
+      "recovered_status": 200
+    },
+    "maximum_waits": 32,
+    "returned_pending_cursors": 32,
+    "original_cursor_reusable": true,
+    "recall_sources_found": 32,
+    "recall_pages": 11,
+    "largest_structured_projection_bytes": 25337,
+    "recall_burst_width": 32,
+    "no_message_effects_from_load": true
+  },
+  "proof": [
+    "Fresh separate server and task setup use public native Python SDK and protected grant-issuance CLI; no server database edits or live accounts.",
+    "Three 32-request bursts accept exactly 524288-byte valid JSON-RPC bodies and return the bound task status.",
+    "Two 32-request overflow bursts reject 524289 bytes with HTTP 413, for Content-Length and chunked transfer independently.",
+    "Two waves hold 32 real connections each one byte short of a maximum-size body. An extra request gets 503, proving the admission pool is saturated.",
+    "All 64 incomplete bodies return 504 near the unchanged ten-second HTTP deadline; each wave releases admission and a normal request succeeds.",
+    "Thirty-two requested ten-second tool waits finish around 9.27 seconds, return pending metadata and the original empty journal cursor; that cursor remains usable.",
+    "Eleven history pages, each fetched in a 32-request burst, recover all 32 seeded source IDs with available state and journal provenance. Largest structured projection is 25337 bytes, below 32768.",
+    "A fresh public native observer verifies the conversation still contains exactly the original 32 messages. The phase supervisor records no inherited process leaks."
+  ],
+  "verifier_tests": {
+    "passed": 5,
+    "total_runner_tests_passed": 28,
+    "scope": "HTTP/RPC/tool errors, missing pending marker, changed cursor, oversized or stalled recall, exact valid framing, phase ordering"
+  },
+  "failed_attempts": [
+    {
+      "source_revision": "2a9e328",
+      "result": ".local/gate-4-fresh-493d5c3/.local/mcp-load/20261011T161017.969007Z/result.json",
+      "supervised_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/added-mcp-load-phase/result.json",
+      "cause": "All five load phases passed, but the final native observer had remained idle beyond the 30-second transport timeout and history failed honestly. Corrected only the profile: close the setup client before load and open a fresh observer afterward. No transport timeout or production code changed."
+    }
+  ],
+  "earlier_component_pass": {
+    "result": ".local/mcp-load/20261011T160755.478599Z/result.json",
+    "scope": "Release b4f5fde prototype passed before idle observer correction; superseded by clean final source proof."
+  },
+  "limits": [
+    "Local macOS arm64, loopback and normal debug server. No inference, provider operations, public ingress or remote deployment.",
+    "Raw HTTP stress probes complement existing official rmcp client tests; they are not a replacement SDK or broad MCP compatibility claim.",
+    "512 KiB measures the JSON-RPC request body, including JSON-RPC framing and padding; HTTP transfer headers are outside this body bound.",
+    "Client starts are synchronized in ordinary bursts; saturation is claimed only for the two stalled-body waves with explicit 503 evidence.",
+    "The 32 KiB history bound is the structured text projection; the MCP response may also carry its textual representation.",
+    "Deadline observations include local client/scheduler overhead. The server budgets are unchanged; no provider or network latency attribution.",
+    "RSS is sampled every half second for the server PID only, not an exact high-water mark, memory guarantee or proof against all leaks. A short phase with no sample reports null.",
+    "The clean five-phase supplemental proof is not a new full gate run. Original b4f5fde full run and other supplemental phase records remain separate.",
+    "Grant/retention operating lifecycle, retired voice metadata, whole-item dependencies and Gate 4 acceptance remain open."
+  ]
+}

@@ -167,10 +167,53 @@ incorrect expectation that a known rejection should count as uncertain pending
 work. Both failures are retained. Five verifier controls and all 23 runner
 checks pass; the exact new runner phase also passed in a clean checkout.
 
+## MCP body and deadline load
+
+The [MCP load result](evidence/gate-4/mcp-operating-load.json) measures a separate
+server through raw HTTP stress probes. Existing official `rmcp` client tests
+remain the protocol and SDK evidence; this harness targets request framing,
+admission, timeouts and bounded tool projections.
+
+```sh
+python3 scripts/check-mcp-load.py --binary /absolute/path/to/connect
+```
+
+The 180-second profile creates private state under `.local/mcp-load/` and runs
+in both full and source-only Gate 4 qualification. It exercises:
+
+- Three 32-request bursts of valid JSON-RPC bodies exactly 512 KiB long.
+- Two overflow bursts, using Content-Length and chunked transfer independently;
+  all 64 oversized bodies receive HTTP 413.
+- Two saturated waves of 32 bodies, each missing its last byte. An extra request
+  receives 503; all stalled bodies receive 504 near the ten-second deadline.
+  Admission recovers after each wave.
+- Thirty-two maximum-duration waits. Each returns honest pending metadata and
+  the original cursor, which remains usable for a subsequent request.
+- Eleven history pages fetched in 32-request bursts, recovering all 32 seeded
+  source IDs with provenance and a structured projection no larger than 32 KiB.
+
+The framing limit applies to the JSON-RPC body, including its envelope and
+padding; HTTP headers are outside that body limit. Ordinary bursts synchronize
+client starts but do not assert that every execution overlaps. The stalled-body
+waves independently prove all 32 admission permits are occupied. The history
+limit applies to the structured projection; MCP can also include its text copy.
+
+The clean `442c010` run passed in 33.084 seconds using normal debug executables.
+The sampled server RSS peak was about 206.7 MiB. Stalled-body responses arrived
+around 10.00 seconds including client overhead; tool waits around 9.27 seconds.
+The largest measured structured history projection was 25,337 bytes. These
+measurements describe this local run, not a throughput, memory or carrier-latency
+guarantee. A short phase with no RSS sample reports `null`.
+
+An earlier clean-checkout attempt completed the load but failed its final
+observation: the setup client had exceeded the native transport's 30-second
+idle timeout. The corrected harness closes setup before load and opens a fresh
+public observer afterward; transport deadlines remain unchanged. The failure
+is retained. Five verifier controls and all 28 qualification-runner checks pass.
+
 ## Work still required
 
-Remaining operating work includes complete MCP payload/deadline loads,
-grant refresh and expiry under sustained
+Remaining operating work includes grant refresh and expiry under sustained
 load, age-based retention and retained voice-setup metadata. The
 [installed local candidate](evidence/gate-4/package-candidate.json) separately
 passes its package checks; real-model journeys, whole-item dependencies and

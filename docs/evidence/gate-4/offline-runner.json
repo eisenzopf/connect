@@ -2369,5 +2369,100 @@
       }
     ],
     "scope": "Five exact current phases; not a new full run. See runner-concurrency.json."
+  },
+  "added_mcp_load_phase": {
+    "source_revision": "442c01093007dcaca7fb5cc70d6971eb819f9797",
+    "source_stable": true,
+    "supervised_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/added-mcp-load-qualified/result.json",
+    "supervised_result_sha256": "1e44e7951053801cbb626150a2c5df09e06ecabb8ac21efa8a7a77fae5922e10",
+    "supervised_phases": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.134
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.602
+      },
+      {
+        "name": "runner-failure-tests",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_qualification*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "runner-failure-tests.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.514
+      },
+      {
+        "name": "current-binaries",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "connect-server",
+          "-p",
+          "connect-review-loop",
+          "--bin",
+          "connect",
+          "--bin",
+          "connect-example"
+        ],
+        "timeout_seconds": 1200,
+        "log": "current-binaries.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.252
+      },
+      {
+        "name": "mcp-operating-load",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-mcp-load.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "mcp-operating-load.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 33.233
+      }
+    ],
+    "scope": "Five exact current phases, all passed; not a new full run. Retained failed observer attempt is described in mcp-operating-load.json."
   }
 }
