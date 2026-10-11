@@ -188,3 +188,91 @@ Signed carrier-handled STOP/HELP/START, outbound echo and custom autoresponse
 callbacks do not become assistant prompts. Ordinary messages such as “help with
 my appointment” still enter the conversation. Delivery state is exposed through
 `provider_status`; provider delivery changes are not yet separate push events.
+
+## Incoming contact for the selected task host (under qualification)
+
+`codex-inbox.py` is the Gate 4 incoming-contact example. It uses the public
+Python native SDK and the packaged `task-access` commands. This example is
+under qualification: its local ledger checks pass, but its public-process and
+actual installed-host journey are not yet qualified. It performs no provider
+setup, live SMS or deployment.
+
+Use a separately scoped application credential with `resolve`, `capabilities`,
+`inbox`, `task_create`, `task_get`, `task_grant`, and the operations it delegates.
+Its recipient scope must include the configured contacts. Start Connect with an
+independent loopback MCP listener and a separate application HTTP listener as
+shown in [task access](../../docs/TASK_ACCESS.md). Model authentication remains
+in the developer's existing Codex account configuration.
+
+Save a private policy using the real contact identity ID and address:
+
+```json
+{
+  "contacts": {"CONTACT_ID": "connect:human@local"},
+  "operations": ["send", "history", "inbox", "task_cancel"],
+  "task_ttl_seconds": 600
+}
+```
+
+The contact sends an ordinary Connect message in an existing conversation with
+this application-level body. `contact_assistant` is this example's request
+format, not a new UCTP standard:
+
+```json
+{
+  "action": "contact_assistant",
+  "request_id": "review-request-001",
+  "body": "Please review my proposal and ask me about anything missing."
+}
+```
+
+Keep both the message's SDK mutation ID and the body request ID stable across
+uncertainty. The example keys incoming work by sender, conversation and request
+ID. An identical repeat uses the original task; changed content records a
+conflict. Plain messages remain unassigned, and a message cannot choose an
+existing task or expand capabilities.
+
+```sh
+PYTHONPATH=sdk/python python3 examples/agent-presence/codex-inbox.py \
+  --config .local/incoming-assistant.toml \
+  --policy .local/incoming-policy.json --state .local/incoming-worker \
+  --http-address 127.0.0.1:8194 --mcp-address 127.0.0.1:8193 \
+  --executable target/debug/connect --codex-binary codex
+```
+
+One invocation stages up to 100 inbox events and starts at most one queued
+contact. Repeat the command to drain more work. This is a bounded explicit
+invocation, not a background watcher. The app commits its cursor alongside
+queued work before dispatch, saves the original task creation intent, and uses
+the incoming journal event as `initiating_event_id`. It preserves the original
+conversation and independently tracks overlapping requests. Configured tools
+run autonomously without per-action permission prompts.
+
+The output distinguishes a processed page, a closed task and a completed host
+turn. A completed host turn does not imply task completion. A lost app
+acknowledgement after the host checkpoint does not start an extra turn. Later
+bound replies continue through the documented exact-session `run-codex`
+command and the returned installation path. Automatic reply-triggered wake is
+not implemented here. Owner-issued grant renewal uses `renew-codex`; expired
+or interrupted issuance never silently receives a fresh ID or lifetime.
+
+Keep the entire private state directory. It contains the cursor, source records,
+original requests, grants, host installation and logs. A changed identity/policy,
+unknown database schema, incomplete export or corrupt checkpoint requires
+explicit repair. Do not delete it to retry an uncertain send. State is bounded
+to 10,000 journal records. Current Connect authority is checked again on replay.
+
+Run the local example checks separately from provider tests:
+
+```sh
+PYTHONPATH=sdk/python python3 -m unittest discover \
+  -s examples/agent-presence/tests -p 'test_incoming*.py'
+CONNECT_TEST_BINARY="$PWD/target/debug/connect" PYTHONPATH=sdk/python \
+  python3 -m unittest discover -s examples/agent-presence/tests \
+  -p 'test_public_intake.py'
+```
+
+The public-process check requires an explicitly selected built Connect binary;
+its absence fails. The unit checks alone do not establish an installed host or
+model journey. Process cleanup beyond the packaged host's documented ownership
+boundary remains subject to the [host limitations](../../docs/CODEX_TASK_HOST.md).
