@@ -67,13 +67,16 @@ def qualify(binary, directory, report):
             run('task-access', 'issue', '--config', state / 'operator.toml', '--http-address', http,
                 '--input', directory / 'issue.json', '--output', directory / 'grant.json', binary=binary)
             token = json.loads((directory / 'grant.json').read_text())['grant']['bearer']
-            endpoint = Endpoint(mcp, token)
-            maximum = mcp_load_profile.framing(endpoint, task, report)
-            mcp_load_profile.slow_bodies(endpoint, maximum, task, report)
-            mcp_load_profile.pending_waits(endpoint, report)
-            mcp_load_profile.recall(endpoint, source_ids, report)
-            assert {message['id'] for message in owner.history(cid)['messages']} == source_ids
-            report.checkpoint(no_message_effects_from_load=True)
+        # The load deliberately lasts beyond native idle expiry. Setup does not
+        # keep an unused QUIC observer alive; verify through a fresh public client.
+        endpoint = Endpoint(mcp, token)
+        maximum = mcp_load_profile.framing(endpoint, task, report)
+        mcp_load_profile.slow_bodies(endpoint, maximum, task, report)
+        mcp_load_profile.pending_waits(endpoint, report)
+        mcp_load_profile.recall(endpoint, source_ids, report)
+        with NativeClient(state / 'operator.toml', executable=str(binary)) as observer:
+            assert {message['id'] for message in observer.history(cid)['messages']} == source_ids
+        report.checkpoint(no_message_effects_from_load=True)
     assert report.rss, 'Missing server memory observations'
 
 
