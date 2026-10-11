@@ -89,6 +89,34 @@ denial and same-task continuation: 211 Store and 32 Vapi/parity checks pass, wit
 strict workspace lint and Rustdoc. G4-030 still needs repeated retirement with
 memory observations and full current-source qualification.
 
+The full retirement profile is now available as a separately bounded check:
+
+```sh
+bash scripts/prepare-dependencies.sh
+python3 scripts/check-voice-retirement.py
+```
+
+It exercises all 10,000 retained sessions in 313 batches, each with at most 32
+live callback listeners and real five-second expiry. Every listener is checked
+while live and after expiry. Only connection refusal proves retirement; address
+exhaustion or other probe errors fail the run. A connection reset during teardown
+remains pending until a later refusal within the same deadline. The eight-second batch observation
+deadline includes waiting for expiry. The full exercise has a 45-minute budget,
+inside a 55-minute build/test phase. The Gate 4 runner invokes this profile
+explicitly after the ordinary workspace run, where it is marked ignored.
+
+Boundary samples measure the whole Rust test process, including clients and the
+loopback provider fixture; they are not server-only memory or exact peak memory.
+The final checks require session-capacity rejection, identical durable binding
+digests across server restart and denial of replacing the original setup.
+Reports, original private intents and a Store snapshot remain under ignored
+`.local/voice-retirement/`. No provider request is permitted.
+
+The [retirement audit](evidence/gate-4/voice-retirement-load.json) currently
+records three failed probe attempts and the corrected run in progress. Those
+partial attempts do not qualify load or memory claims. The observer controls
+pass, but this full profile must finish before its measurements can be accepted.
+
 ## Sixteen concurrent assistant hosts
 
 The separate [host-concurrency result](evidence/gate-4/host-concurrency.json)
@@ -312,8 +340,10 @@ required.
 ## Work still required
 
 Remaining operating work includes retained voice-setup metadata. Current-source
-full regression, installed-candidate qualification and the recorded startup/QUIC
-shutdown findings also remain open. The
+full regression, installed-candidate qualification and the separate debug CLI
+startup finding also remain open. The [review reconciliation](evidence/gate-4/review-findings.json)
+verifies the earlier QUIC parity fixture repair and its retained before/after
+logs; historical unresolved notes predate that correction. The
 [installed local candidate](evidence/gate-4/package-candidate.json) separately
 passes its package checks; real-model journeys, whole-item dependencies and
 full Gate 4 acceptance remain open. The separate

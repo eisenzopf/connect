@@ -57,6 +57,7 @@ IGNORED = {
     'packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect',
     'overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart',
     'profile_one_and_four_concurrent_sessions_for_sixty_seconds',
+    'retired_setups_reuse_capacity_through_the_full_session_limit',
 }
 
 

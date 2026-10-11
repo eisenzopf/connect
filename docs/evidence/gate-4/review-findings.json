@@ -1,0 +1,28 @@
+{
+  "status": "review-reconciled; final current-source qualification remains open",
+  "recorded_at": "2026-10-11T17:52:16.831966+00:00",
+  "quic_parity": {
+    "status": "fixture scheduling defect corrected; historical failures retained",
+    "repair_commit": "025384ae7ecda80a5bb4ea136db64e1103841ead",
+    "evidence": {
+      "path": "docs/evidence/gate-4/quic-shutdown-diagnosis.json",
+      "sha256": "d0791aa44336ef8286a261b5854d9da8251ab27bbdc5ac671f07bca4640a2333"
+    },
+    "current_fixture": {
+      "path": "crates/connect-server/tests/gate3_parity.rs",
+      "sha256": "330131d165e788fcfda4ef5a934f6dcde6b7f05d33b84df8e6afe4ff7e770a98"
+    },
+    "basis": "Verified hashes for both diagnostic failures and all seven repair checks. Diagnostics measured a 20.539-second synchronous HTTP client construction on the single-threaded active QUIC executor. The repair constructs one loopback client on a blocking worker before QUIC peers start. The current fixture has the exact qualified repair hash.",
+    "limits": "The Quinn close-timer mechanism is an inference; server RTT and the exact internal host initialization function were not measured. The five-second shutdown deadline remains unchanged. Later current-source full regression and installed candidate are still required; historical pre-repair notes must not be interpreted as a new post-repair failure."
+  },
+  "debug_cli_startup": {
+    "status": "unresolved",
+    "evidence": "docs/evidence/gate-4/artifact-retention-load.json",
+    "detail": "Separate 15-second CLI initialization failure remains open. This reconciliation does not assign the QUIC fixture cause to the CLI."
+  },
+  "voice_retirement": {
+    "status": "in-progress",
+    "evidence": "docs/evidence/gate-4/voice-retirement-load.json"
+  },
+  "gate_status": "No task completion inferred from this review."
+}
