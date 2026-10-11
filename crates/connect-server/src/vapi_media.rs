@@ -9,6 +9,8 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 pub(crate) struct VapiMedia {
     calls: HashMap<ConnectionId, VapiAgentCall>,
     transcript_tasks: HashMap<ConnectionId, crate::vapi_observer::Observer>,
+    task_setups: HashMap<String, Box<crate::vapi_bootstrap::CallSetup>>,
+    call_sessions: HashMap<ConnectionId, String>,
 }
 
 pub(crate) struct VapiBinding<'a> {
@@ -25,6 +27,19 @@ pub(crate) enum BindOutcome {
 }
 
 impl VapiMedia {
+    pub(crate) fn install_task_setup(
+        &mut self,
+        session: String,
+        setup: Box<crate::vapi_bootstrap::CallSetup>,
+    ) -> Result<(), Box<crate::vapi_bootstrap::CallSetup>> {
+        if self.task_setups.contains_key(&session)
+            || self.call_sessions.values().any(|id| id == &session)
+        {
+            return Err(setup);
+        }
+        self.task_setups.insert(session, setup);
+        Ok(())
+    }
     pub(crate) async fn bind(
         &mut self,
         orchestrator: &Arc<Orchestrator>,
@@ -67,9 +82,19 @@ impl VapiMedia {
             })?;
         let delivery = context.delivery_id;
         let context_json = context.json;
-        let options = VapiCallOptions::new(VapiAssistant::saved(route.assistant_id.clone()))
-            .with_audio_format(VapiAudioFormat::MuLaw8Khz)
-            .with_name("connect-session");
+        let options = if let Some(setup) = self.task_setups.get(binding.durable_session) {
+            match setup.options(binding.credential, &route).await {
+                Ok(options) => options,
+                Err(_) => {
+                    let _ = store.finish_context_delivery(&delivery, "failed", None);
+                    return Err("vapi-task-setup-denied");
+                }
+            }
+        } else {
+            VapiCallOptions::new(VapiAssistant::saved(route.assistant_id.clone()))
+                .with_audio_format(VapiAudioFormat::MuLaw8Khz)
+                .with_name("connect-session")
+        };
         let call = adapter
             .attach_agent_for_participant(
                 orchestrator,
@@ -133,10 +158,15 @@ impl VapiMedia {
         self.transcript_tasks
             .insert(binding.connection_id.clone(), transcript_task);
         self.calls.insert(binding.connection_id.clone(), call);
+        self.call_sessions.insert(
+            binding.connection_id.clone(),
+            binding.durable_session.into(),
+        );
         Ok(BindOutcome::Attached)
     }
 
     pub(crate) async fn end_connection(&mut self, connection_id: &ConnectionId) {
+        self.call_sessions.remove(connection_id);
         if let Some(call) = self.calls.remove(connection_id) {
             let _ = tokio::time::timeout(Duration::from_secs(2), call.end()).await;
         }
@@ -145,7 +175,7 @@ impl VapiMedia {
         }
     }
 
-    pub(crate) async fn shutdown(mut self) {
+    pub(crate) async fn shutdown(mut self) -> anyhow::Result<()> {
         futures_util::future::join_all(self.calls.drain().map(|(_, call)| async move {
             let _ = tokio::time::timeout(Duration::from_secs(2), call.end()).await;
         }))
@@ -154,5 +184,14 @@ impl VapiMedia {
             self.transcript_tasks.drain().map(|(_, task)| task.finish()),
         )
         .await;
+        let results = futures_util::future::join_all(
+            self.task_setups.drain().map(|(_, setup)| setup.shutdown()),
+        )
+        .await;
+        anyhow::ensure!(
+            results.iter().all(Result::is_ok),
+            "Vapi task MCP drain failed"
+        );
+        Ok(())
     }
 }

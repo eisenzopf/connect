@@ -1,5 +1,8 @@
 //! Session creation dispatches once. Unknown acceptance must be reconciled.
-use super::{state::Locked, Definition};
+use super::{
+    call::{authorize, overrides},
+    state::Locked,
+};
 use anyhow::{Context, Result};
 use connect_connectors::{vapi_origin::OriginKind, Vapi};
 use connect_service::Service;
@@ -38,7 +41,10 @@ pub async fn create_session(
         "Provider creation is uncertain; reconcile the original nonce, never repeat POST"
     );
     // Append our tool rather than replacing the saved assistant's other tools.
-    let body = json!({"assistantId":state.definition.assistant_id,"assistantOverrides":{"variableValues":{"connect_invocation_id":state.nonce},"tools:append":[{"type":"mcp","function":{"name":"connectTools"},"server":{"url":state.mcp_url,"headers":{"Authorization":format!("Bearer {}",state.secret)}},"metadata":{"protocol":"shttp"}}]}});
+    let body = json!({
+        "assistantId": state.definition.assistant_id,
+        "assistantOverrides": overrides(&state.nonce, &state.mcp_url, &state.secret)
+    });
     held.state.posted = true;
     held.save()?;
     // Release the file lock before network I/O: a first callback must be able to
@@ -78,14 +84,4 @@ pub async fn create_session(
     held.state.external_id = Some(session.id.clone());
     held.save()?;
     Ok(session.id)
-}
-async fn authorize(service: &Service, definition: &Definition, nonce: &str) -> Result<()> {
-    service
-        .authorize_provider_task_setup(
-            definition.credential_id.clone(),
-            format!("bootstrap-{nonce}"),
-            definition.grant(nonce),
-        )
-        .await?;
-    Ok(())
 }

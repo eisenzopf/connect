@@ -24,6 +24,7 @@ struct FakeState {
     observed: mpsc::UnboundedSender<Value>,
     burst: bool,
     call_gate: Option<Arc<tokio::sync::Semaphore>>,
+    resource: Arc<Mutex<Value>>,
 }
 
 pub(crate) struct FakeVapi {
@@ -31,6 +32,7 @@ pub(crate) struct FakeVapi {
     observed: mpsc::UnboundedReceiver<Value>,
     task: tokio::task::JoinHandle<()>,
     call_gate: Option<Arc<tokio::sync::Semaphore>>,
+    pub(crate) api_base: String,
 }
 
 impl FakeVapi {
@@ -65,9 +67,11 @@ impl FakeVapi {
             observed,
             burst,
             call_gate: call_gate.clone(),
+            resource: Arc::new(Mutex::new(Value::Null)),
         };
         let router = Router::new()
             .route("/call", post(create_call))
+            .route("/call/call-connect-gate-three", get(private_call))
             .route("/transport", get(upgrade_socket))
             .with_state(state);
         let task = tokio::spawn(async move {
@@ -91,6 +95,7 @@ impl FakeVapi {
             observed: observed_rx,
             task,
             call_gate,
+            api_base: format!("http://{address}"),
         }
     }
 
@@ -114,18 +119,30 @@ impl Drop for FakeVapi {
     }
 }
 
-async fn create_call(State(state): State<FakeState>) -> Json<Value> {
+async fn create_call(State(state): State<FakeState>, Json(body): Json<Value>) -> Json<Value> {
+    let resource = json!({
+        "id": "call-connect-gate-three", "status":"queued",
+        "assistantId":body["assistantId"], "assistantOverrides":body["assistantOverrides"],
+        "transport":{"websocketCallUrl":state.websocket_url.lock().unwrap().clone()}
+    });
+    *state.resource.lock().unwrap() = resource.clone();
+    let _ = state
+        .observed
+        .send(json!({"type":"create-call", "body":body}));
     if let Some(gate) = &state.call_gate {
-        let _ = state.observed.send(json!({"type": "create-call"}));
         gate.acquire().await.unwrap().forget();
     }
-    Json(json!({
-        "id": "call-connect-gate-three",
-        "status": "queued",
-        "transport": {
-            "websocketCallUrl": state.websocket_url.lock().unwrap().clone()
-        }
-    }))
+    Json(resource)
+}
+async fn private_call(
+    State(state): State<FakeState>,
+    headers: axum::http::HeaderMap,
+) -> Result<Json<Value>, axum::http::StatusCode> {
+    if headers.get("authorization").and_then(|v| v.to_str().ok()) != Some("Bearer fake-private-key")
+    {
+        return Err(axum::http::StatusCode::UNAUTHORIZED);
+    }
+    Ok(Json(state.resource.lock().unwrap().clone()))
 }
 
 async fn upgrade_socket(State(state): State<FakeState>, upgrade: WebSocketUpgrade) -> Response {
@@ -181,7 +198,10 @@ async fn fake_socket(mut socket: WebSocket, state: FakeState) {
                 let _ = socket.send(Message::Text(outcome.clone().into())).await;
                 let _ = socket.send(Message::Text(outcome.into())).await;
             }
-            Message::Close(_) => break,
+            Message::Close(_) => {
+                state.resource.lock().unwrap()["status"] = json!("ended");
+                break;
+            }
             Message::Ping(_) | Message::Pong(_) => {}
         }
     }

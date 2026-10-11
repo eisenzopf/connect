@@ -36,7 +36,7 @@ impl Setup {
         let api = MockServer::start().await;
         let provider = Arc::new(Vapi::new("private-bootstrap-test", &api.uri()).unwrap());
         let directory = f.directory().join(label);
-        let endpoint = RunningMcp::start_local(
+        let endpoint = RunningMcp::start_local_auxiliary(
             f.server.service.clone(),
             Arc::new(BootstrapAuth::new(
                 f.server.service.clone(),

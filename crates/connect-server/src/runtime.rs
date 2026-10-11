@@ -42,6 +42,13 @@ pub struct RunningServer {
     mcp: Option<connect_mcp::RunningMcp>,
 }
 impl RunningServer {
+    pub(crate) fn media_registrar(&self) -> Result<crate::media_lifecycle::MediaRegistrar> {
+        Ok(self
+            .media_lifecycle
+            .as_ref()
+            .context("Media lifecycle is unavailable")?
+            .registrar())
+    }
     /// Safe aggregate diagnostic: queue occupancy only, no message contents.
     pub fn websocket_output_high_water(&self) -> usize {
         self.websocket.as_ref().map_or(0, |w| w.output_high_water())

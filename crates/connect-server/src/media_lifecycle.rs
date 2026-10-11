@@ -26,6 +26,11 @@ pub(crate) struct MediaRegistrar {
 }
 
 enum Command {
+    RegisterVapiSetup {
+        session_id: String,
+        setup: Box<crate::vapi_bootstrap::CallSetup>,
+        completed: tokio::sync::oneshot::Sender<Result<(), Box<crate::vapi_bootstrap::CallSetup>>>,
+    },
     RegisterOutbound {
         connection_id: ConnectionId,
         credential_id: String,
@@ -72,6 +77,10 @@ impl MediaLifecycle {
                     command = command_receiver.recv() => {
                         let Some(command) = command else { break; };
                         match command {
+                            Command::RegisterVapiSetup {session_id, setup, completed} => {
+                                let result = state.vapi.install_task_setup(session_id, setup);
+                                let _ = completed.send(result);
+                            }
                             Command::RegisterOutbound { connection_id, credential_id, session_id, sip_leg_id, acknowledged } => {
                                 state.credentials.insert(connection_id.clone(), credential_id);
                                 state.sessions.insert(connection_id.clone(), session_id);
@@ -211,7 +220,7 @@ impl MediaLifecycle {
                     Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                 }
             }
-            state.vapi.shutdown().await;
+            let vapi_shutdown = state.vapi.shutdown().await;
             for (connection_id, session_id) in state.sessions {
                 let result = if state.routed_connections.contains(&connection_id) {
                     store
@@ -230,7 +239,7 @@ impl MediaLifecycle {
                     );
                 }
             }
-            Ok(())
+            vapi_shutdown
         });
         Ok(Self {
             stop,
@@ -264,6 +273,24 @@ impl Drop for MediaLifecycle {
 }
 
 impl MediaRegistrar {
+    pub(crate) async fn register_vapi_setup(
+        &self,
+        session_id: String,
+        setup: Box<crate::vapi_bootstrap::CallSetup>,
+    ) -> Result<Result<(), Box<crate::vapi_bootstrap::CallSetup>>> {
+        let (completed, receiver) = tokio::sync::oneshot::channel();
+        self.commands
+            .send(Command::RegisterVapiSetup {
+                session_id,
+                setup,
+                completed,
+            })
+            .await
+            .map_err(|_| anyhow::anyhow!("Media lifecycle unavailable; retain setup intent"))?;
+        receiver
+            .await
+            .map_err(|_| anyhow::anyhow!("Setup acknowledgement lost; retain original intent"))
+    }
     pub(crate) async fn register_outbound(
         &self,
         connection_id: ConnectionId,

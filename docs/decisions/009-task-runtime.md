@@ -408,3 +408,27 @@ already dispatched effect or end a conversation.
 The [Codex export component](../evidence/gate-4/codex-workflow-export.json)
 preserves an existing narrow grant and packages the workflow skill. G4-018 and
 G4-021 remain open for actual skill loading and exact-session continuation.
+
+## Protected voice bootstrap composition
+
+The voice path installs tools before rvoip creates its raw-audio call. A protected
+owner explicitly selects an existing task and that task's accepted session. The
+server owns the loopback MCP listener, private intent and lifecycle registration;
+the connector independently verifies provider origin, and rvoip owns call
+creation, audio bridging and paired termination. Native history permissions
+bound context selection; configured provider tool permissions remain an explicit
+subset of the same task. No per-action approval prompt is introduced.
+
+A small opt-in rvoip admission hook is recorded in the source lock and tracked
+patch. After request preparation and before REST send, Store atomically checks
+current task, source, route and expiry and admits the physical call once. Its
+resource key is namespaced separately from ordinary voice-call IDs, within the
+existing physical-call journal. This requires no schema migration. Staging and
+possibly-sent admission are conservative: uncertainty is retained rather than
+creating another call. Shutdown persists media unbindings even when an MCP
+listener reports a drain failure.
+
+Turnkey operator installation, explicit unknown-resource recovery, restart
+reattachment, aggregate setup-listener limits and actual provider/model behavior
+remain separate unfinished work. The bootstrap guide and numbered plan identify
+those limits; component evidence must not be read as G4-019/G4-020 closure.

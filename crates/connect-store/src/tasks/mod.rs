@@ -9,6 +9,7 @@ pub use grants::{IssuedTaskGrant, NativeTaskAuthority, TaskInvocation};
 mod inbox;
 mod lifecycle;
 mod media_context;
+mod media_setup;
 pub use media_context::VapiSessionContext;
 mod native_reply;
 mod owner;

@@ -29,6 +29,24 @@ impl RunningMcp {
         authenticator: Arc<dyn McpAuthenticator>,
         bind: SocketAddr,
     ) -> io::Result<Self> {
+        Self::start(service, authenticator, bind, true).await
+    }
+    /// Start a lifecycle-owned task endpoint without changing the main MCP
+    /// endpoint's readiness. Its unexpected exit still fails runtime supervision;
+    /// normal task teardown must not declare another live endpoint unavailable.
+    pub async fn start_local_auxiliary(
+        service: Arc<Service>,
+        authenticator: Arc<dyn McpAuthenticator>,
+        bind: SocketAddr,
+    ) -> io::Result<Self> {
+        Self::start(service, authenticator, bind, false).await
+    }
+    async fn start(
+        service: Arc<Service>,
+        authenticator: Arc<dyn McpAuthenticator>,
+        bind: SocketAddr,
+        primary: bool,
+    ) -> io::Result<Self> {
         if !bind.ip().is_loopback() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -67,11 +85,13 @@ impl RunningMcp {
             .layer(middleware::from_fn_with_state(admission, admit));
         let signal = cancellation.clone();
         let readiness = service_readiness;
-        readiness.set(
-            "mcp",
-            connect_protocol::ReadinessState::Ready,
-            "listener-bound",
-        );
+        if primary {
+            readiness.set(
+                "mcp",
+                connect_protocol::ReadinessState::Ready,
+                "listener-bound",
+            );
+        }
         let handle = tokio::spawn(async move {
             let expected_stop = signal.clone();
             let run = async move {
@@ -84,8 +104,8 @@ impl RunningMcp {
                 .await
                 .unwrap_or_else(|_| Err(io::Error::other("MCP listener failed")));
             if !expected_stop.is_cancelled() {
-                readiness.fail("mcp");
-            } else {
+                readiness.fail(if primary { "mcp" } else { "mcp-task-listener" });
+            } else if primary {
                 readiness.set(
                     "mcp",
                     connect_protocol::ReadinessState::Unavailable,

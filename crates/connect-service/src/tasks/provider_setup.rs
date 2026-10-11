@@ -4,6 +4,21 @@ use crate::Service;
 use connect_protocol::Error;
 
 impl Service {
+    /// Protected composition: verify owner-selected task/session provenance and
+    /// the current Vapi route before attaching task tools to a media leg.
+    pub async fn authorize_vapi_task_session_setup(
+        &self,
+        credential_id: String,
+        task_id: String,
+        session_id: String,
+    ) -> Result<connect_store::VapiSessionRoute> {
+        let store = self.store.clone();
+        tokio::task::spawn_blocking(move || {
+            store.authorize_vapi_task_session_setup(&credential_id, &task_id, &session_id)
+        })
+        .await
+        .map_err(|_| Error::storage())?
+    }
     /// Validate current protected issuance intent without registering a resource.
     pub async fn authorize_provider_task_setup(
         &self,

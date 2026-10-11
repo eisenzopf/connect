@@ -1,8 +1,8 @@
 # Vapi task bootstrap
 
-This is a protected server composition component for G4-019. It creates a Vapi
-chat **session** with Connect MCP already attached, then binds that session to
-an existing Connect task. It is not yet a turnkey runtime installer or a
+This is protected server composition for G4-019/G4-020. It creates a Vapi
+chat **session**, or stages an rvoip-owned voice call, with Connect MCP already
+attached and an explicit binding to an existing Connect task. It is not yet a turnkey runtime installer or a
 qualification of actual Vapi model/tool behavior. Local tests use a fake private
 provider API and the actual Connect MCP endpoint.
 
@@ -11,12 +11,12 @@ The developer establishes the task, allowed communication operations and
 recipients. A provider callback cannot choose another task or mint broader
 authority.
 
-## Composition sequence
+## Chat-session composition
 
 1. Create the conversation and task through the public client. Keep their IDs.
 2. Choose one new private setup directory for this invocation. Compose
    `vapi_bootstrap::BootstrapAuth` with the service, configured private Vapi SDK
-   client and that directory. Start a separate `connect_mcp::RunningMcp`
+   client and that directory. Start a separate `connect_mcp::RunningMcp::start_local_auxiliary`
    listener with this authenticator. An unprepared directory denies requests.
 3. Call `vapi_bootstrap::prepare` with the actual MCP URL, current backing
    credential **reference**, stable issuance request ID, existing task,
@@ -44,6 +44,33 @@ The nonce is checked in the private session response's
 header alone is insufficient. Once verified, the resource ID is frozen in the
 setup intent. Another resource cannot reuse it, even with matching metadata.
 
+## Voice composition
+
+Create and accept an audio session through the public task client. Configure
+its saved-assistant voice route, then call
+`RunningServer::prepare_vapi_task_session` with that session ID, a protected
+`Definition` using `OriginKind::Call`, a fresh private directory and the private
+provider SDK. The owner-selected task must have created the accepted session;
+another task in the same conversation cannot borrow it. The server owns the
+new local MCP listener and drains it during shutdown.
+
+Opening native audio uses the existing rvoip attachment and media bridge. The
+bootstrap stages the nonce and MCP tool before call creation. `stage_call`
+always returns options with an admission hook; it never performs its own POST.
+The source-locked, opt-in rvoip hook runs after request preparation and directly
+before HTTP send. In one Store transaction, it rechecks current task, backing
+credential, authenticated media caller, operation ceilings, original expiry and
+exact route, then commits one physical-call admission. Competing attempts and
+restart cannot dispatch that same call intent again. Default rvoip call options
+retain their existing behavior.
+
+Call callbacks verify `assistantOverrides.variableValues.connect_invocation_id`
+through the private provider API before grant issuance. They can arrive before
+the creation receipt. Tool results remain tied to the original task; bounded
+voice context uses the native caller's history permission. Ending voice leaves
+the task and conversation intact, and supported final transcripts enter that
+conversation's journal for later recall.
+
 ## Recovery and limits
 
 Keep the original private directory after an uncertain POST. Do not repeat the
@@ -59,11 +86,13 @@ task effects. They do not undo a resource that the provider may already have
 created. A saved provider observation is not authority. File contention produces
 an explicit retryable setup failure; the original intent is retained.
 
-Call/chat/session nonce verification is available in the connector; the creation
-function currently implements **chat sessions only**. Call creation, attaching
-this setup to the existing voice runtime, a protected operator installer,
-explicit resource-ID reconciliation and actual Vapi host qualification remain
-open. No live provider requests or public ingress are used by this component's
+Call/chat/session nonce verification is available in the connector; standalone
+chat creation is not implemented. The voice runtime accepts protected Rust
+composition, but a turnkey operator installer, explicit resource-ID recovery,
+restart reattachment, aggregate setup-listener limits and actual Vapi
+host qualification remain open. A staged or admitted uncertain call is not
+silently recreated. Local listeners cannot be reached by a live cloud provider
+without separately configured ingress; this component does not add ingress. No live provider requests or public ingress are used by this component's
 local checks.
 
 Primary API references:
@@ -73,7 +102,7 @@ Primary API references:
 - [Official assistant override schema, including tools:append](https://github.com/VapiAI/server-sdk-python/blob/main/src/vapi/types/assistant_overrides.py)
 
 Current progress and verification are recorded in the
-[Gate 4 implementation plan](connect-gate-4-implementation.html#G4-019) and
-[local bootstrap evidence](evidence/gate-4/vapi-bootstrap.json). The eight new
-local integration tests pass; this does not close the remaining whole-item or
-actual host qualification.
+[Gate 4 implementation plan](connect-gate-4-implementation.html#G4-019) and the historical [chat-session bootstrap evidence](evidence/gate-4/vapi-bootstrap.json).
+[Qualified local voice component and retained failures](evidence/gate-4/vapi-call-bootstrap.json)
+are recorded separately;
+these component checks do not close whole-item or actual host qualification.

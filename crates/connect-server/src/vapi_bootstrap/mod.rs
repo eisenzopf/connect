@@ -2,15 +2,20 @@
 //! The setup credential alone is not a task grant. Exact resource creation is
 //! privately verified before existing atomic binding/grant issuance is used.
 mod admission;
+mod call;
 mod creation;
+mod dispatch;
+mod media;
 mod state;
 use crate::cli::init::{private_directory, private_write};
 pub use admission::BootstrapAuth;
 use anyhow::Result;
+pub use call::stage_call;
 use connect_connectors::vapi_origin::OriginKind;
 use connect_protocol::tasks::{GrantDefinition, InvocationBinding, InvocationKind, TaskPermission};
 use connect_service::Service;
 pub use creation::create_session;
+pub(crate) use media::CallSetup;
 use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
 
@@ -26,7 +31,7 @@ pub struct Definition {
     pub task_id: String,
     /// Expected saved assistant, verified through the private provider API.
     pub assistant_id: String,
-    /// Resource mode; session creation is supported, call creation is separate.
+    /// Resource mode; sessions use the SDK, calls use rvoip attachment.
     pub origin: OriginKind,
     /// Explicit subset of the immutable task ceiling.
     pub operations: Vec<TaskPermission>,

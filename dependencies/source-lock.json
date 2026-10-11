@@ -52,6 +52,11 @@
       "path": "patches/rvoip/authenticated-envelope-guard.patch",
       "sha256": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
       "source": "Opt-in authenticated envelope policy on SessionBindingResolver, before correlation/application/resource mutation; default preserves existing resolver behavior."
+    },
+    {
+      "path": "patches/rvoip/vapi-call-admission.patch",
+      "sha256": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+      "source": "Opt-in host-owned Vapi call admission after request preparation and immediately before REST send; default unchanged. Connect uses current atomic task/session admission; no duplicate possibly-sent creation."
     }
   ]
 }
