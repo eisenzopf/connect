@@ -82,6 +82,10 @@ pub(super) async fn create_task(
                             TaskPermission::History,
                             TaskPermission::Inbox,
                             TaskPermission::RequestStatus,
+                            TaskPermission::ArtifactBegin,
+                            TaskPermission::ArtifactAppend,
+                            TaskPermission::ArtifactFinish,
+                            TaskPermission::ArtifactGet,
                         ],
                         recipients: vec![recipient.into()],
                         sms_enrollments: vec![],
@@ -124,13 +128,21 @@ pub(super) async fn message(
     client: &mut ConnectClient,
     outcome: Outcome,
 ) -> Result<Option<String>> {
+    tool_outcome(client, outcome)
+        .await?
+        .map(accepted_message)
+        .transpose()
+}
+/// Reconcile the original effect; pending does not imply successful execution.
+pub(super) async fn tool_outcome(
+    client: &mut ConnectClient,
+    outcome: Outcome,
+) -> Result<Option<Outcome>> {
     let Outcome::Task(result) = outcome else {
         anyhow::bail!("Expected task result")
     };
     let result = match *result {
-        TaskOutcome::Tool(TaskToolResult::Completed { outcome, .. }) => {
-            return accepted_message(*outcome).map(Some)
-        }
+        TaskOutcome::Tool(TaskToolResult::Completed { outcome, .. }) => return Ok(Some(*outcome)),
         TaskOutcome::Tool(TaskToolResult::Pending {
             task_id,
             effect_id: Some(effect_id),
@@ -142,18 +154,17 @@ pub(super) async fn message(
         }
         TaskOutcome::Effect(effect) => TaskOutcome::Effect(effect),
         TaskOutcome::Tool(TaskToolResult::Pending { .. }) => return Ok(None),
-        _ => anyhow::bail!("Unexpected send receipt"),
+        _ => anyhow::bail!("Unexpected tool receipt"),
     };
     let TaskOutcome::Effect(effect) = result else {
         anyhow::bail!("Expected effect status")
     };
     match effect.state {
-        EffectState::Succeeded => accepted_message(
-            *effect
-                .outcome
-                .ok_or_else(|| anyhow::anyhow!("Succeeded effect has no outcome"))?,
-        )
-        .map(Some),
+        EffectState::Succeeded => {
+            Ok(Some(*effect.outcome.ok_or_else(|| {
+                anyhow::anyhow!("Succeeded effect has no outcome")
+            })?))
+        }
         EffectState::Failed | EffectState::Cancelled => {
             anyhow::bail!("App effect failed or cancelled; retained for inspection")
         }

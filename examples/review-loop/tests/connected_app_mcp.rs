@@ -3,7 +3,8 @@
 #![allow(clippy::unwrap_used)]
 #[path = "support/connected_app.rs"]
 mod support;
-use connect_client::{tasks::*, Operation};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
+use connect_client::{tasks::*, Artifact, Operation};
 use rmcp::{
     model::{CallToolRequestParams, ClientConfig},
     transport::{
@@ -12,6 +13,7 @@ use rmcp::{
     ServiceExt,
 };
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use std::{process::Stdio, time::Duration};
 use support::Fixture;
 use tokio::process::Command;
@@ -47,7 +49,7 @@ async fn business_result_is_source_backed_through_sdk_and_grant_bound_mcp() {
                 adapter: "connected-app-observer".into(),
                 external_id: "local-result-reader".into(),
             },
-            operations: vec![TaskPermission::History],
+            operations: vec![TaskPermission::History, TaskPermission::ArtifactGet],
             expires_at: chrono::Utc::now().timestamp() + 120,
         },
     });
@@ -87,6 +89,35 @@ async fn business_result_is_source_backed_through_sdk_and_grant_bound_mcp() {
         ))
         .await
         .unwrap();
+    let question_body: serde_json::Value = serde_json::from_str(&question.body).unwrap();
+    let artifact: Artifact = serde_json::from_value(question_body["artifact"].clone()).unwrap();
+    let file = client
+        .call_tool(
+            CallToolRequestParams::new("connect_artifact_get").with_arguments(
+                json!({"request_id":"read-draft","step_id":"review-file",
+            "artifact_id":artifact.id,"offset":0,"limit":4096})
+                .as_object()
+                .unwrap()
+                .clone(),
+            ),
+        )
+        .await
+        .unwrap();
+    assert_ne!(file.is_error, Some(true));
+    let file = file.structured_content.unwrap();
+    let chunk = &file["data"]["outcome"]["data"];
+    assert_eq!(chunk["artifact"]["id"], artifact.id);
+    assert_eq!(
+        chunk["artifact"]["conversation_id"],
+        question.conversation_id
+    );
+    assert_eq!(chunk["eof"], true);
+    let bytes = STANDARD.decode(chunk["data"].as_str().unwrap()).unwrap();
+    assert_eq!(format!("{:x}", Sha256::digest(&bytes)), artifact.sha256);
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&bytes).unwrap(),
+        question_body["draft"]
+    );
     let page = client
         .call_tool(
             CallToolRequestParams::new("connect_recall").with_arguments(
@@ -120,7 +151,7 @@ async fn business_result_is_source_backed_through_sdk_and_grant_bound_mcp() {
         .as_str()
         .unwrap()
         .starts_with("conversation-journal:"));
-    // Developer explicitly installed only a history reader, with no owner token.
+    // Developer explicitly installed only a history/file reader, with no owner token.
     let denied = client
         .call_tool(
             CallToolRequestParams::new("connect_task_cancel").with_arguments(

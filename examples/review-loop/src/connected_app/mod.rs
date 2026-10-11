@@ -3,16 +3,18 @@
 //! The private app credential creates and controls its own tasks. It is never
 //! supplied to a model. Developer policy is configured once; there are no
 //! per-action approval prompts. Connect checks current authority on replay.
+mod artifacts;
 mod bootstrap;
 mod decisions;
 mod domain;
 mod driver;
+mod intake;
 mod journal;
 mod ledger;
 mod observations;
 pub mod state;
 mod workflow;
-pub use domain::{Decision, Draft, Policy, Request};
+pub use domain::{Decision, Draft, DraftFile, Policy, Request};
 pub use driver::{run, RunOptions};
 pub use state::{AppStore, BusinessResult, Statistics};
 

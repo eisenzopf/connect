@@ -46,11 +46,24 @@ pub enum Request {
         request_id: String,
         draft: Draft,
     },
+    SubmitArtifact {
+        request_id: String,
+        artifact: DraftFile,
+    },
     ReviewDecision {
         draft_id: String,
         decision: Decision,
         note: String,
     },
+}
+/// Reference to a draft uploaded in the sender's current conversation.
+/// The authenticated event supplies the conversation and sender, never JSON.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DraftFile {
+    pub id: String,
+    pub sha256: String,
+    pub size: u64,
 }
 /// Closed business outcomes; arbitrary text cannot change draft state.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -66,6 +79,23 @@ impl Request {
             Self::SubmitDraft { request_id, draft } => {
                 ensure!(identifier(request_id), "Invalid submission request ID");
                 draft.validate()?;
+            }
+            Self::SubmitArtifact {
+                request_id,
+                artifact,
+            } => {
+                ensure!(
+                    identifier(request_id)
+                        && identifier(&artifact.id)
+                        && artifact.size > 0
+                        && artifact.size <= 32768
+                        && artifact.sha256.len() == 64
+                        && artifact
+                            .sha256
+                            .bytes()
+                            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()),
+                    "Invalid draft artifact reference"
+                );
             }
             Self::ReviewDecision { draft_id, note, .. } => {
                 ensure!(

@@ -33,6 +33,8 @@ pub struct Statistics {
     pub denied_events: u64,
     pub conflict_events: u64,
     pub unassigned_events: u64,
+    pub unavailable_artifacts: u64,
+    pub invalid_artifacts: u64,
     pub results: Vec<BusinessResult>,
 }
 /// Attributed result metadata; the full business record remains private.
@@ -171,6 +173,12 @@ impl AppStore {
             denied_events: count("SELECT COUNT(*) FROM app_events WHERE result='denied'")?,
             conflict_events: count("SELECT COUNT(*) FROM app_events WHERE result='conflict'")?,
             unassigned_events: count("SELECT COUNT(*) FROM app_events WHERE result='unassigned'")?,
+            unavailable_artifacts: count(
+                "SELECT COUNT(*) FROM app_events WHERE result='artifact-unavailable'",
+            )?,
+            invalid_artifacts: count(
+                "SELECT COUNT(*) FROM app_events WHERE result='artifact-invalid'",
+            )?,
             results,
         };
         drop(statement);

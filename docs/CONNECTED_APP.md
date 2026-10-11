@@ -8,7 +8,8 @@ ticket in its **own** SQLite database. It never opens Connect's database.
 
 This is the local Gate 4 connected-app component, not a claim that Gate 4 or its
 installed agent/artifact journey is complete. The source and failure/recovery
-qualification are recorded in [the component audit](evidence/gate-4/connected-app.json).
+qualification are recorded in [the business audit](evidence/gate-4/connected-app.json)
+and [the artifact exchange audit](evidence/gate-4/connected-app-artifacts.json).
 
 ## Start a fresh local example
 
@@ -49,7 +50,9 @@ new app state rather than silently adopting the old ledger.
 
 The app prints its outgoing task and conversation IDs. Read the review question
 from the accepted participant's inbox; it includes actual draft text and its
-canonical SHA-256 digest:
+canonical SHA-256 digest, plus an `artifact` object identifying the uploaded JSON
+file. Before answering, fetch the file through `artifact_get` / the public SDK,
+decode each base64 chunk, and verify its size and SHA-256 against that reference:
 
 ```sh
 ./target/debug/connect request --config .local/connected-app/agent.toml <<'JSON'
@@ -89,6 +92,36 @@ A semantic duplicate produces one ticket and response. Changed content under
 the same business ID is recorded as a conflict and cannot overwrite the original.
 A different conversation is an explicitly different submission context.
 
+## Submit a draft file
+
+An independent participant can upload a JSON `Draft` with `ArtifactBegin`,
+`ArtifactAppend` and `ArtifactFinish` in its conversation with the app, then send:
+
+```json
+{"action":"submit_artifact","request_id":"submission-002","artifact":{"id":"RETURNED_ARTIFACT_ID","size":123,"sha256":"RETURNED_SHA256"}}
+```
+
+Use the actual returned ID, byte count and digest. The app requires the file to
+belong to the authenticated sender in that same conversation, with media type
+`application/json`. It reads and hashes actual bytes before creating a ticket.
+The private business record retains the artifact reference and parsed draft.
+The response's draft digest uses canonical JSON; the source byte digest is also
+retained and can differ when the sender used pretty-printed JSON.
+
+Mismatched file references, malformed drafts and unavailable or deleted artifacts produce
+visible `invalid_artifacts` / `unavailable_artifacts` inspection counts and no
+business effect. Current authorization and retention are checked again on recovery;
+the app does not reuse cached source bytes after deletion. If task creation was
+accepted just before a crash, it first reconciles that original task intent; the
+task record stays retained with its original expiry and no business effect. A deleted outgoing
+file cannot produce a review decision, but the app remains reachable for incoming
+submissions. An already-sent review question is never rewritten or re-uploaded.
+
+New outgoing tasks include the artifact capabilities needed to publish their draft.
+Older task records retain their original scope and inline question; restarting
+never silently broadens their authority. Full old-binary upgrade qualification
+remains part of G4-032.
+
 ## Recovery and inspection
 
 Restart the app and local server using their retained state. App intents are saved
@@ -108,18 +141,19 @@ digests and pending, waiting, uncertain, rejected, denied and conflict counts. I
 omits credentials, draft bodies and review notes. It samples only the app-owned
 database, not worker liveness or current Connect authority. Results are limited
 to 100 with an explicit omitted count. Use authorized task diagnostics, history
-or a protected history-only MCP grant to read the corresponding server sources;
+or a protected history/file-read MCP grant to read the corresponding server sources;
 [task installation](TASK_ACCESS.md) describes the protected issuance CLI. The
-actual MCP component test reads the business response with its journal provenance
+actual MCP component test reads the draft bytes and business response with its journal provenance
 using a narrow grant and the official MCP client.
 
 The sample reconnects transport failures at a bounded interval with the original
-configuration and IDs. Known rejections stop the workflow with retained state;
+configuration and IDs. Known command rejections stop the workflow with retained state;
 there is no credential fallback or automatic widening. Cancelling the outgoing
 review preserves incoming work, including after restart. Each task lasts ten
 minutes, so a queued effect cannot be renewed by inventing an ID.
 
-Input bounds: policy 16 KiB, incoming body 8 KiB, draft body 4 KiB, title 128 bytes,
+Input bounds: policy 16 KiB, incoming body 8 KiB, draft body 4 KiB, serialized
+artifact 32 KiB with 4 KiB chunks, title 128 bytes,
 note 1 KiB, contact list 16, inbox page 100 events / 512 KiB, ledgers 10,000 entries,
 reply lookup ten pages and consume-CAS reconciliation three attempts. Capacity
 or lookup exhaustion preserves unfinished work for inspection. There is no

@@ -52,6 +52,12 @@ pub(super) async fn execute(
         }
     };
     fault("after-ack");
+    if key.starts_with("outgoing-artifact:") {
+        fault(&format!(
+            "after-{}-ack",
+            key.split(':').nth(1).unwrap_or("artifact")
+        ));
+    }
     if key.starts_with("task:intake:") {
         fault("after-intake-task-ack");
     }

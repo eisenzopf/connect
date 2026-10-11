@@ -1,5 +1,6 @@
 //! Restore the original outgoing task without reopening terminal work.
 use super::{
+    artifacts,
     ledger::{execute, id},
     state::AppStore,
     workflow::{create_task, observe, record, send, settle},
@@ -54,10 +55,29 @@ pub(super) async fn bootstrap(
     if task.state.is_terminal() {
         return Ok(Some(task));
     }
+    // Existing tasks keep their original authority and original question.
+    let artifact = if store.accepted("outgoing-question")?.is_some() {
+        store
+            .metadata("outgoing-artifact")?
+            .map(|json| serde_json::from_str::<connect_client::Artifact>(&json))
+            .transpose()?
+    } else if task
+        .scope
+        .operations
+        .contains(&connect_client::tasks::TaskPermission::ArtifactBegin)
+    {
+        let Some(artifact) = artifacts::publish(store, client, &task, &policy.draft).await? else {
+            return Ok(None);
+        };
+        Some(artifact)
+    } else {
+        None
+    };
     let body = serde_json::json!({
         "action":"review_request",
         "draft":policy.draft,
         "digest":policy.draft.digest()?,
+        "artifact":artifact,
     })
     .to_string();
     let outcome = execute(

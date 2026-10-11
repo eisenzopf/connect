@@ -1,6 +1,5 @@
 //! Decisions require explicit server reply binding, not text or sender inference.
 use super::{
-    domain::digest,
     ledger::{execute, id},
     state::AppStore,
     workflow::{self, command},
@@ -42,56 +41,27 @@ pub(super) async fn handle(
     );
     match request {
         Request::SubmitDraft { request_id, draft } => {
-            let key = format!(
-                "intake:{}",
-                digest(&(&message.sender, &event.conversation_id, &request_id))?
-            );
-            let payload = serde_json::json!({
-                "sender":message.sender,
-                "request_id":request_id,
-                "draft":draft,
-                "status":"received",
-            });
-            let existing: Option<(String, String)> = store
-                .connection
-                .query_row(
-                    "SELECT task_id,input_digest FROM app_business WHERE key=?1",
-                    [&key],
-                    |r| Ok((r.get(0)?, r.get(1)?)),
-                )
-                .optional()?;
-            if let Some((task_id, previous)) = existing {
-                let live = workflow::get(client, &task_id).await?;
-                ensure!(
-                    live.conversation_id == event.conversation_id,
-                    "Intake conversation changed"
-                );
-                let result = if previous == digest(&payload)? {
-                    "duplicate"
-                } else {
-                    "conflict"
-                };
-                return store.finish_event(&event.id, result);
-            }
-            let task = workflow::create_task(
-                store,
+            super::intake::receive(store, client, event, request_id, draft, None).await
+        }
+        Request::SubmitArtifact {
+            request_id,
+            artifact,
+        } => {
+            super::intake::recover_pending_task(store, client, event, &request_id).await?;
+            let content = super::artifacts::receive(
                 client,
-                &format!("task:{key}"),
                 &event.conversation_id,
                 &message.sender,
-                Some(event.id.clone()),
+                &artifact,
             )
-            .await?;
-            let response = serde_json::json!({
-                "action":"draft_received",
-                "request_id":request_id,
-                "ticket_id":key,
-                "digest":draft.digest()?,
-                "status":"received",
-            })
-            .to_string();
-            let reply = workflow::send(&task.id, &event.conversation_id, response, None, false);
-            store.business(&key, "intake", &task.id, event, payload, reply)
+            .await;
+            match content {
+                Ok((draft, source)) => {
+                    super::intake::receive(store, client, event, request_id, draft, Some(source))
+                        .await
+                }
+                Err(error) => store.finish_event(&event.id, super::artifacts::rejection(error)?),
+            }
         }
         Request::ReviewDecision {
             draft_id,
@@ -117,6 +87,22 @@ pub(super) async fn handle(
             if !bound(client, outgoing, event, &question).await? {
                 return store.finish_event(&event.id, "unassigned");
             }
+            let artifact = store
+                .metadata("outgoing-artifact")?
+                .map(|json| serde_json::from_str::<connect_client::Artifact>(&json))
+                .transpose()?;
+            if let Some(ref artifact) = artifact {
+                let draft = match super::artifacts::verify_bytes(client, artifact).await {
+                    Ok(draft) => draft,
+                    Err(error) => {
+                        return store.finish_event(&event.id, super::artifacts::rejection(error)?)
+                    }
+                };
+                ensure!(
+                    draft == policy.draft,
+                    "Reviewed artifact no longer matches the configured draft"
+                );
+            }
             consume(store, client, &outgoing.id, &event.id).await?;
             workflow::current(client, &outgoing.id).await?;
             let response = serde_json::json!({
@@ -126,12 +112,15 @@ pub(super) async fn handle(
                 "digest":policy.draft.digest()?,
             })
             .to_string();
-            let payload = serde_json::json!({
+            let mut payload = serde_json::json!({
                 "draft":policy.draft,
                 "draft_id":draft_id,
                 "decision":decision,
                 "note":note,
             });
+            if let Some(artifact) = artifact {
+                payload["artifact"] = serde_json::to_value(artifact)?;
+            }
             let reply = workflow::send(
                 &outgoing.id,
                 &event.conversation_id,
