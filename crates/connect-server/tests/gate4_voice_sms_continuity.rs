@@ -61,6 +61,8 @@ async fn voice_decision_survives_restart_and_stop_then_one_sms_reply_returns_to_
         .negotiate_tasks("connect:agent@local", Some(&h.cid))
         .await
         .unwrap();
+    // The local enrollment authority supplies its current reviewed snapshot.
+    enrollment.refresh(&h, 2, true);
     let grant = grants::issue(
         &h,
         &task,
