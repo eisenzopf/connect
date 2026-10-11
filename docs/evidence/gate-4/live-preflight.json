@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T22:26:43.977191+00:00",
+  "status": "read-only preflight blocked for automated client; no live journey executed",
+  "scope": "Separate Gate 4 live preparation; not part of the account-free runner",
+  "checks": [
+    {
+      "host": "rudeless.ai",
+      "endpoint": "/api/v1/connect/sms-grants",
+      "method": "GET",
+      "http_status": 403,
+      "edge_error": 1010,
+      "edge_category": "browser_signature_banned",
+      "private_response_sha256": "63a3a2649853e50284cdad642dbf84076180cf04ab86cef7a1cacac2e497589f"
+    },
+    {
+      "host": "api.vapi.ai",
+      "endpoint": "/assistant/{retained-test-assistant}",
+      "method": "GET",
+      "http_status": 403,
+      "edge_error": 1010,
+      "edge_category": "browser_signature_banned",
+      "private_response_sha256": "4ff010cf3ed1e389946246854c105c534f9a8672cc267a2eeab29ec0cd928387"
+    }
+  ],
+  "owner_browser_observation": "Owner reports {\"error\":\"unauthorized\"} from the SMS feed in a browser. This differs from the automated client edge rejection and is consistent with reaching the protected application without its service bearer.",
+  "conclusions": [
+    "Environment contains both provider keys; account validity has not been established.",
+    "Neither rejection establishes SMS enrollment state, consent expiry, provider readiness or token validity.",
+    "Do not attribute both edge rejections to one site configuration without evidence.",
+    "No provider account configuration changed, no call placed, no SMS sent, and no database modified."
+  ],
+  "remaining": [
+    "Resolve legitimate automated service access before retrying the denied endpoints.",
+    "Verify current reviewed SMS enrollment and scope before any task-driven send.",
+    "Use final installed candidate for the required actual host/provider journeys."
+  ],
+  "offline_run": "docs/evidence/gate-4/offline-d47be55-attempt-1.json"
+}
