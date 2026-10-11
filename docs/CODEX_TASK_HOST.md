@@ -124,6 +124,42 @@ explicit error. Current server revocation still denies MCP even if the saved
 local grant file has not changed. Automatic wake, grant renewal and session
 reconstruction are not implemented by this command.
 
+## Owned process cleanup
+
+The launcher gives each Unix host turn its own process group. On macOS, it
+observes normal child exit without reaping the leader, signals that inherited
+group, then reaps the leader. Timeout and stream errors also signal before
+reaping. Holding the leader waitable prevents the group ID from being reused
+before cleanup. An inherited stdout pipe cannot defeat the turn deadline. The
+absolute deadline is fixed before journal/setup/spawn; cleanup does not restart
+the turn's budget.
+
+Darwin can return `EPERM` when a group contains only zombies, as shown in
+[Apple's group-signalling implementation](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_sig.c).
+The exception path uses a native group snapshot bounded to 64 KiB and one
+second. It accepts that result only when the unreaped leader is present and
+every member is a zombie. A live member, missing leader or failed/oversized
+inspection keeps cleanup unsuccessful; genuine permission failures are not
+treated as completion.
+
+Cancelling the Rust caller future signals the group synchronously and schedules
+direct-child reaping on the active runtime. Normal errors and deadlines await
+that reaping before the command returns. Original task, session, prompt and run
+intent remain available for explicit resume; cleanup creates no communication
+or replacement task. This is lifecycle ownership, not a restriction on which
+configured tools an agent can use.
+
+This does not contain deliberately detached sessions or guarantee cleanup after
+the launcher itself is killed without running destructors. Runtime teardown
+still needs an external supervisor for reaping guarantees. Only local macOS
+arm64 is qualified; no cross-platform or arbitrary process-tree claim is made.
+The [local cleanup audit](evidence/gate-4/codex-process-cleanup.json) records
+19 behavior checks: six cleanup cases, the native live/zombie snapshot case and
+12 host/diagnostic/autonomy regressions, plus strict Clippy/Rustdoc/format. It
+retains the interim deadline and Darwin failures. The component check is
+`gate4_codex_cleanup`; whole host and installed-candidate qualification remain
+G4-021/G4-023/G4-033.
+
 The [local process proof](evidence/gate-4/codex-host-process.json) records four
 behavior tests, strict Clippy/Rustdoc/format checks and retained failures.
 Local process doubles exercise the packaged adapter against real loopback MCP.

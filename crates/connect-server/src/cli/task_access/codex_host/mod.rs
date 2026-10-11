@@ -1,7 +1,10 @@
 //! Explicit Codex continuation: one protected installation maps to one session.
 //! Host completion is not task completion. All communication authority remains
 //! checked by Connect; saved session metadata grants no permissions.
+mod child;
 pub mod diagnostics;
+#[cfg(target_os = "macos")]
+mod group_status;
 mod install;
 mod process;
 mod state;
@@ -90,20 +93,15 @@ pub async fn run(
         state.create(&directory)?;
         state
     };
-    tokio::time::timeout(
-        Duration::from_secs(seconds),
-        process::execute(
-            &directory,
-            binary,
-            &installation.config,
-            grant.expose_secret(),
-            &mut state,
-        ),
+    process::execute(
+        &directory,
+        binary,
+        &installation.config,
+        grant.expose_secret(),
+        &mut state,
+        tokio::time::Instant::now() + Duration::from_secs(seconds),
     )
-    .await
-    .context(
-        "Host turn deadline exceeded; original task/session retained for explicit recovery",
-    )??;
+    .await?;
     println!(
         "{}",
         serde_json::json!({"status":"host-turn-completed", "task_id":state.task_id, "session_id":state.session_id, "run_id":state.run_id})

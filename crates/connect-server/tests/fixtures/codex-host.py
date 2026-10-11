@@ -2,6 +2,7 @@
 """Offline Codex process double; real loopback Connect MCP remains authoritative."""
 import json
 import os
+import subprocess
 import sys
 import time
 import urllib.request
@@ -35,6 +36,25 @@ session = state["session_id"] or str(uuid.uuid4())
 if mode == "switch":
     session = str(uuid.uuid4())
 print(json.dumps({"type": "thread.started", "thread_id": session}), flush=True)
+if mode.startswith("descendant-"):
+    subprocess.Popen(
+        [sys.executable, str(Path(__file__).with_name("codex-descendant.py")),
+         str(Path.cwd() / "descendant.json")], stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL if mode == "descendant-complete" else None,
+    )
+    deadline = time.monotonic() + 3
+    while not Path("descendant.json").exists():
+        assert time.monotonic() < deadline
+        time.sleep(0.01)
+    if mode == "descendant-invalid":
+        print("invalid JSONL", flush=True)
+    if mode == "descendant-exit":
+        sys.exit(2)
+    if mode == "descendant-complete":
+        print(json.dumps({"type": "turn.completed", "usage": {}}), flush=True)
+        sys.exit(0)
+    time.sleep(60)
+    sys.exit(1)
 if mode == "stall":
     time.sleep(60)
     sys.exit(1)

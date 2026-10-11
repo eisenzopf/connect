@@ -771,6 +771,7 @@ dependencies = [
  "reqwest 0.13.5",
  "rmcp",
  "rusqlite",
+ "rustix",
  "rustls",
  "rvoip-auth-core",
  "rvoip-core",

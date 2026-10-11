@@ -29,6 +29,11 @@ pub fn install(f: &super::fixture::Fixture) -> (PathBuf, PathBuf) {
     codex::export(&source, f.server.mcp_address.unwrap(), &output).unwrap();
     let binary = f.directory().join("fake-codex");
     private_write(&binary, include_bytes!("../fixtures/codex-host.py")).unwrap();
+    private_write(
+        &f.directory().join("codex-descendant.py"),
+        include_bytes!("../fixtures/codex-descendant.py"),
+    )
+    .unwrap();
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
