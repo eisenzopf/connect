@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "recorded_at": "2026-10-11T13:29:03.764640+00:00",
+  "recorded_at": "2026-10-11T13:54:41.667324+00:00",
   "items": [
     "G4-025",
     "G4-031"
   ],
   "source_revision": "2c9948f",
-  "status": "native Rust fixtures compiled; seven-check actual-runtime repeat running, final strict lint pending",
+  "status": "local overlapping-draft component qualified with actual runtime and clean owned-process teardown",
   "scope": "local macOS arm64; installed Codex with scripted loopback Responses and empty account roots",
   "runtime_qualification": ".local/gate-4-planning/draft-2c9948f/result.json",
   "verification": [
@@ -32,9 +32,8 @@
     }
   ],
   "limits": [
-    "No runtime pass is claimed for the new journey until its named test executes successfully.",
-    "Independently initiated assistant contact, actual inference and full G4-025 acceptance remain open.",
-    "The existing full offline runner qualifies a different earlier source revision."
+    "The corrected source passes its named draft test and strict Clippy as part of seven actual-runtime checks.",
+    "Scripted Responses are not model inference. Full G4-025 dependencies, provider/installed acceptance and remaining Gate 4 work stay open."
   ],
   "runtime_attempt": {
     "status": "failed",
@@ -79,11 +78,13 @@
   },
   "active_repeat": {
     "result": ".local/gate-4-planning/draft-2c9948f-repeat/result.json",
-    "status": "running",
+    "status": "finished with seven passing behaviors but failed owned-process cleanup; retained in codex-owned-runtime.json",
     "budget_seconds": 1800,
     "started_after": "Prior standalone scoped Clippy completed successfully; original build-lock timeout is retained.",
     "source_boundary": "Primary source revision 5770f92; non-document source remains the 2c9948f fixture set.",
     "observation": "Cargo compiled all five host test artifacts in 1m28s and started gate4_codex_call_intent. No runtime pass claimed yet.",
     "review_issue": "The new draft test imports a shared state helper it does not yet use; strict lint must be corrected and verified. Prefer asserting both saved host task bindings. The existing macOS debug linker warning is also retained."
-  }
+  },
+  "qualified_source_revision": "88aec46045aea8aef97ce1e2b88c89fcd56d7e39",
+  "qualification": "docs/evidence/gate-4/codex-owned-runtime.json"
 }

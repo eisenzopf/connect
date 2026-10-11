@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "recorded_at": "2026-10-11T13:25:03.316307+00:00",
+  "recorded_at": "2026-10-11T13:54:41.667324+00:00",
   "items": [
     "G4-025"
   ],
-  "status": "isolated native intake component verified; actual installed runtime failed startup deadlines and remains unqualified",
+  "status": "local incoming-contact component qualified; full Gate 4 acceptance remains open",
   "source_checkout": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
   "source_branch": "codex/agent-presence-inbox",
-  "source_revision": "32acecbcf0fc3b9f44dfd65325dea7763b1b059a",
-  "merged_into_primary_checkout": false,
+  "source_revision": "a5ef91b9fa06c58e154fc51a3f292992e8586a16",
+  "merged_into_primary_checkout": true,
   "unit_checks": {
     "passed": 15,
     "failed": 0,
@@ -26,13 +26,14 @@
     "Sender/conversation/request-ID deduplication preserves the first initiating event; changed content records conflict.",
     "Exact task-creation inputs survive acceptance uncertainty. Current authority is rechecked; terminal work is inspected without reopening.",
     "Protected CLI grant issuance and export feed the packaged host. A retained completed host checkpoint prevents a second first turn after a lost app ACK.",
-    "One explicit invocation processes one inbox page and at most one contact. Later reply continuation uses existing explicit-resume mode."
+    "One explicit invocation processes one inbox page and at most one contact. Later reply continuation uses existing explicit-resume mode.",
+    "The delivered intake command issues a real HostSession grant through protected HTTP, launches the actual installed runtime, recalls the incoming source and returns one visible reply in the existing conversation. Lost app ACK reuses the saved host checkpoint; cancellation prevents another turn; no parent/grant bearer enters scripted Responses."
   ],
   "limits": [
-    "Native intake behavior is verified against the retained development binary. Actual installed runtime, inference, cold start and release-package qualification remain open.",
-    "Unknown database/schema and policy changes are refused without adopting unrelated state. No model account or live provider operation has run.",
-    "This application-level contact_assistant format is not a new UCTP message or universal presence protocol.",
-    "The primary source remains frozen for its separate runtime checks; this branch is not yet integrated."
+    "This is local development-binary and scripted-runtime qualification, with no inference, live providers or installed-release claim.",
+    "Cold startup and earlier fixture failures are preserved, not converted into passes.",
+    "The example uses an explicit application-level contact_assistant request; it does not redefine UCTP or infer task bindings from arbitrary messages.",
+    "The current full runner now requires its 15 unit checks, native public check and separate actual-runtime check. Full source-stable 33-phase qualification remains pending."
   ],
   "failures": [
     {
@@ -80,6 +81,13 @@
       "failure": "Packaged host exceeded its unchanged 120-second deadline before any saved host session. No actual-runtime success claimed.",
       "checkout_relative_path": ".local/incoming/installed-3.log",
       "sha256": "285f1025aca4e7da75860547e6918cf9def4d5859436e5fbb7af27221d82f333"
+    },
+    {
+      "status": "failed",
+      "exit_code": 1,
+      "failure": "The actual host answered, but the test read id instead of the Python SDK accepted receipt message_id. Only the fixture assertion changed; the corrected stable-source supervised walkthrough passes.",
+      "path": ".local/gate-4-planning/incoming-a5ef91b/incoming/installed-4.log",
+      "sha256": "1d7cb8be2e87a3a938fab69eebcbd1a8d7312aa11af2641b17a906a4505bf453"
     }
   ],
   "public_process_check": {
@@ -122,5 +130,82 @@
       "examples/agent-presence/tests/test_public_intake.py": "926aa975b0af5260f3169956a1b2eb875a96bb00fba4e3c4e864baac3dcabb53",
       "examples/agent-presence/voice.py": "9d687ce3450795e444740d320be6826fc41898e0ae319410559fe43007e53292"
     }
-  }
+  },
+  "primary_integration_revision": "f4aee46",
+  "qualification": {
+    "source_stable": true,
+    "source_input_count": 737,
+    "result": ".local/gate-4-planning/incoming-a5ef91b/incoming-final/result.json",
+    "result_sha256": "3ed656cae55c9e8cd96b6b813db6d3d284edf8befd9b260d258e3607bf548668",
+    "checks": [
+      {
+        "name": "unit",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_incoming*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "unit.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.187,
+        "expected_tests": 15
+      },
+      {
+        "name": "public-sdk",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_public_intake.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "public-sdk.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.823,
+        "expected_tests": 1
+      },
+      {
+        "name": "installed-incoming",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_installed_incoming.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "installed-incoming.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.85,
+        "expected_tests": 1
+      }
+    ],
+    "total_passed": 17,
+    "failed": 0,
+    "ignored": 0
+  },
+  "integrated_executable_inputs_match_qualified_source": true,
+  "evidence_archive": ".local/gate-4-planning/incoming-a5ef91b"
 }

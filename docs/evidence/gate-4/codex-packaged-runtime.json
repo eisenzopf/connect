@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "recorded_at": "2026-10-11T12:36:53.561467+00:00",
+  "recorded_at": "2026-10-11T13:54:41.667324+00:00",
   "items": [
     "G4-021",
     "G4-023",
     "G4-031"
   ],
-  "status": "actual packaged runtime behavior passed; final strict lint and stable-source repeat pending",
-  "source_boundary": "Working-tree probe based on 9198389. A scoped unused shared-fixture warning was subsequently corrected; this is not final source-stable qualification.",
+  "status": "packaged actual-runtime component qualified at stable source with strict lint",
+  "source_boundary": "The original working-tree probe is retained below. Current source-stable qualification is recorded separately in codex-owned-runtime.json.",
   "runtime": "codex-cli 0.162.0-alpha.17.2",
   "runtime_check": {
     "log": {
@@ -37,14 +37,16 @@
     "The runner now requires six external-runtime checks and rejects the earlier five-check set or an ignored packaged test."
   ],
   "limits": [
-    "The shim supplies deterministic Responses. Actual-model skill following, full draft/artifact and independently initiated agent-presence journeys, installed release qualification and provider rehearsals remain open.",
-    "No production source changed for this probe. Full-run source d04cf4c does not include the new test; its evidence remains separate.",
-    "The first probe emitted an unused shared-helper method warning; lint correction is pending qualification."
+    "The shim supplies deterministic Responses; no real-model inference is qualified.",
+    "Original probe warnings, the later build-lock timeout and failed test-process cleanup remain recorded. The corrected seven-check set and strict Clippy pass.",
+    "Whole installed-candidate, cold/warm setup, provider and Gate 4 acceptance remain open."
   ],
   "scoped_lint_observation": {
     "exit_code": 0,
     "path": ".local/gate-4-planning/codex-packaged-lint.log",
     "sha256": "1bb05ce0189a068ff7d7b89bff5c10c3947de082743d3196b77e3ab0202e03f1",
     "scope": "Strict all-feature packaged-runtime target completed in 54m20s. Shared test helpers changed while that command was active, so this standalone call is not treated as final source-stable qualification. The current-source seven-check sequence includes a fresh strict-lint phase."
-  }
+  },
+  "qualified_source_revision": "88aec46045aea8aef97ce1e2b88c89fcd56d7e39",
+  "qualification": "docs/evidence/gate-4/codex-owned-runtime.json"
 }

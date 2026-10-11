@@ -237,11 +237,11 @@
     "source_revision": "d04cf4c14064a1f5352c38b44b2cb41d2b29a860",
     "dirty": false,
     "mode": "complete-offline",
-    "status": "running",
+    "status": "failed",
     "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
     "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T121631.424320Z/result.json",
-    "active_phase": "workspace",
-    "observed_at": "2026-10-11T12:52:04.596222+00:00",
+    "active_phase": null,
+    "observed_at": "2026-10-11T13:54:41.667324+00:00",
     "passed_phases": [
       "dependencies",
       "format",
@@ -252,9 +252,11 @@
       "python-sdk",
       "runner-failure-tests",
       "lint",
-      "rustdoc"
+      "rustdoc",
+      "workspace",
+      "media-pressure"
     ],
-    "evidence_limit": "Checkpoint only; all 30 phases have not passed. This pinned d04cf4c run excludes the later packaged-runtime and overlapping-draft tests; their current-source qualification is separate.",
+    "evidence_limit": "Third pinned full run passed 497 workspace tests and the media-pressure test, then failed on six leftover processes after its five older host tests passed. Later phases did not run. Current-source fixture correction separately passes seven host checks and strict lint; it does not erase this failed full run.",
     "startup_observation": {
       "test_binary": "gate4_mcp_late_body",
       "process_id": 36034,
@@ -262,7 +264,143 @@
       "sample": ".local/gate-4-planning/mcp-late-body-launch-sample.txt",
       "sample_sha256": "143252879f2a4cfac04bae94734124fb634c5fdf11bb11220cd4b05aebe7e7e7",
       "finding": "One-second sample remained at _dyld_start with 112 KiB footprint, before the Rust test harness printed its test count. Underlying operating-system startup cause is not established. No deadline or test semantics changed."
-    }
+    },
+    "finished_at": "2026-10-11T13:38:12.508526+00:00",
+    "result_sha256": "9e839b04d0e446bb81cff8f775005dc26039d75d75f3e69e10e6eb19cce66d25",
+    "terminal_steps": [
+      {
+        "name": "workspace",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-features",
+          "--",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 7200,
+        "log": "workspace.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 4759.721,
+        "rust_tests": {
+          "passed": 497,
+          "failed": 0,
+          "ignored": 6
+        },
+        "ignored_follow_up": [
+          "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+          "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+          "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+          "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+          "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+          "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
+        ]
+      },
+      {
+        "name": "media-pressure",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate3_media_pressure",
+          "--",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1200,
+        "log": "media-pressure.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 122.195,
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "installed-host",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_codex_runtime",
+          "--test",
+          "gate4_codex_call_intent",
+          "--test",
+          "gate4_codex_reply_workflow",
+          "--",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1800,
+        "log": "installed-host.log",
+        "status": "failed",
+        "exit_code": 0,
+        "leftover_group_members": [
+          45351,
+          45353,
+          45360,
+          45374,
+          45377,
+          45385
+        ],
+        "error": "LeakedProcessGroup",
+        "group_cleanup": "signalled",
+        "seconds": 6.69,
+        "rust_tests": {
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        }
+      }
+    ],
+    "not_run": [
+      "upstream-regression",
+      "upstream-vapi",
+      "upstream-queues",
+      "upstream-codec",
+      "current-binaries",
+      "native-task-capacity",
+      "schema-six-build",
+      "schema-ten-build",
+      "historical-task-recovery",
+      "dispatch",
+      "identity",
+      "typescript-probe",
+      "crash-replay",
+      "examples",
+      "example-recovery",
+      "current-recovery",
+      "datagram-example"
+    ]
   },
-  "corrective_qualification": "docs/evidence/gate-4/codex-grant-renewal.json"
+  "corrective_qualification": "docs/evidence/gate-4/codex-grant-renewal.json",
+  "current_definition": {
+    "source_revision": "88aec46",
+    "full_phases": 33,
+    "source_only_phases": 31,
+    "rust_installed_host_checks": 7,
+    "incoming_example_checks": {
+      "unit": 15,
+      "public_sdk": 1,
+      "installed_runtime": 1
+    },
+    "runner_failure_checks_passed": 12,
+    "complete_offline_result": "not yet run on this definition"
+  }
 }

@@ -44,8 +44,11 @@ effects. The backing credential is never passed to the model process.
 
 The local `renew-codex` component passes its [26-check host and admission
 audit](evidence/gate-4/codex-grant-renewal.json), including strict quality checks.
-These use an offline host process double and real Connect MCP; actual-model,
-HostSession renewal and installed-candidate qualification remain open. After
+Those fixtures use an offline host process double and real Connect MCP. The
+[seven-check actual-runtime audit](evidence/gate-4/codex-owned-runtime.json) now
+also qualifies protected HostSession renewal and exact-session continuation
+through the packaged launcher. Scripted Responses perform no inference; real-model
+and installed-candidate qualification remain open. After
 issuing a replacement through [task-access](TASK_ACCESS.md), use:
 
 ```sh
@@ -297,15 +300,15 @@ prompts, bearer secrets or logs. An interrupted turn preserves its original
 session; a missing session requires repair. A completed turn does not complete
 the task. See [task diagnostics](TASK_DIAGNOSTICS.md).
 
-## Shared-conversation draft journey (qualification pending)
+## Shared-conversation draft journey
 
 `gate4_codex_draft_journey` exercises two exported installations in the same
 persistent conversation. Each task uploads a different draft through MCP and
 shares the returned artifact handle. A native participant retrieves and checks
 its size, digest and bytes both before and after a Connect restart. The participant
 answers only one question. Both exact host sessions resume; only the explicitly
-bound task should produce a source-backed follow-up. The unanswered task must
-remain waiting. Replaying the saved follow-up must leave the Store unchanged.
+bound task produces a source-backed follow-up. The unanswered task remains
+waiting. Replaying the saved follow-up leaves the Store unchanged.
 
 ```sh
 CONNECT_TEST_CODEX_BINARY="$(command -v codex)" \
@@ -313,11 +316,18 @@ CONNECT_TEST_CODEX_BINARY="$(command -v codex)" \
   --test gate4_codex_draft_journey -- --ignored --test-threads=1
 ```
 
-This check is newly added and awaiting its runtime and strict-lint results.
+This check passes in the stable-source seven-check actual-runtime group, along
+with strict affected Clippy and owned-process cleanup. See the
+[draft audit](evidence/gate-4/codex-draft-journey.json).
 It launches the actual installed CLI through `run-codex`, with scripted loopback
 Responses and empty account directories. It does not test model reasoning.
 The two tasks intentionally share authorized conversation history; task reply
 binding determines which work continues. This preserves cross-task context
-without guessing that any incoming message answers both requests. Independent
-incoming-contact dispatch, the delivered walkthrough and full G4-025 acceptance
-remain open.
+without guessing that any incoming message answers both requests. The delivered [incoming-contact example](../examples/agent-presence/README.md)
+also passes 17 local unit, native SDK and actual installed-runtime checks. It
+accepts one configured contact per explicit invocation, creates a source-bound
+task and invokes the packaged host. Application ACK loss reuses the completed
+host checkpoint; cancellation prevents another effect. This is bounded explicit
+intake, not an automatically waking daemon. See its
+[audit](evidence/gate-4/agent-incoming-example.json). Installed-candidate,
+real-model, provider and full G4-025 acceptance remain open.
