@@ -293,3 +293,7 @@ CONNECT_TEST_CODEX_BINARY="$(command -v codex)" PYTHONPATH=sdk/python \
 It retains synthetic private fixtures under `.local/incoming-runtime/` for
 failure inspection. No actual-model, cold-start, installed release or full
 Gate 4 qualification is implied by the native intake checks.
+
+Contributor qualification commands in this guide run from the source checkout or
+source archive. The runtime archive includes the application and SDK; its tests
+and provider simulators are supplied in the separate source archive.

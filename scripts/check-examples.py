@@ -2,9 +2,10 @@
 """Two independent native example processes, persistent jobs, offline recovery and restart."""
 import json, os, pathlib, sqlite3, subprocess, tempfile, tomllib
 from lib.local_process import ROOT,BINARY,Server,run,port,request
-if not os.environ.get('CONNECT_BINARY'):
-    subprocess.run(['cargo','build','--locked','-p','connect-server','-p','connect-review-loop','--bins'],cwd=ROOT,check=True)
 from lib.examples import EXAMPLE,inspect,worker,finish,pair
+if (BINARY == (ROOT/'target/debug/connect').resolve()
+        or EXAMPLE == (ROOT/'target/debug/connect-example').resolve()):
+    subprocess.run(['cargo','build','--locked','-p','connect-server','-p','connect-review-loop','--bins'],cwd=ROOT,check=True)
 with tempfile.TemporaryDirectory(prefix='connect-examples-') as temporary:
     state=pathlib.Path(temporary)/'state'
     run('init','--directory',state,'--example','review-loop','--bind',f'127.0.0.1:{port()}')

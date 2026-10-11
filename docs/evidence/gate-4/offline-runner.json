@@ -778,11 +778,11 @@
     "limit": "Unchanged isolated repeat; no deadline, product or fixture correction. Original not-entered startup failure remains unexplained and the full run remains failed. A new complete run is still required."
   },
   "current_full_run_checkpoint": {
+    "recorded_at": "2026-10-11T15:05:18.743046+00:00",
+    "status": "failed",
     "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T141836.001856Z/result.json",
-    "observed_at": "2026-10-11T14:37:31.973982+00:00",
+    "result_sha256": "b5415e7d834c4f6b2d2285acf6f9a7c2e3c2cdbd99a08a43afe05e40493fbd35",
     "source_revision": "735b20c2ea1ad46ebed051d83f1f7c95978dec56",
-    "status": "running",
-    "active_phase": "upstream-regression",
     "steps": [
       {
         "name": "dependencies",
@@ -1080,9 +1080,312 @@
           "failed": 0,
           "ignored": 0
         }
+      },
+      {
+        "name": "upstream-regression",
+        "command": [
+          "bash",
+          "scripts/check-baseline.sh"
+        ],
+        "timeout_seconds": 3600,
+        "log": "upstream-regression.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 836.924,
+        "rust_tests": {
+          "passed": 942,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "upstream-vapi",
+        "command": [
+          "env",
+          "CARGO_TARGET_DIR=target/upstream",
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-vapi",
+          "--test",
+          "mock_transport"
+        ],
+        "timeout_seconds": 1200,
+        "log": "upstream-vapi.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 20.341,
+        "rust_tests": {
+          "passed": 20,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "upstream-queues",
+        "command": [
+          "env",
+          "CARGO_TARGET_DIR=target/upstream",
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-sip",
+          "-p",
+          "rvoip-webrtc",
+          "--lib",
+          "queue_budget_tests"
+        ],
+        "timeout_seconds": 1200,
+        "log": "upstream-queues.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 296.108,
+        "rust_tests": {
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "upstream-codec",
+        "command": [
+          "env",
+          "CARGO_TARGET_DIR=target/upstream",
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "-p",
+          "rvoip-sip",
+          "--test",
+          "adapter_renegotiate"
+        ],
+        "timeout_seconds": 1200,
+        "log": "upstream-codec.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.662,
+        "rust_tests": {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "current-binaries",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--bin",
+          "connect"
+        ],
+        "timeout_seconds": 1200,
+        "log": "current-binaries.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 159.5
+      },
+      {
+        "name": "agent-incoming-public",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_public_intake.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-public.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 7.88,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "agent-incoming-host",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_installed_incoming.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "agent-incoming-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.758,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "native-task-capacity",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-task-capacity.py"
+        ],
+        "timeout_seconds": 960,
+        "log": "native-task-capacity.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 53.251
+      },
+      {
+        "name": "schema-six-build",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/build-recovery-baseline.py",
+          "--schema",
+          "6"
+        ],
+        "timeout_seconds": 7500,
+        "log": "schema-six-build.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.135
+      },
+      {
+        "name": "schema-ten-build",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/build-recovery-baseline.py",
+          "--schema",
+          "10"
+        ],
+        "timeout_seconds": 7500,
+        "log": "schema-ten-build.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.195
+      },
+      {
+        "name": "historical-task-recovery",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-gate4-recovery.py",
+          "--previous-binary",
+          ".local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect"
+        ],
+        "timeout_seconds": 660,
+        "log": "historical-task-recovery.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 6.379
+      },
+      {
+        "name": "dispatch",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-dispatch.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "dispatch.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 5.732
+      },
+      {
+        "name": "identity",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-identity.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "identity.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 7.697
+      },
+      {
+        "name": "typescript-probe",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-typescript.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "typescript-probe.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.351
+      },
+      {
+        "name": "crash-replay",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-crash-replay.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "crash-replay.log",
+        "status": "failed",
+        "exit_code": 1,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 9.204
       }
     ],
-    "limit": "Intermediate checkpoint, not completed qualification. Eight workspace ignores are required in explicit follow-up phases. The subsequently added combined voice-to-SMS fixture is not in this source."
+    "not_run": [
+      "examples",
+      "example-recovery",
+      "current-recovery",
+      "datagram-example"
+    ],
+    "error": {
+      "type": "RuntimeError",
+      "detail": "Phase failed: crash-replay; see private log"
+    },
+    "finding": "The crash-replay script builds test-support into target/debug/connect but skips restoring the normal build whenever CONNECT_BINARY is set, even when it names the overwritten path. The failpoint-free normal-binary assertion correctly rejected it. Correction and focused replay qualification pending.",
+    "limit": "Failed full run. Later combined voice/SMS and package changes are not included. Prior passes do not close current-source qualification."
   },
   "historical_input_cache": {
     "recorded_at": "2026-10-11T14:35:32.002584+00:00",
@@ -1107,5 +1410,140 @@
         "prior_qualification": "docs/evidence/gate-4/historical-recovery.json"
       }
     ]
+  },
+  "recovery_followup": {
+    "recorded_at": "2026-10-11T15:12:09.111785+00:00",
+    "status": "passed focused recovery follow-up; full qualification remains failed/open",
+    "source_base": "735b20c2ea1ad46ebed051d83f1f7c95978dec56",
+    "changes": {
+      "scripts/check-crash-replay.py": "fc974cb802bd325dc0a5b0a84d43e208f322942f58a0f257d7e6a6b9aa88fa91",
+      "scripts/check-examples.py": "a6be50b77ad770856c8df60f5619d2d7c11d04bce63312ba728ddfccbcd1ec43",
+      "scripts/check-example-recovery.py": "fb9cdf1ecd5b0047d4a6bdb8355712e9174f0812dc0267e4bbf758219204f88b"
+    },
+    "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/recovery-followup/result.json",
+    "result_sha256": "fdff4b7f002963d3d806082eb017053d25bd6dce878f1f84d64ff02c1edf28bd",
+    "source_stable": true,
+    "external_binaries_unchanged": true,
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.25
+      },
+      {
+        "name": "crash-replay-selected-local",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-crash-replay.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "crash-replay-selected-local.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 11.087
+      },
+      {
+        "name": "examples",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-examples.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "examples.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 15.875
+      },
+      {
+        "name": "example-recovery-selected-local",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-example-recovery.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "example-recovery-selected-local.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 37.72
+      },
+      {
+        "name": "current-recovery",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-recovery.py",
+          "--current-only"
+        ],
+        "timeout_seconds": 660,
+        "log": "current-recovery.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.569
+      },
+      {
+        "name": "datagram-example",
+        "command": [
+          "cargo",
+          "run",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--example",
+          "quic_audio"
+        ],
+        "timeout_seconds": 600,
+        "log": "datagram-example.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.846
+      },
+      {
+        "name": "crash-replay-external",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-crash-replay.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "crash-replay-external.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 10.108
+      },
+      {
+        "name": "example-recovery-external",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-example-recovery.py"
+        ],
+        "timeout_seconds": 600,
+        "log": "example-recovery-external.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 12.094
+      }
+    ],
+    "interpretation": "The same scripts now restore normal local build artifacts even when selected via environment variables, while independent installed binaries remain unchanged. All three server crash points and three application crash points recover/replay one logical effect. Examples, current recovery and QUIC datagram example also pass. This isolated checkout did not include later combined voice/SMS or package changes; no full current-source pass claimed."
   }
 }

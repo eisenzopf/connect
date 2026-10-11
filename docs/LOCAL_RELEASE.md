@@ -1,7 +1,8 @@
-# Run the Gate 3 local candidate
+# Run a local Connect candidate
 
 This candidate packages the Connect server, native Rust helper, Python and
-TypeScript SDKs, browser facade, and the human conversation test client for
+TypeScript SDKs, task/MCP tools, workflow skill, agent-presence example, browser
+facade, and the human conversation test client for
 macOS arm64. It is unpublished and performs no remote deployment. Provider-live
 evidence is recorded separately from the package qualification.
 
@@ -49,6 +50,34 @@ EXAMPLE agent --config state/agent.toml
 Both example processes use only the native SDK. Each has its own work database
 for handled events, logical request IDs, replies, and inbox cursor. Stop and
 restart either worker with the same files to exercise durable continuation.
+
+## Gate 4 task and agent workflows
+
+Gate 4 package qualification is still in progress. The numbered
+[implementation plan](connect-gate-4-implementation.html#G4-033) records actual
+results; new packaging code is not an installed-candidate attestation.
+
+The runtime carries [task contracts](../contracts/connect-task-v1.md),
+[protected grant setup](TASK_ACCESS.md), the [workflow skill](../skills/connect/SKILL.md)
+and [Codex installation/resume instructions](CODEX_TASK_HOST.md). The server
+exports the matching embedded skill and private host configuration. Developer
+setup grants the agent its task capabilities once; individual actions do not
+require approval prompts.
+
+The [incoming-contact example](../examples/agent-presence/README.md) runs from
+`examples/agent-presence/codex-inbox.py` with `PYTHONPATH` set to the installed
+`sdk/python` directory and `--executable` set to installed `bin/connect`.
+Use a private application state directory and the documented explicit-contact
+policy. One invocation processes one contact; later continuation uses the saved
+host session. Both task history and current authority survive restart.
+
+Package qualification runs its test harness from the extracted source archive,
+while the application, Python SDK and native executable must load from the
+extracted runtime. Source-path fallback fails the checks. An explicitly selected
+Codex executable uses scripted loopback Responses and empty account directories;
+these checks make no inference or live-provider claim. Contributor tests and
+provider simulators are in the source archive. The runtime includes the usable
+application and skill assets.
 
 ## Gate 3 interfaces
 
@@ -113,7 +142,9 @@ verified backup, then run:
 CONNECT migrate --config state/operator.toml --server-config state/server.toml --backup backups/pre-upgrade
 ```
 
-The candidate migrates supported schemas 1–9 to schema 10. A live Session becomes
+The Gate 4 candidate migrates supported schemas 1–14 to schema 15. Check the
+installed manifest for the exact source and schema; older Gate 3 archives use
+schema 10. A live Session becomes
 interrupted across restart; Connect preserves durable intent and never claims a
 socket or media pump survived. Roll back by restoring the matching pre-upgrade
 backup into a new directory and using its compatible binary.
@@ -128,12 +159,13 @@ database or credentials.
 From the extracted source checkout:
 
 ```sh
-bash scripts/check-gate-3.sh
+python3 scripts/check-gate-4.py --codex-binary /absolute/path/to/codex
 bash scripts/check-local.sh --previous-binary /absolute/path/qualification/connect-schema1
-python3 scripts/check-package.py /absolute/path/to/candidate-directory
+python3 scripts/check-package.py /absolute/path/to/candidate-directory \
+  --codex-binary /absolute/path/to/codex
 ```
 
-Gate 3's runner is bounded and account-free. Raw logs and machine-readable
+The Gate 4 offline runner is bounded and account-free. Raw logs and machine-readable
 results stay under ignored `.local/` directories. The package checker verifies
 archive paths and hashes, compiles the extracted native SDK, runs installed
 native/HTTP language clients, checks restart and shutdown, and exercises

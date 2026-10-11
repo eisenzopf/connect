@@ -17,8 +17,13 @@ import tomllib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('candidate', type=pathlib.Path)
+parser.add_argument('--codex-binary', type=pathlib.Path, required=True,
+                    help='Explicit installed Codex for account-free Gate 4 host qualification')
 args = parser.parse_args()
 candidate = args.candidate.resolve()
+codex_binary = args.codex_binary.resolve()
+if not codex_binary.is_file():
+    parser.error('Selected Codex executable is unavailable')
 os.umask(0o077)
 results = ROOT/'.local/package-checks'/datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
 results.mkdir(parents=True, mode=0o700)
@@ -62,6 +67,14 @@ try:
         release = work/candidate.name
         manifest = json.loads((release/'manifest.json').read_text())
         assert manifest['candidate'] == candidate.name and manifest['target'] == 'aarch64-apple-darwin'
+        assert manifest.get('qualification_profile') == 'gate4-local', 'Expected a Gate 4 local candidate'
+        # Helper imports cache default executable paths. Select the extracted
+        # binaries before importing either the Gate 4 or legacy check helpers.
+        os.environ.update(CONNECT_BINARY=str(release/'bin/connect'),
+                          CONNECT_EXAMPLE_BINARY=str(release/'bin/connect-example'),
+                          CONNECT_PREVIOUS_BINARY=str(work/'qualification/connect-schema1'))
+        from lib.package_gate4 import inventory, qualify
+        inventory(release)
         actual = {str(p.relative_to(release)) for p in release.rglob('*') if p.is_file()}
         assert actual == set(manifest['files']) | {'manifest.json'}
         for required in [
@@ -95,7 +108,7 @@ try:
         assert digest(source/'Cargo.lock') == manifest['cargo_lock_sha256']
         assert json.loads((source/'dependencies/source-lock.json').read_text()) == manifest['dependencies']
         # Fault-enabled builds must correspond to the installed candidate source.
-        for directory in ['crates', 'examples', 'scripts', 'patches', 'dependencies', 'sdk', 'contracts', '.github']:
+        for directory in ['crates', 'examples', 'scripts', 'patches', 'dependencies', 'sdk', 'contracts', 'skills', '.github']:
             for path in (source/directory).rglob('*'):
                 if path.is_file():
                     assert digest(path) == digest(ROOT/path.relative_to(source)), 'Qualification source differs from candidate'
@@ -108,13 +121,14 @@ try:
             subprocess.run(['cargo', 'check', '--locked', '-p', 'connect-client'], cwd=source, env=source_environment,
                            stdout=log, stderr=subprocess.STDOUT, check=True, timeout=2400)
         passed('sdk-source-build', 'Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies')
-        os.environ.update(CONNECT_BINARY=str(release/'bin/connect'), CONNECT_EXAMPLE_BINARY=str(release/'bin/connect-example'), CONNECT_PREVIOUS_BINARY=str(prior))
         # Qualify the application's default diagnostics, independent of the
         # reviewer's shell-level logging overrides (this host uses warn).
         os.environ.pop('RUST_LOG', None)
         # Import only after choosing installed binaries, including default arguments.
         from lib.local_process import BINARY, Server, run, port, request
         from lib.examples import EXAMPLE, inspect, pair
+        assert BINARY == (release/'bin/connect').resolve(), 'Server helper escaped the installed runtime'
+        assert EXAMPLE == (release/'bin/connect-example').resolve(), 'Example helper escaped the installed runtime'
         assert manifest['version'] in run('--version').stdout
         state = work/'state'
         init = run('init', '--directory', state, '--example', 'review-loop', '--bind', f'127.0.0.1:{port()}')
@@ -170,6 +184,8 @@ try:
                     (release/'sdk/typescript/dist/browser.js').as_uri(),
                 ], stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30)
         passed('installed-language-sdks', 'Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently')
+        report['gate4_installed'] = qualify(release, source, codex_binary, results/'gate4-installed')
+        passed('installed-gate4-agent', 'Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback')
         for script in ['check-examples.py', 'check-recovery.py', 'check-crash-replay.py', 'check-example-recovery.py']:
             with (results/(script+'.log')).open('w') as log:
                 subprocess.run(['python3', str(ROOT/'scripts'/script)], cwd=work, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=600)

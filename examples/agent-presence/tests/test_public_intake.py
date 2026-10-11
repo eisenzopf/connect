@@ -9,9 +9,9 @@ import time
 import tomllib
 import unittest
 
-ROOT = Path(__file__).resolve().parents[3]
+from installation_paths import SOURCE as ROOT, RUNTIME, verify_imports
 sys.path.insert(0, str(ROOT / "scripts"))
-sys.path.insert(0, str(ROOT / "examples/agent-presence"))
+sys.path.insert(0, str(RUNTIME / "examples/agent-presence"))
 from lib.local_process import Server, port, run
 from connect_sdk import NativeClient
 from incoming.intake import Policy, ensure_task
@@ -21,6 +21,7 @@ from incoming.state import Ledger
 class PublicIntakeTests(unittest.TestCase):
     def test_native_incoming_task_survives_restart_and_replays_one_intent(self):
         binary = Path(os.environ["CONNECT_TEST_BINARY"]).resolve()
+        verify_imports(binary)
         with tempfile.TemporaryDirectory(prefix="connect-incoming-") as root:
             root = Path(root)
             state = root / "server"

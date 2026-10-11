@@ -74,6 +74,8 @@ for source, destination in [
 # Keep the public review report and linked plans with the runtime SDK guide.
 # The root README is copied from docs/, so local documentation links need a prefix.
 shutil.copytree(ROOT/'docs', runtime/'docs', dirs_exist_ok=True)
+shutil.copytree(ROOT/'contracts', runtime/'contracts')
+shutil.copytree(ROOT/'skills/connect', runtime/'skills/connect')
 readme = runtime/'README.md'
 readme.write_text(re.sub(
     r'\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)([^)]+)\)',
@@ -85,7 +87,7 @@ shutil.copytree(ROOT/'sdk/python/connect_sdk', runtime/'sdk/python/connect_sdk',
 shutil.copytree(ROOT/'sdk/typescript/dist', runtime/'sdk/typescript/dist')
 shutil.copyfile(ROOT/'sdk/typescript/package.json', runtime/'sdk/typescript/package.json')
 shutil.copytree(ROOT/'examples/agent-presence', runtime/'examples/agent-presence',
-                ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+                ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'tests'))
 shutil.copytree(ROOT/'examples/conversation-client', runtime/'examples/conversation-client',
                 ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
 # Preserve dependency license/notice texts alongside a readable package index.
@@ -114,7 +116,8 @@ manifest = {'candidate': candidate, 'version': version, 'source_revision': revis
             'rustc': subprocess.check_output(['rustc', '--version'], text=True).strip(),
             'cargo_lock_sha256': digest(ROOT/'Cargo.lock'),
             'dependencies': json.loads((ROOT/'dependencies/source-lock.json').read_text()),
-            'features': 'default; no test-support', 'scope': 'local candidate; unpublished', 'files': files}
+            'features': 'default; no test-support', 'scope': 'local candidate; unpublished',
+            'qualification_profile': 'gate4-local', 'files': files}
 (runtime/'manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
 with tarfile.open(output/(candidate+'.tar.gz'), 'w:gz') as archive:
     archive.add(runtime, arcname=candidate)

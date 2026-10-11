@@ -7,7 +7,10 @@ with tempfile.TemporaryDirectory(prefix='connect-example-recovery-') as temporar
     work=pathlib.Path(temporary)
     subprocess.run(['cargo','build','--locked','-p','connect-review-loop','--features','test-support','--bin','connect-example'],cwd=ROOT,check=True)
     fault_binary=work/'connect-example-faults';shutil.copy2(ROOT/'target/debug/connect-example',fault_binary)
-    if not os.environ.get('CONNECT_BINARY'):
+    # Restore local normal artifacts after the fault build, even when explicitly
+    # selected by the qualification runner. Never replace installed binaries.
+    if (BINARY == (ROOT/'target/debug/connect').resolve()
+            or EXAMPLE == (ROOT/'target/debug/connect-example').resolve()):
         subprocess.run(['cargo','build','--locked','-p','connect-review-loop','-p','connect-server','--bins'],cwd=ROOT,check=True)
     assert b'CONNECT_EXAMPLE_FAULT_STAGE' not in EXAMPLE.read_bytes()
     for stage in ['before-effect','after-effect','after-server-ack']:

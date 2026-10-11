@@ -10,8 +10,9 @@ import uuid
 import tomllib
 import unittest
 
-ROOT = Path(__file__).resolve().parents[3]
+from installation_paths import SOURCE as ROOT, RUNTIME, verify_imports
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(RUNTIME / "examples/agent-presence"))
 from lib.local_process import Server, port, run
 from connect_sdk import NativeClient
 from incoming_runtime_peer import Peer
@@ -20,8 +21,9 @@ from incoming_runtime_peer import Peer
 class InstalledIncomingTests(unittest.TestCase):
     def test_independent_contact_reaches_actual_packaged_host_and_checkpoint_prevents_second_turn(self):
         binary = Path(os.environ["CONNECT_TEST_BINARY"]).resolve()
+        verify_imports(binary)
         codex = Path(os.environ["CONNECT_TEST_CODEX_BINARY"]).resolve()
-        evidence = ROOT / ".local/incoming-runtime" / str(uuid.uuid4())
+        evidence = Path(os.environ.get("CONNECT_TEST_EVIDENCE_DIR", ROOT / ".local/incoming-runtime")) / str(uuid.uuid4())
         evidence.mkdir(mode=0o700, parents=True)
         with contextlib.nullcontext(evidence) as directory:
             root = Path(directory)
@@ -51,8 +53,8 @@ class InstalledIncomingTests(unittest.TestCase):
                 shim.with_suffix(".json").write_text(json.dumps({"binary": str(codex), "provider": peer.url,
                                                                "codex_home": str(root / "codex-home"), "user_home": str(root / "user-home")}))
                 env = {key: os.environ[key] for key in ("PATH", "HOME", "LANG", "TMPDIR") if key in os.environ}
-                env["PYTHONPATH"] = str(ROOT / "sdk/python")
-                command = [sys.executable, str(ROOT / "examples/agent-presence/codex-inbox.py"),
+                env["PYTHONPATH"] = str(RUNTIME / "sdk/python")
+                command = [sys.executable, str(RUNTIME / "examples/agent-presence/codex-inbox.py"),
                            "--config", str(state / "operator.toml"), "--policy", str(policy), "--state", str(app),
                            "--http-address", http_address, "--mcp-address", mcp_address,
                            "--executable", str(binary), "--codex-binary", str(shim)]
