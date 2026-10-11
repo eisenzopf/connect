@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "status": "running; not an acceptance pass",
-  "recorded_at": "2026-10-11T21:59:04.062891+00:00",
+  "recorded_at": "2026-10-11T22:11:53.180782+00:00",
   "source_revision": "d47be557dd495cbcbc18ffc1a264cf85e023f851",
   "source_dirty": false,
   "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
   "worktree": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
   "private_report": ".local/gate-4-checks/20261011T215833.697523Z/result.json",
   "required_phases": 41,
-  "active_phase_at_snapshot": "workspace",
+  "active_phase_at_snapshot": "grant-lifecycle-load",
   "passed_phases_at_snapshot": [
     "dependencies",
     "format",
@@ -22,7 +22,21 @@
     "voice-rehearsal-unit",
     "chat-rehearsal-unit",
     "lint",
-    "rustdoc"
+    "rustdoc",
+    "workspace",
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load"
   ],
   "changes_since_retained_failed_run": [
     "Positive real MCP session controls test",
@@ -30,5 +44,42 @@
   ],
   "retained_failed_run": "docs/evidence/gate-4/offline-9235d79-attempt-1.json",
   "focused_correction": "docs/evidence/gate-4/retention-expiry-boundary.json",
-  "boundary": "Whole Gate 4 still requires the remaining offline phases, installed candidate and separate live evidence."
+  "boundary": "Whole Gate 4 still requires the remaining offline phases, installed candidate and separate live evidence.",
+  "completed_test_counts_at_snapshot": {
+    "workspace": {
+      "passed": 539,
+      "failed": 0,
+      "ignored": 9
+    },
+    "media-pressure": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    "installed-host": {
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    "upstream-regression": {
+      "passed": 942,
+      "failed": 0,
+      "ignored": 0
+    },
+    "upstream-vapi": {
+      "passed": 20,
+      "failed": 0,
+      "ignored": 0
+    },
+    "upstream-queues": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    "upstream-codec": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    }
+  }
 }
