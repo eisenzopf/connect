@@ -40,5 +40,11 @@
     "The shim supplies deterministic Responses. Actual-model skill following, full draft/artifact and independently initiated agent-presence journeys, installed release qualification and provider rehearsals remain open.",
     "No production source changed for this probe. Full-run source d04cf4c does not include the new test; its evidence remains separate.",
     "The first probe emitted an unused shared-helper method warning; lint correction is pending qualification."
-  ]
+  ],
+  "scoped_lint_observation": {
+    "exit_code": 0,
+    "path": ".local/gate-4-planning/codex-packaged-lint.log",
+    "sha256": "1bb05ce0189a068ff7d7b89bff5c10c3947de082743d3196b77e3ab0202e03f1",
+    "scope": "Strict all-feature packaged-runtime target completed in 54m20s. Shared test helpers changed while that command was active, so this standalone call is not treated as final source-stable qualification. The current-source seven-check sequence includes a fresh strict-lint phase."
+  }
 }

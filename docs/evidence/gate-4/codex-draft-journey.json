@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "recorded_at": "2026-10-11T13:25:03.316307+00:00",
+  "recorded_at": "2026-10-11T13:29:03.764640+00:00",
   "items": [
     "G4-025",
     "G4-031"
   ],
   "source_revision": "2c9948f",
-  "status": "new runtime journey unexecuted; qualification budget expired waiting for an existing build lock",
+  "status": "native Rust fixtures compiled; seven-check actual-runtime repeat running, final strict lint pending",
   "scope": "local macOS arm64; installed Codex with scripted loopback Responses and empty account roots",
   "runtime_qualification": ".local/gate-4-planning/draft-2c9948f/result.json",
   "verification": [
@@ -76,5 +76,14 @@
     "tests_executed": 0,
     "strict_lint": "not run",
     "next_action": "Wait for the already active build to finish, then qualify the same source with the unchanged phase budget; do not queue another competing build."
+  },
+  "active_repeat": {
+    "result": ".local/gate-4-planning/draft-2c9948f-repeat/result.json",
+    "status": "running",
+    "budget_seconds": 1800,
+    "started_after": "Prior standalone scoped Clippy completed successfully; original build-lock timeout is retained.",
+    "source_boundary": "Primary source revision 5770f92; non-document source remains the 2c9948f fixture set.",
+    "observation": "Cargo compiled all five host test artifacts in 1m28s and started gate4_codex_call_intent. No runtime pass claimed yet.",
+    "review_issue": "The new draft test imports a shared state helper it does not yet use; strict lint must be corrected and verified. Prefer asserting both saved host task bindings. The existing macOS debug linker warning is also retained."
   }
 }
