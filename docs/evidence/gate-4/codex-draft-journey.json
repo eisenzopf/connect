@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "recorded_at": "2026-10-11T12:52:04.596222+00:00",
+  "recorded_at": "2026-10-11T13:25:03.316307+00:00",
   "items": [
     "G4-025",
     "G4-031"
   ],
   "source_revision": "2c9948f",
-  "status": "implementation added; actual runtime and strict lint pending",
+  "status": "new runtime journey unexecuted; qualification budget expired waiting for an existing build lock",
   "scope": "local macOS arm64; installed Codex with scripted loopback Responses and empty account roots",
   "runtime_qualification": ".local/gate-4-planning/draft-2c9948f/result.json",
   "verification": [
@@ -35,5 +35,46 @@
     "No runtime pass is claimed for the new journey until its named test executes successfully.",
     "Independently initiated assistant contact, actual inference and full G4-025 acceptance remain open.",
     "The existing full offline runner qualifies a different earlier source revision."
-  ]
+  ],
+  "runtime_attempt": {
+    "status": "failed",
+    "result": ".local/gate-4-planning/draft-2c9948f/result.json",
+    "sha256": "38fed50353a23a19f4674ffa703f885dac3dc8fb5899ee2d5cbe5a2b8714c80e",
+    "steps": [
+      {
+        "name": "installed-host",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_codex_runtime",
+          "--test",
+          "gate4_codex_call_intent",
+          "--test",
+          "gate4_codex_reply_workflow",
+          "--test",
+          "gate4_codex_packaged_runtime",
+          "--test",
+          "gate4_codex_draft_journey",
+          "--",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1800,
+        "log": "installed-host.log",
+        "status": "failed",
+        "error": "TimeoutError",
+        "detail": "Phase exceeded 1800 seconds",
+        "group_cleanup": "signalled",
+        "seconds": 1800.035
+      }
+    ],
+    "tests_executed": 0,
+    "strict_lint": "not run",
+    "next_action": "Wait for the already active build to finish, then qualify the same source with the unchanged phase budget; do not queue another competing build."
+  }
 }

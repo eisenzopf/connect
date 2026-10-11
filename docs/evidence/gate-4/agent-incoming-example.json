@@ -1,29 +1,20 @@
 {
   "schema": 1,
-  "recorded_at": "2026-10-11T13:09:31.702641+00:00",
+  "recorded_at": "2026-10-11T13:25:03.316307+00:00",
   "items": [
     "G4-025"
   ],
-  "status": "isolated implementation; unit checks passed, public-process and installed-runtime qualification pending",
+  "status": "isolated native intake component verified; actual installed runtime failed startup deadlines and remains unqualified",
   "source_checkout": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
   "source_branch": "codex/agent-presence-inbox",
-  "source_revision": "4d4706cec1ba8eff47e734a727f4f50f75af7b5a",
+  "source_revision": "32acecbcf0fc3b9f44dfd65325dea7763b1b059a",
   "merged_into_primary_checkout": false,
   "unit_checks": {
-    "passed": 14,
+    "passed": 15,
     "failed": 0,
     "exit_code": 0,
-    "checkout_relative_path": ".local/incoming/unit-5.log",
-    "sha256": "0bfe520772d610b488e917e177d885356306f6941122fbbf796849bef0e19fc0"
-  },
-  "public_process_attempt": {
-    "status": "failed",
-    "passed": 0,
-    "errors": 1,
-    "exit_code": 1,
-    "failure": "The copied development CLI did not finish init within the existing 15-second startup bound. No public API assertion ran. This is not a qualification pass.",
-    "checkout_relative_path": ".local/incoming/public-1.log",
-    "sha256": "8ea87d3ba25e18d0d8b0127624d6d62c1beb7db8ce978207639d0ad708f86489"
+    "checkout_relative_path": ".local/incoming/unit-final.log",
+    "sha256": "a2dc3c137a58e07b1fd7b3c8f9e51920dcf77b1e278bedb9dc1292f27cdb7160"
   },
   "binary": {
     "source": "copied from the primary checkout development target/debug/connect; not an installed release qualification",
@@ -38,9 +29,98 @@
     "One explicit invocation processes one inbox page and at most one contact. Later reply continuation uses existing explicit-resume mode."
   ],
   "limits": [
-    "Actual local SDK/server path and actual installed runtime remain unqualified for this new example.",
+    "Native intake behavior is verified against the retained development binary. Actual installed runtime, inference, cold start and release-package qualification remain open.",
     "Unknown database/schema and policy changes are refused without adopting unrelated state. No model account or live provider operation has run.",
     "This application-level contact_assistant format is not a new UCTP message or universal presence protocol.",
     "The primary source remains frozen for its separate runtime checks; this branch is not yet integrated."
-  ]
+  ],
+  "failures": [
+    {
+      "status": "failed",
+      "passed": 0,
+      "errors": 1,
+      "exit_code": 1,
+      "failure": "The copied development CLI did not finish init within the existing 15-second startup bound. No public API assertion ran. This is not a qualification pass.",
+      "checkout_relative_path": ".local/incoming/public-1.log",
+      "sha256": "8ea87d3ba25e18d0d8b0127624d6d62c1beb7db8ce978207639d0ad708f86489"
+    },
+    {
+      "status": "failed",
+      "exit_code": 1,
+      "failure": "Native receipt comparison incorrectly treated omitted empty sms_enrollments as a changed scope. Comparison now normalizes only that optional default; original persisted command bytes remain unchanged.",
+      "checkout_relative_path": ".local/incoming/public-2.log",
+      "sha256": "dd7d6225f580259c6ee75dc57f653555989e9a70775745b52e33e4fa1554ee1f"
+    },
+    {
+      "status": "failed",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 1,
+      "scope": "actual installed runtime intake attempt",
+      "failure": "Packaged host exceeded its unchanged 120-second deadline before any saved host session. No actual-runtime success claimed.",
+      "checkout_relative_path": ".local/incoming/installed-1.log",
+      "sha256": "3e0f82c2cf31e556ebb7848a4adc77a882d8e246e56f4880a516ea59d58b377b"
+    },
+    {
+      "status": "failed",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 1,
+      "scope": "actual installed runtime intake attempt",
+      "failure": "Packaged host exceeded its unchanged 120-second deadline before any saved host session. No actual-runtime success claimed.",
+      "checkout_relative_path": ".local/incoming/installed-2.log",
+      "sha256": "954f21f63fe8facc1b549fe1a7337b7309c343c935a7a179306272187376fe7d"
+    },
+    {
+      "status": "failed",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 1,
+      "scope": "actual installed runtime intake attempt",
+      "failure": "Packaged host exceeded its unchanged 120-second deadline before any saved host session. No actual-runtime success claimed.",
+      "checkout_relative_path": ".local/incoming/installed-3.log",
+      "sha256": "285f1025aca4e7da75860547e6918cf9def4d5859436e5fbb7af27221d82f333"
+    }
+  ],
+  "public_process_check": {
+    "passed": 1,
+    "failed": 0,
+    "exit_code": 0,
+    "scope": "warm existing development binary; separate native SDK helpers, server restart, duplicate incoming request and cancellation",
+    "checkout_relative_path": ".local/incoming/public-final.log",
+    "sha256": "2a7c743ca7d9bdb088153253b9447b3f13c0336b9c8f592e588ad957c90d5906"
+  },
+  "startup_diagnostic": {
+    "finding": "Attempt 2 child remained /usr/bin/env and the one-second sample showed _dyld_start with 96 KiB footprint, before Python/Codex work. Attempt 3 selected the current Python interpreter directly; it also exceeded 120 seconds with no saved session. The underlying OS startup cause is not established.",
+    "checkout_relative_path": ".local/incoming/shim-startup-sample.txt",
+    "sha256": "44d77dd52592773d02cce4eea47947fb132df6a7597d4d28a215490e9d286e0f"
+  },
+  "quality_checks": {
+    "python_compilation": "passed",
+    "javascript_program_syntax": {
+      "exit_code": 0,
+      "checkout_relative_path": ".local/incoming/program-syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "repository_format": {
+      "exit_code": 0,
+      "checkout_relative_path": ".local/incoming/format-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source_inputs_sha256": {
+      "examples/agent-presence/README.md": "f913f37bfb60a496186b17f24112d0eb3ac5382eff6769f89b123f8fa6227183",
+      "examples/agent-presence/chat.py": "8010982cdc16174ae1f60f4483e66595bf45847698d26b5b344410a0225e658c",
+      "examples/agent-presence/codex-inbox.py": "ea980f4c9a0b62dcf3708e9b4a6425c17a2f90484c23951ad88a8286182f853e",
+      "examples/agent-presence/incoming/__init__.py": "29a9d24765a5fa844c4720c75ceadd0d86e647e4b65ce7f9dc73965643894e4f",
+      "examples/agent-presence/incoming/host.py": "15e3094706ba66b7a331849d5f7cdb2e9582a76148ff9361621e7a9323cb3ed5",
+      "examples/agent-presence/incoming/intake.py": "de2f597b403524a8d6953d89cdf5c9a81e99ccc2eef837d10b5b2009acd22c54",
+      "examples/agent-presence/incoming/state.py": "7910e387b2d9ecc0fd9c354e21ab2ccd45b6a880275949a16230998dbc107784",
+      "examples/agent-presence/tests/incoming_runtime_peer.py": "14f789135b6a2d4b1edfe339c3ecec3ec7aa8fbb9ab412b00df0ad0cea476d8b",
+      "examples/agent-presence/tests/test_incoming.py": "e463dc7357d6cf11ddf96fcf2499886f08a4e46475ddb4a9d3c43665dd7bcd56",
+      "examples/agent-presence/tests/test_incoming_host.py": "73a7994d21e5b56af235a80c75e6abd9e9445ffa1c3657cb59fc2d574c346c14",
+      "examples/agent-presence/tests/test_installed_incoming.py": "98e99ead188ca8a4fc9b8fdeea9e89c9e1387b10ac10b0bd03a1ee108ce98bfd",
+      "examples/agent-presence/tests/test_public_intake.py": "926aa975b0af5260f3169956a1b2eb875a96bb00fba4e3c4e864baac3dcabb53",
+      "examples/agent-presence/voice.py": "9d687ce3450795e444740d320be6826fc41898e0ae319410559fe43007e53292"
+    }
+  }
 }
