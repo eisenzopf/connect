@@ -1,13 +1,13 @@
 {
   "schema": 1,
   "status": "running; not an acceptance pass",
-  "recorded_at": "2026-10-11T21:36:59.587338+00:00",
+  "recorded_at": "2026-10-11T21:53:31.107744+00:00",
   "source_revision": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
   "source_dirty": false,
   "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
   "private_report": ".local/gate-4-checks/20261011T213619.464535Z/result.json",
   "worktree": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
-  "active_phase_at_snapshot": "workspace",
+  "active_phase_at_snapshot": "task-artifact-retention",
   "passed_phases_at_snapshot": [
     "dependencies",
     "format",
@@ -21,8 +21,39 @@
     "voice-rehearsal-unit",
     "chat-rehearsal-unit",
     "lint",
-    "rustdoc"
+    "rustdoc",
+    "workspace",
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load"
   ],
   "required_phases": 41,
-  "boundary": "Single-revision complete-offline qualification is ongoing. No component or gate status becomes complete from this snapshot. Prior failed invocations remain retained."
+  "boundary": "Single-revision complete-offline qualification is ongoing. No component or gate status becomes complete from this snapshot. Prior failed invocations remain retained.",
+  "workspace_tests": {
+    "passed": 538,
+    "failed": 0,
+    "ignored": 9
+  },
+  "primary_source_reconciliation": {
+    "primary_head": "78f94770ac81ee3ab4fe1d33695696b0a1a930b0",
+    "baseline_source_revision": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
+    "unchanged_existing_inputs": 804,
+    "changed_or_missing_inputs": [],
+    "additional_inputs_sha256": {
+      "crates/connect-server/tests/gate4_mcp_sessions.rs": "6e43673ab96eaebd6af131a156a33a561ac933b8dfb240b27daf2ceca4b6a21d"
+    },
+    "additional_verification": "docs/evidence/gate-4/mcp-session-controls.json",
+    "boundary": "All existing non-documentation source inputs match the frozen run. The added session test is separately qualified; it is not claimed to have run in that workspace invocation. Documentation is excluded from runtime input fingerprinting and checked separately."
+  }
 }

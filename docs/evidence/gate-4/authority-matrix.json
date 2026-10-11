@@ -142,5 +142,10 @@
     "evidence": "docs/evidence/gate-4/offline-3a272c9.json",
     "status": "All mapped test source files match the completed 39-phase baseline; latest operator/callback source still requires its common-source run.",
     "schema_fixture_update": "sms_policy.rs hash updated for 916fbeb: historical schema-12 fixture removes the schema-16 Vapi setup table before testing upgrade. All nine sms_policy tests passed in the baseline."
+  },
+  "current_workspace_reconciliation": {
+    "evidence": "docs/evidence/gate-4/authority-workspace-9235d79.json",
+    "source_revision": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
+    "status": "Mapped local workspace and separately executed installed-host tests passed. The full suite and whole gate remain open."
   }
 }
