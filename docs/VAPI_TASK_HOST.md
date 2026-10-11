@@ -115,6 +115,46 @@ it does not reconnect audio, replace the saved leg or resume an ended call.
 See [Vapi bootstrap](VAPI_TASK_BOOTSTRAP.md) for the underlying API and
 [Gate 4 implementation](connect-gate-4-implementation.html#G4-022) for progress.
 
+## Use the prepared connection
+
+The accompanying source archive contains `scripts/live/task-chat.py` and
+`scripts/live/native-voice.py`. These are separately invoked operator rehearsal
+drivers. With `--runtime-root`, they load the Python SDK and native helper from
+the selected release and verify their manifest hashes; they need no Rust build
+or developer checkout. Keep the task host and its callback mapping running.
+
+For chat, export a Native task grant with `history` permission, save a UTF-8
+prompt, and run from the extracted `connect-source` directory:
+
+```sh
+python3 scripts/live/task-chat.py capture --allow-live-provider \
+  --runtime-root /absolute/path/to/extracted-connect-release \
+  --config .local/native-task.toml --task-id TASK_ID \
+  --setup .local/vapi-chat-private --prompt .local/chat-prompt.txt \
+  --output .local/task-chat-run
+```
+
+`--setup` points to the existing host setup directory, which must contain its
+verified provider session ID. The task configuration is a private exported
+grant, not the host's operator credential. Each output directory retains one
+turn's intent, provider receipt and bounded before/after context. After an
+uncertain response, preserve that directory and use `reconcile --chat-id` with
+the exact provider chat ID; a new capture directory is not a retry mechanism.
+
+For voice, use `native-voice.py` with the existing accepted Session, task and
+conversation IDs. Its task grant needs `session_invite`, `session_get`,
+`session_end` and `history`. The driver opens native audio on that prepared leg,
+ends the leg and records source recall; the task and conversation remain.
+The source archive's `scripts/live/README.md` supplies the complete voice
+scenario format, commands and recovery limits.
+
+The [chat rehearsal evidence](evidence/gate-4/task-chat-rehearsal.json) and
+[voice rehearsal evidence](evidence/gate-4/task-voice-rehearsal.json) record local
+simulator checks with source and installed SDK/helper assets. A captured chat
+receipt or audio file does not establish model comprehension, actual MCP tool
+use by a model, or useful follow-through. Those remain separate live acceptance
+requirements; no provider account is contacted by the offline suite.
+
 ## Provider contract review
 
 The [Vapi contract review](evidence/gate-4/vapi-contract-review.json) maps the

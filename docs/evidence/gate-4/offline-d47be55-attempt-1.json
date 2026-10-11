@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "status": "running; not an acceptance pass",
+  "recorded_at": "2026-10-11T21:59:04.062891+00:00",
+  "source_revision": "d47be557dd495cbcbc18ffc1a264cf85e023f851",
+  "source_dirty": false,
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "worktree": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
+  "private_report": ".local/gate-4-checks/20261011T215833.697523Z/result.json",
+  "required_phases": 41,
+  "active_phase_at_snapshot": "workspace",
+  "passed_phases_at_snapshot": [
+    "dependencies",
+    "format",
+    "typescript-install",
+    "typescript-tests",
+    "typescript-format",
+    "typescript-distribution",
+    "python-sdk",
+    "agent-incoming-unit",
+    "runner-failure-tests",
+    "voice-rehearsal-unit",
+    "chat-rehearsal-unit",
+    "lint",
+    "rustdoc"
+  ],
+  "changes_since_retained_failed_run": [
+    "Positive real MCP session controls test",
+    "Retention verifier distinguishes timestamped authority denials at expiry; production code and limits unchanged"
+  ],
+  "retained_failed_run": "docs/evidence/gate-4/offline-9235d79-attempt-1.json",
+  "focused_correction": "docs/evidence/gate-4/retention-expiry-boundary.json",
+  "boundary": "Whole Gate 4 still requires the remaining offline phases, installed candidate and separate live evidence."
+}
