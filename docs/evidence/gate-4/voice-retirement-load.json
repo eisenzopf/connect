@@ -1,7 +1,7 @@
 {
-  "status": "in-progress",
+  "status": "full-retirement-component-qualified; whole G4-030 and Gate 4 remain open",
   "scope": "Full local macOS arm64 retirement qualification; no live provider operations",
-  "recorded_at": "2026-10-11T17:52:16.830818+00:00",
+  "recorded_at": "2026-10-11T18:21:25.892837+00:00",
   "source_base": "916fbeb",
   "source_inputs": {
     ".editorconfig": "fe991c2dcb5df6171df36f43396210ccd32024920605cf2652027d71dee38683",
@@ -835,6 +835,42 @@
     "python_passed": 41,
     "quality": "Prepared dependencies, format check and strict workspace all-target/all-feature Clippy passed."
   },
-  "active_run": ".local/gate-4-fresh-493d5c3/.local/voice-retirement/20261011T175356.109806Z/result.json",
-  "remaining": "Full 313-batch profile, retained bindings across restart, source-stability and supervisor cleanup must pass before this component is qualified. G4-030 and Gate 4 remain open."
+  "remaining": "Current full 39-phase regression, historical/installed candidate refresh, dependent host/provider acceptance and whole G4-030 closure remain open.",
+  "qualified_source_revision": "bbd56f45bd0741de4b2b2f6d0301974f92b8203a",
+  "source_inputs_match_primary": true,
+  "result": {
+    "path": ".local/gate-4-fresh-493d5c3/.local/voice-retirement/20261011T175356.109806Z/result.json",
+    "sha256": "48457000a8d8252370110910eb36295ce2e175448cfbc3cd1e91e2afdd960b88"
+  },
+  "observations": {
+    "path": ".local/gate-4-fresh-493d5c3/.local/voice-retirement/20261011T175356.109806Z/observations.json",
+    "sha256": "2061b8c6db1180854e1bb5805b5b2d52cd1eea0bbde3de8ac71616917d0e9a72"
+  },
+  "log": {
+    "path": ".local/gate-4-fresh-493d5c3/.local/voice-retirement/20261011T175356.109806Z/retirement.log",
+    "sha256": "cbb4cea2bc7f18d2b636702ef4a77c65d661bee7ec80d9d65b7a2afd7951cd1d"
+  },
+  "retained_snapshot": {
+    "path": ".local/gate-4-fresh-493d5c3/.local/voice-retirement/20261011T175356.109806Z/retained.sqlite3",
+    "sha256": "ed1734894afdb7bea641b63f282f96ada8ab4fdb9bc4d8129b7956ba99831acb"
+  },
+  "measurements": {
+    "retired_setups": 10000,
+    "batches": 313,
+    "point_samples": 628,
+    "whole_process_sampled_peak_rss_bytes": 63651840,
+    "initial_process_rss_bytes": 47808512,
+    "final_retired_process_rss_bytes": 62783488,
+    "restarted_process_rss_bytes": 63651840,
+    "database_apparent_peak_bytes": 97694304,
+    "retained_binding_digest": "8fee4e8bfb9de426e8785941a8b81017cf8b3551581668c769bc653591a9cc2b",
+    "memory_scope": "Whole isolated Rust test process: server, clients and local API fixture. Point samples at batch boundaries; excludes Cargo/compiler and can miss transient peaks."
+  },
+  "phase": {
+    "status": "passed",
+    "exit_code": 0,
+    "seconds": 1639.963,
+    "timeout_seconds": 3300,
+    "leftover_group_members": []
+  }
 }

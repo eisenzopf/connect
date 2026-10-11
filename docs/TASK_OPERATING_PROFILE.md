@@ -59,7 +59,7 @@ files after shutdown. Source and binary digests must remain unchanged during
 the run. Credentials, generated IDs, raw logs and unfinished command inputs
 stay in the private run directory; public evidence contains sanitized results.
 
-## Retired voice setups: durable binding and remaining measurement
+## Retired voice setups: durable binding and full-capacity measurement
 
 The original implementation retained a closed setup only in `VapiMedia` memory.
 A local regression demonstrated that, after expiry and server restart, the same
@@ -75,8 +75,7 @@ the original task, conversation, private recovery intent and history remain.
 
 The process-local map can therefore release retired entries completely. Its live
 listeners share the 32-listener server ceiling. Durable binding rows are bounded
-by the retained session limit (10,000 by default). This is a source-level bound;
-it is not a measured 10,000-session churn or memory claim. The additive migration
+by the retained session limit (10,000 by default). The full-capacity profile below measures that bound using real setup expiry and listener reuse. The additive migration
 reserves older task-created sessions without inventing missing private intent.
 
 The relevant implementation is [setup binding](../crates/connect-store/src/tasks/media_setup_binding.rs),
@@ -86,8 +85,7 @@ The relevant implementation is [setup binding](../crates/connect-store/src/tasks
 The [restart repair audit](evidence/gate-4/vapi-setup-restart.json) qualifies
 migration, rollback, exact-intent admission, concurrent registration, restart
 denial and same-task continuation: 211 Store and 32 Vapi/parity checks pass, with
-strict workspace lint and Rustdoc. G4-030 still needs repeated retirement with
-memory observations and full current-source qualification.
+strict workspace lint and Rustdoc. Repeated retirement is now qualified by the profile below; full current-source and whole-item qualification remain open.
 
 The full retirement profile is now available as a separately bounded check:
 
@@ -112,10 +110,24 @@ digests across server restart and denial of replacing the original setup.
 Reports, original private intents and a Store snapshot remain under ignored
 `.local/voice-retirement/`. No provider request is permitted.
 
-The [retirement audit](evidence/gate-4/voice-retirement-load.json) currently
-records three failed probe attempts and the corrected run in progress. Those
-partial attempts do not qualify load or memory claims. The observer controls
-pass, but this full profile must finish before its measurements can be accepted.
+The [retirement audit](evidence/gate-4/voice-retirement-load.json) qualifies all
+10,000 setups across 313 batches in 1639.963 seconds. All 628 boundary samples
+were present. Whole-process sampled RSS peaked at 60.7 MiB; this includes
+the server, clients and local provider fixture and can miss transient peaks.
+The final snapshot retains 10,000 distinct original bindings with no unknown
+markers. Restart preserves their exact digest; replacing the last original
+setup is denied, and the retained-session ceiling rejects another session.
+The provider fixture received zero requests. All 777 source inputs remained
+unchanged, and the supervisor found no leftover process-group members.
+
+Three failed observer attempts remain recorded. Excessive pre-expiry probes
+exhausted local TCP addresses, and an initial correction treated a shutdown
+reset as an immediate failure. The final observer waits for declared expiry,
+treats reset as pending and requires refusal before recording retirement,
+within the unchanged deadline. Two Rust observer controls, 41 Python verifier
+checks, dependency preparation, formatting and strict workspace Clippy pass.
+This component result does not complete the full runner, installed candidate,
+provider/model acceptance or G4-030's prerequisite items.
 
 ## Sixteen concurrent assistant hosts
 
@@ -339,7 +351,7 @@ required.
 
 ## Work still required
 
-Remaining operating work includes retained voice-setup metadata. Current-source
+The retained voice-setup profile is qualified at its recorded source. Current-source
 full regression, installed-candidate qualification and the separate debug CLI
 startup finding also remain open. The [review reconciliation](evidence/gate-4/review-findings.json)
 verifies the earlier QUIC parity fixture repair and its retained before/after

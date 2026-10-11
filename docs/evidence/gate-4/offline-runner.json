@@ -2578,5 +2578,13 @@
     "vapi_and_parity_tests": 32,
     "quality": "Strict workspace all-target/all-feature Clippy and Rustdoc pass; source stable and no supervisor leftovers",
     "scope": "Local account-free component checks only; no new full-run pass claimed"
+  },
+  "voice_retirement": {
+    "evidence": "docs/evidence/gate-4/voice-retirement-load.json",
+    "status": "Full retirement component passed independently on 777 stable inputs; new 39-phase full runner remains pending",
+    "retired_setups": 10000,
+    "batches": 313,
+    "source_stable": true,
+    "leftover_group_members": []
   }
 }

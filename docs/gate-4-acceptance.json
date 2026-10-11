@@ -607,7 +607,7 @@
         "evidence/gate-4/voice-retirement-load.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Local deadline, readiness and capacity components passed at their recorded sources. Full retained voice retirement is running; current integrated and actual provider waiting behavior remain open.",
+      "remaining": "Local deadline, readiness and capacity components passed at their recorded sources. Full retained voice retirement is qualified at its recorded source; current integrated and actual provider waiting behavior remain open.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation",
         "Actual provider/model qualification; excluded from the current local-only execution scope"

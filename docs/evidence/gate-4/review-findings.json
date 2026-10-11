@@ -21,7 +21,7 @@
     "detail": "Separate 15-second CLI initialization failure remains open. This reconciliation does not assign the QUIC fixture cause to the CLI."
   },
   "voice_retirement": {
-    "status": "in-progress",
+    "status": "full-retirement-component-qualified",
     "evidence": "docs/evidence/gate-4/voice-retirement-load.json"
   },
   "gate_status": "No task completion inferred from this review."
