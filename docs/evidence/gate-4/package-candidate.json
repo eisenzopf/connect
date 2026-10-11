@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T15:25:49.962738+00:00",
+  "item": "G4-033",
+  "status": "installed local candidate checks passed; whole-item review and prerequisites remain open",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-b4f5fde42122",
+  "source_revision": "b4f5fde421222f9124c00bf6f5aa278680d279f7",
+  "target": "aarch64-apple-darwin",
+  "schema_version": 15,
+  "features": "default; no test-support",
+  "qualification_profile": "gate4-local",
+  "result": ".local/gate-4-fresh-493d5c3/.local/package-checks/20261011T151828.271029Z/result.json",
+  "result_sha256": "e0a61263c3a66d746a5375cca8d5ac81bdde3c8b895cb0567fd85b8795b11f3e",
+  "candidate_directory": ".local/gate-4-fresh-493d5c3/dist/connect-0.1.0-alpha.1-macos-arm64-b4f5fde42122",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-b4f5fde42122-qualification.tar.gz": "5b5b32867192601f4e7d21beb61597b97931808eccb5569977396d70cbaa991f",
+    "connect-0.1.0-alpha.1-macos-arm64-b4f5fde42122-source.tar.gz": "7c1080b50bb6492084a52adb84d319ccf58043cfe6447c17d8a837541126a1af",
+    "connect-0.1.0-alpha.1-macos-arm64-b4f5fde42122.tar.gz": "f05fa9f34efa81698de58f8434055c265b81b8d26074bcbdba50261ee39770c9"
+  },
+  "binary_sha256": {
+    "connect": "d039d55321183f88c76ce07795c2a5693dd075ae2c7d6146302ddac1fb9cb5f9",
+    "connect-example": "4266949ef38f31bb1b38387596e53a551bdb7a2abbf497650b9304886cdc0e37"
+  },
+  "commands": [
+    "python3 scripts/package-local.py --previous-binary /Volumes/D2-2019/Developer/Connect/.local/milestones/m1/connect",
+    "python3 scripts/check-package.py dist/connect-0.1.0-alpha.1-macos-arm64-b4f5fde42122 --codex-binary /Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+  ],
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "installed-gate4-agent": {
+      "result": "passed",
+      "detail": "Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "gate4_installed": {
+    "status": "passed",
+    "codex_version": "codex-cli 0.162.0-alpha.17.2",
+    "steps": [
+      {
+        "name": "agent-incoming-public",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-vshfw8fj/connect-source/examples/agent-presence/tests",
+          "-p",
+          "test_public_intake.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-public.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.792,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "agent-incoming-host",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-vshfw8fj/connect-source/examples/agent-presence/tests",
+          "-p",
+          "test_installed_incoming.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "agent-incoming-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.935,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      }
+    ]
+  },
+  "review": [
+    "Clean recorded source produced runtime, source and separate historical-qualification archives; all three SHA256SUMS match. Runtime manifest hashes match every included file.",
+    "Installed assets include task contracts, SDKs, MCP tooling, workflow skill and agent example. Normal release binaries have no test-only fault controls.",
+    "Both legacy helper imports and the actual Gate 4 application/SDK import guards select the extracted runtime outside the checkout. The corrected helper-import ordering is exercised by the installed walkthrough.",
+    "Public native SDK compiles from extracted source with separately prepared pinned dependencies. Installed Python/TypeScript native/HTTP behavior, browser import, private state and redacted logs pass.",
+    "The real selected Codex runtime uses isolated profiles and loopback scripted Responses; both native contact recovery and host continuation/duplicate-checkpoint/cancellation checks pass with no leaked phase group members.",
+    "The installed normal server/example binaries pass upgrade/restore checks and all three server plus three application crash/replay boundaries using exact-source fault binaries in separate paths."
+  ],
+  "scope": "Local macOS arm64 only; unpublished candidate, no cloud model inference, live providers, production database mutation or deployment. This package proof is not complete Gate 4 acceptance.",
+  "remaining": [
+    "Full current-source offline run, including the new combined voice-to-SMS fixture and source-linked T-A1\u2013T-A8 reconciliation.",
+    "Complete G4-033 code/operating review and prerequisite closure; the earlier intermittent QUIC shutdown finding in task-effects-foundation.json remains unresolved.",
+    "Required host/provider product acceptance and final documentation synchronization."
+  ]
+}
