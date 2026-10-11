@@ -30,11 +30,16 @@ Discover a requested recipient with `connect_resolve` / `connect_capabilities`
 when available. An unavailable route does not authorize contacting someone else
 or trying another channel after an uncertain send.
 
-Before a communication tool call, have the host/runner durably retain its
-`step_id`, `request_id` and intended arguments. Keep these IDs for retries of
-that logical operation; a new intended operation needs a new request ID.
-If the host cannot retain recovery state, return that requirement rather than
-presenting the workflow as restart-safe.
+Choose a `step_id` and `request_id` for each logical operation and keep its
+intended arguments. Reuse those IDs only to reconcile or retry that same
+operation; a new intended operation needs a new request ID.
+
+In a Connect-generated Codex installation, the runtime durably records MCP call
+input before dispatch, and the launcher retains the exact session for resume.
+Call the installed tools directly; no extra filesystem write or persistence
+tool is needed. On another host, use its supplied recovery mechanism. If that
+host cannot retain call input, report the limitation rather than claiming the
+workflow is restart-safe.
 
 Send an explicit question with `connect_send` and `wait_for_reply: true`.
 Use `reply_to` only for an attributed question/reply reference belonging to this
