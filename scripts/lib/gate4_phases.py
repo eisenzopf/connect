@@ -43,6 +43,7 @@ def phases(source_only=False):
         ('agent-incoming-public', [sys.executable, '-m', 'unittest', 'discover', '-s', 'examples/agent-presence/tests', '-p', 'test_public_intake.py'], 120),
         ('native-task-capacity', [sys.executable, 'scripts/check-task-capacity.py'], 960),
         ('reference-runner-capacity', [sys.executable, 'scripts/check-runner-capacity.py'], 300),
+        ('mcp-operating-load', [sys.executable, 'scripts/check-mcp-load.py'], 240),
         ('schema-six-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '6'], 7500),
         ('schema-ten-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '10'], 7500),
         ('historical-task-recovery', [sys.executable, 'scripts/check-gate4-recovery.py', '--previous-binary',
