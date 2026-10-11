@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T15:17:35.162114+00:00",
+  "items": [
+    "G4-027",
+    "G4-028"
+  ],
+  "status": "combined offline behavior passed; whole-item prerequisites and live qualification remain open",
+  "source_revision": "b4f5fde421222f9124c00bf6f5aa278680d279f7",
+  "source_scope": "The build started at 5b21975. Commit b4f5fde only changed scripts/docs/example Python qualification; all Rust source is identical across these revisions. File hashes identify this focused proof; this is not a source-stable whole-workspace run.",
+  "source_inputs_sha256": {
+    "crates/connect-server/tests/gate4_voice_sms_continuity.rs": "c9ca4689d24779b535a3ef6e29738c8c09749f11811280e8503ee8f9d8f2e41e",
+    "crates/connect-server/tests/support/voice_decision.rs": "5f5b74704b63547d1d1c07b678de3b4938dfb6112cba0d99db05b9a91f842361",
+    "crates/connect-server/tests/support/voice_sms_fixture.rs": "672345b71b77b09e2ed759d48b1cf9de06b2f48467f58d2f58c33a5b183c4a5b",
+    "crates/connect-server/tests/support/signed_sms.rs": "e4ffe4702cb0b962c7a630323899554c2b8145edff74e5a28ac6ee72e3f51624",
+    "crates/connect-server/tests/support/task_sms.rs": "8a943b748d4c4c5867779cf47636be9062d5d923aeb79b4337a120cd8edd141a"
+  },
+  "checks": [
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/voice-sms-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate4_voice_sms_continuity",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/voice-sms-first.log",
+      "log_sha256": "4b345e778d5de19cbcbae893494601db25637dc7f53725989906bb54ec055a33"
+    },
+    {
+      "command": "cargo clippy --locked -p connect-server --all-features --test gate4_voice_sms_continuity -- -D warnings",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/voice-sms-clippy.log",
+      "log_sha256": "e390748a8c0e2117d8aad34ca76613a202d1095c82d6d5cf1fe98d7385834c6c"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/voice-sms-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "rust_tests": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "test_seconds": 71.82
+  },
+  "behavior": [
+    "One task retains its original goal and draft across native QUIC audio, actual MCP recall, Vapi WebSocket simulator events, two local server restarts and signed Telnyx SMS callbacks.",
+    "The voice peer actually reads the original goal and available artifact reference via MCP; PCM-U audio passes in both directions and the journal retains a sourced voice decision. Private provider fields and a contrasting conversation fact do not enter recalled context.",
+    "After voice ends and the server restarts, public task recall returns the same source. The SMS follow-up uses that source ID and body, rather than a separately invented static fact.",
+    "Deleting the draft removes its bytes from authorized retrieval. Recall keeps a deleted reference with no body; the old draft bytes stay absent.",
+    "A signed STOP cancels a queued task-origin SMS before provider dispatch. Signed START permits a new explicit intent; retrying the previously blocked intent stays provider-failed. Exactly one fresh provider request occurs.",
+    "A signed delivery callback updates the provider outcome without pretending it answers the waiting task. Duplicate incoming SMS yields one new unassigned reply; phone identity and voice context cannot implicitly select a task.",
+    "Explicit reply assignment survives a second restart and matching replay. The original fresh invocation becomes completed without another SMS; sibling task state is unchanged, original voice source and human answer remain available, and no second Vapi call starts."
+  ],
+  "review": {
+    "modules": "Journey orchestration 295 lines, voice/MCP capture 103 lines, public setup/artifact helpers 123 lines. Existing signed callback and reviewed enrollment fixtures are reused. Strict affected Clippy and repository format checks pass.",
+    "limits": "The test uses actual Connect QUIC/MCP/HTTP paths with loopback provider simulators and test-only enrollment snapshots. It does not prove cloud-model comprehension, live Vapi/Telephony behavior, carrier SMS delivery, installed-release operation or complete A4 acceptance.",
+    "observation": "The first debug-symbol build and executable startup were slow; the test passed its unchanged protocol deadlines. The linker emitted its pre-existing large unwind-section warning. No failure or timeout was converted into success."
+  },
+  "remaining": [
+    "Full stable-current-source offline qualification including this new fixture.",
+    "Installed release and whole G4-027/G4-028 prerequisite qualification.",
+    "Separately authorized provider/live acceptance; none performed in this local-only check."
+  ]
+}
