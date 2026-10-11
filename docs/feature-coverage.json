@@ -68,6 +68,10 @@
       ],
       "gate_4_criteria": [
         "A4-08"
+      ],
+      "gate_4_progress": "Native task client/CLI components qualified; current full and installed acceptance remain open.",
+      "component_evidence": [
+        "evidence/gate-4/native-public-interface-audit.json"
       ]
     },
     {
@@ -92,6 +96,10 @@
       ],
       "gate_4_criteria": [
         "A4-08"
+      ],
+      "gate_4_progress": "Task parity across native Python/TypeScript helpers, HTTP and JSON CLI components qualified; current full/candidate refresh remains open.",
+      "component_evidence": [
+        "evidence/gate-4/language-task-parity-audit.json"
       ]
     },
     {
@@ -113,7 +121,7 @@
       "id": "F-06",
       "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
       "delivery_gate": "2 local and live qualified",
-      "status": "Reviewed enrollment deployed and enforced. Signed callbacks, five handset conversation turns, native UCTP/QUIC context recall, HELP/STOP/START, blocked native SDK send/replay and resumed delivery verified. Gate 4 agent-tool/task workflows remain planned.",
+      "status": "Reviewed enrollment deployed and enforced. Signed callbacks, five handset conversation turns, native UCTP/QUIC context recall, HELP/STOP/START, blocked native SDK send/replay and resumed delivery verified. Gate 4 task dispatch and signed-callback journeys pass local fixtures; Gate 4 live task/SMS acceptance remains unrun.",
       "required_evidence": "Approval/number readiness, consented handset and signed live callback",
       "v0_1_required": true,
       "milestones": [
@@ -129,6 +137,12 @@
       "gate_4_criteria": [
         "A4-06",
         "A4-12"
+      ],
+      "gate_4_progress": "Task-aware eligibility, signed keyword callbacks and post-voice SMS passed local fixtures. Earlier live SMS evidence is preserved separately.",
+      "component_evidence": [
+        "evidence/gate-4/task-dispatch-audit.json",
+        "evidence/gate-4/sms-callback-journey.json",
+        "evidence/gate-4/voice-sms-continuity.json"
       ]
     },
     {
@@ -180,7 +194,7 @@
       "id": "F-09",
       "required_capability": "Vapi invokes authorized Connect MCP tools in chat and voice",
       "delivery_gate": 4,
-      "status": "not implemented",
+      "status": "Implemented and locally qualified protected Vapi chat/voice MCP composition, task binding, context and restart denial. Actual Vapi cloud/model invocation and final installed acceptance remain open.",
       "required_evidence": "Tool/result/conversation correlation on both paths",
       "v0_1_required": true,
       "milestones": [
@@ -194,13 +208,17 @@
       "gate_4_criteria": [
         "A4-09",
         "A4-12"
+      ],
+      "component_evidence": [
+        "evidence/gate-4/vapi-setup-restart.json",
+        "evidence/gate-4/vapi-continuation-audit.json"
       ]
     },
     {
       "id": "F-10",
       "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
       "delivery_gate": 4,
-      "status": "In progress: Codex CLI selected with versioned research evidence; local MCP adapter/tools and workflow skill draft implemented. Installed-host/skill qualification, protected setup and complete reply/resumption journeys remain open.",
+      "status": "Codex CLI selected. MCP tools, workflow skill, protected export and actual installed-runtime journeys are qualified locally with scripted loopback Responses. Real-model instruction following and the current installed candidate remain open.",
       "required_evidence": "Human reply reaches originating task; documented installation and resumption",
       "v0_1_required": true,
       "milestones": [
@@ -218,8 +236,9 @@
       ],
       "component_evidence": [
         "evidence/gate-4/host-selection.json",
-        "evidence/gate-4/mcp-adapter.json",
-        "evidence/gate-4/skill-draft.json"
+        "evidence/gate-4/codex-owned-runtime.json",
+        "evidence/gate-4/agent-incoming-example.json",
+        "evidence/gate-4/host-concurrency.json"
       ]
     },
     {
@@ -340,6 +359,11 @@
         "A4-05",
         "A4-10",
         "A4-12"
+      ],
+      "gate_4_progress": "Task-correlated voice, retained source recall and subsequent SMS pass the combined local fixture through restart. Actual model/live cross-channel task acceptance remains open.",
+      "component_evidence": [
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/vapi-continuation-audit.json"
       ]
     },
     {
@@ -429,6 +453,16 @@
         "A4-04",
         "A4-13",
         "A4-14"
+      ],
+      "gate_4_progress": "Local task/reply, host/runner, MCP, grant and artifact-retention profiles are qualified at their recorded sources. Full voice retirement qualifies 10,000 sessions. Current full runner and installed-candidate refresh remain open.",
+      "component_evidence": [
+        "evidence/gate-4/task-operating-profile.json",
+        "evidence/gate-4/host-concurrency.json",
+        "evidence/gate-4/runner-concurrency.json",
+        "evidence/gate-4/mcp-operating-load.json",
+        "evidence/gate-4/grant-lifecycle-load.json",
+        "evidence/gate-4/artifact-retention-load.json",
+        "evidence/gate-4/voice-retirement-load.json"
       ]
     },
     {
@@ -467,6 +501,13 @@
         "A4-05",
         "A4-06",
         "A4-13"
+      ],
+      "gate_4_progress": "Task authority, reply isolation, current replay checks and autonomous configured cancellation have local component proof. T-A1\u2013T-A8 integrated reconciliation remains open.",
+      "component_evidence": [
+        "evidence/gate-4/task-authority-audit.json",
+        "evidence/gate-4/reply-inbox-recovery.json",
+        "evidence/gate-4/task-dispatch-audit.json",
+        "evidence/gate-4/authority-matrix.json"
       ]
     },
     {
@@ -490,6 +531,12 @@
         "A4-10",
         "A4-11",
         "A4-14"
+      ],
+      "gate_4_progress": "Both local journey components exist, including independently initiated contact and artifact/business-effect recovery. Model/provider acceptance and first-run product usability remain incomplete.",
+      "component_evidence": [
+        "evidence/gate-4/agent-incoming-example.json",
+        "evidence/gate-4/codex-draft-journey.json",
+        "evidence/gate-4/connected-app-artifacts.json"
       ]
     }
   ],

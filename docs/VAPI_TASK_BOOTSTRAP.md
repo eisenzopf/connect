@@ -180,7 +180,10 @@ adopts a new setup for an old leg. It does not modify ordinary non-task sessions
 The [restart repair audit](evidence/gate-4/vapi-setup-restart.json) records the
 original regression and verified repair: 211 Store and 32 Vapi/parity checks,
 including ordinary voice-only task calls, pass with strict lint and Rustdoc.
-Full metadata-retention and steady-state resource measurement remain G4-030 work.
+The [full retirement profile](evidence/gate-4/voice-retirement-load.json) now
+qualifies 10,000 setups across 313 real-expiry batches, preserves the exact
+binding digest across restart and records whole-process memory samples.
+Current integrated/candidate qualification and whole G4-030 remain open.
 
 The [shared-capacity audit](evidence/gate-4/mcp-shared-capacity.json) records the
 local checks and their exact qualification state. It retains the interim

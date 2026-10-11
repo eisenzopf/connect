@@ -24,5 +24,23 @@
     "status": "full-retirement-component-qualified",
     "evidence": "docs/evidence/gate-4/voice-retirement-load.json"
   },
-  "gate_status": "No task completion inferred from this review."
+  "gate_status": "No task completion inferred from this review.",
+  "installed_vapi_composition": {
+    "status": "implementation and installed qualification remain open",
+    "items": [
+      "G4-022",
+      "G4-033",
+      "G4-034"
+    ],
+    "finding": "Protected Vapi task voice setup is exposed through RunningServer::prepare_vapi_task_session and exercised by library integration fixtures. The installed Gate 4 package harness currently invokes the Codex incoming-contact path, not Vapi bootstrap. The guide explicitly leaves a turnkey operator installer open. A concrete shipped operator/setup and rehearsal path must be established before claiming installed Vapi chat/voice qualification; fake provider tests alone cannot satisfy that criterion.",
+    "source_sha256": {
+      "crates/connect-server/src/vapi_bootstrap/media.rs": "717b2ae5667a4cecbfa966825c7743771138920e9344dda357ef6fc1c0a74711",
+      "scripts/lib/package_gate4.py": "19ef1cf08fb3a4c49141cf05ab265100c06776a302f8c0195129b921012d764a",
+      "scripts/check-package.py": "eb2d2ae8335f01063a40d5a168b7e8dd6233cc231c0e3bb5fdd84ab64cfeca8a",
+      "docs/VAPI_TASK_BOOTSTRAP.md": "23a499e632bfa1a6f5fa32a608b0f9afb6f4441c23406c0f626d2d381fd5d6fb"
+    },
+    "next_action": "Review the minimal protected runtime composition/CLI entry point and deliver its local provider-simulator checks, keeping setup secrets and authority outside agent arguments. Build the separately invoked rehearsal without adding live operations to offline qualification. Full first-run product usability remains Gate 5.",
+    "scope": "Review finding only; no provider account, production configuration, public ingress or runtime authority changed.",
+    "callback_address_gap": "The voice helper passes its loopback listener URL directly into the immutable bootstrap intent. A live rehearsal also needs an explicit advertised callback URL and operator-managed ingress mapping; an external tunnel alone would not replace the saved loopback URL. This must be locally tested without creating public ingress."
+  }
 }

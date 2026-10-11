@@ -2586,5 +2586,13 @@
     "batches": 313,
     "source_stable": true,
     "leftover_group_members": []
+  },
+  "current_run": {
+    "status": "running",
+    "source_revision": "3a272c92b6047c04ec3dc60e7599fde0a82b377b",
+    "clean_checkout": true,
+    "private_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T182147.520041Z/result.json",
+    "required_phase_count": 39,
+    "scope": "Complete offline qualification with actual installed Codex and scripted loopback Responses; no inference, live provider operations or deployment. Progress is provisional until final source and process cleanup checks pass."
   }
 }
