@@ -117,7 +117,12 @@ stops the waiter, not a store transaction that may already have committed.
 Native grant authentication, protected CLI issuance/export and independent MCP
 transport are locally qualified in the numbered plan. Protected host installation,
 provider creation/bootstrap, installed hosts and complete Gate 4 acceptance remain open.
-Task cancellation delegation is an open decision; administrative task control
-is not currently exposed to invocation grants. Transport, authority and tools
+`connect_task_cancel` is visible only when the developer explicitly includes
+`task_cancel` in both the task ceiling and this invocation grant. It cancels only
+the bound task and atomically revokes its grants; replay through that grant is
+then denied. A protected owner can inspect the accepted cancellation receipt.
+The tool cannot close a conversation or undo an external dispatch. Existing
+grants have no cancellation permission. Other administrative task control
+remains outside invocation grants. Transport, authority and tools
 have dedicated real-client tests in `crates/connect-server/tests/gate4_mcp_*.rs`;
 the numbered plan records which candidate checks have actually passed.

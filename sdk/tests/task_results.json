@@ -288,6 +288,29 @@
         "updated_at": 1791700000,
         "reason": null
       }
+    },
+    "explicit-task-cancel": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "task_cancel"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
     }
   },
   "invalid": {

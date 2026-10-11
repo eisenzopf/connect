@@ -10,6 +10,7 @@ mod grants;
 
 mod cancellation_budget;
 mod claims;
+mod delegated_cancel;
 #[cfg(feature = "test-support")]
 mod effect_crashes;
 mod effect_helpers;

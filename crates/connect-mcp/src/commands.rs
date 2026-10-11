@@ -17,10 +17,11 @@ pub(crate) async fn command(
     let task_id = invocation.task_id().to_owned();
     let result = match spec.kind {
         Kind::Status => TaskCommand::Get { task_id },
-        Kind::Recall | Kind::Wait | Kind::Effect => {
+        Kind::Recall | Kind::Wait | Kind::Effect | Kind::Cancel => {
             let action = match spec.kind {
                 Kind::Recall => "recall",
                 Kind::Wait => "wait",
+                Kind::Cancel => "cancel",
                 _ => "effect_get",
             };
             arguments.insert("action".into(), json!(action));

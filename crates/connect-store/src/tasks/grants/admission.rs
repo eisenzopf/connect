@@ -21,6 +21,9 @@ pub(super) fn authorize(
     let permits = |permission| grant.grant.operations.contains(&permission);
     match &request.command {
         TaskCommand::Get { .. } => (),
+        TaskCommand::Cancel { .. } if permits(TaskPermission::TaskCancel) => {
+            actor.require("task_cancel")?;
+        }
         TaskCommand::Inbox { .. } | TaskCommand::Wait { .. } if permits(TaskPermission::Inbox) => {}
         TaskCommand::Recall { .. }
             if permits(TaskPermission::History) || permits(TaskPermission::ContextView) => {}

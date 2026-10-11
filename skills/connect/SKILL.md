@@ -64,8 +64,13 @@ the effect uncertain and report the handle for operator reconciliation.
 On expired/revoked authority, stop affected operations and report that protected
 host setup must refresh or repair the binding. Tools cannot refresh their own
 grants. Do not fall back to an operator credential, another task or an unverified
-provider header. Lifecycle changes and administrative cancellation belong to
-the authorized developer/runner; no model task-cancel tool is currently exposed.
+provider header. If the user intends to withdraw this task and
+`connect_task_cancel` is available, retain its request ID and cancel only the
+bound task. The developer must explicitly delegate that permission; other tools
+cannot supply it. Successful cancellation invalidates this connection's grants.
+It does not close the conversation, undo a dispatched external effect, or mean
+the task completed. If its receipt is lost, request protected owner inspection;
+do not switch credentials or create a new task to make the status disappear.
 
 If tools are missing, report the missing Connect installation. For a developer
 explicitly using the native JSON CLI, read [references/json-cli.md](references/json-cli.md).

@@ -40,6 +40,7 @@ pub fn permissions() -> Vec<P> {
         P::SipDial,
         P::SipStatus,
         P::SipEnd,
+        P::TaskCancel,
     ]
 }
 pub async fn client(f: &fixture::Fixture) -> Client {

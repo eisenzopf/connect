@@ -42,6 +42,7 @@ const permissions = [
     "sip_dial",
     "sip_status",
     "sip_end",
+    "task_cancel",
 ];
 function scope(value) {
     return (shape(value, [], [], ["operations", "recipients", "sms_enrollments"]) &&

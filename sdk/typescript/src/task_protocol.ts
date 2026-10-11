@@ -43,6 +43,7 @@ const permissions = [
     "sip_dial",
     "sip_status",
     "sip_end",
+    "task_cancel",
 ];
 type ControlValidator = (
     kind: unknown,

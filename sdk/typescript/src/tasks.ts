@@ -42,7 +42,8 @@ export type TaskPermission =
     | "call_end"
     | "sip_dial"
     | "sip_status"
-    | "sip_end";
+    | "sip_end"
+    | "task_cancel";
 export interface TaskSmsEnrollment {
     source: string;
     grant_id: string;

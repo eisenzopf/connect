@@ -10,6 +10,7 @@ pub(crate) enum Kind {
     Recall,
     Wait,
     Effect,
+    Cancel,
     Operation(TaskPermission),
 }
 pub(crate) struct Spec {
@@ -27,6 +28,7 @@ impl Spec {
             }
             Kind::Wait => grant.operations.contains(&P::Inbox),
             Kind::Effect => grant.operations.contains(&P::RequestStatus),
+            Kind::Cancel => grant.operations.contains(&P::TaskCancel),
             Kind::Operation(permission) => grant.operations.contains(&permission),
         }
     }
@@ -70,6 +72,11 @@ pub(crate) fn specs() -> Vec<Spec> {
             name: "connect_effect_status",
             description: "Reconcile an existing effect belonging to this task under current authority. Never substitute a new mutation ID for an uncertain effect.",
             kind: Kind::Effect,
+        },
+        Spec {
+            name: "connect_task_cancel",
+            description: "Cancel only this bound task when explicitly delegated by its developer. Persist request_id first. Cancellation invalidates this task's grants, including this connection; it does not close the conversation or undo dispatched external work.",
+            kind: Kind::Cancel,
         },
     ];
     for (name, description, permission) in [

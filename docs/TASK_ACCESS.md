@@ -47,6 +47,17 @@ expiry no more than five minutes ahead:
 Replace the task ID and expiry before issuing. Both operations must be inside
 the task's own scope; the task must belong to your authenticated principal.
 
+The optional `task_cancel` operation is excluded from this example. To expose
+`connect_task_cancel`, explicitly include it in both the task's original scope
+and the issued grant, using a current SDK and parent credential authorized for
+task cancellation. Other permissions never imply it. The tool can cancel only
+its bound task and immediately invalidates all grants for that task. Retain its
+request ID and reason before calling; if the acknowledgement is lost, the
+developer can inspect the original receipt through the separately protected
+owner interface. A denied follow-up on the cancelled grant is expected and
+does not justify refreshing it. The conversation and sibling tasks remain
+available; dispatched provider effects cannot be undone by cancellation.
+
 ```sh
 connect task-access issue --config .local/install/developer.toml \
   --http-address 127.0.0.1:8194 --input .local/issue.json \
@@ -74,6 +85,33 @@ The exported bearer connects its installed task to `/mcp` on the MCP port.
 Another task has its own grant; revoking one does not change another's authority.
 The actual host installer and continuation journey remain tracked in the
 [Gate 4 plan](connect-gate-4-implementation.html).
+
+## Codex workflow export
+
+The developer-only `export-codex` command converts an already-issued Native or
+HostSession grant into a fresh private directory. The parent directory must
+exist. It embeds the Connect skill and its references; it needs no repository
+checkout at runtime and does not modify global Codex configuration.
+
+```sh
+connect task-access export-codex --grant-file .local/review-grant.json \
+  --mcp-address 127.0.0.1:8193 --output .local/codex-review
+```
+
+`task-grant.json` retains the original issuance intent and bearer with private
+permissions. `install.json` contains non-secret binding metadata and skill
+digests. `mcp-override.txt` holds a per-run Codex configuration override using
+the `CONNECT_TASK_GRANT` environment reference; it contains no bearer. Existing
+directories are preserved, including interrupted exports. The manifest is
+written last; a directory missing it is incomplete.
+
+This is local export, not binding registration, refresh or proof of current
+server authority. Provider grants require their verified adapter and cannot be
+converted. The host must supply the retained bearer through its protected
+environment, and MCP still checks current task, parent and grant authority.
+The packaged launcher, exact session-ID continuation and actual model/host
+qualification remain open in G4-021–G4-023. Export alone does not attest that
+Codex has loaded the skill or made a tool call.
 
 ## Native SDK and JSON CLI
 

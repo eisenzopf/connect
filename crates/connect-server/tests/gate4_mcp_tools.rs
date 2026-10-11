@@ -153,7 +153,7 @@ async fn every_advertised_schema_rejects_authority_selectors_and_invalid_shapes(
     let f = fixture::Fixture::start_permitted(true, permissions()).await;
     let client = client(&f).await;
     let tools = client.list_tools(None).await.unwrap();
-    assert_eq!(tools.tools.len(), 27);
+    assert_eq!(tools.tools.len(), 28);
     for tool in &tools.tools {
         assert_eq!(tool.input_schema["additionalProperties"], false);
         for selector in [

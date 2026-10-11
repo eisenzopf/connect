@@ -342,3 +342,55 @@ proofs. Failed fixture attempts and unchanged limits remain explicit.
 These records do not close G4-017's complete tools/authority decision, installed
 hosts, provider bootstrap, full journeys or Gate 4 acceptance. Earlier snapshots
 above retain their historical claims; use the numbered plan for current status.
+
+## Explicit bound-task cancellation · additive permission
+
+G4-017's permitted task-cancel tool uses a new explicit `TaskPermission::TaskCancel`
+(serialized `task_cancel`). This follows the approved product plan's cancellation
+requirement and the recommended default-off design. It is never inferred from
+messaging, status, media-end permission or a backing operator credential. The
+protected developer must include it in both the immutable task ceiling and the
+invocation subset; the backing actor must currently permit `task_cancel`.
+
+This adds a delegatable permission to the existing typed Cancel command. Old
+commands, scopes without that entry, grant digests and receipts are unchanged.
+Older SDKs reject records containing the new permission; developers using this
+feature need the updated SDK. An older server rejects the new scope value before
+mutation. No task-profile reinterpretation, automatic migration or widened
+existing delegation occurs.
+
+The MCP schema accepts a retained request ID and optional bounded reason. The
+service supplies the authenticated task; model arguments cannot select an owner,
+conversation or sibling task. Native task clients use the same transactional
+admission. Cancellation persists the attributed terminal event/control receipt
+and revokes all task grants atomically. An already dispatched effect retains its
+observation/reconciliation requirement; cancellation cannot erase it.
+
+The cancelled grant cannot inspect or replay its accepted control receipt. If a
+response is lost, the protected owner inspects that original receipt/task under
+current owner authority. No tool refreshes a cancelled grant or substitutes an
+owner credential. Ending a media session still leaves the task/conversation
+intact; cancelling a task still leaves its conversation intact.
+
+Qualification is being implemented in `gate4_mcp_task_cancel.rs`; this paragraph
+records the design, not a claim that the new checks or G4-017 are complete.
+
+## Current local task-tool checkpoint
+
+The [G4-017 item audit](../evidence/gate-4/task-tools-audit.json) now qualifies
+the complete local tool interface, including explicit bound-task cancellation,
+source-backed recall, bounded waiting and lost-response recovery.
+[Qualification evidence](../evidence/gate-4/task-tools-qualification.json) retains
+the fixed cancellation transaction failure, the corrected recall fixture and
+one unresolved SDK/CLI timeout whose unchanged isolated retry passed.
+No full T-A/A4 or installed-host acceptance is closed by this checkpoint.
+
+The owner confirmed that agents should get on with delegated work without
+per-action permission prompts. Task cancellation is available through explicit
+developer configuration and needs no interactive approval at invocation. Task
+and conversation boundaries remain separate; cancellation does not undo an
+already dispatched effect or end a conversation.
+
+The [Codex export component](../evidence/gate-4/codex-workflow-export.json)
+preserves an existing narrow grant and packages the workflow skill. G4-018 and
+G4-021 remain open for actual skill loading and exact-session continuation.

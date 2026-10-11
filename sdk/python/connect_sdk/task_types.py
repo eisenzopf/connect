@@ -9,7 +9,7 @@ TaskPermission = Literal[
     "inbox", "request_status", "artifact_begin", "artifact_append", "artifact_finish",
     "artifact_get", "artifact_delete", "session_invite", "session_accept", "session_reject",
     "session_cancel", "session_end", "session_get", "call_start", "call_status", "call_end",
-    "sip_dial", "sip_status", "sip_end",
+    "sip_dial", "sip_status", "sip_end", "task_cancel",
 ]
 
 class TaskSmsEnrollment(TypedDict):

@@ -5,6 +5,15 @@ use std::path::PathBuf;
 /// Protected task installation, explicit recovery and revocation commands.
 #[derive(Subcommand)]
 pub enum Command {
+    /// Export an issued local grant and skill to a fresh private Codex directory.
+    ExportCodex {
+        #[arg(long)]
+        grant_file: PathBuf,
+        #[arg(long)]
+        mcp_address: std::net::SocketAddr,
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Export a Native grant into a fresh private SDK config; never refreshes it.
     ExportNative {
         #[arg(long)]
@@ -45,6 +54,11 @@ impl Command {
     /// Execute through the bounded loopback exchange and protected files.
     pub async fn execute(self) -> anyhow::Result<()> {
         match self {
+            Self::ExportCodex {
+                grant_file,
+                mcp_address,
+                output,
+            } => super::codex::export(&grant_file, mcp_address, &output),
             Self::ExportNative {
                 config,
                 grant_file,

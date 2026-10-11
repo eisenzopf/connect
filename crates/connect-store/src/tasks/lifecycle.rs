@@ -2,7 +2,10 @@
 use super::{authority, storage};
 use crate::{Actor, Store};
 use connect_protocol::{
-    tasks::{TaskDefinition, TaskRecord, TaskState, MAX_ACTIVE_TASKS, MAX_RETAINED_TASKS},
+    tasks::{
+        TaskCommand, TaskDefinition, TaskOutcome, TaskRecord, TaskRequest, TaskState,
+        MAX_ACTIVE_TASKS, MAX_RETAINED_TASKS,
+    },
     Error, Result,
 };
 use rusqlite::{params, Connection};
@@ -75,4 +78,46 @@ pub(super) fn change(
     }
     storage::event(c, actor, &record, store)?;
     Ok(record)
+}
+
+/// The caller already revalidated an explicit task-cancel grant inside this
+/// transaction. Current authorization precedes receipt lookup; after successful
+/// cancellation the revoked grant cannot replay even its accepted receipt.
+pub(super) fn cancel_delegated(
+    c: &Connection,
+    actor: &Actor,
+    task: TaskRecord,
+    request: &TaskRequest,
+    timestamp: i64,
+    store: &Store,
+) -> Result<TaskOutcome> {
+    let TaskCommand::Cancel {
+        request_id,
+        reason,
+        task_id,
+    } = &request.command
+    else {
+        return Err(Error::forbidden());
+    };
+    if task_id != &task.id {
+        return Err(Error::forbidden());
+    }
+    let intent = storage::digest(request)?;
+    if let Some((saved_task, outcome)) = storage::saved(c, actor, request_id, &intent)? {
+        return if saved_task == task.id {
+            Ok(outcome)
+        } else {
+            Err(Error::forbidden())
+        };
+    }
+    let record = change(
+        c,
+        actor,
+        task,
+        TaskState::Cancelled,
+        reason.clone(),
+        timestamp,
+        store,
+    )?;
+    storage::save(c, actor, request_id, &intent, &record, store)
 }

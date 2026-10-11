@@ -70,6 +70,9 @@ impl Store {
                 super::super::effects::get(&tx, &actor, &task, effect_id, timestamp, self)
             }
             TaskCommand::Get { .. } => Ok(TaskOutcome::Record(Box::new(task))),
+            TaskCommand::Cancel { .. } => Ok(super::super::lifecycle::cancel_delegated(
+                &tx, &actor, task, request, timestamp, self,
+            )?),
             TaskCommand::Inbox { after, limit, .. } | TaskCommand::Wait { after, limit, .. } => {
                 super::super::inbox::read(&tx, &actor, &task, after.as_deref(), *limit, self)
             }

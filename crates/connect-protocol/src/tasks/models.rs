@@ -2,8 +2,9 @@
 use super::{EffectState, TaskState};
 use serde::{Deserialize, Serialize};
 
-/// Closed set of delegatable communication operations; administrative authority
-/// and creation of a new conversation are never implicitly delegated.
+/// Closed set of delegatable communication operations and explicit bound-task
+/// cancellation. Administrative authority and conversation creation are never
+/// implicitly delegated; `TaskCancel` requires its own immutable ceiling.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskPermission {
@@ -32,6 +33,9 @@ pub enum TaskPermission {
     SipDial,
     SipStatus,
     SipEnd,
+    /// Explicit cancellation of only this delegated task. Never implied by
+    /// messaging, session control, status or any other communication permission.
+    TaskCancel,
 }
 impl TaskPermission {
     /// Required backing actor scope; capability discovery reuses resolve authority.
@@ -61,6 +65,7 @@ impl TaskPermission {
             Self::SipDial => "sip_dial",
             Self::SipStatus => "sip_status",
             Self::SipEnd => "sip_end",
+            Self::TaskCancel => "task_cancel",
         }
     }
 }

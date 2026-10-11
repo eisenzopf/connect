@@ -59,7 +59,9 @@ Existing ordinary SMS clients retain their current enrollment policy.
 Empty SMS scope is omitted from serialization, preserving existing canonical grant
 digests. Storage schema 13 marks this policy boundary so an older binary cannot
 dispatch newer task work without enforcing it. The task profile remains
-`connect-task/1`; the typed contract checkpoint is revision 4.
+`connect-task/1`; the typed contract checkpoint is revision 5. Revision 5 adds
+only explicit bound-task cancellation permission, described below; it leaves
+the versioned command shapes and existing grant digests unchanged.
 
 Task states: ready → running → waiting → ready; running → completed. Any
 nonterminal state may become cancelled, failed or expired. Terminal states never
@@ -105,6 +107,24 @@ is registered by trusted composition, never inferred from a model's headers.
 Grant issuance is outside the model-facing command enum; five-minute grants
 cannot refresh themselves. Protected host adapters may refresh only through
 current backing authority and unchanged task scope.
+
+`task_cancel` is an explicit, default-off permission for the existing `Cancel`
+command. Both the task ceiling and the invocation grant must contain it, and
+the parent must still hold current task-cancel authority. It authorizes only
+the authenticated task; it does not grant creation, transition, claim, grant
+issuance or conversation closure. Existing grants omit it and retain their
+previous behavior. Older strict SDKs reject a task record containing this new
+permission rather than assuming support; update the SDK before opting in.
+
+Cancellation commits terminal state, journal evidence, prepared-effect
+cancellation, grant revocation and its control receipt atomically. A receipt or
+capacity failure rolls back all of those writes. Successful cancellation
+immediately invalidates the invoking grant, so its matching replay is denied.
+A separately authorized owner can inspect the original control receipt with
+the retained request ID and input. Lost acknowledgement is not permission to
+issue broader credentials or create replacement work. Cancellation leaves the
+conversation and sibling tasks intact and cannot undo an already dispatched
+provider effect.
 
 The [protected local task-access profile](connect-task-access-v1.md) installs
 Native/HostSession grants outside this model-facing contract. Its secret-bearing

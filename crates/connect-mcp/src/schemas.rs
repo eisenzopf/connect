@@ -21,6 +21,10 @@ pub(crate) fn input(spec: &Spec) -> Map<String, Value> {
             }
         }
         Kind::Effect => field("effect_id", identifier(), true),
+        Kind::Cancel => {
+            field("request_id", identifier(), true);
+            field("reason", nullable_string(512), false);
+        }
         Kind::Operation(_) => {
             field("request_id", identifier(), true);
             field("step_id", identifier(), true);
