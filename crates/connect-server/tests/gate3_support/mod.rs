@@ -25,6 +25,7 @@ struct FakeState {
     burst: bool,
     call_gate: Option<Arc<tokio::sync::Semaphore>>,
     resource: Arc<Mutex<Value>>,
+    create_status: axum::http::StatusCode,
 }
 
 pub(crate) struct FakeVapi {
@@ -37,17 +38,21 @@ pub(crate) struct FakeVapi {
 
 impl FakeVapi {
     pub(crate) async fn start() -> Self {
-        Self::start_profile(false, false).await
+        Self::start_profile(false, false, false).await
     }
 
     /// Saturate the real queue profile; retain the socket until cancelled.
     pub(crate) async fn start_burst() -> Self {
-        Self::start_profile(true, false).await
+        Self::start_profile(true, false, false).await
     }
 
     /// Pause the provider create response to exercise revocation during attachment.
     pub(crate) async fn start_paused() -> Self {
-        Self::start_profile(false, true).await
+        Self::start_profile(false, true, false).await
+    }
+    /// Accept one call remotely but lose its successful creation receipt.
+    pub(crate) async fn start_uncertain() -> Self {
+        Self::start_profile(false, false, true).await
     }
     pub(crate) fn release_call(&self) {
         self.call_gate.as_ref().unwrap().add_permits(1);
@@ -57,7 +62,7 @@ impl FakeVapi {
             tokio::time::timeout(std::time::Duration::from_millis(250), self.next(kind)).await;
         assert!(received.is_err(), "unexpected provider message: {kind}");
     }
-    async fn start_profile(burst: bool, paused: bool) -> Self {
+    async fn start_profile(burst: bool, paused: bool, uncertain: bool) -> Self {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let (observed, observed_rx) = mpsc::unbounded_channel();
@@ -68,6 +73,11 @@ impl FakeVapi {
             burst,
             call_gate: call_gate.clone(),
             resource: Arc::new(Mutex::new(Value::Null)),
+            create_status: if uncertain {
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR
+            } else {
+                axum::http::StatusCode::OK
+            },
         };
         let router = Router::new()
             .route("/call", post(create_call))
@@ -119,7 +129,10 @@ impl Drop for FakeVapi {
     }
 }
 
-async fn create_call(State(state): State<FakeState>, Json(body): Json<Value>) -> Json<Value> {
+async fn create_call(
+    State(state): State<FakeState>,
+    Json(body): Json<Value>,
+) -> (axum::http::StatusCode, Json<Value>) {
     let resource = json!({
         "id": "call-connect-gate-three", "status":"queued",
         "assistantId":body["assistantId"], "assistantOverrides":body["assistantOverrides"],
@@ -132,7 +145,7 @@ async fn create_call(State(state): State<FakeState>, Json(body): Json<Value>) ->
     if let Some(gate) = &state.call_gate {
         gate.acquire().await.unwrap().forget();
     }
-    Json(resource)
+    (state.create_status, Json(resource))
 }
 async fn private_call(
     State(state): State<FakeState>,

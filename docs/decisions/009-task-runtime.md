@@ -428,7 +428,27 @@ possibly-sent admission are conservative: uncertainty is retained rather than
 creating another call. Shutdown persists media unbindings even when an MCP
 listener reports a drain failure.
 
-Turnkey operator installation, explicit unknown-resource recovery, restart
-reattachment, aggregate setup-listener limits and actual provider/model behavior
+Turnkey operator installation, restart reattachment, aggregate setup-listener
+limits and actual provider/model behavior
 remain separate unfinished work. The bootstrap guide and numbered plan identify
 those limits; component evidence must not be read as G4-019/G4-020 closure.
+
+### Exact-resource recovery
+
+Protected composition can reconcile an operator-selected provider resource with
+the retained private setup intent. It uses the callback's exact-nonce verification
+and atomic issuance path, preserving the original task, operations, expiry and
+issuance request ID. It never POSTs a second resource, reconnects media, guesses
+an ID from a caller or assistant, or returns a grant bearer. Model tool schemas
+cannot invoke this recovery API.
+
+The first verified resource ID is frozen before issuance. If current task or
+credential authority changes during lookup, this observation can be retained
+without issuing authority. Repeating recovery cannot substitute another resource
+or replace a revoked grant. Resource observation and task permission remain
+separate; a recovered call binding does not attest an active local audio bridge.
+
+The [local recovery qualification](../evidence/gate-4/vapi-bootstrap-recovery.json)
+records five new recovery cases and 21 affected integration checks with strict
+lint and Rustdoc results. Full binding isolation and post-call continuation
+audits remain open in the numbered plan.

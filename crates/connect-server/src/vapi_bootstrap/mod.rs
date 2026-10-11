@@ -2,10 +2,12 @@
 //! The setup credential alone is not a task grant. Exact resource creation is
 //! privately verified before existing atomic binding/grant issuance is used.
 mod admission;
+mod binding;
 mod call;
 mod creation;
 mod dispatch;
 mod media;
+mod recovery;
 mod state;
 use crate::cli::init::{private_directory, private_write};
 pub use admission::BootstrapAuth;
@@ -16,6 +18,7 @@ use connect_protocol::tasks::{GrantDefinition, InvocationBinding, InvocationKind
 use connect_service::Service;
 pub use creation::create_session;
 pub(crate) use media::CallSetup;
+pub use recovery::reconcile_created;
 use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
 

@@ -45,48 +45,8 @@ impl McpAuthenticator for BootstrapAuth {
         tag(credential)?
             .verify_slice(&tag(&state.secret)?.finalize().into_bytes())
             .map_err(|_| Error::unauthorized())?;
-        if !state.posted {
-            return Err(Error::forbidden());
-        }
-        self.service
-            .authorize_provider_task_setup(
-                state.definition.credential_id.clone(),
-                format!("bootstrap-{}", state.nonce),
-                state.definition.grant(&state.nonce),
-            )
-            .await?;
         let external = correlate(headers, state.definition.origin)?;
-        if state.external_id.as_ref().is_some_and(|id| id != external) {
-            return Err(Error::forbidden());
-        }
-        self.provider
-            .verify_created_origin(
-                state.definition.origin,
-                external,
-                &state.definition.assistant_id,
-                &state.nonce,
-            )
-            .await
-            .map_err(|_| {
-                Error::new(
-                    "provider-origin-denied",
-                    "Provider creation could not be verified",
-                )
-            })?;
-        let definition = state.definition.grant(external);
-        let credential_id = state.definition.credential_id.clone();
-        let request_id = state.definition.request_id.clone();
-        if held.state.external_id.is_none() {
-            held.state.external_id = Some(external.into());
-            held.save().map_err(|_| Error::storage())?;
-        }
-        let issued = self
-            .service
-            .issue_verified_provider_task_grant(credential_id, request_id, definition)
-            .await?;
-        self.service
-            .authenticate_task_grant(issued.expose_secret().into(), issued.grant.binding.clone())
-            .await
+        super::binding::bind(&self.service, &self.provider, &mut held, external).await
     }
 }
 fn bearer(headers: &HeaderMap) -> Result<&str> {

@@ -78,8 +78,22 @@ POST, change the nonce or expiry, or create another task to conceal uncertainty.
 A matching nonce-verified callback can reconcile the original resource before
 the creation receipt. Calling `create_session` again after that observation
 returns the independently verified existing resource under current authority;
-it dispatches no second POST. Without a verified callback/resource, recovery
-remains an explicit unresolved outcome.
+it dispatches no second POST.
+
+If no callback arrived, protected developer composition can call
+`vapi_bootstrap::reconcile_created(service, &provider, &directory, external_id)`
+with the exact resource ID obtained from the provider. Retain the original
+directory, provider account and intent; do not select a resource by matching
+caller or assistant alone. The function privately verifies the original nonce,
+assistant and active resource mode, freezes that resource ID, and uses the same
+grant issuance intent as a callback. It rechecks current authority before the
+lookup and during issuance. Matching retries preserve the original lifetime;
+an already revoked grant stays revoked. It returns the verified resource ID,
+never a bearer credential. The function is not exposed as a model tool.
+
+This reconciles task tool binding, including a call whose creation receipt was
+lost. It does not reconnect audio or resume an ended voice leg. Without an
+exact, active, nonce-verified resource, the creation outcome remains unresolved.
 
 Cancellation, grant revocation and backing-credential revocation prevent new
 task effects. They do not undo a resource that the provider may already have
@@ -88,8 +102,8 @@ an explicit retryable setup failure; the original intent is retained.
 
 Call/chat/session nonce verification is available in the connector; standalone
 chat creation is not implemented. The voice runtime accepts protected Rust
-composition, but a turnkey operator installer, explicit resource-ID recovery,
-restart reattachment, aggregate setup-listener limits and actual Vapi
+composition, but a turnkey operator installer, restart reattachment,
+aggregate setup-listener limits and actual Vapi
 host qualification remain open. A staged or admitted uncertain call is not
 silently recreated. Local listeners cannot be reached by a live cloud provider
 without separately configured ingress; this component does not add ingress. No live provider requests or public ingress are used by this component's
@@ -104,5 +118,6 @@ Primary API references:
 Current progress and verification are recorded in the
 [Gate 4 implementation plan](connect-gate-4-implementation.html#G4-019) and the historical [chat-session bootstrap evidence](evidence/gate-4/vapi-bootstrap.json).
 [Qualified local voice component and retained failures](evidence/gate-4/vapi-call-bootstrap.json)
-are recorded separately;
-these component checks do not close whole-item or actual host qualification.
+and [exact-resource recovery checks](evidence/gate-4/vapi-bootstrap-recovery.json)
+are recorded separately. These component checks do not close whole-item or
+actual host qualification.
