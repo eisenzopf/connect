@@ -134,7 +134,70 @@
   "scope": "Actual Codex CLI and Connect release binary; loopback scripted Responses; no model inference, carriers, public ingress or production state. Sixteen is a measured host count, not a new host admission ceiling. This is distinct from the sixteen reference-runner step-lease limit.",
   "remaining": [
     "Whole G4-023 host/model product acceptance and prerequisite closure.",
-    "Actual reference-runner process concurrency, remaining MCP operating loads, grant/retention and retired voice-setup measurements.",
-    "Full-source runner inclusion of this added profile on a later qualifying revision."
-  ]
+    "Actual reference-runner process concurrency, remaining MCP operating loads, grant/retention and retired voice-setup measurements."
+  ],
+  "runner_integration": {
+    "recorded_at": "2026-10-11T15:52:35.109734+00:00",
+    "source_revision": "68966d8",
+    "status": "passed",
+    "source_stable": true,
+    "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/added-host-phase/result.json",
+    "result_sha256": "b59d927b4562eec05630b2b63e36cbf07d3a68736b1808e533d9b72c785481c3",
+    "steps": [
+      {
+        "name": "runner-failure-tests",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_qualification*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "runner-failure-tests.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.478
+      },
+      {
+        "name": "current-binaries",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--bin",
+          "connect"
+        ],
+        "timeout_seconds": 1200,
+        "log": "current-binaries.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.308
+      },
+      {
+        "name": "host-capacity",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-host-capacity.py"
+        ],
+        "timeout_seconds": 540,
+        "log": "host-capacity.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 14.609
+      }
+    ],
+    "scope": "Exact new runner phase after the normal binary build, with Codex selected through the full-run environment. All 18 verifier tests pass. This supplements the b4f5fde full run; production crates, SDKs and Cargo inputs are unchanged between those revisions. It is not a new full-run result."
+  }
 }
