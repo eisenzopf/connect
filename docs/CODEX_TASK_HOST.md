@@ -5,7 +5,8 @@ The packaged launcher passes local process fixtures; actual host/model qualifica
 G4-021/G4-023. The version observed locally is `codex-cli 0.162.0-alpha.17.2`.
 The existing MCP endpoint enforces current task grants. Export/configuration
 checks do not establish model recovery behavior. Actual runtime discovery is
-qualified separately below; full skill injection and model follow-through remain open.
+qualified separately below. Full skill injection and saved-call replay now pass
+a scripted runtime check; real-model follow-through remains open.
 
 ## Required installation flow
 
@@ -108,11 +109,12 @@ installation concurrently.
 `--timeout-seconds` bounds the host turn to 1–300 seconds (120 by default),
 independently of each MCP request budget. JSONL events are retained privately,
 bounded to 4 MiB per attempt and 512 KiB per event; the installed Connect grant
-secret is redacted. This adapter records host observations after emission. It
-cannot by itself prove that a model persisted a communication mutation ID before
-making a tool call; actual same-intent model recovery remains required in the
-host/journey checks. The skill and Connect effect ledger supply the workflow
-contract, not a substitute for that proof.
+secret is redacted. This adapter records host observations after emission. The
+separate actual-runtime interruption check below verifies saved call intent before
+Connect dispatch and exact-session replay under healthy local storage. It does
+not qualify the packaged launcher with a real model or prove that failed host
+storage prevents tool execution. The skill and Connect effect ledger supply the
+workflow contract; host/journey qualification still requires useful follow-through.
 
 If the child exits before its session ID is saved, a later run refuses to start a
 replacement. Inspect the retained intent and actual host session records through
@@ -150,6 +152,41 @@ installation requirement. The qualified command executes it; a missing selected
 executable fails. The fixture creates empty private HOME/CODEX_HOME roots, passes
 only the fixture grant, configures an unused loopback model endpoint and starts
 no model turn. Its actual skill discovery and MCP calls qualify runtime wiring.
-They do not prove full skill instructions reached a model, exact model-session
-resume, pre-invocation mutation persistence or useful agent follow-through.
+This discovery check alone does not prove full skill injection, exact-session
+resume, pre-invocation intent persistence or useful agent follow-through.
 The production launcher continues to use `exec` and exact `exec resume`.
+
+## Actual local call intent and interruption
+
+The [call-intent audit](evidence/gate-4/codex-call-intent.json) records three
+checks using actual `exec` and exact `exec resume`, the installed code-mode tool
+interface, and protected HostSession grants. A scripted loopback Responses peer
+provides tool calls; it performs no inference. Empty private HOME/CODEX_HOME
+roots keep account credentials and global configuration outside the fixture.
+
+While authenticated MCP admission is paused, the test reads the original
+communication program from canonical Codex session files and verifies that
+Connect's Store is unchanged. The full installed skill is present in the runtime
+request context. After acceptance, the public client sees one question and the
+task waiting. Killing the host and resuming its exact UUID replays the original
+program from saved session input without duplicating the accepted effect.
+Interruption before dispatch and revocation between persistence and dispatch
+also pass. A revoked required MCP server stops a fresh attempt before a turn.
+
+Run this separate external-runtime check explicitly:
+
+```sh
+CONNECT_TEST_CODEX_BINARY="$(command -v codex)" \
+  cargo test --locked -p connect-server --all-features \
+  --test gate4_codex_call_intent -- --ignored
+```
+
+All three tests execute in the recorded opt-in run. Ordinary Cargo runs mark
+them ignored; a missing explicitly selected executable fails. The fixture
+supplies its scripted provider and controlled admission endpoint directly; it
+does not qualify production `run-codex` with a real model. This proves runtime
+wiring, skill injection and healthy-storage process-interruption behavior at
+the recorded version. Real-model instruction following, useful reply-driven
+continuation, full installation journeys, storage-write failures, power loss
+and complete descendant-process cleanup remain separate checks. G4-018,
+G4-021 and G4-023 stay open.

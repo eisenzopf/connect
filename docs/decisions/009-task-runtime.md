@@ -410,9 +410,14 @@ The [Codex export component](../evidence/gate-4/codex-workflow-export.json)
 preserves an existing narrow grant and packages the workflow skill. The
 [actual runtime discovery check](../evidence/gate-4/codex-runtime-discovery.json)
 now finds that enabled skill and exercises real MCP through an isolated installed
-Codex runtime, including pending, restart and current-authority denial. G4-018
-and G4-021 remain open for actual model skill injection/follow-through, durable
-mutation intent and exact model-session continuation.
+Codex runtime, including pending, restart and current-authority denial. The
+[actual call-intent check](../evidence/gate-4/codex-call-intent.json) now verifies
+full skill injection, original intent on disk before communication dispatch,
+exact-session replay after interruption and current revocation through protected
+HostSession grants. Its Responses peer is scripted and performs no inference.
+G4-018, G4-021 and G4-023 remain open for real-model instruction following,
+useful continuation and full host/installation qualification. Healthy-storage
+process interruption does not attest power-loss or failed-storage behavior.
 
 ## Protected voice bootstrap composition
 
