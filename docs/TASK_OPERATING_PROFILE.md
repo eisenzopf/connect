@@ -127,10 +127,50 @@ Six negative-control/positive-control verifier tests reject completed prose with
 missing or failed tools, wrong bindings, changed warm receipts and surviving
 process groups.
 
+## Sixteen concurrent reference runners
+
+The [runner-concurrency result](evidence/gate-4/runner-concurrency.json) now
+qualifies sixteen real `connect-example task` processes against one local
+server, separately from the Codex host profile. The Gate 4 runner builds both
+normal executables before this phase, including in source-only qualification.
+
+```sh
+python3 scripts/check-runner-capacity.py \
+  --binary /absolute/path/to/connect \
+  --example-binary /absolute/path/to/connect-example
+```
+
+The 240-second profile creates seventeen tasks and protected native grants via
+the public SDK and CLI. Sixteen workers hold distinct, unexpired 30-second step
+leases. A seventeenth must exit with an explicit capacity error and no message
+or claim. After one worker stops and its lease is explicitly released, the
+rejected worker retries its original saved intent and joins the other fifteen.
+Sixteen explicit replies produce one application action and follow-up each.
+
+After server and application restart, the original cohort resumes saved state.
+The previously stopped worker handles its delayed reply; duplicate replies for
+the others return their original receipts. All seventeen conversations contain
+exactly one original question, one reply and one follow-up. The driver reads
+application state only through public diagnostics and a read-only comparison of
+the saved claim; it never opens or modifies the Connect server database.
+The independent phase supervisor verifies that no inherited processes survive.
+
+At clean revision `1d7061e`, the profile passed in 5.852 seconds with normal debug
+executables. Sampled server RSS peaked at about 67.8 MiB. Waiting worker cohorts
+totaled about 323.4 and 324.0 MiB at the two observations. These are local samples,
+not total-memory peaks or guarantees. The recorded 641.785 ms startup interval
+is for the whole initial cohort, not an individual operation latency or SLO.
+The sixteen-step limit does not impose a new limit on worker process counts.
+
+The first two driver attempts failed on an incorrect address argument and an
+incorrect expectation that a known rejection should count as uncertain pending
+work. Both failures are retained. Five verifier controls and all 23 runner
+checks pass; the exact new runner phase also passed in a clean checkout.
+
 ## Work still required
 
-Remaining operating work includes actual reference-runner process concurrency,
-complete MCP payload/deadline loads, grant refresh and expiry under sustained
+Remaining operating work includes complete MCP payload/deadline loads,
+grant refresh and expiry under sustained
 load, age-based retention and retained voice-setup metadata. The
 [installed local candidate](evidence/gate-4/package-candidate.json) separately
 passes its package checks; real-model journeys, whole-item dependencies and

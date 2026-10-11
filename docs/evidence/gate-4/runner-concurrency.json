@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "items": [
+    "G4-030",
+    "G4-031"
+  ],
+  "recorded_at": "2026-10-11T16:03:27.797482+00:00",
+  "status": "local reference-runner concurrency passed; whole items remain open",
+  "source_revision": "1d7061e389047a9c4dc3ca7ee4d657aeee27ccda",
+  "source_stable": true,
+  "source_inputs_sha256": {
+    "scripts/check-runner-capacity.py": "25cb278961c8b3a7ccdd350c9c75fe3fadb1821c855919616a17ecbf7f65a74a",
+    "scripts/lib/runner_profile.py": "ab918001c8a12fb470419c00b3d728f7e98fe71a007d565f9e90dcdbfd0cb436",
+    "scripts/lib/runner_profile_worker.py": "bbcb6a901de547dd54936714c34ba4c84d8790ae42e698d768da18db7f884787",
+    "scripts/lib/profile_metrics.py": "92ddc2f8294ff88f9063f601256d224e215a38ecc7f09d53a2a6971782bd91a7",
+    "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+    "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+    "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+    "sdk/python/connect_sdk/protocol.py": "e0deab0cb9989a302973c5aaf44252d295a537f0e5bcfc4cbcd6c7aeecd495c3",
+    "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+    "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+    "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+    "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+    "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+    "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+    "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a"
+  },
+  "binary_sha256": "49d52de2163dcca26d24ef8530136c0a793b5ce751bae0c5f6e2e10622ace7f5",
+  "example_sha256": "145858b130b32b3a76a043eb742f1b538ede842e6bdd6ce643525ce629443d91",
+  "binary_profile": "normal debug binaries at source_revision; no test-support features",
+  "result": ".local/gate-4-fresh-493d5c3/.local/runner-capacity/20261011T160153.366212Z/result.json",
+  "result_sha256": "6c04ebda8aad2cc6eadd82348e0329fe304bf895a35f938cbd03ae46258806c6",
+  "supervised_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/added-runner-phase/result.json",
+  "supervised_result_sha256": "06744cdccefd8ea25bd69242917ff2cdec78a7539f8813a14f4315d223f84367",
+  "supervised_phases": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.184
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.595
+    },
+    {
+      "name": "runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "runner-failure-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.485
+    },
+    {
+      "name": "current-binaries",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-review-loop",
+        "--bin",
+        "connect",
+        "--bin",
+        "connect-example"
+      ],
+      "timeout_seconds": 1200,
+      "log": "current-binaries.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.293
+    },
+    {
+      "name": "reference-runner-capacity",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-runner-capacity.py"
+      ],
+      "timeout_seconds": 300,
+      "log": "reference-runner-capacity.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 5.99
+    }
+  ],
+  "elapsed_seconds": 5.852,
+  "phases": [
+    {
+      "name": "sixteen-workers-and-seventeenth-denial",
+      "status": "passed",
+      "seconds": 0.851,
+      "exchanges": 1,
+      "server_sampled_peak_rss_bytes": 69369856,
+      "database_apparent_bytes": 4845456,
+      "latency_ms": {
+        "p50": 641.785,
+        "p95": 641.785,
+        "maximum": 641.785
+      }
+    },
+    {
+      "name": "released-slot-original-intent-and-sixteen-replies",
+      "status": "passed",
+      "seconds": 0.725,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": 71090176,
+      "database_apparent_bytes": 5017560
+    },
+    {
+      "name": "sixteen-workers-after-server-and-app-restart",
+      "status": "passed",
+      "seconds": 0.352,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": 35160064,
+      "database_apparent_bytes": 1103536
+    }
+  ],
+  "server_rss": {
+    "samples": 8,
+    "sampled_peak_bytes": 71106560,
+    "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+  },
+  "observations": {
+    "overflow_denied_without_effect": true,
+    "cold_cohort_rss_bytes": 339066880,
+    "released_slot_reused": true,
+    "original_overflow_intent_preserved": true,
+    "replacement_cohort_rss_bytes": 339738624,
+    "simultaneous_follow_through": 16,
+    "restart_business_effects": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "duplicate_replies_returned_original_receipts": true,
+    "question_and_follow_up_once": true,
+    "all_started_workers_reaped": true
+  },
+  "proof": [
+    "Seventeen tasks in separate conversations created through the public native SDK; protected HTTP grant issuance and public native export for every worker.",
+    "Sixteen actual connect-example task processes hold distinct unexpired 30-second leases simultaneously; their recorded PIDs and executable identities are sampled.",
+    "Seventeenth worker exits with capacity-exceeded while all sixteen leases remain live; no question or claim; app diagnostics show one known rejection and no pending uncertain command.",
+    "Stop first worker and explicitly release its lease; restart rejected worker from original app state and assert byte-identical saved claim plus matching worker identity. Replacement cohort holds sixteen unexpired leases.",
+    "Sixteen bound replies produce exactly one business effect each and exact three-message histories; no server database is opened by the driver.",
+    "Server and original sixteen workers restart; first worker handles its delayed reply, fifteen duplicate replies return original receipts. All seventeen workflows have one question, explicit reply and follow-up, with original question IDs preserved.",
+    "All workers are reaped; independent phase supervisor reports no inherited process leaks."
+  ],
+  "verifier_tests": {
+    "passed": 5,
+    "total_runner_tests_passed": 23,
+    "scope": "duplicated/incomplete history, duplicate business effects, dead workers, cleanup failure and normal-build phase ordering"
+  },
+  "failed_attempts": [
+    {
+      "result": ".local/runner-capacity/20261011T155900.390202Z/result.json",
+      "cause": "New driver supplied a raw peer identity to negotiate_tasks, which requires connect:alias@local. Corrected driver to documented alias; no product change."
+    },
+    {
+      "result": ".local/runner-capacity/20261011T155920.685320Z/result.json",
+      "cause": "New driver expected a known capacity rejection to count as pending. Actual diagnostics correctly report one rejected command, zero uncertain pending commands. Corrected assertion; retained original intent separately verified."
+    }
+  ],
+  "earlier_component_pass": ".local/runner-capacity/20261011T155957.123802Z/result.json",
+  "limits": [
+    "Local macOS arm64 only. No providers, inference, public ingress or deployment.",
+    "Sixteen is the step-lease ceiling, not a worker-process admission ceiling. Waiting workers may outlive leases.",
+    "Phase one latency records one cohort startup interval, not individual SDK exchanges or a latency distribution.",
+    "Server RSS sampled every 0.5 seconds; worker totals are single waiting-cohort snapshots, not peak total memory or resource guarantees.",
+    "The five-phase supplemental qualification is not a new full Gate 4 run. b4f5fde full 33-phase proof and 68966d8 host supplemental proof remain separate.",
+    "Remaining MCP loads, grant/retention lifecycle, retired voice metadata, prerequisites and acceptance prevent whole G4-030/031 closure."
+  ]
+}

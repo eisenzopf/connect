@@ -2274,5 +2274,100 @@
       }
     ],
     "scope": "Exact new runner phase after the normal binary build, with Codex selected through the full-run environment. All 18 verifier tests pass. This supplements the b4f5fde full run; production crates, SDKs and Cargo inputs are unchanged between those revisions. It is not a new full-run result."
+  },
+  "added_reference_runner_phase": {
+    "source_revision": "1d7061e389047a9c4dc3ca7ee4d657aeee27ccda",
+    "source_stable": true,
+    "supervised_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/added-runner-phase/result.json",
+    "supervised_result_sha256": "06744cdccefd8ea25bd69242917ff2cdec78a7539f8813a14f4315d223f84367",
+    "supervised_phases": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.184
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.595
+      },
+      {
+        "name": "runner-failure-tests",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_qualification*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "runner-failure-tests.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.485
+      },
+      {
+        "name": "current-binaries",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "connect-server",
+          "-p",
+          "connect-review-loop",
+          "--bin",
+          "connect",
+          "--bin",
+          "connect-example"
+        ],
+        "timeout_seconds": 1200,
+        "log": "current-binaries.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.293
+      },
+      {
+        "name": "reference-runner-capacity",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-runner-capacity.py"
+        ],
+        "timeout_seconds": 300,
+        "log": "reference-runner-capacity.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 5.99
+      }
+    ],
+    "scope": "Five exact current phases; not a new full run. See runner-concurrency.json."
   }
 }
