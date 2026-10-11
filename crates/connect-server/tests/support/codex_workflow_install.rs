@@ -86,13 +86,31 @@ impl Host {
 
 /// Create two independently bound tasks through the native public API.
 pub async fn pair(f: &Fixture) -> [Host; 2] {
+    pair_with_scope(
+        f,
+        false,
+        vec![
+            TaskPermission::Send,
+            TaskPermission::History,
+            TaskPermission::Inbox,
+        ],
+    )
+    .await
+}
+
+/// Overlapping work shares conversation context but keeps distinct task bindings.
+pub async fn pair_with_scope(
+    f: &Fixture,
+    same_conversation: bool,
+    permissions: Vec<TaskPermission>,
+) -> [Host; 2] {
     let mut owner = connect_client::ConnectClient::open(f.owner.clone())
         .await
         .unwrap();
     owner.negotiate_task(&f.task.id).await.unwrap();
     let mut tasks = vec![];
     for index in 0..2 {
-        let cid = if index == 0 {
+        let cid = if index == 0 || same_conversation {
             f.task.conversation_id.clone()
         } else {
             owner
@@ -107,11 +125,7 @@ pub async fn pair(f: &Fixture) -> [Host; 2] {
                 definition: TaskDefinition {
                     conversation_id: cid,
                     scope: TaskScope {
-                        operations: vec![
-                            TaskPermission::Send,
-                            TaskPermission::History,
-                            TaskPermission::Inbox,
-                        ],
+                        operations: permissions.clone(),
                         recipients: vec![f.peer.identity_id.clone()],
                         sms_enrollments: vec![],
                     },

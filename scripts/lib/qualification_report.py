@@ -54,6 +54,7 @@ IGNORED = {
     'current_revocation_after_intent_persistence_denies_dispatch_and_required_startup',
     'two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up',
     'packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect',
+    'overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart',
     'profile_one_and_four_concurrent_sessions_for_sixty_seconds',
 }
 
@@ -67,7 +68,7 @@ def check_test_results(result, directory):
                                        map(sum, zip(*[map(int, row) for row in totals]))))
     if result['status'] != 'passed':
         return
-    expected = {'workspace': None, 'installed-host': 6, 'media-pressure': 1}
+    expected = {'workspace': None, 'installed-host': 7, 'media-pressure': 1}
     if result['name'] not in expected:
         return
     if not totals:

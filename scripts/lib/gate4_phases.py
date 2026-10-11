@@ -2,7 +2,7 @@
 import sys
 
 HOST_TESTS = ('gate4_codex_runtime', 'gate4_codex_call_intent', 'gate4_codex_reply_workflow',
-              'gate4_codex_packaged_runtime')
+              'gate4_codex_packaged_runtime', 'gate4_codex_draft_journey')
 
 
 def phases(source_only=False):

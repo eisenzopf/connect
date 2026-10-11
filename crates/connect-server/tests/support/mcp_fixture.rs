@@ -34,6 +34,9 @@ impl Fixture {
     pub async fn start_independent() -> Self {
         Self::start_independent_with_connections(64).await
     }
+    pub async fn start_independent_permitted(permissions: Vec<TaskPermission>) -> Self {
+        Self::start_options(true, true, permissions, Some(64), 180).await
+    }
     pub async fn start_independent_with_connections(connections: usize) -> Self {
         Self::start_options(
             true,

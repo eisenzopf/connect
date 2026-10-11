@@ -20,10 +20,14 @@ pub struct Peer {
 }
 impl Peer {
     pub async fn start(body: &str) -> Self {
+        Self::start_program(program::question(body)).await
+    }
+    /// Supply the first turn while retaining the real saved-result continuation.
+    pub async fn start_program(question: String) -> Self {
         let script = Arc::new(Script {
             requests: Mutex::new(vec![]),
             stage: AtomicU8::new(0),
-            question: program::question(body),
+            question,
         });
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
