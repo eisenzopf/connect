@@ -776,5 +776,248 @@
       "ignored": 0
     },
     "limit": "Unchanged isolated repeat; no deadline, product or fixture correction. Original not-entered startup failure remains unexplained and the full run remains failed. A new complete run is still required."
+  },
+  "current_full_run_checkpoint": {
+    "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T141836.001856Z/result.json",
+    "observed_at": "2026-10-11T14:32:43.634544+00:00",
+    "source_revision": "735b20c2ea1ad46ebed051d83f1f7c95978dec56",
+    "status": "running",
+    "active_phase": "media-pressure",
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.246
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.599
+      },
+      {
+        "name": "typescript-install",
+        "command": [
+          "npm",
+          "ci",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 300,
+        "log": "typescript-install.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.745
+      },
+      {
+        "name": "typescript-tests",
+        "command": [
+          "npm",
+          "test",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 300,
+        "log": "typescript-tests.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.693
+      },
+      {
+        "name": "typescript-format",
+        "command": [
+          "npm",
+          "run",
+          "format:check",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 120,
+        "log": "typescript-format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.51
+      },
+      {
+        "name": "typescript-distribution",
+        "command": [
+          "git",
+          "diff",
+          "--exit-code",
+          "--",
+          "sdk/typescript/dist"
+        ],
+        "timeout_seconds": 60,
+        "log": "typescript-distribution.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.065
+      },
+      {
+        "name": "python-sdk",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "sdk/tests",
+          "-p",
+          "test_*.py"
+        ],
+        "timeout_seconds": 300,
+        "log": "python-sdk.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.565
+      },
+      {
+        "name": "agent-incoming-unit",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_incoming*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-unit.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.182,
+        "python_tests": {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "runner-failure-tests",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_qualification*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "runner-failure-tests.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.43
+      },
+      {
+        "name": "lint",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "timeout_seconds": 2400,
+        "log": "lint.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.634
+      },
+      {
+        "name": "rustdoc",
+        "command": [
+          "cargo",
+          "doc",
+          "--locked",
+          "--workspace",
+          "--all-features",
+          "--no-deps"
+        ],
+        "timeout_seconds": 2400,
+        "log": "rustdoc.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.127
+      },
+      {
+        "name": "workspace",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-features",
+          "--",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 7200,
+        "log": "workspace.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 715.482,
+        "rust_tests": {
+          "passed": 501,
+          "failed": 0,
+          "ignored": 8
+        },
+        "ignored_follow_up": [
+          "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+          "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+          "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+          "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+          "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+          "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+          "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+          "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
+        ]
+      }
+    ],
+    "limit": "Intermediate checkpoint, not completed qualification. Eight workspace ignores are required in explicit follow-up phases. The subsequently added combined voice-to-SMS fixture is not in this source."
   }
 }
