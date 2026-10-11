@@ -101,9 +101,9 @@ through an owned loopback HTTP proxy and simulator, including rejection and
 cancellation. They do not establish public reachability or actual cloud-provider
 compatibility. The [operator CLI](VAPI_TASK_HOST.md) now composes this setup
 through `connect vapi-task serve` and exact-resource recovery through
-`connect vapi-task reconcile`. Its independent local process checks pass;
-installed release and actual provider qualification remain open under
-G4-022/G4-033/G4-034. Existing full-run evidence predates this additive API.
+`connect vapi-task reconcile`. Its independent local process checks and
+[extracted release checks](evidence/gate-4/package-candidate.json) pass. Actual
+provider/model qualification remains open under G4-022/G4-034. Existing full-run evidence predates this additive API.
 
 ## Tool results and continuation
 

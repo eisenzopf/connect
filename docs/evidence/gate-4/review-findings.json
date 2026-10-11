@@ -26,7 +26,7 @@
   },
   "gate_status": "No task completion inferred from this review.",
   "installed_vapi_composition": {
-    "status": "operator and callback implementation merged; installed qualification remains open",
+    "status": "operator/callback implementation and extracted local candidate qualified; actual provider/model remains open",
     "items": [
       "G4-022",
       "G4-033",
@@ -39,7 +39,7 @@
       "scripts/check-package.py": "eb2d2ae8335f01063a40d5a168b7e8dd6233cc231c0e3bb5fdd84ab64cfeca8a",
       "docs/VAPI_TASK_BOOTSTRAP.md": "23a499e632bfa1a6f5fa32a608b0f9afb6f4441c23406c0f626d2d381fd5d6fb"
     },
-    "next_action": "Build a clean merged local release and exercise the extracted Vapi host with local simulators. Actual provider/model qualification remains separate; current checks create no public ingress or live provider operations.",
+    "next_action": "Finish the full current-source offline run and reconcile acceptance. Keep actual provider/model qualification separate from these account-free local checks.",
     "scope": "Review finding only; no provider account, production configuration, public ingress or runtime authority changed.",
     "callback_address_gap": "The voice helper passes its loopback listener URL directly into the immutable bootstrap intent. A live rehearsal also needs an explicit advertised callback URL and operator-managed ingress mapping; an external tunnel alone would not replace the saved loopback URL. This must be locally tested without creating public ingress.",
     "callback_progress": {
@@ -58,9 +58,10 @@
       "qualification": "docs/evidence/gate-4/vapi-callback-address.json"
     },
     "operator_progress": {
-      "status": "implemented and locally qualified in 510b350; merged with callback checks in baf27d1; installed candidate next",
+      "status": "merged at baf27d1 and packaged from 32f4fad; extracted release passes nine Vapi checks",
       "evidence": "docs/evidence/gate-4/vapi-task-host.json",
-      "scope": "8 connector units, 31 server units, 27 integrations, strict workspace all-target Clippy and Rustdoc; no actual provider/model or release pass"
+      "scope": "Cargo-built component qualification plus extracted default-feature release chat/voice/MCP/recovery checks with loopback simulators; no actual provider/model pass",
+      "installed_evidence": "docs/evidence/gate-4/package-candidate.json"
     }
   }
 }

@@ -7,8 +7,9 @@ is an agent tool. This is Gate 4 composition, not the Gate 5 first-run wizard.
 
 The [local CLI component checks](evidence/gate-4/vapi-task-host.json) pass,
 including restart, uncertainty, expiry, shutdown and native voice/MCP behavior.
-No real Vapi account/model, public callback ingress or installed release candidate
-is qualified by these development checks.
+The [extracted local release](evidence/gate-4/package-candidate.json) also passes
+all nine Vapi checks with local simulators. No real Vapi account/model or public
+callback ingress is qualified by either run.
 
 ## Preparation
 

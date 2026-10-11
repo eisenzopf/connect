@@ -9,7 +9,7 @@
     {
       "id": "T-A1",
       "requirement": "Two concurrent tasks in one conversation retain independent grants, replies, effects and context.",
-      "status": "existing component evidence mapped; common-source integrated closure pending",
+      "status": "mapped source executed in complete 3a272c9 offline baseline; latest-source and product closure pending",
       "test_sources_sha256": {
         "crates/connect-server/tests/gate4_vapi_call_isolation.rs": "7ebd51316810f17ee3a956ef75cd699b54b820a9de5a81e7d247d14f716fcfa7",
         "crates/connect-server/tests/gate4_codex_draft_journey.rs": "71faecd9e637a04bd12bcd5cd9eb0d2197654f13f51921f740b3ec9b4dc9606a",
@@ -24,7 +24,7 @@
     {
       "id": "T-A2",
       "requirement": "Forged task/conversation/provider selectors, expired grants and revoked credentials cannot execute or replay effects.",
-      "status": "existing component evidence mapped; common-source integrated closure pending",
+      "status": "mapped source executed in complete 3a272c9 offline baseline; latest-source and product closure pending",
       "test_sources_sha256": {
         "crates/connect-server/tests/gate4_mcp_authority.rs": "ff77e3d816cf65044940864dc23c0f528492479f42fbf9fd46398b05a0a79d53",
         "crates/connect-server/tests/gate4_mcp_task_cancel.rs": "0ac9535af499389f13c374b37e257c063b45e27071c47c3995df49356b35e4be",
@@ -39,7 +39,7 @@
     {
       "id": "T-A3",
       "requirement": "Commit/dispatch/application/ACK interruption and competing workers preserve one effect or explicit uncertainty.",
-      "status": "existing component evidence mapped; common-source integrated closure pending",
+      "status": "mapped source executed in complete 3a272c9 offline baseline; latest-source and product closure pending",
       "test_sources_sha256": {
         "crates/connect-store/src/tasks/tests/effect_crashes.rs": "279a6a23e4070ce855c6cef316f3bc4078569f98b4a0500ffcde991cdac8829a",
         "crates/connect-server/tests/gate4_task_uncertainty.rs": "63872dbc2056812251a787978532d6de6d492e0dc249c14b6aecf966876d8448",
@@ -55,7 +55,7 @@
     {
       "id": "T-A4",
       "requirement": "Duplicate, reordered and ambiguous replies remain attributed; only explicit assignment selects a task.",
-      "status": "existing component evidence mapped; common-source integrated closure pending",
+      "status": "mapped source executed in complete 3a272c9 offline baseline; latest-source and product closure pending",
       "test_sources_sha256": {
         "crates/connect-store/src/tasks/tests/replies.rs": "f205fcab8f9bf02a675afe9a9369ddeb374c93ffde6acbf9e58213d9e3ce9572",
         "crates/connect-store/src/tasks/tests/reply_races.rs": "e57fd656e4bb0e11e19dbd161c841e2cbc67f437e1f36a249ccd892cb0b9aafd",
@@ -69,7 +69,7 @@
     {
       "id": "T-A5",
       "requirement": "Paged recall retrieves an older source, preserves unavailable references and rechecks task/cursor/source authority.",
-      "status": "existing component evidence mapped; common-source integrated closure pending",
+      "status": "mapped source executed in complete 3a272c9 offline baseline; latest-source and product closure pending",
       "test_sources_sha256": {
         "crates/connect-server/tests/gate4_mcp_recall.rs": "26406dd70bbefc07c9881621a45215dcaa0ecef78b54cf8819ffe03f21dab41a",
         "crates/connect-store/src/tasks/tests/recall_authority.rs": "41e1374355470809b5ce05b125e11b21fd98f5f995ff1a64bc2b81089eb18beb",
@@ -84,7 +84,7 @@
     {
       "id": "T-A6",
       "requirement": "A sourced decision survives voice termination and restart, then informs a follow-up on the original task over SMS.",
-      "status": "existing component evidence mapped; common-source integrated closure pending",
+      "status": "mapped source executed in complete 3a272c9 offline baseline; latest-source and product closure pending",
       "test_sources_sha256": {
         "crates/connect-server/tests/gate4_voice_sms_continuity.rs": "c9ca4689d24779b535a3ef6e29738c8c09749f11811280e8503ee8f9d8f2e41e",
         "crates/connect-server/tests/support/voice_decision.rs": "5f5b74704b63547d1d1c07b678de3b4938dfb6112cba0d99db05b9a91f842361",
@@ -98,11 +98,11 @@
     {
       "id": "T-A7",
       "requirement": "STOP blocks queued SMS; START permits only eligible fresh intent and never revives a cancelled effect.",
-      "status": "existing component evidence mapped; common-source integrated closure pending",
+      "status": "mapped source executed in complete 3a272c9 offline baseline; latest-source and product closure pending",
       "test_sources_sha256": {
         "crates/connect-server/tests/gate4_sms_callback_journey.rs": "433218621e871a586cd445795a2263e7e968b84474b00cd76a76ee02591f93c3",
         "crates/connect-server/tests/gate4_voice_sms_continuity.rs": "c9ca4689d24779b535a3ef6e29738c8c09749f11811280e8503ee8f9d8f2e41e",
-        "crates/connect-store/src/tasks/tests/sms_policy.rs": "53ff584054eaceca04544e52add65b7a193cc31f4c5d774a7d5649a1a1220d6e"
+        "crates/connect-store/src/tasks/tests/sms_policy.rs": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a"
       },
       "component_evidence": [
         "docs/evidence/gate-4/sms-callback-journey.json",
@@ -113,7 +113,7 @@
     {
       "id": "T-A8",
       "requirement": "Bounded tools return pending and reconnect through durable status/journal without repeating dispatch.",
-      "status": "existing component evidence mapped; common-source integrated closure pending",
+      "status": "mapped source executed in complete 3a272c9 offline baseline; latest-source and product closure pending",
       "test_sources_sha256": {
         "crates/connect-server/tests/gate4_vapi_pending_continuation.rs": "43e0bb28b3320dcea4bc006123f14ba9e052ba80daa2f7a15a80cec6c37e6e3c",
         "crates/connect-server/tests/gate4_mcp_tools.rs": "970902c9e5d0feafa9beae626207b94c865f756dd7b67014d22be66223a430e8",
@@ -135,6 +135,12 @@
   "additional_review": [
     "The recalled-provider-text test checks that evidence text does not mutate the store. MCP strict selector schemas and current grants separately reject authority escalation; no claim is made about a real model resisting instructions.",
     "Current installed package qualification is separate from source/behavior evidence; passing one does not close the other.",
-    "The combined voice-to-SMS source was added after the last full offline run. Its focused test and strict checks pass; common-source full execution is still required."
-  ]
+    "The completed 3a272c9 baseline includes combined voice-to-SMS execution. The newly merged callback/operator source has separate component and installed-package evidence; its complete common-source run is in progress."
+  ],
+  "baseline_reconciliation": {
+    "source_revision": "3a272c92b6047c04ec3dc60e7599fde0a82b377b",
+    "evidence": "docs/evidence/gate-4/offline-3a272c9.json",
+    "status": "All mapped test source files match the completed 39-phase baseline; latest operator/callback source still requires its common-source run.",
+    "schema_fixture_update": "sms_policy.rs hash updated for 916fbeb: historical schema-12 fixture removes the schema-16 Vapi setup table before testing upgrade. All nine sms_policy tests passed in the baseline."
+  }
 }
