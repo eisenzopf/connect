@@ -18,6 +18,7 @@ def phases(source_only=False):
         ('python-sdk', [sys.executable, '-m', 'unittest', 'discover', '-s', 'sdk/tests', '-p', 'test_*.py'], 300),
         ('agent-incoming-unit', [sys.executable, '-m', 'unittest', 'discover', '-s', 'examples/agent-presence/tests', '-p', 'test_incoming*.py'], 120),
         ('runner-failure-tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests', '-p', 'test_qualification*.py'], 120),
+        ('voice-rehearsal-unit', [sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests', '-p', 'test_live_task_voice.py'], 120),
         ('lint', ['cargo', 'clippy', '--locked', '--workspace', '--all-targets', '--all-features', '--', '-D', 'warnings'], 2400),
         ('rustdoc', ['cargo', 'doc', '--locked', '--workspace', '--all-features', '--no-deps'], 2400),
         # All workspace gates, SDK parity, MCP, task/host fixtures, app/runner,

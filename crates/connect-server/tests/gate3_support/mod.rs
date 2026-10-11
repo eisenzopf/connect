@@ -26,6 +26,7 @@ struct FakeState {
     call_gate: Option<Arc<tokio::sync::Semaphore>>,
     resource: Arc<Mutex<Value>>,
     create_status: axum::http::StatusCode,
+    remote_end: bool,
 }
 
 pub(crate) struct FakeVapi {
@@ -38,21 +39,25 @@ pub(crate) struct FakeVapi {
 
 impl FakeVapi {
     pub(crate) async fn start() -> Self {
-        Self::start_profile(false, false, false).await
+        Self::start_profile(false, false, false, true).await
     }
 
     /// Saturate the real queue profile; retain the socket until cancelled.
     pub(crate) async fn start_burst() -> Self {
-        Self::start_profile(true, false, false).await
+        Self::start_profile(true, false, false, true).await
     }
 
     /// Pause the provider create response to exercise revocation during attachment.
     pub(crate) async fn start_paused() -> Self {
-        Self::start_profile(false, true, false).await
+        Self::start_profile(false, true, false, true).await
+    }
+    /// Keep media open until the client ends it, or exercise a provider hangup.
+    pub(crate) async fn start_rehearsal(remote_end: bool) -> Self {
+        Self::start_profile(false, true, false, remote_end).await
     }
     /// Accept one call remotely but lose its successful creation receipt.
     pub(crate) async fn start_uncertain() -> Self {
-        Self::start_profile(false, false, true).await
+        Self::start_profile(false, false, true, true).await
     }
     pub(crate) fn release_call(&self) {
         self.call_gate.as_ref().unwrap().add_permits(1);
@@ -62,7 +67,7 @@ impl FakeVapi {
             tokio::time::timeout(std::time::Duration::from_millis(250), self.next(kind)).await;
         assert!(received.is_err(), "unexpected provider message: {kind}");
     }
-    async fn start_profile(burst: bool, paused: bool, uncertain: bool) -> Self {
+    async fn start_profile(burst: bool, paused: bool, uncertain: bool, remote_end: bool) -> Self {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let (observed, observed_rx) = mpsc::unbounded_channel();
@@ -78,6 +83,7 @@ impl FakeVapi {
             } else {
                 axum::http::StatusCode::OK
             },
+            remote_end,
         };
         let router = Router::new()
             .route("/call", post(create_call))
@@ -110,7 +116,13 @@ impl FakeVapi {
     }
 
     pub(crate) async fn next(&mut self, kind: &str) -> Value {
-        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        self.next_within(kind, std::time::Duration::from_secs(5))
+            .await
+    }
+
+    /// External SDK drivers perform bounded startup/control work before a call.
+    pub(crate) async fn next_within(&mut self, kind: &str, budget: std::time::Duration) -> Value {
+        tokio::time::timeout(budget, async {
             loop {
                 let value = self.observed.recv().await.unwrap();
                 if value.get("type").and_then(Value::as_str) == Some(kind) {
@@ -208,8 +220,10 @@ async fn fake_socket(mut socket: WebSocket, state: FakeState) {
                     "privateProviderField": "must-not-enter-context"
                 })
                 .to_string();
-                let _ = socket.send(Message::Text(outcome.clone().into())).await;
-                let _ = socket.send(Message::Text(outcome.into())).await;
+                if state.remote_end {
+                    let _ = socket.send(Message::Text(outcome.clone().into())).await;
+                    let _ = socket.send(Message::Text(outcome.into())).await;
+                }
             }
             Message::Close(_) => {
                 state.resource.lock().unwrap()["status"] = json!("ended");

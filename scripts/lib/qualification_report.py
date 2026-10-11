@@ -70,12 +70,13 @@ def check_test_results(result, directory):
                                        map(sum, zip(*[map(int, row) for row in totals]))))
     if result['status'] != 'passed':
         return
-    python_expected = {'agent-incoming-unit': 15, 'agent-incoming-public': 1, 'agent-incoming-host': 1}
+    python_expected = {'agent-incoming-unit': 15, 'agent-incoming-public': 1,
+                       'agent-incoming-host': 1, 'voice-rehearsal-unit': 10}
     if result['name'] in python_expected:
         runs = re.findall(r'^Ran (\d+) tests? in ', text, re.M)
         count = python_expected[result['name']]
         if runs != [str(count)] or '\nOK\n' not in text or 'skipped=' in text:
-            raise ValueError('Incoming example phase did not execute every required Python check')
+            raise ValueError('Required Python phase did not execute every check')
         result['python_tests'] = {'passed': count, 'failed': 0, 'ignored': 0}
         return
     expected = {'workspace': None, 'installed-host': 7, 'media-pressure': 1}

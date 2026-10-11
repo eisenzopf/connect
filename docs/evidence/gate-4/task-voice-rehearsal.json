@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T20:56:09.019380+00:00",
+  "status": "local source and installed-SDK rehearsal component qualified; actual provider/model acceptance remains open",
+  "items": [
+    "G4-022",
+    "G4-034"
+  ],
+  "scope": "Local macOS arm64, injected loopback provider and independent public Python SDK driver; no provider/model accounts, public ingress or deployment.",
+  "source_base": "ab3557af0750c5c6c69f48a16aeb90dd175382f0",
+  "source_files_sha256": {
+    "scripts/live/native-voice.py": "4cdde561d51c639fc3957dfad4446dfb4d923901ab082e71a884799f3e3d3e70",
+    "scripts/live/task_voice.py": "4d95c36953ce8b6e9f898b8cd1c58f5c53aecf2b25bb326b4ae28f6ab2473910",
+    "scripts/live/voice_runtime.py": "494cc389e53cbaba98f951ecaad37d967c981ed9dbb40007d841553c20f4be3b",
+    "scripts/live/voice_scenario.py": "f5ff1f2ff9802be2edeaf8ee507394cea428dbc31a6cf61d11aa7513b9b00bfc",
+    "scripts/tests/test_live_task_voice.py": "26a0a1682a8639f56d862ac628eb4ea208f482c00b8be20bbfda435195b7108e",
+    "scripts/lib/gate4_phases.py": "e6a4367dccdacb8e5477782d3811f0e74f0e365c1ac8abae3fc1553324187240",
+    "scripts/lib/qualification_report.py": "86902779403ac5bfbf1b6d2de84322e12299dc3266932bd989dcf4397fab336d",
+    "scripts/tests/test_qualification_report.py": "1fd923d5d3d1f521f8fe3af809b6ac05898bd39c590f6440a9685d30f1f2617e",
+    "crates/connect-server/tests/gate4_task_voice_rehearsal.rs": "f7438dd5305c56ba1e769be5d8cb854d7e9744f69203ea4dfc394fe0ff8ce962",
+    "crates/connect-server/tests/gate3_support/mod.rs": "e897e95f9fd56edaf96c657f070820d506f6c12eba82111a14e8fbf6333ccbc2"
+  },
+  "checks": [
+    {
+      "name": "rehearsal rejection and recovery",
+      "status": "passed",
+      "tests": 10,
+      "log": {
+        "path": ".local/gate-4-package/task-voice-python-final.log",
+        "sha256": "006ac55040db8bd82eeb2e5abab682d80dc719e313b23af3bbac2921bafb69a1"
+      }
+    },
+    {
+      "name": "qualification runner checks",
+      "status": "passed",
+      "tests": 41,
+      "log": {
+        "path": ".local/gate-4-package/task-voice-runner-final.log",
+        "sha256": "ea4c86e375cc36eedabd84dc5a66fa86938e71ead8cf4c5656e3ae4663675fdf"
+      }
+    },
+    {
+      "name": "source public SDK media journeys",
+      "status": "passed",
+      "rust_tests": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "composition": "Three media journeys plus one owned-process cleanup control",
+      "log": {
+        "path": ".local/gate-4-package/task-voice-integration-attempt-3.log",
+        "sha256": "71a5a592dc615c44c3282ec1018fac0b0fe1b349966423a4e58db4af1714303a"
+      }
+    },
+    {
+      "name": "installed binary and public SDK media journeys",
+      "status": "passed",
+      "rust_tests": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "composition": "The same three journeys plus one ownership control; explicit runtime-root selects extracted 32f4fad assets",
+      "log": {
+        "path": ".local/gate-4-package/task-voice-installed.log",
+        "sha256": "d8c7d02291aa38c7154963740c6a1884bff1999d41515f59ec3f5eefec36a7e1"
+      }
+    },
+    {
+      "name": "final affected strict Rust Clippy",
+      "status": "passed",
+      "log": {
+        "path": ".local/gate-4-package/task-voice-final-clippy.log",
+        "sha256": "729e1475c55ebcbcc18d609efd8d6807d770153256769aaf0e81422ad74f5bb1"
+      }
+    },
+    {
+      "name": "format and diff whitespace",
+      "status": "passed",
+      "commands": [
+        "bash scripts/format.sh --check",
+        "git diff --check"
+      ]
+    },
+    {
+      "name": "static documentation consistency",
+      "status": "passed",
+      "report": {
+        "path": ".local/gate-4-package/task-voice-doc-validation.json",
+        "sha256": "7534c3fa918d47fd385e0391492d401f2c952930907e757d4ab7fa199f59bfc0"
+      },
+      "scope": "36 stable task IDs, task/card parity, 14 acceptance notes, local links/anchors, current source hashes; visual preview not performed"
+    }
+  ],
+  "retained_failures": [
+    {
+      "name": "initial source media journey",
+      "status": "failed",
+      "passed": 1,
+      "failed": 1,
+      "log": {
+        "path": ".local/gate-4-package/task-voice-integration-attempt-1.log",
+        "sha256": "6aecf099ed53b036585e8cc2fb3589b97898a73ecd8a2bda9707f7eb010dd934"
+      },
+      "finding": "The five-second provider-observation fixture expired before a provider call. The driver retained intent and no final result; its process was cleaned up by the owned fixture. The corrected fixture grants up to 45 seconds for external SDK startup/control before provider observation. SDK deadlines remain unchanged; the underlying initial startup latency cause is not assigned."
+    },
+    {
+      "name": "source driver remote hangup",
+      "status": "failed",
+      "passed": 1,
+      "failed": 1,
+      "log": {
+        "path": ".local/gate-4-package/task-voice-integration-attempt-2.log",
+        "sha256": "ab285a8fa86f70f61b8540601227fe8feec5f0bf2484fd2b8ce8f8e09f9baef9"
+      },
+      "finding": "The fixture ended its call after returning 19 media frames. The driver was not in expected-remote-end mode, and receiver shutdown also caused a redundant sender TimeoutError. Explicit expected-hangup and continuous fixtures now have separate passing journeys. Sender cancellation no longer creates a second failure when the receiver already recorded the result; unexpected media errors still fail."
+    },
+    {
+      "name": "recording-write failure unit fixture",
+      "status": "failed",
+      "log": {
+        "path": ".local/gate-4-package/task-voice-python-recording-fixture-failure.log",
+        "sha256": "24f417a2e55be707ef1b7836b436d07d06645c24ff797fad210c39615183b6b1"
+      },
+      "finding": "The test root used macOS /var while the driver resolved /private/var, so output admission rejected it before the intended failure injection. Resolve the temporary test root; the production path restriction is unchanged. The final check injects recording failure and verifies SessionEnd, retained context and a failed result."
+    }
+  ],
+  "pending": [
+    "Full final-source reconciliation includes the new 40th offline unit phase; the frozen 32f4fad run predates the rehearsal changes and retains its separate capacity startup failure.",
+    "Actual provider/model speech, provider callback reachability and useful post-call follow-through require separate acceptance; no live accounts are exercised by this record.",
+    "Final distribution must refresh the documentation and source assets before community handoff."
+  ],
+  "qualification_boundaries": [
+    "No production Rust, protocol, store, service or SDK behavior was changed in this rehearsal component.",
+    "The fixture preserves existing Gate 3 defaults and adds explicit local continuous/remote-hangup profiles.",
+    "No whole Gate 4 item or acceptance requirement is marked complete by this component record.",
+    "The linker emits its previously observed debug __eh_frame size warning. Strict affected Clippy passes."
+  ],
+  "behavior": [
+    "An independent Python process uses the public SDK and an existing protected task Session, performs no replacement invite, receives native QUIC PCMU, and ends that Session without completing/cancelling its task or losing sourced context.",
+    "An independent real MCP client recalls the seeded fact using the prepared provider mapping before the fixture releases the audio connection. This verifies tool wiring, not model speech or instruction following.",
+    "Separate normal and expected remote-hangup cases retain scoped context and clean up all owned child processes.",
+    "Ordinary non-task mode still invites, accepts, captures audio and ends its own Session.",
+    "Configuration admission, current task/session matching, uncertain controls, stable intent publication, malformed/oversized scenarios, installed asset tampering and failed recording writes have explicit checks.",
+    "A recording write failure cannot skip session teardown. Received audio/time budgets are enforced; capture alone is not semantic speech acceptance."
+  ],
+  "installed_runtime": {
+    "source_revision": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-32f4fadeaf45",
+    "binary_sha256": "6a34f2ef7bbcb41bad5a52d108db5c8c26583a7ef36f509ff3ee26907056394f",
+    "boundary": "The rehearsal driver is newer source with separately recorded file hashes. Selected helper, Python SDK and PCMU codec come from the manifest-verified installed release; the local fixture server is Cargo-built."
+  },
+  "private_captures": [
+    {
+      "path": ".local/task-voice-rehearsal-hxWd62/capture/result.json",
+      "sha256": "d4042c7a5f1574143944682d82ce8dcade53dde16855453529931b570a1dec1d",
+      "runtime": "source",
+      "received_frames": 95,
+      "remote_end_observed": false
+    },
+    {
+      "path": ".local/task-voice-rehearsal-I6AVpR/capture/result.json",
+      "sha256": "0de3e42f2e524f717e5ccc83c9611e24115cab654fe9dc9961631b6fb46cdda2",
+      "runtime": "source",
+      "received_frames": 19,
+      "remote_end_observed": true
+    },
+    {
+      "path": ".local/task-voice-rehearsal-B9D9BR/capture/result.json",
+      "sha256": "3f5870dfd76d3e7f18f4504c922e63f0604e6ff2489dfe74ccc7cfa743cc58af",
+      "runtime": "source",
+      "received_frames": 93,
+      "remote_end_observed": false
+    },
+    {
+      "path": ".local/task-voice-rehearsal-M6vR9M/capture/result.json",
+      "sha256": "e8ab32f849e1e96e8182dd73d961220180ef396f61d5dd04f32bede24856811a",
+      "runtime": "installed",
+      "received_frames": 95,
+      "remote_end_observed": false
+    },
+    {
+      "path": ".local/task-voice-rehearsal-wTYz4y/capture/result.json",
+      "sha256": "b39bf2e0dd6495ea317849b71c8819f7c5876b1840277de8be39fee39bc7d2ee",
+      "runtime": "installed",
+      "received_frames": 19,
+      "remote_end_observed": true
+    },
+    {
+      "path": ".local/task-voice-rehearsal-uRH7AU/capture/result.json",
+      "sha256": "71e1557a02a35d02f75de88977907b796a4ab410ea1429c15cde84564bc5c296",
+      "runtime": "installed",
+      "received_frames": 95,
+      "remote_end_observed": false
+    }
+  ]
+}

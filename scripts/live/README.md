@@ -1,8 +1,10 @@
 # Explicit live audio qualification
 
-These tools are invoked separately from `check-gate-3.sh`. They use a running,
-configured Connect server and real provider service. They can incur provider
-usage. They never purchase numbers, change provider accounts or run in CI.
+Live rehearsals are invoked separately from offline qualification. They use a
+running, configured Connect server and real provider service and can incur
+provider usage. They never purchase numbers or change provider accounts.
+Offline tests exercise the native driver against explicitly injected loopback
+provider fixtures with no account credentials; they do not qualify live service.
 
 `captured` means audio was collected, **not** that a test passed. Decode the
 received recording independently, compare the spoken answers to conversation
@@ -91,3 +93,51 @@ The direct Vapi telephone sample does not prove Connect-carried SIP media; use t
 configured SIP route and record media evidence separately for that topology.
 Record failures and missing context explicitly. Never infer recall from matching
 conversation IDs or call-state success. Keep transcripts and recipient data private.
+
+## Gate 4: a prepared task voice session
+
+This mode uses a task and accepted audio Session that already exist. First stage
+that Session with the [protected Vapi host](../../docs/VAPI_TASK_HOST.md), including
+its MCP callback mapping. Opening audio then uses the existing setup. It does not
+create a replacement task, conversation or voice leg.
+
+Export a Native grant for the task with `session_invite`, `session_get`,
+`session_end` and `history` inside both the task scope and grant. Give the capture
+script that exported configuration; a backing operator configuration is rejected
+in task mode. Current server authorization remains authoritative.
+
+```sh
+python3 scripts/live/native-voice.py --allow-live-provider \
+  --runtime-root /absolute/path/to/extracted-connect-release \
+  --config .local/native-task.toml \
+  --task-id TASK_ID --session-id ACCEPTED_SESSION_ID \
+  --conversation CONVERSATION_ID --assistant ASSISTANT_IDENTITY_ID \
+  --scenario .local/speech/scenario.json --output .local/task-voice-run
+```
+
+`--runtime-root` verifies the selected binary, Python SDK and PCMU codec against
+its release manifest and refuses imports from another installation. The source
+script is the rehearsal driver; all client and media operations use the selected
+release. Ordinary Gate 3 mode still uses `--assistant-config` and creates its
+own session. These two modes cannot be mixed.
+
+Task mode inspects the accepted audio Session through the task facade before
+opening media. It ends that same Session through the facade and saves a bounded
+source recall afterward. Ending the leg leaves its task and conversation intact.
+Request IDs and the selected task/session are published to private intent before
+side effects. Pending or uncertain controls fail without retrying; retain the
+original directory and inspect receipts before recovery.
+
+Prompts are validated before network work. Audio capture has a 120-second budget
+and a matching byte cap; setup, individual SDK exchanges and cleanup have their
+own deadlines. Files remain private, and results identify the selected package
+or source revision, plus the rehearsal driver's file hashes. `captured` still
+means only that media was recorded. Actual
+MCP invocation, intelligible source use, post-call follow-through and provider
+correlation require independent evidence before Gate 4 can pass.
+
+The [local rehearsal evidence](../../docs/evidence/gate-4/task-voice-rehearsal.json)
+qualifies normal and remote hangup, scoped context and the ordinary-mode
+regression with both source-built and installed SDK/helper assets. It retains
+failed attempts and fixes. No real provider/model acceptance is implied by
+those simulator checks or by this documented command.

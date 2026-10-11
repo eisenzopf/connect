@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T20:53:00.713343+00:00",
+  "status": "failed full run; unchanged targeted diagnostic passed; remaining phases are being checked separately",
+  "source_revision": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "full_run": {
+    "report": {
+      "path": ".local/gate-4-checks/20261011T200904.685935Z/result.json",
+      "sha256": "58f053e7a50ebb1e15096e949e7ef6689e28c5ad007e04cc7c5664c6cef9f8a8"
+    },
+    "passed_phases": 23,
+    "failed_phase": "reference-runner-capacity",
+    "not_run": [
+      "mcp-operating-load",
+      "grant-lifecycle-load",
+      "task-artifact-retention",
+      "voice-setup-retirement",
+      "schema-six-build",
+      "schema-ten-build",
+      "historical-task-recovery",
+      "dispatch",
+      "identity",
+      "typescript-probe",
+      "crash-replay",
+      "examples",
+      "example-recovery",
+      "current-recovery",
+      "datagram-example"
+    ],
+    "workspace_tests": {
+      "passed": 531,
+      "failed": 0,
+      "ignored": 9
+    },
+    "leftover_group_members": []
+  },
+  "failure": {
+    "report": {
+      "path": ".local/runner-capacity/20261011T204711.860083Z/result.json",
+      "sha256": "1ef944cba648881c647a9ed1e9f14c7071f58a3ff56ebec37e767d3e23e9ef17"
+    },
+    "detail": "Sixteen workers produced no questions within the unchanged 15-second observation limit; all sixteen logs were empty and no worker database was created. SIGINT cleanup saw -2 rather than expected graceful zero exits. No process group remained after the outer cleanup.",
+    "cause": "Unresolved. The absence of application databases does not identify the specific startup bottleneck."
+  },
+  "targeted_diagnostic": {
+    "report": {
+      "path": ".local/runner-capacity/20261011T204946.777154Z/result.json",
+      "sha256": "6691e7c80eefbf90efdb655b0c48669e5f9ef83be3e0f1d4370d6d77f2761615"
+    },
+    "status": "passed",
+    "same_source_and_binary_hashes": true,
+    "phases": [
+      {
+        "name": "sixteen-workers-and-seventeenth-denial",
+        "seconds": 0.379
+      },
+      {
+        "name": "released-slot-original-intent-and-sixteen-replies",
+        "seconds": 0.578
+      },
+      {
+        "name": "sixteen-workers-after-server-and-app-restart",
+        "seconds": 0.385
+      }
+    ],
+    "scope": "No retry loop or increased test limit. A separate unchanged run passed all three capacity/reply/restart checks. It does not erase or explain the initial failure."
+  },
+  "closure": "The original full run remains failed. Separate remaining-phase checks and later source reconciliation are not a claim that this invocation passed."
+}
