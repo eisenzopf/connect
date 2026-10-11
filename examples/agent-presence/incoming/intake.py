@@ -56,6 +56,15 @@ class Policy:
         return "queued", source, definition
 
 
+def binding_field(record, field):
+    value = record[field]
+    if field == "scope":
+        # The public contract omits empty enrollment policy on serialization.
+        # Normalize that optional default without changing saved request bytes.
+        return {**value, "sms_enrollments": value.get("sms_enrollments", [])}
+    return value
+
+
 def ensure_task(client, ledger, job, policy):
     """Replay the original create after uncertainty; never infer a replacement task."""
     source = job["source"]
@@ -66,7 +75,7 @@ def ensure_task(client, ledger, job, policy):
     if job["task"] is not None:
         current = client.negotiate_task(job["task"]["id"])
         immutable = ("id", "owner_id", "conversation_id", "scope", "expires_at", "initiating_event_id")
-        if any(current[field] != job["task"][field] for field in immutable):
+        if any(binding_field(current, field) != binding_field(job["task"], field) for field in immutable):
             raise ValueError("Current task binding changed")
         if current["state"] in ("cancelled", "failed", "expired", "completed"):
             return current
@@ -75,10 +84,10 @@ def ensure_task(client, ledger, job, policy):
         raise ValueError("Expected task creation receipt")
     task = outcome["data"]
     definition = job["command"]["definition"]
-    if any(task[field] != definition[field] for field in ("conversation_id", "scope", "expires_at", "initiating_event_id")):
+    if any(binding_field(task, field) != binding_field(definition, field) for field in ("conversation_id", "scope", "expires_at", "initiating_event_id")):
         raise ValueError("Task receipt differs from saved incoming intent")
     ledger.save_task(job["key"], task)
     current = client.negotiate_task(task["id"])
-    if any(current[field] != task[field] for field in ("id", "owner_id", "conversation_id", "scope", "expires_at", "initiating_event_id")):
+    if any(binding_field(current, field) != binding_field(task, field) for field in ("id", "owner_id", "conversation_id", "scope", "expires_at", "initiating_event_id")):
         raise ValueError("Current task binding changed")
     return current

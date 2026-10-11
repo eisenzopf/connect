@@ -42,6 +42,8 @@ class Host:
         # Provider and owner bearer environment variables never enter the host.
         env = {key: os.environ[key] for key in ("PATH", "HOME", "USER", "LOGNAME", "LANG", "TMPDIR", "CODEX_HOME")
                if key in os.environ}
+        if args[0] == "run-codex" and "CODEX_API_KEY" in os.environ:
+            env["CODEX_API_KEY"] = os.environ["CODEX_API_KEY"]
         process = subprocess.Popen([self.executable, "task-access", *map(str, args)],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    env=env, start_new_session=True)

@@ -37,7 +37,8 @@ class Client:
         if self.revoked:
             raise PermissionError("revoked")
         if self.record is None:
-            self.record = {"id": "original-task", "owner_id": "assistant", "state": "ready", **command["definition"]}
+            self.record = {"id": "original-task", "owner_id": "assistant", "state": "ready", **copy.deepcopy(command["definition"])}
+            self.record["scope"].pop("sms_enrollments", None)
         if self.lose_ack:
             self.lose_ack = False
             raise TimeoutError("accepted before lost ACK")

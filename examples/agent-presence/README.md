@@ -193,8 +193,9 @@ my appointment” still enter the conversation. Delivery state is exposed throug
 
 `codex-inbox.py` is the Gate 4 incoming-contact example. It uses the public
 Python native SDK and the packaged `task-access` commands. This example is
-under qualification: its local ledger checks pass, but its public-process and
-actual installed-host journey are not yet qualified. It performs no provider
+under qualification: local ledger checks and the native intake/restart check
+pass against a development binary. The actual installed-host journey is not yet
+qualified; retained startup timeouts are not passes. It performs no provider
 setup, live SMS or deployment.
 
 Use a separately scoped application credential with `resolve`, `capabilities`,
@@ -276,3 +277,17 @@ The public-process check requires an explicitly selected built Connect binary;
 its absence fails. The unit checks alone do not establish an installed host or
 model journey. Process cleanup beyond the packaged host's documented ownership
 boundary remains subject to the [host limitations](../../docs/CODEX_TASK_HOST.md).
+
+The opt-in incoming runtime check uses real `run-codex` processes and an isolated
+scripted Responses peer (no inference or model account):
+
+```sh
+CONNECT_TEST_BINARY="$PWD/target/debug/connect" \
+CONNECT_TEST_CODEX_BINARY="$(command -v codex)" PYTHONPATH=sdk/python \
+  python3 -m unittest discover -s examples/agent-presence/tests \
+  -p 'test_installed_incoming.py'
+```
+
+It retains synthetic private fixtures under `.local/incoming-runtime/` for
+failure inspection. No actual-model, cold-start, installed release or full
+Gate 4 qualification is implied by the native intake checks.

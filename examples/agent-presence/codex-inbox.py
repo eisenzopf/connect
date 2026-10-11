@@ -41,6 +41,8 @@ def main():
             ledger.finish(job["key"], "task-closed")
             print(json.dumps({"status": "task-closed", "task_id": task["id"]}))
             return
+        client.close()
+        client = None
         host = Host(args.executable, args.codex_binary, args.config.resolve(), args.http_address, args.mcp_address)
         directory = args.state.resolve() / job["key"]
         result = host.run(directory, task)
