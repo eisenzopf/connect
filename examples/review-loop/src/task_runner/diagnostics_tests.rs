@@ -12,6 +12,38 @@ fn binding() -> Binding {
     }
 }
 #[test]
+fn stopped_journal_page_requires_recovery_until_its_checkpoint_is_committed() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("app.sqlite3");
+    let mut store = TaskStore::open(&path, binding()).unwrap();
+    drop(store);
+    assert_eq!(
+        local(Some(&path), &binding()).unwrap().state,
+        WorkerState::Stopped
+    );
+    store = TaskStore::open(&path, binding()).unwrap();
+    let page = crate::task_runner::journal::Page {
+        events: vec![],
+        next: None,
+    };
+    store.stage_page(&page).unwrap();
+    drop(store);
+    let before = std::fs::read(&path).unwrap();
+    let stopped = local(Some(&path), &binding()).unwrap();
+    assert_eq!(stopped.state, WorkerState::StoppedWithPendingWork);
+    let stats = stopped.statistics.unwrap();
+    assert_eq!(stats.pending_commands, 0);
+    assert!(stats.page_pending);
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    store = TaskStore::open(&path, binding()).unwrap();
+    store.commit_page(&page).unwrap();
+    drop(store);
+    let recovered = local(Some(&path), &binding()).unwrap();
+    assert_eq!(recovered.state, WorkerState::Stopped);
+    assert_eq!(recovered.checkpoint_sequence, Some(0));
+    assert!(!recovered.statistics.unwrap().page_pending);
+}
+#[test]
 fn stopped_pending_work_and_owned_lock_are_distinct_and_inspection_never_claims_a_worker() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("app.sqlite3");

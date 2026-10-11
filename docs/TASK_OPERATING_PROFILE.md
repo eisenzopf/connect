@@ -59,6 +59,32 @@ files after shutdown. Source and binary digests must remain unchanged during
 the run. Credentials, generated IDs, raw logs and unfinished command inputs
 stay in the private run directory; public evidence contains sanitized results.
 
+## Retired voice setups: source review and remaining measurement
+
+The shared 32-listener ceiling bounds open task MCP endpoints; it is not a
+ceiling on retired setup records. After a call ends or its setup expires,
+`VapiMedia` retains the closed setup for that session. This prevents a later
+bind from falling back to an ordinary call without the original task tools,
+and prevents another setup from replacing the original recovery intent.
+
+Source review at `493d5c3` found a separate bound: protected setup requires an
+existing authorized durable session, the in-memory map accepts one setup per
+session, and session creation checks the store's configured `sessions` limit
+(10,000 by default). Closed setups retain the directory path, service reference
+and expiry; their listener is removed during close. They are drained when the
+server shuts down. This is a count-bound argument, not measured retained memory
+or a claim that 10,000 simultaneous endpoints can run.
+
+The relevant implementation is [setup authorization](../crates/connect-store/src/tasks/media_setup.rs),
+[session admission](../crates/connect-store/src/sessions.rs),
+[setup retirement](../crates/connect-server/src/vapi_media.rs) and
+[listener ownership](../crates/connect-server/src/vapi_bootstrap/media.rs).
+The existing expiry check verifies that the endpoint closes, private intent and
+durable state survive, and replacement is rejected. G4-030 still needs a
+repeated retirement profile with memory observations and capacity/restart
+behavior. Do not remove closed markers simply to reduce the map: any replacement
+must preserve the no-fallback and original-intent guarantees.
+
 ## Work still required
 
 This profile does not qualify 16 actual simultaneous host workers, complete

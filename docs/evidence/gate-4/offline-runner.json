@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "recorded_at": "2026-10-11T11:24:44.200932+00:00",
-  "status": "process supervisor component verified; full fresh-checkout qualification not yet complete",
+  "status": "process supervisor verified; full fresh-checkout run failed in workspace diagnostics and correction is pending",
   "items": [
     "G4-031"
   ],
@@ -40,13 +40,13 @@
     "docs/evidence/gate-4/quic-shutdown-diagnosis.json"
   ],
   "fresh_checkout_checkpoint": {
-    "observed_at": "2026-10-11T11:35:29.071620+00:00",
+    "observed_at": "2026-10-11T11:48:19.014823+00:00",
     "source_revision": "493d5c3a3652b1a99ccd312c74296b0cd110b85d",
     "dirty": false,
     "mode": "complete-offline",
     "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T112848.390677Z/result.json",
-    "status": "running",
-    "active_phase": "workspace",
+    "status": "failed",
+    "active_phase": null,
     "passed_phases": [
       "dependencies",
       "format",
@@ -72,6 +72,52 @@
     "source_files": 718,
     "source_sha256": "22a80f5dcf84f30fd21b86ece64abcbf1142c0711eb8609299ceb8cefccfffce",
     "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
-    "evidence_limit": "Checkpoint only. Incomplete phases and whole gate are not passed."
+    "evidence_limit": "Failed full run retained. Diagnostics expected clean stop although SIGINT may retain a staged journal page; correction under verification. Later phases were not run.",
+    "failed_phase": {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 7200,
+      "log": "workspace.log",
+      "status": "failed",
+      "exit_code": 101,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 793.383,
+      "rust_tests": {
+        "passed": 82,
+        "failed": 1,
+        "ignored": 0
+      }
+    },
+    "not_run": [
+      "media-pressure",
+      "installed-host",
+      "upstream-regression",
+      "upstream-vapi",
+      "upstream-queues",
+      "upstream-codec",
+      "current-binaries",
+      "native-task-capacity",
+      "schema-six-build",
+      "schema-ten-build",
+      "historical-task-recovery",
+      "dispatch",
+      "identity",
+      "typescript-probe",
+      "crash-replay",
+      "examples",
+      "example-recovery",
+      "current-recovery",
+      "datagram-example"
+    ],
+    "result_sha256": "6bf0f53314caa85bb5e70f393781d5c8a1575713e50014e092fde0033ed7333c"
   }
 }

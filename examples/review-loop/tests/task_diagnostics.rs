@@ -7,7 +7,10 @@ use connect_client::{
     task_diagnostics::{DiagnosticObservation, DiagnosticSection},
     tasks::*,
 };
-use connect_review_loop::task_runner::diagnostics::{self, WorkerState};
+use connect_review_loop::task_runner::{
+    diagnostics::{self, WorkerState},
+    TaskStore,
+};
 use connect_store::Store;
 use fixture::{exited, stop, Fixture};
 use std::time::Duration;
@@ -92,10 +95,24 @@ async fn stopped_waiting_worker_catches_up_reply_after_server_restart_and_never_
     );
     assert_eq!(running.task.task.state, TaskState::Waiting);
     stop(&mut app).await;
+    // SIGINT may interrupt the next journal page after the earlier settled
+    // observation. Inspect the now-stopped worker's actual durable state;
+    // shutdown deliberately preserves pending work rather than discarding it.
+    let stats = TaskStore::inspect(&f.state()).unwrap();
+    let expected = if stats.pending_commands > 0 || stats.page_pending {
+        WorkerState::StoppedWithPendingWork
+    } else {
+        WorkerState::Stopped
+    };
+    let app_before = std::fs::read(f.state()).unwrap();
     let stopped = diagnostics::inspect(&config, &f.task.id, Some(&f.state()), 100)
         .await
         .unwrap();
-    assert_eq!(stopped.runner.state, WorkerState::Stopped);
+    assert_eq!(stopped.runner.state, expected);
+    assert_eq!(
+        serde_json::to_value(stopped.runner.statistics.as_ref().unwrap()).unwrap(),
+        serde_json::to_value(&stats).unwrap()
+    );
     assert_eq!(
         stopped.execution_readiness.state,
         connect_client::ReadinessState::Unavailable
@@ -108,7 +125,7 @@ async fn stopped_waiting_worker_catches_up_reply_after_server_restart_and_never_
         .await
         .unwrap();
     assert_eq!(report.task.task.state, TaskState::Ready);
-    assert_eq!(report.runner.state, WorkerState::Stopped);
+    assert_eq!(report.runner.state, expected);
     assert_eq!(report.runner.statistics.unwrap().business_effects, 0);
     let DiagnosticSection::Available(journal) = report.task.journal else {
         panic!("journal");
@@ -118,6 +135,7 @@ async fn stopped_waiting_worker_catches_up_reply_after_server_restart_and_never_
         Store::inspect_snapshot(f.server.as_ref().unwrap().store.path()).unwrap(),
         before
     );
+    assert_eq!(std::fs::read(f.state()).unwrap(), app_before);
     app = f.spawn(None, None);
     f.settled(1).await;
     stop(&mut app).await;
