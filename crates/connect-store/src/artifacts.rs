@@ -1,6 +1,10 @@
+//! Durable artifact metadata, upload publication and logical deletion.
+mod read;
+pub(crate) use read::get_chunk;
+
 use crate::{conversations::capacity, conversations::insert_artifact_event, now, Actor, Store};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use connect_protocol::{Artifact, ArtifactChunk, Error, Result};
+use connect_protocol::{Artifact, Error, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 use sha2::{Digest, Sha256};
 use std::io::Write;
@@ -221,47 +225,6 @@ pub(crate) fn delete(
     let artifact = metadata(c, conversation_id, artifact_id)?;
     emit(c, recipients, &artifact, "artifact_deleted")?;
     Ok(artifact)
-}
-
-pub(crate) fn get_chunk(
-    c: &Connection,
-    conversation_id: &str,
-    artifact_id: &str,
-    offset: u64,
-    limit: u32,
-    store: &Store,
-) -> Result<ArtifactChunk> {
-    if limit == 0 || limit > store.limits.artifact_chunk_bytes {
-        return Err(invalid("Artifact chunk limit exceeds configured bounds"));
-    }
-    let artifact = metadata(c, conversation_id, artifact_id)?;
-    if artifact.state != "ready" || expired(&artifact) || offset > artifact.size {
-        return Err(Error::forbidden());
-    }
-    let blob_name: String = c
-        .query_row(
-            "SELECT blob_name FROM artifacts WHERE id=?1 AND state='ready'",
-            [artifact_id],
-            |r| r.get(0),
-        )
-        .map_err(|_| Error::storage())?;
-    if !valid_blob_name(&blob_name) {
-        return Err(Error::storage());
-    }
-    let path = store.blob_directory.join(blob_name);
-    let metadata = std::fs::symlink_metadata(&path).map_err(|_| Error::storage())?;
-    if !metadata.file_type().is_file() || metadata.len() != artifact.size {
-        return Err(Error::storage());
-    }
-    let content = std::fs::read(path).map_err(|_| Error::storage())?;
-    let start = offset as usize;
-    let end = start.saturating_add(limit as usize).min(content.len());
-    Ok(ArtifactChunk {
-        artifact,
-        offset,
-        data: STANDARD.encode(&content[start..end]),
-        eof: end == content.len(),
-    })
 }
 
 pub(crate) fn metadata(
