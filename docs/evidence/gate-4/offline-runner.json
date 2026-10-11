@@ -2464,5 +2464,100 @@
       }
     ],
     "scope": "Five exact current phases, all passed; not a new full run. Retained failed observer attempt is described in mcp-operating-load.json."
+  },
+  "added_grant_lifecycle_phase": {
+    "source_revision": "f4f47f09c6f05828c4d18ccb65a2b6938d23baf3",
+    "source_stable": true,
+    "supervised_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/added-grant-lifecycle/result.json",
+    "supervised_result_sha256": "7c66c509f9193814355034b244efcfbf23afd09b0972f082c9d97cf26ca36cbc",
+    "supervised_phases": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.184
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.59
+      },
+      {
+        "name": "runner-failure-tests",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_qualification*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "runner-failure-tests.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.523
+      },
+      {
+        "name": "current-binaries",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "connect-server",
+          "-p",
+          "connect-review-loop",
+          "--bin",
+          "connect",
+          "--bin",
+          "connect-example"
+        ],
+        "timeout_seconds": 1200,
+        "log": "current-binaries.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.249
+      },
+      {
+        "name": "grant-lifecycle-load",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "scripts/check-grant-lifecycle.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "grant-lifecycle-load.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 15.174
+      }
+    ],
+    "scope": "Five exact current phases; not a new full run. See grant-lifecycle-load.json."
   }
 }

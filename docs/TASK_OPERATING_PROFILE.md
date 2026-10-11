@@ -211,10 +211,52 @@ idle timeout. The corrected harness closes setup before load and opens a fresh
 public observer afterward; transport deadlines remain unchanged. The failure
 is retained. Five verifier controls and all 28 qualification-runner checks pass.
 
+## Grant expiry, renewal and autonomous cancellation under load
+
+The [grant lifecycle result](evidence/gate-4/grant-lifecycle-load.json) qualifies
+32 independent tasks through real wall-clock grant expiry, explicit renewal,
+agent-initiated cancellation and server restart.
+
+```sh
+python3 scripts/check-grant-lifecycle.py --binary /absolute/path/to/connect
+```
+
+The 180-second profile uses private `.local/grant-lifecycle/` state. It creates
+tasks through the native Python SDK and grants through the protected CLI.
+Each agent first sends one message, retaining its request ID. Repeated
+32-request status bursts cross the grants' twelve-second lifetime. Once expired,
+all grants must deny both status and replay of previously accepted sends.
+
+A saved grant export cannot renew itself: resuming it reports
+`saved-not-refreshed` without changing its bytes. The developer then explicitly
+issues replacement grants with the original task, binding and permissions.
+Replaying every original send must return the exact saved receipt without a
+second message. The old credentials remain unusable.
+
+The configured scope includes `task_cancel`. Half the agents cancel their own
+tasks while the others replay their original sends. No per-action human approval
+is requested. After server restart, cancelled and expired credentials remain
+denied, the other sixteen tasks remain usable, and owner inspection confirms all
+32 original task bindings and message IDs. Issuance and inspection use a separate
+protected owner interface, never a fallback credential for an agent tool.
+
+At clean `f4f47f0`, the normal debug profile passed in 15.039 seconds. Its expiry
+loop observed 3,936 successful status responses and 32 unauthorized
+responses; explicit post-expiry probes independently verify denial. Sampled
+server RSS peaked at about 88.1 MiB. The numbers describe this workload and
+include local tool overhead; they are not throughput or memory guarantees.
+Five verifier controls and all 33 qualification-runner tests pass. Both full and
+source-only qualification run this profile after normal executable builds.
+
+The grants are short by design. Existing contract tests establish the
+300-second grant maximum; this is not a 300-second endurance run. Task lifetimes
+outlast these grants, so elapsed-task terminalization, artifact expiry under
+load and retired voice metadata retain their separate operating checks.
+
 ## Work still required
 
-Remaining operating work includes grant refresh and expiry under sustained
-load, age-based retention and retained voice-setup metadata. The
+Remaining operating work includes artifact/task age-based retention under load
+and retained voice-setup metadata. The
 [installed local candidate](evidence/gate-4/package-candidate.json) separately
 passes its package checks; real-model journeys, whole-item dependencies and
 full Gate 4 acceptance remain open. The separate

@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "items": [
+    "G4-030",
+    "G4-031"
+  ],
+  "recorded_at": "2026-10-11T16:23:44.867476+00:00",
+  "status": "32-task grant lifecycle load passed; whole items remain open",
+  "source_revision": "f4f47f09c6f05828c4d18ccb65a2b6938d23baf3",
+  "source_stable": true,
+  "source_inputs_sha256": {
+    "scripts/check-grant-lifecycle.py": "52826f29035f4b55a2fd3ad957e89fcf20d04156b9c60fbd6624b9bada9c0609",
+    "scripts/lib/mcp_load_http.py": "a40440e2b860bc6cbec66c0b0ef246ce61b832c1a69ff3fd12970e73ee3b1cde",
+    "scripts/lib/grant_load_profile.py": "4d2dea48621273bb00b75f324d1e24c3114628ab533b3f79eb938c97dc979dc1",
+    "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+    "scripts/lib/profile_metrics.py": "92ddc2f8294ff88f9063f601256d224e215a38ecc7f09d53a2a6971782bd91a7",
+    "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+    "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+    "sdk/python/connect_sdk/protocol.py": "e0deab0cb9989a302973c5aaf44252d295a537f0e5bcfc4cbcd6c7aeecd495c3",
+    "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+    "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+    "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+    "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+    "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+    "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+    "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a"
+  },
+  "binary_sha256": "49d52de2163dcca26d24ef8530136c0a793b5ce751bae0c5f6e2e10622ace7f5",
+  "binary_profile": "normal debug server at source_revision; no test-support features",
+  "result": ".local/gate-4-fresh-493d5c3/.local/grant-lifecycle/20261011T162116.438516Z/result.json",
+  "result_sha256": "80074bf9201844dedd0efee88d419affef6ea68c880a57910e055c438334d9d8",
+  "supervised_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/added-grant-lifecycle/result.json",
+  "supervised_result_sha256": "7c66c509f9193814355034b244efcfbf23afd09b0972f082c9d97cf26ca36cbc",
+  "supervised_phases": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.184
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.59
+    },
+    {
+      "name": "runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "runner-failure-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.523
+    },
+    {
+      "name": "current-binaries",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-review-loop",
+        "--bin",
+        "connect",
+        "--bin",
+        "connect-example"
+      ],
+      "timeout_seconds": 1200,
+      "log": "current-binaries.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.249
+    },
+    {
+      "name": "grant-lifecycle-load",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-grant-lifecycle.py"
+      ],
+      "timeout_seconds": 240,
+      "log": "grant-lifecycle-load.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 15.174
+    }
+  ],
+  "elapsed_seconds": 15.039,
+  "phases": [
+    {
+      "name": "original-effects-and-continuous-load-through-expiry",
+      "status": "passed",
+      "seconds": 10.207,
+      "exchanges": 4064,
+      "server_sampled_peak_rss_bytes": 90128384,
+      "database_apparent_bytes": 4804448,
+      "latency_ms": {
+        "p50": 17.539,
+        "p95": 20.816,
+        "maximum": 79.273
+      }
+    },
+    {
+      "name": "explicit-renewal-and-original-receipt-replay",
+      "status": "passed",
+      "seconds": 0.888,
+      "exchanges": 96,
+      "server_sampled_peak_rss_bytes": 90177536,
+      "database_apparent_bytes": 4804448,
+      "latency_ms": {
+        "p50": 3.266,
+        "p95": 26.26,
+        "maximum": 26.728
+      }
+    },
+    {
+      "name": "autonomous-own-task-cancel-and-sibling-isolation",
+      "status": "passed",
+      "seconds": 0.053,
+      "exchanges": 64,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 4972384,
+      "latency_ms": {
+        "p50": 13.647,
+        "p95": 33.642,
+        "maximum": 34.079
+      }
+    },
+    {
+      "name": "restart-preserves-expiry-cancellation-and-original-effects",
+      "status": "passed",
+      "seconds": 0.213,
+      "exchanges": 96,
+      "server_sampled_peak_rss_bytes": 35405824,
+      "database_apparent_bytes": 765952,
+      "latency_ms": {
+        "p50": 3.328,
+        "p95": 14.218,
+        "maximum": 15.867
+      }
+    }
+  ],
+  "server_rss": {
+    "samples": 26,
+    "sampled_peak_bytes": 92422144,
+    "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+  },
+  "observations": {
+    "original_effects": 32,
+    "expiry_load_responses": {
+      "200": 3936,
+      "401": 32
+    },
+    "expired_status_and_receipt_denied": 64,
+    "explicit_renewals": 32,
+    "original_receipts_preserved": 32,
+    "saved_export_not_refreshed": true,
+    "old_grants_still_denied": true,
+    "autonomous_cancellations": 16,
+    "independent_survivors": 16,
+    "restart_old_grants_denied": true,
+    "restart_cancelled_grants_denied": true,
+    "retained_original_messages": 32,
+    "surviving_original_receipts": 16
+  },
+  "proof": [
+    "Public native SDK creates 32 tasks in separate conversations; protected CLI issues one short grant each. Original send and cancellation intents are saved before dispatch.",
+    "Thirty-two original MCP sends produce completed receipts bound to the intended task, conversation and request IDs.",
+    "Repeated 32-request status bursts cross real wall-clock expiry: 3936 successful status responses and 32 unauthorized responses in the measured loop. Explicit post-expiry status and accepted-operation replay probes all return 401.",
+    "Resuming a saved grant export reports saved-not-refreshed, leaves its bytes unchanged and does not revive the bearer.",
+    "Thirty-two explicit renewals issue new grant IDs with the same task, binding and permission scope. Every original send returns its exact original structured receipt; old grants still deny access.",
+    "Sixteen configured agent grants cancel only their own tasks through MCP without a per-action approval. Concurrent sibling tasks remain usable and return their original receipts.",
+    "After server restart, expired and cancelled grants remain denied. Public owner inspection verifies original task IDs, owner, scope, expiry and conversation bindings; each conversation retains precisely its original single message and ID. Sixteen surviving grants replay the original receipts.",
+    "Independent phase supervision observes no inherited process leaks."
+  ],
+  "verifier_tests": {
+    "passed": 5,
+    "total_runner_tests_passed": 33,
+    "scope": "expired-grant successful replay, replacement receipt, cancelled-success/survivor-denial isolation, retained message identity and phase ordering"
+  },
+  "failed_attempts": [],
+  "earlier_component_pass": {
+    "result": ".local/grant-lifecycle/20261011T161846.089399Z/result.json",
+    "scope": "Release-binary prototype passed; final clean source adds stronger task/owner/expiry identity assertions."
+  },
+  "limits": [
+    "Local macOS arm64 only; no model inference, provider operations, public ingress or deployment.",
+    "Thirty-two tasks and synchronized MCP bursts are the measured workload, not a new task limit or a claim that every fast execution overlaps.",
+    "The profile exercises real 12-second grant expiry and explicit 120-second renewal. Existing contract tests establish the 300-second maximum; this is not a 300-second endurance run.",
+    "Task lifetimes outlast grants. This does not qualify elapsed-task terminalization, artifact byte expiry or retired voice setup metadata.",
+    "Configured permissions include task_cancel. No operator fallback is used by model tools; owner inspection and issuance remain separate protected operations.",
+    "RSS samples are for the separate server only and are not an exact peak, guarantee or provider benchmark.",
+    "The five-phase supplemental proof is not a new full gate run; whole-item prerequisites and acceptance remain open."
+  ]
+}
