@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "recorded_at": "2026-10-11T11:24:44.200932+00:00",
-  "status": "process supervisor verified; full fresh-checkout run failed in workspace diagnostics and correction is pending",
+  "status": "process supervisor and diagnostics correction verified; full corrected-source run pending",
   "items": [
     "G4-031"
   ],
@@ -119,5 +119,64 @@
       "datagram-example"
     ],
     "result_sha256": "6bf0f53314caa85bb5e70f393781d5c8a1575713e50014e092fde0033ed7333c"
+  },
+  "diagnostics_correction": {
+    "source_revision": "2e37d23",
+    "status": "targeted checks passed; full rerun pending",
+    "production_changes": false,
+    "reason": "SIGINT can cancel a physical exchange after staging the next page. A prior settled observation does not guarantee a clean stopped checkpoint. Diagnostics correctly reports the retained pending state.",
+    "changes": [
+      "Compare stopped diagnostics with independently read durable worker statistics and verify the app database remains unchanged through diagnostic reads and server restart.",
+      "Deterministically stage an empty journal page, verify stopped-with-pending-work without a pending command, then commit its checkpoint and verify clean stopped state."
+    ],
+    "checks": [
+      {
+        "path": ".local/gate-4-fresh-493d5c3/.local/diagnostics-correction.log",
+        "sha256": "269cc61830012c219f574b971f303bbabc8d9fc2a201fac5f3ca56c19a70f846",
+        "passed": 3,
+        "failed": 0,
+        "exit_code": 0
+      },
+      {
+        "path": ".local/gate-4-fresh-493d5c3/.local/diagnostics-integration-correction.log",
+        "sha256": "37edb8b031eead3d273ce909c2eb135005bb3c7ff393781733ff0f3ea5e7b0b6",
+        "passed": 2,
+        "failed": 0,
+        "exit_code": 0
+      }
+    ]
+  },
+  "corrected_run_checkpoint": {
+    "source_revision": "2e37d23dfc451626323bd7037dd6700ad2de9d20",
+    "dirty": false,
+    "mode": "complete-offline",
+    "status": "running",
+    "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
+    "versions": {
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+      "node": "v26.7.0",
+      "npm": "12.0.2",
+      "codex": "codex-cli 0.162.0-alpha.17.2",
+      "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+      "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+    },
+    "observed_at": "2026-10-11T11:51:51.843643+00:00",
+    "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T114923.907984Z/result.json",
+    "active_phase": "workspace",
+    "passed_phases": [
+      "dependencies",
+      "format",
+      "typescript-install",
+      "typescript-tests",
+      "typescript-format",
+      "typescript-distribution",
+      "python-sdk",
+      "runner-failure-tests",
+      "lint",
+      "rustdoc"
+    ],
+    "total_phases": 30,
+    "evidence_limit": "Checkpoint only; workspace and later phases remain incomplete. The corrected diagnostic tests also pass in this workspace execution."
   }
 }
