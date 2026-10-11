@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T01:22:51.531386+00:00",
+  "source_base": "67bd6d4819e57614cc48c4ef455357122bbef84b",
+  "status": "local process component qualified; actual Codex/model support remains open",
+  "items": [
+    "G4-018",
+    "G4-021"
+  ],
+  "qualification_scope": "Local macOS arm64; packaged actual Connect CLI and library use an offline Codex process double against real loopback MCP. No model-account, live provider, global configuration, remote deployment or production-state operation.",
+  "source_sha256": {
+    "crates/connect-server/src/cli/task_access/codex_host/mod.rs": "f0115b140861b6c978adf2763bb1595420b84f8fdc0900e3af0b5a09350adf35",
+    "crates/connect-server/src/cli/task_access/codex_host/state.rs": "e9c69f5d2a72e022ae83759f92cfd08afe18524a74c2cc3eef79c38a878e966b",
+    "crates/connect-server/src/cli/task_access/codex_host/install.rs": "549e4b3633ffa96f78d14cc261006298af9e8be7d4e85fd605ed0f2c03a618c3",
+    "crates/connect-server/src/cli/task_access/codex_host/process.rs": "e3365b82f8c74eaa8a3d1a2b5c81b43dbffd8d4b7547ee7d288fa7817ec5ed58",
+    "crates/connect-server/src/cli/task_access.rs": "c7894ef6b7478efe6a1e58ede573940eca11d3f64da6eb8d0abe5c2e7dbadebb",
+    "crates/connect-server/src/cli/task_access/arguments.rs": "66d97e42fc08f94c668755c17a24e1b44e4c44b5b5f718e953c3b8ecbb8f6cc0",
+    "crates/connect-server/tests/gate4_codex_host.rs": "9c14f8e09e6ae6af45eb403e45c0936acea47d129b618a731950c24e728d6fb7",
+    "crates/connect-server/tests/support/codex_fixture.rs": "de4e6adef58b39ed0ef8f2d353988dc2f89dbc7b27aa98ac2290437868b0de98",
+    "crates/connect-server/tests/fixtures/codex-host.py": "4d02bb0ae24944ec3bb78510ff49c2a681e8e4e052660b5eb5385598fbf20aaa",
+    "Cargo.lock": "c3eb1839594491e35a11b6bdfcf4b65d772ac7d7a36f1e1f16530ac9c14e110f",
+    "dependencies/source-lock.json": "cda757ccc91da37fb6c6e7fea6c542d214f0717b117ac7df525f63fd923c439c"
+  },
+  "checks": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-wire-qualified.log",
+      "log_sha256": "261c07d314d79ea5906b86856d5506a34f955fff120321487a7c8457bd91a61c",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-clippy-final.log",
+      "log_sha256": "d48bcc192874c20f5f2cb2389b3d611585e20d306ab3ed921dc93449e75d1387",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-format-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-docs-check.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-help.json",
+      "log_sha256": "848a4f5dcb5bfae4d747ab9c60bd4167fb6466aa0baa18898c0b15729c6d0171",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-rustdoc.log",
+      "log_sha256": "01baffb2ccd43b122e81a22b014cc453de3ca1f4b648501f427726b46c942d85",
+      "exit_code": 0,
+      "command": "RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-server --no-deps"
+    }
+  ],
+  "retained_initial_failures": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-wire-initial.log",
+      "log_sha256": "b077721226bd252fa5936c32a669d7d472adb3bb4a9aaf78676974b07ca8841b",
+      "exit_code": 101,
+      "finding": "Two Rust test temporary-path borrow compile errors; corrected by retaining named PathBuf values."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-wire-corrected.log",
+      "log_sha256": "3fbd17885904c1534e39d848f7b936a47f9d0123700c7ec51f3f6d243e2b062a",
+      "exit_code": 101,
+      "finding": "Three failing behaviors exposed the production child stdin EOF defect. shutdown did not close the pipe while its handle remained in scope; fixed by explicitly dropping stdin after writing."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-wire-eof-fixed.log",
+      "log_sha256": "67c6b4bb71e58d5bbce544cadcbd435889f914328c30f04678647bdc01ca930c",
+      "exit_code": 101,
+      "finding": "Three passes; one fixture assumed the Python child emitted its first session ID within one second. Corrected to establish a prior session and synchronize on the adapter retained active intent, without changing host/request deadlines."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-host-wire-final.log",
+      "log_sha256": "ead8eb99ea2b8479077fa8877cbe3485e46dd66db5c416969b8f5538e593a9d8",
+      "exit_code": 101,
+      "finding": "Three passes; an intermediate version of the fixture still synchronized on the already saved session ID and raced lock acquisition. Final fixture waits for completed=false; original failure retained."
+    }
+  ],
+  "proofs": [
+    "Two concurrent task installations retain distinct exact host session IDs and narrow task identities. Resume loads only the saved session UUID, never --last.",
+    "Original private prompt, run ID and task/grant/installation mapping are durably saved before child spawn; session ID is saved on thread.started. Interrupted work resumes the same prompt/run ID. A missing session ID requires explicit repair rather than automatic replacement.",
+    "Actual fresh Connect launcher processes recover the original session and run intent using packaged commands; no handwritten integration glue is needed for this fixture.",
+    "Real Connect MCP returns each own task record and a bounded pending journal handle. Current revoked authority denies resuming through MCP without changing the Connect store.",
+    "Exclusive per-installation writer lock rejects a competing turn. Host timeout, a returned different session UUID, forged saved task mapping and modified skill assets preserve the original mapping and fail.",
+    "The existing grant bearer is supplied only through the child environment; raw provider/Connect operator credentials are not inherited. The exact bearer is redacted from private JSONL event values. Completion is labelled host-turn-completed, never Connect task completion.",
+    "Current Connect launcher help and installed Codex CLI start/resume help parse the actual argument layout without starting a model or connecting MCP."
+  ],
+  "review": {
+    "module_sizes": {
+      "crates/connect-server/src/cli/task_access/codex_host/mod.rs": 111,
+      "crates/connect-server/src/cli/task_access/codex_host/state.rs": 53,
+      "crates/connect-server/src/cli/task_access/codex_host/install.rs": 84,
+      "crates/connect-server/src/cli/task_access/codex_host/process.rs": 115,
+      "crates/connect-server/src/cli/task_access.rs": 155,
+      "crates/connect-server/src/cli/task_access/arguments.rs": 110,
+      "crates/connect-server/tests/gate4_codex_host.rs": 174,
+      "crates/connect-server/tests/support/codex_fixture.rs": 80
+    },
+    "boundaries": "Host state, installation and subprocess orchestration remain CLI adapter modules; none imports Store or mints communication authority.",
+    "budgets": "Host-turn 1\u2013300 seconds, default120; unchanged MCP ten-second tool/startup limits. JSONL stream4MiB per attempt/512KiB per event; prompt32KiB. These are declared bounds, not stable-load qualification.",
+    "recovery_limit": "Host observation is emitted after a tool event. This adapter alone does not prove the actual model persisted mutation IDs before invocation or reconciled unknown acceptance. Current private state is single-writer, not a distributed state store."
+  },
+  "not_claimed": [
+    "Actual Codex skill loader, inference, account authentication or supported model-host behavior",
+    "Whole G4-018/G4-021/G4-023/G4-034, A4 or T-A acceptance closure",
+    "Automatic wake/resume or grant refresh",
+    "Persisting model mutation intent before actual invocation, entire child-process-tree termination or external exactly-once delivery",
+    "Uninterrupted carrier reachability, load/package/upgrade qualification"
+  ],
+  "documentation_sources": [
+    "https://learn.chatgpt.com/docs/non-interactive-mode",
+    "https://learn.chatgpt.com/docs/build-skills"
+  ]
+}

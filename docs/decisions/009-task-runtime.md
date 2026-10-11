@@ -327,8 +327,9 @@ are included. They do not attest installed assistant hosts or live providers.
 
 The 36 implementation items, A4 criteria and T-A1–T-A8 remain the full gate
 contract. Component closure does not replace provider bootstrap, installed
-hosts, the complete agent/app journeys or final package qualification. No
-new task cancellation delegation has been added to this contract.
+hosts, the complete agent/app journeys or final package qualification. At this
+core checkpoint cancellation delegation was still absent; its additive design
+and subsequent qualification appear below.
 
 ## Current public interfaces and runner qualification · October 10, 2026
 
@@ -372,8 +373,8 @@ current owner authority. No tool refreshes a cancelled grant or substitutes an
 owner credential. Ending a media session still leaves the task/conversation
 intact; cancelling a task still leaves its conversation intact.
 
-Qualification is being implemented in `gate4_mcp_task_cancel.rs`; this paragraph
-records the design, not a claim that the new checks or G4-017 are complete.
+Qualification of this additive permission is recorded in the current local
+task-tool checkpoint below; the preceding sections retain earlier snapshots.
 
 ## Current local task-tool checkpoint
 

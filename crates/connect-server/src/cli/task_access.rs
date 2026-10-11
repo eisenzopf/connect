@@ -17,6 +17,7 @@ const MAX_BYTES: usize = 65_536;
 mod export;
 pub use export::export_native;
 pub mod codex;
+pub mod codex_host;
 
 /// Protected local installation state. Pending intent survives a lost response;
 /// only this intended credential file contains the issued bearer plaintext.

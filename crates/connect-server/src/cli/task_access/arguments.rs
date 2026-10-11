@@ -5,6 +5,17 @@ use std::path::PathBuf;
 /// Protected task installation, explicit recovery and revocation commands.
 #[derive(Subcommand)]
 pub enum Command {
+    /// Start or explicitly resume the exact session in a protected Codex export.
+    RunCodex {
+        #[arg(long)]
+        installation: PathBuf,
+        #[arg(long, default_value = "codex")]
+        codex_binary: PathBuf,
+        #[arg(long)]
+        prompt_file: Option<PathBuf>,
+        #[arg(long, default_value_t = 120)]
+        timeout_seconds: u64,
+    },
     /// Export an issued local grant and skill to a fresh private Codex directory.
     ExportCodex {
         #[arg(long)]
@@ -54,6 +65,20 @@ impl Command {
     /// Execute through the bounded loopback exchange and protected files.
     pub async fn execute(self) -> anyhow::Result<()> {
         match self {
+            Self::RunCodex {
+                installation,
+                codex_binary,
+                prompt_file,
+                timeout_seconds,
+            } => {
+                super::codex_host::run(
+                    &installation,
+                    &codex_binary,
+                    prompt_file.as_deref(),
+                    timeout_seconds,
+                )
+                .await
+            }
             Self::ExportCodex {
                 grant_file,
                 mcp_address,

@@ -1,9 +1,10 @@
 # Codex task host installation contract
 
-Status: selected Gate 4 host; implementation and actual host qualification remain
+Status: selected Gate 4 host; the local grant/skill export component is qualified.
+The packaged launcher passes local process fixtures; actual host/model qualification remains
 G4-021/G4-023. The version observed locally is `codex-cli 0.162.0-alpha.17.2`.
-This guide defines the package installation contract, not a claim that its
-Connect installer or MCP endpoint already exists.
+The existing MCP endpoint enforces current task grants. Export/configuration
+checks do not establish actual Codex skill loading or model recovery behavior.
 
 ## Required installation flow
 
@@ -55,3 +56,61 @@ close these host items.
 
 Primary sources: [Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
 and [noninteractive execution and resume](https://learn.chatgpt.com/docs/non-interactive-mode).
+
+## Packaged explicit continuation
+
+After creating and issuing the protected task grant through the documented
+[task-access workflow](TASK_ACCESS.md), export it with `export-codex`.
+The export has a private project directory, reviewed Connect skill, MCP override
+and completion manifest. It cannot mint or refresh authority. A registered
+HostSession handle identifies this installation; the returned Codex session UUID
+is separate adapter correlation, never a new grant or conversation ID.
+
+The packaged launcher starts from a private UTF-8 prompt file:
+
+```sh
+connect task-access run-codex --installation .local/codex-review \
+  --prompt-file .local/review-prompt.txt
+```
+
+Explicit continuation needs no retyped context:
+
+```sh
+connect task-access run-codex --installation .local/codex-review
+```
+
+It passes the same existing bearer through an environment variable, runs from
+the exported directory and ignores global Codex configuration. Model-account
+location/authentication is inherited, never copied or rewritten. The MCP override
+requires Connect initialization and retains the ten-second tool/startup limits.
+No per-action Connect approval prompt is introduced.
+
+The launcher stores the installation digest, task/grant IDs, original prompt and
+run ID before spawning. It stores the returned exact session UUID immediately.
+An interrupted attempt retains its original prompt/run ID; a confirmed host turn
+allows a new continuation intent on that same session. A host turn completing
+does not mean the Connect task completed. Two processes cannot run the same
+installation concurrently.
+
+`--timeout-seconds` bounds the host turn to 1–300 seconds (120 by default),
+independently of each MCP request budget. JSONL events are retained privately,
+bounded to 4 MiB per attempt and 512 KiB per event; the installed Connect grant
+secret is redacted. This adapter records host observations after emission. It
+cannot by itself prove that a model persisted a communication mutation ID before
+making a tool call; actual same-intent model recovery remains required in the
+host/journey checks. The skill and Connect effect ledger supply the workflow
+contract, not a substitute for that proof.
+
+If the child exits before its session ID is saved, a later run refuses to start a
+replacement. Inspect the retained intent and actual host session records through
+protected operator repair. A changed task mapping, modified skill/configuration,
+missing completion manifest, expired grant or active installation lock is an
+explicit error. Current server revocation still denies MCP even if the saved
+local grant file has not changed. Automatic wake, grant renewal and session
+reconstruction are not implemented by this command.
+
+The [local process proof](evidence/gate-4/codex-host-process.json) records four
+behavior tests, strict Clippy/Rustdoc/format checks and retained failures.
+Local process doubles exercise the packaged adapter against real loopback MCP.
+They do not qualify Codex model support; G4-023/G4-034 still require actual host
+behavior at the recorded installed version.
