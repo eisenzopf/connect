@@ -21,12 +21,14 @@ build profile; it is not release-package or performance qualification.
 Use `--list` to inspect commands and per-phase budgets without running them.
 The runner prepares dependencies before builds, installs and tests the language
 SDKs, runs strict workspace lint and Rustdoc, all-feature workspace tests,
-explicit media-pressure and installed-host checks, upstream regressions, native
+explicit media-pressure and installed-host checks, incoming-example unit/public
+SDK/actual-runtime checks, upstream regressions, native
 capacity, historical recovery and prior process/example checks. Each required
 phase must pass. The eight normally ignored workspace checks are matched by name
 and executed by their explicit follow-up phases; an unexpected omission fails.
 
-`--source-only` is a separate CI scope. It omits the seven external-host checks
+`--source-only` is a separate CI scope. It omits the eight external-host checks (seven Rust checks and the incoming
+example walkthrough)
 and reports `passed-source-only` if its included phases pass. It does not
 qualify the full offline gate or close host acceptance. The CI workflow is
 configuration until an actual run is recorded; local execution does not attest

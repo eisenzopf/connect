@@ -16,6 +16,7 @@ def phases(source_only=False):
         ('typescript-format', ['npm', 'run', 'format:check', '--prefix', 'sdk/typescript'], 120),
         ('typescript-distribution', ['git', 'diff', '--exit-code', '--', 'sdk/typescript/dist'], 60),
         ('python-sdk', [sys.executable, '-m', 'unittest', 'discover', '-s', 'sdk/tests', '-p', 'test_*.py'], 300),
+        ('agent-incoming-unit', [sys.executable, '-m', 'unittest', 'discover', '-s', 'examples/agent-presence/tests', '-p', 'test_incoming*.py'], 120),
         ('runner-failure-tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests', '-p', 'test_qualification*.py'], 120),
         ('lint', ['cargo', 'clippy', '--locked', '--workspace', '--all-targets', '--all-features', '--', '-D', 'warnings'], 2400),
         ('rustdoc', ['cargo', 'doc', '--locked', '--workspace', '--all-features', '--no-deps'], 2400),
@@ -39,12 +40,16 @@ def phases(source_only=False):
                             '--manifest-path', '.deps/rvoip/Cargo.toml', '-p', 'rvoip-sip',
                             '--test', 'adapter_renegotiate'], 1200),
         ('current-binaries', ['cargo', 'build', '--locked', '-p', 'connect-server', '--bin', 'connect'], 1200),
+        ('agent-incoming-public', [sys.executable, '-m', 'unittest', 'discover', '-s', 'examples/agent-presence/tests', '-p', 'test_public_intake.py'], 120),
         ('native-task-capacity', [sys.executable, 'scripts/check-task-capacity.py'], 960),
         ('schema-six-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '6'], 7500),
         ('schema-ten-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '10'], 7500),
         ('historical-task-recovery', [sys.executable, 'scripts/check-gate4-recovery.py', '--previous-binary',
                                     '.local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect'], 660),
     ]
+    if not source_only:
+        at = next(i for i, step in enumerate(steps) if step[0] == 'agent-incoming-public') + 1
+        steps.insert(at, ('agent-incoming-host', [sys.executable, '-m', 'unittest', 'discover', '-s', 'examples/agent-presence/tests', '-p', 'test_installed_incoming.py'], 240))
     for name, script in [('dispatch', 'check-dispatch.py'), ('identity', 'check-identity.py'),
                          ('typescript-probe', 'check-typescript.py'),
                          ('crash-replay', 'check-crash-replay.py'), ('examples', 'check-examples.py'),

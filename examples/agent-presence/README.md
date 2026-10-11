@@ -193,9 +193,11 @@ my appointment” still enter the conversation. Delivery state is exposed throug
 
 `codex-inbox.py` is the Gate 4 incoming-contact example. It uses the public
 Python native SDK and the packaged `task-access` commands. This example is
-under qualification: local ledger checks and the native intake/restart check
-pass against a development binary. The actual installed-host journey is not yet
-qualified; retained startup timeouts are not passes. It performs no provider
+locally qualified for its bounded incoming-contact component: fifteen focused
+checks, native intake/restart and an actual installed-host walkthrough pass under
+a supervisor with no leftover processes. Responses are scripted, with no model
+inference. Cold-start, real-model and release-package qualification remain open;
+earlier startup timeouts are retained as failures. It performs no provider
 setup, live SMS or deployment.
 
 Use a separately scoped application credential with `resolve`, `capabilities`,

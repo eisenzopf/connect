@@ -30,7 +30,8 @@ def environment(codex_binary=None):
              'MACOSX_DEPLOYMENT_TARGET', 'SYSTEMROOT')
     result = {key: os.environ[key] for key in names if key in os.environ}
     result.update(PYTHONPATH=str(ROOT / 'sdk/python'), RUSTDOCFLAGS='-D warnings',
-                  CONNECT_BINARY=str(ROOT / 'target/debug/connect'), CARGO_TERM_COLOR='never',
+                  CONNECT_BINARY=str(ROOT / 'target/debug/connect'),
+                  CONNECT_TEST_BINARY=str(ROOT / 'target/debug/connect'), CARGO_TERM_COLOR='never',
                   CARGO_PROFILE_DEV_DEBUG='0', CARGO_PROFILE_TEST_DEBUG='0', CARGO_INCREMENTAL='0')
     if codex_binary:
         result['CONNECT_TEST_CODEX_BINARY'] = str(codex_binary)
@@ -67,6 +68,14 @@ def check_test_results(result, directory):
         result['rust_tests'] = dict(zip(('passed', 'failed', 'ignored'),
                                        map(sum, zip(*[map(int, row) for row in totals]))))
     if result['status'] != 'passed':
+        return
+    python_expected = {'agent-incoming-unit': 15, 'agent-incoming-public': 1, 'agent-incoming-host': 1}
+    if result['name'] in python_expected:
+        runs = re.findall(r'^Ran (\d+) tests? in ', text, re.M)
+        count = python_expected[result['name']]
+        if runs != [str(count)] or '\nOK\n' not in text or 'skipped=' in text:
+            raise ValueError('Incoming example phase did not execute every required Python check')
+        result['python_tests'] = {'passed': count, 'failed': 0, 'ignored': 0}
         return
     expected = {'workspace': None, 'installed-host': 7, 'media-pressure': 1}
     if result['name'] not in expected:
