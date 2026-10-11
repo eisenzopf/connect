@@ -98,6 +98,8 @@ class ProfileReport:
         }
         if error:
             self.data['error'] = {'type': type(error).__name__, 'detail': str(error)}
+            if getattr(error, '__notes__', None):
+                self.data['error']['notes'] = error.__notes__
             if hasattr(error, 'code'):
                 self.data['error']['code'] = error.code
             if error.__cause__ is not None:

@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "status": "diagnostic handling qualified; original startup cause unresolved",
+  "recorded_at": "2026-10-11T21:35:12.336521+00:00",
+  "source_base": "f546ee3",
+  "source_files_sha256": {
+    "scripts/check-runner-capacity.py": "dc531efc80a21015d2f1fe7817692e94157d8294975fb08d0f0f9023c3a8e89b",
+    "scripts/lib/runner_profile.py": "898727f4ad180ac134cdc95c341cddb16cee1dcd0155e499cd50d5c7d0e9320e",
+    "scripts/lib/runner_profile_worker.py": "6d907a5707f59b423f1fdcf2a315a373b11ca65ee0d3f6b647a10f620b00f6e2",
+    "scripts/lib/profile_metrics.py": "1b08fee0509df2021b3ecfea67c5fee2c27804dac45699fd83debad40b14c4f9",
+    "scripts/tests/test_qualification_runner_startup.py": "c6aa2b91a8dbc8506f3ef020e97ed17e9a2ef4b7166a168add13e8605be9c122"
+  },
+  "scope": "Local macOS arm64; existing debug server, original example executable and disposable delayed-process fixture; no providers or deployment",
+  "change": "Preserve original startup timeout when worker cleanup also fails. Before cleanup capture worker PID/exit state, database existence, log size and bounded ps metadata. Keep diagnostic errors as notes rather than replacing the timeout. No test deadline, admission ceiling, task authority or product behavior changed.",
+  "unit_checks": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -p test_qualification*.py",
+    "passed": 45,
+    "failed": 0,
+    "ignored": 0,
+    "evidence": "Terminal execution session 84622 exited zero; four new tests cover timeout retention, pre-cleanup observation, failed observation and metadata-only capture."
+  },
+  "normal_profile": {
+    "report": {
+      "path": ".local/startup-diagnostics/20261011T213350.197554Z/result.json",
+      "sha256": "c6abaf29ff6d22ef716a8ca7b5cb3fc57fb312965933088d13a3eb85a88ad894"
+    },
+    "profile": {
+      "path": ".local/runner-capacity/20261011T213350.632146Z/result.json",
+      "sha256": "2c872b379333d02adda7cf72e8e37bad0fdb3e4ce23dd195cc769ca94cf574e4"
+    },
+    "status": "passed",
+    "server_sha256": "78d4c0acbb800ab142cfb1e2b9ccdf7f993f6fced2d56a70e9b61336a762b86e",
+    "example_sha256": "7d34909be8fa57171db3636b72515bc150fc16015926435ec47c8a2d75a11175",
+    "phases": [
+      {
+        "name": "sixteen-workers-and-seventeenth-denial",
+        "status": "passed",
+        "seconds": 0.865
+      },
+      {
+        "name": "released-slot-original-intent-and-sixteen-replies",
+        "status": "passed",
+        "seconds": 0.592
+      },
+      {
+        "name": "sixteen-workers-after-server-and-app-restart",
+        "status": "passed",
+        "seconds": 0.532
+      }
+    ],
+    "boundary": "Example hash matches the originally failing binary; server hash differs following subsequent builds. This is current diagnostic regression evidence, not an unchanged reproduction or a root-cause finding."
+  },
+  "injected_failure": {
+    "report": {
+      "path": ".local/startup-diagnostics/20261011T213420.372553Z/result.json",
+      "sha256": "53a1afaa11d1eef95bb2fef5a162ee5890eee9f9f38584a33cafbcb580278bf1"
+    },
+    "profile": {
+      "path": ".local/runner-capacity/20261011T213420.448003Z/result.json",
+      "sha256": "b599f70f90c8dc21b5241db3e3a5876f27de1739167ecf339ab9e5e23c251f40"
+    },
+    "expected_profile_status": "failed",
+    "original_error": "TimeoutError",
+    "observed_workers": 16,
+    "all_alive_before_cleanup": true,
+    "all_databases_absent": true,
+    "cleanup_errors_preserved_as_notes": true,
+    "leftover_group_members": [],
+    "boundary": "Deliberately delayed Python workers exercise the failure reporter and cleanup; they are not Connect workload or capacity evidence."
+  },
+  "remaining": "The historical startup timeout cannot be attributed from existing observations. Retain the original failed qualification; this diagnostic improvement does not close G4-029, G4-031 or G4-033."
+}

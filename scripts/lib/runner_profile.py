@@ -4,7 +4,7 @@ import time
 import tomllib
 
 from .local_process import run
-from .runner_profile_worker import Worker, settle, snapshot, stop_all
+from .runner_profile_worker import Worker, observe_startup, settle, snapshot, stop_all
 
 QUESTION = 'Please review draft-002 and reply to this question.'
 ANSWER = 'Your draft response is recorded.'
@@ -56,7 +56,12 @@ def questions(human, workers):
                 worker.question_id = history[0]['id']
             return [history[0] for history in histories]
         time.sleep(.02)
-    raise TimeoutError('Sixteen workers did not produce their questions within 15 seconds')
+    error = TimeoutError(f'{len(workers)} workers did not produce their questions within 15 seconds')
+    try:
+        error.worker_startup = observe_startup(workers)
+    except Exception as observation_error:
+        error.add_note('Startup observation failed: ' + type(observation_error).__name__)
+    raise error
 
 
 def reply(human, worker, question):

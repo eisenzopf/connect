@@ -91,11 +91,43 @@ def snapshot(workers):
     return observed
 
 
-def stop_all(workers):
+def observe_startup(workers):
+    """Retain bounded process/file metadata before cleanup, without reading content."""
+    observations = []
+    for worker in workers:
+        process = worker.process
+        observations.append({
+            'worker': worker.directory.name,
+            'pid': process.pid if process is not None else None,
+            'exit_code': process.poll() if process is not None else None,
+            'database_exists': worker.database.is_file(),
+            'log_bytes': worker.log_path.stat().st_size if worker.log_path.exists() else None,
+        })
+    pids = [str(row['pid']) for row in observations if row['pid'] is not None]
+    result = {'workers': observations}
+    if pids:
+        try:
+            # No arguments, environment, database rows or message content.
+            observed = subprocess.run(
+                ['ps', '-o', 'pid=,ppid=,stat=,etime=,time=,rss=', '-p', ','.join(pids)],
+                capture_output=True, text=True, timeout=3, check=False,
+            )
+            result.update(process_columns=['pid', 'ppid', 'state', 'elapsed', 'cpu_time', 'rss_kib'],
+                          process_rows=observed.stdout.splitlines(), ps_exit_code=observed.returncode)
+        except (OSError, subprocess.SubprocessError) as error:
+            result['process_observation_error'] = type(error).__name__
+    return result
+
+
+def stop_all(workers, primary_error=None):
     errors = []
     for worker in workers:
         try:
             worker.stop()
         except BaseException as error:
             errors.append(str(error))
-    assert not errors, errors
+    if errors:
+        if primary_error is not None:
+            primary_error.add_note('Worker cleanup errors: ' + repr(errors))
+        else:
+            raise AssertionError(errors)

@@ -64,7 +64,7 @@ def qualify(binary, example, directory, report):
         assert report.rss, 'Missing server memory measurements'
         report.checkpoint(all_started_workers_reaped=True)
     finally:
-        stop_all(workers)
+        stop_all(workers, primary_error=sys.exception())
 
 
 def main():
@@ -99,6 +99,8 @@ def main():
         assert inputs() == source and before == (digest(binary), digest(example)), 'Source or binary changed during qualification'
     except BaseException as caught:
         error = caught
+        if hasattr(caught, 'worker_startup'):
+            report.checkpoint(worker_startup=caught.worker_startup)
         traceback.print_exc()
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
