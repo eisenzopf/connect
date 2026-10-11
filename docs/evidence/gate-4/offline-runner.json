@@ -40,13 +40,13 @@
     "docs/evidence/gate-4/quic-shutdown-diagnosis.json"
   ],
   "fresh_checkout_checkpoint": {
-    "observed_at": "2026-10-11T11:32:33.313917+00:00",
+    "observed_at": "2026-10-11T11:35:29.071620+00:00",
     "source_revision": "493d5c3a3652b1a99ccd312c74296b0cd110b85d",
     "dirty": false,
     "mode": "complete-offline",
     "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T112848.390677Z/result.json",
     "status": "running",
-    "active_phase": "rustdoc",
+    "active_phase": "workspace",
     "passed_phases": [
       "dependencies",
       "format",
@@ -56,7 +56,8 @@
       "typescript-distribution",
       "python-sdk",
       "runner-failure-tests",
-      "lint"
+      "lint",
+      "rustdoc"
     ],
     "total_phases": 30,
     "versions": {
