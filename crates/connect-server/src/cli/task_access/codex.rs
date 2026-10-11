@@ -21,6 +21,17 @@ const SKILL: &[(&str, &str)] = &[
     ),
 ];
 
+/// The developer's delegated Connect tools run without per-action host prompts.
+/// This config changes no task/grant authority and no other MCP server policy.
+pub(super) fn configuration(uri: &str) -> String {
+    format!("mcp_servers.connect_task={{url=\"{uri}\",bearer_token_env_var=\"CONNECT_TASK_GRANT\",default_tools_approval_mode=\"approve\",required=true,startup_timeout_sec=10,tool_timeout_sec=10}}")
+}
+
+/// Match an intact earlier export without rewriting its manifest or intent.
+pub(super) fn legacy_configuration(uri: &str) -> String {
+    format!("mcp_servers.connect_task={{url=\"{uri}\",bearer_token_env_var=\"CONNECT_TASK_GRANT\",required=true,startup_timeout_sec=10,tool_timeout_sec=10}}")
+}
+
 /// Export to a new private project directory without contacting Connect/Codex.
 /// Provider grants cannot be converted into local host authority. The manifest
 /// is written last; an incomplete directory must never be treated as installed.
@@ -68,9 +79,7 @@ pub fn export(grant_file: &Path, address: SocketAddr, output: &Path) -> Result<(
         digests.insert(*name, hex::encode(Sha256::digest(content.as_bytes())));
     }
     let uri = format!("http://{address}/mcp");
-    let config = format!(
-        "mcp_servers.connect_task={{url=\"{uri}\",bearer_token_env_var=\"CONNECT_TASK_GRANT\",required=true,startup_timeout_sec=10,tool_timeout_sec=10}}"
-    );
+    let config = configuration(&uri);
     private_write(&output.join("mcp-override.txt"), config.as_bytes())?;
     let manifest = serde_json::json!({
         "profile":"connect-codex-install/1", "status":"exported-not-refreshed",

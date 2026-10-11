@@ -20,7 +20,12 @@ if state["session_id"]:
     assert args[:3] == ["exec", "resume", state["session_id"]]
 else:
     assert args[0] == "exec" and "resume" not in args
-assert args[args.index("-c") + 1] == Path("mcp-override.txt").read_text()
+effective = args[args.index("-c") + 1]
+saved_config = Path("mcp-override.txt").read_text()
+autonomy = ',default_tools_approval_mode="approve"'
+assert autonomy in effective
+# An intact legacy export gains this invocation policy without a file rewrite.
+assert effective.replace(autonomy, "") == saved_config.replace(autonomy, "")
 assert "TELNYX_API_KEY" not in os.environ and "VAPI_PRIVATE_KEY" not in os.environ
 assert Path(".agents/skills/connect/SKILL.md").is_file()
 mode = Path("fixture-mode").read_text()

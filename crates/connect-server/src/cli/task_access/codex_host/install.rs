@@ -71,9 +71,11 @@ pub(super) fn load(directory: &Path) -> Result<Installation> {
             "Installed skill asset has changed"
         );
     }
-    let config = format!("mcp_servers.connect_task={{url=\"{uri}\",bearer_token_env_var=\"CONNECT_TASK_GRANT\",required=true,startup_timeout_sec=10,tool_timeout_sec=10}}");
+    let config = super::super::codex::configuration(uri);
+    let saved = read_bounded(&directory.join("mcp-override.txt"))?;
     anyhow::ensure!(
-        read_bounded(&directory.join("mcp-override.txt"))? == config.as_bytes(),
+        saved == config.as_bytes()
+            || saved == super::super::codex::legacy_configuration(uri).as_bytes(),
         "MCP configuration has changed"
     );
     Ok(Installation {

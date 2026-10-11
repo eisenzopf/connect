@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T04:25:54.903708+00:00",
+  "source_base": "eeb85761b6760970365f8c57c89b9f15284574c8",
+  "status": "local delegated-autonomy component qualified; whole host items remain in progress",
+  "items": [
+    "G4-018",
+    "G4-021"
+  ],
+  "source_sha256": {
+    "crates/connect-server/src/cli/task_access/codex.rs": "63eec1b0cdb1c2e9de2dd009df23844cd233d17fa30020da9b56f580242d0e8a",
+    "crates/connect-server/src/cli/task_access/codex_host/install.rs": "a317e38d4e2e2ab723b93621fadf924eb369b1db11473d2b590f0565c0850c78",
+    "crates/connect-server/src/cli/task_access/codex_host/mod.rs": "f0115b140861b6c978adf2763bb1595420b84f8fdc0900e3af0b5a09350adf35",
+    "crates/connect-server/src/cli/task_access/codex_host/process.rs": "e3365b82f8c74eaa8a3d1a2b5c81b43dbffd8d4b7547ee7d288fa7817ec5ed58",
+    "crates/connect-server/src/cli/task_access/codex_host/state.rs": "e9c69f5d2a72e022ae83759f92cfd08afe18524a74c2cc3eef79c38a878e966b",
+    "crates/connect-server/tests/gate4_codex_autonomy.rs": "38b16188e81d041255230334076c2ca90ad7d952299c81fa2c58ab70b26e3c54",
+    "crates/connect-server/tests/gate4_codex_export.rs": "fbd4999079005d72a947f29f6c084db1eac5024fe905e3595a124ca07e35a516",
+    "crates/connect-server/tests/gate4_codex_host.rs": "9c14f8e09e6ae6af45eb403e45c0936acea47d129b618a731950c24e728d6fb7",
+    "crates/connect-server/tests/fixtures/codex-host.py": "25973f76fc32a4c9d1c33786d56e327bc1aea2681f9e404688490b672ffcf16c",
+    "crates/connect-server/tests/support/codex_fixture.rs": "de4e6adef58b39ed0ef8f2d353988dc2f89dbc7b27aa98ac2290437868b0de98",
+    "crates/connect-server/tests/support/mcp_fixture.rs": "4d30f765d5592d9047fbab027d626e916dece07417ff5d0aa3da7fbeef975a01",
+    "skills/connect/SKILL.md": "56f2e9291e54af007ec5c1fe31698832df98298ea814ea83dbd152f67d58d5dd",
+    "skills/connect/agents/openai.yaml": "62a639ede28013f697da75fbe85fdaaa747e704d3188e241a30733ea0a5f7982",
+    "skills/connect/references/json-cli.md": "fb120e690291439259bc21fa50dd0c3707f0d30ed31ea56be1fead430b0ba07a",
+    "Cargo.lock": "e01d6633125f1c70e922a5cc241376ab2f33bb6f4e999183e7ed1b5534010e3f"
+  },
+  "qualification_scope": "Local macOS arm64; actual Connect launcher and real loopback MCP with an offline host process double. Actual Codex typed-configuration probes use unused loopback endpoints only. No live provider, remote deployment, production database or working model operation.",
+  "behavior_passes": 7,
+  "behavior_failures": 0,
+  "behavior_ignored": 0,
+  "checks": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-autonomy-tests.log",
+      "log_sha256": "e742689561db91a0977d9fdf4b60f9a49c45c1bbb10d956e666f6193bd9054f6",
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_codex_export --test gate4_codex_host --test gate4_codex_autonomy",
+      "exit_code": 0,
+      "finding": "Count export2 and host4 against unchanged final production/process-fixture source. Initial autonomy1 was strengthened and rerun separately; do not count it twice. Initial unused helper warnings were corrected by testing interrupted recovery through the fresh CLI."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-autonomy-final-test.log",
+      "log_sha256": "ba40b4385561e5c78f861f08b7d7418177717c106c81cb689e48eed2a9c5dd21",
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_codex_autonomy",
+      "exit_code": 0,
+      "finding": "Final strengthened autonomy1 passes. macOS debug linker __eh_frame warning retained; no Rust lint warning remains."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-autonomy-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+      "command": "bash scripts/prepare-dependencies.sh",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-autonomy-final-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-autonomy-clippy.log",
+      "log_sha256": "26361b56935f519a35580edf3e08e61faaaf6fa1023fcc3495a2a9adb2361a76",
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-server --all-features --test gate4_codex_export --test gate4_codex_host --test gate4_codex_autonomy -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-autonomy-rustdoc.log",
+      "log_sha256": "2cdff56b2c8993a89ae338b28cbf928e79cb2cbb47f61480f5bed7016bfb0f02",
+      "command": "RUSTDOCFLAGS='-D warnings -D rustdoc::broken_intra_doc_links' CARGO_BUILD_JOBS=4 cargo doc --locked -p connect-server --all-features --no-deps",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-autonomy-real-exec-probe-result.json",
+      "log_sha256": "bd1d2d8fd777a6f01e15bc2f3fe542026825157b55db8d4412eabd3b46f96446",
+      "command": "Actual Codex strict exec configuration probe; exact argv retained in private result",
+      "exit_code": 1,
+      "finding": "Actual CLI strict exec accepts typed approve policy; startup then fails as expected because the bearer is deliberately absent. Both provider and MCP point only to unused loopback endpoints; no model/tool turn completed."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-autonomy-real-invalid-policy-result.json",
+      "log_sha256": "81893d8de94b5306120d390c5d452bbcac53f394ce7cde3140e88f91b47ecb0a",
+      "command": "Actual Codex strict exec configuration probe; exact argv retained in private result",
+      "exit_code": 1,
+      "finding": "Actual CLI strict exec rejects the invalid approval enum before startup, confirming the key is typed rather than silently ignored."
+    }
+  ],
+  "proofs": [
+    "Fresh exports and launched child invocations explicitly set Connect-only default_tools_approval_mode=approve. Configured task operations run without per-action host prompts; server task/grant enforcement remains authoritative.",
+    "An intact legacy installation resumes through a fresh actual Connect CLI process on the original exact session and run intent, without rewriting configuration, manifest, task mapping or grant lifetime.",
+    "Changed approval/configuration content is rejected before host state or the authoritative Store snapshot changes. Current revoked authority denies continuation with the original session and unchanged Store snapshot.",
+    "Existing two concurrent task/session, pending handle, timeout/lock/session switch, installation integrity and export denial cases pass against the updated production config.",
+    "Private host event logs contain neither the invocation bearer nor Connect owner credential."
+  ],
+  "retained_limitations": [
+    "Initial strict-config mcp get probe failed because that subcommand does not support the flag. The subsequent supported strict exec probes are the evidence; mcp get output does not expose the approval field.",
+    "Actual CLI configuration probes intentionally exit1 at the expected rejection/startup boundary and are not model behavior passes.",
+    "The initial test batch contained unused shared helper warnings; the final recovery test uses those helpers and strict Clippy passes. The macOS debug linker unwind warning remains visible."
+  ],
+  "not_claimed": [
+    "Actual model/tool approval execution, skill loading or instruction following",
+    "Whole G4-018/G4-021/G4-023, A4/T-A acceptance or Gate 4 closure",
+    "Durable mutation intent before actual model invocation or full installed-candidate qualification",
+    "Automatic grant renewal, global host-policy changes or authority beyond the configured bound task"
+  ],
+  "documentation_sources": [
+    "https://learn.chatgpt.com/docs/extend/mcp?surface=cli",
+    "https://learn.chatgpt.com/docs/cli/reference"
+  ]
+}

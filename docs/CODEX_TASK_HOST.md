@@ -83,7 +83,19 @@ It passes the same existing bearer through an environment variable, runs from
 the exported directory and ignores global Codex configuration. Model-account
 location/authentication is inherited, never copied or rewritten. The MCP override
 requires Connect initialization and retains the ten-second tool/startup limits.
-No per-action Connect approval prompt is introduced.
+The Connect MCP entry sets `default_tools_approval_mode="approve"`, so configured
+task tools need no per-action host prompt. This applies to that MCP server only;
+current Connect task/grant authority still governs every operation. The installed
+CLI accepts this mode and rejects an invalid mode during strict configuration
+validation. See the [official MCP settings](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+The [local component audit](evidence/gate-4/codex-delegated-autonomy.json) records
+seven export/launcher/MCP behavior checks, strict lint and Rustdoc, and the actual
+CLI configuration probes. This does not qualify an actual model workflow.
+
+An intact earlier export without this policy field remains loadable. The launcher
+uses the explicit policy for its child invocation without rewriting the saved
+configuration, manifest, task mapping or grant lifetime. Other configuration
+changes still require repair rather than silent adoption.
 
 The launcher stores the installation digest, task/grant IDs, original prompt and
 run ID before spawning. It stores the returned exact session UUID immediately.
