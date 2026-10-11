@@ -1,7 +1,9 @@
 # Codex task host installation contract
 
 Status: selected Gate 4 host; the local grant/skill export component is qualified.
-The packaged launcher passes local process fixtures; actual host/model qualification remains
+The packaged launcher passes local process fixtures and the
+[extracted release](evidence/gate-4/package-candidate.json) passes the actual Codex
+process journey with scripted loopback Responses. Real-model qualification remains
 G4-021/G4-023. The version observed locally is `codex-cli 0.162.0-alpha.17.2`.
 The existing MCP endpoint enforces current task grants. Export/configuration
 checks do not establish model recovery behavior. Actual runtime discovery is
@@ -47,8 +49,8 @@ audit](evidence/gate-4/codex-grant-renewal.json), including strict quality check
 Those fixtures use an offline host process double and real Connect MCP. The
 [seven-check actual-runtime audit](evidence/gate-4/codex-owned-runtime.json) now
 also qualifies protected HostSession renewal and exact-session continuation
-through the packaged launcher. Scripted Responses perform no inference; real-model
-and installed-candidate qualification remain open. After
+through the packaged launcher. Scripted Responses perform no inference. The extracted local candidate is
+qualified separately; real-model acceptance remains open. After
 issuing a replacement through [task-access](TASK_ACCESS.md), use:
 
 ```sh
@@ -184,8 +186,8 @@ The [local cleanup audit](evidence/gate-4/codex-process-cleanup.json) records
 19 behavior checks: six cleanup cases, the native live/zombie snapshot case and
 12 host/diagnostic/autonomy regressions, plus strict Clippy/Rustdoc/format. It
 retains the interim deadline and Darwin failures. The component check is
-`gate4_codex_cleanup`; whole host and installed-candidate qualification remain
-G4-021/G4-023/G4-033.
+`gate4_codex_cleanup`. The extracted candidate passes its process-cleanup checks;
+whole host/model acceptance remains G4-021/G4-023/G4-033.
 
 The [local process proof](evidence/gate-4/codex-host-process.json) records four
 behavior tests, strict Clippy/Rustdoc/format checks and retained failures.

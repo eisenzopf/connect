@@ -114,3 +114,11 @@ it does not reconnect audio, replace the saved leg or resume an ended call.
 
 See [Vapi bootstrap](VAPI_TASK_BOOTSTRAP.md) for the underlying API and
 [Gate 4 implementation](connect-gate-4-implementation.html#G4-022) for progress.
+
+## Provider contract review
+
+The [Vapi contract review](evidence/gate-4/vapi-contract-review.json) maps the
+implementation to the provider’s current documented MCP headers, explicit
+request authentication and retained session variables. It is documentation
+review only; the local simulator and installed release checks still require
+separate actual provider/model qualification.

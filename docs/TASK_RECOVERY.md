@@ -13,12 +13,13 @@ Existing task-created sessions receive an unknown-intent marker; a new voice leg
 continues the same task and conversation instead of guessing an old callback's
 private setup. Ordinary sessions and existing conversation history are preserved.
 Use the existing explicit backup/migrate workflow. No running installation is
-changed by these local tests. The earlier schema-15 historical qualification
-remains evidence for that version; the full historical and installed-candidate
-checks must run again for schema 16 before Gate 4 closes. The
-[local repair audit](evidence/gate-4/vapi-setup-restart.json) already qualifies
-Store migrations, rollback and restart behavior through 211 Store and 32
-Vapi/parity checks; that is separate from historical executable qualification.
+changed by these local tests. The [complete 3a272c9 offline run](evidence/gate-4/offline-3a272c9.json)
+requalified schema-16 historical executable upgrade, refusal, rollback, task backup
+and interrupted snapshot recovery. The [32f4fad installed candidate](evidence/gate-4/package-candidate.json)
+also passes packaged upgrade/restore and crash/replay checks. The earlier
+schema-15 evidence is retained for that version. The merged-source full run and
+whole Gate 4 acceptance remain open. The [local repair audit](evidence/gate-4/vapi-setup-restart.json)
+provides the separate Store migration and Vapi restart component evidence.
 
 ## Reproduce the executable checks
 

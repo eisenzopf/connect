@@ -1,5 +1,5 @@
 {
-  "revision": 2,
+  "revision": 3,
   "updated": "2026-10-11",
   "status": "in-progress",
   "scope": "Gate 4 task-correlated agent/app follow-through. Component evidence is linked; all integrated acceptance criteria remain in progress.",
@@ -75,10 +75,11 @@
       "evidence": [
         "evidence/gate-4/task-persistence.json",
         "evidence/gate-4/historical-recovery.json",
-        "evidence/gate-4/vapi-setup-restart.json"
+        "evidence/gate-4/vapi-setup-restart.json",
+        "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Task/store and restart components passed. Historical executable recovery is recorded through schema 15; refresh the full runner and schema-16 installed upgrade/rollback before acceptance.",
+      "remaining": "Schema-16 historical executable recovery passed in the complete 3a272c9 baseline; installed 32f4fad upgrade/restore passed. Reconcile the active merged-source full run and task lifecycle evidence before acceptance.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]
@@ -123,7 +124,7 @@
         "evidence/gate-4/authority-matrix.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Task authority and physical Vapi admission components passed. Reconcile all T-A1/T-A2 cases against the current full source and installed candidate.",
+      "remaining": "Task authority and physical Vapi admission components passed. The extracted 32f4fad Vapi host also passes rejection and immutable-intent recovery checks. Reconcile all T-A1/T-A2 cases against the active full merged-source run.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]
@@ -210,10 +211,11 @@
         "evidence/gate-4/task-effect-recovery-audit.json",
         "evidence/gate-4/task-runner-audit.json",
         "evidence/gate-4/connected-app-artifacts.json",
-        "evidence/gate-4/agent-incoming-example.json"
+        "evidence/gate-4/agent-incoming-example.json",
+        "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Crash/ACK and durable business-effect components passed. Refresh current integrated and installed recovery; scripted host responses do not qualify model behavior.",
+      "remaining": "Installed 32f4fad passed all three server and three application crash/replay boundaries. Durable business-effect components also passed. Current full-run reconciliation and actual model behavior remain separate requirements.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]
@@ -345,7 +347,7 @@
         "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Codex CLI is selected and actual runtime/install fixtures passed with scripted loopback Responses. Current installed candidate and real-model instruction following remain open; continuation is explicit resume.",
+      "remaining": "Codex CLI is selected. The extracted 32f4fad candidate passes the actual runtime/SDK/incoming-contact journey with scripted loopback Responses. Real-model instruction following remains open; continuation is explicit resume.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation",
         "Actual provider/model qualification; excluded from the current local-only execution scope"
@@ -387,10 +389,11 @@
         "evidence/gate-4/language-task-parity-audit.json",
         "evidence/gate-4/mcp-transport-audit.json",
         "evidence/gate-4/task-tools-audit.json",
-        "evidence/gate-4/codex-workflow-export.json"
+        "evidence/gate-4/codex-workflow-export.json",
+        "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Native/HTTP/CLI/language and real MCP components passed. Refresh current full regression and packaged skill/runtime acceptance; installed wiring alone does not qualify model instruction following.",
+      "remaining": "Native/HTTP/CLI/language and real MCP components passed. The extracted 32f4fad skill, SDKs and runtime wiring pass installed checks. Current full regression is active; installed wiring does not qualify model instruction following.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]
@@ -428,10 +431,11 @@
       "status": "in-progress",
       "evidence": [
         "evidence/gate-4/vapi-setup-restart.json",
-        "evidence/gate-4/vapi-continuation-audit.json"
+        "evidence/gate-4/vapi-continuation-audit.json",
+        "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Local actual MCP/provider simulators qualify call/chat binding, tools and restart denial. Actual Vapi cloud chat and Connect-carried voice invocation remain unrun; no live provider operations in this local qualification.",
+      "remaining": "The extracted 32f4fad Vapi host passes nine chat/voice/MCP/recovery checks with local simulators, following callback component qualification. Actual Vapi cloud chat and Connect-carried voice tool use remain unrun; no live provider operations belong to this local qualification.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation",
         "Actual provider/model qualification; excluded from the current local-only execution scope"
@@ -473,10 +477,11 @@
       "evidence": [
         "evidence/gate-4/codex-draft-journey.json",
         "evidence/gate-4/agent-incoming-example.json",
-        "evidence/gate-4/codex-owned-runtime.json"
+        "evidence/gate-4/codex-owned-runtime.json",
+        "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Actual installed-runtime fixtures prove overlapping drafts, bound replies, incoming contact and one follow-up. Responses are scripted; current installed candidate and real-model journey acceptance remain open.",
+      "remaining": "Actual runtime components prove overlapping drafts and bound replies. Extracted 32f4fad proves incoming contact, continuation and cancellation. Responses are scripted; full merged-source reconciliation and real-model journey acceptance remain open.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation",
         "Actual provider/model qualification; excluded from the current local-only execution scope"
@@ -512,10 +517,11 @@
       "evidence": [
         "evidence/gate-4/connected-app.json",
         "evidence/gate-4/connected-app-artifacts.json",
-        "evidence/gate-4/worker-execution-readiness.json"
+        "evidence/gate-4/worker-execution-readiness.json",
+        "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Independent public-SDK application components cover both directions, artifacts, business effects and recovery. Current full regression and installed candidate remain required for integrated acceptance.",
+      "remaining": "Independent public-SDK components cover both directions, artifacts, business effects and recovery. Installed 32f4fad example crash/recovery checks passed; current full regression and requirement-level reconciliation remain open.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]
@@ -651,7 +657,7 @@
         "evidence/gate-4/review-findings.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Prior full/candidate results predate schema 16 and later operating checks. Current full runner, upgrade/rollback, installed candidate, separate live acceptance and final requirement audit remain open.",
+      "remaining": "The complete 3a272c9 schema-16 baseline and 32f4fad installed candidate passed their declared checks. The merged-source full run is active. Separate live acceptance, unresolved review findings, final documentation refresh and requirement-by-requirement audit remain open.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation",
         "Actual provider/model qualification; excluded from the current local-only execution scope"
@@ -661,7 +667,13 @@
   "closure_rule": "All required A4-01\u2013A4-14 and T-A1\u2013T-A8 pass with source-linked evidence, including separately invoked bounded live qualification. A blocked, skipped or deferred required check prevents closure.",
   "limits": [
     "Local macOS arm64 only; no remote Connect deployment or public release.",
-    "OpenAI Codex CLI is selected. Actual installed-runtime checks use scripted loopback Responses; real-model instruction following and current final candidate acceptance remain open.",
+    "OpenAI Codex CLI is selected. Extracted 32f4fad checks use scripted loopback Responses; real-model instruction following and whole Gate 4 acceptance remain open.",
     "Entry decisions and earlier live results are not Gate 4 runtime evidence."
-  ]
+  ],
+  "qualification_boundaries": {
+    "complete_offline_baseline": "3a272c9; all 39 phases passed; evidence/gate-4/offline-3a272c9.json",
+    "installed_local_candidate": "32f4fad; all 11 checks passed, including nine Vapi checks; evidence/gate-4/package-candidate.json",
+    "merged_source_offline": "32f4fad; current 39-phase run in progress, no final pass inferred",
+    "provider_and_model": "Unrun for Gate 4 under the current local-only execution scope; required separately for closure"
+  }
 }

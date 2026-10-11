@@ -153,8 +153,11 @@ Native grants enter the task facade: use `task(Invoke { ... })` for permitted
 communication operations. An unwrapped `send`, history read or administrator
 operation cannot borrow the parent's permissions. Keep logical mutation IDs and
 inputs across reconnect/refresh; replay cannot revive cancelled or uncertain work.
-Raw native media attachment and HTTP artifact routes are not inherited from the
-parent credential and remain separate qualification work.
+Native audio and artifact access use the task-bound resource paths described in
+the [SDK guide](SDK.md). The [native media audit](evidence/gate-4/native-task-media.json)
+and [native artifact audit](evidence/gate-4/native-task-artifacts.json) record
+current-authority and restart/replay checks. These operations require their
+explicit task permissions; they never inherit the parent credential’s access.
 
 [Protected exchange contract](../contracts/connect-task-access-v1.md) ·
 [Task contract](../contracts/connect-task-v1.md)

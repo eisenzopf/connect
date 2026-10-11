@@ -155,5 +155,6 @@
     "Full offline suite on the merged source is running separately at 32f4fad; the complete 3a272c9 baseline predates the new callback/operator entry points.",
     "Actual Vapi/cloud and selected-model product acceptance, complete requirement reconciliation and prerequisite closure remain open.",
     "The separate historical debug CLI startup cause remains unresolved; earlier failures are retained."
-  ]
+  ],
+  "documentation_followup": "A subsequent documentation audit corrected stale schema-15/qualification status in the source README, release/recovery and task-access guides. Packaged runtime behavior remains qualified at 32f4fad; refresh final distribution documentation before owner handoff."
 }
