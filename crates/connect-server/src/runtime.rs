@@ -138,8 +138,14 @@ impl RunningServer {
                 .ok()
                 .map(|value| {
                     let key = VapiApiKey::new(value).map_err(anyhow::Error::from)?;
-                    VapiAdapter::new(crate::media_profile::vapi_config(key))
-                        .map_err(anyhow::Error::from)
+                    let mut config = crate::media_profile::vapi_config(key);
+                    config.api_base = connect_connectors::vapi_api_base()?;
+                    if config.api_base.scheme() == "http" {
+                        // The shared parser admits only explicit local simulator
+                        // origins here; public provider origins still require TLS.
+                        config = config.with_loopback_test_transport();
+                    }
+                    VapiAdapter::new(config).map_err(anyhow::Error::from)
                 })
                 .transpose()?
         } else {

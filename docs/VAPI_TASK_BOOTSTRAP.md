@@ -11,6 +11,10 @@ The developer establishes the task, allowed communication operations and
 recipients. A provider callback cannot choose another task or mint broader
 authority.
 
+The installed `connect vapi-task serve` and `reconcile` entry points are
+described in [Vapi task host](VAPI_TASK_HOST.md). They reuse this composition;
+local command checks and release/provider qualification remain separate.
+
 ## Chat-session composition
 
 1. Create the conversation and task through the public client. Keep their IDs.

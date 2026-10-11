@@ -7,6 +7,8 @@ mod call;
 mod creation;
 mod dispatch;
 mod media;
+mod prepared;
+pub use prepared::verify_prepared;
 mod recovery;
 mod state;
 use crate::cli::init::{private_directory, private_write};
@@ -23,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
 
 /// Protected developer inputs. These are not accepted in MCP model arguments.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Definition {
     /// Current backing credential reference; never its bearer plaintext.
@@ -107,7 +109,7 @@ pub async fn prepare(
     std::fs::File::open(directory)?.sync_all()?;
     Ok(())
 }
-fn validate_url(value: &str) -> Result<()> {
+pub(crate) fn validate_url(value: &str) -> Result<()> {
     let url = reqwest::Url::parse(value).map_err(|_| anyhow::anyhow!("Invalid MCP URL"))?;
     anyhow::ensure!(
         url.username().is_empty()

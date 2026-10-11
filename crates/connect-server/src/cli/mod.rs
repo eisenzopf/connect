@@ -12,3 +12,6 @@ pub mod presence;
 pub mod request;
 pub mod task_access;
 pub mod task_diagnostics;
+
+pub mod serve;
+pub mod vapi_task;
