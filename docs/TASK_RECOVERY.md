@@ -91,6 +91,12 @@ host automatically. Use [task diagnostics](TASK_DIAGNOSTICS.md), the
 [host guide](CODEX_TASK_HOST.md) and [task access](TASK_ACCESS.md) to inspect and
 continue with current authority.
 
+For Codex exports, retain the whole private installation, including
+`grant-renewal.json` when present, the original manifest/grant, skill assets and
+`host-state.json`. The renewal file selects current authority without replacing
+the original installation identity. Restoring only the original grant does not
+restore a later renewal; never reconstruct or silently discard that pointer.
+
 These checks do not qualify power-loss durability, the final installed release,
 all integrated authority cases, or live host/provider journeys. The numbered
 plan keeps those requirements open.

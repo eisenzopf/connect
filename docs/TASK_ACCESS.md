@@ -115,6 +115,15 @@ launch intent. Its local process qualification is recorded in the
 open in G4-021–G4-023. Export alone does not attest that Codex has loaded the
 skill or made a tool call.
 
+For an existing Codex installation, issue a fresh grant with a new issuance ID
+and expiry, retaining the exact task, binding and operation list. Then use
+`connect task-access renew-codex --installation DIRECTORY --grant-file FILE`
+to adopt it under the host lock before explicit resume. This keeps the saved
+session and interrupted intent intact. It does not give the host a backing
+credential or make the original expired grant usable again. The
+[renewal guide](CODEX_TASK_HOST.md#credential-refresh-and-failure-behavior)
+records the local qualification and remaining host requirements.
+
 ## Native SDK and JSON CLI
 
 For native SDK use, issue a binding with `"kind": "native"`. HostSession and

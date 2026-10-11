@@ -42,8 +42,11 @@ to the host adapter. An expired model token cannot refresh itself. Cancellation,
 backing revocation, expired delegation or lost membership prevents issuance and
 effects. The backing credential is never passed to the model process.
 
-The new `renew-codex` implementation is under qualification. After issuing a
-replacement through [task-access](TASK_ACCESS.md), use:
+The local `renew-codex` component passes its [26-check host and admission
+audit](evidence/gate-4/codex-grant-renewal.json), including strict quality checks.
+These use an offline host process double and real Connect MCP; actual-model,
+HostSession renewal and installed-candidate qualification remain open. After
+issuing a replacement through [task-access](TASK_ACCESS.md), use:
 
 ```sh
 connect task-access renew-codex --installation .local/codex-review \

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "recorded_at": "2026-10-11T11:24:44.200932+00:00",
-  "status": "full offline qualification failed at HTTP capacity fixture; corrective verification pending",
+  "status": "previous failures retained; corrections locally qualified; new full offline run active",
   "items": [
     "G4-031"
   ],
@@ -232,5 +232,29 @@
     "failed": 0,
     "exit_code": 0,
     "scope": "unchanged built binary from 2e37d23; does not erase full-run failure"
-  }
+  },
+  "latest_run_checkpoint": {
+    "source_revision": "d04cf4c14064a1f5352c38b44b2cb41d2b29a860",
+    "dirty": false,
+    "mode": "complete-offline",
+    "status": "running",
+    "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
+    "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T121631.424320Z/result.json",
+    "active_phase": "workspace",
+    "observed_at": "2026-10-11T12:17:38.781103+00:00",
+    "passed_phases": [
+      "dependencies",
+      "format",
+      "typescript-install",
+      "typescript-tests",
+      "typescript-format",
+      "typescript-distribution",
+      "python-sdk",
+      "runner-failure-tests",
+      "lint",
+      "rustdoc"
+    ],
+    "evidence_limit": "Checkpoint only. Full qualification has not yet passed."
+  },
+  "corrective_qualification": "docs/evidence/gate-4/codex-grant-renewal.json"
 }
