@@ -2,6 +2,7 @@
 use crate::{
     auth::{admit, Admission},
     handler::Handler,
+    supervision::Observation,
     McpAuthenticator,
 };
 use axum::{middleware, Router};
@@ -19,6 +20,8 @@ pub struct RunningMcp {
     pub address: SocketAddr,
     cancellation: CancellationToken,
     handle: Option<tokio::task::JoinHandle<io::Result<()>>>,
+    readiness: Arc<connect_service::readiness::OperationalReadiness>,
+    primary: bool,
 }
 impl RunningMcp {
     /// Start one stateless Streamable HTTP endpoint at `/mcp`. Legacy
@@ -84,53 +87,49 @@ impl RunningMcp {
             .route_service("/mcp", transport)
             .layer(middleware::from_fn_with_state(admission, admit));
         let signal = cancellation.clone();
-        let readiness = service_readiness;
-        if primary {
-            readiness.set(
-                "mcp",
-                connect_protocol::ReadinessState::Ready,
-                "listener-bound",
-            );
-        }
+        // Construct before spawn: even abort-before-first-poll drops this guard.
+        let observation = Observation::new(service_readiness.clone(), signal.clone(), primary);
         let handle = tokio::spawn(async move {
-            let expected_stop = signal.clone();
+            let _observation = observation;
             let run = async move {
                 axum::serve(listener, app)
                     .with_graceful_shutdown(signal.cancelled_owned())
                     .await
             };
-            let result = AssertUnwindSafe(run)
+            AssertUnwindSafe(run)
                 .catch_unwind()
                 .await
-                .unwrap_or_else(|_| Err(io::Error::other("MCP listener failed")));
-            if !expected_stop.is_cancelled() {
-                readiness.fail(if primary { "mcp" } else { "mcp-task-listener" });
-            } else if primary {
-                readiness.set(
-                    "mcp",
-                    connect_protocol::ReadinessState::Unavailable,
-                    "listener-stopped",
-                );
-            }
-            result
+                .unwrap_or_else(|_| Err(io::Error::other("MCP listener failed")))
         });
         Ok(Self {
             address,
             cancellation,
             handle: Some(handle),
+            readiness: service_readiness,
+            primary,
         })
     }
     /// Cancel transport work, drain within five seconds and report failure.
     pub async fn shutdown(mut self) -> io::Result<()> {
+        crate::supervision::draining(&self.readiness, self.primary);
         self.cancellation.cancel();
-        let Some(mut handle) = self.handle.take() else {
+        let Some(handle) = self.handle.take() else {
             return Ok(());
         };
-        match tokio::time::timeout(Duration::from_secs(5), &mut handle).await {
+        // Dropping a JoinHandle detaches its task. A cancelled shutdown must
+        // instead retain abort ownership until the listener has been joined.
+        struct Owned(tokio::task::JoinHandle<io::Result<()>>);
+        impl Drop for Owned {
+            fn drop(&mut self) {
+                self.0.abort();
+            }
+        }
+        let mut owned = Owned(handle);
+        match tokio::time::timeout(Duration::from_secs(5), &mut owned.0).await {
             Ok(result) => result.map_err(io::Error::other)?,
             Err(_) => {
-                handle.abort();
-                let _ = handle.await;
+                owned.0.abort();
+                let _ = (&mut owned.0).await;
                 Err(io::Error::new(
                     io::ErrorKind::TimedOut,
                     "MCP shutdown did not drain",
@@ -147,3 +146,6 @@ impl Drop for RunningMcp {
         }
     }
 }
+#[cfg(test)]
+#[path = "listener_tests.rs"]
+mod tests;

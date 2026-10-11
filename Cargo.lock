@@ -700,9 +700,11 @@ dependencies = [
  "axum",
  "connect-protocol",
  "connect-service",
+ "connect-store",
  "futures-util",
  "rmcp",
  "serde_json",
+ "tempfile",
  "tokio",
  "tokio-util",
 ]

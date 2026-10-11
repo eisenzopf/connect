@@ -41,7 +41,8 @@ def _readiness(value):
     states = ("ready", "degraded", "unavailable", "uncertain")
     return _fields(value, ("state",)) and value["state"] in states and _array(
         value.get("components"), lambda item: _fields(item, ("component", "state", "reason"))
-        and item["state"] in states and type(item.get("observed_at")) is int)
+        and item["state"] in states and type(item.get("observed_at")) is int
+        and ("configured" not in item or type(item["configured"]) is bool))
 
 
 def valid_data(kind, data, depth=0):

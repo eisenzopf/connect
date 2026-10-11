@@ -59,7 +59,9 @@ function readiness(value: unknown): boolean {
             (component) =>
                 fields(component, ["component", "state", "reason"]) &&
                 states.includes(String(component.state)) &&
-                Number.isSafeInteger(component.observed_at),
+                Number.isSafeInteger(component.observed_at) &&
+                (!("configured" in component) ||
+                    typeof component.configured === "boolean"),
         )
     );
 }

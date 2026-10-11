@@ -18,6 +18,16 @@ pub struct ComponentReadiness {
     pub state: ReadinessState,
     pub reason: String,
     pub observed_at: i64,
+    /// False distinguishes omitted optional configuration from worker failure.
+    /// Older observations without this field describe configured components.
+    #[serde(default = "default_configured", skip_serializing_if = "is_configured")]
+    pub configured: bool,
+}
+fn default_configured() -> bool {
+    true
+}
+fn is_configured(configured: &bool) -> bool {
+    *configured
 }
 
 /// Authenticated health diagnostic, sampled from this running process.
@@ -26,3 +36,6 @@ pub struct Readiness {
     pub state: ReadinessState,
     pub components: Vec<ComponentReadiness>,
 }
+#[cfg(test)]
+#[path = "readiness_tests.rs"]
+mod tests;

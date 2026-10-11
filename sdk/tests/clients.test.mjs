@@ -110,6 +110,14 @@ test('health readiness validates observations and still accepts older servers',(
  assert.equal(decodeResponse(wrap(health),'health').data.schema,10);
  const readiness={state:'unavailable',components:[{component:'provider-delivery',state:'unavailable',reason:'worker-exited',observed_at:1791600000}]};
  assert.equal(decodeResponse(wrap({...health,readiness}),'health').data.readiness.state,'unavailable');
+ for(const configured of [true,false]) {
+  const observed={...readiness,components:[{...readiness.components[0],configured}]};
+  assert.equal(decodeResponse(wrap({...health,readiness:observed}),'health').data.readiness.components[0].configured,configured);
+ }
+ for(const configured of [null,0,'false',{},[]]) {
+  const observed={...readiness,components:[{...readiness.components[0],configured}]};
+  assert.throws(()=>decodeResponse(wrap({...health,readiness:observed}),'health'),rejects('protocol'));
+ }
  for(const invalid of [null,42,{state:'healthy',components:[]},{state:'ready',components:[{component:'x',state:'ready',reason:'bound',observed_at:'yesterday'}]}])
   assert.throws(()=>decodeResponse(wrap({...health,readiness:invalid}),'health'),rejects('protocol'));
 });

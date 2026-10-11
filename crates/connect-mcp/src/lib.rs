@@ -13,6 +13,7 @@ mod commands;
 mod handler;
 mod listener;
 mod schemas;
+mod supervision;
 mod vapi_auth;
 
 pub use auth::{FixedBindingAuth, LocalGrantAuth, McpAuthenticator};

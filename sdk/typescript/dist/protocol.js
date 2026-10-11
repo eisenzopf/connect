@@ -55,7 +55,9 @@ function readiness(value) {
         states.includes(String(value.state)) &&
         array(value.components, (component) => fields(component, ["component", "state", "reason"]) &&
             states.includes(String(component.state)) &&
-            Number.isSafeInteger(component.observed_at)));
+            Number.isSafeInteger(component.observed_at) &&
+            (!("configured" in component) ||
+                typeof component.configured === "boolean")));
 }
 function message(value) {
     return fields(value, ["id", "conversation_id", "sender", "body"]);

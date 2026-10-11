@@ -289,6 +289,8 @@ export interface Readiness {
         state: Readiness["state"];
         reason: string;
         observed_at: number;
+        /** Omitted legacy observations describe configured components. */
+        configured?: boolean;
     }>;
 }
 export interface Health {

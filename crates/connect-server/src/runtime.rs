@@ -177,6 +177,7 @@ impl RunningServer {
             };
             Some(connect_mcp::RunningMcp::start_local(service.clone(), auth, mcp.bind).await?)
         } else {
+            readiness.unconfigured("mcp");
             None
         };
         let mcp_address = mcp.as_ref().map(|listener| listener.address);

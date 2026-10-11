@@ -22,6 +22,24 @@ impl OperationalReadiness {
                     state,
                     reason: reason.into(),
                     observed_at: chrono::Utc::now().timestamp(),
+                    configured: true,
+                },
+            );
+    }
+    /// An optional component was not enabled. Expose that fact without failing
+    /// configured components or claiming a remote worker is running.
+    pub fn unconfigured(&self, component: &'static str) {
+        self.components
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(
+                component,
+                ComponentReadiness {
+                    component: component.into(),
+                    state: ReadinessState::Unavailable,
+                    reason: "not-configured".into(),
+                    observed_at: chrono::Utc::now().timestamp(),
+                    configured: false,
                 },
             );
     }
@@ -35,7 +53,8 @@ impl OperationalReadiness {
         self.fatal.cancelled().await;
     }
 
-    /// A snapshot contains configured components only; absent is not ready.
+    /// Optional unconfigured components are explicit and do not degrade the
+    /// aggregate. No configured observations still means uncertain, not ready.
     pub fn snapshot(&self) -> Readiness {
         let components: Vec<_> = self
             .components
@@ -50,8 +69,8 @@ impl OperationalReadiness {
             ReadinessState::Uncertain,
         ]
         .into_iter()
-        .find(|s| components.iter().any(|c| c.state == *s))
-        .unwrap_or(if components.is_empty() {
+        .find(|s| components.iter().any(|c| c.configured && c.state == *s))
+        .unwrap_or(if !components.iter().any(|c| c.configured) {
             ReadinessState::Uncertain
         } else {
             ReadinessState::Ready
@@ -59,3 +78,6 @@ impl OperationalReadiness {
         Readiness { state, components }
     }
 }
+#[cfg(test)]
+#[path = "readiness_tests.rs"]
+mod tests;

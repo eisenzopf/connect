@@ -22,6 +22,8 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Inspect task lifecycle, checkpoints and source references through the SDK.
+    TaskDiagnostics(connect_server::cli::task_diagnostics::Arguments),
     /// Protected loopback task grants; never a model tool or owner-token fallback.
     TaskAccess {
         #[command(subcommand)]
@@ -549,6 +551,7 @@ async fn main() -> Result<()> {
             server.shutdown().await?;
             println!("stopped");
         }
+        Command::TaskDiagnostics(arguments) => arguments.execute().await?,
         Command::Health { config } | Command::Diagnostics { config } => {
             let mut client = ConnectClient::open(ClientConfig::load(&config)?).await?;
             let result = client.request(Operation::Health {}).await?;

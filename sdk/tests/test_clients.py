@@ -22,6 +22,14 @@ class NativeTests(unittest.TestCase):
         self.assertEqual(decode(health)["data"]["schema"], 10)
         readiness = {"state": "unavailable", "components": [{"component": "provider-delivery", "state": "unavailable", "reason": "worker-exited", "observed_at": 1791600000}]}
         self.assertEqual(decode({**health, "readiness": readiness})["data"]["readiness"]["state"], "unavailable")
+        for configured in [True, False]:
+            component = {**readiness["components"][0], "configured": configured}
+            observed = {**readiness, "components": [component]}
+            self.assertIs(decode({**health, "readiness": observed})["data"]["readiness"]["components"][0]["configured"], configured)
+        for configured in [None, 0, "false", {}, []]:
+            component = {**readiness["components"][0], "configured": configured}
+            with self.assertRaises(ConnectError):
+                decode({**health, "readiness": {**readiness, "components": [component]}})
         for invalid in [None, 42, {"state": "healthy", "components": []}, {"state": "ready", "components": [{"component": "x", "state": "ready", "reason": "bound", "observed_at": "yesterday"}]}]:
             with self.assertRaises(ConnectError):
                 decode({**health, "readiness": invalid})

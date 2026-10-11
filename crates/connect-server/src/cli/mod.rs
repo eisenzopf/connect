@@ -10,3 +10,4 @@ pub mod stdio;
 pub mod presence;
 pub mod request;
 pub mod task_access;
+pub mod task_diagnostics;

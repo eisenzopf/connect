@@ -75,16 +75,19 @@ Neither uses WebSocket as a substitute for native QUIC. These are development
 sources, not published npm/PyPI packages.
 
 The messaging sample and provider setup instructions are in
-[examples/agent-presence](../examples/agent-presence/README.md). Gate 2 requires real Vapi chat and telephone voice in both directions. Live SMS
-and its signed carrier callback proof are explicitly deferred pending approval.
+[examples/agent-presence](../examples/agent-presence/README.md). Gate 2 requires real Vapi chat and telephone voice in both directions. Reviewed SMS
+enrollment, conversation and keyword enforcement have
+[entry qualification evidence](connect-pre-gate-4-entry.html); Gate 4 task-bound
+SMS and its acceptance checks remain separate work.
 MCP tools and the installable skill are Gate 4; HTTP/JSON alone is not MCP.
 
 Gate 4 adds a [protected local developer installation exchange](TASK_ACCESS.md)
 for Native/HostSession task grants. The CLI retains the original issuance ID and
 exports the bearer into a private file for MCP host setup. It cannot issue
 provider-origin grants, and model grants cannot refresh themselves. Native SDK
-model-grant authentication and installed-host continuation remain tracked work;
-the existing native client still uses its declared backing credential contract.
+grant authentication is implemented as described below. Installed-host
+continuation has component evidence; full qualification remains tracked in the
+[Gate 4 plan](connect-gate-4-implementation.html#G4-021).
 
 ## Gate 2 telephone call control
 
@@ -229,6 +232,13 @@ Use a signed Native invocation grant through the same UCTP/QUIC task facade.
 `connect task-access export-native` produces a private language-helper/CLI config.
 See [protected installation](TASK_ACCESS.md) for the actual command sequence.
 
+Rust applications can sample metadata through
+`ConnectClient::task_diagnostics(task_id, cursors, limit)`. The independent
+`connect task-diagnostics` CLI uses the same public client. See
+[task diagnostics](TASK_DIAGNOSTICS.md) for cursor lanes, optional denied sections,
+read-only behavior and the distinction between journal observations and current
+effect receipts. This convenience does not add a wire command or permission.
+
 Negotiate one explicit task with Rust/Python `negotiate_task(task_id)` or
 TypeScript `negotiateTask(taskId)`. Unlike directory capability discovery, this
 requires no resolve permission. A matching task record is required before later
@@ -240,8 +250,9 @@ communication uses `TaskCommand::Invoke`. Primitive control, administrator,
 raw artifact HTTP and raw media signaling do not inherit parent authority.
 Host/provider grants require their own admission. Revocation, expiry, cancellation
 and backing-credential changes are checked even on already authenticated peers
-and accepted-operation replay. This is task control, not yet qualified Native
-model media attachment or installed-host/provider tool support.
+and accepted-operation replay. Native media attachment and installed-host/provider
+tool behavior have separate evidence and limits in the
+[Gate 4 implementation](connect-gate-4-implementation.html).
 
 The Python/TypeScript control helper returns correlated typed errors for both
 startup and later requests. Invalid configuration returns `configuration`;

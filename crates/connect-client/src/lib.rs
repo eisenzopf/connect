@@ -26,6 +26,7 @@ mod error;
 mod media;
 mod media_end;
 mod operations;
+pub mod task_diagnostics;
 mod task_operations;
 
 pub use client::ConnectClient;
