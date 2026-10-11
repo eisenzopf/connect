@@ -28,7 +28,6 @@ def phases(source_only=False):
     if not source_only:
         steps.append(('installed-host', [*server, *[arg for name in HOST_TESTS for arg in ('--test', name)],
                                         '--', '--ignored', '--test-threads=1'], 1800))
-        steps.append(('host-capacity', [sys.executable, 'scripts/check-host-capacity.py'], 540))
     steps += [
         ('upstream-regression', ['bash', 'scripts/check-baseline.sh'], 3600),
         ('upstream-vapi', ['env', 'CARGO_TARGET_DIR=target/upstream', *cargo,
@@ -49,6 +48,8 @@ def phases(source_only=False):
                                     '.local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect'], 660),
     ]
     if not source_only:
+        at = next(i for i, step in enumerate(steps) if step[0] == 'current-binaries') + 1
+        steps.insert(at, ('host-capacity', [sys.executable, 'scripts/check-host-capacity.py'], 540))
         at = next(i for i, step in enumerate(steps) if step[0] == 'agent-incoming-public') + 1
         steps.insert(at, ('agent-incoming-host', [sys.executable, '-m', 'unittest', 'discover', '-s', 'examples/agent-presence/tests', '-p', 'test_installed_incoming.py'], 240))
     for name, script in [('dispatch', 'check-dispatch.py'), ('identity', 'check-identity.py'),
