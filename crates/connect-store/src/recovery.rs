@@ -115,6 +115,9 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     if schema >= 14 {
         tables.extend(["media_end_intents", "media_start_admissions"]);
     }
+    if schema >= 16 {
+        tables.push("vapi_session_setups");
+    }
     for table in tables {
         digest.update(table.as_bytes());
         // Names are a fixed allowlist, never user-controlled SQL.
@@ -273,6 +276,10 @@ impl Store {
         }
         if expected.schema < 15 {
             tx.execute_batch(include_str!("../migrations/015_native_media_authority.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 16 {
+            tx.execute_batch(include_str!("../migrations/016_vapi_session_setups.sql"))
                 .map_err(|_| Error::storage())?;
         }
         let snapshot = inspect(&tx)?;

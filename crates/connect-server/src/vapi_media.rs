@@ -71,6 +71,13 @@ impl VapiMedia {
                 return Err("vapi-route-denied");
             }
         };
+        if !self.task_setups.contains_key(binding.durable_session)
+            && store
+                .vapi_session_requires_task_setup(binding.durable_session)
+                .map_err(|_| "vapi-task-setup-storage-failed")?
+        {
+            return Err("vapi-task-setup-unavailable");
+        }
         let context = store
             .prepare_vapi_session_context(binding.credential, binding.durable_session)
             .map_err(|error| {
@@ -182,11 +189,16 @@ impl VapiMedia {
     /// Keep private recovery intent and durable task/conversation state intact.
     pub(crate) async fn expire_setups(&mut self) {
         let now = chrono::Utc::now().timestamp();
-        let closing = self
+        let expired: Vec<_> = self
             .task_setups
-            .values_mut()
-            .filter(|setup| setup.expired(now))
-            .map(|setup| setup.close());
+            .iter()
+            .filter(|(_, setup)| setup.expired(now))
+            .map(|(session, _)| session.clone())
+            .collect();
+        let closing = expired
+            .into_iter()
+            .filter_map(|session| self.task_setups.remove(&session))
+            .map(|setup| setup.shutdown());
         if futures_util::future::join_all(closing)
             .await
             .iter()
@@ -197,10 +209,10 @@ impl VapiMedia {
     }
 
     async fn retire_setup(&mut self, session: &str) {
-        // Retain a closed setup marker: removing it would allow a later bind
-        // to fall back to an ordinary call without its original task tools.
-        if let Some(setup) = self.task_setups.get_mut(session) {
-            if setup.close().await.is_err() {
+        // The Store retains the original binding across restart; process-local
+        // listener state can now be released completely when this leg ends.
+        if let Some(setup) = self.task_setups.remove(session) {
+            if setup.shutdown().await.is_err() {
                 tracing::warn!("Vapi task MCP cleanup failed; runtime supervision notified");
             }
         }

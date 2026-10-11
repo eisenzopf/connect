@@ -4,7 +4,7 @@ use crate::{Limits, Store, SCHEMA_VERSION};
 
 fn schema_thirteen(f: &Fixture) {
     f.store.connection().unwrap().execute_batch(
-        "DROP INDEX session_bindings_task_grant; ALTER TABLE session_bindings DROP COLUMN task_grant_id; DROP TABLE media_end_intents; DROP TABLE media_start_admissions; DROP INDEX task_effect_media_resource; PRAGMA user_version=13;",
+        "DROP TABLE vapi_session_setups; DROP INDEX session_bindings_task_grant; ALTER TABLE session_bindings DROP COLUMN task_grant_id; DROP TABLE media_end_intents; DROP TABLE media_start_admissions; DROP INDEX task_effect_media_resource; PRAGMA user_version=13;",
     ).unwrap();
 }
 

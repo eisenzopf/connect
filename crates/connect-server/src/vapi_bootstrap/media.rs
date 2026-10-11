@@ -102,6 +102,25 @@ impl crate::runtime::RunningServer {
             listener.shutdown().await?;
             return Err(error);
         }
+        // The private file owns secrets; the Store owns the durable binding.
+        // Persist before registering media so a crash cannot lose this boundary.
+        let registration = async {
+            let held = super::state::Locked::load(directory)?;
+            self.service
+                .register_vapi_task_session_setup(
+                    held.state.definition.credential_id.clone(),
+                    held.state.definition.grant(&held.state.nonce),
+                    session_id.into(),
+                    route,
+                )
+                .await?;
+            Ok::<(), anyhow::Error>(())
+        }
+        .await;
+        if let Err(error) = registration {
+            listener.shutdown().await?;
+            return Err(error);
+        }
         let setup = Box::new(CallSetup {
             service: self.service.clone(),
             directory: directory.into(),

@@ -59,31 +59,35 @@ files after shutdown. Source and binary digests must remain unchanged during
 the run. Credentials, generated IDs, raw logs and unfinished command inputs
 stay in the private run directory; public evidence contains sanitized results.
 
-## Retired voice setups: source review and remaining measurement
+## Retired voice setups: durable binding and remaining measurement
 
-The shared 32-listener ceiling bounds open task MCP endpoints; it is not a
-ceiling on retired setup records. After a call ends or its setup expires,
-`VapiMedia` retains the closed setup for that session. This prevents a later
-bind from falling back to an ordinary call without the original task tools,
-and prevents another setup from replacing the original recovery intent.
+The original implementation retained a closed setup only in `VapiMedia` memory.
+A local regression demonstrated that, after expiry and server restart, the same
+session could dispatch an ordinary Vapi call without its original task tools.
+That invalidates the earlier no-fallback claim across process restart.
 
-Source review at `493d5c3` found a separate bound: protected setup requires an
-existing authorized durable session, the in-memory map accepts one setup per
-session, and session creation checks the store's configured `sessions` limit
-(10,000 by default). Closed setups retain the directory path, service reference
-and expiry; their listener is removed during close. They are drained when the
-server shuts down. This is a count-bound argument, not measured retained memory
-or a claim that 10,000 simultaneous endpoints can run.
+The repair stores one immutable setup binding per durable session in schema 16.
+It records the credential reference and original bounded grant definition, never
+callback secrets or filesystem paths. Provider admission compares that exact
+binding and current authority. Sessions with a protected setup cannot select the ordinary call fallback.
+Voice-only task sessions without configured tools keep their existing behavior. A retired or unavailable listener requires a new voice session;
+the original task, conversation, private recovery intent and history remain.
 
-The relevant implementation is [setup authorization](../crates/connect-store/src/tasks/media_setup.rs),
+The process-local map can therefore release retired entries completely. Its live
+listeners share the 32-listener server ceiling. Durable binding rows are bounded
+by the retained session limit (10,000 by default). This is a source-level bound;
+it is not a measured 10,000-session churn or memory claim. The additive migration
+reserves older task-created sessions without inventing missing private intent.
+
+The relevant implementation is [setup binding](../crates/connect-store/src/tasks/media_setup_binding.rs),
 [session admission](../crates/connect-store/src/sessions.rs),
 [setup retirement](../crates/connect-server/src/vapi_media.rs) and
 [listener ownership](../crates/connect-server/src/vapi_bootstrap/media.rs).
-The existing expiry check verifies that the endpoint closes, private intent and
-durable state survive, and replacement is rejected. G4-030 still needs a
-repeated retirement profile with memory observations and capacity/restart
-behavior. Do not remove closed markers simply to reduce the map: any replacement
-must preserve the no-fallback and original-intent guarantees.
+The [restart repair audit](evidence/gate-4/vapi-setup-restart.json) qualifies
+migration, rollback, exact-intent admission, concurrent registration, restart
+denial and same-task continuation: 211 Store and 32 Vapi/parity checks pass, with
+strict workspace lint and Rustdoc. G4-030 still needs repeated retirement with
+memory observations and full current-source qualification.
 
 ## Sixteen concurrent assistant hosts
 

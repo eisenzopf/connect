@@ -248,7 +248,7 @@ fn schema_three_upgrade_requires_backup_and_preserves_conversations() {
     drop(f.store);
     let c = rusqlite::Connection::open(&path).unwrap();
     remove_gate_four_fixture_tables(&c);
-    c.execute_batch("DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; DROP TABLE voice_ingress; DROP TABLE voice_calls; DROP TABLE voice_routes; ALTER TABLE journal DROP COLUMN call_json; PRAGMA user_version=3;").unwrap();
+    c.execute_batch("DROP TABLE vapi_session_setups; DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; DROP TABLE voice_ingress; DROP TABLE voice_calls; DROP TABLE voice_routes; ALTER TABLE journal DROP COLUMN call_json; PRAGMA user_version=3;").unwrap();
     drop(c);
     assert_eq!(
         Store::open(&path, Limits::default()).err().unwrap().code,
@@ -380,7 +380,7 @@ fn schema_four_upgrade_preserves_voice_and_requires_snapshot() {
     drop(f.store);
     let c = rusqlite::Connection::open(&path).unwrap();
     remove_gate_four_fixture_tables(&c);
-    c.execute_batch("DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; DROP TABLE voice_ingress; DROP INDEX voice_provider_id; ALTER TABLE voice_calls DROP COLUMN direction; ALTER TABLE voice_calls DROP COLUMN end_credential_id; PRAGMA user_version=4;").unwrap();
+    c.execute_batch("DROP TABLE vapi_session_setups; DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; DROP TABLE voice_ingress; DROP INDEX voice_provider_id; ALTER TABLE voice_calls DROP COLUMN direction; ALTER TABLE voice_calls DROP COLUMN end_credential_id; PRAGMA user_version=4;").unwrap();
     drop(c);
     let backup = f._dir.path().join("schema4.sqlite3");
     let snapshot = Store::backup_database(&path, &backup).unwrap();
@@ -574,7 +574,7 @@ fn schema_five_upgrade_retains_inbound_bindings_and_reconciles_legacy_end_intent
     drop(f.store);
     let db = rusqlite::Connection::open(&path).unwrap();
     remove_gate_four_fixture_tables(&db);
-    db.execute_batch("DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; ALTER TABLE voice_calls DROP COLUMN end_credential_id; ALTER TABLE voice_ingress DROP COLUMN scanned_until; PRAGMA user_version=5;").unwrap();
+    db.execute_batch("DROP TABLE vapi_session_setups; DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; ALTER TABLE voice_calls DROP COLUMN end_credential_id; ALTER TABLE voice_ingress DROP COLUMN scanned_until; PRAGMA user_version=5;").unwrap();
     drop(db);
     let backup = f._dir.path().join("schema5.sqlite3");
     let snapshot = Store::backup_database(&path, &backup).unwrap();

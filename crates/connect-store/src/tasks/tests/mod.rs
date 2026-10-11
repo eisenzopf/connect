@@ -28,6 +28,7 @@ mod media_fixture;
 mod media_migration;
 mod media_recovery;
 mod media_setup;
+mod media_setup_binding;
 mod native_media_migration;
 mod native_reply;
 mod native_resource_boundaries;

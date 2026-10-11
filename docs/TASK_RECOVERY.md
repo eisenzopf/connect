@@ -6,6 +6,20 @@ is separate from final installed-candidate and integrated Gate 4 acceptance.
 All checks below use fresh local state. They do not migrate an existing server
 or contact a provider account.
 
+## Current schema change and remaining qualification
+
+Schema 16 adds durable Vapi task-session setup bindings to the verified snapshot.
+Existing task-created sessions receive an unknown-intent marker; a new voice leg
+continues the same task and conversation instead of guessing an old callback's
+private setup. Ordinary sessions and existing conversation history are preserved.
+Use the existing explicit backup/migrate workflow. No running installation is
+changed by these local tests. The earlier schema-15 historical qualification
+remains evidence for that version; the full historical and installed-candidate
+checks must run again for schema 16 before Gate 4 closes. The
+[local repair audit](evidence/gate-4/vapi-setup-restart.json) already qualifies
+Store migrations, rollback and restart behavior through 211 Store and 32
+Vapi/parity checks; that is separate from historical executable qualification.
+
 ## Reproduce the executable checks
 
 Prepare and build the current binary, then build the two pinned historical

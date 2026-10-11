@@ -4,6 +4,27 @@ use crate::Service;
 use connect_protocol::Error;
 
 impl Service {
+    /// Persist the exact protected voice setup before its listener can attach.
+    /// Retirement and process restart never turn it into an ordinary call.
+    pub async fn register_vapi_task_session_setup(
+        &self,
+        credential_id: String,
+        definition: GrantDefinition,
+        session_id: String,
+        expected: connect_store::VapiSessionRoute,
+    ) -> Result<()> {
+        let store = self.store.clone();
+        tokio::task::spawn_blocking(move || {
+            store.register_vapi_task_session_setup(
+                &credential_id,
+                &definition,
+                &session_id,
+                &expected,
+            )
+        })
+        .await
+        .map_err(|_| Error::storage())?
+    }
     /// Protected composition: verify owner-selected task/session provenance and
     /// the current Vapi route before attaching task tools to a media leg.
     pub async fn authorize_vapi_task_session_setup(

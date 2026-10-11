@@ -40,22 +40,9 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let now = crate::now();
-        definition.validate(now)?;
-        if definition.binding.kind != InvocationKind::ProviderCall
-            || uuid::Uuid::parse_str(&definition.binding.external_id).is_err()
-        {
-            return Err(Error::forbidden());
-        }
-        let (actor, route, task) = check(&tx, credential_id, &definition.task_id, session_id, now)?;
-        if route != *expected
-            || definition.expires_at > task.expires_at
-            || definition.expires_at > actor.expires_at
-            || definition.operations.iter().any(|op| {
-                !task.scope.operations.contains(op) || !actor.permits(op.required_scope())
-            })
-        {
-            return Err(Error::forbidden());
-        }
+        let (actor, task) =
+            check_definition(&tx, credential_id, definition, session_id, expected, now)?;
+        super::media_setup_binding::authorize(&tx, credential_id, definition, session_id)?;
         if caller.starts_with(connect_protocol::tasks::TASK_PRINCIPAL_PREFIX) {
             let source = Self::native_session_authority(&tx, caller, session_id)?;
             if source.task.id != task.id {
@@ -79,6 +66,33 @@ impl Store {
         tx.commit().map_err(|_| Error::storage())?;
         Ok(admitted)
     }
+}
+pub(super) fn check_definition(
+    c: &Connection,
+    credential_id: &str,
+    definition: &GrantDefinition,
+    session_id: &str,
+    expected: &VapiSessionRoute,
+    now: i64,
+) -> Result<(Actor, TaskRecord)> {
+    definition.validate(now)?;
+    if definition.binding.kind != InvocationKind::ProviderCall
+        || uuid::Uuid::parse_str(&definition.binding.external_id).is_err()
+    {
+        return Err(Error::forbidden());
+    }
+    let (actor, route, task) = check(c, credential_id, &definition.task_id, session_id, now)?;
+    if route != *expected
+        || definition.expires_at > task.expires_at
+        || definition.expires_at > actor.expires_at
+        || definition
+            .operations
+            .iter()
+            .any(|op| !task.scope.operations.contains(op) || !actor.permits(op.required_scope()))
+    {
+        return Err(Error::forbidden());
+    }
+    Ok((actor, task))
 }
 fn check(
     c: &Connection,

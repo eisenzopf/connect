@@ -3,7 +3,7 @@ use super::native_resource_fixture::MediaFixture;
 use crate::{Store, VoiceRoute};
 use connect_protocol::tasks::*;
 
-fn fixture() -> (
+pub(super) fn fixture() -> (
     MediaFixture,
     connect_protocol::Session,
     String,
@@ -45,6 +45,9 @@ fn fixture() -> (
         m.f.store
             .authorize_vapi_task_session_setup(&m.f.key.id, &m.task.id, &session.id)
             .unwrap();
+    m.f.store
+        .register_vapi_task_session_setup(&m.f.key.id, &definition, &session.id, &route)
+        .unwrap();
     (m, session, subject, definition, route)
 }
 #[test]

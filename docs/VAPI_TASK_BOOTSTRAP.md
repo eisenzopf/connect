@@ -167,8 +167,19 @@ An ended attached call closes its callback listener. Idle or active setup
 listeners are also retired after their original grant deadline by the media
 lifecycle's one-second expiry scan; existing bounded drain rules apply. This
 does not refresh a grant, end the persistent task or delete saved recovery
-intent. Closed setup metadata remains until server shutdown, so a later media
-attachment cannot silently fall back to a call without its original task tools.
+intent. Schema 16 persists the original setup binding in the Store before media
+registration. Retirement releases the process-local entry; a later attachment,
+including after restart, cannot fall back to an ordinary call. Creating another
+setup for that session is rejected. Continue the same task and conversation with
+a new voice session and an explicit new setup. An uncertain original provider
+call still requires reconciliation using its original private intent.
+
+The additive, backup-gated migration reserves older task-created sessions with
+unknown setup identity. It preserves their history and never guesses a nonce or
+adopts a new setup for an old leg. It does not modify ordinary non-task sessions.
+The [restart repair audit](evidence/gate-4/vapi-setup-restart.json) records the
+original regression and verified repair: 211 Store and 32 Vapi/parity checks,
+including ordinary voice-only task calls, pass with strict lint and Rustdoc.
 Full metadata-retention and steady-state resource measurement remain G4-030 work.
 
 The [shared-capacity audit](evidence/gate-4/mcp-shared-capacity.json) records the

@@ -2569,5 +2569,14 @@
     "followup_result_sha256": "92d84f51671b89751a21e5ba1e1af9529915685971b872bb1eee6432ec00a1c1",
     "binary_unchanged_from_failed_init": true,
     "scope": "Seven phases passed before the retained init timeout; the unchanged retention follow-up passed separately. Production range-read change requires a later current full run."
+  },
+  "vapi_setup_restart": {
+    "evidence": "docs/evidence/gate-4/vapi-setup-restart.json",
+    "status": "Local repair qualified; full current-source runner and installed candidate still required",
+    "schema": 16,
+    "store_tests": 211,
+    "vapi_and_parity_tests": 32,
+    "quality": "Strict workspace all-target/all-feature Clippy and Rustdoc pass; source stable and no supervisor leftovers",
+    "scope": "Local account-free component checks only; no new full-run pass claimed"
   }
 }

@@ -10,6 +10,7 @@ mod inbox;
 mod lifecycle;
 mod media_context;
 mod media_setup;
+mod media_setup_binding;
 pub use media_context::VapiSessionContext;
 mod native_reply;
 mod owner;

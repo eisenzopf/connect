@@ -43,7 +43,7 @@ pub use recovery::Snapshot;
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
 pub use sip_legs::{SipLegAction, SipLegJob};
 pub use tasks::{IssuedTaskGrant, NativeTaskAuthority, TaskInvocation, VapiSessionContext};
-pub const SCHEMA_VERSION: u32 = 15;
+pub const SCHEMA_VERSION: u32 = 16;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
@@ -104,6 +104,8 @@ impl Store {
         )
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/015_native_media_authority.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/016_vapi_session_setups.sql"))
             .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;

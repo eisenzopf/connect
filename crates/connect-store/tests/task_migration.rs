@@ -77,7 +77,7 @@ fn old_send() -> Operation {
 }
 fn rows(path: &Path) -> BTreeMap<String, Vec<Vec<Value>>> {
     let c = Connection::open(path).unwrap();
-    let mut table_query=c.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'task%' AND name NOT IN ('media_end_intents','media_start_admissions') ORDER BY name").unwrap();
+    let mut table_query=c.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'task%' AND name NOT IN ('media_end_intents','media_start_admissions','vapi_session_setups') ORDER BY name").unwrap();
     let names = table_query
         .query_map([], |r| r.get::<_, String>(0))
         .unwrap()
@@ -155,6 +155,12 @@ fn upgrade_populated_ten_preserves_all_existing_rows_and_verified_backup() {
         .unwrap(),
         0,
         "Existing media bindings must not acquire invocation authority"
+    );
+    assert_eq!(
+        c.query_row::<u64, _, _>("SELECT COUNT(*) FROM vapi_session_setups", [], |r| r.get(0))
+            .unwrap(),
+        0,
+        "Schema-10 sessions have no task binding to invent"
     );
     let mut query = c.prepare("PRAGMA foreign_key_check").unwrap();
     assert!(!query.exists([]).unwrap());

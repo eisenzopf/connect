@@ -142,9 +142,13 @@ verified backup, then run:
 CONNECT migrate --config state/operator.toml --server-config state/server.toml --backup backups/pre-upgrade
 ```
 
-The Gate 4 candidate migrates supported schemas 1–14 to schema 15. Check the
-installed manifest for the exact source and schema; older Gate 3 archives use
-schema 10. A live Session becomes
+The current Gate 4 source migrates supported schemas 1–15 to schema 16, adding
+durable Vapi task-session setup bindings. Older task-linked legs receive an
+unknown-intent marker and must continue with a new voice leg on the same task
+and conversation. This preserves their history without guessing lost setup
+credentials. The prior qualified candidate uses schema 15; a schema-16 installed
+candidate still needs qualification. Check the installed manifest for its exact
+source and schema; older Gate 3 archives use schema 10. A live Session becomes
 interrupted across restart; Connect preserves durable intent and never claims a
 socket or media pump survived. Roll back by restoring the matching pre-upgrade
 backup into a new directory and using its compatible binary.
