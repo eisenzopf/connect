@@ -191,6 +191,31 @@ async fn mismatched_delegation_pending_file_and_active_turn_cannot_replace_autho
     changed.grant = None;
     private_replace(&file, &serde_json::to_vec(&changed).unwrap()).unwrap();
     assert!(codex_host::renew(&dir, &file).is_err());
+    // Even internally consistent file edits cannot switch a running host's
+    // delegated operations or invocation identity during credential adoption.
+    for variant in ["operations", "binding", "expired"] {
+        let mut changed: GrantFile = serde_json::from_slice(&valid).unwrap();
+        let TaskAccessCommand::Issue { definition, .. } = &mut changed.request.command else {
+            panic!("issue");
+        };
+        let grant = &mut changed.grant.as_mut().unwrap().grant;
+        match variant {
+            "operations" => {
+                definition.operations = vec![TaskPermission::History];
+                grant.operations = definition.operations.clone();
+            }
+            "binding" => {
+                definition.binding.external_id = "another-session".into();
+                grant.binding = definition.binding.clone();
+            }
+            _ => {
+                definition.expires_at = chrono::Utc::now().timestamp() - 1;
+                grant.expires_at = definition.expires_at;
+            }
+        }
+        private_replace(&file, &serde_json::to_vec(&changed).unwrap()).unwrap();
+        assert!(codex_host::renew(&dir, &file).is_err(), "{variant}");
+    }
     private_replace(&file, &valid).unwrap();
     let held = std::fs::File::open(dir.join("host.lock")).unwrap();
     held.try_lock_exclusive().unwrap();
