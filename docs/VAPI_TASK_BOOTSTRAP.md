@@ -121,3 +121,9 @@ Current progress and verification are recorded in the
 and [exact-resource recovery checks](evidence/gate-4/vapi-bootstrap-recovery.json)
 are recorded separately. These component checks do not close whole-item or
 actual host qualification.
+
+The [G4-019 binding item audit](evidence/gate-4/vapi-binding-audit.json) now verifies
+the local binding contract, including two overlapping calls to the same assistant,
+concurrent first callbacks, independent effects and teardown. It combines those
+checks with origin, lifecycle and recovery proofs. Actual provider/model behavior
+and the G4-020 continuation audit remain separate work.

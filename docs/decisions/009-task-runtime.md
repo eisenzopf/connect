@@ -102,9 +102,10 @@ resource mode and saved nonce. Only that verified observation may reach the
 existing atomic binding/grant issuer. Headers alone cannot establish identity.
 The setup file retains one external resource and original issuance intent;
 uncertain creation does not repeat the POST or extend authority. The setup
-credential is not an ordinary task grant or a model argument. This component
-currently creates chat sessions; call/runtime/actual host qualification remains
-open in G4-019.
+credential is not an ordinary task grant or a model argument. Protected bootstrap
+creates chat sessions and stages rvoip-owned calls. The local G4-019 binding
+contract is verified by the audit below; operator installation and actual
+provider/model qualification remain separate Gate 4 work.
 
 ## Inbox, reply routing and application effects
 
@@ -431,7 +432,8 @@ listener reports a drain failure.
 Turnkey operator installation, restart reattachment, aggregate setup-listener
 limits and actual provider/model behavior
 remain separate unfinished work. The bootstrap guide and numbered plan identify
-those limits; component evidence must not be read as G4-019/G4-020 closure.
+those limits. The individual component records preserve their scope; G4-019
+closure comes from the subsequent binding audit. G4-020 remains open.
 
 ### Exact-resource recovery
 
@@ -450,5 +452,8 @@ separate; a recovered call binding does not attest an active local audio bridge.
 
 The [local recovery qualification](../evidence/gate-4/vapi-bootstrap-recovery.json)
 records five new recovery cases and 21 affected integration checks with strict
-lint and Rustdoc results. Full binding isolation and post-call continuation
-audits remain open in the numbered plan.
+lint and Rustdoc results. The subsequent
+[G4-019 binding audit](../evidence/gate-4/vapi-binding-audit.json) verifies the whole
+local item, including distinct concurrent first calls, with 34 checks and
+unchanged frozen inputs. Post-call continuation and actual provider/model
+qualification remain open in the numbered plan.
