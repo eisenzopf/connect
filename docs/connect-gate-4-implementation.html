@@ -531,8 +531,8 @@ docs/evidence/gate-4/codex-packaged-runtime.json</textarea></label><label class=
       "acceptance": "A4-04 A4-07 A4-10",
       "status": "in-progress",
       "owner": "Codex",
-      "evidence": "docs/evidence/gate-4/codex-draft-journey.json",
-      "notes": "Local installed-runtime draft journey is under implementation and has not passed qualification yet. It uses two independently exported HostSession tasks in the same conversation, actual MCP artifact upload and public native byte/digest verification, server restart, one explicitly bound human reply and exact-session continuation. The test must demonstrate that the other task remains waiting and replay makes no new effect. Scripted Responses are not actual inference; independently initiated contact, installed-candidate and provider acceptance remain open.",
+      "evidence": "docs/evidence/gate-4/codex-draft-journey.json\ndocs/evidence/gate-4/agent-incoming-example.json",
+      "notes": "Local installed-runtime draft journey is under implementation and has not passed qualification yet. It uses two independently exported HostSession tasks in the same conversation, actual MCP artifact upload and public native byte/digest verification, server restart, one explicitly bound human reply and exact-session continuation. The test must demonstrate that the other task remains waiting and replay makes no new effect. Scripted Responses are not actual inference; independently initiated contact, installed-candidate and provider acceptance remain open. A separate codex/agent-presence-inbox checkout now implements durable incoming-contact composition through the public Python native SDK and packaged host CLI. Fourteen focused ledger/recovery/authority/checkpoint tests pass. The first public-process attempt failed in CLI init startup before any API assertion; its deadline is unchanged. The example is not yet integrated into the primary checkout and has no actual-runtime qualification.",
       "updated": "2026-10-11"
     },
     {

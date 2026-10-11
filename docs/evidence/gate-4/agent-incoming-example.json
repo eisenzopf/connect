@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T13:09:31.702641+00:00",
+  "items": [
+    "G4-025"
+  ],
+  "status": "isolated implementation; unit checks passed, public-process and installed-runtime qualification pending",
+  "source_checkout": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
+  "source_branch": "codex/agent-presence-inbox",
+  "source_revision": "4d4706cec1ba8eff47e734a727f4f50f75af7b5a",
+  "merged_into_primary_checkout": false,
+  "unit_checks": {
+    "passed": 14,
+    "failed": 0,
+    "exit_code": 0,
+    "checkout_relative_path": ".local/incoming/unit-5.log",
+    "sha256": "0bfe520772d610b488e917e177d885356306f6941122fbbf796849bef0e19fc0"
+  },
+  "public_process_attempt": {
+    "status": "failed",
+    "passed": 0,
+    "errors": 1,
+    "exit_code": 1,
+    "failure": "The copied development CLI did not finish init within the existing 15-second startup bound. No public API assertion ran. This is not a qualification pass.",
+    "checkout_relative_path": ".local/incoming/public-1.log",
+    "sha256": "8ea87d3ba25e18d0d8b0127624d6d62c1beb7db8ce978207639d0ad708f86489"
+  },
+  "binary": {
+    "source": "copied from the primary checkout development target/debug/connect; not an installed release qualification",
+    "checkout_relative_path": ".local/incoming/connect",
+    "sha256": "e43538551a5662e175eccd0316ebdf4f7d876b401b8a91fd3df5450ad425d315"
+  },
+  "behavior_under_test": [
+    "Inbox cursor and queued contact intent commit atomically in app-owned SQLite.",
+    "Sender/conversation/request-ID deduplication preserves the first initiating event; changed content records conflict.",
+    "Exact task-creation inputs survive acceptance uncertainty. Current authority is rechecked; terminal work is inspected without reopening.",
+    "Protected CLI grant issuance and export feed the packaged host. A retained completed host checkpoint prevents a second first turn after a lost app ACK.",
+    "One explicit invocation processes one inbox page and at most one contact. Later reply continuation uses existing explicit-resume mode."
+  ],
+  "limits": [
+    "Actual local SDK/server path and actual installed runtime remain unqualified for this new example.",
+    "Unknown database/schema and policy changes are refused without adopting unrelated state. No model account or live provider operation has run.",
+    "This application-level contact_assistant format is not a new UCTP message or universal presence protocol.",
+    "The primary source remains frozen for its separate runtime checks; this branch is not yet integrated."
+  ]
+}
