@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T12:52:04.596222+00:00",
+  "items": [
+    "G4-025",
+    "G4-031"
+  ],
+  "source_revision": "2c9948f",
+  "status": "implementation added; actual runtime and strict lint pending",
+  "scope": "local macOS arm64; installed Codex with scripted loopback Responses and empty account roots",
+  "runtime_qualification": ".local/gate-4-planning/draft-2c9948f/result.json",
+  "verification": [
+    {
+      "name": "Runner failure and required-host coverage checks",
+      "path": ".local/gate-4-planning/codex-draft-runner-tests.log",
+      "sha256": "65d0a441e1540dcd813896ca915090c36d6766ae101ed9aa47167d7112d11468",
+      "exit_code": 0,
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "name": "Pinned dependency preparation",
+      "path": ".local/gate-4-planning/codex-draft-prepare.log",
+      "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+      "exit_code": 0
+    },
+    {
+      "name": "Repository formatting",
+      "path": ".local/gate-4-planning/codex-draft-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    }
+  ],
+  "limits": [
+    "No runtime pass is claimed for the new journey until its named test executes successfully.",
+    "Independently initiated assistant contact, actual inference and full G4-025 acceptance remain open.",
+    "The existing full offline runner qualifies a different earlier source revision."
+  ]
+}

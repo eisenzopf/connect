@@ -296,3 +296,28 @@ backing credential. It reports private retained session/turn metadata without
 prompts, bearer secrets or logs. An interrupted turn preserves its original
 session; a missing session requires repair. A completed turn does not complete
 the task. See [task diagnostics](TASK_DIAGNOSTICS.md).
+
+## Shared-conversation draft journey (qualification pending)
+
+`gate4_codex_draft_journey` exercises two exported installations in the same
+persistent conversation. Each task uploads a different draft through MCP and
+shares the returned artifact handle. A native participant retrieves and checks
+its size, digest and bytes both before and after a Connect restart. The participant
+answers only one question. Both exact host sessions resume; only the explicitly
+bound task should produce a source-backed follow-up. The unanswered task must
+remain waiting. Replaying the saved follow-up must leave the Store unchanged.
+
+```sh
+CONNECT_TEST_CODEX_BINARY="$(command -v codex)" \
+  cargo test --locked -p connect-server --all-features \
+  --test gate4_codex_draft_journey -- --ignored --test-threads=1
+```
+
+This check is newly added and awaiting its runtime and strict-lint results.
+It launches the actual installed CLI through `run-codex`, with scripted loopback
+Responses and empty account directories. It does not test model reasoning.
+The two tasks intentionally share authorized conversation history; task reply
+binding determines which work continues. This preserves cross-task context
+without guessing that any incoming message answers both requests. Independent
+incoming-contact dispatch, the delivered walkthrough and full G4-025 acceptance
+remain open.

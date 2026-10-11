@@ -241,7 +241,7 @@
     "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
     "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T121631.424320Z/result.json",
     "active_phase": "workspace",
-    "observed_at": "2026-10-11T12:17:38.781103+00:00",
+    "observed_at": "2026-10-11T12:52:04.596222+00:00",
     "passed_phases": [
       "dependencies",
       "format",
@@ -254,7 +254,15 @@
       "lint",
       "rustdoc"
     ],
-    "evidence_limit": "Checkpoint only. Full qualification has not yet passed."
+    "evidence_limit": "Checkpoint only; all 30 phases have not passed. This pinned d04cf4c run excludes the later packaged-runtime and overlapping-draft tests; their current-source qualification is separate.",
+    "startup_observation": {
+      "test_binary": "gate4_mcp_late_body",
+      "process_id": 36034,
+      "status": "process and original runner session observed live; no terminal result",
+      "sample": ".local/gate-4-planning/mcp-late-body-launch-sample.txt",
+      "sample_sha256": "143252879f2a4cfac04bae94734124fb634c5fdf11bb11220cd4b05aebe7e7e7",
+      "finding": "One-second sample remained at _dyld_start with 112 KiB footprint, before the Rust test harness printed its test count. Underlying operating-system startup cause is not established. No deadline or test semantics changed."
+    }
   },
   "corrective_qualification": "docs/evidence/gate-4/codex-grant-renewal.json"
 }
