@@ -19,6 +19,7 @@ use tokio::{
 struct Gate {
     entered: Arc<Notify>,
     release: Arc<Semaphore>,
+    response: Value,
 }
 pub struct PausedLookup {
     gate: Gate,
@@ -27,14 +28,22 @@ pub struct PausedLookup {
 }
 impl PausedLookup {
     pub async fn start() -> (Self, Vapi) {
+        Self::with_response(
+            "/call/resource-one",
+            json!({"id":"resource-one","assistantId":"assistant-one","status":"in-progress"}),
+        )
+        .await
+    }
+    pub async fn with_response(route: &str, response: Value) -> (Self, Vapi) {
         let gate = Gate {
             entered: Arc::new(Notify::new()),
             release: Arc::new(Semaphore::new(0)),
+            response,
         };
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let router = Router::new()
-            .route("/call/resource-one", get(lookup))
+            .route(route, get(lookup))
             .with_state(gate.clone());
         let (stop, stopped) = oneshot::channel();
         let job = tokio::spawn(async move {
@@ -76,7 +85,5 @@ async fn lookup(State(gate): State<Gate>, headers: HeaderMap) -> Result<Json<Val
         .await
         .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     permit.forget();
-    Ok(Json(
-        json!({"id":"resource-one","assistantId":"assistant-one","status":"in-progress"}),
-    ))
+    Ok(Json(gate.response))
 }

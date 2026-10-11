@@ -168,3 +168,32 @@ async fn identifiers_cannot_escape_the_intended_private_api_path() {
     }
     assert!(server.received_requests().await.unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn private_nonce_proof_distinguishes_creation_from_matching_assistant_metadata() {
+    let nonce = uuid::Uuid::new_v4().to_string();
+    for kind in [OriginKind::Call, OriginKind::Chat, OriginKind::ChatSession] {
+        for valid in [true, false] {
+            let mut response = resource(kind);
+            let value = if valid {
+                nonce.clone()
+            } else {
+                uuid::Uuid::new_v4().to_string()
+            };
+            if kind == OriginKind::ChatSession {
+                response["metadata"] = json!({"variableValues":{"connect_invocation_id":value}});
+            } else {
+                response["assistantOverrides"] =
+                    json!({"variableValues":{"connect_invocation_id":value}});
+            }
+            let (_server, client) = fixture(kind, response, 200).await;
+            assert_eq!(
+                client
+                    .verify_created_origin(kind, "resource-one", "assistant-one", &nonce)
+                    .await
+                    .is_ok(),
+                valid
+            );
+        }
+    }
+}

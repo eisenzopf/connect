@@ -126,3 +126,10 @@ grants have no cancellation permission. Other administrative task control
 remains outside invocation grants. Transport, authority and tools
 have dedicated real-client tests in `crates/connect-server/tests/gate4_mcp_*.rs`;
 the numbered plan records which candidate checks have actually passed.
+
+[Vapi chat-session bootstrap](../../docs/VAPI_TASK_BOOTSTRAP.md) describes the
+protected first-invocation component. It saves creation intent before one
+provider POST and requires private nonce verification before binding callbacks
+to a task. Its setup credential is distinct from ordinary task grants. Call
+creation, voice-runtime composition, operator installation and actual provider
+host qualification remain open; the guide records the component's limits.

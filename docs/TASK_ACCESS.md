@@ -109,9 +109,11 @@ This is local export, not binding registration, refresh or proof of current
 server authority. Provider grants require their verified adapter and cannot be
 converted. The host must supply the retained bearer through its protected
 environment, and MCP still checks current task, parent and grant authority.
-The packaged launcher, exact session-ID continuation and actual model/host
-qualification remain open in G4-021–G4-023. Export alone does not attest that
-Codex has loaded the skill or made a tool call.
+The packaged `run-codex` launcher retains the exact session ID and original
+launch intent. Its local process qualification is recorded in the
+[Codex host guide](CODEX_TASK_HOST.md); actual model/host qualification remains
+open in G4-021–G4-023. Export alone does not attest that Codex has loaded the
+skill or made a tool call.
 
 ## Native SDK and JSON CLI
 

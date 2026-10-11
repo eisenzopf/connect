@@ -1,9 +1,11 @@
 //! Read-only provider verification before trusted task binding composition.
 use crate::Vapi;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Which exact provider resource the protected setup intends to bind.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum OriginKind {
     /// One currently active voice call.
     Call,
@@ -91,10 +93,34 @@ impl Vapi {
         external_id: &str,
         expected_assistant: &str,
     ) -> Result<VerifiedVapiOrigin, OriginVerificationError> {
+        self.verify_bound_origin(kind, external_id, expected_assistant, None)
+            .await
+    }
+
+    /// Verify resource origin plus a protected creation nonce using one private
+    /// SDK lookup. A matching assistant/header alone cannot prove creation.
+    pub async fn verify_created_origin(
+        &self,
+        kind: OriginKind,
+        external_id: &str,
+        expected_assistant: &str,
+        nonce: &str,
+    ) -> Result<VerifiedVapiOrigin, OriginVerificationError> {
+        uuid::Uuid::parse_str(nonce).map_err(|_| OriginVerificationError::InvalidIdentifier)?;
+        self.verify_bound_origin(kind, external_id, expected_assistant, Some(nonce))
+            .await
+    }
+    async fn verify_bound_origin(
+        &self,
+        kind: OriginKind,
+        external_id: &str,
+        expected_assistant: &str,
+        nonce: Option<&str>,
+    ) -> Result<VerifiedVapiOrigin, OriginVerificationError> {
         use OriginVerificationError::{Inactive, Mismatch, Unavailable};
         validate(external_id)?;
         validate(expected_assistant)?;
-        let (id, assistant, active) = match kind {
+        let (id, assistant, active, extra) = match kind {
             OriginKind::Call => {
                 let call = self
                     .client
@@ -103,7 +129,7 @@ impl Vapi {
                     .await
                     .map_err(|_| Unavailable)?;
                 let active = call.is_active() && call.ended_at.is_none();
-                (call.id, call.assistant_id, active)
+                (call.id, call.assistant_id, active, call.extra)
             }
             OriginKind::Chat => {
                 let chat = self
@@ -115,7 +141,7 @@ impl Vapi {
                 if chat.session_id.is_some() {
                     return Err(Mismatch);
                 }
-                (chat.id, chat.assistant_id, true)
+                (chat.id, chat.assistant_id, true, chat.extra)
             }
             OriginKind::ChatSession => {
                 let session = self
@@ -125,7 +151,7 @@ impl Vapi {
                     .await
                     .map_err(|_| Unavailable)?;
                 let active = session.status.as_deref() == Some("active");
-                (session.id, session.assistant_id, active)
+                (session.id, session.assistant_id, active, session.extra)
             }
         };
         if id != external_id || assistant.as_deref() != Some(expected_assistant) {
@@ -133,6 +159,16 @@ impl Vapi {
         }
         if !active {
             return Err(Inactive);
+        }
+        if let Some(expected) = nonce {
+            let pointer = if kind == OriginKind::ChatSession {
+                "/metadata/variableValues/connect_invocation_id"
+            } else {
+                "/assistantOverrides/variableValues/connect_invocation_id"
+            };
+            if extra.pointer(pointer).and_then(serde_json::Value::as_str) != Some(expected) {
+                return Err(Mismatch);
+            }
         }
         Ok(VerifiedVapiOrigin {
             kind,

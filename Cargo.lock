@@ -762,6 +762,7 @@ dependencies = [
  "fs2",
  "futures-util",
  "hex",
+ "hmac",
  "quinn",
  "rcgen",
  "reqwest 0.12.28",

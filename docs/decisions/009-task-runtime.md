@@ -93,6 +93,19 @@ a model-facing tool and an expired grant cannot refresh themselves. Long-running
 host adapters obtain refresh through protected composition, not through stored
 bearer plaintext or expanded model authority.
 
+First-invocation provider setup may precede the resource creation receipt. The
+[Vapi chat-session bootstrap](../VAPI_TASK_BOOTSTRAP.md) saves a protected
+creation intent and separate setup credential before dispatch. After validating
+that credential and current task authority, its authenticator independently
+reads the private provider resource and verifies the expected assistant,
+resource mode and saved nonce. Only that verified observation may reach the
+existing atomic binding/grant issuer. Headers alone cannot establish identity.
+The setup file retains one external resource and original issuance intent;
+uncertain creation does not repeat the POST or extend authority. The setup
+credential is not an ordinary task grant or a model argument. This component
+currently creates chat sessions; call/runtime/actual host qualification remains
+open in G4-019.
+
 ## Inbox, reply routing and application effects
 
 Task question effects persist request/reply-to bindings before dispatch. Native

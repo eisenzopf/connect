@@ -1,0 +1,146 @@
+{
+  "status": "local chat-session bootstrap component qualified; G4-019 remains in progress",
+  "recorded_at": "2026-10-11T01:55:05.186094+00:00",
+  "source_base": "d6404f45a8aec6f3648f7f5080bdcf2bb1083488",
+  "source_files": {
+    "Cargo.lock": "e01d6633125f1c70e922a5cc241376ab2f33bb6f4e999183e7ed1b5534010e3f",
+    "crates/connect-server/Cargo.toml": "f620de5f90d190e5c18e782d5b0e8c18e4dd91d2b5f0e6572c09211e4e8d9331",
+    "crates/connect-server/src/lib.rs": "11173f8afe17809b1e7ced648379c176fb9ead71a9affa57d9fe15dfc135b8b0",
+    "crates/connect-server/src/cli/task_access.rs": "ed92d9300cc407aaaee8e9f6e88de0e6ed59588572a5b0899b44c93a5960c69d",
+    "crates/connect-connectors/src/vapi_origin.rs": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b",
+    "crates/connect-connectors/tests/vapi_origin.rs": "36940d944e6cf1f5de6f84befa27c6eb7f795d8ceb14f42b0ff3547a98089611",
+    "crates/connect-server/tests/support/vapi_bootstrap.rs": "12be414c7ed27e02005861345a3c630e61bb49b4e29070fe7ef227798770699d",
+    "crates/connect-server/tests/support/paused_vapi_lookup.rs": "85ef2cddeba2873b618c189370962bf0ea6a0a7a9e91256ab8a73b22d6a10ffb",
+    "crates/connect-server/src/vapi_bootstrap/admission.rs": "f94b23f8baa13777ba1696a8c618ed82e55898047c9be1426549c5adb87d1ae1",
+    "crates/connect-server/src/vapi_bootstrap/creation.rs": "10d6cc8b2462482e8a754b2343116f8aa29a64fac67f63fd25ec100838adbf41",
+    "crates/connect-server/src/vapi_bootstrap/mod.rs": "3d1b3eb812fd0e63a7853558594705be873a9e968472b327ccf0023e3fa0c4e7",
+    "crates/connect-server/src/vapi_bootstrap/state.rs": "2155e0106cf126b92fb6023f75abfd64d19796923e0a67c212b11dba49a4b25d",
+    "crates/connect-server/tests/gate4_vapi_bootstrap.rs": "74fbef0a6f89e7487a7ca8b5f9af5021f3bbf3e761f72651ef2ef68802f9d57f",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_denials.rs": "06afaefd1318a800f3c874918c44f25eb6f603bd44e0f740d9647efa6640ff14",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_preparation.rs": "b9064da972a6380236135728b0ee86a4d9c247e2ae27f1b35fd7689aa23144f5",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_races.rs": "2d5942d99bba1ed2c6d7a31d840438fac228cfd43fef456b559127a26ace0895"
+  },
+  "scope": "Local macOS arm64; isolated Store and loopback fake private provider API with real Connect MCP and native clients. No live account, model, provider, public ingress or remote deployment operations.",
+  "items": [
+    "G4-019"
+  ],
+  "verified": [
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate4_vapi_bootstrap --test gate4_vapi_bootstrap_denials --test gate4_vapi_bootstrap_races --test gate4_vapi_bootstrap_preparation",
+      "terminal_exit": 0,
+      "result": "8 passed; 0 failed; 0 ignored across 4 integration binaries",
+      "log": ".local/gate-4-planning/vapi-bootstrap-wire-final.log",
+      "log_sha256": "d23e2b93eccd5005fcb3eb226c52d503ec06bd4c6adca004050c2295cb3ee641"
+    },
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate4_vapi_verified_setup --test gate4_vapi_setup_denials --test gate4_vapi_setup_races --test gate4_vapi_mcp_binding --test gate4_vapi_mcp_lifecycle -j 2",
+      "terminal_exit": 0,
+      "result": "6 passed; 0 failed; 0 ignored across 5 integration binaries",
+      "log": ".local/gate-4-planning/vapi-bootstrap-existing-regression.log",
+      "log_sha256": "9c942a025e63b5cc909fbef8d1f7d93ea657e573cd7f8228e87439f2fac38b8c"
+    },
+    {
+      "command": "cargo test --locked -p connect-connectors --test vapi_origin -j 2",
+      "terminal_exit": 0,
+      "result": "6 passed; 0 failed; 0 ignored; nonce proof covers all three origin modes",
+      "log": ".local/gate-4-planning/vapi-bootstrap-origin-final.log",
+      "log_sha256": "2d86a43e1276920f5efc4a00aab6c17eac0659065371799a1d6796729b78c523"
+    },
+    {
+      "command": "cargo test --locked -p connect-connectors --doc --all-features -j 2",
+      "terminal_exit": 0,
+      "result": "1 compile-fail doctest passed; verified provider origin cannot be forged through JSON",
+      "log": ".local/gate-4-planning/vapi-bootstrap-doctest-final.log",
+      "log_sha256": "bf842e246ce9ffde403a973977b02c471be4a43452feaa739a90004cc1fc66c4"
+    },
+    {
+      "command": "cargo clippy --locked -p connect-connectors -p connect-server --all-targets --all-features -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-bootstrap-clippy-final.log",
+      "log_sha256": "a38f1173d5457540061fba7bf9db6764bc20101f3db5c648970bc1b1d7012504"
+    },
+    {
+      "command": "env RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-connectors -p connect-server --all-features --no-deps -j 2",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-bootstrap-rustdoc-final.log",
+      "log_sha256": "9625a9e80b5cc96d84bdcd1e29d4d3089c2b77a046d4e757704d2b338e43590f"
+    },
+    {
+      "command": "bash scripts/format.sh",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-bootstrap-format-current.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-bootstrap-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "command": "python3 .local/gate-4-planning/validate-docs.py",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-bootstrap-docs-final.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
+    }
+  ],
+  "behavior": [
+    "A first actual MCP callback binds before the delayed provider creation receipt. Matching send retry returns one receipt and produces one message through the public native client.",
+    "A saved dispatch intent precedes one SDK POST. A lost/failed response preserves the nonce, credential, task, lifetime and issuance identity. An independently verified callback reconciles the original resource without a second POST.",
+    "Current setup authority is checked before private lookup and again after it. Four explicitly paused cases deny callback issuance or recovered-resource return after cancellation or parent revocation; denied Store snapshots do not change.",
+    "Nine malformed/duplicate/foreign header cases deny before any private GET or task mutation. Invalid setup configurations, scope escalation, overwrite and revoked parent preparation deny without new state.",
+    "Wrong nonce, inactive/unavailable resource, a conflicting resource with matching metadata and revoked original grant cannot establish new authority. Grant replay never remints a revoked grant.",
+    "Two concurrent tasks in one installation use separate setup credentials and distinct verified resources. A foreign setup credential cannot authenticate the other endpoint.",
+    "Session creation appends the MCP tool and retains the saved assistant's other tool configuration. The private response metadata must independently carry the exact UUID creation nonce."
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/vapi-bootstrap-clippy-initial.log",
+      "terminal_exit": 101,
+      "result": "--locked rejected missing metadata for the newly explicit existing workspace hmac dependency; no checks ran. Cargo.lock now changes only the server dependency list, with no new package/version.",
+      "log_sha256": "6e188bf508e2d0ff194b233b7440bfba7cb946e3dd10c8ed6a20e60bddb3c66d"
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-bootstrap-clippy-current.log",
+      "terminal_exit": 101,
+      "result": "A no-dependencies metadata read did not update the lock; retained second rejection. An offline Clippy build resolved the existing dependency metadata, followed by the passing locked final check.",
+      "log_sha256": "6e188bf508e2d0ff194b233b7440bfba7cb946e3dd10c8ed6a20e60bddb3c66d"
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-bootstrap-wire-current.log",
+      "terminal_exit": 101,
+      "result": "Two new fixtures failed: default-header insertion discarded duplicates, and a concurrent fixture reused one provider resource ID for two tasks. Corrected direct request headers and distinct resource IDs; final eight-test run passes unchanged authority/transport limits.",
+      "log_sha256": "e4a1c673160b918de74568c189dc905bd02ba69461d7f4744f65aa14622657b0"
+    }
+  ],
+  "review": {
+    "production_module_lines": {
+      "crates/connect-server/src/vapi_bootstrap/admission.rs": 140,
+      "crates/connect-server/src/vapi_bootstrap/creation.rs": 91,
+      "crates/connect-server/src/vapi_bootstrap/mod.rs": 122,
+      "crates/connect-server/src/vapi_bootstrap/state.rs": 71
+    },
+    "crate_ownership": "Server owns protected composition and files; connector owns private SDK proof. Existing service/Store atomic authority is reused unchanged. No core provider-name switch or direct adapter SQL.",
+    "public_docs": "Public Rustdoc and docs/VAPI_TASK_BOOTSTRAP.md; protected inputs carry credential references, and setup/grant bearer values are excluded from public evidence.",
+    "linker_note": "Test builds retain the macOS linker compact-unwind metadata warning; strict affected Rust Clippy and Rustdoc pass.",
+    "documentation": "HTML links/anchors, 36 stable work IDs, completion/dependency cards and acceptance map pass. TASK_ACCESS and MCP guides link current host/bootstrap status."
+  },
+  "pending_checks": [],
+  "remaining": [
+    "Call creation and voice-runtime bootstrap composition.",
+    "Protected operator installation and explicit unknown-resource reconciliation.",
+    "Actual Vapi model/tool behavior, provider support and installed host qualification.",
+    "Full G4-019/A4/T-A integrated acceptance and final package qualification."
+  ],
+  "unchanged": "No whole implementation item or acceptance criterion closed by this component. Existing live server and production/provider state untouched.",
+  "sources": [
+    "https://docs.vapi.ai/tools/mcp",
+    "https://docs.vapi.ai/chat/variable-substitution",
+    "https://github.com/VapiAI/server-sdk-python/blob/main/src/vapi/types/assistant_overrides.py"
+  ]
+}

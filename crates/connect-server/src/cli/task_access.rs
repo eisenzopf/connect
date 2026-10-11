@@ -85,7 +85,7 @@ pub async fn resume(config: &Path, address: SocketAddr, output: &Path) -> Result
     Ok(())
 }
 
-pub(super) fn require_private(output: &Path) -> Result<()> {
+pub(crate) fn require_private(output: &Path) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -120,7 +120,7 @@ fn report(grant: &ProtectedTaskGrant, status: &str) {
         serde_json::json!({"grant_id":grant.grant.id,"task_id":grant.grant.task_id,"expires_at":grant.grant.expires_at,"status":status})
     );
 }
-pub(super) fn read_bounded(path: &Path) -> Result<Vec<u8>> {
+pub(crate) fn read_bounded(path: &Path) -> Result<Vec<u8>> {
     use std::io::Read;
     let metadata = std::fs::symlink_metadata(path)?;
     anyhow::ensure!(

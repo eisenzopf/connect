@@ -12,6 +12,7 @@ mod sip_outbound;
 mod sip_registration;
 pub mod tls;
 mod transports;
+pub mod vapi_bootstrap;
 mod vapi_media;
 mod vapi_observer;
 pub mod vapi_task_setup;
