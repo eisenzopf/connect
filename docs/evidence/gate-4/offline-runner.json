@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T11:24:44.200932+00:00",
+  "status": "process supervisor component verified; full fresh-checkout qualification not yet complete",
+  "items": [
+    "G4-031"
+  ],
+  "command": "python3 -m unittest discover -s scripts/tests -p test_qualification*.py",
+  "exit_code": 0,
+  "passed": 5,
+  "failed": 0,
+  "log": {
+    "path": ".local/gate-4-planning/offline-runner-process-final.log",
+    "sha256": "126c251ee382c86bb5f01cbcd2e238bd6e771fdccf2ae154dfd5f2243d099e77"
+  },
+  "behavior": [
+    "Successful phase retains its real exit code and output.",
+    "Missing executable and nonzero command fail with evidence.",
+    "Deadline kills inherited child and leaves unrelated worker alive.",
+    "Normal exit leaking a child fails and cleans it up.",
+    "An unreaped supervisor reserves the process-group identity through signalling."
+  ],
+  "preflight": {
+    "command": "python3 scripts/check-gate-4.py",
+    "exit_code": 1,
+    "outcome": "Expected missing selected host failure before any phase; no implicit host omission.",
+    "log": {
+      "path": ".local/gate-4-planning/offline-runner-missing-host.log",
+      "sha256": "f24f6b7e963d507e65627c349198acd11b6e80bfec4d97045fba4a3716e5f0eb"
+    }
+  },
+  "limits": [
+    "Full source-only/full offline runs and fresh-checkout evidence remain open.",
+    "Detached sessions and top-level force-kill require an external supervisor; inherited-group ownership is not arbitrary process-tree containment.",
+    "CI job is configuration, not a remote execution claim.",
+    "No live account, inference, provider or deployment operation is included."
+  ],
+  "guide": "docs/GATE4_OFFLINE_CHECKS.md",
+  "related_prior_evidence": [
+    "docs/evidence/gate-4/quic-shutdown-diagnosis.json"
+  ]
+}

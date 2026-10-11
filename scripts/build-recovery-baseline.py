@@ -50,6 +50,9 @@ with tempfile.TemporaryDirectory(prefix='source-', dir=output) as directory:
         'schema': args.schema, 'source_revision': REVISION,
         'source_tree': subprocess.check_output(['git', 'rev-parse', REVISION + '^{tree}'], cwd=ROOT, text=True).strip(),
         'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+        'build_environment': {key: environment[key] for key in
+                              ['CARGO_PROFILE_DEV_DEBUG', 'CARGO_PROFILE_TEST_DEBUG', 'CARGO_INCREMENTAL']
+                              if key in environment},
         'build': 'cargo build --locked -p connect-server --bin connect; pinned historical dependency preparation',
     }, indent=2) + '\n')
 print(binary)
