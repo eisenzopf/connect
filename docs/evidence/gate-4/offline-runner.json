@@ -713,5 +713,68 @@
       }
     ],
     "finding": "Workspace stopped in gate4_codex_cleanup: invalid_stream and timeout checks never observed descendant.json; fixture-phase was not-entered. Other four cleanup checks passed. Root cause is not established. This is a failed full run; remaining phases were not run."
+  },
+  "cleanup_startup_isolated_repeat": {
+    "result": ".local/gate-4-fresh-493d5c3/.local/cleanup-startup-680e10e/result.json",
+    "result_sha256": "234105be83e4c1cee8538ccaf8de40d4a60f91ce056688c16cb3b22be902ffdc",
+    "source_revision": "680e10ed0698ed7f414ed802a8f7408c6cff35a5",
+    "source_stable": true,
+    "status": "passed",
+    "steps": [
+      {
+        "name": "invalid_stream_reaps_parent_and_stops_inherited_worker",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_codex_cleanup",
+          "invalid_stream_reaps_parent_and_stops_inherited_worker",
+          "--",
+          "--exact",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 180,
+        "log": "invalid_stream_reaps_parent_and_stops_inherited_worker.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.362
+      },
+      {
+        "name": "timeout_stops_inherited_group_and_preserves_another_worker",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_codex_cleanup",
+          "timeout_stops_inherited_group_and_preserves_another_worker",
+          "--",
+          "--exact",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 180,
+        "log": "timeout_stops_inherited_group_and_preserves_another_worker.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 8.616
+      }
+    ],
+    "tests": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    "limit": "Unchanged isolated repeat; no deadline, product or fixture correction. Original not-entered startup failure remains unexplained and the full run remains failed. A new complete run is still required."
   }
 }
