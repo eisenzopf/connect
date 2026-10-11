@@ -11,6 +11,7 @@ use rvoip_vapi::VapiAdapter;
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
+    time::Duration,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -71,9 +72,15 @@ impl MediaLifecycle {
         let (commands, mut command_receiver) = tokio::sync::mpsc::channel(32);
         let task = crate::worker::spawn(readiness, "media-lifecycle", stop.clone(), async move {
             let mut state = MediaState::default();
+            let mut expiry = tokio::time::interval(Duration::from_secs(1));
+            expiry.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             loop {
                 let event = tokio::select! {
                     _ = cancelled.cancelled() => break,
+                    _ = expiry.tick() => {
+                        state.vapi.expire_setups().await;
+                        continue;
+                    },
                     command = command_receiver.recv() => {
                         let Some(command) = command else { break; };
                         match command {

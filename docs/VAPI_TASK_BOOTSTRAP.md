@@ -127,8 +127,8 @@ an explicit retryable setup failure; the original intent is retained.
 Call/chat/session nonce verification is available in the connector; standalone
 chat creation is not implemented. The voice runtime accepts protected Rust
 composition, but a turnkey operator installer, restart reattachment,
-aggregate setup-listener limits and actual Vapi
-host qualification remain open. A staged or admitted uncertain call is not
+full operating-profile measurement and actual Vapi
+host qualification remain open. Shared setup admission is described below. A staged or admitted uncertain call is not
 silently recreated. Local listeners cannot be reached by a live cloud provider
 without separately configured ingress; this component does not add ingress. No live provider requests or public ingress are used by this component's
 local checks.
@@ -155,3 +155,22 @@ qualifies the local context/tool runtime with 31 behavior checks, including
 bounded pending, disconnect, server restart and a useful follow-up from retained
 voice and reply sources. Actual provider/model behavior, installed-host and
 complete journey qualification remain separate work.
+
+## Server-wide callback resource budget
+
+Protected voice setup shares the server's `McpCapacity` with its primary MCP
+endpoint: 32 starting/live listeners and 32 simultaneous requests total. A
+rejected setup at capacity creates no private intent and no provider call.
+Closing one endpoint returns its allowance for other task endpoints.
+
+An ended attached call closes its callback listener. Idle or active setup
+listeners are also retired after their original grant deadline by the media
+lifecycle's one-second expiry scan; existing bounded drain rules apply. This
+does not refresh a grant, end the persistent task or delete saved recovery
+intent. Closed setup metadata remains until server shutdown, so a later media
+attachment cannot silently fall back to a call without its original task tools.
+Full metadata-retention and steady-state resource measurement remain G4-030 work.
+
+The [shared-capacity audit](evidence/gate-4/mcp-shared-capacity.json) records the
+local checks and their exact qualification state. It retains the interim
+restaging regression and the native reread timeout; it does not close G4-030.

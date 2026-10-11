@@ -57,7 +57,8 @@ Every discovery and operation revalidates current task grants.
 
 Requests are bounded to 512 KiB, including streamed bodies. Host validation is
 restricted to the actual loopback listener authority and localhost port. Present
-browser Origins are rejected by default. At most 32 requests occupy admission;
+browser Origins are rejected by default. At most 32 requests occupy admission
+across a server’s primary and Vapi task endpoints;
 one ten-second deadline covers admission, body decoding and response construction.
 Authentication retains its five-second ceiling. Parsed tools stop at 9.5 seconds
 to reserve response time; event waits use the remaining budget and leave 250 ms
@@ -133,3 +134,21 @@ provider POST and requires private nonce verification before binding callbacks
 to a task. Its setup credential is distinct from ordinary task grants. Call
 creation, voice-runtime composition, operator installation and actual provider
 host qualification remain open; the guide records the component's limits.
+
+## Shared endpoint capacity
+
+`McpCapacity` owns one server's request and listener budgets. Clone the same pool
+for its primary endpoint and task endpoints. The server does this automatically
+for protected Vapi voice setup, including when the primary MCP endpoint is not
+configured. Embedders using the `RunningMcp::start_local*` convenience functions
+get independent pools; use `McpCapacity::start_primary` / `start_auxiliary` for
+a group that must share limits.
+
+The pool admits at most 32 starting or live listeners and 32 simultaneous
+requests in total. Listener exhaustion returns `io::ErrorKind::WouldBlock` before
+binding; request exhaustion returns HTTP 503 before authentication. Neither
+path adds a waiting queue or changes authority. A listener slot is held until
+its owned accept task exits, including cancelled startup/shutdown. Failed binds
+return the slot. Existing body, authentication, tool and response deadlines
+remain unchanged. These are admission bounds, not throughput or total-memory
+measurements; full Gate 4 operating qualification remains open.

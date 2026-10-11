@@ -8,6 +8,7 @@
 mod arguments;
 mod auth;
 mod budget;
+mod capacity;
 mod catalog;
 mod commands;
 mod handler;
@@ -17,5 +18,6 @@ mod supervision;
 mod vapi_auth;
 
 pub use auth::{FixedBindingAuth, LocalGrantAuth, McpAuthenticator};
+pub use capacity::{McpCapacity, MAX_MCP_LISTENERS, MAX_MCP_REQUESTS};
 pub use listener::RunningMcp;
 pub use vapi_auth::{VapiBindingAuth, VapiOrigin};

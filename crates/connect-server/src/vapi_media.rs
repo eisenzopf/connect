@@ -166,12 +166,43 @@ impl VapiMedia {
     }
 
     pub(crate) async fn end_connection(&mut self, connection_id: &ConnectionId) {
-        self.call_sessions.remove(connection_id);
+        let session = self.call_sessions.remove(connection_id);
         if let Some(call) = self.calls.remove(connection_id) {
             let _ = tokio::time::timeout(Duration::from_secs(2), call.end()).await;
         }
         if let Some(task) = self.transcript_tasks.remove(connection_id) {
             task.finish().await;
+        }
+        if let Some(session) = session {
+            self.retire_setup(&session).await;
+        }
+    }
+
+    /// Retire expired callback authority, including setups that never opened media.
+    /// Keep private recovery intent and durable task/conversation state intact.
+    pub(crate) async fn expire_setups(&mut self) {
+        let now = chrono::Utc::now().timestamp();
+        let closing = self
+            .task_setups
+            .values_mut()
+            .filter(|setup| setup.expired(now))
+            .map(|setup| setup.close());
+        if futures_util::future::join_all(closing)
+            .await
+            .iter()
+            .any(Result::is_err)
+        {
+            tracing::warn!("Vapi task MCP expiry cleanup failed; runtime supervision notified");
+        }
+    }
+
+    async fn retire_setup(&mut self, session: &str) {
+        // Retain a closed setup marker: removing it would allow a later bind
+        // to fall back to an ordinary call without its original task tools.
+        if let Some(setup) = self.task_setups.get_mut(session) {
+            if setup.close().await.is_err() {
+                tracing::warn!("Vapi task MCP cleanup failed; runtime supervision notified");
+            }
         }
     }
 

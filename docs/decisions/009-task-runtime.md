@@ -445,8 +445,8 @@ possibly-sent admission are conservative: uncertainty is retained rather than
 creating another call. Shutdown persists media unbindings even when an MCP
 listener reports a drain failure.
 
-Turnkey operator installation, restart reattachment, aggregate setup-listener
-limits and actual provider/model behavior
+Turnkey operator installation, restart reattachment, full aggregate operating
+measurement and actual provider/model behavior
 remain separate unfinished work. The bootstrap guide and numbered plan identify
 those limits. The individual component records preserve their scope; G4-019
 closure comes from the subsequent binding audit. G4-020's local context/tool
@@ -483,3 +483,15 @@ bounded inbox metadata requires a permitted effect-status read for the outcome.
 An ended call is not used to authorize later tools or recreate media. Actual
 provider/model, installed-host and complete journey qualification remain open in
 the numbered plan.
+
+### Shared MCP admission
+
+The Gate 4 runtime uses one capacity pool for primary and protected task MCP
+endpoints. The existing 32-request allowance applies to the aggregate rather
+than multiplying per endpoint. An additional 32-listener ceiling admits before
+socket binding or setup-intent creation and fails immediately at capacity.
+Listener slots return only on owned accept-task exit. Existing five-second
+authentication/drain, ten-second response and body-size limits are unchanged.
+Voice setup endpoints close on call end or original grant expiry; retained
+closed metadata prevents an untooled fallback and preserves recovery intent.
+This local implementation still requires full G4-030 operating measurement.

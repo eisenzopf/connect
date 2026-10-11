@@ -15,19 +15,36 @@ use std::{
 pub(crate) struct CallSetup {
     service: Arc<Service>,
     directory: PathBuf,
-    listener: RunningMcp,
+    listener: Option<RunningMcp>,
+    expires_at: i64,
 }
 impl CallSetup {
+    pub(crate) fn expired(&self, now: i64) -> bool {
+        self.listener.is_some() && self.expires_at <= now
+    }
     pub(crate) async fn options(
         &self,
         caller: &str,
         expected: &VapiSessionRoute,
     ) -> Result<VapiCallOptions> {
+        anyhow::ensure!(
+            self.listener.is_some(),
+            "Task setup is closed; retain original recovery intent"
+        );
         super::stage_call(self.service.clone(), &self.directory, caller, expected).await
     }
-    pub(crate) async fn shutdown(self) -> Result<()> {
-        self.listener.shutdown().await?;
-        Ok(())
+    pub(crate) async fn shutdown(mut self) -> Result<()> {
+        self.close().await
+    }
+    pub(crate) async fn close(&mut self) -> Result<()> {
+        let Some(listener) = self.listener.take() else {
+            return Ok(());
+        };
+        let result = listener.shutdown().await;
+        if result.is_err() {
+            self.service.readiness.fail("mcp-task");
+        }
+        result.map_err(Into::into)
     }
 }
 impl crate::runtime::RunningServer {
@@ -60,17 +77,20 @@ impl crate::runtime::RunningServer {
             "Saved assistant differs from voice route"
         );
         let registrar = self.media_registrar()?;
-        let listener = RunningMcp::start_local_auxiliary(
-            self.service.clone(),
-            Arc::new(BootstrapAuth::new(
+        let listener = self
+            .mcp_capacity
+            .start_auxiliary(
                 self.service.clone(),
-                provider,
-                directory.into(),
-            )),
-            "127.0.0.1:0".parse()?,
-        )
-        .await?;
+                Arc::new(BootstrapAuth::new(
+                    self.service.clone(),
+                    provider,
+                    directory.into(),
+                )),
+                "127.0.0.1:0".parse()?,
+            )
+            .await?;
         let address = listener.address;
+        let expires_at = definition.expires_at;
         if let Err(error) = super::prepare(
             self.service.clone(),
             definition,
@@ -85,7 +105,8 @@ impl crate::runtime::RunningServer {
         let setup = Box::new(CallSetup {
             service: self.service.clone(),
             directory: directory.into(),
-            listener,
+            listener: Some(listener),
+            expires_at,
         });
         if let Err(setup) = registrar
             .register_vapi_setup(session_id.into(), setup)

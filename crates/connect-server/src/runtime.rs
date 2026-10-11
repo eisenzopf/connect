@@ -40,6 +40,7 @@ pub struct RunningServer {
     /// Actual optional loopback Streamable HTTP MCP listener address.
     pub mcp_address: Option<std::net::SocketAddr>,
     mcp: Option<connect_mcp::RunningMcp>,
+    pub(crate) mcp_capacity: connect_mcp::McpCapacity,
 }
 impl RunningServer {
     pub(crate) fn media_registrar(&self) -> Result<crate::media_lifecycle::MediaRegistrar> {
@@ -167,6 +168,7 @@ impl RunningServer {
             browser.binding.signaling_url = format!("ws://{address}");
         }
         let service = Service::with_readiness(store.clone(), discovery, readiness.clone());
+        let mcp_capacity = connect_mcp::McpCapacity::default();
         let mcp = if let Some(mcp) = &config.mcp {
             let auth: Arc<dyn connect_mcp::McpAuthenticator> = match &mcp.binding {
                 Some(binding) => Arc::new(connect_mcp::FixedBindingAuth::new(
@@ -175,7 +177,11 @@ impl RunningServer {
                 )?),
                 None => Arc::new(connect_mcp::LocalGrantAuth::new(service.clone())),
             };
-            Some(connect_mcp::RunningMcp::start_local(service.clone(), auth, mcp.bind).await?)
+            Some(
+                mcp_capacity
+                    .start_primary(service.clone(), auth, mcp.bind)
+                    .await?,
+            )
         } else {
             readiness.unconfigured("mcp");
             None
@@ -320,6 +326,7 @@ impl RunningServer {
             webrtc_address,
             mcp_address,
             mcp,
+            mcp_capacity,
         };
         startup.finish();
         Ok(server)

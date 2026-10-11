@@ -3,7 +3,7 @@ use crate::{
     auth::{admit, Admission},
     handler::Handler,
     supervision::Observation,
-    McpAuthenticator,
+    McpAuthenticator, McpCapacity,
 };
 use axum::{middleware, Router};
 use connect_service::Service;
@@ -27,28 +27,37 @@ impl RunningMcp {
     /// Start one stateless Streamable HTTP endpoint at `/mcp`. Legacy
     /// initialize/list/call is supported; newer optional MCP facilities are not
     /// advertised. Native and provider origins use separately supplied admission.
+    /// This convenience creates an independent pool; multi-endpoint servers
+    /// should use one shared [`McpCapacity`] instead.
     pub async fn start_local(
         service: Arc<Service>,
         authenticator: Arc<dyn McpAuthenticator>,
         bind: SocketAddr,
     ) -> io::Result<Self> {
-        Self::start(service, authenticator, bind, true).await
+        McpCapacity::default()
+            .start_primary(service, authenticator, bind)
+            .await
     }
     /// Start a lifecycle-owned task endpoint without changing the main MCP
     /// endpoint's readiness. Its unexpected exit still fails runtime supervision;
     /// normal task teardown must not declare another live endpoint unavailable.
+    /// This convenience creates an independent pool; use [`McpCapacity`] to
+    /// share aggregate resource limits with other endpoints.
     pub async fn start_local_auxiliary(
         service: Arc<Service>,
         authenticator: Arc<dyn McpAuthenticator>,
         bind: SocketAddr,
     ) -> io::Result<Self> {
-        Self::start(service, authenticator, bind, false).await
+        McpCapacity::default()
+            .start_auxiliary(service, authenticator, bind)
+            .await
     }
-    async fn start(
+    pub(crate) async fn start(
         service: Arc<Service>,
         authenticator: Arc<dyn McpAuthenticator>,
         bind: SocketAddr,
         primary: bool,
+        capacity: &McpCapacity,
     ) -> io::Result<Self> {
         if !bind.ip().is_loopback() {
             return Err(io::Error::new(
@@ -56,6 +65,13 @@ impl RunningMcp {
                 "MCP listener must be loopback",
             ));
         }
+        let listener_slot = capacity
+            .listeners
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| {
+                io::Error::new(io::ErrorKind::WouldBlock, "MCP listener capacity exhausted")
+            })?;
         let listener = tokio::net::TcpListener::bind(bind).await?;
         let address = listener.local_addr()?;
         let cancellation = CancellationToken::new();
@@ -80,7 +96,7 @@ impl RunningMcp {
         );
         let admission = Admission {
             authenticator,
-            capacity: Arc::new(tokio::sync::Semaphore::new(32)),
+            capacity: capacity.requests.clone(),
             cancellation: cancellation.clone(),
         };
         let app = Router::new()
@@ -91,6 +107,7 @@ impl RunningMcp {
         let observation = Observation::new(service_readiness.clone(), signal.clone(), primary);
         let handle = tokio::spawn(async move {
             let _observation = observation;
+            let _listener_slot = listener_slot;
             let run = async move {
                 axum::serve(listener, app)
                     .with_graceful_shutdown(signal.cancelled_owned())

@@ -127,6 +127,13 @@ async fn first_call_tools_context_and_native_quic_audio_share_one_task_and_conve
     .await
     .unwrap();
     client.close_native_audio(&audio).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while tokio::net::TcpStream::connect(address).await.is_ok() {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
     client.close().await;
     let status =
         f.h.owner
