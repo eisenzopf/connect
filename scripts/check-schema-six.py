@@ -16,7 +16,7 @@ import subprocess
 import tempfile
 import tomllib
 
-from lib.local_process import ROOT, Server, config_port, port, request, run
+from lib.local_process import ROOT, BINARY, Server, config_port, port, request, run
 
 BASELINE = '8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5'
 TABLES = ('conversations', 'participants', 'messages', 'requests', 'journal')
@@ -40,7 +40,7 @@ def assert_preserved(database, columns, rows, schema):
             assert actual == rows[table], f'Original rows changed in {table}'
 
 
-def qualify(previous):
+def qualify(previous, *, binary=BINARY):
     manifest = json.loads(previous.with_name('manifest.json').read_text())
     assert manifest['source_revision'] == BASELINE, 'Unexpected baseline source'
     assert hashlib.sha256(previous.read_bytes()).hexdigest() == manifest['binary_sha256']
@@ -64,16 +64,16 @@ def qualify(previous):
         assert_preserved(legacy / 'state.sqlite3', columns, rows, 6)
         backup = work / 'backup'
         run('backup', '--config', legacy / 'operator.toml', '--server-config',
-            legacy / 'server.toml', '--output', backup)
+            legacy / 'server.toml', '--output', backup, binary=binary)
         run('migrate', '--config', legacy / 'operator.toml', '--server-config',
-            legacy / 'server.toml', '--backup', backup)
-        with Server(legacy, work):
-            assert request(legacy, 'reviews', command) == receipt
+            legacy / 'server.toml', '--backup', backup, binary=binary)
+        with Server(legacy, work, binary=binary):
+            assert request(legacy, 'reviews', command, binary=binary) == receipt
         assert_preserved(legacy / 'state.sqlite3', columns, rows, current_schema)
         rejected = run('serve', '--config', legacy / 'server.toml', success=False, binary=previous)
         assert 'unsupported-schema' in rejected.stderr and 'ready transport' not in rejected.stdout
         rollback = work / 'rollback'
-        run('restore', '--backup', backup, '--directory', rollback, '--bind', f'127.0.0.1:{port()}')
+        run('restore', '--backup', backup, '--directory', rollback, '--bind', f'127.0.0.1:{port()}', binary=binary)
         with Server(rollback, work, binary=previous):
             assert request(rollback, 'reviews', command, binary=previous) == receipt
         assert_preserved(rollback / 'state.sqlite3', columns, rows, 6)
@@ -83,10 +83,10 @@ def qualify(previous):
         with sqlite3.connect(failed / 'state.sqlite3') as connection:
             connection.execute('CREATE TABLE sessions(broken TEXT)')
         run('migrate', '--config', failed / 'operator.toml', '--server-config',
-            failed / 'server.toml', '--backup', backup, success=False)
+            failed / 'server.toml', '--backup', backup, success=False, binary=binary)
         assert_preserved(failed / 'state.sqlite3', columns, rows, 6)
         recovered = work / 'recovered'
-        run('restore', '--backup', backup, '--directory', recovered, '--bind', f'127.0.0.1:{port()}')
+        run('restore', '--backup', backup, '--directory', recovered, '--bind', f'127.0.0.1:{port()}', binary=binary)
         with Server(recovered, work, binary=previous):
             assert request(recovered, 'reviews', command, binary=previous) == receipt
         assert_preserved(recovered / 'state.sqlite3', columns, rows, 6)

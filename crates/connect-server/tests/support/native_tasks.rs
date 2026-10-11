@@ -90,6 +90,13 @@ impl Harness {
     /// Restart the owned server against its existing database and TLS identity.
     /// Clients reconnect through the public SDK; no task state is reconstructed.
     pub async fn restart(self) -> Self {
+        self.reopen(false).await
+    }
+    /// Restore a verified backup into a new installation before reconnecting.
+    pub async fn restore_snapshot(self) -> Self {
+        self.reopen(true).await
+    }
+    async fn reopen(self, restore: bool) -> Self {
         let Self {
             _temp,
             server,
@@ -101,8 +108,43 @@ impl Harness {
         } = self;
         owner.close().await;
         peer.close().await;
+        let source = server.store.path().parent().unwrap().to_owned();
         server.shutdown().await.unwrap();
-        let directory = _temp.path().join("state");
+        let directory = if restore {
+            let backup = _temp.path().join("backup");
+            let restored = _temp.path().join("restored");
+            let original =
+                connect_store::Store::inspect_snapshot(&source.join("state.sqlite3")).unwrap();
+            tokio::task::spawn_blocking(move || {
+                connect_server::cli::recovery::backup(
+                    &source.join("server.toml"),
+                    &source.join("operator.toml"),
+                    &backup,
+                )
+                .unwrap();
+                connect_server::cli::recovery::restore(
+                    &backup,
+                    &restored,
+                    "127.0.0.1:0".parse().unwrap(),
+                    None,
+                )
+                .unwrap();
+                assert_eq!(
+                    connect_store::Store::inspect_snapshot(&source.join("state.sqlite3")).unwrap(),
+                    original
+                );
+                assert_eq!(
+                    connect_store::Store::inspect_snapshot(&restored.join("state.sqlite3"))
+                        .unwrap(),
+                    original
+                );
+                restored
+            })
+            .await
+            .unwrap()
+        } else {
+            source
+        };
         let config = ServerConfig::load(&directory.join("server.toml")).unwrap();
         let server =
             RunningServer::start_local(config, Some("127.0.0.1:0".parse().unwrap()), false)
@@ -110,6 +152,7 @@ impl Harness {
                 .unwrap();
         let mut peer_config = ClientConfig::load(&directory.join("agent.toml")).unwrap();
         owner_config.endpoint = server.address;
+        owner_config.trust_certificate = directory.join("certificate.der");
         peer_config.endpoint = server.address;
         let owner = ConnectClient::open(owner_config.clone()).await.unwrap();
         let peer = ConnectClient::open(peer_config).await.unwrap();

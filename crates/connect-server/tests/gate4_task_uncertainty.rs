@@ -47,6 +47,15 @@ async fn uncertain(client: &mut ConnectClient, question: TaskCommand) -> String 
 
 #[tokio::test(flavor = "multi_thread")]
 async fn accepted_task_send_without_receipt_is_not_redispatched_after_server_restart() {
+    qualify_uncertain_recovery(false).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn snapshot_restores_uncertain_effect_without_redispatch_and_rechecks_current_grant() {
+    qualify_uncertain_recovery(true).await;
+}
+
+async fn qualify_uncertain_recovery(restore: bool) {
     let mock = MockServer::start().await;
     let accepted = Arc::new(AtomicUsize::new(0));
     Mock::given(method("GET"))
@@ -131,7 +140,11 @@ async fn accepted_task_send_without_receipt_is_not_redispatched_after_server_res
     worker.shutdown().await.unwrap();
     let effect_id = uncertain(&mut client, question.clone()).await;
     client.close().await;
-    h = h.restart().await;
+    h = if restore {
+        h.restore_snapshot().await
+    } else {
+        h.restart().await
+    };
     let mut client = ConnectClient::open(h.owner_config.clone().with_task_grant(&grant).unwrap())
         .await
         .unwrap();
@@ -140,7 +153,7 @@ async fn accepted_task_send_without_receipt_is_not_redispatched_after_server_res
     assert_eq!(uncertain(&mut client, question.clone()).await, effect_id);
     // Multiple worker polls and matching public replays cannot dispatch again.
     tokio::time::sleep(Duration::from_millis(300)).await;
-    assert_eq!(uncertain(&mut client, question).await, effect_id);
+    assert_eq!(uncertain(&mut client, question.clone()).await, effect_id);
     let jobs = h.owner.provider_status(&h.cid).await.unwrap();
     assert_eq!(jobs.len(), 1);
     assert_eq!(jobs[0].state, "uncertain");
@@ -175,6 +188,20 @@ async fn accepted_task_send_without_receipt_is_not_redispatched_after_server_res
             .len(),
         1
     );
+    if restore {
+        h.owner
+            .task(TaskCommand::Cancel {
+                task_id: task.id,
+                request_id: "cancel-restored-uncertain".into(),
+                reason: Some("Verify current authority after restore".into()),
+            })
+            .await
+            .unwrap();
+        assert_eq!(
+            grants::code(client.task(question).await.unwrap_err()),
+            "forbidden"
+        );
+    }
     worker.shutdown().await.unwrap();
     assert_eq!(accepted.load(Ordering::SeqCst), 1);
     client.close().await;

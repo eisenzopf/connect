@@ -184,3 +184,6 @@ The [local task operating profile](TASK_OPERATING_PROFILE.md) measures actual
 SDK admission at task, lease and reply capacity, with bounded paging, waiting
 and restart checks. Its measurements qualify those specific limits; they do
 not replace the worker readiness or installed-host checks above.
+
+For historical binary migration, consistent task snapshots and interrupted-copy
+recovery, see [local Gate 4 recovery](TASK_RECOVERY.md).

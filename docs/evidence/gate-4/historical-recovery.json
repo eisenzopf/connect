@@ -1,0 +1,406 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T11:11:23.451670+00:00",
+  "status": "local historical/task recovery component qualified; whole G4-032 remains in progress",
+  "items": [
+    "G4-032"
+  ],
+  "source_base": "5af64e22fea83d8eb8ee28100bcc07635d99229d",
+  "source_delta_sha256": {
+    "crates/connect-server/tests/gate4_task_uncertainty.rs": "63872dbc2056812251a787978532d6de6d492e0dc249c14b6aecf966876d8448",
+    "crates/connect-server/tests/support/native_tasks.rs": "b3d2fb6da01f2634db743b1b3990d84d50dbd11024d15610a5c65e2e1aad7f4a",
+    "scripts/build-recovery-baseline.py": "0cf1e3b29cd89097a2165aa6415a51850d110d2ee315faaf41cd16a8af647830",
+    "scripts/check-schema-six.py": "ff418d26440dd4b0e3339b5cefc9d00009d419520c2f7682cff86d693bea580a",
+    "scripts/check-gate4-recovery.py": "0a176bcfa4da9083373550a34eccfdecde717e204d7e85581d775ce091ad2f49",
+    "scripts/lib/recovery_interruption.py": "dd6de89d2300fe1903e2ed6758f78cd24fb38d549fbe0287f99eebd67feb1ddc",
+    "scripts/lib/recovery_state.py": "eb3901b2d8bdba5e094f436abda9b7e2788d70d739cd74930b266897f3058e62",
+    "scripts/lib/recovery_tasks.py": "d70ebe9d9d1be184a4158a18ed895c6eda2a9c966f1bd513bd68612d6175ba60",
+    "scripts/lib/recovery_upgrade.py": "92251856c360adc78f1212c3fb32ef2d37490c8808b5edbf45a8626c4fff85f8"
+  },
+  "source_fingerprint": {
+    "files": 712,
+    "sha256": "9777a7e6cc6efbbb83c596115d691507d18f11a9c674b1425e72a31d80acd1c7",
+    "recipe": "Compact sorted JSON path-to-SHA256 map of non-document tracked/nonignored regular source files; source-lock covers generated upstream inputs."
+  },
+  "scope": "local macOS arm64; separate CLI/server/SDK processes and loopback provider fixtures; no accounts, live provider operations, ingress or production state",
+  "target_schema": 15,
+  "runtime_changes": "None; qualification scripts, test fixtures and documentation only.",
+  "executable_checks": [
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T110858.253239Z/result.json",
+        "sha256": "038a1f206b7c3125ecdf422a31e9423e0190b6ccaeeea51c3327b3cdafaedfdb"
+      },
+      "log": {
+        "path": ".local/gate-4-planning/recovery-qualified.log",
+        "sha256": "9b5138ec96ce60dbb1af3bf1684862936b113d867985e534885c3a17ac2821bb"
+      },
+      "status": "passed",
+      "elapsed_seconds": 6.642,
+      "baselines": [
+        {
+          "source_revision": "99243f3962cf25e780bbd176e56a4f27c752e121",
+          "schema": 10,
+          "binary_sha256": "1a37f567bec7694a734b632ccb79a17cc5dd73cfed4e35dbb6b6d03d58956881"
+        },
+        {
+          "source_revision": "8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+          "schema": 6,
+          "binary_sha256": "4bf6cb242d1cea2e32592b44a0ff55ddd6364161f0d5c6560e9c0767a2682149"
+        }
+      ],
+      "binary_sha256": "7228fce95f887f8b62c649bed3ddcf6b151f7c6b149193c253158a4491082106",
+      "phases": [
+        {
+          "name": "schema-10-upgrade-refusal-rollback-ddl-recovery",
+          "status": "passed",
+          "seconds": 3.658,
+          "exchanges": 0,
+          "server_sampled_peak_rss_bytes": null,
+          "database_apparent_bytes": 0
+        },
+        {
+          "name": "task-backup-reply-and-current-authority",
+          "status": "passed",
+          "seconds": 0.748,
+          "exchanges": 0,
+          "server_sampled_peak_rss_bytes": null,
+          "database_apparent_bytes": 0
+        },
+        {
+          "name": "interrupted-snapshot-completion-marker",
+          "status": "passed",
+          "seconds": 0.366,
+          "exchanges": 0,
+          "server_sampled_peak_rss_bytes": null,
+          "database_apparent_bytes": 0
+        },
+        {
+          "name": "schema-six-historical-regression",
+          "status": "passed",
+          "seconds": 0.899,
+          "exchanges": 0,
+          "server_sampled_peak_rss_bytes": null,
+          "database_apparent_bytes": 0
+        }
+      ],
+      "observations": {
+        "schema10": {
+          "original_tables": 25,
+          "original_rows": 30,
+          "artifact_bytes": 28672,
+          "migration_ddl_rollback": true,
+          "old_binary_refuses_new_schema": true,
+          "matching_snapshot_rollback": true,
+          "synthetic_sms_rows_preserved": true
+        },
+        "tasks": {
+          "waiting_task_and_cursor_restored": true,
+          "original_question_receipt_replayed": true,
+          "bound_reply_after_restore": true,
+          "one_source_derived_follow_up": true,
+          "current_cancellation_denies_replay": true,
+          "backup_and_original_preserved": true
+        },
+        "interruption": {
+          "killed_after_database_before_manifest": true,
+          "incomplete_snapshot_refused": true,
+          "interrupted_destination_preserved": true,
+          "fresh_backup_restores_original_rows": true
+        }
+      },
+      "source_inputs_sha256": {
+        "scripts/check-gate4-recovery.py": "0a176bcfa4da9083373550a34eccfdecde717e204d7e85581d775ce091ad2f49",
+        "scripts/check-schema-six.py": "ff418d26440dd4b0e3339b5cefc9d00009d419520c2f7682cff86d693bea580a",
+        "scripts/build-recovery-baseline.py": "0cf1e3b29cd89097a2165aa6415a51850d110d2ee315faaf41cd16a8af647830",
+        "crates/connect-store/src/lib.rs": "d624c34210774ec93a87eef48639b92a1151351a09fd4a0ad7d02e0432f3f624",
+        "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+        "scripts/lib/profile_metrics.py": "92ddc2f8294ff88f9063f601256d224e215a38ecc7f09d53a2a6971782bd91a7",
+        "scripts/lib/recovery_state.py": "eb3901b2d8bdba5e094f436abda9b7e2788d70d739cd74930b266897f3058e62",
+        "scripts/lib/recovery_upgrade.py": "92251856c360adc78f1212c3fb32ef2d37490c8808b5edbf45a8626c4fff85f8",
+        "scripts/lib/recovery_tasks.py": "d70ebe9d9d1be184a4158a18ed895c6eda2a9c966f1bd513bd68612d6175ba60",
+        "Cargo.lock": "fb8fe2b98c6aebfe0f56d071905c715e890370a3e7c096b9ca0680f9830a9e73",
+        "scripts/lib/recovery_interruption.py": "dd6de89d2300fe1903e2ed6758f78cd24fb38d549fbe0287f99eebd67feb1ddc",
+        "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+        "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+        "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+        "sdk/python/connect_sdk/protocol.py": "e0deab0cb9989a302973c5aaf44252d295a537f0e5bcfc4cbcd6c7aeecd495c3",
+        "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+        "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+        "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+        "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+        "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+        "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+        "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+        "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a"
+      },
+      "command": "python3 scripts/check-gate4-recovery.py",
+      "exit_code": 0
+    },
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T110938.829567Z/result.json",
+        "sha256": "ff5a2660f3b963a86a627646d877b380268ef370831383fe2028303b8a92d362"
+      },
+      "log": {
+        "path": ".local/gate-4-planning/recovery-rebuilt.log",
+        "sha256": "4d588411f122803f244f73e1f96ca9b15b20555128e3f99c433f22c47a2d510e"
+      },
+      "status": "passed",
+      "elapsed_seconds": 5.756,
+      "baselines": [
+        {
+          "source_revision": "99243f3962cf25e780bbd176e56a4f27c752e121",
+          "schema": 10,
+          "binary_sha256": "d807ef2d1f63690553fadc30d30bd5c01f143187f9d6aab0b2d763a69079a39a"
+        },
+        {
+          "source_revision": "8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+          "schema": 6,
+          "binary_sha256": "4bf6cb242d1cea2e32592b44a0ff55ddd6364161f0d5c6560e9c0767a2682149"
+        }
+      ],
+      "binary_sha256": "7228fce95f887f8b62c649bed3ddcf6b151f7c6b149193c253158a4491082106",
+      "phases": [
+        {
+          "name": "schema-10-upgrade-refusal-rollback-ddl-recovery",
+          "status": "passed",
+          "seconds": 3.203,
+          "exchanges": 0,
+          "server_sampled_peak_rss_bytes": null,
+          "database_apparent_bytes": 0
+        },
+        {
+          "name": "task-backup-reply-and-current-authority",
+          "status": "passed",
+          "seconds": 0.851,
+          "exchanges": 0,
+          "server_sampled_peak_rss_bytes": null,
+          "database_apparent_bytes": 0
+        },
+        {
+          "name": "interrupted-snapshot-completion-marker",
+          "status": "passed",
+          "seconds": 0.293,
+          "exchanges": 0,
+          "server_sampled_peak_rss_bytes": null,
+          "database_apparent_bytes": 0
+        },
+        {
+          "name": "schema-six-historical-regression",
+          "status": "passed",
+          "seconds": 0.944,
+          "exchanges": 0,
+          "server_sampled_peak_rss_bytes": null,
+          "database_apparent_bytes": 0
+        }
+      ],
+      "observations": {
+        "schema10": {
+          "original_tables": 25,
+          "original_rows": 30,
+          "artifact_bytes": 28672,
+          "migration_ddl_rollback": true,
+          "old_binary_refuses_new_schema": true,
+          "matching_snapshot_rollback": true,
+          "synthetic_sms_rows_preserved": true
+        },
+        "tasks": {
+          "waiting_task_and_cursor_restored": true,
+          "original_question_receipt_replayed": true,
+          "bound_reply_after_restore": true,
+          "one_source_derived_follow_up": true,
+          "current_cancellation_denies_replay": true,
+          "backup_and_original_preserved": true
+        },
+        "interruption": {
+          "killed_after_database_before_manifest": true,
+          "incomplete_snapshot_refused": true,
+          "interrupted_destination_preserved": true,
+          "fresh_backup_restores_original_rows": true
+        }
+      },
+      "source_inputs_sha256": {
+        "scripts/check-gate4-recovery.py": "0a176bcfa4da9083373550a34eccfdecde717e204d7e85581d775ce091ad2f49",
+        "scripts/check-schema-six.py": "ff418d26440dd4b0e3339b5cefc9d00009d419520c2f7682cff86d693bea580a",
+        "scripts/build-recovery-baseline.py": "0cf1e3b29cd89097a2165aa6415a51850d110d2ee315faaf41cd16a8af647830",
+        "crates/connect-store/src/lib.rs": "d624c34210774ec93a87eef48639b92a1151351a09fd4a0ad7d02e0432f3f624",
+        "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+        "scripts/lib/profile_metrics.py": "92ddc2f8294ff88f9063f601256d224e215a38ecc7f09d53a2a6971782bd91a7",
+        "scripts/lib/recovery_state.py": "eb3901b2d8bdba5e094f436abda9b7e2788d70d739cd74930b266897f3058e62",
+        "scripts/lib/recovery_upgrade.py": "92251856c360adc78f1212c3fb32ef2d37490c8808b5edbf45a8626c4fff85f8",
+        "scripts/lib/recovery_tasks.py": "d70ebe9d9d1be184a4158a18ed895c6eda2a9c966f1bd513bd68612d6175ba60",
+        "Cargo.lock": "fb8fe2b98c6aebfe0f56d071905c715e890370a3e7c096b9ca0680f9830a9e73",
+        "scripts/lib/recovery_interruption.py": "dd6de89d2300fe1903e2ed6758f78cd24fb38d549fbe0287f99eebd67feb1ddc",
+        "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+        "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+        "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+        "sdk/python/connect_sdk/protocol.py": "e0deab0cb9989a302973c5aaf44252d295a537f0e5bcfc4cbcd6c7aeecd495c3",
+        "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+        "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+        "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+        "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+        "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+        "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+        "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+        "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a"
+      },
+      "command": "python3 scripts/check-gate4-recovery.py --previous-binary .local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect",
+      "exit_code": 0
+    }
+  ],
+  "historical_build": {
+    "command": "python3 scripts/build-recovery-baseline.py --schema 10",
+    "exit_code": 0,
+    "source_revision": "99243f3962cf25e780bbd176e56a4f27c752e121",
+    "manifest": {
+      "path": ".local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/manifest.json",
+      "sha256": "15262b1e0f0c7fa58ee1d8c4c39fa15ed1935f9c13071068689bc7e7fb138a01"
+    },
+    "log": {
+      "path": ".local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/build.log",
+      "sha256": "67411a138b74169cea96417a3916f5dd948e3a45b5333838bc3167d89f81a3f0"
+    },
+    "schema6_and_schema10_cache_commands": "Both independently invoked cache lookups returned 0 with verified executable hashes."
+  },
+  "behavior": [
+    "The actual preserved and independently rebuilt pre-Gate-4 executables create native conversation, message receipt and 28 KiB artifact. All 25 original table projections and 30 rows survive upgrade; bytes and original receipt are verified publicly.",
+    "Each old binary rejects the upgraded schema. Matching pre-upgrade snapshots restore into new directories/ports and run with the old executable; original installations and backups remain unchanged.",
+    "Synthetic SMS authority/enrollment/STOP rows survive migration. This attests stored policy preservation, not live consent, dispatch or carrier behavior.",
+    "A deliberate tasks table conflict uses a backup of the same input, reaches migration failure and rolls back schema and all original data. The good snapshot remains recoverable.",
+    "Waiting task, cursor and question receipt survive current-schema restore. A native reply is explicitly bound; its journal provenance selects an authorized recall source for one follow-up. Duplicate question/reply/follow-up admissions produce one effect.",
+    "Cancellation after restore denies receipt replay without a database mutation. Original post-snapshot work remains only in the original installation.",
+    "A real backup process is SIGKILLed at a disposable FIFO after the database copy and before the completion marker. Partial restore is refused before installation creation, output is not overwritten, and a new backup restores the original rows.",
+    "The schema-6 executable regression passes through the same current binary and shared deadline; its own historical failure fixture remains scoped as before.",
+    "An independent loopback provider accepts one effect without delivering ACK. Actual snapshot restoration preserves the uncertain effect and original invocation grant; worker polls and repeated public replay do not POST again. Current cancellation denies the restored grant."
+  ],
+  "rust_checks": {
+    "command": "cargo test --locked -p connect-server --features test-support --test gate4_task_uncertainty --test gate4_native_tasks --test gate4_reply_recovery -- --test-threads=1",
+    "log": {
+      "path": ".local/gate-4-planning/recovery-uncertainty-final.log",
+      "sha256": "8b461184407f908a8832cf4410f17ac8041a7455d2536aaff648b1c79387022f"
+    },
+    "exit_code": 0,
+    "passed": 6,
+    "failed": 0,
+    "ignored": 0,
+    "targets": {
+      "gate4_native_tasks": 3,
+      "gate4_reply_recovery": 1,
+      "gate4_task_uncertainty": 2
+    }
+  },
+  "quality": {
+    "prepare": {
+      "path": ".local/gate-4-planning/recovery-prepare.log",
+      "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    "current_build": {
+      "path": ".local/gate-4-planning/recovery-build-final.log",
+      "sha256": "743c791f10d9b2d7d69d06bd08e85b319ae37824b9c5e20cb2a26d711f1edd14",
+      "command": "cargo build --locked -p connect-server --bin connect",
+      "exit_code": 0
+    },
+    "clippy": {
+      "path": ".local/gate-4-planning/recovery-clippy-final.log",
+      "sha256": "5bd1651148416f143841d50792deb233afd83c4cc255a8dbdb8ec5186441e06b",
+      "command": "cargo clippy --locked -p connect-server --all-targets --all-features -- -D warnings",
+      "exit_code": 0
+    },
+    "format": {
+      "path": ".local/gate-4-planning/recovery-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0
+    },
+    "python": "py_compile passed for all changed/new scripts and helper modules.",
+    "rustdoc": "No production Rust API or Rustdoc changed; prior runtime Rustdoc evidence is retained rather than reclassified as a new run."
+  },
+  "retained_attempts": [
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T105716.222488Z/result.json",
+        "sha256": "7e99ecf4dbe16e4b0b6861fb1a8d6467038da9e38b4966e0bf1a9a0f35ca4761"
+      },
+      "finding": "Expected raw SQLite table-conflict text; public CLI correctly redacts it as storage-unavailable. Corrected error expectation and added exact full-input snapshot comparison."
+    },
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T105806.253664Z/result.json",
+        "sha256": "47b45fa5d031df8767aebbd0b9f9b3f599237cb8c12a7bf24660b40ca6d86097"
+      },
+      "finding": "Expected delivered question to be completed; wait-for-reply correctly remains pending. Corrected fixture to assert pending and waiting task state."
+    },
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T105900.894080Z/result.json",
+        "sha256": "9b5e82137f63aeffe212ab9230afd708cc94f39c7810470cf85b4bfeeb032b33"
+      },
+      "finding": "Tried to read an outcome from a pending handle. Question message is now found through separately authorized history and exact body uniqueness."
+    },
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T105921.672686Z/result.json",
+        "sha256": "499facb2e821ca440a27dfe29b2905cc8fc65b515f1b8bc951d0f171ffe17cae"
+      },
+      "finding": "Tried to read body from reply-routing metadata. Follow-up now resolves the authorized recall source by conversation-journal provenance."
+    },
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T110015.641720Z/result.json",
+        "sha256": "d2b571eb7ae6853ee4d8127d18ea384a024a82f58e105b7444fba445fff84fea"
+      },
+      "finding": "Expected a different denial code. The restored cancelled task correctly rejects replay as forbidden; fixture now asserts that exact contract."
+    },
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T110724.743887Z/result.json",
+        "sha256": "5d9208f7720ea519edad8d1b6ea13eb7f582acd1ee56adc4db6d112f5c7c3ec3"
+      },
+      "finding": "Expected missing executable failure before initialization; status failed and exit 1."
+    },
+    {
+      "log": {
+        "path": ".local/gate-4-planning/recovery-uncertainty.log",
+        "sha256": "e388e78e59d3f3a4302df2ba234c240d79d6d4ceefc0a4c98f66482f4f701d3e"
+      },
+      "exit_code": 101,
+      "finding": "New restore fixture omitted the existing websocket_bind argument; supplied None. No production signature changed."
+    },
+    {
+      "log": {
+        "path": ".local/gate-4-planning/recovery-clippy.log",
+        "sha256": "84b6a7e88df3062246a149c07981849ad90c984e8b93fdd56644da940ef60b5a"
+      },
+      "exit_code": 101,
+      "finding": "Initial all-target lint encountered the same missing fixture argument; corrected source passes final strict lint."
+    },
+    {
+      "result": {
+        "path": ".local/gate4-recovery/20261011T110106.669190Z/result.json",
+        "sha256": "ec9d930d6d3afe0c11f536c155398af43339b06cacc9758fb08fd4a1de944585"
+      },
+      "finding": "Earlier four-phase pass retained; final frozen-source runs above supersede it."
+    }
+  ],
+  "review": [
+    "Python responsibilities are separated into comparison, historical upgrade, task continuation, interrupted-copy and orchestration modules; each new module is 56\u2013118 lines.",
+    "Schema-six qualification now accepts an explicit current binary and runs within the parent deadline, so interruption unwinds owned Server contexts rather than killing a driver and leaving children.",
+    "The recovered native fixture rebases TLS trust onto restored certificate material. It compares the source and restored Store snapshots without reconstructing tasks or credentials.",
+    "Stable public task IDs/inputs are reused. Pending question handles and reply metadata are not treated as content or completion; authorized history/recall provides the source.",
+    "No runtime code, schema, authorization rule, deadline or dependency patch was changed to make the checks pass."
+  ],
+  "limits": [
+    "G4-029 integrated authority qualification and G4-031 bounded runner dependencies remain open. This component does not close G4-032 or Gate 4.",
+    "The final installed candidate and live host/provider journeys remain separate; baseline reconstruction does not attest distribution packaging.",
+    "The interrupted backup is a process failure at a controlled I/O boundary, not a power-loss or disk-controller durability claim.",
+    "Loopback remote-acceptance counters prove no second dispatch in this fixture, not universal exactly-once delivery or provider reconciliation.",
+    "External host exports and app-owned runner databases are separate from the server backup manifest.",
+    "Existing debug compact-unwind and helper-shutdown class=io warnings remain in raw logs; final commands and assertions passed."
+  ],
+  "guide": "docs/TASK_RECOVERY.md",
+  "related_prior_evidence": [
+    "docs/evidence/gate-4/task-persistence.json",
+    "docs/evidence/gate-4/task-effect-recovery-audit.json"
+  ]
+}
