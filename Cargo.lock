@@ -726,6 +726,7 @@ dependencies = [
  "chrono",
  "clap",
  "connect-client",
+ "connect-connectors",
  "connect-server",
  "connect-store",
  "fs2",
@@ -737,6 +738,7 @@ dependencies = [
  "tokio-util",
  "toml",
  "uuid",
+ "wiremock",
 ]
 
 [[package]]

@@ -329,3 +329,16 @@ The 36 implementation items, A4 criteria and T-A1–T-A8 remain the full gate
 contract. Component closure does not replace provider bootstrap, installed
 hosts, the complete agent/app journeys or final package qualification. No
 new task cancellation delegation has been added to this contract.
+
+## Current public interfaces and runner qualification · October 10, 2026
+
+G4-013–G4-016 now pass their item audits in the recorded local scope. The
+[shared interface proof](../evidence/gate-4/public-interface-qualification.json)
+qualifies native task control, seven SDK/API/CLI lanes and independent MCP
+transport. The [runner audit](../evidence/gate-4/task-runner-audit.json) adds
+actual app/provider uncertainty recovery to the earlier durable app boundary
+proofs. Failed fixture attempts and unchanged limits remain explicit.
+
+These records do not close G4-017's complete tools/authority decision, installed
+hosts, provider bootstrap, full journeys or Gate 4 acceptance. Earlier snapshots
+above retain their historical claims; use the numbered plan for current status.

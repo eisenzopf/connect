@@ -13,7 +13,9 @@ from the private authenticated principal rather than an input task/owner ID.
 Bearer plaintext is removed before the MCP SDK receives HTTP context.
 
 `FixedBindingAuth` supports an explicitly configured native or host-session
-binding. `VapiBindingAuth` admits one already verified and registered provider
+binding. `LocalGrantAuth` supports multiple independently registered native/host
+grants on one endpoint; the authenticated grant row supplies each task and
+binding. Neither mode accepts a provider grant. `VapiBindingAuth` admits one already verified and registered provider
 origin. Its `VapiOrigin` selects an exact call, standalone chat or chat-session
 ID. It authenticates the configured narrow grant before matching correlation
 headers, and rejects missing, duplicate, malformed or conflicting IDs. A
@@ -24,8 +26,11 @@ another session or task. Native/host and provider grants are not interchangeable
 Trusted composition must verify the provider resource, register the binding
 and export a separate grant to its protected MCP headers. This adapter does
 not perform provider lookup or webhook verification, and the default server's
-native/host configuration still rejects provider origins. Provider lifecycle
-composition, first-invocation setup and bounded task context remain open.
+native/host configuration rejects provider origins. The server's
+`vapi_task_setup::issue` factory verifies an already-existing resource through
+the private SDK and atomically registers/issues under current authority. Resource
+creation and first-invocation bootstrap remain open; existing-resource setup
+does not qualify those steps.
 The local tests use explicitly registered fixture origins; they do not qualify
 an actual Vapi account. Never use one assistant-wide bearer to select tasks
 from `X-Call-Id`, `X-Chat-Id` or `X-Session-Id`. These headers cannot create or
@@ -78,7 +83,10 @@ The binding must already be registered and each request must present a current
 grant for that exact binding. Configuration neither registers an origin nor
 issues a grant. The server prints the actual endpoint URI and owns its shutdown
 alongside the native QUIC listener. Provider origins cannot use this fixed
-native/host configuration.
+native/host configuration. Omitting `[mcp.binding]` selects `LocalGrantAuth`,
+allowing independent protected local task installations to share the listener.
+Each request still needs its own exact currently authorized grant; the URI and
+configuration cannot select a task or mint authority.
 
 Discovery projects the tool catalog from current grant operations: status,
 source recall, journal wait, effect status, recipient discovery, messaging,
@@ -106,8 +114,9 @@ authoritative inbox page remains the normal pending result with its cursor.
 The adapter never invents a page after a timed-out read. Request cancellation
 stops the waiter, not a store transaction that may already have committed.
 
-Provider admission, protected CLI issuance/installation, native model-grant
-authentication, installed hosts and complete Gate 4 acceptance remain open.
+Native grant authentication, protected CLI issuance/export and independent MCP
+transport are locally qualified in the numbered plan. Protected host installation,
+provider creation/bootstrap, installed hosts and complete Gate 4 acceptance remain open.
 Task cancellation delegation is an open decision; administrative task control
 is not currently exposed to invocation grants. Transport, authority and tools
 have dedicated real-client tests in `crates/connect-server/tests/gate4_mcp_*.rs`;

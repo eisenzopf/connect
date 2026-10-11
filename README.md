@@ -6,7 +6,9 @@ An open communications server and SDK from [Rudeless](https://rudeless.ai). One 
 
 ## Status
 
-Connect is in development. Gates 1–3 have recorded local macOS arm64 qualification for durable messaging, scoped credentials, recovery, provider control, native QUIC audio, SIP/PSTN and browser WebRTC media, bounded files, availability and cross-channel context. Rust, Python and TypeScript SDKs and HTTP/JSON share the application contract. See the [pre-Gate 4 review](docs/connect-pre-gate-4-review.html) for the follow-up repairs and their verification status. The Telnyx SMS campaign is approved and the existing voice number is assigned; live SMS remains unqualified until enrollment, reviewed activation, keyword handling and handset delivery are verified. Schema 10 adds SMS eligibility without discarding existing state; upgrades require a matching verified backup. No full v0.1 release or public server/SDK distribution is claimed.
+Connect is in development. Gates 1–3 have recorded local macOS arm64 qualification for durable messaging, scoped credentials, recovery, provider control, native QUIC audio, SIP/PSTN and browser WebRTC media, bounded files, availability and cross-channel context. Rust, Python and TypeScript SDKs and HTTP/JSON share the application contract. The [pre-Gate 4 entry evidence](docs/connect-pre-gate-4-entry.html) records the follow-up repairs, reviewed SMS conversation, native SDK context recall and HELP/STOP/START suppression/recovery on the named test lane. That evidence retains its original account, handset and topology limits.
+
+Gate 4 adds durable tasks, narrow invocation grants, SDK/API/CLI task control and MCP communication tools. Its [numbered implementation plan](docs/connect-gate-4-implementation.html#tracking) distinguishes qualified components from remaining host installation, provider bootstrap and complete journeys. The current development schema is 15; upgrades preserve existing state and require a matching verified backup. No full v0.1 release or public server/SDK distribution is claimed.
 
 See [the documentation and delivery index](docs/index.html), [the Gate 2 product/delivery plan](docs/connect-gate-2-plan.html), [the alignment audit](docs/documentation-alignment.html), [the qualification result](docs/evidence/gate-1/result.json) and [local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below describe the complete product we intend to build.
 
@@ -25,7 +27,7 @@ cargo build --locked -p connect-server -p connect-review-loop --bins
 ```
 
 See [the developer guide](docs/DEVELOPING.md) for the workspace layout and checks,
-and [the implementation checklist](docs/connect-gate-1-implementation.html) for
+and [the gate documentation index](docs/index.html#gates) for
 progress and verification evidence. The source build and installed local candidate both pass the native messaging
 journey. The sample agent is deterministic; no provider account is required.
 

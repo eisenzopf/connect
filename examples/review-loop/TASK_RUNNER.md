@@ -117,3 +117,14 @@ server and runner at each crash boundary, and exercise competing workers and cur
 revocation. They use disposable local state and no provider accounts. Evidence
 and remaining Gate 4 requirements belong in the numbered implementation plan;
 these tests alone do not close the gate.
+
+The provider uncertainty fixture uses the pinned private Vapi SDK with a
+loopback service that records one acceptance and withholds its HTTP receipt.
+The app exits after Connect acknowledges the question but before saving that
+outcome. The provider worker records uncertainty; both server and app restart
+with the original task, grant and state. The app saves the actual uncertain
+effect, and a second app restart neither repeats the send nor treats it as a
+review response. The fixture inspects only the application's own outbox and
+uses public clients for Connect's jobs, history and effect receipt. This proves
+recovery in that controlled case, not live Vapi support or external exactly-once
+delivery.
