@@ -23,10 +23,10 @@ The runner prepares dependencies before builds, installs and tests the language
 SDKs, runs strict workspace lint and Rustdoc, all-feature workspace tests,
 explicit media-pressure and installed-host checks, upstream regressions, native
 capacity, historical recovery and prior process/example checks. Each required
-phase must pass. The six normally ignored workspace checks are matched by name
+phase must pass. The seven normally ignored workspace checks are matched by name
 and executed by their explicit follow-up phases; an unexpected omission fails.
 
-`--source-only` is a separate CI scope. It omits the five external-host checks
+`--source-only` is a separate CI scope. It omits the six external-host checks
 and reports `passed-source-only` if its included phases pass. It does not
 qualify the full offline gate or close host acceptance. The CI workflow is
 configuration until an actual run is recorded; local execution does not attest

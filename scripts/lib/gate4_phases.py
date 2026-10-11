@@ -1,7 +1,8 @@
 """Explicit local Gate 4 qualification coverage and immutable phase budgets."""
 import sys
 
-HOST_TESTS = ('gate4_codex_runtime', 'gate4_codex_call_intent', 'gate4_codex_reply_workflow')
+HOST_TESTS = ('gate4_codex_runtime', 'gate4_codex_call_intent', 'gate4_codex_reply_workflow',
+              'gate4_codex_packaged_runtime')
 
 
 def phases(source_only=False):
