@@ -73,7 +73,7 @@ class InstalledIncomingTests(unittest.TestCase):
                         self.assertEqual(result["continuation"], "explicit-resume")
                         history = human.history(cid)
                         self.assertEqual(len(history["messages"]), 2)
-                        self.assertEqual(history["messages"][1]["body"], f"Received from {message['id']}: Please confirm indigo-927 for the release.")
+                        self.assertEqual(history["messages"][1]["body"], f"Received from {message['message_id']}: Please confirm indigo-927 for the release.")
                         task = owner.negotiate_task(result["task_id"])
                         self.assertEqual(task["conversation_id"], cid)
                         self.assertEqual(len(peer.requests), 2)
