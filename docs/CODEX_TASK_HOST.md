@@ -4,7 +4,8 @@ Status: selected Gate 4 host; the local grant/skill export component is qualifie
 The packaged launcher passes local process fixtures; actual host/model qualification remains
 G4-021/G4-023. The version observed locally is `codex-cli 0.162.0-alpha.17.2`.
 The existing MCP endpoint enforces current task grants. Export/configuration
-checks do not establish actual Codex skill loading or model recovery behavior.
+checks do not establish model recovery behavior. Actual runtime discovery is
+qualified separately below; full skill injection and model follow-through remain open.
 
 ## Required installation flow
 
@@ -126,3 +127,29 @@ behavior tests, strict Clippy/Rustdoc/format checks and retained failures.
 Local process doubles exercise the packaged adapter against real loopback MCP.
 They do not qualify Codex model support; G4-023/G4-034 still require actual host
 behavior at the recorded installed version.
+
+## Actual local runtime discovery
+
+The [runtime discovery audit](evidence/gate-4/codex-runtime-discovery.json)
+uses the installed CLI's documented [app-server interface](https://learn.chatgpt.com/docs/app-server)
+with an isolated exported Native grant. It discovers the enabled project skill,
+lists the configured MCP tools, reads the original task and retains an empty
+pending page/cursor. A fresh runtime reaches the same task. Undelegated
+cancellation and current revocation fail without changing Connect's Store.
+
+Run this external-runtime check explicitly:
+
+```sh
+CONNECT_TEST_CODEX_BINARY="$(command -v codex)" \
+  cargo test --locked -p connect-server --all-features \
+  --test gate4_codex_runtime -- --ignored
+```
+
+The ordinary Cargo suite labels this check ignored because Codex is an external
+installation requirement. The qualified command executes it; a missing selected
+executable fails. The fixture creates empty private HOME/CODEX_HOME roots, passes
+only the fixture grant, configures an unused loopback model endpoint and starts
+no model turn. Its actual skill discovery and MCP calls qualify runtime wiring.
+They do not prove full skill instructions reached a model, exact model-session
+resume, pre-invocation mutation persistence or useful agent follow-through.
+The production launcher continues to use `exec` and exact `exec resume`.

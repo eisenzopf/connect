@@ -407,8 +407,12 @@ and conversation boundaries remain separate; cancellation does not undo an
 already dispatched effect or end a conversation.
 
 The [Codex export component](../evidence/gate-4/codex-workflow-export.json)
-preserves an existing narrow grant and packages the workflow skill. G4-018 and
-G4-021 remain open for actual skill loading and exact-session continuation.
+preserves an existing narrow grant and packages the workflow skill. The
+[actual runtime discovery check](../evidence/gate-4/codex-runtime-discovery.json)
+now finds that enabled skill and exercises real MCP through an isolated installed
+Codex runtime, including pending, restart and current-authority denial. G4-018
+and G4-021 remain open for actual model skill injection/follow-through, durable
+mutation intent and exact model-session continuation.
 
 ## Protected voice bootstrap composition
 
