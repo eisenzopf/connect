@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T19:44:28.761417+00:00",
+  "status": "local CLI component qualified; installed release and actual provider/model qualification remain open",
+  "items": [
+    "G4-022",
+    "G4-033"
+  ],
+  "source_base": "6ea3e3c8cf605d8ae1726f083d762f504ee953ca",
+  "source_fingerprint": {
+    "files": 790,
+    "sha256": "197a2703f8d1f271fe22a9b4852ada861452b6e013b8798a200b375d59759e94",
+    "recipe": "Compact sorted JSON path-to-SHA256 map of tracked/nonignored non-document regular source files; source-lock covers generated upstream sources."
+  },
+  "scope": "local macOS arm64; loopback simulators; Cargo-built CLI runs in an independent owned process with private cwd and a cleared provider environment",
+  "build_profile": "dev/test, debug assertions enabled, debug symbols and incremental disabled; all-features, not a release candidate",
+  "binary": {
+    "path": "target/debug/connect",
+    "sha256": "78d4c0acbb800ab142cfb1e2b9ccdf7f993f6fced2d56a70e9b61336a762b86e"
+  },
+  "result": {
+    "path": ".local/gate-4-vapi-host/qualification-20261011T193455Z/result.json",
+    "sha256": "a2180d38c4d045113d6db7f60fac9bb9199dbeae2dd11cb968dc48560720c8ec"
+  },
+  "steps": [
+    {
+      "name": "prepare",
+      "status": "passed",
+      "seconds": 0.182,
+      "log": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T193455Z/prepare.log",
+        "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "format",
+      "status": "passed",
+      "seconds": 0.693,
+      "log": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T193455Z/format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "connector",
+      "status": "passed",
+      "seconds": 0.291,
+      "rust_tests": {
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T193455Z/connector.log",
+        "sha256": "05084197aa51b9c30b4612463d00f5452669019354f540651bbc558d31f1225e"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "server-unit",
+      "status": "passed",
+      "seconds": 12.65,
+      "rust_tests": {
+        "passed": 31,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T193455Z/server-unit.log",
+        "sha256": "7ebd4df20ec5fcd770110bc44e820e46fca8b2a0dd64f73ec76ba497763e1418"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "cli-vapi-regressions",
+      "status": "passed",
+      "seconds": 245.218,
+      "rust_tests": {
+        "passed": 27,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T193455Z/cli-vapi-regressions.log",
+        "sha256": "52cb431206dee75ab187e12a465ebdbb2d5dd44b2fafbfe884e3bb2e806598d1"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "lint",
+      "status": "passed",
+      "seconds": 10.584,
+      "log": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T193455Z/lint.log",
+        "sha256": "e28557e39522ebb328c0e907a162a5daa43eed5d6acb2fa725ab98642ee4f3d0"
+      },
+      "leftover_group_members": []
+    },
+    {
+      "name": "rustdoc",
+      "status": "passed",
+      "seconds": 130.482,
+      "log": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T193455Z/rustdoc.log",
+        "sha256": "2ca3c20eb2730acbd7f6ace44db143447373c90a88e35a6645278c5fd18d8ced"
+      },
+      "leftover_group_members": []
+    }
+  ],
+  "behavior": [
+    "Protected connect vapi-task serve loads one explicit existing task; voice stages the existing rvoip lifecycle and chat creates or privately verifies one session.",
+    "Chat uses real independent MCP, recalls an older source, restarts with the identical nonce/secret/expiry, and replays one visible follow-up without a second session POST.",
+    "Unknown provider creation remains uncertain across restart; an exact-resource reconciliation rejects the wrong resource and privately verifies the original resource without reposting or refreshing authority.",
+    "Invalid owner/token/callback configuration leaves private intent, Store snapshot and provider requests unchanged.",
+    "Original callback expiry retires only that endpoint; native authorized conversation history remains available.",
+    "Voice uses the configured saved route, actual native UCTP/QUIC duplex PCMU and task-bound MCP recall; a previous leg cannot be replaced by restarting setup.",
+    "Unix shutdown handlers are installed before readiness and while awaiting provider creation. An immediate stop drains, and a stop before the provider receipt preserves uncertain intent without a second POST.",
+    "Provider SDK and rvoip media read one explicit API origin. Default stays HTTPS; explicit local simulators use the upstream loopback transport option.",
+    "Process ownership checks and clean termination leave no inherited workers; output is checked for owner, setup and provider secrets."
+  ],
+  "quality": {
+    "connector_unit_tests": 8,
+    "server_unit_tests": 31,
+    "integration_tests": 27,
+    "integration_failures": 0,
+    "integration_ignored": 0,
+    "strict_workspace_all_target_all_feature_clippy": "passed",
+    "workspace_rustdoc_with_warnings_denied": "passed",
+    "format_and_pinned_source_preparation": "passed",
+    "largest_new_production_module_lines": 137
+  },
+  "retained_attempts": [
+    {
+      "log": {
+        "path": ".local/gate-4-vapi-host/development-checks.log",
+        "sha256": "599e1bf98fb6928e8986ce2c1782fc8c02b24fa2ef2f46ed13e34d42a7607221"
+      },
+      "result": "compile failed: attempted direct access to private upstream transport field; corrected to the existing with_loopback_test_transport builder, without an upstream edit"
+    },
+    {
+      "log": {
+        "path": ".local/gate-4-vapi-host/chat-checks.log",
+        "sha256": "28eb47467ac54508ef00510f265f687a28f2465176f83e4892709e46140105da"
+      },
+      "result": "fixture failures: missing closed-schema recall limit; forced-kill helper could not prove graceful drain. Corrected arguments and explicitly signalled the owned server before waiting."
+    },
+    {
+      "result": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T192728Z/result.json",
+        "sha256": "3a9f07365324531bd8933082482c210f090159db121a7cbd65a304280389e787"
+      },
+      "outcome": "behavior phases passed, strict lint rejected nested helper module name; renamed outer module"
+    },
+    {
+      "result": {
+        "path": ".local/gate-4-vapi-host/qualification-20261011T193429Z/result.json",
+        "sha256": "243a314b7772b3ee1ea3e919881443e57319c2f632e52785b60b5293e2ad873e"
+      },
+      "outcome": "format rejected a Rust-2024 let chain in this Rust-2021 workspace; replaced with a match guard before requalification"
+    }
+  ],
+  "limits": [
+    "The advertised callback API is a prerequisite copied unchanged from the primary checkout; its separate proxy/URL qualification is recorded independently.",
+    "The package harness now requires seven Vapi CLI journeys and two process-ownership controls against the installed binary, but that release-candidate run is not yet complete.",
+    "Fixture seeds use source-matched public SDK operations; all task-host, MCP, media and reconciliation actions in these tests use the independent CLI process.",
+    "No real Vapi/model/carrier account, public ingress, remote deployment or final Gate 4 acceptance is claimed.",
+    "The full 39-phase 3a272c9 baseline predates this operator implementation."
+  ]
+}

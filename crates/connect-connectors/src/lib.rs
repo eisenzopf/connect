@@ -6,7 +6,9 @@ use std::time::Duration;
 mod chat_context;
 pub mod numbers;
 pub mod setup;
+mod vapi_endpoint;
 pub mod vapi_origin;
+pub use vapi_endpoint::configured_api_base as vapi_api_base;
 
 pub struct Telnyx {
     pub client: telnyx::Client,
@@ -65,7 +67,7 @@ pub struct Vapi {
 }
 impl Vapi {
     pub fn from_env() -> anyhow::Result<Self> {
-        Self::new(&secret("VAPI_PRIVATE_KEY")?, "https://api.vapi.ai")
+        Self::new(&secret("VAPI_PRIVATE_KEY")?, vapi_api_base()?.as_str())
     }
     pub fn new(key: &str, base: &str) -> anyhow::Result<Self> {
         // Establish the process default before entering the upstream SDK's

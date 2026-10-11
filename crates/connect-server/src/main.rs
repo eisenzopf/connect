@@ -22,6 +22,11 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Run an owner-configured Vapi task host with protected callback setup.
+    VapiTask {
+        #[command(subcommand)]
+        command: connect_server::cli::vapi_task::Command,
+    },
     /// Inspect task lifecycle, checkpoints and source references through the SDK.
     TaskDiagnostics(connect_server::cli::task_diagnostics::Arguments),
     /// Protected loopback task grants; never a model tool or owner-token fallback.
@@ -279,6 +284,7 @@ async fn main() -> Result<()> {
         )
         .init();
     match Cli::parse().command {
+        Command::VapiTask { command } => connect_server::cli::vapi_task::run(command).await?,
         Command::DiscardFailedChat {
             config,
             server_config,
@@ -512,47 +518,7 @@ async fn main() -> Result<()> {
                 providers,
             )
             .await?;
-            if let Some(address) = server.webhook_address {
-                println!("webhook_only={address}");
-            }
-            if let Some(address) = server.http_address {
-                println!("http_json={address}");
-            }
-            if let Some(address) = server.mcp_address {
-                println!("mcp_streamable_http=http://{address}/mcp");
-            }
-            println!(
-                "ready transport=quic alpn={} profile={} address={} schema={} websocket_parity={}",
-                rvoip_uctp::UCTP_RAW_QUIC_ALPN,
-                connect_protocol::PROFILE,
-                server.address,
-                connect_store::SCHEMA_VERSION,
-                server
-                    .websocket_address
-                    .map(|a| a.to_string())
-                    .unwrap_or_else(|| "disabled".into())
-            );
-            #[cfg(unix)]
-            {
-                let mut term =
-                    tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
-                tokio::select! {
-                    result = tokio::signal::ctrl_c() => result?,
-                    _ = term.recv() => {},
-                    _ = server.service.readiness.failed() => {
-                        tracing::error!("Worker failed; draining server without retrying uncertain work");
-                    }
-                }
-            }
-            #[cfg(not(unix))]
-            {
-                tokio::select! {
-                    result = tokio::signal::ctrl_c() => result?,
-                    _ = server.service.readiness.failed() => {}
-                }
-            }
-            server.shutdown().await?;
-            println!("stopped");
+            connect_server::cli::serve::run(server).await?;
         }
         Command::TaskDiagnostics(arguments) => arguments.execute().await?,
         Command::Health { config } | Command::Diagnostics { config } => {

@@ -10,7 +10,7 @@ ASSETS = (
     "contracts/connect-task-v1.md", "contracts/connect-task-access-v1.md",
     "skills/connect/SKILL.md", "skills/connect/agents/openai.yaml",
     "skills/connect/references/json-cli.md", "docs/TASK_ACCESS.md",
-    "docs/CODEX_TASK_HOST.md", "docs/TASK_RECOVERY.md",
+    "docs/CODEX_TASK_HOST.md", "docs/TASK_RECOVERY.md", "docs/VAPI_TASK_HOST.md",
     "sdk/python/connect_sdk/task_operations.py", "sdk/typescript/dist/tasks.js",
     "examples/agent-presence/codex-inbox.py", "examples/agent-presence/incoming/host.py",
     "examples/agent-presence/incoming/intake.py", "examples/agent-presence/incoming/state.py",
@@ -55,6 +55,24 @@ def qualify(release, source, codex, directory):
             save()
             if result["status"] != "passed":
                 raise RuntimeError(f"Installed Gate 4 phase failed: {name}")
+        # The fixture seed is created through source-matched public APIs; every
+        # task-host command and its MCP/media/recovery work uses the installed
+        # binary in a private working directory, with loopback providers only.
+        vapi_env = dict(env, CARGO_TARGET_DIR=str(source / "target/vapi-fixture"),
+                        CARGO_BUILD_JOBS="3")
+        command = ["cargo", "test", "--locked", "-p", "connect-server",
+                   "--test", "gate4_vapi_host_chat", "--test", "gate4_vapi_host_voice",
+                   "--", "--nocapture", "--test-threads=1"]
+        result = run_phase("installed-vapi-host", command, 2400, directory, source, vapi_env)
+        report["steps"].append(result)
+        check_test_results(result, directory)
+        if result["status"] != "passed" or result.get("rust_tests") != {"passed": 9, "failed": 0, "ignored": 0}:
+            result["status"] = "failed"
+            raise RuntimeError("Installed Vapi host did not execute all seven journeys and two process-ownership controls")
+        report["vapi_runtime"] = {"binary": str(release / "bin/connect"),
+                                  "scope": "local simulator; no cloud provider or model inference",
+                                  "checks": "chat restart/effect replay, exact-resource recovery, rejection before dispatch, callback expiry with retained conversation, native voice with MCP, ready/signal ordering and interrupted creation cleanup"}
+        save()
         report["status"] = "passed"
     except BaseException as error:
         report.update(status="failed", error={"type": type(error).__name__, "detail": str(error)})

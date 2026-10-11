@@ -166,6 +166,41 @@ impl Harness {
             cid,
         }
     }
+    /// Transfer unchanged durable state to an independently launched CLI host.
+    pub async fn stop_for_host(self) -> StoppedHost {
+        let Self {
+            _temp,
+            server,
+            owner,
+            peer,
+            owner_config,
+            peer_id,
+            cid,
+        } = self;
+        owner.close().await;
+        peer.close().await;
+        let directory = server.store.path().parent().unwrap().to_owned();
+        let mut config = ServerConfig::load(&directory.join("server.toml")).unwrap();
+        config.bind = server.address;
+        server.shutdown().await.unwrap();
+        init::private_replace(
+            &directory.join("server.toml"),
+            toml::to_string(&config).unwrap().as_bytes(),
+        )
+        .unwrap();
+        init::private_write(
+            &directory.join("host-owner.toml"),
+            toml::to_string(&owner_config).unwrap().as_bytes(),
+        )
+        .unwrap();
+        StoppedHost {
+            _temp,
+            directory,
+            owner: owner_config,
+            peer_id,
+            cid,
+        }
+    }
     pub async fn close(self) {
         self.owner.close().await;
         self.peer.close().await;
@@ -177,4 +212,13 @@ pub(crate) fn record(outcome: TaskOutcome) -> TaskRecord {
         panic!("expected task record")
     };
     *record
+}
+
+/// Private installation kept alive while a separate installed binary owns it.
+pub(crate) struct StoppedHost {
+    _temp: tempfile::TempDir,
+    pub directory: std::path::PathBuf,
+    pub owner: ClientConfig,
+    pub peer_id: String,
+    pub cid: String,
 }
