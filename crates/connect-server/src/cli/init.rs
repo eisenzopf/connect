@@ -34,6 +34,18 @@ pub fn private_write(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 pub fn initialize(directory: &Path, example: bool, bind: std::net::SocketAddr) -> Result<()> {
+    initialize_profile(directory, example, false, bind)
+}
+/// Fresh developer-owned connected-app preset; existing installations are preserved.
+pub fn initialize_connected_app(directory: &Path, bind: std::net::SocketAddr) -> Result<()> {
+    initialize_profile(directory, false, true, bind)
+}
+fn initialize_profile(
+    directory: &Path,
+    example: bool,
+    connected_app: bool,
+    bind: std::net::SocketAddr,
+) -> Result<()> {
     if directory.exists() {
         let config = ServerConfig::load(&directory.join("server.toml"))
             .context("Existing directory is not a complete installation; select a new directory")?;
@@ -87,6 +99,9 @@ pub fn initialize(directory: &Path, example: bool, bind: std::net::SocketAddr) -
             &directory.join("agent.toml"),
             toml::to_string_pretty(&config(agent_key, agent.id))?.as_bytes(),
         )?;
+    }
+    if connected_app {
+        super::connected_app_init::write(&store, directory, expiry, bind)?;
     }
     let config = ServerConfig {
         mcp: None,

@@ -27,6 +27,22 @@ enum Command {
         #[arg(long,default_value_t=100,value_parser=clap::value_parser!(u32).range(1..=100))]
         limit: u32,
     },
+    /// Two-way application: review a real draft and accept permitted submissions.
+    ConnectedApp {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        policy: PathBuf,
+        #[arg(long)]
+        state: PathBuf,
+        #[arg(long,value_parser=clap::value_parser!(u64).range(1..=60000))]
+        run_for_ms: Option<u64>,
+    },
+    /// Inspect app-owned business results and pending/error counts without content.
+    AppInspect {
+        #[arg(long)]
+        state: PathBuf,
+    },
     Reviews(Run),
     Agent(Run),
     /// Explicit task-scoped runner with durable app state and reconnects.
@@ -66,6 +82,38 @@ struct Run {
 #[tokio::main]
 async fn main() -> Result<()> {
     match Cli::parse().command {
+        Command::ConnectedApp {
+            config,
+            policy,
+            state,
+            run_for_ms,
+        } => {
+            let stop = tokio_util::sync::CancellationToken::new();
+            let execution = connect_review_loop::connected_app::run(
+                connect_review_loop::connected_app::RunOptions {
+                    config,
+                    policy,
+                    state,
+                },
+                stop.clone(),
+            );
+            tokio::pin!(execution);
+            let signal = async {
+                if let Some(ms) = run_for_ms {
+                    tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
+                    Ok(())
+                } else {
+                    tokio::signal::ctrl_c().await
+                }
+            };
+            tokio::select! { result=&mut execution=>result?,result=signal=>{result?;stop.cancel();execution.await?;} }
+        }
+        Command::AppInspect { state } => println!(
+            "{}",
+            serde_json::to_string(&connect_review_loop::connected_app::AppStore::inspect(
+                &state
+            )?)?
+        ),
         Command::TaskDiagnostics {
             config,
             task_id,

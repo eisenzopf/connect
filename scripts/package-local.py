@@ -54,7 +54,7 @@ runtime = output/candidate
 (runtime/'bin').mkdir(parents=True)
 for name in ['connect', 'connect-example']:
     source = ROOT/'target/release'/name
-    for control in [b'CONNECT_TEST_FAULT_STAGE', b'CONNECT_EXAMPLE_FAULT_STAGE']:
+    for control in [b'CONNECT_TEST_FAULT_STAGE', b'CONNECT_EXAMPLE_FAULT_STAGE', b'CONNECT_CONNECTED_APP_FAULT']:
         if control in source.read_bytes():
             raise RuntimeError('Release binary contains a test-only fault control')
     shutil.copy2(source, runtime/'bin'/name)

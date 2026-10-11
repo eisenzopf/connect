@@ -35,6 +35,7 @@ pub fn rotate_tls(server_path: &Path, operator_path: &Path) -> Result<()> {
         operator_path.to_path_buf(),
         parent.join("reviews.toml"),
         parent.join("agent.toml"),
+        parent.join("outside.toml"),
     ];
     clients.sort();
     clients.dedup();

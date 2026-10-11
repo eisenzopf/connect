@@ -80,3 +80,12 @@ cursor in disposable app state. The second builds an explicit test-only binary
 and abruptly exits before/after the app transaction or after server acknowledgment
 before recording the local receipt. It resumes pending replies without repeating
 the app action. Normal example packages exclude those fault controls.
+
+## Two-way connected review application
+
+The new `connected-app` mode records actual review decisions and independently
+initiated draft intake tickets, with explicit reply binding and developer contact
+policy. It uses its own durable ledger and the public SDK; the older deterministic
+roles and pre-created task runner retain their existing contracts. See the
+[connected app guide](../../docs/CONNECTED_APP.md) for the packaged local preset,
+wire bodies, recovery, safe inspection and qualification limits.

@@ -98,7 +98,7 @@ enum Command {
     Init {
         #[arg(long)]
         directory: PathBuf,
-        #[arg(long,value_parser=["review-loop"])]
+        #[arg(long,value_parser=["review-loop", "connected-app"])]
         example: Option<String>,
         #[arg(long, default_value = "127.0.0.1:4433")]
         bind: std::net::SocketAddr,
@@ -359,7 +359,10 @@ async fn main() -> Result<()> {
             directory,
             example,
             bind,
-        } => init::initialize(&directory, example.is_some(), bind)?,
+        } => match example.as_deref() {
+            Some("connected-app") => init::initialize_connected_app(&directory, bind)?,
+            _ => init::initialize(&directory, example.is_some(), bind)?,
+        },
         Command::PresenceInit {
             directory,
             bind,
