@@ -207,5 +207,11 @@
     "ignored": 0
   },
   "integrated_executable_inputs_match_qualified_source": true,
-  "evidence_archive": ".local/gate-4-planning/incoming-a5ef91b"
+  "evidence_archive": ".local/gate-4-planning/incoming-a5ef91b",
+  "integrated_match_source_revision": "88aec46045aea8aef97ce1e2b88c89fcd56d7e39",
+  "follow_up_fixture_correction": {
+    "source_revision": "680e10e",
+    "detail": "The directory rejection fixture now chmods its intentionally public directory because the full runner creates files with umask 077. Application code unchanged. All 15 units pass under both 022 and 077.",
+    "evidence": "offline-runner.json#incoming_umask_failure"
+  }
 }

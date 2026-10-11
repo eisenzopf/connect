@@ -452,5 +452,266 @@
         "sha256": "3f45aabdbfde3adb656e778e76682b1df807a235156fe35401a55ad20f671b5e"
       }
     ]
+  },
+  "integrated_run_checkpoint": {
+    "status": "failed",
+    "source_revision": "680e10ed0698ed7f414ed802a8f7408c6cff35a5",
+    "started_at": "2026-10-11T14:01:53.956191+00:00",
+    "finished_at": "2026-10-11T14:09:39.939620+00:00",
+    "error": {
+      "type": "RuntimeError",
+      "detail": "Phase failed: workspace; see private log"
+    },
+    "not_run": [
+      "media-pressure",
+      "installed-host",
+      "upstream-regression",
+      "upstream-vapi",
+      "upstream-queues",
+      "upstream-codec",
+      "current-binaries",
+      "agent-incoming-public",
+      "agent-incoming-host",
+      "native-task-capacity",
+      "schema-six-build",
+      "schema-ten-build",
+      "historical-task-recovery",
+      "dispatch",
+      "identity",
+      "typescript-probe",
+      "crash-replay",
+      "examples",
+      "example-recovery",
+      "current-recovery",
+      "datagram-example"
+    ],
+    "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T140153.955985Z/result.json",
+    "sha256": "480a3b14ca42b760613595fe1497b90bad016e297dd5aee08916020c99f92a55",
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.135
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.54
+      },
+      {
+        "name": "typescript-install",
+        "command": [
+          "npm",
+          "ci",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 300,
+        "log": "typescript-install.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.531
+      },
+      {
+        "name": "typescript-tests",
+        "command": [
+          "npm",
+          "test",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 300,
+        "log": "typescript-tests.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.601
+      },
+      {
+        "name": "typescript-format",
+        "command": [
+          "npm",
+          "run",
+          "format:check",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "timeout_seconds": 120,
+        "log": "typescript-format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.542
+      },
+      {
+        "name": "typescript-distribution",
+        "command": [
+          "git",
+          "diff",
+          "--exit-code",
+          "--",
+          "sdk/typescript/dist"
+        ],
+        "timeout_seconds": 60,
+        "log": "typescript-distribution.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.074
+      },
+      {
+        "name": "python-sdk",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "sdk/tests",
+          "-p",
+          "test_*.py"
+        ],
+        "timeout_seconds": 300,
+        "log": "python-sdk.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.559
+      },
+      {
+        "name": "agent-incoming-unit",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "examples/agent-presence/tests",
+          "-p",
+          "test_incoming*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-unit.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.131,
+        "python_tests": {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "runner-failure-tests",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests",
+          "-p",
+          "test_qualification*.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "runner-failure-tests.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.448
+      },
+      {
+        "name": "lint",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "timeout_seconds": 2400,
+        "log": "lint.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.476
+      },
+      {
+        "name": "rustdoc",
+        "command": [
+          "cargo",
+          "doc",
+          "--locked",
+          "--workspace",
+          "--all-features",
+          "--no-deps"
+        ],
+        "timeout_seconds": 2400,
+        "log": "rustdoc.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.788
+      },
+      {
+        "name": "workspace",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace",
+          "--all-features",
+          "--",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 7200,
+        "log": "workspace.log",
+        "status": "failed",
+        "exit_code": 101,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 447.689,
+        "rust_tests": {
+          "passed": 148,
+          "failed": 2,
+          "ignored": 4
+        }
+      }
+    ],
+    "finding": "Workspace stopped in gate4_codex_cleanup: invalid_stream and timeout checks never observed descendant.json; fixture-phase was not-entered. Other four cleanup checks passed. Root cause is not established. This is a failed full run; remaining phases were not run."
   }
 }
