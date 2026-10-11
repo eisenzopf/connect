@@ -7,10 +7,13 @@ use std::{
     process::Stdio,
     time::Duration,
 };
-use tokio::process::{Child, Command};
+use tokio::process::Command;
+#[path = "codex_child.rs"]
+mod ownership;
+use ownership::OwnedRuntime;
 
 pub struct Exec {
-    pub child: Child,
+    child: OwnedRuntime,
     pub home: PathBuf,
     output: PathBuf,
     errors: PathBuf,
@@ -66,7 +69,7 @@ impl Exec {
             command.env("PATH", path);
         }
         Self {
-            child: command.spawn().unwrap(),
+            child: OwnedRuntime::spawn(&mut command).unwrap(),
             home,
             output,
             errors,
@@ -89,8 +92,7 @@ impl Exec {
             .into()
     }
     pub async fn kill(&mut self) {
-        self.child.kill().await.unwrap();
-        self.child.wait().await.unwrap();
+        self.child.stop().await.unwrap();
     }
     pub async fn finish(&mut self) {
         let status = tokio::time::timeout(Duration::from_secs(20), self.child.wait())

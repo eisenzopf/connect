@@ -5,11 +5,15 @@ use serde_json::{json, Value};
 use std::{path::Path, process::Stdio, time::Duration};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
-    process::{Child, ChildStdin, ChildStdout, Command},
+    process::{ChildStdin, ChildStdout, Command},
 };
 
+#[path = "codex_child.rs"]
+mod ownership;
+use ownership::OwnedRuntime;
+
 pub struct Runtime {
-    child: Child,
+    child: OwnedRuntime,
     input: ChildStdin,
     output: Lines<BufReader<ChildStdout>>,
     next_id: u64,
@@ -41,10 +45,11 @@ impl Runtime {
         if let Some(path) = std::env::var_os("PATH") {
             command.env("PATH", path);
         }
-        let mut child = command.spawn().context("Installed Codex could not start")?;
+        let mut child =
+            OwnedRuntime::spawn(&mut command).context("Installed Codex could not start")?;
         let mut runtime = Self {
-            input: child.stdin.take().unwrap(),
-            output: BufReader::new(child.stdout.take().unwrap()).lines(),
+            input: child.io()?.stdin.take().unwrap(),
+            output: BufReader::new(child.io()?.stdout.take().unwrap()).lines(),
             child,
             next_id: 0,
             bytes: 0,
@@ -103,7 +108,6 @@ impl Runtime {
         .context("Codex discovery request deadline exceeded")?
     }
     pub async fn stop(mut self) {
-        self.child.kill().await.unwrap();
-        self.child.wait().await.unwrap();
+        self.child.stop().await.unwrap();
     }
 }

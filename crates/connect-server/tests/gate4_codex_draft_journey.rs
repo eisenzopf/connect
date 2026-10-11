@@ -55,6 +55,8 @@ async fn overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart
     let first_a = packaged::succeeded(&first_a);
     let first_b = packaged::succeeded(&first_b);
     assert_ne!(first_a["session_id"], first_b["session_id"]);
+    assert_eq!(packaged::state(&a.directory)["task_id"], a.task.id);
+    assert_eq!(packaged::state(&b.directory)["task_id"], b.task.id);
     let mut human = ConnectClient::open(f.peer.clone()).await.unwrap();
     let cid = &a.task.conversation_id;
     let history = human.history(cid, None, 100).await.unwrap();
