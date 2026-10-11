@@ -45,6 +45,7 @@ def phases(source_only=False):
         ('reference-runner-capacity', [sys.executable, 'scripts/check-runner-capacity.py'], 300),
         ('mcp-operating-load', [sys.executable, 'scripts/check-mcp-load.py'], 240),
         ('grant-lifecycle-load', [sys.executable, 'scripts/check-grant-lifecycle.py'], 240),
+        ('task-artifact-retention', [sys.executable, 'scripts/check-retention-load.py'], 240),
         ('schema-six-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '6'], 7500),
         ('schema-ten-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '10'], 7500),
         ('historical-task-recovery', [sys.executable, 'scripts/check-gate4-recovery.py', '--previous-binary',
