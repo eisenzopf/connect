@@ -79,7 +79,7 @@
         "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Schema-16 historical executable recovery passed in the complete 3a272c9 baseline; installed 32f4fad upgrade/restore passed. Reconcile the retained merged-source full-run failure and separate remaining checks and task lifecycle evidence before acceptance.",
+      "remaining": "Schema-16 historical executable recovery passed in the complete 3a272c9 baseline; installed 32f4fad upgrade/restore passed. Reconcile the retained merged-source full-run failure and separately passed remaining checks and task lifecycle evidence before acceptance.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]
@@ -124,7 +124,7 @@
         "evidence/gate-4/authority-matrix.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Task authority and physical Vapi admission components passed. The extracted 32f4fad Vapi host also passes rejection and immutable-intent recovery checks. Reconcile all T-A1/T-A2 cases against the retained merged-source results and remaining checks.",
+      "remaining": "Task authority and physical Vapi admission components passed. The extracted 32f4fad Vapi host also passes rejection and immutable-intent recovery checks. Reconcile all T-A1/T-A2 cases against the retained merged-source results and separately passed remaining checks.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]
@@ -393,7 +393,7 @@
         "evidence/gate-4/package-candidate.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Native/HTTP/CLI/language and real MCP components passed. The extracted 32f4fad skill, SDKs and runtime wiring pass installed checks. The current full run stopped at worker startup; its unchanged capacity diagnostic passed, and remaining checks continue separately; installed wiring does not qualify model instruction following.",
+      "remaining": "Native/HTTP/CLI/language and real MCP components passed. The extracted 32f4fad skill, SDKs and runtime wiring pass installed checks. The current full run stopped at worker startup; its unchanged capacity diagnostic passed, and remaining checks passed separately; installed wiring does not qualify model instruction following.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation"
       ]
@@ -657,7 +657,7 @@
         "evidence/gate-4/review-findings.json"
       ],
       "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "The complete 3a272c9 schema-16 baseline and 32f4fad installed candidate passed their declared checks. The merged-source full run failed at worker startup after 23 passing phases. Its unchanged capacity diagnostic passed; the initial failure remains unresolved and remaining phases are checked separately. Separate live acceptance, unresolved review findings, final documentation refresh and requirement-by-requirement audit remain open.",
+      "remaining": "The complete 3a272c9 schema-16 baseline and 32f4fad installed candidate passed their declared checks. The merged-source full run failed at worker startup after 23 passing phases. Its unchanged capacity diagnostic passed; the initial failure remains unresolved and all remaining phases passed separately. Separate live acceptance, unresolved review findings, final documentation refresh and requirement-by-requirement audit remain open.",
       "not_run_prerequisites": [
         "Current common-source acceptance reconciliation",
         "Actual provider/model qualification; excluded from the current local-only execution scope"
@@ -673,7 +673,7 @@
   "qualification_boundaries": {
     "complete_offline_baseline": "3a272c9; all 39 phases passed; evidence/gate-4/offline-3a272c9.json",
     "installed_local_candidate": "32f4fad; all 11 checks passed, including nine Vapi checks; evidence/gate-4/package-candidate.json",
-    "merged_source_offline": "32f4fad full run failed at reference-runner-capacity after 23 passing phases. An unchanged targeted diagnostic passed; remaining phases are being checked separately. See evidence/gate-4/offline-32f4fad-attempt-1.json.",
+    "merged_source_offline": "32f4fad: 23 original phases, unchanged targeted capacity diagnostic, and 15 remaining phases passed. All 39 phase requirements have passing observations on unchanged source; the original full invocation failed and its startup cause remains unresolved. See evidence/gate-4/offline-32f4fad-remaining.json.",
     "provider_and_model": "Unrun for Gate 4 under the current local-only execution scope; required separately for closure"
   }
 }

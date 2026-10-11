@@ -67,7 +67,8 @@
   "reference_runner_startup": {
     "status": "unresolved initial capacity startup failure; unchanged diagnostic passed",
     "evidence": "docs/evidence/gate-4/offline-32f4fad-attempt-1.json",
-    "detail": "Sixteen workers produced no questions within the unchanged 15-second observation limit; all sixteen logs were empty and no worker database was created. SIGINT cleanup saw -2 rather than expected graceful zero exits. No process group remained after the outer cleanup.",
-    "next_action": "Retain initial failure; diagnose initialization boundary and reconcile remaining local checks without claiming a complete current-source pass."
+    "detail": "Sixteen workers produced no questions within the unchanged 15-second observation limit; all sixteen logs were empty and no worker database was created. SIGINT cleanup saw -2 rather than expected graceful zero exits. No process group remained after the outer cleanup. An additional manifest-verified installed-release run passes all three capacity phases without changing the limit. The original cause remains unresolved.",
+    "next_action": "Retain initial failure; diagnose initialization boundary and reconcile remaining local checks without claiming a complete current-source pass.",
+    "installed_diagnostic": "docs/evidence/gate-4/offline-32f4fad-remaining.json"
   }
 }

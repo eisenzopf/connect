@@ -1,0 +1,225 @@
+{
+  "schema": 1,
+  "status": "local chat and voice rehearsal components qualified; actual provider/model acceptance open",
+  "recorded_at": "2026-10-11T21:31:47.506679+00:00",
+  "source_base": "81d8a752a69e6e310fd5445e617973846e8649a9",
+  "scope": "Local macOS arm64 and explicit loopback provider fixtures; no model/provider account or public ingress",
+  "source_files_sha256": {
+    "scripts/live/task-chat.py": "d8662cf758d13ef46de3db608477957921f4eaaf20a683fec4c13e6be003f352",
+    "scripts/live/chat_transport.py": "54f99751f5deb38112af01a40be2d2b10198f8d28642eeb0f4ba688573c892c0",
+    "scripts/live/voice_runtime.py": "017d01a388b942ed00c3d44c52177f0d4ba434a85467ccd820ddd22c7017ec08",
+    "scripts/tests/test_live_task_chat.py": "2acc4b68eb1efccb6f98d50d71ed615feb20871815223f0f0de6ef4ed98da36d",
+    "scripts/tests/test_live_chat_transport.py": "534ab6806917e9dc17eb5470ec11f2de37f27a6a59d522af93b000c348e19d2e",
+    "crates/connect-server/tests/gate4_task_chat_rehearsal.rs": "d6e31914cecb3e3771c208dd82e771f484d834e6acf4150adb6a2789b571a45c"
+  },
+  "checks": [
+    {
+      "name": "prepare",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "status": "passed",
+      "seconds": 0.127,
+      "leftover_group_members": [],
+      "log": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "status": "passed",
+      "seconds": 0.658,
+      "leftover_group_members": [],
+      "log": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_*chat*.py"
+      ],
+      "status": "passed",
+      "seconds": 2.91,
+      "leftover_group_members": [],
+      "log": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/chat-rehearsal-unit.log",
+      "log_sha256": "ab44c163a5ae9abd0a9f7eaf63795d9f0f467a9820448d65dd7e08caac20fa6d",
+      "python_tests": {
+        "passed": 16,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_task_voice.py"
+      ],
+      "status": "passed",
+      "seconds": 0.129,
+      "leftover_group_members": [],
+      "log": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/voice-rehearsal-unit.log",
+      "log_sha256": "85bdb3d23316195a7aad16b696a688d839cd6f3a8ddf856daed46f675b993098",
+      "python_tests": {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "runner-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "status": "passed",
+      "seconds": 1.494,
+      "leftover_group_members": [],
+      "log": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/runner-tests.log",
+      "log_sha256": "6cd3f8143ec7a47257ec8b4678981c422cbe132ae88fe32a7d942c12d06ed289",
+      "python_tests": {
+        "passed": 41,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "source-journeys",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_task_chat_rehearsal",
+        "--test",
+        "gate4_task_voice_rehearsal",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "status": "passed",
+      "seconds": 17.905,
+      "leftover_group_members": [],
+      "log": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/source-journeys.log",
+      "log_sha256": "16f8060cabac4b9d8f8644fda5754871d82dc50ca577c3fd3cfefc33e6ea2ce6",
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "installed-journeys",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_task_chat_rehearsal",
+        "--test",
+        "gate4_task_voice_rehearsal",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "status": "passed",
+      "seconds": 9.97,
+      "leftover_group_members": [],
+      "log": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/installed-journeys.log",
+      "log_sha256": "e66f701eb11d4e32d85cfd748df544be9e3ee3ab6806a071d52154100437e8ca",
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_task_chat_rehearsal",
+        "--test",
+        "gate4_task_voice_rehearsal",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "passed",
+      "seconds": 1.229,
+      "leftover_group_members": [],
+      "log": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/lint.log",
+      "log_sha256": "c172c2c1cfc5512f8a376313674884108514759714b68494a51d40e19673a3bb"
+    }
+  ],
+  "pending": [
+    "Actual provider/model comprehension, actual MCP tool use by a model and useful effects remain unqualified.",
+    "Final whole Gate 4 candidate and acceptance review remain open."
+  ],
+  "provider_contracts": [
+    "https://docs.vapi.ai/chat/session-management",
+    "https://docs.vapi.ai/api-reference/chats/create",
+    "https://docs.vapi.ai/api-reference/chats/get"
+  ],
+  "boundary": "A captured provider response is not proof of model tool use, reasoning or whole Gate 4 acceptance.",
+  "qualification": {
+    "report": ".local/gate-4-checks/chat-drivers-20261011T212829.325340Z/result.json",
+    "report_sha256": "195da8a46071146bb45700555373424820a97e6bfbff943466fd7cd2967729c2",
+    "source_stable": true,
+    "source_inputs_match_primary": true,
+    "installed_runtime_source": "32f4fadeaf45b1d59432a552b30522a94d388eb0"
+  },
+  "behavior": [
+    "Two independent chat journeys and one process-ownership control pass with source and installed helpers: capture and uncertain POST receipt recovery using GET only.",
+    "Same prepared provider session, immutable turn identity, sourced context before/after, repeated capture refusal and cancelled task refusal before provider access.",
+    "Three independent voice journeys and one process-ownership control pass in each runtime configuration after the shared loader extension.",
+    "16 chat rejection/expiry/HTTP checks, 10 voice checks and 41 runner checks pass; affected strict Clippy and formatting pass."
+  ],
+  "retained_failures": [
+    {
+      "report": ".local/gate-4-checks/chat-drivers-20261011T212624.195367Z/result.json",
+      "cause": "New fixture accessed a private RunningServer field; source compilation failed before journeys ran. Corrected to existing public auxiliary-listener API without changing production visibility.",
+      "diagnostic": "source-journeys.log retains compiler error; wrapper also recorded a missing-count assertion."
+    },
+    {
+      "log": ".local/gate-4-package/task-chat-integration-1.log",
+      "status": "interrupted; exit 143; unqualified",
+      "cause": "Obsolete primary exploratory compile stopped only after identical source compile failure was established in managed worktree."
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "recorded_at": "2026-10-11T20:53:00.713343+00:00",
-  "status": "failed full run; unchanged targeted diagnostic passed; remaining phases are being checked separately",
+  "status": "failed full run retained; unchanged targeted diagnostic and all remaining phases passed separately",
   "source_revision": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
   "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
   "full_run": {
@@ -66,5 +66,6 @@
     ],
     "scope": "No retry loop or increased test limit. A separate unchanged run passed all three capacity/reply/restart checks. It does not erase or explain the initial failure."
   },
-  "closure": "The original full run remains failed. Separate remaining-phase checks and later source reconciliation are not a claim that this invocation passed."
+  "closure": "The original full run remains failed. Separate remaining-phase checks and later source reconciliation are not a claim that this invocation passed.",
+  "subsequent_remaining_evidence": "docs/evidence/gate-4/offline-32f4fad-remaining.json"
 }

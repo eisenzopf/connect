@@ -71,7 +71,8 @@ def check_test_results(result, directory):
     if result['status'] != 'passed':
         return
     python_expected = {'agent-incoming-unit': 15, 'agent-incoming-public': 1,
-                       'agent-incoming-host': 1, 'voice-rehearsal-unit': 10}
+                       'agent-incoming-host': 1, 'voice-rehearsal-unit': 10,
+                       'chat-rehearsal-unit': 16}
     if result['name'] in python_expected:
         runs = re.findall(r'^Ran (\d+) tests? in ', text, re.M)
         count = python_expected[result['name']]

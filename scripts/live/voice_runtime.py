@@ -25,7 +25,7 @@ def save(path, value):
         os.close(descriptor)
 
 
-def load(source_root, runtime_root, executable):
+def load(source_root, runtime_root, executable, *, driver_files=None):
     """Installed mode cannot silently import checkout SDKs or select another binary."""
     root = (runtime_root or source_root).resolve()
     if runtime_root:
@@ -52,7 +52,7 @@ def load(source_root, runtime_root, executable):
             "runtime": "source"}
     evidence["driver_files_sha256"] = {
         name: hashlib.sha256((source_root / "scripts/live" / name).read_bytes()).hexdigest()
-        for name in ("native-voice.py", "task_voice.py", "voice_runtime.py", "voice_scenario.py")
+        for name in (driver_files or ("native-voice.py", "task_voice.py", "voice_runtime.py", "voice_scenario.py"))
     }
     sys.path[:0] = [str(root / "sdk/python"), str(root / "examples/conversation-client")]
     sdk = importlib.import_module("connect_sdk")
