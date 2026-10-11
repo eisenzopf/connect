@@ -190,3 +190,35 @@ the recorded version. Real-model instruction following, useful reply-driven
 continuation, full installation journeys, storage-write failures, power loss
 and complete descendant-process cleanup remain separate checks. G4-018,
 G4-021 and G4-023 stay open.
+
+## Actual local reply continuation
+
+The [reply-workflow audit](evidence/gate-4/codex-reply-workflow.json) runs two
+actual installed Codex sessions concurrently against one Connect server. Each
+has its own protected HostSession grant, exported skill/configuration and empty
+private account roots. Scripted loopback Responses peers perform no inference.
+
+Both sessions send a question and retain a journal cursor in saved session
+results. A native public recipient answers one exact question while both host
+processes are stopped. The owned Connect server restarts its original database
+and listeners; the authoritative Store is unchanged. Exact-session resume reads
+the retained cursor from actual saved runtime input, catches up the reply and
+recalls its authorized source. The continuation program uses that received body
+and source reference in one visible follow-up. The other task remains waiting,
+and neither host receives the other conversation's content. Another exact
+resume replays the saved follow-up program with no database mutation.
+
+```sh
+CONNECT_TEST_CODEX_BINARY="$(command -v codex)" \
+  cargo test --locked -p connect-server --all-features \
+  --test gate4_codex_reply_workflow -- --ignored
+```
+
+The recorded opt-in run executes this one behavior test with zero ignored;
+strict Clippy and repository formatting also pass. Four fixture failures are
+retained, including the event/source ID distinction and protected attempt-log
+collision. No earlier evidence is replaced. This check qualifies actual runtime
+continuation, reply attribution and shared-server isolation with deterministic
+programs. It does not prove real-model reasoning, full artifact and independent
+incoming-contact journeys, production packaged-launcher model use or a final
+installed candidate. G4-023 is in progress, alongside G4-018/G4-021.

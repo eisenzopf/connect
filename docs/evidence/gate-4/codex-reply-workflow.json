@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T05:26:44.762665+00:00",
+  "status": "actual-runtime reply continuation component qualified; real-model and whole-host qualification open",
+  "items": [
+    "G4-018",
+    "G4-021",
+    "G4-023"
+  ],
+  "source_base": "b312d9878a238d428b5bb0c80e185440e7a5ec40",
+  "source_sha256": {
+    "Cargo.lock": "e01d6633125f1c70e922a5cc241376ab2f33bb6f4e999183e7ed1b5534010e3f",
+    "crates/connect-mcp/src/arguments.rs": "cdf760e00142049e73b6023f7318945adbccd3d7947878b6360118aec1427f7d",
+    "crates/connect-mcp/src/auth.rs": "9216321950a8e2fd492f116e4debb0459dbaf5096a880d75fad7a4c73d3f8c94",
+    "crates/connect-mcp/src/budget.rs": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+    "crates/connect-mcp/src/catalog.rs": "11e846ee563e5b656ff0496895c81d9bfc89ecbd5896d52b12227259d14150df",
+    "crates/connect-mcp/src/commands.rs": "fa0a4762cc89f3d93a28ac348cb12ce27b817c36579b86a9573e31a3ca8980e5",
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/lib.rs": "2cb7ac484e046122f5f80148c9a1455160a684dd99fa45075718acda3ef3e6b7",
+    "crates/connect-mcp/src/listener.rs": "5183bafeceb8fa492ef0b385b89aed876e37e8a41437f180c18f7935db7c88ae",
+    "crates/connect-mcp/src/schemas.rs": "e330e9172f52bec891a153f86a5dddcea871fab133802f00491ddeab74576fe2",
+    "crates/connect-mcp/src/vapi_auth.rs": "d310999324d2b423699471e4576b7995302604f230fc5a73a2a70944149b08de",
+    "crates/connect-server/src/cli/task_access/codex.rs": "63eec1b0cdb1c2e9de2dd009df23844cd233d17fa30020da9b56f580242d0e8a",
+    "crates/connect-server/src/cli/task_access/codex_host/install.rs": "a317e38d4e2e2ab723b93621fadf924eb369b1db11473d2b590f0565c0850c78",
+    "crates/connect-server/src/cli/task_access/codex_host/mod.rs": "f0115b140861b6c978adf2763bb1595420b84f8fdc0900e3af0b5a09350adf35",
+    "crates/connect-server/src/cli/task_access/codex_host/process.rs": "e3365b82f8c74eaa8a3d1a2b5c81b43dbffd8d4b7547ee7d288fa7817ec5ed58",
+    "crates/connect-server/src/cli/task_access/codex_host/state.rs": "e9c69f5d2a72e022ae83759f92cfd08afe18524a74c2cc3eef79c38a878e966b",
+    "crates/connect-server/tests/gate4_codex_call_intent.rs": "221ce897546e1ff71c6f883b3f81fea730bc7ca9567212877f09a8f5719155a7",
+    "crates/connect-server/tests/support/codex_call_barrier.rs": "77bed424cfae48d4268673604726ed4b96c7832137e53f2e6d34be9e1c9efc48",
+    "crates/connect-server/tests/support/codex_exec.rs": "a7ae44b6fa1fb2bd0732a1b733292a160a72457ed32ad5a95774b425577f794b",
+    "crates/connect-server/tests/support/codex_install.rs": "ebe5bd67482e312d3d74de8814c23438f1822896bf3f4d1fea61e795d07a893e",
+    "crates/connect-server/tests/support/codex_intent.rs": "b2c0cc853bfbe21c4b0ebb39f18b49e0d541ddf78c7a04fc220b2e85d53fbebc",
+    "crates/connect-server/tests/support/codex_responses.rs": "e8e8643dc65fdfff7bdbd9755474a5c859cdb7bb30243f2f6c18cf41457d46da",
+    "crates/connect-server/tests/support/mcp_fixture.rs": "4d30f765d5592d9047fbab027d626e916dece07417ff5d0aa3da7fbeef975a01",
+    "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+    "skills/connect/SKILL.md": "56f2e9291e54af007ec5c1fe31698832df98298ea814ea83dbd152f67d58d5dd",
+    "skills/connect/agents/openai.yaml": "62a639ede28013f697da75fbe85fdaaa747e704d3188e241a30733ea0a5f7982",
+    "skills/connect/references/json-cli.md": "fb120e690291439259bc21fa50dd0c3707f0d30ed31ea56be1fead430b0ba07a",
+    "crates/connect-server/tests/gate4_codex_reply_workflow.rs": "4bc056dd8c1a6c930be9f719496e174fbaa862cc9d4684b6535f18e8972c7c9d",
+    "crates/connect-server/tests/fixtures/codex-workflow-tools.js": "6b8118ebc2e8ef7a8a56b83a76f5c3b4139554cde87e759c223e5a3c0ad21878",
+    "crates/connect-server/tests/support/codex_workflow_install.rs": "6a04dbdbe8ec354750bc30f9a5d3191e220366536eb274bd3099947f4bf16a69",
+    "crates/connect-server/tests/support/codex_workflow_peer.rs": "eb47d419c02464f10eedecf32ccbaf6a4c5d4cf301e8937f1f9bd60f822201b4",
+    "crates/connect-server/tests/support/codex_workflow_program.rs": "e790b710053a05bf10360f3f536886f80afaf724fc6929e917ee6c94fdfd7218"
+  },
+  "runtime": {
+    "version": "codex-cli 0.162.0-alpha.17.2",
+    "executable_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+    "interface": "actual exec and exact exec resume with installed code-mode custom tools",
+    "inference_operations": 0
+  },
+  "scope": "Local macOS arm64; two actual installed Codex sessions, separate private exports/account roots and independently protected HostSession grants against one real Connect server. Deterministic loopback Responses peers supply the programs without inference. Public native clients create tasks and submit the human reply; real MCP handles host operations. No account keys, live providers, remote deployment/public ingress or production state operations.",
+  "behavior_passes": 1,
+  "behavior_failures": 0,
+  "behavior_ignored": 0,
+  "checks": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-workflow-qualified.log",
+      "log_sha256": "24c5b833e4c6737eedfe61a8bdee498622d54fea0773c84af2af8685ff735d6d",
+      "command": "CONNECT_TEST_CODEX_BINARY=<installed Codex> CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_codex_reply_workflow -- --ignored --nocapture",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-workflow-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+      "command": "bash scripts/prepare-dependencies.sh",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-workflow-clippy-qualified.log",
+      "log_sha256": "17c92b3fedd065941c82d8afd7e1eaadf4c692e5804252b0d7c04262c0a9cdb8",
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-server --all-features --test gate4_codex_reply_workflow -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-workflow-format-qualified.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0
+    }
+  ],
+  "proofs": [
+    "Both actual host turns run concurrently against one independently authenticated MCP endpoint and return different saved session UUIDs. Each question reaches its bound conversation through actual installed tools; current task status is Waiting and the task journal supplies a nonempty retained cursor.",
+    "A native public recipient submits one reply to the exact accepted question. The receipt attributes it to the original task; no notification or ad-hoc assignment is used.",
+    "The original host turns exit before continuation. The owned Connect server drains and reopens its original database and listeners; the entire authoritative Store snapshot is unchanged by restart. Host exports, task/conversation/grant IDs and expiry are retained.",
+    "Both actual sessions resume by their exact saved UUIDs with only the same generic continuation prompt. Each scripted peer reads its cursor from the actual saved question-result item in resumed request input; no original context is retyped. Original retained question results compare equal before/after continuation.",
+    "The replied task journal supplies one exactly attributed reply. Recall supplies the authorized message source whose conversation-journal provenance matches that reply event. The peer builds the next literal communication program from this actual result. One source-backed follow-up contains the received decision and message source ID.",
+    "The unrelated task remains Waiting with only its original question. Actual request context for the replied host excludes the other conversation canary; actual request context for the unrelated host excludes the received answer.",
+    "A second exact-session continuation replays the original literal follow-up program from actual saved request input. Full post-follow-up Store equality proves no second communication effect, message, task mutation or grant refresh.",
+    "All eleven actual runtime requests contain neither either HostSession bearer nor the backing owner credential. The existing protected export config grants Connect-only tool autonomy; no per-action owner prompt is required."
+  ],
+  "retained_attempts": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-workflow-initial.log",
+      "log_sha256": "c637631e355c0f942308f9f1a31fc352e3aafc8f8a2f28ab5b0bff2542a423d0",
+      "command": "Initial scripted workflow fixture",
+      "exit_code": 101,
+      "finding": "No question was sent. The fixture used a reserved JavaScript arguments parameter; its correction allowed both questions. Shared unused-helper warnings were also resolved within this test module."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-workflow-diagnostic.log",
+      "log_sha256": "c591c1eb781357b3363380d6313936e765e21b4ad6e5a7e26df1bddc34b524f7",
+      "command": "Actual tool-output shape diagnostic",
+      "exit_code": 101,
+      "finding": "Both questions reached Waiting and both sessions resumed, but the fixture expected string output. Actual code-mode tool output uses typed input_text blocks; the parser was corrected. Raw request diagnostic remains private."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-workflow-corrected.log",
+      "log_sha256": "e51eb8a85e724249567a564596ca17ad0c8460c0ecf0b983255439a20fcd261d",
+      "command": "Typed-output continuation fixture",
+      "exit_code": 101,
+      "finding": "Reply metadata was read but fixture joined the journal event ID to a message source ID. Corrected to exact conversation-journal provenance before using the source body."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-workflow-provenance.log",
+      "log_sha256": "ea927925625714bb6255b2a89bb74697b878b507fbca16daec6578431186a632",
+      "command": "Source-provenance continuation fixture",
+      "exit_code": 101,
+      "finding": "The source-backed follow-up and unrelated Waiting checks passed. A second resume collided with the shared helper exclusive log path. The fixture now archives the original attempt without overwriting data before repeating resume."
+    }
+  ],
+  "code_review": {
+    "production_changes": "None; use protected service composition, installed Codex and real MCP/native public APIs. No parallel transport, task store, provider adapter or new production API. Earlier production Rustdoc qualification remains at its unchanged source boundary.",
+    "module_lines": {
+      "crates/connect-server/tests/gate4_codex_reply_workflow.rs": 183,
+      "crates/connect-server/tests/fixtures/codex-workflow-tools.js": 10,
+      "crates/connect-server/tests/support/codex_workflow_install.rs": 134,
+      "crates/connect-server/tests/support/codex_workflow_peer.rs": 137,
+      "crates/connect-server/tests/support/codex_workflow_program.rs": 107
+    },
+    "structure": "Separate test assertions, protected installation, deterministic Responses peer, source-attributed continuation programs and small JavaScript tool adapter. New Rust modules have at most 183 lines.",
+    "budgets": "Unchanged ten-second production MCP budgets and shared twenty-second fixture child completion. Final behavior duration is retained in the raw Cargo log; no throughput or stable-load claim.",
+    "opt_in": "Ordinary Cargo marks this selected external-runtime check ignored. The recorded opt-in command executes one test with zero ignored; a missing selected runtime fails.",
+    "warning": "The existing macOS debug linker unwind warning is retained. Strict Rust Clippy and repository format checks pass."
+  },
+  "not_claimed": [
+    "Real-model reasoning, skill instruction following, semantic decision quality or inference-provider compatibility",
+    "Whole G4-018/G4-021/G4-023/G4-025/G4-027, full artifact/independent-incoming app and agent journeys, installed final candidate or A4/T-A/Gate 4 closure",
+    "Production packaged-launcher real-model workflow; this fixture directly selects its scripted Responses provider using actual exec/resume",
+    "Automatic wake/grant renewal, storage-write failure, power-loss durability or full descendant-process-tree cleanup",
+    "Live Vapi, telecom/SMS, model-account or remote deployment operations"
+  ],
+  "related_evidence": [
+    "codex-call-intent.json",
+    "codex-runtime-discovery.json",
+    "codex-delegated-autonomy.json",
+    "codex-host-process.json"
+  ]
+}

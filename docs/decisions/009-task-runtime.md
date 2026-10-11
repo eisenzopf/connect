@@ -418,6 +418,13 @@ HostSession grants. Its Responses peer is scripted and performs no inference.
 G4-018, G4-021 and G4-023 remain open for real-model instruction following,
 useful continuation and full host/installation qualification. Healthy-storage
 process interruption does not attest power-loss or failed-storage behavior.
+The [actual reply-workflow check](../evidence/gate-4/codex-reply-workflow.json)
+adds two independent installed runtime sessions on one Connect server. After a
+bound human reply and owned server restart, exact saved-session continuation
+uses the attributed recalled decision in one follow-up. The unrelated task
+stays waiting, conversation content stays isolated and another replay leaves
+the entire Store unchanged. Scripted Responses programs qualify wiring and
+recovery; real-model and full journey qualification remain open.
 
 ## Protected voice bootstrap composition
 
