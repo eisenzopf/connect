@@ -779,10 +779,10 @@
   },
   "current_full_run_checkpoint": {
     "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T141836.001856Z/result.json",
-    "observed_at": "2026-10-11T14:32:43.634544+00:00",
+    "observed_at": "2026-10-11T14:37:31.973982+00:00",
     "source_revision": "735b20c2ea1ad46ebed051d83f1f7c95978dec56",
     "status": "running",
-    "active_phase": "media-pressure",
+    "active_phase": "upstream-regression",
     "steps": [
       {
         "name": "dependencies",
@@ -1016,8 +1016,96 @@
           "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
           "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
         ]
+      },
+      {
+        "name": "media-pressure",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate3_media_pressure",
+          "--",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1200,
+        "log": "media-pressure.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 121.699,
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "installed-host",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_codex_runtime",
+          "--test",
+          "gate4_codex_call_intent",
+          "--test",
+          "gate4_codex_reply_workflow",
+          "--test",
+          "gate4_codex_packaged_runtime",
+          "--test",
+          "gate4_codex_draft_journey",
+          "--",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1800,
+        "log": "installed-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 19.564,
+        "rust_tests": {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        }
       }
     ],
     "limit": "Intermediate checkpoint, not completed qualification. Eight workspace ignores are required in explicit follow-up phases. The subsequently added combined voice-to-SMS fixture is not in this source."
+  },
+  "historical_input_cache": {
+    "recorded_at": "2026-10-11T14:35:32.002584+00:00",
+    "purpose": "Checksum-verified existing historical inputs for the full runner cached baseline path; not a new historical-source rebuild",
+    "inputs": [
+      {
+        "schema": 6,
+        "source_revision": "8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+        "source_tree": "d88d01d2228ab416b946fdcd2a62f1425f5945c9",
+        "binary_sha256": "4bf6cb242d1cea2e32592b44a0ff55ddd6364161f0d5c6560e9c0767a2682149",
+        "source": ".local/recovery-baselines/8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+        "destination": ".local/gate-4-fresh-493d5c3/.local/recovery-baselines/8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+        "prior_qualification": "docs/evidence/gate-4/historical-recovery.json"
+      },
+      {
+        "schema": 10,
+        "source_revision": "99243f3962cf25e780bbd176e56a4f27c752e121",
+        "source_tree": "dc1208ddacaf40b4245962c2dc492d3c74151785",
+        "binary_sha256": "d807ef2d1f63690553fadc30d30bd5c01f143187f9d6aab0b2d763a69079a39a",
+        "source": ".local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121",
+        "destination": ".local/gate-4-fresh-493d5c3/.local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121",
+        "prior_qualification": "docs/evidence/gate-4/historical-recovery.json"
+      }
+    ]
   }
 }
