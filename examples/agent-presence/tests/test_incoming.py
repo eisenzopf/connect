@@ -148,6 +148,9 @@ class IntakeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             Ledger(self.root / "alias", self.binding)
         (self.root / "public").mkdir(mode=0o755)
+        # Qualification intentionally uses umask 077. Establish the insecure
+        # fixture explicitly rather than relying on the caller's creation mask.
+        (self.root / "public").chmod(0o755)
         with self.assertRaises(ValueError):
             Ledger(self.root / "public", self.binding)
 

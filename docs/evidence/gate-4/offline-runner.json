@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "recorded_at": "2026-10-11T11:24:44.200932+00:00",
-  "status": "previous failures retained; corrections locally qualified; new full offline run active",
+  "status": "component corrections verified; full integrated offline run remains required",
   "items": [
     "G4-031"
   ],
@@ -402,5 +402,55 @@
     },
     "runner_failure_checks_passed": 12,
     "complete_offline_result": "not yet run on this definition"
+  },
+  "incoming_umask_failure": {
+    "source_revision": "379f1034810f0ed0f6d829e8e7fc36753a8123dd",
+    "result": ".local/gate-4-fresh-493d5c3/.local/gate-4-checks/20261011T140029.200507Z/result.json",
+    "result_sha256": "654c584968ce22a6d373923c9420d624de1c962eaba93d1d2e40f631341d3cc4",
+    "status": "failed",
+    "failure": "Full runner umask 077 made mkdir(mode=0755) private, invalidating the public-directory rejection fixture. Explicit chmod establishes the intended insecure fixture; application checks unchanged.",
+    "not_run": [
+      "runner-failure-tests",
+      "lint",
+      "rustdoc",
+      "workspace",
+      "media-pressure",
+      "installed-host",
+      "upstream-regression",
+      "upstream-vapi",
+      "upstream-queues",
+      "upstream-codec",
+      "current-binaries",
+      "agent-incoming-public",
+      "agent-incoming-host",
+      "native-task-capacity",
+      "schema-six-build",
+      "schema-ten-build",
+      "historical-task-recovery",
+      "dispatch",
+      "identity",
+      "typescript-probe",
+      "crash-replay",
+      "examples",
+      "example-recovery",
+      "current-recovery",
+      "datagram-example"
+    ],
+    "correction_checks": [
+      {
+        "umask": "22",
+        "passed": 15,
+        "failed": 0,
+        "log": ".local/gate-4-planning/incoming-umask-22-qualified.log",
+        "sha256": "4f1c31223fdd6e717fe53daeea28b7235d8f1e8109b99662437f258c5b9dc3d0"
+      },
+      {
+        "umask": "77",
+        "passed": 15,
+        "failed": 0,
+        "log": ".local/gate-4-planning/incoming-umask-77-qualified.log",
+        "sha256": "3f45aabdbfde3adb656e778e76682b1df807a235156fe35401a55ad20f671b5e"
+      }
+    ]
   }
 }
