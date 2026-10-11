@@ -1,0 +1,371 @@
+{
+  "schema": 1,
+  "items": [
+    "G4-030",
+    "G4-031",
+    "G4-033"
+  ],
+  "recorded_at": "2026-10-11T16:44:13.422748+00:00",
+  "status": "artifact range fix and age-retention behavior qualified; initial CLI startup failure retained; whole items remain open",
+  "source_revision": "dfda3b19669f648b91a12ac833ed97a09399ddaa",
+  "code_commit": "d93bdd0",
+  "source_stable": true,
+  "source_inputs_sha256": {
+    "scripts/check-retention-load.py": "a78c9c4fabdd1ead06aba2712d6e533cae28b9ea2c9e2e5f842bca287040f0f3",
+    "scripts/lib/mcp_load_http.py": "a40440e2b860bc6cbec66c0b0ef246ce61b832c1a69ff3fd12970e73ee3b1cde",
+    "scripts/lib/retention_profile.py": "e08684454db10a4cfaf576ecab3c4be19ce05c5efc461938a481faff97d60a0f",
+    "scripts/lib/retention_setup.py": "d7d2b2b0c7872444e51c25c7d243e4d33ca2f224feb5228da1d44ca2ec81ab67",
+    "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+    "scripts/lib/profile_metrics.py": "92ddc2f8294ff88f9063f601256d224e215a38ecc7f09d53a2a6971782bd91a7",
+    "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+    "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+    "sdk/python/connect_sdk/protocol.py": "e0deab0cb9989a302973c5aaf44252d295a537f0e5bcfc4cbcd6c7aeecd495c3",
+    "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+    "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+    "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+    "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+    "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+    "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+    "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a"
+  },
+  "rust_delta_sha256": {
+    "crates/connect-store/src/artifacts.rs": "5eeb0f2e0a8f2838c29eb9aa63711ee8815e1574bff422e9f2804bb592c314c2",
+    "crates/connect-store/src/artifacts/read.rs": "779f63934c4eaeb470882d03ea09330234743eaad986c244c74977c0f50228bb",
+    "crates/connect-store/src/artifacts/read/tests.rs": "3b0aea8be92326ebf2cc184996f5f8dad407b233aa944e2d5cb51ecbdcf8a3f5"
+  },
+  "binary_sha256": "1f1d98e9bccb74417f662af9e5505e754843e403c0c4d610bd14f5b7c7ee040b",
+  "binary_profile": "normal debug server at source_revision; no test-support features",
+  "result": ".local/gate-4-fresh-493d5c3/.local/retention-load/20261011T163953.760278Z/result.json",
+  "result_sha256": "3e864b32c412abbfb90ec083cc199359a5291a5b9ecc9b3d80bc751de5c5a05d",
+  "qualification_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/artifact-retention-final/result.json",
+  "qualification_result_sha256": "3a960e50ae8a00104728743ebb1ca2f603f32cf78e5c1acfb943dfe060e9250d",
+  "followup_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/retention-followup/result.json",
+  "followup_result_sha256": "92d84f51671b89751a21e5ba1e1af9529915685971b872bb1eee6432ec00a1c1",
+  "binary_unchanged_from_failed_init": true,
+  "qualification_phases": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.247
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.641
+    },
+    {
+      "name": "runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "runner-failure-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.513
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 2400,
+      "log": "lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 8.183
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 2400,
+      "log": "rustdoc.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 4.28
+    },
+    {
+      "name": "artifact-regression",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_mcp_retention",
+        "--test",
+        "gate4_native_artifacts",
+        "--test",
+        "artifact_recovery",
+        "--test",
+        "gate3_parity",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 2400,
+      "log": "artifact-regression.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 169.558,
+      "rust_tests": {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "current-binaries",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-review-loop",
+        "--bin",
+        "connect",
+        "--bin",
+        "connect-example"
+      ],
+      "timeout_seconds": 1200,
+      "log": "current-binaries.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 16.775
+    },
+    {
+      "name": "task-artifact-retention",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-retention-load.py"
+      ],
+      "timeout_seconds": 240,
+      "log": "task-artifact-retention.log",
+      "status": "failed",
+      "exit_code": 1,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 15.929
+    }
+  ],
+  "followup_phases": [
+    {
+      "name": "task-artifact-retention",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-retention-load.py"
+      ],
+      "timeout_seconds": 240,
+      "log": "task-artifact-retention.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 46.642
+    }
+  ],
+  "elapsed_seconds": 46.508,
+  "profile_phases": [
+    {
+      "name": "thirty-two-expiring-files-and-bounded-chunks",
+      "status": "passed",
+      "seconds": 1.604,
+      "exchanges": 160,
+      "server_sampled_peak_rss_bytes": 92864512,
+      "database_apparent_bytes": 10485984,
+      "latency_ms": {
+        "p50": 88.314,
+        "p95": 601.072,
+        "maximum": 773.905
+      }
+    },
+    {
+      "name": "artifact-expiry-denies-cached-bytes-and-retains-provenance",
+      "status": "passed",
+      "seconds": 10.511,
+      "exchanges": 3584,
+      "server_sampled_peak_rss_bytes": 112590848,
+      "database_apparent_bytes": 10485984,
+      "latency_ms": {
+        "p50": 24.508,
+        "p95": 29.486,
+        "maximum": 32.279
+      }
+    },
+    {
+      "name": "restart-cleans-expired-bytes-but-preserves-sources",
+      "status": "passed",
+      "seconds": 0.206,
+      "exchanges": 64,
+      "server_sampled_peak_rss_bytes": 37076992,
+      "database_apparent_bytes": 6234112,
+      "latency_ms": {
+        "p50": 21.255,
+        "p95": 27.408,
+        "maximum": 29.44
+      }
+    },
+    {
+      "name": "task-expiry-under-load-denies-further-tools",
+      "status": "passed",
+      "seconds": 30.63,
+      "exchanges": 12928,
+      "server_sampled_peak_rss_bytes": 90603520,
+      "database_apparent_bytes": 6234112,
+      "latency_ms": {
+        "p50": 13.94,
+        "p95": 16.221,
+        "maximum": 21.037
+      }
+    },
+    {
+      "name": "restart-preserves-expired-task-records-and-conversations",
+      "status": "passed",
+      "seconds": 0.873,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": 48414720,
+      "database_apparent_bytes": 6201344
+    }
+  ],
+  "server_rss": {
+    "samples": 91,
+    "sampled_peak_bytes": 112590848,
+    "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+  },
+  "observations": {
+    "ready_expiring_files": 32,
+    "file_bytes": 65536,
+    "verified_chunks": 32,
+    "chunk_bytes": 32768,
+    "artifact_expiry_responses": {
+      "available": 3488,
+      "expired": 32
+    },
+    "expired_receipt_replays_denied": 32,
+    "expired_sources_retained": 32,
+    "message_sources_available": 32,
+    "expired_blobs_removed_on_restart": 32,
+    "live_control_blob_preserved": true,
+    "task_expiry_responses": {
+      "200": 12896,
+      "401": 0
+    },
+    "expired_task_tools_denied": 32,
+    "retained_expired_task_records": 32,
+    "original_messages_retained": 32,
+    "expired_task_renewals_denied": 32
+  },
+  "code_change": [
+    "ArtifactGet previously read the entire final blob and then sliced the requested chunk. The new read module validates the existing metadata and opened file handle, seeks to the authorized offset and reads exactly the smaller of requested limit and remaining bytes.",
+    "Memory allocated for blob content in this read path is proportional to the requested chunk, not the complete file. Existing scope, expiry, file type/name/size checks and EOF behavior remain; short physical reads return storage failure.",
+    "The implementation is a separate 69-line read module; the metadata/upload module is 329 lines. No schema, dependencies, public contract or upstream source changes."
+  ],
+  "proof": [
+    "Two new I/O regressions use a Read/Seek observer that rejects access outside a 32 KiB window at offsets in a virtual 16 MiB blob, plus EOF and short-read cases. This is direct I/O-bound evidence, not a process memory benchmark of a 16 MiB file.",
+    "All 205 connect-store tests pass, including artifact authority, digest, quota, concurrent ranges, deletion, migration and recovery cases; no failures or ignores.",
+    "Strict workspace all-target/all-feature Clippy, strict public Rustdoc and formatting pass at clean dfda3b1. All 37 qualification verifier tests pass.",
+    "Five server integration checks pass: backup/restore artifacts, native/HTTP parity, MCP expiry/reconnect, native upload continuation denial on revoke, and native byte resume/current scope/deletion.",
+    "The separate server profile uploads 32 expiring 64 KiB artifacts in 32 KiB chunks through task-bound MCP. It verifies accepted reads and repeated reads through real wall-clock expiry.",
+    "All 32 accepted read receipts become forbidden after artifact expiry; recall retains expired source references with no body and available original message sources.",
+    "Server restart removes all 32 expired final blob files, preserves a non-expiring control file and its exact bytes, and keeps expired source references inaccessible for byte replay.",
+    "Repeated 32-request status bursts run to the task lifetime boundary; explicit post-boundary tool requests all deny access. Public owner Get commits and inspects expired records.",
+    "Another server restart preserves all 32 expired task records, scopes, expiry times and original message IDs. All 32 attempted owner-issued replacement grants for those expired tasks are forbidden.",
+    "No inherited process leaks appear in either supervised run. No live provider or production state is used."
+  ],
+  "store_tests": {
+    "command": "CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-store --all-features",
+    "passed": 205,
+    "failed": 0,
+    "ignored": 0,
+    "exit_code": 0,
+    "log": ".local/gate-4-planning/artifact-range-store.log",
+    "log_sha256": "c824719be134865f0f855bb7e0e6037a77f6c787f43c91cdcaac1d252a247677",
+    "source_scope": "Began before the commits; changed Rust inputs match the clean dfda3b1 checkout. Dependencies prepared and formatting applied before build."
+  },
+  "failed_attempts": [
+    {
+      "stage": "qualification driver preflight",
+      "log": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/artifact-retention-driver.log",
+      "cause": "The isolated clone had a stale local branch ref at 493d5c3. The driver rejected the missing retention phase before running checks. Selected explicit dfda3b1 for subsequent qualification."
+    },
+    {
+      "stage": "retention profile initialization",
+      "result": ".local/gate-4-fresh-493d5c3/.local/retention-load/20261011T163738.845327Z/result.json",
+      "cause": "The newly rebuilt normal CLI exceeded the existing 15-second init deadline before profile phases. No retention phase passed in this attempt. The phase exited 1 with no leaked processes.",
+      "followup": "Read-only --version completed in 0.0165s, then the exact unchanged retention phase passed. No timeout or executable changed; startup cause is not established."
+    }
+  ],
+  "unresolved_findings": [
+    {
+      "finding": "One rebuilt debug CLI initialization exceeded 15 seconds; unchanged follow-up passed.",
+      "status": "startup cause unresolved",
+      "diagnostic": ".local/gate-4-planning/artifact-range-startup-diagnostic.json",
+      "follow_up": "Retain for current-source full-run and candidate startup qualification. Do not call the startup cause fixed."
+    }
+  ],
+  "earlier_component_pass": ".local/retention-load/20261011T163011.894302Z/result.json",
+  "limits": [
+    "Local macOS arm64 only. Thirty-two tasks/files are the tested concurrency workload, not a new quota. No inference, providers, public ingress or deployment.",
+    "The profile uses 12-second artifact and 45-second task lifetimes; it does not simulate 24 hours or fill the entire 256 MiB artifact storage quota.",
+    "Cleanup observations concern expired blob files on startup, not secure erasure of backups, prior downloads or all retained database bytes. Source metadata and receipts remain subject to current authorization.",
+    "The grant lifetime is bounded by the task lifetime. Post-expiry tool denial is complemented by owner inspection of persisted expired task state and forbidden renewal, not attributed solely to one auth check.",
+    "RSS samples include the separate server only and are not an exact peak or memory guarantee.",
+    "The first eight-phase run failed initialization after seven passed phases. Its unchanged retention follow-up passed separately; no all-green first-run or new full gate run is claimed.",
+    "This production change is newer than the b4f5fde full run and installed package. Current full regression/package qualification, retired voice metadata and remaining gate acceptance stay open."
+  ]
+}

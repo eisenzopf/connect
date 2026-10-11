@@ -2559,5 +2559,15 @@
       }
     ],
     "scope": "Five exact current phases; not a new full run. See grant-lifecycle-load.json."
+  },
+  "artifact_range_and_retention": {
+    "source_revision": "dfda3b19669f648b91a12ac833ed97a09399ddaa",
+    "source_stable": true,
+    "qualification_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/artifact-retention-final/result.json",
+    "qualification_result_sha256": "3a960e50ae8a00104728743ebb1ca2f603f32cf78e5c1acfb943dfe060e9250d",
+    "followup_result": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/retention-followup/result.json",
+    "followup_result_sha256": "92d84f51671b89751a21e5ba1e1af9529915685971b872bb1eee6432ec00a1c1",
+    "binary_unchanged_from_failed_init": true,
+    "scope": "Seven phases passed before the retained init timeout; the unchanged retention follow-up passed separately. Production range-read change requires a later current full run."
   }
 }

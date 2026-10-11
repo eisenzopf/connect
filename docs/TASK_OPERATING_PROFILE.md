@@ -253,10 +253,63 @@ The grants are short by design. Existing contract tests establish the
 outlast these grants, so elapsed-task terminalization, artifact expiry under
 load and retired voice metadata retain their separate operating checks.
 
+## Artifact and task age retention
+
+The [artifact retention result](evidence/gate-4/artifact-retention-load.json)
+qualifies 32 expiring artifacts and tasks through public interfaces, real
+wall-clock expiry and two server restarts.
+
+```sh
+python3 scripts/check-retention-load.py --binary /absolute/path/to/connect
+```
+
+The 180-second profile creates private `.local/retention-load/` state. Each task
+uploads a 64 KiB artifact using 32 KiB chunks, then repeatedly replays the same
+accepted read as the artifact's twelve-second lifetime elapses. Expiry must
+return a business denial even for that previously accepted request. Recall
+retains the expired reference and provenance with no body, alongside the
+original available conversation message.
+
+Restart removes the 32 expired final blob files. A separate non-expiring control
+file must retain its exact bytes. Expired source references remain visible and
+cannot retrieve bytes after cleanup. The second part runs status requests to
+the tasks' 45-second lifetime boundary, then checks denial and uses the public
+owner interface to commit and inspect their expired state. Another restart must
+preserve all task records and original message IDs. New owner-issued grants for
+these expired tasks are denied; extending authority requires a separately
+created task, not silently changing the original lifetime or conversation.
+
+The range-read review also found that fetching a small artifact chunk read the
+whole blob into memory first. Commit `d93bdd0` moves reads into a small module
+that validates the opened file, seeks to the requested offset and reads only the
+bounded range. Existing authority and expiry checks remain. Two new I/O tests
+reject reads outside a 32 KiB window in a virtual 16 MiB file and check EOF and
+short-read errors. They establish I/O bounds, not a large-file process-memory
+benchmark. All 205 store tests and five server artifact regressions pass, as do
+strict workspace Clippy, Rustdoc, formatting and 37 verifier checks.
+
+At clean `dfda3b1`, the unchanged profile follow-up passed in 46.508 seconds.
+Sampled server RSS peaked at about 107.4 MiB. Its artifact expiry loop returned
+3,488 successful reads and 32 denials; explicit post-expiry probes separately
+verify all 32 denials. Task status requests continued until expiry, followed by
+32 explicit post-boundary denials. These are local workload measurements, not
+memory or throughput guarantees, a 24-hour endurance run, or a full 256 MiB
+storage-quota test. Cleanup concerns final blob files on startup, not secure
+erasure of backups, downloads or every retained database byte.
+
+The first source-stable qualification passed seven phases but failed the
+retention phase during CLI initialization at the existing 15-second deadline.
+A read-only startup diagnostic and the unchanged profile then passed; neither
+binary nor timeout changed. The initial failure remains recorded and its cause
+is unresolved. The older full-run and installed-package results predate this
+production change, so current full regression and package qualification remain
+required.
+
 ## Work still required
 
-Remaining operating work includes artifact/task age-based retention under load
-and retained voice-setup metadata. The
+Remaining operating work includes retained voice-setup metadata. Current-source
+full regression, installed-candidate qualification and the recorded startup/QUIC
+shutdown findings also remain open. The
 [installed local candidate](evidence/gate-4/package-candidate.json) separately
 passes its package checks; real-model journeys, whole-item dependencies and
 full Gate 4 acceptance remain open. The separate
