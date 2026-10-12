@@ -110,6 +110,6 @@
   "historical_evidence_boundary": "5d baseline and 7ed package/live/recovery evidence retain their recorded revisions. This source materially changes default MCP semantics and must not be described as one literal common-source run of historical proof.",
   "behavior_evidence": [
     "agent-default-authority.json",
-    "agent-cli-unit.json"
+    "agent-access-cli.json"
   ]
 }

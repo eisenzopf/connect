@@ -48,7 +48,8 @@
       "exit_code": 0,
       "leftover_group_members": [],
       "group_cleanup": "signalled",
-      "seconds": 0.64
+      "seconds": 0.64,
+      "log_sha256": "95762bc083593fd851fdd8f529fedecc077e503d721ad612455cbe9569bd0d6e"
     },
     {
       "name": "format-read-only",
@@ -63,7 +64,8 @@
       "exit_code": 0,
       "leftover_group_members": [],
       "group_cleanup": "signalled",
-      "seconds": 0.773
+      "seconds": 0.773,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ],
   "compile_dependencies": [
@@ -79,7 +81,8 @@
       "exit_code": 0,
       "leftover_group_members": [],
       "group_cleanup": "signalled",
-      "seconds": 0.134
+      "seconds": 0.134,
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
     },
     {
       "name": "cli-unit-compile",
@@ -100,7 +103,8 @@
       "exit_code": 0,
       "leftover_group_members": [],
       "group_cleanup": "signalled",
-      "seconds": 9.353
+      "seconds": 9.353,
+      "log_sha256": "239f22103bf6caf9a97902c6bccb30e79b6a88fac4a493d991ce9cc7202b847f"
     }
   ],
   "private_report": {
@@ -116,7 +120,8 @@
       "ignored": 0
     },
     "cause": "--nocapture interleaved non-secret CLI JSON between case name and ok; named-case report parser assertion failed. Product test phase passed 5/0/0.",
-    "retained": true
+    "retained": true,
+    "actual_test_log_sha256": "4d76567e4415315ce1a0cf14c68d2a9251f5274aa22f8f616082f9458e3da7c1"
   },
   "verification": [
     "Regular export retains the selected non-admin key, leaves database state unchanged, produces no task-grant/renewal files and cannot overwrite an existing installation.",
