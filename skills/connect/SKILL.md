@@ -42,8 +42,16 @@ host cannot retain call input, report the limitation rather than claiming the
 workflow is restart-safe.
 
 Send an explicit question with `connect_send` and `wait_for_reply: true`.
-Use `reply_to` only for an attributed question/reply reference belonging to this
-task. Share files with artifact begin, bounded append and finish; preserve the
+For a follow-up to an attributed reply, set `reply_to` to its received **journal
+event ID**: copy `data.events[*].data.data.event_id` from `connect_task_wait`
+where `data.kind` is `reply` and the nested `task_id` matches this task. The outer
+task-event `id`, recalled `source_id`, message ID and original question's
+`reply_to` are different identifiers and cannot be substituted. To answer a
+task's initiating message, use its `initiating_event_id` from task status.
+Omit `reply_to` for a new question or independent update. Keep source IDs in the
+message body when citing context; they are not reply-routing arguments.
+
+Share files with artifact begin, bounded append and finish; preserve the
 upload ID, offset and integrity metadata. Read authorized bytes with artifact
 get. Recall metadata alone neither grants byte access nor proves delivery.
 Use supported session/call/SIP tools for the requested voice path; acceptance

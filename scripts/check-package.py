@@ -37,6 +37,20 @@ def passed(name, detail):
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+
+def first_launch(name, binary, working_directory):
+    """Measure macOS loader assessment separately from application deadlines."""
+    from lib.qualification_process import run_phase
+    from lib.qualification_report import environment
+    result = run_phase('first-launch-'+name, [binary, '--version'], 180,
+                       results, working_directory, environment(codex_binary))
+    report.setdefault('installation_startup', {})[name] = result
+    save()
+    if result['status'] != 'passed' or not (results/result['log']).read_text().strip():
+        raise RuntimeError('Fresh executable startup failed: '+name)
+    passed('first-launch-'+name, 'First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged')
+
+
 save()
 try:
     checksums = {}
@@ -129,6 +143,11 @@ try:
         from lib.examples import EXAMPLE, inspect, pair
         assert BINARY == (release/'bin/connect').resolve(), 'Server helper escaped the installed runtime'
         assert EXAMPLE == (release/'bin/connect-example').resolve(), 'Example helper escaped the installed runtime'
+        # A freshly extracted Mach-O can wait in macOS security assessment
+        # before main. Measure that installation step separately; subsequent
+        # CLI, service and protocol deadlines retain their existing bounds.
+        for name, binary in [('connect', BINARY), ('example', EXAMPLE), ('schema1', prior)]:
+            first_launch(name, binary, work)
         assert manifest['version'] in run('--version').stdout
         state = work/'state'
         init = run('init', '--directory', state, '--example', 'review-loop', '--bind', f'127.0.0.1:{port()}')
@@ -191,6 +210,8 @@ try:
         from lib.qualification_report import environment
         faults, report['qualification_fixtures'] = prepare(source, results/'qualification-fixtures', manifest)
         passed('qualification-fixture-build', 'Exact extracted source; owned compilation phase; test-only controls isolated from installed runtime binaries')
+        for name in ['connect', 'connect-example']:
+            first_launch('fault-'+name, faults/name, work)
         legacy_env = environment(codex_binary)
         legacy_env.update(CONNECT_BINARY=str(BINARY), CONNECT_EXAMPLE_BINARY=str(EXAMPLE),
                           CONNECT_TEST_BINARY=str(BINARY), PYTHONPATH=str(release/'sdk/python'),

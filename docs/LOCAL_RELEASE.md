@@ -18,6 +18,14 @@ Extract the runtime archive into a new `releases/` directory. Keep state outside
 the extracted release. Use the absolute path of `bin/connect` below; no PATH,
 daemon, DNS, tunnel, or existing installation change is required.
 
+On macOS, a new executable can pause in system security assessment before
+Connect starts. Package qualification records that first `--version` launch
+separately with a 180-second installation budget and owned-process cleanup.
+It then repeats the version command under the ordinary 15-second CLI budget;
+service, MCP and media deadlines are unchanged. A first-launch timeout fails
+qualification and remains recorded. Do not disable system security or retry a
+communication with a new logical ID to work around installation startup.
+
 ## Start a private local installation
 
 In terminal 1:

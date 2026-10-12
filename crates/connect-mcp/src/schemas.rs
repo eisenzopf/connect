@@ -34,7 +34,9 @@ pub(crate) fn input(spec: &Spec) -> Map<String, Value> {
                 "connect_resolve" | "connect_capabilities" => field("address", string(256), true),
                 "connect_send" => {
                     field("body", string(65_536), true);
-                    field("reply_to", nullable_string(128), false);
+                    let mut reply = nullable_string(128);
+                    reply["description"] = json!("Received journal event ID belonging to this task. For an attributed reply, copy data.events[*].data.data.event_id from connect_task_wait where data.kind is reply and task_id matches. For the task's initiating message, use initiating_event_id from connect_task_status. Do not use a message/source ID, the outer task-event id, or the question's reply_to. Omit for a new question or independent update.");
+                    field("reply_to", reply, false);
                     field("wait_for_reply", json!({"type":"boolean"}), false);
                 }
                 "connect_history" | "connect_context_deliveries" => {
