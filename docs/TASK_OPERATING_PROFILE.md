@@ -439,8 +439,11 @@ archived scoped-mode evidence; historical live voice/SMS retains its own source.
 The [Gate 4 review](evidence/gate-4/acceptance.html) records all 41 required
 offline phases from a fresh clean `dc73996` checkout, plus the separately
 qualified package/model/provider evidence. All 839 recorded inputs stayed
-unchanged throughout that clean run. The final README status and guide updates
-are documentation; the other 838 recorded inputs still match the frozen source.
+unchanged throughout that clean run. At the `d749dfe` owner-review checkpoint,
+the README status and guide updates were documentation; the other 838 recorded
+inputs matched the frozen source. Subsequent [CI setup and contributor guide
+updates](evidence/gate-4/ci-main-sync.json) preserve all application code and
+record their separate source differences.
 Independent pinned dependency preparation and reuse of verified generated
 Cargo/baseline caches are recorded. The prior `9546c6` partial run
 preserves its documentation-only `dirty=true` provenance and actual interruption;
