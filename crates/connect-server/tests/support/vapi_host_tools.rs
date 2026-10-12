@@ -14,6 +14,7 @@ pub async fn chat(
     let http = tokio::task::spawn_blocking(|| {
         let mut headers = reqwest_mcp::header::HeaderMap::new();
         headers.insert("x-chat-id", "installed-chat".parse().unwrap());
+        headers.insert("x-call-id", "installed-chat".parse().unwrap());
         headers.insert("x-session-id", "installed-session".parse().unwrap());
         reqwest_mcp::Client::builder()
             .no_proxy()

@@ -36,6 +36,20 @@ Save a private JSON manifest (mode `0600`) with these fields:
 | `callback_bind` | Chat only: stable loopback TCP address with a nonzero port |
 | `callback_url` | Optional advertised URL, otherwise the local `/mcp` URL |
 
+The task owner can be an existing application or assistant identity. Issue its
+parent configuration through the administrator's local CLI; `--tasks` adds task
+management and delegation, while `--voice` adds communication session controls:
+
+```sh
+connect issue --config .local/operator.toml --server-config .local/server.toml \
+  --identity-id ASSISTANT_ID --recipients HUMAN_ID --voice --tasks \
+  --output .local/task-owner.toml
+```
+
+This configuration has no admin scope. It owns tasks within its recipient and
+communication ceiling. Keep it outside the model; export only the task's narrow
+invocation grant. Existing messaging credentials are not silently upgraded.
+
 Set `VAPI_PRIVATE_KEY` in the operator environment. The default API origin is
 `https://api.vapi.ai/`. `CONNECT_VAPI_API_BASE_URL` can explicitly select an HTTPS
 origin or a local simulator at `http://127.0.0.1:PORT/` or `http://localhost:PORT/`.
@@ -48,12 +62,18 @@ inherited provider credentials and supplies a fixture key and loopback origin.
 
 ```sh
 connect vapi-task serve \
-  --config /private/connect/host-owner.toml \
+  --config /private/connect/task-owner.toml \
+  --operator-config /private/connect/operator.toml \
   --server-config /private/connect/server.toml \
   --input /private/connect/vapi-task.json
 ```
 
 Use the existing server configuration; no database is initialized or erased.
+`--config` authenticates the task owner named by `definition.credential_id`.
+`--operator-config` separately authenticates permission to start the local
+installation. If the owner is already an administrator, the optional operator
+argument defaults to that owner for compatibility. Neither credential reaches
+Vapi or the model, and neither substitutes for current per-task authorization.
 This runs the normal server, including configured provider workers. Optional
 `--http-bind 127.0.0.1:PORT` enables its local HTTP/JSON facade. The server prints
 its actual local callback address and task/resource IDs, never the setup secret,

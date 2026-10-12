@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T01:49:11.613705+00:00",
+  "status": "All eight remaining phases passed in a separate unchanged-source invocation",
+  "source_revision": "55eaa99d91534588a4b26b8c88443248b7c82276",
+  "phases": [
+    {
+      "name": "dispatch",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-dispatch.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "dispatch.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.243
+    },
+    {
+      "name": "identity",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-identity.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "identity.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 4.266
+    },
+    {
+      "name": "typescript-probe",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-typescript.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "typescript-probe.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.36
+    },
+    {
+      "name": "crash-replay",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-crash-replay.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "crash-replay.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 18.531
+    },
+    {
+      "name": "examples",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-examples.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "examples.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 9.609
+    },
+    {
+      "name": "example-recovery",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-example-recovery.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "example-recovery.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 14.088
+    },
+    {
+      "name": "current-recovery",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-recovery.py",
+        "--current-only"
+      ],
+      "timeout_seconds": 660,
+      "log": "current-recovery.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.632
+    },
+    {
+      "name": "datagram-example",
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--example",
+        "quic_audio"
+      ],
+      "timeout_seconds": 600,
+      "log": "datagram-example.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.354
+    }
+  ],
+  "private_result_sha256": "cc800f85f49baf995e4aae69941835a46a31662c53ac5b5121930afe8735dce8",
+  "dispatch_observation": {
+    "status": "passed",
+    "budget": "original 10s startup, 15s client, 10s shutdown",
+    "binary": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect/target/debug/examples/quic_dispatch",
+    "server_pid": 37117,
+    "startup_seconds": 0.032,
+    "server_exit_code": 0
+  },
+  "retained_failure": "docs/evidence/gate-4/offline-55eaa99-attempt-1.json",
+  "limits": [
+    "Original full invocation and first remaining-phase invocation stay failed; no deadline changed.",
+    "The separate unchanged dispatch observation started within 0.032 seconds and passed; this does not establish the preceding failure cause.",
+    "Together with the original 32 passes and the exact historical repeat, every 55eaa99 offline phase has passing evidence. The current Vapi/owner changes still require qualification."
+  ]
+}

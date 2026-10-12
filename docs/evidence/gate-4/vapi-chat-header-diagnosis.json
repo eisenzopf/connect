@@ -1,0 +1,20 @@
+{
+  "result": "confirmed header alias rejected at initialization",
+  "observed_rpc": "initialize",
+  "response_status": 401,
+  "authorization_header_present": true,
+  "origin_header_present": false,
+  "call_id_equals_chat_id": true,
+  "chat_id_matches_actual_chat": true,
+  "session_id_matches_verified_session": true,
+  "provider_model_tool_list": [],
+  "effects": "none observed",
+  "temporary_ingress_and_proxy": "SIGTERM requested for exact owned processes",
+  "schema": 1,
+  "recorded_at": "2026-10-12T00:48:16.346259+00:00",
+  "status": "Actual provider transport mismatch identified; fix and qualification in progress",
+  "source_revision": "55eaa99d91534588a4b26b8c88443248b7c82276",
+  "private_trace_sha256": "2e06c256dc64602a511d0b33216f1e7a535c67f55be1cdfcaa466ac091e9c73c",
+  "correction": "Session-chat correlation permits the repeated chat ID in X-Call-Id only when it exactly equals X-Chat-Id. All actual authority still comes from the configured secret, private resource/nonce verification and current task/grant ceiling. Bootstrap and fixed-binding admission share one parser.",
+  "remaining": "Focused behavioral/security checks, strict lint/docs, then actual model/tool use with the corrected installed release; voice and SMS remain open."
+}

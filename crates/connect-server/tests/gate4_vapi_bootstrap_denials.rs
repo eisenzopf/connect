@@ -48,7 +48,7 @@ async fn malformed_or_foreign_headers_deny_before_private_lookup_or_mutation() {
     setup.uncertain(&f).await;
     let before = Store::inspect_snapshot(f.server.store.path()).unwrap();
     let state = bootstrap::read(&setup.directory);
-    for case in 0..9 {
+    for case in 0..10 {
         let mut h = headers(&setup, "session-one");
         match case {
             0 => {
@@ -81,8 +81,11 @@ async fn malformed_or_foreign_headers_deny_before_private_lookup_or_mutation() {
             7 => {
                 h.insert("x-session-id", "../other".parse().unwrap());
             }
-            _ => {
+            8 => {
                 h.append("x-chat-id", "other-chat".parse().unwrap());
+            }
+            _ => {
+                h.append("x-call-id", "chat-in-this-session".parse().unwrap());
             }
         }
         assert!((400..500).contains(&admit(&setup, h).await), "case {case}");

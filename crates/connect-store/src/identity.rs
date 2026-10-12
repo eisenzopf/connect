@@ -3,6 +3,10 @@ use connect_protocol::{Error, Identity, Result};
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
+// Messaging, voice/session control and task ownership need more than 32
+// explicit permissions together. Keep issuance bounded without requiring '*'.
+const MAX_CREDENTIAL_OPERATIONS: usize = 64;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Scope {
@@ -274,7 +278,10 @@ fn issue_on_connection(
             "Credential expiry must be within the next 365 days",
         ));
     }
-    if scope.operations.is_empty() || scope.operations.len() > 32 || scope.recipients.len() > 128 {
+    if scope.operations.is_empty()
+        || scope.operations.len() > MAX_CREDENTIAL_OPERATIONS
+        || scope.recipients.len() > 128
+    {
         return Err(Error::new("invalid-request", "Invalid credential scope"));
     }
     let issued = IssuedCredential {

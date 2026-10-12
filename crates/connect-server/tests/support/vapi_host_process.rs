@@ -16,11 +16,14 @@ pub struct Process {
     stdout: String,
     stderr: std::path::PathBuf,
 }
-fn command(state: &StoppedHost, input: &Path, api: &str, log: &Path, action: &str) -> Command {
-    let binary = std::env::var_os("CONNECT_TEST_BINARY")
+/// Select the installed candidate when qualifying archives; otherwise Cargo's CLI.
+pub fn binary() -> std::path::PathBuf {
+    std::env::var_os("CONNECT_TEST_BINARY")
         .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| env!("CARGO_BIN_EXE_connect").into());
-    let mut command = Command::new(binary);
+        .unwrap_or_else(|| env!("CARGO_BIN_EXE_connect").into())
+}
+fn command(state: &StoppedHost, input: &Path, api: &str, log: &Path, action: &str) -> Command {
+    let mut command = Command::new(binary());
     command.env_clear().current_dir(&state.directory);
     for key in ["PATH", "HOME", "TMPDIR", "USER", "LANG"] {
         if let Some(value) = std::env::var_os(key) {
@@ -41,6 +44,10 @@ fn command(state: &StoppedHost, input: &Path, api: &str, log: &Path, action: &st
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(std::fs::File::create(log).unwrap());
+    let operator = state.directory.join("host-operator.toml");
+    if operator.is_file() {
+        command.arg("--operator-config").arg(operator);
+    }
     command
 }
 impl Process {

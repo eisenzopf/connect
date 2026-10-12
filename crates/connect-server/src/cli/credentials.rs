@@ -3,8 +3,30 @@ use super::init::{private_directory, private_replace, private_write};
 use crate::{config::ServerConfig, installation::InstallationLock, tls};
 use anyhow::Result;
 use connect_client::ClientConfig;
-use connect_store::Store;
+use connect_store::{Scope, Store};
 use std::path::Path;
+
+/// Add task ownership and delegation to an explicitly issued local credential.
+/// Communication rights and recipients are unchanged; this grants no admin scope.
+pub fn with_task_management(mut scope: Scope) -> Scope {
+    scope.operations.extend(
+        [
+            "task_create",
+            "task_get",
+            "task_cancel",
+            "task_replies",
+            "task_consume_reply",
+            "task_invoke",
+            "task_inbox",
+            "task_wait",
+            "task_recall",
+            "task_effect_get",
+            "task_grant",
+        ]
+        .map(str::to_string),
+    );
+    scope
+}
 
 pub fn rotate_tls(server_path: &Path, operator_path: &Path) -> Result<()> {
     let mut server = ServerConfig::load(server_path)?;

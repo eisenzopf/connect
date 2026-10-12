@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T01:12:50.284328+00:00",
+  "status": "Current same-purpose reviewed enrollment verified; no Gate 4 carrier send yet",
+  "scope": "Separate live preparation using the existing self-submitted Rudeless form consent, approved campaign, sender and original conversation; no new enrollment or phone number",
+  "review": {
+    "same_consent": true,
+    "same_conversation": true,
+    "same_sender": true,
+    "same_purpose": true,
+    "expiry_utc": "2026-10-13T01:11:06+00:00",
+    "feed_revision": 2,
+    "normal_admin_api_authenticated": true,
+    "prior_approval_retained": true,
+    "new_approval_immutable": true
+  },
+  "preservation": "Admin approval API does not clear STOP. A consistent backup, isolated restore and migration retain the existing Connect enrollment/keyword state; original server/database remain untouched.",
+  "private_evidence_sha256": {
+    "sms-approval-renewal-intent.json": "8cff907f86135902365bc7b651c5d1e545eef209b733eba91f598db0be9513dc",
+    "sms-approval-renewal-response-private.json": "b4eacf8048bd48bf9b7a57df6c810573a6551fca28ca62c75ca1bf4f0e7f7c0b",
+    "sms-feed-after-renewal-private.json": "669123cea5ba96d0c4eeb1e7808883b7fbb6ddf426cc8698f70e8b194bc0e339"
+  },
+  "remaining": "Prepare the task owner and task SMS scope through the public interfaces; validate current authority/opt-out before a bounded live send, then verify signed delivery and keyword suppression/recovery."
+}

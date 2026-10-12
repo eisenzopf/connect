@@ -83,3 +83,45 @@ fn refuses_unknown_schema_without_altering_it() {
         999
     );
 }
+
+#[test]
+fn explicit_credential_permissions_remain_bounded_without_admin_escalation() {
+    let directory = tempfile::tempdir().unwrap();
+    let store =
+        Store::initialize(&directory.path().join("state.sqlite3"), Limits::default()).unwrap();
+    let identity = store.create_identity("task-owner").unwrap();
+    let permissions = (0..64)
+        .map(|n| format!("permission_{n}"))
+        .collect::<Vec<_>>();
+    let expiry = chrono::Utc::now().timestamp() + 120;
+    let key = store
+        .issue(
+            &identity.id,
+            Scope {
+                operations: permissions.clone(),
+                recipients: Vec::new(),
+            },
+            expiry,
+        )
+        .unwrap();
+    let actor = store.authenticate(&key.token).unwrap();
+    assert!(actor.permits("permission_63"));
+    assert!(!actor.permits("admin") && !actor.permits("permission_64"));
+    let mut oversized = permissions;
+    oversized.push("permission_64".into());
+    assert_eq!(
+        store
+            .issue(
+                &identity.id,
+                Scope {
+                    operations: oversized,
+                    recipients: Vec::new(),
+                },
+                expiry,
+            )
+            .err()
+            .unwrap()
+            .code,
+        "invalid-request"
+    );
+}

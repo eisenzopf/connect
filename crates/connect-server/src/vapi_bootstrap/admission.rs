@@ -3,7 +3,7 @@ use super::state::Locked;
 use async_trait::async_trait;
 use axum::http::HeaderMap;
 use connect_connectors::{vapi_origin::OriginKind, Vapi};
-use connect_mcp::McpAuthenticator;
+use connect_mcp::{McpAuthenticator, VapiOrigin};
 use connect_protocol::{Error, Result};
 use connect_service::{tasks::TaskInvocation, Service};
 use hmac::{Hmac, Mac};
@@ -45,7 +45,12 @@ impl McpAuthenticator for BootstrapAuth {
         tag(credential)?
             .verify_slice(&tag(&state.secret)?.finalize().into_bytes())
             .map_err(|_| Error::unauthorized())?;
-        let external = correlate(headers, state.definition.origin)?;
+        let origin = match state.definition.origin {
+            OriginKind::Call => VapiOrigin::Call,
+            OriginKind::Chat => VapiOrigin::Chat,
+            OriginKind::ChatSession => VapiOrigin::ChatSession,
+        };
+        let external = origin.correlate(headers)?;
         super::binding::bind(&self.service, &self.provider, &mut held, external).await
     }
 }
@@ -61,40 +66,4 @@ fn bearer(headers: &HeaderMap) -> Result<&str> {
         return Err(Error::unauthorized());
     }
     Ok(token)
-}
-fn identifier<'a>(headers: &'a HeaderMap, name: &str) -> Result<&'a str> {
-    let mut values = headers.get_all(name).iter();
-    let value = values
-        .next()
-        .and_then(|v| v.to_str().ok())
-        .filter(|v| {
-            !v.is_empty()
-                && v.len() <= 128
-                && v.bytes()
-                    .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
-        })
-        .ok_or_else(Error::forbidden)?;
-    if values.next().is_some() {
-        return Err(Error::forbidden());
-    }
-    Ok(value)
-}
-fn correlate(headers: &HeaderMap, kind: OriginKind) -> Result<&str> {
-    match kind {
-        OriginKind::Call
-            if !headers.contains_key("x-chat-id") && !headers.contains_key("x-session-id") =>
-        {
-            identifier(headers, "x-call-id")
-        }
-        OriginKind::Chat
-            if !headers.contains_key("x-call-id") && !headers.contains_key("x-session-id") =>
-        {
-            identifier(headers, "x-chat-id")
-        }
-        OriginKind::ChatSession if !headers.contains_key("x-call-id") => {
-            identifier(headers, "x-chat-id")?;
-            identifier(headers, "x-session-id")
-        }
-        _ => Err(Error::forbidden()),
-    }
 }

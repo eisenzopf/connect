@@ -68,6 +68,9 @@ enum Command {
         expires_days: u32,
         #[arg(long)]
         voice: bool,
+        /// Enable owned-task management/delegation; never grants admin access.
+        #[arg(long)]
+        tasks: bool,
         #[arg(long)]
         output: PathBuf,
     },
@@ -311,6 +314,7 @@ async fn main() -> Result<()> {
             recipients,
             expires_days,
             voice,
+            tasks,
             output,
         } => {
             anyhow::ensure!(!output.exists(), "Credential output must be a new file");
@@ -322,14 +326,20 @@ async fn main() -> Result<()> {
             let server = ServerConfig::load(&server_config)?;
             let store = connect_store::Store::open(&server.database, server.limits)?;
             let actor = store.authenticate(&operator.credential)?;
+            let scope = if voice {
+                connect_store::Scope::communications(recipients)
+            } else {
+                connect_store::Scope::messaging(recipients)
+            };
+            let scope = if tasks {
+                connect_server::cli::credentials::with_task_management(scope)
+            } else {
+                scope
+            };
             let key = store.issue_as(
                 &actor,
                 &identity_id,
-                if voice {
-                    connect_store::Scope::communications(recipients)
-                } else {
-                    connect_store::Scope::messaging(recipients)
-                },
+                scope,
                 chrono::Utc::now().timestamp() + i64::from(expires_days) * 86400,
             )?;
             let id = key.id.clone();

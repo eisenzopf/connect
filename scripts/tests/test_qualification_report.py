@@ -48,7 +48,7 @@ class IncomingCoverageTests(unittest.TestCase):
     def test_each_required_example_phase_counts_actual_tests(self):
         for name, count in [('agent-incoming-unit', 15), ('agent-incoming-public', 1),
                             ('agent-incoming-host', 1), ('voice-rehearsal-unit', 10),
-                            ('chat-rehearsal-unit', 16)]:
+                            ('chat-rehearsal-unit', 18)]:
             with self.subTest(name=name):
                 result = self.check_log(name, f'Ran {count} tests in 1.0s\n\nOK\n')
                 self.assertEqual(result['python_tests']['passed'], count)

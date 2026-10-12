@@ -131,6 +131,9 @@ async fn call_chat_and_session_bearers_cannot_select_another_task_or_origin() {
             let mut duplicate_chat = valid_headers.clone();
             duplicate_chat.append("x-chat-id", "other-chat".parse().unwrap());
             cases.push((duplicate_chat, grant.expose_secret().to_owned()));
+            let mut duplicate_alias = valid_headers.clone();
+            duplicate_alias.append("x-call-id", "chat-in-this-session".parse().unwrap());
+            cases.push((duplicate_alias, grant.expose_secret().to_owned()));
         }
         let mut duplicate = valid_headers.clone();
         duplicate.append(primary, "origin-one".parse().unwrap());

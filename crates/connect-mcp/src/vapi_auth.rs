@@ -23,6 +23,34 @@ pub enum VapiOrigin {
     ChatSession,
 }
 
+impl VapiOrigin {
+    /// Read provider correlation without granting authority or choosing a task.
+    /// Session chats may repeat their chat ID as `X-Call-Id`; a different value,
+    /// duplicate header, missing ID or malformed identifier remains invalid.
+    /// The caller must independently authenticate and verify the returned resource.
+    pub fn correlate(self, headers: &HeaderMap) -> Result<&str, Error> {
+        match self {
+            Self::Call => {
+                absent(headers, &["x-chat-id", "x-session-id"])?;
+                identifier(headers, "x-call-id")
+            }
+            Self::Chat => {
+                absent(headers, &["x-call-id", "x-session-id"])?;
+                identifier(headers, "x-chat-id")
+            }
+            Self::ChatSession => {
+                let chat = identifier(headers, "x-chat-id")?;
+                // Vapi's live chat transport sends this compatibility alias on
+                // discovery and invocation. It never denotes a second origin.
+                if headers.contains_key("x-call-id") && identifier(headers, "x-call-id")? != chat {
+                    return Err(Error::forbidden());
+                }
+                identifier(headers, "x-session-id")
+            }
+        }
+    }
+}
+
 /// Fixed provider-origin admission using a separate narrow grant per binding.
 ///
 /// Trusted composition must verify the provider resource and register its
@@ -61,23 +89,7 @@ impl VapiBindingAuth {
     }
 
     fn correlate(&self, headers: &HeaderMap) -> Result<(), Error> {
-        let external = match self.origin {
-            VapiOrigin::Call => {
-                absent(headers, &["x-chat-id", "x-session-id"])?;
-                identifier(headers, "x-call-id")?
-            }
-            VapiOrigin::Chat => {
-                absent(headers, &["x-call-id", "x-session-id"])?;
-                identifier(headers, "x-chat-id")?
-            }
-            VapiOrigin::ChatSession => {
-                absent(headers, &["x-call-id"])?;
-                // The chat ID is correlation within this authorized session.
-                // It is deliberately not interpreted as another authority.
-                identifier(headers, "x-chat-id")?;
-                identifier(headers, "x-session-id")?
-            }
-        };
+        let external = self.origin.correlate(headers)?;
         if external != self.binding.external_id {
             return Err(Error::forbidden());
         }

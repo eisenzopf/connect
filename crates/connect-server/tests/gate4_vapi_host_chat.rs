@@ -104,6 +104,88 @@ async fn chat_restart_reuses_one_creation_and_one_visible_mcp_effect() {
     assert_eq!(api.count(), 1);
     assert_eq!(intent(&state), original);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn issued_task_owner_uses_separate_admin_without_exporting_either_credential() {
+    let api = api::Api::start(200).await;
+    let (state, input, mut manifest) = setup().await;
+    let owner_path = state.directory.join("issued-owner.toml");
+    let output = tokio::process::Command::new(process::binary())
+        .env_clear()
+        .args(["issue", "--config"])
+        .arg(state.directory.join("operator.toml"))
+        .arg("--server-config")
+        .arg(state.directory.join("server.toml"))
+        .arg("--identity-id")
+        .arg(&state.owner.identity_id)
+        .arg("--recipients")
+        .arg(&state.peer_id)
+        .args(["--voice", "--tasks", "--output"])
+        .arg(&owner_path)
+        .kill_on_drop(true)
+        .output()
+        .await
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "credential issue failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let owner = connect_client::ClientConfig::load(&owner_path).unwrap();
+    let operator_path = state.directory.join("operator.toml");
+    let operator = connect_client::ClientConfig::load(&operator_path).unwrap();
+    let database = state.directory.join("state.sqlite3");
+    assert!(connect_store::Store::authorize_recovery(&database, &owner.credential).is_err());
+    manifest["definition"]["credential_id"] = json!(owner.credential_id);
+    private_replace(&input, &serde_json::to_vec(&manifest).unwrap()).unwrap();
+    private_replace(
+        &state.directory.join("host-owner.toml"),
+        &std::fs::read(&owner_path).unwrap(),
+    )
+    .unwrap();
+    process::Process::fails(&state, &input, &api.server.uri(), "admin-required").await;
+    assert_eq!(api.count(), 0);
+    assert!(!state.directory.join("vapi-private").exists());
+    private_write(
+        &state.directory.join("host-operator.toml"),
+        &std::fs::read(&operator_path).unwrap(),
+    )
+    .unwrap();
+    let host = process::Process::start(&state, &input, &api.server.uri(), "scoped-owner").await;
+    let mut owner_client = ConnectClient::open(owner.clone()).await.unwrap();
+    owner_client
+        .negotiate_tasks("connect:agent@local", Some(&state.cid))
+        .await
+        .unwrap();
+    let created = owner_client
+        .task(connect_client::tasks::TaskCommand::Create {
+            request_id: "scoped-owned-task".into(),
+            definition: connect_client::tasks::TaskDefinition {
+                conversation_id: state.cid.clone(),
+                scope: connect_client::tasks::TaskScope {
+                    operations: vec![connect_client::tasks::TaskPermission::History],
+                    recipients: vec![state.peer_id.clone()],
+                    sms_enrollments: Vec::new(),
+                },
+                expires_at: chrono::Utc::now().timestamp() + 120,
+                initiating_event_id: None,
+            },
+        })
+        .await
+        .unwrap();
+    let connect_client::tasks::TaskOutcome::Record(created) = created else {
+        panic!("task creation returned the wrong outcome");
+    };
+    assert_eq!(created.owner_id, owner.identity_id);
+    owner_client.close().await;
+    let client = tools::chat(&api.body()).await;
+    assert_ne!(client.call_tool(send()).await.unwrap().is_error, Some(true));
+    client.cancel().await.unwrap();
+    let provider_input = api.body().to_string();
+    assert!(!provider_input.contains(&owner.credential));
+    assert!(!provider_input.contains(&operator.credential));
+    host.stop(&[&owner.credential, &operator.credential]).await;
+}
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn uncertain_creation_requires_exact_resource_reconciliation_without_repost() {
     let api = api::Api::start(500).await;

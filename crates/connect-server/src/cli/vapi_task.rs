@@ -27,9 +27,13 @@ pub enum Command {
 /// Local owner configuration; credentials never appear in command arguments.
 #[derive(Args)]
 pub struct OwnerArguments {
-    /// Existing private operator client configuration.
+    /// Existing private task-owner client configuration.
     #[arg(long)]
     pub config: PathBuf,
+    /// Installation administrator when the task owner has a narrower credential.
+    /// Defaults to --config for existing administrator-owned task setups.
+    #[arg(long)]
+    pub operator_config: Option<PathBuf>,
     /// Existing local server configuration; state is never initialized or erased.
     #[arg(long)]
     pub server_config: PathBuf,
@@ -62,12 +66,18 @@ fn load(arguments: &OwnerArguments) -> Result<(manifest::Manifest, ServerConfig)
     let config = ServerConfig::load(&arguments.server_config)?;
     // Authenticate before listeners/provider workers. The service checks current
     // backing authority again at setup and immediately before dispatch.
-    Store::authorize_recovery(&config.database, &owner.credential)?;
+    let operator_path = arguments
+        .operator_config
+        .as_ref()
+        .unwrap_or(&arguments.config);
+    super::task_access::require_private(operator_path)?;
+    let operator = ClientConfig::load(operator_path)?;
+    Store::authorize_recovery(&config.database, &operator.credential)?;
     let store = Store::open(&config.database, config.limits.clone())?;
     let actor = store.authenticate(&owner.credential)?;
     anyhow::ensure!(
         actor.credential_id == manifest.definition.credential_id,
-        "Task host manifest must use the authenticated operator credential reference"
+        "Task host manifest must use the authenticated task-owner credential reference"
     );
     Ok((manifest, config))
 }

@@ -9,23 +9,10 @@ pub(super) fn write(store: &Store, directory: &Path, expiry: i64, bind: SocketAd
     let app = store.create_identity("reviews")?;
     let peer = store.create_identity("agent")?;
     let outside = store.create_identity("outside")?;
-    let mut scope = Scope::messaging(vec![peer.id.clone(), outside.id.clone()]);
-    scope.operations.extend(
-        [
-            "task_create",
-            "task_get",
-            "task_cancel",
-            "task_replies",
-            "task_consume_reply",
-            "task_invoke",
-            "task_inbox",
-            "task_wait",
-            "task_recall",
-            "task_effect_get",
-            "task_grant",
-        ]
-        .map(str::to_string),
-    );
+    let scope = super::credentials::with_task_management(Scope::messaging(vec![
+        peer.id.clone(),
+        outside.id.clone(),
+    ]));
     for (name, identity, scope) in [
         ("reviews", &app, scope),
         ("agent", &peer, Scope::messaging(vec![app.id.clone()])),

@@ -19,6 +19,7 @@ pub fn headers(origin: VapiOrigin, id: &str) -> reqwest_mcp::header::HeaderMap {
         VapiOrigin::ChatSession => {
             headers.insert("x-session-id", id.parse().unwrap());
             headers.insert("x-chat-id", "chat-in-this-session".parse().unwrap());
+            headers.insert("x-call-id", "chat-in-this-session".parse().unwrap());
         }
     }
     headers
