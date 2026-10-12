@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-from lib.ci_diagnostics import bundle, redact
+from lib.ci_diagnostics import bundle, redact, redact_value
 from lib.ci_cache import retire_baseline_cache
 from lib.ci_workspace import retire, run, targets
 from lib.local_process import ROOT
@@ -199,6 +199,23 @@ class FailureEvidence(unittest.TestCase):
     def test_redaction_handles_json_toml_bearer_and_grants(self):
         for text in ['{"credential":"secret-value"}', "api_key = 'secret-value'", "Bearer secret-value", "ctg1.secret-value"]:
             self.assertNotIn("secret-value", redact(text))
+
+    def test_structured_secrets_are_redacted_recursively_without_losing_types(self):
+        value = {"error": {"credential": "dummy-nonhex-secret", "api_key": "other-private-value"},
+                 "steps": [{"Authorization": "private", "token": {"nested": "private"}}],
+                 "environment": {"TELNYX_API_KEY": "private", "access_token": "private",
+                                 "credential_id": "public-identifier"},
+                 "count": 2, "ready": False, "detail": "Bearer opaque-private-value"}
+        clean = redact_value(value)
+        self.assertEqual(clean["error"], {"credential": "[REDACTED]", "api_key": "[REDACTED]"})
+        self.assertEqual(clean["steps"], [{"Authorization": "[REDACTED]", "token": "[REDACTED]"}])
+        self.assertEqual(clean["environment"], {"TELNYX_API_KEY": "[REDACTED]",
+                         "access_token": "[REDACTED]", "credential_id": "public-identifier"})
+        self.assertEqual(clean["count"], 2)
+        self.assertIs(clean["ready"], False)
+        self.assertEqual(clean["detail"], "Bearer [REDACTED]")
+        self.assertNotIn("private", json.dumps(clean))
+        self.assertEqual(value["error"]["credential"], "dummy-nonhex-secret")
 
 
 class BaselineCache(unittest.TestCase):

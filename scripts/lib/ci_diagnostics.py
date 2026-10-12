@@ -27,7 +27,9 @@ def redact_value(value):
     if isinstance(value, list):
         return [redact_value(item) for item in value]
     if isinstance(value, dict):
-        return {key: redact_value(item) for key, item in value.items()}
+        return {key: "[REDACTED]" if re.search(
+                    r"(?:token|credential|secret|api[_-]?key|authorization)$", key, re.I)
+                else redact_value(item) for key, item in value.items()}
     return value
 
 
