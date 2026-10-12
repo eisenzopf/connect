@@ -5,6 +5,11 @@ Connect is an experimental server and SDK. Start with [the architecture](docs/AR
 The supported qualification host is macOS arm64 with the pinned Rust toolchain,
 Node 22+ and Python 3.11+. Other platforms are not qualified yet.
 
+Install the native media build dependency on this host with
+`brew install opus pkgconf`. The Opus Rust binding uses `pkg-config` to find
+the static library. CI installs the same dependency explicitly; without it,
+the binding's older bundled source is incompatible with CMake 4.
+
 ## Make a change
 
 1. Run `bash scripts/prepare-dependencies.sh` to materialize the audited upstream pins and patches.
@@ -32,4 +37,8 @@ under ignored `.local/`. Never attach raw private logs to issues. Upstream fixes
 belong in digest-checked patches and their upstream PRs; avoid invisible `.deps`
 edits. Do not test a migration against someone's working database.
 
-Public review does not imply a production-ready release. Reviewed SMS, Connect-carried media and basic availability are qualified within the recorded local topology. Agent tools/task continuation, the full connector kit, video and broader platform qualification remain planned. Read the [entry closure](docs/connect-pre-gate-4-entry.html) and its explicit limits before expanding a claim.
+Public review does not imply a production-ready release. Reviewed SMS,
+Connect-carried media, agent tools and task continuation are qualified within
+the recorded local topology. The full connector kit, video and broader platform
+qualification remain planned. Read the [Gate 4 review](docs/evidence/gate-4/acceptance.html)
+and its explicit limits before expanding a claim.

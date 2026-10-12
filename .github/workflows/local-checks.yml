@@ -27,6 +27,11 @@ jobs:
         run: |
           test "$(uname -m)" = arm64
           rustup show
+      - name: Install native Opus build dependency
+        run: |
+          brew install opus pkgconf
+          pkg-config --modversion opus
+          test -f "$(brew --prefix opus)/lib/libopus.a"
       - name: Run source qualification (no accounts or live calls)
         run: python3 scripts/check-local.py --ci
       - name: Verify generated TypeScript distribution
@@ -59,6 +64,11 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
+      - name: Install native Opus build dependency
+        run: |
+          brew install opus pkgconf
+          pkg-config --modversion opus
+          test -f "$(brew --prefix opus)/lib/libopus.a"
       - name: Gate 4 source coverage without accounts or an installed model host
         # Explicit partial qualification. Full local offline runs also select
         # an installed Codex binary and execute the scripted host checks.
