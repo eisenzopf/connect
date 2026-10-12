@@ -7,9 +7,11 @@ is an agent tool. This is Gate 4 composition, not the Gate 5 first-run wizard.
 
 The [local CLI component checks](evidence/gate-4/vapi-task-host.json) pass,
 including restart, uncertainty, expiry, shutdown and native voice/MCP behavior.
-The [extracted local release](evidence/gate-4/package-candidate.json) also passes
-all ten Vapi checks with local simulators. No real Vapi account/model or public
-callback ingress is qualified by either run.
+The [extracted local release](evidence/gate-4/package-7edb1b1.json) records
+installed simulator checks at its stated source. Separate
+[live evidence](evidence/gate-4/live-voice-continuity.json) proves actual Vapi
+voice/chat MCP invocation, sourced decisions and delivered SMS after restart.
+Final candidate reconciliation is tracked in the implementation plan.
 
 ## Preparation
 
@@ -142,9 +144,9 @@ checks remain enabled. The manifest accepts HTTPS or explicit loopback HTTP,
 exactly `/mcp`, without credentials, query or fragment.
 
 This command does not create a tunnel, public listener, DNS record or TLS
-termination. Current offline tests use an owned loopback simulator and no
-provider account. Actual cloud reachability and Vapi tool/model behavior remain
-separate Gate 4 qualification.
+termination. Offline tests use an owned loopback simulator and no provider account. The
+separate live rehearsal qualified cloud callbacks and model tool use; its
+temporary routing was removed and the original Telnyx callback restored.
 
 ## Recover an uncertain creation
 
@@ -153,7 +155,8 @@ account. Obtain the exact resource ID from that account, then run:
 
 ```sh
 connect vapi-task reconcile \
-  --config /private/connect/host-owner.toml \
+  --config /private/connect/task-owner.toml \
+  --operator-config /private/connect/operator.toml \
   --server-config /private/connect/server.toml \
   --input /private/connect/vapi-task.json \
   --resource EXACT_PROVIDER_RESOURCE_ID
@@ -206,13 +209,14 @@ The [chat rehearsal evidence](evidence/gate-4/task-chat-rehearsal.json) and
 [voice rehearsal evidence](evidence/gate-4/task-voice-rehearsal.json) record local
 simulator checks with source and installed SDK/helper assets. A captured chat
 receipt or audio file does not establish model comprehension, actual MCP tool
-use by a model, or useful follow-through. Those remain separate live acceptance
-requirements; no provider account is contacted by the offline suite.
+use by a model, or useful follow-through. The separate [live continuity evidence](evidence/gate-4/live-voice-continuity.json)
+records those observed model/tool effects and their limitations. No provider
+account is contacted by the offline suite.
 
 ## Provider contract review
 
 The [Vapi contract review](evidence/gate-4/vapi-contract-review.json) maps the
 implementation to the provider’s current documented MCP headers, explicit
 request authentication and retained session variables. It is documentation
-review only; the local simulator and installed release checks still require
-separate actual provider/model qualification.
+review only. Actual provider/model qualification is recorded separately in the
+live continuity evidence, including exact source and resource correlation.

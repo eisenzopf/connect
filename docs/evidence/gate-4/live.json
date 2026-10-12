@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "status": "live requirements observed; final candidate reconciliation in progress",
+  "recorded_at": "2026-10-12",
+  "qualification_boundary": "Live operations were separately authorized and manually invoked; the account-free runner creates no public ingress and contacts no provider account.",
+  "topologies": [
+    {
+      "id": "L4-voice-chat-sms",
+      "status": "passed",
+      "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+      "evidence": "live-voice-continuity.json",
+      "path": "Native SDK \u2192 UCTP/QUIC control and audio datagrams \u2192 local Connect \u2192 Vapi audio WebSocket; Vapi model \u2192 authenticated Connect MCP; Telnyx programmable SMS \u2192 reviewed handset. New Vapi chat invocation after restart retains original task and conversation."
+    },
+    {
+      "id": "L4-sms-controls",
+      "status": "passed",
+      "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+      "evidence": "sms-0737-rehearsal.json",
+      "path": "Reviewed Rudeless enrollment \u2192 Connect policy \u2192 Telnyx SMS; signed callbacks \u2192 journal/UCTP task events and suppression. HELP/STOP/START and new eligible delivery verified."
+    },
+    {
+      "id": "L4-incoming-codex",
+      "status": "passed",
+      "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+      "evidence": "real-model-incoming-7edb1b1.json",
+      "path": "Independent peer \u2192 native SDK \u2192 Connect \u2192 supplied incoming-contact example \u2192 installed Codex/skill/MCP \u2192 one source-backed useful reply."
+    },
+    {
+      "id": "L4-draft-codex",
+      "status": "passed",
+      "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+      "evidence": "real-model-draft-7edb1b1.json",
+      "path": "Two actual Codex sessions \u2192 MCP drafts/artifacts/questions \u2192 explicit native human reply \u2192 restart \u2192 exact-session continuation and one attributed follow-up. The sibling task remains waiting."
+    }
+  ],
+  "cleanup": {
+    "status": "verified for completed live provider work",
+    "details": "Owned temporary Connect/proxy/tunnel processes ended. Original Telnyx callback restored and read back. Original local server, database and tunnel preserved. Saved Vapi assistant not modified.",
+    "evidence": "live-voice-continuity.json"
+  },
+  "candidate_delta": {
+    "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+    "evidence": "reply-reference-repair.json",
+    "qualification": "Final installed actual-model draft/reply and incoming-contact tests pass. Strict quality and focused regression pass; full installed recovery and offline regression are still running."
+  },
+  "limits": [
+    "The voice model did not inspect the exact SMS effect before its spoken completion claim; delivery was independently verified. The later chat model did inspect pending-to-succeeded status.",
+    "An absent voice end report leaves context completeness incomplete; available sourced decisions were actually retained and recalled.",
+    "Handset and provider account scope is the recorded authorized test lane. No new phone number or saved assistant change was required.",
+    "Earlier failed attempts and private harness mistakes remain linked in their individual reports."
+  ]
+}

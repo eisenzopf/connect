@@ -297,6 +297,21 @@ The grants are short by design. Existing contract tests establish the
 outlast these grants, so elapsed-task terminalization, artifact expiry under
 load and retired voice metadata retain their separate operating checks.
 
+## Explicit task-owner credentials
+
+The protected `connect issue --tasks` option adds named task ownership and
+delegation operations to the selected messaging/voice scope. Recipients remain
+explicit, and the flag grants no administrator permission. Credential issuance
+accepts up to 64 named operations so voice and task capabilities fit without a
+wildcard; a larger scope is rejected. This issuance bound is separate from the
+frozen task, invocation-grant, listener, wait and payload limits above.
+
+A caller returning after a transport disconnect opens a fresh authenticated
+client and negotiates the retained task. The task and conversation outlive the
+QUIC connection. The current native transport has a 30-second idle timeout;
+this gate does not promise an indefinitely idle connection or automatic model
+wake-up.
+
 ## Artifact and task age retention
 
 The [artifact retention result](evidence/gate-4/artifact-retention-load.json)
@@ -349,18 +364,24 @@ is unresolved. The older full-run and installed-package results predate this
 production change, so current full regression and package qualification remain
 required.
 
-## Work still required
+## Current qualification and operation
 
-The retained voice-setup profile is qualified at its recorded source. Current-source
-full regression, installed-candidate qualification and the separate debug CLI
-startup finding also remain open. The [review reconciliation](evidence/gate-4/review-findings.json)
-verifies the earlier QUIC parity fixture repair and its retained before/after
-logs; historical unresolved notes predate that correction. The
-[installed local candidate](evidence/gate-4/package-candidate.json) separately
-passes its package checks; real-model journeys, whole-item dependencies and
-full Gate 4 acceptance remain open. The separate
-[shared MCP capacity audit](evidence/gate-4/mcp-shared-capacity.json) retains
-its own request/listener admission and lifecycle evidence.
+The component reports above retain their original versions and measurements.
+The [implementation plan](connect-gate-4-implementation.html#G4-030) and
+[review result](evidence/gate-4/result.json) identify the current regression,
+installed candidate and source reconciliation. Actual Codex model journeys and
+[Vapi voice/chat/SMS continuity](evidence/gate-4/live-voice-continuity.json) now
+have separate evidence. Scripted capacity checks do not establish model or
+carrier behavior by themselves.
+
+A fresh macOS executable can pause before application initialization. The
+[startup diagnosis](evidence/gate-4/candidate-startup-diagnosis.json) records
+native samples and unchanged-binary observations. Installed qualification now
+measures the first version launch separately with a bounded installation budget;
+ordinary CLI, MCP, task and media deadlines retain their existing limits.
+Historical unrelated startup failures keep their unresolved causes; the
+[review findings](evidence/gate-4/review-findings.json) link the original reports.
+No system security setting is changed.
 
 For recovery, use [task diagnostics](TASK_DIAGNOSTICS.md) and the
 [host guide](CODEX_TASK_HOST.md). A retained journal is authoritative;

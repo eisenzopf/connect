@@ -1,0 +1,185 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T22:15:59.313661+00:00",
+  "status": "focused source-structure review; whole G4-033 remains in progress",
+  "source_revision": "d47be557dd495cbcbc18ffc1a264cf85e023f851",
+  "review_scope": "Read the listed module boundaries, task-state ownership, MCP cancellation/admission and CLI composition; this is not a claim of a fresh line-by-line audit of every repository file.",
+  "source_sha256": {
+    "crates/connect-mcp/Cargo.toml": "5a01d2c82a88fa1dcea97191c829e37b8a26b5b94a661e99883008668634bc1a",
+    "crates/connect-mcp/src/lib.rs": "1a02d8ea6e52e04775d5be0f0b1de313986bc734daabffed834cdd52670aa4e2",
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/supervision.rs": "408d970ee5524f569aff0d04ecb4454d5c9191a761ab0a65a81600123bde79a7",
+    "crates/connect-mcp/src/capacity.rs": "0e437ef551f2ea092ac10a3397658071551e37767fd4f2edad8b72c4915c79ae",
+    "crates/connect-mcp/src/budget.rs": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+    "examples/review-loop/Cargo.toml": "893363bd6a1b6ede3cc6ec608204647146fff27aefb448557f52247414b1717e",
+    "examples/review-loop/src/task_runner/state.rs": "90415aa83d7f1c9485ee8ffe499a7123cf0325fe9fabaa29b72e537eedef1b73",
+    "examples/review-loop/src/connected_app/state.rs": "b797ef8b35000317e86f15d4e2dde1ea3c00a85af13e1d20831f11b736ff517d",
+    "crates/connect-server/src/main.rs": "94702aeae61e7f481349bc0ef326a96c1d2f82994986093c6adb4587b526c512"
+  },
+  "findings": [
+    {
+      "area": "MCP boundary",
+      "result": "Production dependencies are protocol/service plus transport/runtime libraries. Store is dev-only. Handler dispatches through Service; current authority is checked before tool projection/execution. No direct SQLite access in reviewed adapter production code."
+    },
+    {
+      "area": "Example state ownership",
+      "result": "Example production depends on the public client, not Connect store/service/server. Its SQLite is separately bound application state with process locks, schema checks and immutable binding verification. Read-only inspection does not claim or edit Connect server state."
+    },
+    {
+      "area": "Cancellation and bounds",
+      "result": "MCP handler distinguishes cancelled/expired work as transport-uncertain, retains correlation IDs and directs reconciliation. The shared capacity pool limits listeners and requests to 32 with immediate overload; bounded wait reserves time for current authority and response projection. Shutdown observation distinguishes expected stop from unexpected exit."
+    },
+    {
+      "area": "Module structure",
+      "result": "Task runners, application journal/state, MCP and provider bootstrap responsibilities use separate modules. Larger existing top-level protocol/client files remain; no arbitrary line-count threshold is claimed. Main delegates Gate 4 task access, diagnostics and Vapi host work to CLI modules rather than implementing those workflows inline."
+    }
+  ],
+  "module_size_observation": {
+    "crates/connect-mcp/src": {
+      "rust_files": 14,
+      "largest_files": [
+        {
+          "path": "crates/connect-mcp/src/catalog.rs",
+          "lines": 202
+        },
+        {
+          "path": "crates/connect-mcp/src/listener.rs",
+          "lines": 168
+        },
+        {
+          "path": "crates/connect-mcp/src/handler.rs",
+          "lines": 155
+        }
+      ]
+    },
+    "crates/connect-server/src/cli/task_access": {
+      "rust_files": 13,
+      "largest_files": [
+        {
+          "path": "crates/connect-server/src/cli/task_access/codex_host/diagnostics.rs",
+          "lines": 160
+        },
+        {
+          "path": "crates/connect-server/src/cli/task_access/codex_host/process.rs",
+          "lines": 148
+        },
+        {
+          "path": "crates/connect-server/src/cli/task_access/codex_host/renewal.rs",
+          "lines": 139
+        }
+      ]
+    },
+    "crates/connect-server/src/cli/vapi_task": {
+      "rust_files": 3,
+      "largest_files": [
+        {
+          "path": "crates/connect-server/src/cli/vapi_task/host.rs",
+          "lines": 137
+        },
+        {
+          "path": "crates/connect-server/src/cli/vapi_task/manifest.rs",
+          "lines": 81
+        },
+        {
+          "path": "crates/connect-server/src/cli/vapi_task/manifest_tests.rs",
+          "lines": 79
+        }
+      ]
+    },
+    "crates/connect-server/src/vapi_bootstrap": {
+      "rust_files": 10,
+      "largest_files": [
+        {
+          "path": "crates/connect-server/src/vapi_bootstrap/media.rs",
+          "lines": 169
+        },
+        {
+          "path": "crates/connect-server/src/vapi_bootstrap/mod.rs",
+          "lines": 132
+        },
+        {
+          "path": "crates/connect-server/src/vapi_bootstrap/admission.rs",
+          "lines": 100
+        }
+      ]
+    },
+    "examples/review-loop/src/task_runner": {
+      "rust_files": 10,
+      "largest_files": [
+        {
+          "path": "examples/review-loop/src/task_runner/tests.rs",
+          "lines": 299
+        },
+        {
+          "path": "examples/review-loop/src/task_runner/journal.rs",
+          "lines": 217
+        },
+        {
+          "path": "examples/review-loop/src/task_runner/diagnostics.rs",
+          "lines": 196
+        }
+      ]
+    },
+    "examples/review-loop/src/connected_app": {
+      "rust_files": 13,
+      "largest_files": [
+        {
+          "path": "examples/review-loop/src/connected_app/state.rs",
+          "lines": 226
+        },
+        {
+          "path": "examples/review-loop/src/connected_app/artifacts.rs",
+          "lines": 219
+        },
+        {
+          "path": "examples/review-loop/src/connected_app/decisions.rs",
+          "lines": 217
+        }
+      ]
+    }
+  },
+  "verification": {
+    "format": {
+      "status": "passed",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lint": {
+      "status": "passed",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log_sha256": "5f59023cd76a5de18b80076c542980cd1ac39efc7545e03e7e40f0f93492c2dc"
+    },
+    "rustdoc": {
+      "status": "passed",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "log_sha256": "de29b0f337663ecff37da344b601187cdf673dc6fb697a7930660741c5958187"
+    }
+  },
+  "remaining": [
+    "Full offline run and final installed-candidate qualification are still pending.",
+    "Historical intermittent CLI/runner startup failures remain unresolved; later passing profiles do not establish a cause.",
+    "Actual provider/model journeys remain separate and unqualified under the local-only scope."
+  ],
+  "prior_findings": "docs/evidence/gate-4/review-findings.json"
+}

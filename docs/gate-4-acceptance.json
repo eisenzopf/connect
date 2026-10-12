@@ -1,8 +1,8 @@
 {
-  "revision": 3,
-  "updated": "2026-10-11",
+  "revision": 4,
+  "updated": "2026-10-12",
   "status": "in-progress",
-  "scope": "Gate 4 task-correlated agent/app follow-through. Component evidence is linked; all integrated acceptance criteria remain in progress.",
+  "scope": "Gate 4 task-correlated agent/app follow-through. Actual Vapi voice/chat, reviewed SMS controls, and final installed Codex draft/reply and incoming-contact journeys have passed at their recorded source revisions. Full regression, installed recovery and source reconciliation remain in progress.",
   "product_plan": "connect-gate-4-plan.html",
   "implementation": "connect-gate-4-implementation.html",
   "entry_contract": "connect-task-authority.html",
@@ -78,10 +78,10 @@
         "evidence/gate-4/vapi-setup-restart.json",
         "evidence/gate-4/package-candidate.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Schema-16 historical executable recovery passed in the complete 3a272c9 baseline; installed 32f4fad upgrade/restore passed. Reconcile the retained merged-source full-run failure and separately passed remaining checks and task lifecycle evidence before acceptance.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -123,10 +123,10 @@
         "evidence/gate-4/vapi-setup-restart.json",
         "evidence/gate-4/authority-matrix.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Task authority and physical Vapi admission components passed. The extracted 32f4fad Vapi host also passes rejection and immutable-intent recovery checks. Reconcile all T-A1/T-A2 cases against the retained merged-source results and separately passed remaining checks.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -167,10 +167,10 @@
         "evidence/gate-4/worker-execution-readiness.json",
         "evidence/gate-4/voice-sms-continuity.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Bound/unassigned reply recovery and local cross-channel components passed. Current integrated regression and dependent journey qualification remain open.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -212,12 +212,15 @@
         "evidence/gate-4/task-runner-audit.json",
         "evidence/gate-4/connected-app-artifacts.json",
         "evidence/gate-4/agent-incoming-example.json",
-        "evidence/gate-4/package-candidate.json"
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Installed 32f4fad passed all three server and three application crash/replay boundaries. Durable business-effect components also passed. Current full-run reconciliation and actual model behavior remain separate requirements.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -256,13 +259,13 @@
         "evidence/gate-4/task-recall-audit.json",
         "evidence/gate-4/vapi-continuation-audit.json",
         "evidence/gate-4/voice-sms-continuity.json",
-        "evidence/gate-4/artifact-retention-load.json"
+        "evidence/gate-4/artifact-retention-load.json",
+        "evidence/gate-4/live-voice-continuity.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Bounded source retrieval, unavailable artifacts and post-voice recall passed local components. Current integrated acceptance and actual provider/model source use remain open.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation",
-        "Actual provider/model qualification; excluded from the current local-only execution scope"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -298,13 +301,14 @@
       "evidence": [
         "evidence/gate-4/task-dispatch-audit.json",
         "evidence/gate-4/sms-callback-journey.json",
-        "evidence/gate-4/voice-sms-continuity.json"
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/sms-0737-rehearsal.json",
+        "evidence/gate-4/live-voice-continuity.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Signed local HELP/STOP/START and dispatch suppression components passed. Gate 4 live task/SMS proof remains unrun under the current local-only instruction; earlier-gate live SMS is not this acceptance.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation",
-        "Actual provider/model qualification; excluded from the current local-only execution scope"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -344,13 +348,17 @@
         "evidence/gate-4/host-selection.json",
         "evidence/gate-4/codex-owned-runtime.json",
         "evidence/gate-4/host-concurrency.json",
-        "evidence/gate-4/package-candidate.json"
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/real-model-draft-journey.json",
+        "evidence/gate-4/real-model-incoming-596e9b7.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Codex CLI is selected. The extracted 32f4fad candidate passes the actual runtime/SDK/incoming-contact journey with scripted loopback Responses. Real-model instruction following remains open; continuation is explicit resume.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation",
-        "Actual provider/model qualification; excluded from the current local-only execution scope"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -393,10 +401,10 @@
         "evidence/gate-4/package-candidate.json",
         "evidence/gate-4/mcp-session-controls.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Native/HTTP/CLI/language and real MCP components passed. The extracted 32f4fad skill, SDKs and runtime wiring pass installed checks. The current full run stopped at worker startup; its unchanged capacity diagnostic passed, and remaining checks passed separately; installed wiring does not qualify model instruction following. Additional real MCP session signaling and continued-task checks pass separately after 9235d79; the 41-phase run at 9235d79 later stopped at an expiry-boundary verifier error after 28 passing phases. The focused corrected profile passed; complete offline qualification remains open.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -433,13 +441,13 @@
       "evidence": [
         "evidence/gate-4/vapi-setup-restart.json",
         "evidence/gate-4/vapi-continuation-audit.json",
-        "evidence/gate-4/package-candidate.json"
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/live-voice-continuity.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "The extracted 32f4fad Vapi host passes nine chat/voice/MCP/recovery checks with local simulators, following callback component qualification. Actual Vapi cloud chat and Connect-carried voice tool use remain unrun; no live provider operations belong to this local qualification.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation",
-        "Actual provider/model qualification; excluded from the current local-only execution scope"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -479,13 +487,17 @@
         "evidence/gate-4/codex-draft-journey.json",
         "evidence/gate-4/agent-incoming-example.json",
         "evidence/gate-4/codex-owned-runtime.json",
-        "evidence/gate-4/package-candidate.json"
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/real-model-draft-journey.json",
+        "evidence/gate-4/real-model-incoming-596e9b7.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Actual runtime components prove overlapping drafts and bound replies. Extracted 32f4fad proves incoming contact, continuation and cancellation. Responses are scripted; full merged-source reconciliation and real-model journey acceptance remain open.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation",
-        "Actual provider/model qualification; excluded from the current local-only execution scope"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -521,10 +533,10 @@
         "evidence/gate-4/worker-execution-readiness.json",
         "evidence/gate-4/package-candidate.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Independent public-SDK components cover both directions, artifacts, business effects and recovery. Installed 32f4fad example crash/recovery checks passed; current full regression and requirement-level reconciliation remain open.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -561,13 +573,14 @@
       "evidence": [
         "evidence/gate-4/voice-sms-continuity.json",
         "evidence/gate-4/vapi-continuation-audit.json",
-        "evidence/gate-4/sms-callback-journey.json"
+        "evidence/gate-4/sms-callback-journey.json",
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/sms-0737-rehearsal.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Local QUIC/MCP/provider-fixture voice-to-SMS proof passed with retained facts and explicit task routing. Actual provider/model and reviewed live SMS continuation remain unrun.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation",
-        "Actual provider/model qualification; excluded from the current local-only execution scope"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -611,13 +624,13 @@
         "evidence/gate-4/grant-lifecycle-load.json",
         "evidence/gate-4/runner-concurrency.json",
         "evidence/gate-4/host-concurrency.json",
-        "evidence/gate-4/voice-retirement-load.json"
+        "evidence/gate-4/voice-retirement-load.json",
+        "evidence/gate-4/live-voice-continuity.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "Local deadline, readiness and capacity components passed at their recorded sources. Full retained voice retirement is qualified at its recorded source; current integrated and actual provider waiting behavior remain open.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation",
-        "Actual provider/model qualification; excluded from the current local-only execution scope"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     },
     {
@@ -657,11 +670,10 @@
         "evidence/gate-4/package-candidate.json",
         "evidence/gate-4/review-findings.json"
       ],
-      "evidence_scope": "Recorded component results at their stated source revisions; not a current integrated acceptance pass.",
-      "remaining": "The complete 3a272c9 schema-16 baseline and 32f4fad installed candidate passed their declared checks. The merged-source full run failed at worker startup after 23 passing phases. Its unchanged capacity diagnostic passed; the initial failure remains unresolved and all remaining phases passed separately. Separate live acceptance, unresolved review findings, final documentation refresh and requirement-by-requirement audit remain open.",
+      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
       "not_run_prerequisites": [
-        "Current common-source acceptance reconciliation",
-        "Actual provider/model qualification; excluded from the current local-only execution scope"
+        "Final current-source regression and installed-candidate reconciliation"
       ]
     }
   ],

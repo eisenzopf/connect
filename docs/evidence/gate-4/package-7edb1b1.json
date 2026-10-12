@@ -1,0 +1,375 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T08:50:06.386477+00:00",
+  "status": "passed installed package; gate dependencies and final regression remain open",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0",
+  "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+  "binary_sha256": "8784157abc325d7ec8b23a1347f2f072a96c66d9e3823898360e555fd8159f03",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0-qualification.tar.gz": "7f050869838c550127c88e3ad1fb80bc8b84cf02af10e441d34df86dcbf0b380",
+    "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0-source.tar.gz": "2f323a9fcb4d2603281beb321a2aece9d41caf8d90a2d8b6428f69365c051c74",
+    "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0.tar.gz": "0aa335ccf28b05323255689bc01ce1fa28bb716d1f83ede3412c9872d3c345bb"
+  },
+  "private_report": ".local/package-checks/20261012T081414.462540Z/result.json",
+  "private_report_sha256": "98a53da0e55b3755776792750c36bc0d6742183d9010a557025252b9456243c0",
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "first-launch-connect": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-example": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-schema1": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "installed-gate4-agent": {
+      "result": "passed",
+      "detail": "Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback"
+    },
+    "qualification-fixture-build": {
+      "result": "passed",
+      "detail": "Exact extracted source; owned compilation phase; test-only controls isolated from installed runtime binaries"
+    },
+    "first-launch-fault-connect": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-fault-connect-example": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "installation_startup": {
+    "connect": {
+      "name": "first-launch-connect",
+      "command": [
+        "/private/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0/bin/connect",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-connect.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 36.943
+    },
+    "example": {
+      "name": "first-launch-example",
+      "command": [
+        "/private/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0/bin/connect-example",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-example.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.341
+    },
+    "schema1": {
+      "name": "first-launch-schema1",
+      "command": [
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/qualification/connect-schema1",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-schema1.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.56
+    },
+    "fault-connect": {
+      "name": "first-launch-fault-connect",
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/gate4-final-review/Connect/.local/package-checks/20261012T081414.462540Z/qualification-fixtures/bin/connect",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-fault-connect.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 17.201
+    },
+    "fault-connect-example": {
+      "name": "first-launch-fault-connect-example",
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/gate4-final-review/Connect/.local/package-checks/20261012T081414.462540Z/qualification-fixtures/bin/connect-example",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-fault-connect-example.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 47.704
+    }
+  },
+  "gate4_installed": {
+    "status": "passed",
+    "scope": "installed application/SDK/helper, scripted local Responses; no inference or live providers",
+    "runtime_root": "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0",
+    "fixture_root": "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-source",
+    "steps": [
+      {
+        "name": "agent-incoming-public",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-source/examples/agent-presence/tests",
+          "-p",
+          "test_public_intake.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-public.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.768,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "agent-incoming-host",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-source/examples/agent-presence/tests",
+          "-p",
+          "test_installed_incoming.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "agent-incoming-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.727,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "installed-vapi-host",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--test",
+          "gate4_vapi_host_chat",
+          "--test",
+          "gate4_vapi_host_voice",
+          "--test",
+          "gate4_vapi_host_webhook",
+          "--",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 2400,
+        "log": "installed-vapi-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 425.969,
+        "rust_tests": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        }
+      }
+    ],
+    "codex_version": "codex-cli 0.162.0-alpha.17.2",
+    "vapi_runtime": {
+      "binary": "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0/bin/connect",
+      "scope": "local simulator; no cloud provider or model inference",
+      "checks": "chat restart/effect replay, scoped task owner with separate administrator, exact-resource recovery, rejection before dispatch, callback expiry with retained conversation, native voice with MCP, isolated signed-only SMS listener, ready/signal ordering and interrupted creation cleanup"
+    }
+  },
+  "fault_fixture_build": {
+    "status": "passed",
+    "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+    "scope": "extracted candidate source; test-only binaries, never runtime assets",
+    "phase": {
+      "name": "build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-review-loop",
+        "--features",
+        "connect-server/test-support,connect-review-loop/test-support",
+        "--bin",
+        "connect",
+        "--bin",
+        "connect-example"
+      ],
+      "timeout_seconds": 2400,
+      "log": "build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 185.758
+    },
+    "binaries_sha256": {
+      "connect": "4ed5b3f1ca2174ffbaed0c704de715a51ee4044be4f7d3a25922ef6462a6be5b",
+      "connect-example": "a8a7bd39c5ab0ae80a16e31ec698a6d6f3d2b81ae1e7b84d079e507bfde42a35"
+    }
+  },
+  "legacy_phases": [
+    {
+      "name": "check-examples.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-source/scripts/check-examples.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-examples.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 5.444
+    },
+    {
+      "name": "check-recovery.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-source/scripts/check-recovery.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-recovery.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.96
+    },
+    {
+      "name": "check-crash-replay.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-source/scripts/check-crash-replay.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-crash-replay.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 8.138
+    },
+    {
+      "name": "check-example-recovery.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-5jb_3oee/connect-source/scripts/check-example-recovery.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-example-recovery.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 9.511
+    }
+  ],
+  "logs_sha256": {
+    "first-launch-schema1.log": "b9cb1a0e045585e9c90c70748a4691e01f6ca44eaf9a827d945df13d2e451e76",
+    "first-launch-fault-connect-example.log": "692ef9ae63222f7110c49dffeb89f4421fc3385251c077b9866c8533b1fb6e3d",
+    "first-launch-example.log": "692ef9ae63222f7110c49dffeb89f4421fc3385251c077b9866c8533b1fb6e3d",
+    "check-example-recovery.py.log": "f0af707f30bc69804ed1487dbe5ddfc4de98a584a846adb4dda31e9f95aad144",
+    "sdk-source-build.log": "db0e2e5da14b78a8787e49d7857c173d1812c882a91ef81ebdeb852e3169d35d",
+    "check-recovery.py.log": "db8f5ae31804851e352ea16a9e330c4cb8da541d1f107d69d9106a33bc1a9d89",
+    "check-examples.py.log": "b05bd93e1d8df075b06b9817024cd122e09944d23aab9f862f8f8aa59e342b35",
+    "installed-language-sdks.log": "75840678a168a74820c30ae417433ead8a2ef4f68337085608490cfb1bdd6e2d",
+    "check-crash-replay.py.log": "ca50796cb258c5057ec1db5f620160d1897ea4191d50d8eff101839571e58dc5",
+    "first-launch-fault-connect.log": "b9cb1a0e045585e9c90c70748a4691e01f6ca44eaf9a827d945df13d2e451e76",
+    "first-launch-connect.log": "b9cb1a0e045585e9c90c70748a4691e01f6ca44eaf9a827d945df13d2e451e76",
+    "gate4-installed/agent-incoming-public.log": "8583f44e63e5f0a256a74a1a3311f03c1dcfb9bb41f829c360f5b62c29d7906f",
+    "gate4-installed/installed-vapi-host.log": "7187c83c662ce0cf563c50e66cbf038561ae25de9c048965d29fccdf5ebce739",
+    "gate4-installed/agent-incoming-host.log": "30b6517c59f632079385e461edc23e519bcd5996ac454e9f805dd5dcfb70ba5d",
+    "qualification-fixtures/build.log": "723f069955f953090ec2ddd2c753917cc446e76b8c333fa36adf3c424671fb66"
+  },
+  "scope": "Extracted local macOS arm64 installation outside the checkout. Native SDK source built from the source archive with pinned dependencies; normal runtime binaries exclude fault controls. Actual Codex CLI uses scripted loopback Responses in this account-free check; model inference is separately recorded.",
+  "actual_model_evidence": [
+    "docs/evidence/gate-4/real-model-draft-7edb1b1.json",
+    "docs/evidence/gate-4/real-model-incoming-7edb1b1.json"
+  ],
+  "retained_startup_failures": [
+    "docs/evidence/gate-4/candidate-startup-diagnosis.json",
+    "docs/evidence/gate-4/reply-reference-repair.json"
+  ],
+  "limits": [
+    "Archive documents are the source checkpoint at packaging time. Later review/progress documents are maintained separately; archives and their recorded hashes are unchanged.",
+    "Earlier first-launch timeouts remain failures. The observed later launch needed no security-policy change or assessment-service restart.",
+    "This report does not convert the failed current offline regression into a pass."
+  ]
+}

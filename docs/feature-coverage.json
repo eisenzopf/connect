@@ -121,7 +121,7 @@
       "id": "F-06",
       "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
       "delivery_gate": "2 local and live qualified",
-      "status": "Reviewed enrollment deployed and enforced. Signed callbacks, five handset conversation turns, native UCTP/QUIC context recall, HELP/STOP/START, blocked native SDK send/replay and resumed delivery verified. Gate 4 task dispatch and signed-callback journeys pass local fixtures; Gate 4 live task/SMS acceptance remains unrun.",
+      "status": "Reviewed enrollment and signed callbacks are enforced. Gate 4 live task/SMS proof includes HELP, STOP cancellation of queued intent, blocked new send and replay, START without revival, and one new eligible delivered message. Final integrated candidate acceptance remains in progress.",
       "required_evidence": "Approval/number readiness, consented handset and signed live callback",
       "v0_1_required": true,
       "milestones": [
@@ -194,7 +194,7 @@
       "id": "F-09",
       "required_capability": "Vapi invokes authorized Connect MCP tools in chat and voice",
       "delivery_gate": 4,
-      "status": "Implemented and locally qualified protected Vapi chat/voice MCP composition, task binding, context and restart denial. Actual Vapi cloud/model invocation and final installed acceptance remain open.",
+      "status": "Protected Vapi chat/voice MCP composition, independently verified task binding, source recall and restart continuation are implemented and demonstrated with the actual provider/model. Normal installed 596e9b7 carries native UCTP/QUIC voice through Connect; a later chat sends one sourced SMS on the same task and conversation.",
       "required_evidence": "Tool/result/conversation correlation on both paths",
       "v0_1_required": true,
       "milestones": [
@@ -218,7 +218,7 @@
       "id": "F-10",
       "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
       "delivery_gate": 4,
-      "status": "Codex CLI selected. MCP tools, workflow skill, protected export and actual installed-runtime journeys are qualified locally with scripted loopback Responses. Real-model instruction following and the current installed candidate remain open.",
+      "status": "Codex CLI is the selected additional host. Supplied MCP/skill installation, exact-session resume, protected renewal, actual-model draft/artifact and independent incoming-contact journeys have evidence. Final reply-reference guidance and candidate qualification remain in progress.",
       "required_evidence": "Human reply reaches originating task; documented installation and resumption",
       "v0_1_required": true,
       "milestones": [
@@ -333,7 +333,7 @@
       "id": "F-15",
       "required_capability": "Cross-channel conversation continuity and explicit assistant context transfer",
       "delivery_gate": "3 continuity / 4 task continuation",
-      "status": "Gate 3 qualifies retained source history, bounded context delivery, final voice observations and actual four-route decision recall after restart. Omission and ASR/model limits are explicit; SMS-to-native SDK recall is now verified in the same conversation; task resumption remains Gate 4 work.",
+      "status": "Gate 3 retained context remains qualified. Gate 4 adds task-correlated bounded source recall and actual voice-to-message decision continuity after restart, including explicit incomplete transcript reporting. Final integrated acceptance remains in progress.",
       "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; preserve verified live HELP/STOP/START enforcement in task-driven dispatch.",
       "v0_1_required": true,
       "milestones": [
@@ -469,7 +469,7 @@
       "id": "F-20",
       "required_capability": "Scoped authority across files, media, tools and app actions",
       "delivery_gate": "See milestone assignments",
-      "status": "Gate 3 current authority/revocation/isolation passes remain valid. R08 fixes task/invocation/reply/recall decisions T-01\u2013T-07; task runtime acceptance T-A1\u2013T-A8 remains Gate 4 implementation.",
+      "status": "Gate 4 implements the frozen task/invocation/reply/recall authority decisions and mapped T-A1\u2013T-A8 behavior checks. Actual model/provider journeys now have evidence; final current-source regression and package reconciliation remain in progress.",
       "required_evidence": "Enforce current authorization and revocation on all added operations. Prevent cross-task/context leakage, spoofed caller authority and unauthorized file access; no per-action permission console.",
       "v0_1_required": true,
       "milestones": [
@@ -514,7 +514,7 @@
       "id": "F-21",
       "required_capability": "Two complete first-run journeys",
       "delivery_gate": "See milestone assignments",
-      "status": "Native app loop and provider chat/telephone portions qualified; full journeys incomplete.",
+      "status": "Independent public-SDK app and selected assistant both initiate work and answer incoming contact, preserving artifacts and effect identity across restart. Actual voice/chat/SMS follow-through is evidenced. Final candidate review remains in progress.",
       "required_evidence": "A new developer completes both give-an-agent-presence and make-an-app-reachable, including independently initiated communication, artifact/reply handling and restart. Measure setup usability.",
       "v0_1_required": true,
       "milestones": [

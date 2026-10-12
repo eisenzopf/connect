@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-12T08:43:18.191677+00:00",
+  "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+  "binary_sha256": "8784157abc325d7ec8b23a1347f2f072a96c66d9e3823898360e555fd8159f03",
+  "scope": "Normal installed macOS arm64 package, supplied Codex installer/skill, actual selected-model turns and public native SDK. Separate loopback processes; no Vapi/Telnyx operations.",
+  "host_version": "codex-cli 0.162.0-alpha.17.2",
+  "conversation_id": "1811fb6b-827b-420b-996b-2673f32c7f95",
+  "sessions": [
+    {
+      "proposal": "a",
+      "task_id": "d2931e1d-3e4e-40fe-960b-7b3bdf4ce5ab",
+      "session_id": "01a12f42-67d2-70b2-8b61-963c5f7db249",
+      "same_session_after_restart": true,
+      "observed_tools": {
+        "connect_task_status": 2,
+        "connect_recall": 2,
+        "connect_artifact_begin": 1,
+        "connect_artifact_append": 1,
+        "connect_artifact_finish": 1,
+        "connect_send": 2,
+        "connect_task_wait": 3
+      },
+      "tool_errors": 0,
+      "first_turn_seconds": 145.989,
+      "resumed_turn_seconds": 56.472
+    },
+    {
+      "proposal": "b",
+      "task_id": "22357fc4-42e8-435b-ab6a-0e0d1bb712b5",
+      "session_id": "01a12f42-67d2-7bd3-8c56-c07b4cba077b",
+      "same_session_after_restart": true,
+      "observed_tools": {
+        "connect_task_status": 2,
+        "connect_recall": 2,
+        "connect_task_wait": 2,
+        "connect_artifact_begin": 1,
+        "connect_artifact_append": 1,
+        "connect_artifact_finish": 1,
+        "connect_send": 1
+      },
+      "tool_errors": 0,
+      "first_turn_seconds": 77.416,
+      "resumed_turn_seconds": 42.793
+    }
+  ],
+  "observed_behavior": {
+    "two_distinct_tasks_in_one_conversation": true,
+    "model_authored_ready_artifacts": 2,
+    "artifact_bytes_and_digests_preserved_across_restart": true,
+    "two_independent_approval_questions": true,
+    "reply_bound_only_to_task_a": true,
+    "correct_received_journal_event_used_for_followup": true,
+    "useful_followup_with_new_fact_and_source_id": 1,
+    "unanswered_task_b_remains_waiting": true,
+    "protected_grant_renewal_kept_original_sessions": true,
+    "resume_without_another_prompt_or_reconstructed_context": true,
+    "owned_server_exit_codes": [
+      0,
+      0
+    ]
+  },
+  "artifacts": {
+    "b": {
+      "question_id": "6898036d-be05-4456-8d56-43a471b0d392",
+      "artifact_id": "e3f1c10d-2168-4284-9316-3f37ba176aca",
+      "sha256": "a7c0a3f9d0533adc9db0a38f8339b8fc4d31ce903b1034b517f9040c829fa538",
+      "size": 586
+    },
+    "a": {
+      "question_id": "1e097d3f-1b2c-4da7-b6df-d35b885203e1",
+      "artifact_id": "e636ddb8-f316-4717-9e4a-109fb7b5cae5",
+      "sha256": "b26f4b442c49b11a51de6584476a8611cc706b2d2402b5a4a89503674fb7c8c3",
+      "size": 567
+    }
+  },
+  "continuation_mode": "Explicit developer invocation of run-codex with each existing installation. Automatic model wake is not supplied.",
+  "private_evidence_sha256": {
+    "host-a/host-f4be454b-dd65-41f7-befd-a089f2b383e3-1.jsonl": "672f3bb1f79258ae097097a74cf9aeea6984c33491d17fb8e631bf0752f34843",
+    "host-a/host-4f6511c7-b5c0-4be6-86e1-fc7522bf4398-1.jsonl": "65aa7f1e5615c94505f22a8d4a8e62620bcb96ae8d0fc812e08a8cdaa3c14dfe",
+    "host-b/host-89936e4d-1559-4bcf-a47e-92b771e77afc-1.jsonl": "796ba4bf1ee39244c40d7b725c6a5ccf06ac9c6f27d8b8917ac27891ff071c2c",
+    "host-b/host-d2d8be43-59fc-4270-b760-f9552f987243-1.jsonl": "8402a8cccb5bc23b5e6256b85ccdb15b8e5dbd2d561de73ed2de891447f12ac3",
+    "preparation.json": "5695f74b3ab66259672aabc84e239e1ff9648e1029dc5886c70c04be25daf5d9",
+    "result.json": "f5f213a94d0bd80103315c09203b8db3fd22fb01e3492daf1299418d0b4b655d",
+    "first-sessions.json": "ac1aade97afa54f82eef33761fb5222f5aa4064675078febd497c1d387497507",
+    "resumed-sessions.json": "bee8b0d228cce5b00a14f69ded96d3b9bf9fb0c5fdc2cda1ce30fa3b1e92262b",
+    "human-answer.json": "0d121a93f69237a47bec20f0b4f415eb466ff98c282ce5ff1990ff25b9eee0d9",
+    "first-history.json": "a7d8a8d297f46a5e341f9419d0ae5a6899ddd7325ef90929b284b812ff3aa84f",
+    "after-restart-history.json": "53bc6304ca2bc890ce5829879a5f4518f1fc6e7f0e968deedce8b368340e1770",
+    "artifacts-before-restart.json": "230163353d07b3a4a0d2816263c0ff89ee4e61c410772e705e96c981644f4cb7",
+    "unanswered-task.json": "dc15192aa096ddc4dbb9bb9a07f1a9a40dea53da925f0ac3dc3c61890f282d17",
+    "server-first-exit.json": "81868a6e94ffc0178bf833deb1c9013d9fab4ee95ddb876a5e8ec4f1d26376d2",
+    "server-final-exit.json": "81868a6e94ffc0178bf833deb1c9013d9fab4ee95ddb876a5e8ec4f1d26376d2"
+  },
+  "harness_sha256": "7e617dea049faad1074dc7db876bd201be7f17c3525bd06e99819a816b7c552a",
+  "retained_failures": "docs/evidence/gate-4/reply-reference-repair.json",
+  "limits": [
+    "One successful four-turn actual-model scenario does not establish a statistical model-reliability rate.",
+    "Elapsed model turns include model, host and tool work; they are not QUIC latency measurements.",
+    "Crash ordering and exact replay under injected failures are separately qualified by the offline host and authority suites.",
+    "Runtime first-launch timeouts are retained separately; this successful journey ran without changing macOS security settings or restarting the assessment service."
+  ]
+}

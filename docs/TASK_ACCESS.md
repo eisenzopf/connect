@@ -83,7 +83,9 @@ connect task-access revoke --config .local/install/developer.toml \
 
 The exported bearer connects its installed task to `/mcp` on the MCP port.
 Another task has its own grant; revoking one does not change another's authority.
-The actual host installer and continuation journey remain tracked in the
+The delivered [Codex host adapter](CODEX_TASK_HOST.md) installs the skill and
+connection, preserves exact sessions and supports protected renewal. Current
+source-linked qualification is tracked in the
 [Gate 4 plan](connect-gate-4-implementation.html).
 
 ## Codex workflow export

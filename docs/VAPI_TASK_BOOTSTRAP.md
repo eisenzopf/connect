@@ -2,9 +2,10 @@
 
 This is protected server composition for G4-019/G4-020. It creates a Vapi
 chat **session**, or stages an rvoip-owned voice call, with Connect MCP already
-attached and an explicit binding to an existing Connect task. It is not yet a turnkey runtime installer or a
-qualification of actual Vapi model/tool behavior. Local tests use a fake private
-provider API and the actual Connect MCP endpoint.
+attached and an explicit binding to an existing Connect task. The installed operator entry point composes this runtime; the first-run wizard
+remains Gate 5 work. Local tests use a fake private provider API and the actual
+Connect MCP endpoint. [Live continuity evidence](evidence/gate-4/live-voice-continuity.json)
+separately records actual Vapi model/tool behavior and SMS delivery.
 
 Agents perform configured task operations without per-action approval prompts.
 The developer establishes the task, allowed communication operations and
@@ -102,8 +103,8 @@ cancellation. They do not establish public reachability or actual cloud-provider
 compatibility. The [operator CLI](VAPI_TASK_HOST.md) now composes this setup
 through `connect vapi-task serve` and exact-resource recovery through
 `connect vapi-task reconcile`. Its independent local process checks and
-[extracted release checks](evidence/gate-4/package-candidate.json) pass. Actual
-provider/model qualification remains open under G4-022/G4-034. Existing full-run evidence predates this additive API.
+[extracted release checks](evidence/gate-4/package-candidate.json) pass. Actual provider/model qualification now has separate live evidence; final
+source and installed-candidate reconciliation remains tracked under G4-034.
 
 ## Tool results and continuation
 
@@ -159,10 +160,10 @@ created. A saved provider observation is not authority. File contention produces
 an explicit retryable setup failure; the original intent is retained.
 
 Call/chat/session nonce verification is available in the connector; standalone
-chat creation is not implemented. The voice runtime accepts protected Rust
-composition, but a turnkey operator installer, restart reattachment,
-full operating-profile measurement and actual Vapi
-host qualification remain open. Shared setup admission is described below. A staged or admitted uncertain call is not
+chat creation is not implemented. The voice runtime accepts protected Rust composition and the installed operator
+CLI. It does not reattach audio to an ended call. Full operating-profile and
+live host measurements have their own evidence below. Shared setup admission
+is described below. A staged or admitted uncertain call is not
 silently recreated. Local listeners cannot be reached by a live cloud provider
 without separately configured ingress; this component does not add ingress. No live provider requests or public ingress are used by this component's
 local checks.
@@ -187,8 +188,8 @@ checks with origin, lifecycle and recovery proofs. The
 [G4-020 continuation audit](evidence/gate-4/vapi-continuation-audit.json) now
 qualifies the local context/tool runtime with 31 behavior checks, including
 bounded pending, disconnect, server restart and a useful follow-up from retained
-voice and reply sources. Actual provider/model behavior, installed-host and
-complete journey qualification remain separate work.
+voice and reply sources. Actual provider/model behavior is now evidenced by the separate live journey;
+the implementation plan records final integrated qualification.
 
 ## Server-wide callback resource budget
 
