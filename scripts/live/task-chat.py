@@ -41,8 +41,12 @@ def verify_session(session, intent, *, require_active=True):
 
 def verify_chat(chat, intent):
     identifier(chat.get("id"))
+    # Vapi normalizes a text turn into one user message in its stored receipt.
+    # Exact equality also rejects extra messages, roles, fields or changed text.
+    expected_message = [{"role": "user", "content": intent["input"]}]
+    input_matches = chat.get("input") in (intent["input"], expected_message)
     if (chat.get("sessionId") != intent["session_id"] or chat.get("name") != intent["name"]
-            or chat.get("input") != intent["input"]):
+            or not input_matches):
         raise ValueError("Chat receipt does not match the original turn")
     if not isinstance(chat.get("output"), list) or not chat["output"]:
         raise ValueError("Chat has no captured output")

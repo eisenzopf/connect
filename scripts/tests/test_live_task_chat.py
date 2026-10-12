@@ -101,6 +101,29 @@ class ChatTests(unittest.TestCase):
         self.assertEqual(final["name"], original["name"])
         self.assertEqual(final["session_id"], original["session_id"])
 
+    def test_normalized_provider_input_reconciles_without_another_post(self):
+        def lost(*args):
+            response = self.provider(*args)
+            if args[1] == "POST":
+                self.receipt["input"] = [{"role": "user", "content": args[3]["input"]}]
+                raise TimeoutError("receipt lost")
+            return response
+        self.assertEqual(self.execute(lost)["result"], "uncertain")
+        self.args.action, self.args.prompt, self.args.chat_id = "reconcile", None, "chat-id"
+        self.assertEqual(self.execute()["result"], "captured")
+        self.assertEqual(sum(method == "POST" for method, _, _ in self.calls), 1)
+
+    def test_normalized_input_cannot_change_the_original_turn(self):
+        intent = {"session_id": "session", "name": "name", "input": "Original text"}
+        receipt = {"id": "chat-id", "sessionId": "session", "name": "name",
+                   "output": [{"role": "assistant", "content": "Answer"}]}
+        for value in [[], [{"role": "assistant", "content": "Original text"}],
+                      [{"role": "user", "content": "Changed text"}],
+                      [{"role": "user", "content": "Original text", "extra": True}],
+                      [{"role": "user", "content": "Original text"}] * 2]:
+            with self.subTest(input=value), self.assertRaises(ValueError):
+                chat.verify_chat({**receipt, "input": value}, intent)
+
     def test_revoked_task_denies_provider_access(self):
         self.client.negotiate_task.side_effect = ValueError("revoked")
         self.assertEqual(self.execute()["result"], "failed")
