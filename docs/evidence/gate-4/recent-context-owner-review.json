@@ -1,0 +1,153 @@
+{
+  "result": "passed focused current-source behavior and quality review",
+  "source_base": "82d62898d070335f10959e152dc853c87f030306",
+  "source_fingerprint_sha256": "c790d527474f073eae362ea1a39219f58ceed3048cce6572e58a0c72823e753a",
+  "scope": "local macOS arm64; public SDK/process fixtures and cleared provider environment; no cloud model acceptance",
+  "review": [
+    "The task-owner CLI option now supplies the complete owned-task lifecycle, work claims and explicit reply assignment. It leaves communication recipients unchanged and confers no administrator scope.",
+    "The independent peer reply remains unassigned until the scoped owner assigns it explicitly to its own task. Neither owner nor operator credential is exported through provider tools.",
+    "Recent-context and chronological-recall descriptions guide existing APIs; no protocol, schema, authorization policy or operating limit changed.",
+    "Modified Rust files are focused modules of 129, 202 and 384 lines; examples use the public client boundary."
+  ],
+  "files_sha256": {
+    "crates/connect-mcp/src/catalog.rs": "126ecc73f88c315e7954b6d8f9e7c3e5637ffabda4f143550afa72253f18512d",
+    "crates/connect-mcp/src/schemas.rs": "6ee8f75ad155977b90510b9d1e530790e8a0b68b3ffb97976a0425dd914026a7",
+    "crates/connect-server/src/cli/credentials.rs": "51ffaff2cade036d91b4a0f46d5eda6d857f388d35cc628dad5abf5498c25303",
+    "crates/connect-server/tests/gate4_vapi_host_chat.rs": "95f68ad24da76bf3766a4cdb8958b5ee44524275875af88e2f7e725bbe4897ec",
+    "examples/agent-presence/vapi-system-prompt.txt": "65e6afe1cd1cc630228de5e8f617e0705edfbafc6cbec705fdb9afa34391d3f4"
+  },
+  "private_report": ".local/gate-4-review/recent-context-owner-20261012T030901.415757Z/result.json",
+  "private_report_sha256": "5adab3c37da101c1eda3ced42a9a6d1c4930f138ce82a93d62a17be3c400df56",
+  "checks": [
+    {
+      "name": "compile",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_host_chat",
+        "--no-run"
+      ],
+      "timeout_seconds": 2400,
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 42.776,
+      "leftover_group_members": [],
+      "log_sha256": "e31f0047aa63a2db0e02197ad3d0fd76a0f48209eb5e16b2fd729e5437198a97"
+    },
+    {
+      "name": "behavior",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_host_chat",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 1200,
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 71.345,
+      "leftover_group_members": [],
+      "log_sha256": "1dcce7e18ef784e1a9c39ab57d5acd237ce7b24af21582ffeacf7c5a9daa7196",
+      "rust_tests": {
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "mcp",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-mcp",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 1200,
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 538.616,
+      "leftover_group_members": [],
+      "log_sha256": "1420e38603ac408d78551f54ccedf3e5f67e701554395536cd4e2b2199be1cc5",
+      "rust_tests": {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "strict-lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-mcp",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 1800,
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 281.982,
+      "leftover_group_members": [],
+      "log_sha256": "6da7cc6255f09c1aebe1d962041d8bcb97df05c4032bb351dd36e638688fafe7"
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-mcp",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 1200,
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 63.428,
+      "leftover_group_members": [],
+      "log_sha256": "784a7cf2de1b6dbdddf7d2c749b9ddf683f2d556eb3126153e928d9460371398"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 0.704,
+      "leftover_group_members": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": [
+    "Actual model source use, voice/SMS continuity and final full/installed qualification remain required."
+  ],
+  "recorded_at": "2026-10-12T03:26:29.285328+00:00"
+}

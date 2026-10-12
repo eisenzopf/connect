@@ -177,6 +177,41 @@ async fn issued_task_owner_uses_separate_admin_without_exporting_either_credenti
         panic!("task creation returned the wrong outcome");
     };
     assert_eq!(created.owner_id, owner.identity_id);
+    let mut peer_config =
+        connect_client::ClientConfig::load(&state.directory.join("agent.toml")).unwrap();
+    peer_config.endpoint = owner.endpoint;
+    let mut peer = ConnectClient::open(peer_config).await.unwrap();
+    peer.send("scoped-peer-reply", &state.cid, "Independent peer reply")
+        .await
+        .unwrap();
+    peer.close().await;
+    let replies = owner_client
+        .task(connect_client::tasks::TaskCommand::Replies {
+            conversation_id: state.cid.clone(),
+            after: None,
+            limit: 100,
+        })
+        .await
+        .unwrap();
+    let connect_client::tasks::TaskOutcome::Replies { items, .. } = replies else {
+        panic!("reply list returned the wrong outcome");
+    };
+    assert_eq!(items.len(), 1);
+    assert!(items[0].task_id.is_none());
+    let assigned = owner_client
+        .task(connect_client::tasks::TaskCommand::AssignReply {
+            request_id: "scoped-explicit-assignment".into(),
+            task_id: created.id.clone(),
+            event_id: items[0].event_id.clone(),
+            reply_to: None,
+        })
+        .await
+        .unwrap();
+    let connect_client::tasks::TaskOutcome::Record(assigned) = assigned else {
+        panic!("assignment returned the wrong outcome");
+    };
+    assert_eq!(assigned.id, created.id);
+    assert_eq!(assigned.owner_id, owner.identity_id);
     owner_client.close().await;
     let client = tools::chat(&api.body()).await;
     assert_ne!(client.call_tool(send()).await.unwrap().is_error, Some(true));

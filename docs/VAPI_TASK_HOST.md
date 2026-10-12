@@ -8,7 +8,7 @@ is an agent tool. This is Gate 4 composition, not the Gate 5 first-run wizard.
 The [local CLI component checks](evidence/gate-4/vapi-task-host.json) pass,
 including restart, uncertainty, expiry, shutdown and native voice/MCP behavior.
 The [extracted local release](evidence/gate-4/package-candidate.json) also passes
-all nine Vapi checks with local simulators. No real Vapi account/model or public
+all ten Vapi checks with local simulators. No real Vapi account/model or public
 callback ingress is qualified by either run.
 
 ## Preparation
@@ -24,7 +24,7 @@ Save a private JSON manifest (mode `0600`) with these fields:
 | Field | Value |
 | --- | --- |
 | `profile` | `connect-vapi-task-host/1` |
-| `definition.credential_id` | Reference of the authenticated operator credential; never its bearer |
+| `definition.credential_id` | Reference of the authenticated task-owner credential; never its bearer |
 | `definition.request_id` | Stable grant-issuance identity for this invocation |
 | `definition.task_id` | Existing task, owned by that credential's identity |
 | `definition.assistant_id` | Saved Vapi assistant ID |
@@ -37,8 +37,9 @@ Save a private JSON manifest (mode `0600`) with these fields:
 | `callback_url` | Optional advertised URL, otherwise the local `/mcp` URL |
 
 The task owner can be an existing application or assistant identity. Issue its
-parent configuration through the administrator's local CLI; `--tasks` adds task
-management and delegation, while `--voice` adds communication session controls:
+parent configuration through the administrator's local CLI; `--tasks` adds
+owned-task lifecycle, work claims, explicit reply assignment and delegation,
+while `--voice` adds communication session controls:
 
 ```sh
 connect issue --config .local/operator.toml --server-config .local/server.toml \
@@ -62,7 +63,8 @@ inherited provider credentials and supplies a fixture key and loopback origin.
 
 Use the reusable [Connect presence prompt](../examples/agent-presence/vapi-system-prompt.txt)
 as the assistant's system message. It treats an initial context snapshot as
-incomplete, directs recall before answering about earlier work, follows source
+incomplete, reads recent context before answering about recent work, pages older
+history when needed, follows source
 paging, records decisions through the available tools and distinguishes confirmed
 effects from pending work. Dynamic MCP tool names may have a server prefix.
 The prompt contains no account defaults, authority, conversation IDs or test answers.

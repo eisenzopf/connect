@@ -14,7 +14,9 @@ pub(crate) fn input(spec: &Spec) -> Map<String, Value> {
     match spec.kind {
         Kind::Status => (),
         Kind::Recall | Kind::Wait => {
-            field("after", nullable_string(1024), false);
+            let mut cursor = nullable_string(1024);
+            cursor["description"] = json!("Copy the exact opaque next string from the previous response. Do not shorten it, reconstruct it or substitute a source ID. Omit it on the first page.");
+            field("after", cursor, false);
             field("limit", integer(1, 100), true);
             if matches!(spec.kind, Kind::Wait) {
                 field("wait_ms", integer(0, 10_000), true);
