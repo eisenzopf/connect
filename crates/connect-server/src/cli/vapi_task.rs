@@ -50,6 +50,9 @@ pub struct Arguments {
     /// Optional local HTTP/JSON interface alongside native UCTP/QUIC.
     #[arg(long)]
     pub http_bind: Option<SocketAddr>,
+    /// Optional independent Telnyx callback listener; no application control API.
+    #[arg(long)]
+    pub webhook_bind: Option<SocketAddr>,
 }
 
 /// Execute protected server composition or exact-resource reconciliation.
@@ -84,7 +87,9 @@ fn load(arguments: &OwnerArguments) -> Result<(manifest::Manifest, ServerConfig)
 async fn serve(arguments: Arguments) -> Result<()> {
     let (manifest, config) = load(&arguments.owner)?;
     let provider = tokio::task::spawn_blocking(Vapi::from_env).await??;
-    let server = RunningServer::start_interfaces(config, arguments.http_bind, None, true).await?;
+    let server =
+        RunningServer::start_interfaces(config, arguments.http_bind, arguments.webhook_bind, true)
+            .await?;
     let result = async {
         let mut shutdown = super::serve::Shutdown::install()?;
         let prepared = tokio::select! {

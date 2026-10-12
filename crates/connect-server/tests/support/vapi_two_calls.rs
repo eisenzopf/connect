@@ -44,6 +44,7 @@ impl Fixture {
             receipts: Arc::new(Semaphore::new(0)),
         };
         let app = Router::new()
+            .route("/assistant/{id}", get(assistant))
             .route("/call", post(create))
             .route("/call/{id}", get(lookup))
             .route("/transport/{id}", get(transport))
@@ -112,6 +113,13 @@ fn authenticated(headers: &HeaderMap) -> Result<(), StatusCode> {
     } else {
         Err(StatusCode::UNAUTHORIZED)
     }
+}
+
+async fn assistant(Path(id): Path<String>, headers: HeaderMap) -> Result<Json<Value>, StatusCode> {
+    authenticated(&headers)?;
+    Ok(Json(
+        json!({"id":id,"model":{"provider":"openai","model":"offline-fixture","tools":[]}}),
+    ))
 }
 async fn create(
     State(state): State<Calls>,

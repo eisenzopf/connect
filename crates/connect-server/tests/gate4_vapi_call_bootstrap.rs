@@ -52,10 +52,20 @@ async fn first_call_tools_context_and_native_quic_audio_share_one_task_and_conve
     // explicit create-response semaphore, not that signaling future, gates POST.
     assert_eq!(post["body"]["transport"]["provider"], "vapi.websocket");
     assert_eq!(
-        post["body"]["assistantOverrides"]["tools:append"][0]["server"]["url"],
+        post["body"]["assistantOverrides"]["model"]["tools"][0]["server"]["url"],
         format!("http://{address}/mcp")
     );
-    assert!(post["body"]["assistantOverrides"].get("model").is_none());
+    assert_eq!(
+        post["body"]["assistantOverrides"]["model"]["model"],
+        "offline-fixture"
+    );
+    assert_eq!(
+        post["body"]["assistantOverrides"]["model"]["messages"][0]["content"],
+        "Saved fixture prompt"
+    );
+    assert!(post["body"]["assistantOverrides"]
+        .get("tools:append")
+        .is_none());
     let tools = mcp(&post["body"]).await;
     let recall = tools
         .call_tool(
@@ -98,6 +108,7 @@ async fn first_call_tools_context_and_native_quic_audio_share_one_task_and_conve
                 &session.id
             )
             .unwrap(),
+        &sdk,
     )
     .await
     .is_err());
@@ -230,7 +241,7 @@ async fn cancellation_after_dispatch_denies_first_callback_and_context_without_r
         .unwrap();
     let before = Store::inspect_snapshot(f.h.server.store.path()).unwrap();
     let response=http().await.post(format!("http://{address}/mcp")).header("x-call-id","call-connect-gate-three").header("Accept","application/json, text/event-stream")
-        .header("Authorization",post["body"]["assistantOverrides"]["tools:append"][0]["server"]["headers"]["Authorization"].as_str().unwrap())
+        .header("Authorization",post["body"]["assistantOverrides"]["model"]["tools"][0]["server"]["headers"]["Authorization"].as_str().unwrap())
         .json(&json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"cancel-voice","version":"1"}}})).send().await.unwrap();
     assert!(response.status().is_client_error());
     assert_eq!(
@@ -247,7 +258,8 @@ async fn cancellation_after_dispatch_denies_first_callback_and_context_without_r
         f.h.server.service.clone(),
         &directory,
         &f.h.owner_config.credential_id,
-        &expected
+        &expected,
+        &Vapi::new("fake-private-key", &fake.api_base).unwrap(),
     )
     .await
     .is_err());

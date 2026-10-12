@@ -107,7 +107,7 @@ async fn expired_setup_cannot_fall_back_to_an_unscoped_call_after_server_restart
         .await
         .unwrap();
     let continued_post = fake.next("create-call").await;
-    assert!(continued_post["body"]["assistantOverrides"]["tools:append"].is_array());
+    assert!(continued_post["body"]["assistantOverrides"]["model"]["tools"].is_array());
     assert!(fake
         .next("add-message")
         .await

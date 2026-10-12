@@ -1,0 +1,221 @@
+{
+  "result": "Separate task-host SMS callback listener passed behavior and strict quality checks",
+  "scope": "local macOS arm64, simulated providers only; no account access or messages",
+  "source_base": "641e8ab187ed65cef642369462df3143f5964f63",
+  "files_sha256": {
+    "crates/connect-server/src/cli/vapi_task.rs": "6341f18b8b6a8e5d6d3467b343517fdb24d1d377505f95f448117ab1437c246f",
+    "crates/connect-server/tests/support/vapi_host_process.rs": "0c311356d1530075d6c64337e808afbd88eeb76ac0394c87777382e79d5d0b89",
+    "crates/connect-server/tests/gate4_vapi_host_webhook.rs": "ca173921cc4433cada025d832a3b8cfab0c8764c71096c159db76a1a95269c57",
+    "scripts/lib/package_gate4.py": "65bcae5809f5c630361ec9542391316f6ca1948416610a7442fba7dd8b8b98c8"
+  },
+  "initial_run": [
+    {
+      "name": "compile",
+      "timeout_seconds": 2400,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 45.842,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_host_webhook",
+        "--test",
+        "gate4_vapi_host_chat",
+        "--test",
+        "gate4_vapi_host_voice",
+        "--no-run"
+      ],
+      "log_sha256": "8adb8c5acf353908dc48597bb1d90f1c27d3e8e84ec02945c25bb1d4a6f3d4f8"
+    },
+    {
+      "name": "behavior",
+      "timeout_seconds": 1800,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 284.253,
+      "rust_tests": {
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_host_webhook",
+        "--test",
+        "gate4_vapi_host_chat",
+        "--test",
+        "gate4_vapi_host_voice",
+        "--",
+        "--test-threads=1"
+      ],
+      "log_sha256": "f82b0492883fca37dc350ad4411492f1153f1b22249da7db1edc05686bcf33e7"
+    },
+    {
+      "name": "strict-lint",
+      "timeout_seconds": 1800,
+      "status": "failed",
+      "exit_code": 101,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 186.844,
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log_sha256": "d3e4753de5342d6908610eedb94d740e2ddd2b74d9c503b5e96248c3ea758c41"
+    }
+  ],
+  "initial_failure": "All 12 behavior checks passed; strict Clippy rejected an unused shared helper in the new test. The test was strengthened to fetch the MCP catalog while the SMS listener is running.",
+  "corrected_run": [
+    {
+      "name": "compile",
+      "timeout_seconds": 2400,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 19.197,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_host_webhook",
+        "--no-run"
+      ],
+      "log_sha256": "1b4264fe7b606da071a7c5e942bd725fa61e86c4104acfb526d9722aa3729b15"
+    },
+    {
+      "name": "behavior",
+      "timeout_seconds": 600,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 82.381,
+      "rust_tests": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_host_webhook",
+        "--",
+        "--test-threads=1"
+      ],
+      "log_sha256": "bb183f1e09d435ae21630d121d6998ba693569fc08611d0a4e33af67a8704a72"
+    },
+    {
+      "name": "strict-lint",
+      "timeout_seconds": 1800,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 24.488,
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log_sha256": "98325ce222c03770f2f5e8e7e7b32c74239a45bcf10f1f91bbac8e6ead51faa5"
+    },
+    {
+      "name": "rustdoc",
+      "timeout_seconds": 1200,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 26.391,
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--no-deps"
+      ],
+      "log_sha256": "3f0f9afdc60114dcd8f2b683f1a724db0ea123449ced3cdff499a16d296846bb"
+    },
+    {
+      "name": "format",
+      "timeout_seconds": 120,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.668,
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python",
+      "timeout_seconds": 120,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.07,
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "py_compile",
+        "scripts/lib/package_gate4.py"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "coverage": [
+    "Independent listener excludes the application control facade",
+    "Unsigned Telnyx callback is rejected",
+    "MCP connect_send remains available in the same host",
+    "Graceful host shutdown releases the callback port"
+  ],
+  "live_sms_qualification": "pending actual signed provider callbacks and handset STOP/START sequence"
+}

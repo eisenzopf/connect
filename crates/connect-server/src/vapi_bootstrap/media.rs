@@ -15,6 +15,7 @@ use std::{
 pub(crate) struct CallSetup {
     service: Arc<Service>,
     directory: PathBuf,
+    provider: Arc<Vapi>,
     listener: Option<RunningMcp>,
     expires_at: i64,
 }
@@ -31,7 +32,14 @@ impl CallSetup {
             self.listener.is_some(),
             "Task setup is closed; retain original recovery intent"
         );
-        super::stage_call(self.service.clone(), &self.directory, caller, expected).await
+        super::stage_call(
+            self.service.clone(),
+            &self.directory,
+            caller,
+            expected,
+            &self.provider,
+        )
+        .await
     }
     pub(crate) async fn shutdown(mut self) -> Result<()> {
         self.close().await
@@ -112,7 +120,7 @@ impl crate::runtime::RunningServer {
                 self.service.clone(),
                 Arc::new(BootstrapAuth::new(
                     self.service.clone(),
-                    provider,
+                    provider.clone(),
                     directory.into(),
                 )),
                 "127.0.0.1:0".parse()?,
@@ -154,6 +162,7 @@ impl crate::runtime::RunningServer {
         let setup = Box::new(CallSetup {
             service: self.service.clone(),
             directory: directory.into(),
+            provider,
             listener: Some(listener),
             expires_at,
         });

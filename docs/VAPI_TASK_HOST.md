@@ -97,11 +97,27 @@ This runs the normal server, including configured provider workers. Optional
 its actual local callback address and task/resource IDs, never the setup secret,
 operator bearer or provider key.
 
+For programmable SMS in the same process, add `--webhook-bind 127.0.0.1:PORT`.
+This independent listener exposes only the signed Telnyx callback route. Keep the
+HTTP/JSON facade on its separate local address. Set `TELNYX_API_KEY` for delivery
+and the configured enrollment-authority environment for current consent checks;
+the normal runtime loads the Telnyx public verification key. Only the dedicated
+callback listener needs operator-managed provider ingress during a live rehearsal.
+
 Voice mode stages the existing rvoip media attachment. The SDK's subsequent
 native audio attachment creates the call; starting this command alone does not.
 The media lifecycle owns callback capacity, expiry and teardown. It refuses to
 replace a previous setup on the same Session, including after restart. Create a
 new Session on the original task/conversation for a new leg.
+
+For each task voice leg, protected composition reads the saved assistant's model
+through the private SDK with a five-second deadline. It preserves that model's
+prompt, provider, model choice and existing tools, then appends the scoped MCP
+configuration under the per-call `model.tools`. No saved assistant is modified.
+Vapi's top-level `tools:append` override does not load the voice MCP catalog in
+the observed API path; chat sessions retain their separately verified setup.
+Missing or malformed model data fails before dispatch is staged. Authority is
+rechecked after the lookup and again at rvoip's final call admission.
 
 Chat mode binds its callback listener before creating the Vapi session. A
 30-second setup deadline returns an error with the original private intent

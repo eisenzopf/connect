@@ -15,7 +15,7 @@ use std::time::Duration;
 pub async fn tools(
     event: &Value,
 ) -> rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::ClientConfig> {
-    let server = &event["body"]["assistantOverrides"]["tools:append"][0]["server"];
+    let server = &event["body"]["assistantOverrides"]["model"]["tools"][0]["server"];
     let mut headers = reqwest_mcp::header::HeaderMap::new();
     headers.insert(
         "x-call-id",
@@ -47,7 +47,7 @@ pub async fn tools(
         .unwrap()
 }
 pub fn server(event: &Value) -> &Value {
-    &event["body"]["assistantOverrides"]["tools:append"][0]["server"]
+    &event["body"]["assistantOverrides"]["model"]["tools"][0]["server"]
 }
 pub fn read(directory: &std::path::Path) -> Value {
     serde_json::from_slice(&std::fs::read(directory.join("intent.json")).unwrap()).unwrap()

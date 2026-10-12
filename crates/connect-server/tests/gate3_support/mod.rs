@@ -86,6 +86,7 @@ impl FakeVapi {
             remote_end,
         };
         let router = Router::new()
+            .route("/assistant/{id}", get(private_assistant))
             .route("/call", post(create_call))
             .route("/call/call-connect-gate-three", get(private_call))
             .route("/transport", get(upgrade_socket))
@@ -168,6 +169,20 @@ async fn private_call(
         return Err(axum::http::StatusCode::UNAUTHORIZED);
     }
     Ok(Json(state.resource.lock().unwrap().clone()))
+}
+
+async fn private_assistant(
+    axum::extract::Path(id): axum::extract::Path<String>,
+    headers: axum::http::HeaderMap,
+) -> Result<Json<Value>, axum::http::StatusCode> {
+    if headers.get("authorization").and_then(|v| v.to_str().ok()) != Some("Bearer fake-private-key")
+    {
+        return Err(axum::http::StatusCode::UNAUTHORIZED);
+    }
+    Ok(Json(
+        json!({"id":id,"model":{"provider":"openai","model":"offline-fixture",
+        "messages":[{"role":"system","content":"Saved fixture prompt"}],"tools":[]}}),
+    ))
 }
 
 async fn upgrade_socket(State(state): State<FakeState>, upgrade: WebSocketUpgrade) -> Response {

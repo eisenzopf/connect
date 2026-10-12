@@ -1,0 +1,129 @@
+{
+  "result": "controlled interruption before required voice integration source repair; not a whole-run pass",
+  "source_revision": "641e8ab187ed65cef642369462df3143f5964f63",
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "completed_phases": [
+    {
+      "name": "dependencies",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.306
+    },
+    {
+      "name": "format",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.769
+    },
+    {
+      "name": "typescript-install",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.859
+    },
+    {
+      "name": "typescript-tests",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 3.537
+    },
+    {
+      "name": "typescript-format",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.529
+    },
+    {
+      "name": "typescript-distribution",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.077
+    },
+    {
+      "name": "python-sdk",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 3.499
+    },
+    {
+      "name": "agent-incoming-unit",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.192
+    },
+    {
+      "name": "runner-failure-tests",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 1.563
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.136
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 2.835
+    },
+    {
+      "name": "lint",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 60.151
+    },
+    {
+      "name": "rustdoc",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 49.745
+    },
+    {
+      "name": "workspace",
+      "status": "failed",
+      "rust_tests": {
+        "passed": 74,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 1869.454
+    }
+  ],
+  "not_run": [
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "reason": "Actual provider diagnosis confirmed tools:append did not trigger voice MCP catalog discovery. Preserve this stable-source run before repairing call overrides.",
+  "private_report_sha256": "09becd140d62b4c63466941887b77359c3013cb0ecf4fa179d67b184bddf2fe1",
+  "private_report": ".local/gate-4-checks/20261012T032811.347874Z/result.json",
+  "whole_run_passed": false,
+  "recorded_at": "2026-10-12T04:10:12.748499+00:00"
+}

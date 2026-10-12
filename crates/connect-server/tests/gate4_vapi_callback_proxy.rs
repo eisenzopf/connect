@@ -63,7 +63,7 @@ async fn advertised_callback_reaches_owned_listener_and_rechecks_cancellation() 
         (client, audio)
     });
     let post = fake.next("create-call").await;
-    let tool_server = &post["body"]["assistantOverrides"]["tools:append"][0]["server"];
+    let tool_server = &post["body"]["assistantOverrides"]["model"]["tools"][0]["server"];
     assert_eq!(tool_server["url"], advertised);
     let tools = call_setup::mcp(&post["body"]).await;
     let recall = tools

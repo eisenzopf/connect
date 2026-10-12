@@ -11,6 +11,7 @@ mod prepared;
 pub use prepared::verify_prepared;
 mod recovery;
 mod state;
+mod voice_model;
 use crate::cli::init::{private_directory, private_write};
 pub use admission::BootstrapAuth;
 use anyhow::Result;

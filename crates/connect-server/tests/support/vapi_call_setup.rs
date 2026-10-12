@@ -55,7 +55,7 @@ pub async fn http() -> reqwest_mcp::Client {
 pub async fn mcp(
     body: &Value,
 ) -> rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::ClientConfig> {
-    let server = &body["assistantOverrides"]["tools:append"][0]["server"];
+    let server = &body["assistantOverrides"]["model"]["tools"][0]["server"];
     let mut headers = reqwest_mcp::header::HeaderMap::new();
     headers.insert("x-call-id", "call-connect-gate-three".parse().unwrap());
     let client = tokio::task::spawn_blocking(move || {

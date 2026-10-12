@@ -1,0 +1,40 @@
+{
+  "result": "Actual installed selected host responded to independently initiated contact with one source-backed useful reply",
+  "items": [
+    "G4-025",
+    "G4-034"
+  ],
+  "scope": "Local macOS arm64; installed server/SDK/example/host; actual model account, no scripted model or live phone provider",
+  "source_revision": "641e8ab187ed65cef642369462df3143f5964f63",
+  "correlation": {
+    "conversation_id": "63a74564-f6a8-468f-a6ac-a2e0e9bcec54",
+    "initiating_message_id": "cfd64df8-e278-4f73-873a-4199e45f70ec",
+    "draft_source_id": "deec1718-330a-45eb-8e5b-ac4f1c0d784d",
+    "reply_message_id": "8408b392-65f7-4765-9c16-4b6f9e54b2c8"
+  },
+  "assertions": {
+    "peer_and_assistant_use_independent_processes": true,
+    "incoming_example_used_public_native_sdk_and_packaged_host_commands": true,
+    "contact_prompt_did_not_repeat_source_fact": true,
+    "reply_contains_original_window_code_and_source_reference": true,
+    "exactly_one_useful_reply_observed": true,
+    "model_not_scripted": true,
+    "owned_server_stopped_cleanly": true
+  },
+  "private_evidence_sha256": {
+    "intent.json": "fede75bbbe38891b8f9f945328bea5f5fa6504f3260ca8bcb08e7edb518e4585",
+    "seed-receipt.json": "75e96cf7ab4f734a0e48b0932df6f957b4dd317fa4e6efa853c0c0e9e6fe825d",
+    "contact-receipt.json": "74895d2e6332331ff298fb332ddc2c4b8e8902e9727980746402550a8ad27ca5",
+    "model-example.log": "bb75ac3a692cb316f8f04bdf5ac889706b4b7e977696ec906485435344a60da5",
+    "history-after-model.json": "f67eb8fc68bbd9c8d575dc24379b4a2ac8df8b4f098278a2adb3fb89de3111b9",
+    "result-observation-error.json": "3d94f4302f3bdfd89c4153b180216e743c71b1300b17dcda4d1e7e2f743f8c2c",
+    "result.json": "b2f9c2daed79c85d64f7a17bc3648799cae2508ed206a4fb6e461ea3d1ebed2e",
+    "server-exit.json": "81868a6e94ffc0178bf833deb1c9013d9fab4ee95ddb876a5e8ec4f1d26376d2"
+  },
+  "limits": [
+    "The private observer initially read id instead of the accepted message_id field. The failed check is retained; the known model turn was not repeated.",
+    "Draft/reply/restart overlapping-task behavior is qualified separately by real-model-draft-journey.json.",
+    "Final source/candidate reconciliation and prerequisite voice/SMS acceptance remain required."
+  ],
+  "recorded_at": "2026-10-12T04:36:12.383730+00:00"
+}

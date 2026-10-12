@@ -1,0 +1,57 @@
+{
+  "result": "Actual Vapi source retrieval and visible question passed",
+  "items": [
+    "G4-022",
+    "G4-027"
+  ],
+  "source_revision": "641e8ab187ed65cef642369462df3143f5964f63",
+  "runtime": "manifest-verified installed local macOS arm64 release",
+  "model": "gpt-4o-mini",
+  "correlation": {
+    "conversation_id": "b300016a-b474-4223-996c-137f85caecfb",
+    "task_id": "52f909c1-351e-42df-b90f-8671137e8fe1",
+    "sibling_task_id": "bfb88bf9-9c2e-46f1-8edd-ad2755287eca",
+    "vapi_session_id": "8a6a6fa5-20fd-4009-9797-56d5f57b6712",
+    "vapi_chat_id": "7275c007-560a-44ca-a3e1-29dd5f6b2fac",
+    "draft_source_id": "c5ceff17-1d26-496f-bce7-86ef8c0d8dc3",
+    "question_message_id": "9f2411fa-260a-429b-875c-129777bf39b5",
+    "peer_reply_event_id": "6b6e8ee3-8791-4a87-9a99-7e2d43951a45"
+  },
+  "actual_tools": [
+    {
+      "name": "trycloudflare-connect_context_view",
+      "request_id": "atlas_pilot_check_001",
+      "step_id": "context_view_001"
+    },
+    {
+      "name": "trycloudflare-connect_send",
+      "request_id": "atlas_pilot_check_001",
+      "step_id": "send_001"
+    }
+  ],
+  "assertions": {
+    "original_day_time_code_and_source_fetched_from_recent_context": true,
+    "test_prompt_did_not_supply_answers": true,
+    "visible_note_independently_read_through_public_native_SDK": true,
+    "wait_for_reply_true": true,
+    "task_waiting_observed": true,
+    "peer_reply_attributed_only_to_exact_task": true,
+    "sibling_unchanged": true
+  },
+  "private_evidence_sha256": {
+    "chat-tool-calls-private.json": "5a905b4dea5a4095264d59a182c6d387af5aec2bfbafd3483408f367a3ddfeb2",
+    "chat-task-observation.json": "57c256a29d2f83224d96dc5199174141509ce446cdf032dcad7ddc7138f56ee7",
+    "after-chat-context.json": "aa51320b60d300603ddbc74493f3777327c1946e80539737f0eaa88cb219b2f1",
+    "chat-peer-reply-receipt.json": "ea68cbb4a06d3e7f453218ebe7be41e6dcb8c2fddef65b97a05874259bafefa4",
+    "chat-peer-reply-first-attempt.json": "da7a60bee1cef9e6e04c6c09bd43b4f7162ad80a83a900243bfc7f75e46bbb8a",
+    "chat-peer-reply-pages.json": "7db4497710317b6d0a5dfa0245a996152fa8d82070733fd056d3cce2321ac636"
+  },
+  "provider_capture_sha256": "95bc40e5a35fb039860d38fc36d9ad0ed1af304d0d52591c642b8413d0c17e34",
+  "prior_failed_attempt": "vapi-recent-context-attempt.json",
+  "limitations": [
+    "The independent peer acknowledgement is a scripted public SDK process, not a physical handset receipt.",
+    "The private rehearsal caller first used an unsupported ordinary send argument, then inspected the wrong tagged reply-list level. Both were observation/pre-dispatch errors, retained separately; the known task Reply was not dispatched again.",
+    "Connect-carried voice, post-restart model recall, reviewed SMS keywords and final offline/installed acceptance remain separate required checks."
+  ],
+  "recorded_at": "2026-10-12T03:36:19.829150+00:00"
+}

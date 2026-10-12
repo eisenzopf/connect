@@ -62,16 +62,17 @@ def qualify(release, source, codex, directory):
                         CARGO_BUILD_JOBS="3")
         command = ["cargo", "test", "--locked", "-p", "connect-server",
                    "--test", "gate4_vapi_host_chat", "--test", "gate4_vapi_host_voice",
+                   "--test", "gate4_vapi_host_webhook",
                    "--", "--nocapture", "--test-threads=1"]
         result = run_phase("installed-vapi-host", command, 2400, directory, source, vapi_env)
         report["steps"].append(result)
         check_test_results(result, directory)
-        if result["status"] != "passed" or result.get("rust_tests") != {"passed": 10, "failed": 0, "ignored": 0}:
+        if result["status"] != "passed" or result.get("rust_tests") != {"passed": 12, "failed": 0, "ignored": 0}:
             result["status"] = "failed"
-            raise RuntimeError("Installed Vapi host did not execute all eight journeys and two process-ownership controls")
+            raise RuntimeError("Installed Vapi host did not execute all nine journeys and three process-ownership controls")
         report["vapi_runtime"] = {"binary": str(release / "bin/connect"),
                                   "scope": "local simulator; no cloud provider or model inference",
-                                  "checks": "chat restart/effect replay, scoped task owner with separate administrator, exact-resource recovery, rejection before dispatch, callback expiry with retained conversation, native voice with MCP, ready/signal ordering and interrupted creation cleanup"}
+                                  "checks": "chat restart/effect replay, scoped task owner with separate administrator, exact-resource recovery, rejection before dispatch, callback expiry with retained conversation, native voice with MCP, isolated signed-only SMS listener, ready/signal ordering and interrupted creation cleanup"}
         save()
         report["status"] = "passed"
     except BaseException as error:

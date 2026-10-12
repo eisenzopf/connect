@@ -48,6 +48,21 @@ fn command(state: &StoppedHost, input: &Path, api: &str, log: &Path, action: &st
     if operator.is_file() {
         command.arg("--operator-config").arg(operator);
     }
+    if action == "serve" {
+        let webhook = state.directory.join("host-webhook-bind.txt");
+        if webhook.is_file() {
+            command
+                .arg("--webhook-bind")
+                .arg(std::fs::read_to_string(webhook).unwrap().trim());
+        }
+        let public_key = state.directory.join("host-telnyx-public-key.txt");
+        if public_key.is_file() {
+            command.env(
+                "TELNYX_PUBLIC_KEY",
+                std::fs::read_to_string(public_key).unwrap().trim(),
+            );
+        }
+    }
     command
 }
 impl Process {

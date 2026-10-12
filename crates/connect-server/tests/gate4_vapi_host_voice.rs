@@ -53,7 +53,7 @@ async fn installed_voice_uses_task_tools_and_duplex_quic_without_recreating_a_le
     });
     let post = fake.next("create-call").await;
     assert_eq!(
-        post["body"]["assistantOverrides"]["tools:append"][0]["server"]["url"],
+        post["body"]["assistantOverrides"]["model"]["tools"][0]["server"]["url"],
         host.ready["callback_local"]
     );
     let tools = call_setup::mcp(&post["body"]).await;

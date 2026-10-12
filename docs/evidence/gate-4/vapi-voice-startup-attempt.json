@@ -1,0 +1,26 @@
+{
+  "result": "audio capture passed; actual voice MCP source/useful-effect acceptance failed",
+  "source_revision": "641e8ab187ed65cef642369462df3143f5964f63",
+  "items": [
+    "G4-022",
+    "G4-027"
+  ],
+  "correlation": {
+    "task_id": "52f909c1-351e-42df-b90f-8671137e8fe1",
+    "conversation_id": "b300016a-b474-4223-996c-137f85caecfb",
+    "session_id": "d47e110f-5524-4674-9448-560f5031cb32",
+    "vapi_call_id": "01a12e30-4406-7bbe-98f2-aaf9fa70df90"
+  },
+  "observations": [
+    "Native UCTP/QUIC carried 62.2 seconds of received provider audio with no driver error.",
+    "First call-origin MCP initialization returned HTTP 401; a later initialization succeeded.",
+    "Vapi retained the connectTools wrapper as a fallback tool instead of fetching the granted Connect catalog. Actual model calls to connectTools failed and no decision note was written.",
+    "Matching identifiers or audio capture do not satisfy the voice source/effect acceptance.",
+    "The ended Session, transcripts and task remain in the original conversation. Any next voice attempt must explicitly create a new Session on that same task."
+  ],
+  "private_capture_sha256": "594299c81cfbeec32118f940644bc38315cbe20de52c4fd4ec7859b33e595b4a",
+  "driver_result_sha256": "ae2ef605da193a20c625f4323e47b74764554910b14c1641c6162ff1ce06d9a1",
+  "context_sha256": "781e0d79755c6dbd5fdcf9ca780cbdc40c07152631e861db23c43d546a1d4f9b",
+  "call_start_lookup_failure_reason": "Not yet determined; private API readiness is suspected, not attested.",
+  "recorded_at": "2026-10-12T03:41:59.965393+00:00"
+}
