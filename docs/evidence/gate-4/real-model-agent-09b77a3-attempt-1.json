@@ -1,0 +1,106 @@
+{
+  "status": "failed",
+  "scope": "local macOS arm64; actual Codex inference; no live communication providers",
+  "source_revision": "09b77a3f8219b6ea37acad1ad4473f9de836c564",
+  "binary_sha256": "56a945b6d2aefbf3e1638a03795c44fba6b69c0a1921eb9f548026d5bc93ccd6",
+  "qualification_report_sha256": "f1a853a20198672166e4e1b6159a8cea272f437a62b88bdf451139c51e43ba88",
+  "runtime_manifest_sha256": "3a2b6cc9f86b269a15763c1fbd833d2860bee1e351a73622e64415357204e6d0",
+  "harness_sha256": "6624c925908eac693d0f7558781ce18d4cf752f8e0b132f068e2ea6fb60ddec0",
+  "actual_codex_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "host_turn_budget_seconds": 300,
+  "outer_budget_seconds": 1100,
+  "access_mode": "regular-agent-credential",
+  "model_tool_calls": {
+    "model-first": {
+      "calls_passed": 15,
+      "calls_failed": 2,
+      "successful_tools": {
+        "connect_artifact_append": 2,
+        "connect_artifact_begin": 2,
+        "connect_artifact_finish": 2,
+        "connect_context_view": 2,
+        "connect_inspect": 1,
+        "connect_task_create": 2,
+        "connect_task_send": 2,
+        "connect_task_wait": 2
+      },
+      "event_sha256": "a07b04756aec30f643a0bdc10ab3b8bf8ca4fa41b9cdd214e369f12cab34baa6",
+      "rule": "Model/schema/transport errors are retained and counted as failures; a corrected later call does not turn that failure into a pass."
+    }
+  },
+  "phase": "model-first",
+  "error_class": "ProofFailure",
+  "failure_label": "model-or-schema-tool-error-retained-not-a-pass",
+  "original_identity_conversations_host_intents_retained": true,
+  "owned_process_cleanup": [
+    {
+      "pid": 51048,
+      "exit_code": 0,
+      "owned_process_group_cleanup": true
+    }
+  ],
+  "delivered_cli_commands": [
+    {
+      "name": "init",
+      "interface": [
+        "init",
+        "--directory"
+      ]
+    },
+    {
+      "name": "create-agent",
+      "interface": [
+        "agent-access",
+        "create-identity"
+      ]
+    },
+    {
+      "name": "issue-agent",
+      "interface": [
+        "issue",
+        "--config"
+      ]
+    },
+    {
+      "name": "issue-human",
+      "interface": [
+        "issue",
+        "--config"
+      ]
+    },
+    {
+      "name": "export-agent",
+      "interface": [
+        "agent-access",
+        "export-codex"
+      ]
+    },
+    {
+      "name": "model-first",
+      "interface": [
+        "agent-access",
+        "run-codex"
+      ]
+    }
+  ],
+  "schema": "connect.gate4.actual-normal-agent-attempt/1",
+  "recorded_at": "2026-10-12T12:19:04.351574+00:00",
+  "private_report": {
+    "path": ".local/gate4-agent-access/identity-model-20261012T120237.432913Z/result.json",
+    "location": "managed final-review worktree",
+    "sha256": "34f5ddad7cbeb82a17c7560e51ea764871d5089daaf4390a2de8398bb2e863ba"
+  },
+  "observed_failure": {
+    "tool": "connect_context_view",
+    "failed_calls": 2,
+    "reason": "Model omitted required limit; both subsequent calls with limit30 succeeded. Required schema field prevented implicit pagination.",
+    "corrective_scope": "Normal identity MCP read will gain optional bounded default30; scoped native protocol remains explicit."
+  },
+  "not_run": [
+    "Independent draft bytes/task observer verification",
+    "Server restart and exact session resume",
+    "Source-backed human reply and independent incoming contact",
+    "Request replay verification"
+  ],
+  "whole_gate_closure_claimed": false
+}

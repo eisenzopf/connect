@@ -2,22 +2,23 @@
   "schema": 1,
   "status": "in-progress",
   "recorded_at": "2026-10-12",
-  "status_note": "Final qualification is running. This is not gate closure or a release approval.",
+  "status_note": "Normal identity access is implemented. Current-source regression and actual-model qualification remain open; this is not gate closure or release approval.",
   "offline_phases_passed": 13,
   "installed_checks_passed": 17,
   "candidate": {
-    "Current live-tested source": "596e9b7c83d087db89dc49f92df5137638798ede",
-    "Current live-tested binary SHA-256": "4d4a8717a198747e9aa251a4abf3fb8f5bafc3505d50dd1b6f7239e4d91b3473",
-    "Final metadata and package-harness repair": "7edb1b1487d0aef765f89792b4244a0d0418e4ea; 17 installed checks and actual-model journeys passed",
+    "Packaged normal-access source": "09b77a3f8219b6ea37acad1ad4473f9de836c564; all17 installed checks passed",
+    "Packaged binary SHA-256": "56a945b6d2aefbf3e1638a03795c44fba6b69c0a1921eb9f548026d5bc93ccd6",
+    "Prior scoped model proof": "7edb1b1487d0aef765f89792b4244a0d0418e4ea; historical, does not qualify normal key default",
+    "Carrier voice/SMS proof": "596e9b7 voice/MCP/cross-channel;9ab SMS handset controls; current shared MCP chat rehearsal pending",
     "Platform": "local macOS arm64",
-    "Selected additional host": "Codex CLI 0.162.0-alpha.17.2; explicit same-session resume",
-    "First candidate startup": "Earlier 180-second and 600-second observations timed out before main. Fresh extracted package launched in 36.943 seconds; unchanged settings, Gatekeeper enabled, no assessment-service restart. Earlier failures retained.",
-    "Final binary SHA-256": "8784157abc325d7ec8b23a1347f2f072a96c66d9e3823898360e555fd8159f03",
-    "Current offline source": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab; full 41-phase rerun in progress"
+    "Selected additional host": "Codex CLI0.162.0-alpha.17.2; explicit exact-session resume",
+    "Normal actual-model attempt": "09b77a3;15 successful tool calls,2 missing-limit context calls; first turn recovered but strict proof failed",
+    "Next source qualification": "Bounded normal context default30, unchanged optional scoped contracts; source freeze pending",
+    "Security/startup scope": "Security settings unchanged. Earlier startup stalls have no established root cause."
   },
   "quality_review": [
     "Protocol, store, service, client, server and MCP retain separate responsibilities. Examples use the public client and own their separate application state.",
-    "Task, MCP, host and provider setup modules are separated by responsibility. Strict workspace Clippy, Rustdoc and repository formatting pass for the final narrow repair; all 17 installed-package checks pass. Full baseline regression and final source reconciliation remain in progress.",
+    "Normal identity/MCP/CLI modules are separated by responsibility and have focused source-stable lint/Rustdoc/format and25 passing behavior checks. Packaged09b77a3 passes17 installed checks. Full regression stopped at disk-full linking before Rust tests; next default correction is not yet qualified.",
     "Adversarial checks cover current authority, reply assignment, duplicate/reordered events, failed storage, cancellation, expiry and uncertain provider effects. Known uncertainty preserves the original logical ID.",
     "Recovery evidence includes matching snapshots, schema upgrade, incompatible-binary refusal, rollback and a resumed task under current authorization. Original user state is preserved."
   ],
@@ -37,10 +38,10 @@
   ],
   "implementation_items_done": 28,
   "implementation_items_total": 36,
-  "offline_status": "Clean 5d23d73 failed in workspace at provider_flow initial send after13 passing phases; later phases unrun. Failed attempt retained; fixture correction and owner-approved normal identity default pending qualification.",
+  "offline_status": "Frozen09b77a3 passed13/41 prerequisites, then failed linking because the external drive filled. Zero Rust workspace tests executed; later phases are explicitly unrun. Reproducible caches are being reclaimed before qualification of the bounded normal-context default.",
   "agent_access_default": {
     "decision": "docs/decisions/010-agent-identity-access.md",
-    "status": "implementation-and-qualification-in-progress",
+    "status": "implemented; focused25 behavior checks and17 installed package checks passed; final correction/regression/model qualification pending",
     "legacy_scoped_proof": "retained; does not qualify the new default"
   }
 }

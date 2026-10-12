@@ -1,0 +1,86 @@
+{
+  "schema": "connect.gate4.build-cache-remedy/1",
+  "recorded_at": "2026-10-12T12:25:30.180853+00:00",
+  "status": "passed; storage remedy only, no behavior qualification",
+  "private_report": {
+    "path": ".local/gate-4-final/parallel/authority/cache-remedy-20261012.json",
+    "sha256": "05344b2546404d5968ab0ce67023f2fffd44ad84e069a2d997c378b43a033400"
+  },
+  "remedy": {
+    "schema": 1,
+    "status": "passed",
+    "started_at": "2026-10-12T12:21:04.672906+00:00",
+    "authorization": "Root authorized only these two reproducible ignored cache trees after the completed disk-full runner failure.",
+    "failed_full_report": ".local/gate-4-checks/20261012T113720.255918Z/result.json",
+    "source_revision": "912586fb611bde391519f72578798b465ba41414",
+    "paths": [
+      {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/upstream",
+        "allocated_bytes_before": 96999006208,
+        "ordinary_directory": true,
+        "symlink": false,
+        "ignored": true,
+        "status": "removed",
+        "started_at": "2026-10-12T12:21:04.679868+00:00",
+        "ended_at": "2026-10-12T12:23:05.260538+00:00",
+        "exists_after": false,
+        "disk_after_removal": {
+          "available_bytes": 100031619072,
+          "free_bytes": 100031619072,
+          "total_bytes": 2000054960128
+        }
+      },
+      {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/incremental",
+        "allocated_bytes_before": 6770503680,
+        "ordinary_directory": true,
+        "symlink": false,
+        "ignored": true,
+        "status": "removed",
+        "started_at": "2026-10-12T12:23:05.261101+00:00",
+        "ended_at": "2026-10-12T12:23:06.246268+00:00",
+        "exists_after": false,
+        "disk_after_removal": {
+          "available_bytes": 102162108416,
+          "free_bytes": 102162108416,
+          "total_bytes": 2000054960128
+        }
+      }
+    ],
+    "preflight": {
+      "active_compilers": [],
+      "open_cache_users": [],
+      "database_file_matches": [],
+      "original_server_pid": 92935,
+      "original_server_alive": true
+    },
+    "disk_before": {
+      "available_bytes": 2141249536,
+      "free_bytes": 2141249536,
+      "total_bytes": 2000054960128
+    },
+    "excluded_from_remedy": [
+      "all other target trees",
+      ".local",
+      ".deps",
+      "dist",
+      "source",
+      "evidence",
+      "databases",
+      "original running server"
+    ],
+    "original_server_alive_after": true,
+    "ended_at": "2026-10-12T12:23:06.246550+00:00",
+    "disk_after": {
+      "available_bytes": 102162104320,
+      "free_bytes": 102162104320,
+      "total_bytes": 2000054960128
+    },
+    "observed_available_bytes_increase": 100020854784
+  },
+  "scope_limits": [
+    "Only reproducible ignored target/upstream and target/debug/incremental build output removed.",
+    "No source, upstream pinned sources, databases, private evidence, archived packages, original provider resources or security setting changed.",
+    "The failed disk-full invocation remains failed; later qualification must run at its own frozen source."
+  ]
+}
