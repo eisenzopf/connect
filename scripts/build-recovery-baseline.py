@@ -10,9 +10,12 @@ import shutil
 import tempfile
 
 from lib.local_process import ROOT
+from lib.ci_cache import retire_baseline_cache
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--schema', type=int, choices=(6, 10), default=6)
+parser.add_argument('--retire-build-cache', action='store_true',
+                    help='After verifying the sealed executable, retire only this baseline target directory')
 args = parser.parse_args()
 REVISION = {
     6: '8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5',
@@ -23,10 +26,15 @@ output = ROOT / '.local' / 'recovery-baselines' / REVISION
 output.mkdir(parents=True, exist_ok=True)
 manifest = output / 'manifest.json'
 binary = output / 'connect'
+def retire_if_requested():
+    if args.retire_build_cache:
+        report = retire_baseline_cache(output, REVISION)
+        (output / 'cache-retirement.json').write_text(json.dumps(report, indent=2) + '\n')
 if manifest.exists() and binary.exists():
     saved = json.loads(manifest.read_text())
     if (saved.get('source_revision') == REVISION
             and saved.get('binary_sha256') == hashlib.sha256(binary.read_bytes()).hexdigest()):
+        retire_if_requested()
         print(binary)
         raise SystemExit(0)
 # Checkout must include history. CI uses fetch-depth: 0; no implicit remote fetch.
@@ -55,4 +63,5 @@ with tempfile.TemporaryDirectory(prefix='source-', dir=output) as directory:
                               if key in environment},
         'build': 'cargo build --locked -p connect-server --bin connect; pinned historical dependency preparation',
     }, indent=2) + '\n')
+retire_if_requested()
 print(binary)

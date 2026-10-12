@@ -1,7 +1,8 @@
 # 010 · One communication identity for an agent
 
-Status: owner-authorized October 12, 2026; implementation and qualification in
-progress. Amends the default local agent installation in decision 009. Retains
+Status: owner-authorized October 12, 2026. The frozen dc73996 implementation is
+qualified in its recorded scope; owner-review repairs and their requalification
+are in progress. Amends the default local agent installation in decision 009. Retains
 the existing task, invocation-grant and verified provider-binding contracts.
 
 ## Purpose
@@ -87,6 +88,13 @@ work and restart/replay; current revocation, expiry, foreign access and queued
 dispatch denials; retained owner inspection after revocation; and a fresh normal
 package plus an actual-model journey using the delivered installation assets.
 The existing narrow-grant and provider behavior must remain qualified.
+
+The [dc73996 source/package and model evidence](../evidence/gate-4/final-source-composition.json)
+records the completed pre-review qualification. The owner review then reopened
+normal MCP reply consumption, retained same-owner inspection after original
+credential revocation, hosted CI and public
+reproduction/documentation work. The [numbered plan](../connect-gate-4-implementation.html)
+tracks that repair cycle; earlier results do not qualify changed behavior.
 
 Gate 4 closes only after these checks and the remaining baseline checks pass.
 This change does not add video, a full connector contribution kit, remote

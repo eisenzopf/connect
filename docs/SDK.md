@@ -77,17 +77,36 @@ sources, not published npm/PyPI packages.
 The messaging sample and provider setup instructions are in
 [examples/agent-presence](../examples/agent-presence/README.md). Gate 2 requires real Vapi chat and telephone voice in both directions. Reviewed SMS
 enrollment, conversation and keyword enforcement have
-[entry qualification evidence](connect-pre-gate-4-entry.html); Gate 4 task-bound
-SMS and its acceptance checks remain separate work.
-MCP tools and the installable skill are Gate 4; HTTP/JSON alone is not MCP.
+[entry qualification evidence](connect-pre-gate-4-entry.html). Historical
+[task/SMS controls](evidence/gate-4/sms-0737-rehearsal.json) and
+[voice-to-chat/SMS continuity](evidence/gate-4/live-voice-continuity.json)
+retain their actual tested sources. The frozen dc73996 package and full local
+qualification are recorded in the [source reconciliation](evidence/gate-4/final-source-composition.json).
+Owner-review repairs remain open in the [numbered plan](connect-gate-4-implementation.html).
+MCP tools and the installable skill are delivered Gate 4 interfaces;
+HTTP/JSON alone is not MCP.
 
-Gate 4 adds a [protected local developer installation exchange](TASK_ACCESS.md)
-for Native/HostSession task grants. The CLI retains the original issuance ID and
+The default [agent installation](AGENT_ACCESS.md) uses one regular revocable
+communication credential across its authorized conversations, with optional
+owned task tracking. A separate [protected local developer exchange](TASK_ACCESS.md)
+supports optional Native/HostSession task grants. The CLI retains the original issuance ID and
 exports the bearer into a private file for MCP host setup. It cannot issue
 provider-origin grants, and model grants cannot refresh themselves. Native SDK
-grant authentication is implemented as described below. Installed-host
-continuation has component evidence; full qualification remains tracked in the
-[Gate 4 plan](connect-gate-4-implementation.html#G4-021).
+grant authentication is implemented as described below. It is an optional
+narrow mode, not a prerequisite for ordinary communication. The
+[actual normal-agent journey](evidence/gate-4/real-model-agent-dc73996.json)
+qualifies explicit exact-session continuation at dc73996. Current repair-cycle
+qualification remains tracked in the [Gate 4 plan](connect-gate-4-implementation.html#G4-021).
+
+Tracked reply consumption is an explicit owner operation, separate from reads,
+waits and follow-up sends. The native `consume_reply` task command and the ordinary
+MCP `connect_task_consume_reply` tool use the selected task, stable request ID,
+received conversation journal event ID and expected task revision. The normal
+MCP result wraps the task record as `kind: task` → `kind: record`; optional narrow
+grant catalogs do not expose that owner tool. See
+[agent access](AGENT_ACCESS.md) for the reply-reference and replay contract.
+The newly exposed MCP parity path remains subject to
+[G4-017 repair qualification](connect-gate-4-implementation.html#G4-017).
 
 ## Gate 2 telephone call control
 
@@ -219,7 +238,9 @@ a transport error promptly instead of waiting for the audio receive deadline.
 Reconnect using a currently authorized credential to continue the Conversation.
 
 Provider context selects up to 1000 newest candidates within a 32 KiB item
-budget. Public context reads default to 100 items. Omitted sources remain in
+budget. Python/TypeScript context-read conveniences default to 100 items;
+ordinary MCP `connect_context_view` defaults to 30 when its limit is omitted.
+Explicit MCP limits remain 1–100. Omitted sources remain in
 authorized history; automatic summaries, pinned-fact retrieval and perfect
 ASR/model spelling are not claimed. A voice transcript can render a written
 name phonetically; both sources retain their attribution. See the
@@ -227,7 +248,8 @@ name phonetically; both sources retain their attribution. See the
 
 ## Native task grants
 
-Use a signed Native invocation grant through the same UCTP/QUIC task facade.
+For optional narrow delegation, use a signed Native invocation grant through
+the same UCTP/QUIC task facade.
 `ClientConfig::with_task_grant` replaces the parent token; the developer-only
 `connect task-access export-native` produces a private language-helper/CLI config.
 See [protected installation](TASK_ACCESS.md) for the actual command sequence.

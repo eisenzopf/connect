@@ -1,8 +1,9 @@
-# Explicit live audio qualification
+# Explicit agent and live provider qualification
 
-Live rehearsals are invoked separately from offline qualification. They use a
-running, configured Connect server and real provider service and can incur
-provider usage. They never purchase numbers or change provider accounts.
+These checks are invoked separately from offline qualification. The normal-agent
+journey uses an isolated local server and real model inference. Provider rehearsals
+use a running, configured Connect server and real provider service. Both can incur
+account usage; these drivers never purchase numbers or change provider accounts.
 Offline tests exercise the native driver against explicitly injected loopback
 provider fixtures with no account credentials; they do not qualify live service.
 
@@ -11,6 +12,33 @@ received recording independently, compare the spoken answers to conversation
 facts, and inspect the durable session/context outcomes. Keep credentials,
 recordings, transcripts and full provider responses under ignored `.local/`.
 Publish only redacted behavior evidence. Preserve every failed attempt.
+
+## Gate 4: the actual normal-agent journey
+
+The public [agent-journey.py](agent-journey.py) runner repeats the normal-key
+draft/reply and independent-contact exchange using an installed Connect
+candidate and an explicitly selected, authenticated Codex CLI. Follow the
+[agent journey runbook](../../docs/AGENT_JOURNEY_QUALIFICATION.md) for prerequisites,
+the complete observer assertions and failed-attempt handling:
+
+```sh
+python3 scripts/live/agent-journey.py /absolute/path/to/candidate-runtime \
+  --qualification-report /absolute/path/to/passing/package-check/result.json \
+  --codex-binary /absolute/path/to/codex --allow-model-inference
+```
+
+This separately invoked model check creates an isolated loopback installation
+and synthetic reviewer. It does not contact a carrier or Vapi, use SMS or a
+handset, or create public ingress. All Connect communication uses the installed
+MCP tools and public SDK. It checks two draft artifacts, retained source facts,
+server restart, exact-session resume, one correlated follow-up, explicit handled
+reply consumption and an independent incoming answer. Two actual model turns
+can incur model usage. Offline observer tests do not qualify those turns.
+
+Current owner-review qualification is tracked in
+[G4-034](../../docs/connect-gate-4-implementation.html#G4-034). This newly public
+runner and changed consume behavior require fresh evidence; historical private
+observer/model results remain attributed to their recorded source.
 
 ## Native UCTP/QUIC
 
@@ -201,8 +229,14 @@ is supported for local simulators. No provider account is used by offline tests.
 reasoning, useful follow-through or an acceptance pass. Review actual MCP
 invocations, sourced facts and observable Connect effects separately. Local capture and uncertain-receipt recovery pass against an actual Connect
 server with both source and installed SDK/helper configurations. The evidence
-is in `docs/evidence/gate-4/task-chat-rehearsal.json`; actual cloud/model
-behavior remains unverified.
+is in `docs/evidence/gate-4/task-chat-rehearsal.json`; it does not itself qualify
+cloud/model behavior. Separately, [actual scoped Vapi text/tool use](../../docs/evidence/gate-4/actual-vapi-chat-dc73996.json)
+passes on dc73996 and [actual Connect-carried voice and post-restart continuity](../../docs/evidence/gate-4/live-voice-continuity.json)
+retains its historical source and topology. Those reports preserve failed
+attempts and independently verified effects/cleanup. The current owner-review
+repair cycle requires its own source-linked verification through the
+[Gate 4 plan](../../docs/connect-gate-4-implementation.html); a prior capture or
+qualification cannot be promoted into a new pass.
 
 Provider references: [session management](https://docs.vapi.ai/chat/session-management),
 [create chat](https://docs.vapi.ai/api-reference/chats/create), and

@@ -95,7 +95,7 @@ pub(crate) fn task(action: &str) -> Map<String, Value> {
     }
     if matches!(
         action,
-        "create" | "cancel" | "transition" | "send" | "reply"
+        "create" | "cancel" | "transition" | "send" | "reply" | "consume_reply"
     ) {
         add(&mut schema, "request_id", schemas::identifier(), true);
     }
@@ -141,6 +141,17 @@ pub(crate) fn task(action: &str) -> Map<String, Value> {
         }
         "effect_get" => add(&mut schema, "effect_id", schemas::identifier(), true),
         "cancel" => add(&mut schema, "reason", schemas::nullable_string(512), false),
+        "consume_reply" => {
+            let mut event = schemas::identifier();
+            event["description"] = json!("Received conversation journal reply event ID: copy data.data.events[*].data.data.event_id from connect_task_wait. Not the outer task-event ID or original question message ID.");
+            add(&mut schema, "event_id", event, true);
+            add(
+                &mut schema,
+                "expected_revision",
+                schemas::integer(0, u64::MAX),
+                true,
+            );
+        }
         "transition" => {
             add(
                 &mut schema,

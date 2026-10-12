@@ -113,9 +113,17 @@ impl Store {
             authority::definition(&tx, &actor, definition)?;
         }
         if let Some(task) = &current {
+            // Current owners can inspect retained work after its original key,
+            // delegation or task lifetime ends. These reads still passed current
+            // actor scope, owner and conversation checks above; recall also
+            // checks the current read scope against the immutable task ceiling.
+            // Mutations and narrow invocation admission retain continuation checks.
             if !matches!(
                 request.command,
                 TaskCommand::Get { .. }
+                    | TaskCommand::Inbox { .. }
+                    | TaskCommand::Wait { .. }
+                    | TaskCommand::Recall { .. }
                     | TaskCommand::Cancel { .. }
                     | TaskCommand::EffectGet { .. }
             ) && !terminal_transition(&request.command)

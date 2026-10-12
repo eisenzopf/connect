@@ -15,9 +15,13 @@ restart to handle a tracked reply and an independent incoming contact. The
 immutable first/resume transcripts contain 30 successful tool calls and zero
 failed calls. A separate public-SDK observer was corrected without new inference
 or answer injection; its original failed reports remain failed. The
-[Gate 4 review](evidence/gate-4/acceptance.html) records completed local
-qualification and the [numbered plan](connect-gate-4-implementation.html)
-links each requirement to its evidence. Earlier scoped/provider reports retain
+[Gate 4 review](evidence/gate-4/acceptance.html) records that completed baseline.
+Owner-review repairs are now open in the
+[numbered plan](connect-gate-4-implementation.html); those earlier results do not
+qualify changed behavior. The public
+[agent journey runbook](AGENT_JOURNEY_QUALIFICATION.md) describes how to repeat
+the actual-model exchange with a selected host and installed candidate.
+Earlier scoped/provider reports retain
 their own source and scope. Complete v0.1 and publication remain in the roadmap.
 
 ## Set up the identity once
@@ -143,9 +147,24 @@ references; the skill explains those differences. A normal `connect_task_wait`
 returns the native task wrapper: an attributed reply's received conversation
 journal event ID is `data.data.events[*].data.data.event_id`. Use that ID in
 `connect_task_send.reply_to` to authorize and correlate a follow-up. It does not
-implicitly consume the reply's inbox marker. Explicit `consume_reply` is a
-separate native task command, not an ordinary MCP tool. `connect_reply` instead
-references the original tracked question's message ID when answering it.
+implicitly consume the reply's inbox marker. `connect_reply` instead references
+the original tracked question's message ID when answering it.
+
+After durably handling an attributed reply, use the ordinary
+`connect_task_consume_reply` tool when the credential permits
+`task_consume_reply`. Supply `task_id`, a stable `request_id`, the received
+conversation journal `event_id` and the task's `expected_revision` from status
+(`data.data.revision`). Keep these complete inputs unchanged across an uncertain
+receipt. The result is the native task wrapper
+`{kind:"task",data:{kind:"record",data:TaskRecord}}`. A conflicting revision
+requires inspection and explicit reconciliation; a new request ID is not a
+substitute for resolving the first intent. Reading, waiting and sending a
+follow-up never consume a reply automatically. Consumption retains the history
+and releases bounded inbox capacity. Optional narrow task-grant catalogs do not
+expose this owner operation or gain broader authority.
+
+The owner-review repair adds this normal-MCP parity path; its current-source
+qualification remains open in [G4-017](connect-gate-4-implementation.html#G4-017).
 
 ## Revoke the agent connection
 
@@ -183,7 +202,11 @@ connect task-diagnostics --config .local/connect/assistant-inspection.toml \
 ```
 
 Current same-owner authority can read/cancel retained tasks and inspect effects
-without reviving the revoked model credential or its old grants. The original
-model connection remains revoked. Host diagnostics report saved session/run
+without reviving the revoked model credential or its old grants. Owner-review
+repairs extend the retained inspection path to its journal and source pages after
+the original backing credential is revoked, expires or the task becomes
+terminal; [G4-024](connect-gate-4-implementation.html#G4-024) tracks verification.
+The inspection credential must itself be current and authorized. Continuation
+under the original revoked connection remains denied. Host diagnostics report saved session/run
 state for the agent installation; one session may handle several tracked tasks,
 so host-turn completion does not prove that a particular task or effect completed.

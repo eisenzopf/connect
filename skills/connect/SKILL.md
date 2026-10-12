@@ -99,6 +99,19 @@ the schema. Read the journal after a wake; notifications are hints. Continue a
 particular question only from its attributed reply. Other events, repeated
 callbacks and unassigned replies do not answer that question.
 
+After durably handling an attributed reply, explicitly mark it handled with
+ordinary `connect_task_consume_reply` when available. Pass this task's `task_id`,
+a stable `request_id`, the received conversation journal reply `event_id` and
+`expected_revision` from current task status (`data.data.revision` in normal
+mode). The reply event reference is the same one used by a tracked follow-up,
+not the outer task-event ID or the original question message ID. Preserve the
+complete consumption intent across uncertainty; inspect a conflict rather than
+blindly issuing a new request. The normal outcome is
+`kind: task` → `kind: record` → the task record. Reading, waiting or sending a
+follow-up does not consume the inbox marker. Consumption retains the history
+and releases bounded inbox capacity. This owner tool is absent from narrow
+task-grant catalogs; do not broaden that connection or claim implicit consumption.
+
 An empty page or pending result means return the pending handle and cursor to
 the host. The host may resume the same task later using its declared continuation
 mode. Do not spin indefinitely, claim automatic wake when none is installed, or

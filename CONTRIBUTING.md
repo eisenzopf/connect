@@ -27,10 +27,23 @@ the binding's older bundled source is incompatible with CMake 4.
 
 CI runs source checks, the full offline media lane (including pressure and allocated queue checks), and the public schema-6 upgrade/rollback drill on macOS arm64. Build its pinned baseline with `scripts/build-recovery-baseline.py`; see the release instructions for the complete commands. It does **not** replace release
 qualification: the full local runner also exercises an archived schema-1 binary,
-and `--package` verifies an installed candidate. That historical binary is not
+and `--package CANDIDATE --codex-binary /absolute/path/to/codex` verifies an
+installed candidate from its matching source. The selected host is separate
+from ordinary SDK/MCP use; follow the explicit prerequisites in the
+[developer guide](docs/DEVELOPING.md). That historical binary is not
 in Git; do not call missing historical-binary checks a pass. See
-[local release instructions](docs/LOCAL_RELEASE.md). Hosted CI has not run until
-the branch is pushed; local results are recorded separately.
+[local release instructions](docs/LOCAL_RELEASE.md). Hosted CI results and local
+qualification are recorded separately; a local pass does not imply a hosted pass.
+
+Both hosted lanes preserve account-free coverage while bounding build storage:
+workspace-wide features, unit/integration tests and doctests remain selected,
+but completed test executables are retired between small target groups. Compiler
+caches and ordinary application binaries are retained. Only a historical baseline
+builder's generated target may be removed after its executable/manifest seal is
+verified. No global toolchain, security or existing application-state cleanup is
+performed. The workflow measures storage and retains redacted failed-phase log
+tails and machine-readable summaries, rather than printing an unrelated passed
+lint log. Hosted source-only mode remains partial selected-host qualification.
 
 Keep credentials, provider payloads, private call data and installation state
 under ignored `.local/`. Never attach raw private logs to issues. Upstream fixes

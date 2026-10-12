@@ -43,9 +43,12 @@ See [the documentation and delivery index](docs/index.html), [the Gate 2 product
 
 ## Local development
 
-The project pins Rust 1.97.1 and audited upstream source revisions. Start with:
+The qualified development host is macOS arm64 with Rust 1.97.1, Node 22+,
+Python 3.11+, Apple command-line developer tools and Homebrew. Install the native
+Opus dependency before Cargo; the audited upstream sources are prepared next:
 
 ```sh
+brew install opus pkgconf
 bash scripts/prepare-dependencies.sh
 cargo build --locked -p connect-server -p connect-review-loop --bins
 ./target/debug/connect init --directory .local/demo --example review-loop

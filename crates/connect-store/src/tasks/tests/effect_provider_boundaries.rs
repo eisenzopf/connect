@@ -162,10 +162,19 @@ fn cancelled_task_preserves_late_reply_as_unassigned_communication() {
     };
     assert_eq!(items.len(), 1);
     assert!(items[0].task_id.is_none() && items[0].reply_to.is_some());
-    assert_eq!(
-        f.run(&replies::inbox(&task, None)).unwrap_err().code,
-        "forbidden"
-    );
+    let TaskOutcome::Inbox { events, .. } = f.run(&replies::inbox(&task, None)).unwrap() else {
+        panic!("retained owner journal")
+    };
+    assert!(events.iter().any(|event| matches!(
+        event.data,
+        TaskEventData::State {
+            state: TaskState::Cancelled,
+            ..
+        }
+    )));
+    assert!(events
+        .iter()
+        .all(|event| !matches!(event.data, TaskEventData::Reply(_))));
     let reply_events: u64 = f.store.connection().unwrap().query_row(
         "SELECT COUNT(*) FROM task_events WHERE task_id=?1 AND json_extract(data_json,'$.kind')='reply'", [&task.id], |r| r.get(0),
     ).unwrap();

@@ -26,9 +26,11 @@ def main():
                         help='Explicit installed Codex; scripted loopback Responses, no model account')
     parser.add_argument('--source-only', action='store_true',
                         help='CI source coverage only; omit external host checks and report partial qualification')
+    parser.add_argument('--bounded-workspace', action='store_true',
+                        help='Retire completed test executables between workspace targets; preserve all selected coverage')
     parser.add_argument('--list', action='store_true', help='List coverage/budgets without running checks')
     args = parser.parse_args()
-    steps = phases(args.source_only)
+    steps = phases(args.source_only, args.bounded_workspace)
     if args.list:
         print(json.dumps(steps, indent=2))
         return 0
@@ -41,6 +43,7 @@ def main():
               'status': 'running', 'steps': [], 'required_steps': [s[0] for s in steps],
               'live_qualification': 'not run; required separately for whole Gate 4 closure',
               'external_host': 'omitted; source-only qualification' if args.source_only else 'required',
+               'bounded_workspace': args.source_only or args.bounded_workspace,
               'build_profile': 'dev/test with debug assertions; debug symbols and incremental caching disabled',
               'started_at': datetime.datetime.now(datetime.timezone.utc).isoformat()}
     save(directory, report)

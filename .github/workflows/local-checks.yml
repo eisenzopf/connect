@@ -12,6 +12,11 @@ jobs:
   macos-arm64:
     runs-on: macos-15
     timeout-minutes: 90
+    env:
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -32,6 +37,8 @@ jobs:
           brew install opus pkgconf
           pkg-config --modversion opus
           test -f "$(brew --prefix opus)/lib/libopus.a"
+      - name: Reserve diagnostic headroom and record host storage
+        run: python3 scripts/ci-diagnostics.py prepare
       - name: Run source qualification (no accounts or live calls)
         run: python3 scripts/check-local.py --ci
       - name: Verify generated TypeScript distribution
@@ -40,19 +47,30 @@ jobs:
       - name: Gate 3 offline media and recovery lane (no provider accounts)
         run: python3 scripts/check-gate-3.py
       - name: Build public schema-6 recovery baseline
-        run: python3 scripts/build-recovery-baseline.py
+        run: python3 scripts/build-recovery-baseline.py --retire-build-cache
       - name: Qualify schema-6 upgrade and rollback from actual executables
         run: python3 scripts/check-schema-six.py --previous-binary .local/recovery-baselines/8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5/connect
-      - name: Print Rust diagnostics after failure
-        if: failure()
-        run: |
-          for log in .local/checks/*/lint.log; do
-            if test -f "$log"; then tail -n 200 "$log"; fi
-          done
+      - name: Retain actual phase and disk diagnostics
+        if: always()
+        run: python3 scripts/ci-diagnostics.py collect
+      - name: Upload source-only diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-arm64-source-diagnostics-${{ github.run_attempt }}
+          path: .local/ci-diagnostics/upload/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
 
   gate-4-source:
     runs-on: macos-15
     timeout-minutes: 360
+    env:
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -69,13 +87,21 @@ jobs:
           brew install opus pkgconf
           pkg-config --modversion opus
           test -f "$(brew --prefix opus)/lib/libopus.a"
+      - name: Reserve diagnostic headroom and record host storage
+        run: python3 scripts/ci-diagnostics.py prepare
       - name: Gate 4 source coverage without accounts or an installed model host
         # Explicit partial qualification. Full local offline runs also select
         # an installed Codex binary and execute the scripted host checks.
         run: python3 scripts/check-gate-4.py --source-only
-      - name: Print Rust diagnostics after failure
-        if: failure()
-        run: |
-          for log in .local/gate-4-checks/*/lint.log; do
-            if test -f "$log"; then tail -n 200 "$log"; fi
-          done
+      - name: Retain actual phase and disk diagnostics
+        if: always()
+        run: python3 scripts/ci-diagnostics.py collect
+      - name: Upload source-only diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-4-source-diagnostics-${{ github.run_attempt }}
+          path: .local/ci-diagnostics/upload/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error

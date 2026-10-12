@@ -222,14 +222,61 @@ tests, and dependency source lock. The separate qualification archive contains
 the historical schema-1 milestone binary and provenance manifest, without a
 database or credentials.
 
-From the extracted source checkout:
+Complete source qualification requires a Git checkout with full history. To
+reproduce the frozen `dc73996` candidate, check out its exact revision rather
+than substituting newer main:
+
+```sh
+git clone https://github.com/eisenzopf/connect.git connect-source
+cd connect-source
+git checkout --detach dc739966ddd9a38ec5d19f54217b293ece51b4e4
+brew install opus pkgconf
+bash scripts/prepare-dependencies.sh
+```
+
+The source host requires Rust 1.97.1 through rustup, Node 22+, Python 3.11+ and
+Apple command-line developer tools. Selected-host qualification additionally
+requires an explicit installed Codex executable. The recorded host is
+`codex-cli 0.162.0-alpha.17.2`; use the
+[official installation guide](https://learn.chatgpt.com/docs/codex/cli), inspect
+`--version` and `exec --help`, and select the actual absolute path. Generic
+installation is not proof that another version has the qualified MCP/JSONL and
+exact-resume behavior. The account-free checks exercise those interfaces without
+model authentication; actual inference is a separate owner-authorized rehearsal.
+
+From that matching full-history checkout, with the extracted historical
+qualification archive outside the source directory:
 
 ```sh
 python3 scripts/check-gate-4.py --codex-binary /absolute/path/to/codex
 bash scripts/check-local.sh --previous-binary /absolute/path/qualification/connect-schema1
-python3 scripts/check-package.py /absolute/path/to/candidate-directory \
+```
+
+For archive and installed qualification, extract the source archive and invoke
+its own matching checker. It does not require the extracted source to be a Git
+repository; it prepares the pinned dependency sources and verifies the selected
+installed runtime, SDKs and archived schema-1 binary:
+
+```sh
+python3 /absolute/path/to/extracted/connect-source/scripts/check-package.py \
+  /absolute/path/to/candidate-directory \
   --codex-binary /absolute/path/to/codex
 ```
+
+The checker compares source bytes, including the workflow, to the candidate's
+source archive. Running a frozen `dc73996` archive check through a newer main
+checkout can correctly fail that comparison. For a new candidate, use its own
+recorded revision and matching source. Archive documents retain their packaging
+checkpoint; the separate owner-review supplement does not replace runtime or
+source bytes.
+
+The current source additionally offers `check-gate-4.py --bounded-workspace
+--codex-binary /absolute/path/to/codex` for a new candidate. This records the
+storage strategy and retires completed test executables between targets while
+retaining every installed-host/continuation phase and the same phase budgets.
+The frozen `dc73996` source above predates that option; its archived proof remains
+the original complete run. Source-only mode remains an explicitly partial host
+qualification even though it uses the bounded workspace strategy by default.
 
 The Gate 4 offline runner is bounded and account-free. Raw logs and machine-readable
 results stay under ignored `.local/` directories. The package checker verifies
@@ -281,9 +328,11 @@ checks retained rows and receipts after upgrade, proves the old executable refus
 the newer schema, and restores a matching backup. An injected schema-7 table
 conflict must roll back to schema 6. No existing installation is used.
 
-Source archives without Git history require a separately built, manifest-verified
-baseline supplied with `--previous-binary`; they cannot synthesize historical Git
-objects. Do not report that check as passed when the baseline is absent.
+The standalone schema-6 recovery check can use a separately built,
+manifest-verified baseline supplied with `--previous-binary`. The complete Gate 4
+source runner also needs schema-6/schema-10 Git objects and therefore uses a
+full-history checkout. A source archive cannot synthesize them; do not call the
+complete source run a pass because archive/installed checks passed.
 
 Both pull requests and main pushes run the named Gate 3 offline lane and schema-6
 recovery in CI, in addition to source checks. The lane includes the explicitly

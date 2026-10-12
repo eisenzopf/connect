@@ -5,7 +5,7 @@ HOST_TESTS = ('gate4_codex_runtime', 'gate4_codex_call_intent', 'gate4_codex_rep
               'gate4_codex_packaged_runtime', 'gate4_codex_draft_journey')
 
 
-def phases(source_only=False):
+def phases(source_only=False, bounded_workspace=False):
     cargo = ['cargo', 'test', '--locked']
     server = [*cargo, '-p', 'connect-server', '--all-features']
     steps = [
@@ -18,13 +18,15 @@ def phases(source_only=False):
         ('python-sdk', [sys.executable, '-m', 'unittest', 'discover', '-s', 'sdk/tests', '-p', 'test_*.py'], 300),
         ('agent-incoming-unit', [sys.executable, '-m', 'unittest', 'discover', '-s', 'examples/agent-presence/tests', '-p', 'test_incoming*.py'], 120),
         ('runner-failure-tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests', '-p', 'test_qualification*.py'], 120),
+        ('agent-journey-unit', [sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests', '-p', 'test_live_agent_journey.py'], 120),
         ('voice-rehearsal-unit', [sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests', '-p', 'test_live_task_voice.py'], 120),
         ('chat-rehearsal-unit', [sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests', '-p', 'test_live_*chat*.py'], 120),
         ('lint', ['cargo', 'clippy', '--locked', '--workspace', '--all-targets', '--all-features', '--', '-D', 'warnings'], 2400),
         ('rustdoc', ['cargo', 'doc', '--locked', '--workspace', '--all-features', '--no-deps'], 2400),
         # All workspace gates, SDK parity, MCP, task/host fixtures, app/runner,
         # recovery and provider simulators run once under the same feature set.
-        ('workspace', [*cargo, '--workspace', '--all-features', '--', '--test-threads=1'], 7200),
+        ('workspace', [sys.executable, 'scripts/check-workspace-ci.py', '--all-features'] if source_only or bounded_workspace
+         else [*cargo, '--workspace', '--all-features', '--', '--test-threads=1'], 7200),
         ('media-pressure', [*server, '--test', 'gate3_media_pressure', '--', '--ignored', '--test-threads=1'], 1200),
     ]
     if not source_only:
@@ -49,8 +51,10 @@ def phases(source_only=False):
         ('grant-lifecycle-load', [sys.executable, 'scripts/check-grant-lifecycle.py'], 240),
         ('task-artifact-retention', [sys.executable, 'scripts/check-retention-load.py'], 240),
         ('voice-setup-retirement', [sys.executable, 'scripts/check-voice-retirement.py'], 3600),
-        ('schema-six-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '6'], 7500),
-        ('schema-ten-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '10'], 7500),
+        ('schema-six-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '6']
+         + (['--retire-build-cache'] if source_only else []), 7500),
+        ('schema-ten-build', [sys.executable, 'scripts/build-recovery-baseline.py', '--schema', '10']
+         + (['--retire-build-cache'] if source_only else []), 7500),
         ('historical-task-recovery', [sys.executable, 'scripts/check-gate4-recovery.py', '--previous-binary',
                                     '.local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect'], 660),
     ]

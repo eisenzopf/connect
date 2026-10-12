@@ -26,7 +26,7 @@ def save(directory, report):
 def environment(codex_binary=None):
     """Build tools need a home/cache; fixtures receive no inherited API tokens."""
     names = ('PATH', 'HOME', 'USER', 'LOGNAME', 'TMPDIR', 'LANG', 'LC_ALL',
-             'CARGO_HOME', 'RUSTUP_HOME', 'CC', 'CXX', 'AR', 'SDKROOT',
+              'CARGO_HOME', 'RUSTUP_HOME', 'CARGO_BUILD_JOBS', 'CC', 'CXX', 'AR', 'SDKROOT',
              'MACOSX_DEPLOYMENT_TARGET', 'SYSTEMROOT')
     result = {key: os.environ[key] for key in names if key in os.environ}
     result.update(PYTHONPATH=str(ROOT / 'sdk/python'), RUSTDOCFLAGS='-D warnings',
@@ -70,7 +70,7 @@ def check_test_results(result, directory):
                                        map(sum, zip(*[map(int, row) for row in totals]))))
     if result['status'] != 'passed':
         return
-    python_expected = {'agent-incoming-unit': 15, 'agent-incoming-public': 1,
+    python_expected = {'agent-journey-unit': 14, 'agent-incoming-unit': 15, 'agent-incoming-public': 1,
                        'agent-incoming-host': 1, 'voice-rehearsal-unit': 10,
                        'chat-rehearsal-unit': 18}
     if result['name'] in python_expected:

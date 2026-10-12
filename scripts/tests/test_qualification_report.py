@@ -46,7 +46,7 @@ class IncomingCoverageTests(unittest.TestCase):
             return result
 
     def test_each_required_example_phase_counts_actual_tests(self):
-        for name, count in [('agent-incoming-unit', 15), ('agent-incoming-public', 1),
+        for name, count in [('agent-journey-unit', 14), ('agent-incoming-unit', 15), ('agent-incoming-public', 1),
                             ('agent-incoming-host', 1), ('voice-rehearsal-unit', 10),
                             ('chat-rehearsal-unit', 18)]:
             with self.subTest(name=name):
@@ -70,6 +70,22 @@ class IncomingCoverageTests(unittest.TestCase):
         self.assertIn('agent-incoming-host', full)
         self.assertLess(full.index('current-binaries'), full.index('agent-incoming-public'))
         self.assertLess(full.index('agent-incoming-public'), full.index('agent-incoming-host'))
+
+    def test_bounded_full_workspace_retains_every_host_phase_and_other_command(self):
+        from lib.gate4_phases import phases
+        full = phases()
+        bounded = phases(bounded_workspace=True)
+        self.assertEqual([name for name, _, _ in full], [name for name, _, _ in bounded])
+        for original, selected in zip(full, bounded):
+            if original[0] == 'workspace':
+                self.assertIn('scripts/check-workspace-ci.py', selected[1])
+                self.assertIn('--all-features', selected[1])
+                self.assertEqual(original[2], selected[2])
+            else:
+                self.assertEqual(original, selected)
+        self.assertIn('installed-host', [name for name, _, _ in bounded])
+        self.assertIn('host-capacity', [name for name, _, _ in bounded])
+        self.assertIn('agent-incoming-host', [name for name, _, _ in bounded])
 
 
 if __name__ == '__main__':

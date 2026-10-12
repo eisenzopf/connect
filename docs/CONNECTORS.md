@@ -98,7 +98,13 @@ an invocation grant nor a substitute for current task authority. Trusted setup
 must still register and issue under current authorization, handle uncertain
 creation, export only the invocation's credential and revalidate lifecycle.
 The [origin verification evidence](evidence/gate-4/vapi-origin-verification.json)
-qualifies this lookup component; first-invocation/MCP composition remains open.
+qualifies that earlier lookup component. Protected first-invocation composition
+is implemented in [Vapi task bootstrap](VAPI_TASK_BOOTSTRAP.md). Historical
+[voice continuity](evidence/gate-4/live-voice-continuity.json) and fresh
+[dc73996 scoped text/tool use](evidence/gate-4/actual-vapi-chat-dc73996.json)
+retain their actual source and topology. Current owner-review repairs and their
+requalification are tracked in the [numbered plan](connect-gate-4-implementation.html);
+this lookup checkpoint alone does not pass them.
 
 ### Register and issue for an existing verified resource
 

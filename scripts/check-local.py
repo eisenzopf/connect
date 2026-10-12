@@ -15,10 +15,15 @@ from lib.local_process import ROOT
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--ci', action='store_true', help='Source checks without private archived-binary migration qualification')
 parser.add_argument('--package', type=pathlib.Path, help='Also qualify a local candidate directory')
+parser.add_argument('--codex-binary', type=pathlib.Path, help='Explicit installed Codex; required with --package')
 parser.add_argument('--previous-binary', type=pathlib.Path, default=ROOT/'.local/milestones/m1/connect')
 args = parser.parse_args()
 if args.ci and args.package:
     parser.error("Package qualification requires the full archived-binary recovery check")
+if bool(args.package) != bool(args.codex_binary):
+    parser.error('--package and --codex-binary must be selected together')
+if args.codex_binary and not args.codex_binary.resolve().is_file():
+    parser.error('Selected Codex executable is unavailable')
 os.umask(0o077)
 directory = ROOT/'.local/checks'/datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
 directory.mkdir(parents=True, mode=0o700)
@@ -35,6 +40,9 @@ report['source_inputs'] = {
 for name in ['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml']:
     report['source_inputs'][name] = hashlib.sha256((ROOT/name).read_bytes()).hexdigest()
 environment = dict(os.environ, CONNECT_PREVIOUS_BINARY=str(args.previous_binary.resolve()))
+if args.ci:
+    environment.update(CARGO_PROFILE_DEV_DEBUG='0', CARGO_PROFILE_TEST_DEBUG='0', CARGO_INCREMENTAL='0')
+    environment.setdefault('CARGO_BUILD_JOBS', '2')
 steps = [
     ('dependencies', ['bash', 'scripts/prepare-dependencies.sh'], 600),
     ('format', ['bash', 'scripts/format.sh', '--check'], 120),
@@ -44,7 +52,8 @@ steps = [
     ('typescript-sdk-format', ['npm', 'run', 'format:check', '--prefix', 'sdk/typescript'], 120),
     ('typescript-sdk-failures', ['node', '--test', 'sdk/tests/clients.test.mjs'], 120),
     ('python-sdk-failures', ['env', 'PYTHONPATH=sdk/python', 'python3', '-m', 'unittest', 'discover', '-s', 'sdk/tests', '-p', 'test_*.py'], 120),
-    ('workspace', ['cargo', 'test', '--locked', '--workspace'], 2400),
+    ('workspace', [sys.executable, 'scripts/check-workspace-ci.py'] if args.ci
+     else ['cargo', 'test', '--locked', '--workspace'], 2400),
     ('connector-example', ['cargo', 'run', '--locked', '-p', 'connect-connector-api', '--example', 'echo'], 600),
     ('upstream', ['bash', 'scripts/check-baseline.sh'], 2400),
     ('dispatch', ['python3', 'scripts/check-dispatch.py'], 600),
@@ -57,7 +66,8 @@ steps = [
     ('example-recovery', ['python3', 'scripts/check-example-recovery.py'], 600),
 ]
 if args.package:
-    steps.append(('package', ['python3', 'scripts/check-package.py', str(args.package.resolve())], 1800))
+    steps.append(('package', ['python3', 'scripts/check-package.py', str(args.package.resolve()),
+                              '--codex-binary', str(args.codex_binary.resolve())], 1800))
 
 def save():
     (directory/'result.json').write_text(json.dumps(report, indent=2)+'\n')

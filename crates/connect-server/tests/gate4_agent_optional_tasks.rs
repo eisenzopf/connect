@@ -358,6 +358,17 @@ async fn explicit_narrow_mcp_grant_keeps_its_bound_schema_and_cannot_create_conv
     let tools = client.list_tools(None).await.unwrap();
     assert!(tools.tools.iter().any(|tool| tool.name == "connect_send"));
     assert!(tools.tools.iter().all(|tool| tool.name != "connect_create"));
+    assert!(tools
+        .tools
+        .iter()
+        .all(|tool| tool.name != "connect_task_consume_reply"));
+    mcp::invalid(
+        &client,
+        "connect_task_consume_reply",
+        json!({"request_id":"narrow-consume","task_id":f.task.id,
+            "event_id":"not-a-current-reply","expected_revision":0}),
+    )
+    .await;
     mcp::invalid(
         &client,
         "connect_send",

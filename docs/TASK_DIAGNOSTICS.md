@@ -149,8 +149,17 @@ separately and can change after inspection.
 [Worker inspection evidence](evidence/gate-4/worker-diagnostics.json) records 24
 local behavior checks, strict quality checks and the retained fixture failure.
 That earlier audit covers the original inspection views. The combined readiness
-projection and changing-metadata case are recorded separately below. G4-024
-remains in progress pending selected-host and integrated qualification.
+projection and changing-metadata case are recorded separately below. The
+[dc73996 qualification](evidence/gate-4/code-recovery-dc73996.json) includes the
+installed diagnostic path. Owner review reopened G4-024 to allow a separate,
+current same-owner credential to read the retained task journal and source pages
+after the original backing credential is revoked, expires or the task becomes
+terminal. Current caller authentication still applies; this does not revive
+continuation under the old credential or add a host-authentication probe.
+Diagnostic fields and reason codes are unchanged. The
+[numbered plan](connect-gate-4-implementation.html#G4-024) tracks the repaired
+read path and pending verification. Earlier reports remain proof of their
+recorded version.
 
 ## Combined execution readiness
 
