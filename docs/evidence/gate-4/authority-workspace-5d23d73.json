@@ -1,0 +1,1246 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T10:54:58.742712+00:00",
+  "item": "G4-029",
+  "status": "failed frozen baseline; authority execution incomplete and new default qualification pending",
+  "access_default_review": {
+    "status": "owner approved easier default agent access; isolated implementation needs separate qualification; this frozen baseline stays unchanged",
+    "current_mcp_host_enforcement": "Task/conversation-bound invocation grants, operation/recipient ceilings and five-minute maximum lifetime, with protected refresh. These are the current adapters being tested, not a newly endorsed product default.",
+    "existing_identity_interfaces": "Native and HTTP clients can use ordinary authenticated identity credentials. Their configured authority remains distinct from the narrower task-grant path.",
+    "requested_product_direction": "Easy reusable agent access across conversations, activity tracking and revocation, with narrow task delegation optional and less ceremony than Thelve.",
+    "qualification_boundary": "Current results verify the implemented baseline. A changed default-access path needs deliberate design, contract/documentation reconciliation and its own behavior qualification. Final gate closure is not claimed here."
+  },
+  "final_gate_closure_claimed": false,
+  "source_revision": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
+  "scope": "Local macOS arm64; offline store/server/SDK/MCP/runner/provider simulators and installed Codex with scripted Responses. No inference or carrier evidence is inferred from these tests.",
+  "run": {
+    "report": ".local/gate-4-checks/20261012T090156.434214Z/result.json",
+    "status": "failed",
+    "active_phase": null,
+    "started_at": "2026-10-12T09:01:56.434717+00:00",
+    "dirty_at_start": false
+  },
+  "required_phases": {
+    "workspace": {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 7200,
+      "log": "workspace.log",
+      "status": "failed",
+      "exit_code": 101,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 6160.402,
+      "rust_tests": {
+        "passed": 310,
+        "failed": 1,
+        "ignored": 9
+      }
+    },
+    "installed-host": {
+      "status": "not yet completed"
+    },
+    "media-pressure": {
+      "status": "not yet completed"
+    }
+  },
+  "workspace_log": ".local/gate-4-checks/20261012T090156.434214Z/workspace.log",
+  "workspace_log_sha256": "5515e9a464bb5a0353c58d4aa7fc7eefac3279b452eec62ae3d92044dc06598d",
+  "installed_host_log": null,
+  "installed_host_log_sha256": null,
+  "checks": [
+    {
+      "id": "T-A1",
+      "assertion_review": "Independent call/host grants, tool intents and context remain bound to their originating tasks; racing assignments/consumers commit only one route and one consumption. Overlapping drafts in the installed host preserve distinct approval questions and follow-up attribution across restart.",
+      "status": "current execution pending",
+      "tests": [
+        {
+          "test": "concurrent_first_calls_and_identical_tool_intents_stay_bound_to_their_own_tasks",
+          "source": "crates/connect-server/tests/gate4_vapi_call_isolation.rs",
+          "source_sha256": "7ebd51316810f17ee3a956ef75cd699b54b820a9de5a81e7d247d14f716fcfa7",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "concurrent_first_calls_and_identical_tool_intents_stay_bound_to_their_own_tasks",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+          "source": "crates/connect-server/tests/gate4_codex_draft_journey.rs",
+          "source_sha256": "71faecd9e637a04bd12bcd5cd9eb0d2197654f13f51921f740b3ec9b4dc9606a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+              "result": "ignored",
+              "detail": ", requires installed Codex; deterministic local Responses, no model inference"
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "concurrent_assignment_to_two_tasks_commits_exactly_one_route",
+          "source": "crates/connect-store/src/tasks/tests/reply_races.rs",
+          "source_sha256": "e57fd656e4bb0e11e19dbd161c841e2cbc67f437e1f36a249ccd892cb0b9aafd",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "concurrent_consumers_cannot_ack_the_same_reply_twice",
+          "source": "crates/connect-store/src/tasks/tests/reply_races.rs",
+          "source_sha256": "e57fd656e4bb0e11e19dbd161c841e2cbc67f437e1f36a249ccd892cb0b9aafd",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        }
+      ],
+      "fixture_sources": {}
+    },
+    {
+      "id": "T-A2",
+      "assertion_review": "Authenticated MCP origin and current store authority deny forged task/conversation/call selectors, wrong bindings, duplicate authentication, expired grants, revoked backing credentials and accepted replay. A grant can only cancel its explicitly configured bound task; expiry is rechecked after acquiring the database lock.",
+      "status": "current execution pending",
+      "tests": [
+        {
+          "test": "wrong_binding_duplicate_authorization_and_revoked_parent_are_denied",
+          "source": "crates/connect-server/tests/gate4_mcp_authority.rs",
+          "source_sha256": "ff77e3d816cf65044940864dc23c0f528492479f42fbf9fd46398b05a0a79d53",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "wrong_binding_duplicate_authorization_and_revoked_parent_are_denied",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "expired_bearer_cannot_reinitialize_or_discover",
+          "source": "crates/connect-server/tests/gate4_mcp_authority.rs",
+          "source_sha256": "ff77e3d816cf65044940864dc23c0f528492479f42fbf9fd46398b05a0a79d53",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "expired_bearer_cannot_reinitialize_or_discover",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "ordinary_grants_cannot_discover_cancel_or_amplify_the_task_ceiling",
+          "source": "crates/connect-server/tests/gate4_mcp_task_cancel.rs",
+          "source_sha256": "0ac9535af499389f13c374b37e257c063b45e27071c47c3995df49356b35e4be",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "ordinary_grants_cannot_discover_cancel_or_amplify_the_task_ceiling",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "explicit_cancel_affects_only_the_bound_task_and_revokes_its_own_connection",
+          "source": "crates/connect-server/tests/gate4_mcp_task_cancel.rs",
+          "source_sha256": "0ac9535af499389f13c374b37e257c063b45e27071c47c3995df49356b35e4be",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "explicit_cancel_affects_only_the_bound_task_and_revokes_its_own_connection",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "explicit_native_cancellation_uses_the_same_scoped_terminal_contract",
+          "source": "crates/connect-server/tests/gate4_mcp_task_cancel.rs",
+          "source_sha256": "0ac9535af499389f13c374b37e257c063b45e27071c47c3995df49356b35e4be",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "explicit_native_cancellation_uses_the_same_scoped_terminal_contract",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "expiry_while_waiting_for_the_store_lock_denies_public_authority_and_effects",
+          "source": "crates/connect-store/src/tasks/tests/lock_expiry.rs",
+          "source_sha256": "be9ed04f77a4d93482ec455062d7fb924e3a42a00abaebfa3ad47268ecfc5d04",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        }
+      ],
+      "fixture_sources": {}
+    },
+    {
+      "id": "T-A3",
+      "assertion_review": "Child termination exercises before/after transaction commit and reply ACK. App business mutation and inbox checkpoint remain atomic. Competing workers preserve one business action; a remote provider that accepted but withheld its receipt is counted independently and is never redispatched after server or snapshot recovery.",
+      "status": "current execution pending",
+      "tests": [
+        {
+          "test": "child_operation",
+          "source": "crates/connect-store/src/tasks/tests/effect_crashes.rs",
+          "source_sha256": "279a6a23e4070ce855c6cef316f3bc4078569f98b4a0500ffcde991cdac8829a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "terminated_owner_and_grant_processes_preserve_effect_identity_before_and_after_commit",
+          "source": "crates/connect-store/src/tasks/tests/effect_crashes.rs",
+          "source_sha256": "279a6a23e4070ce855c6cef316f3bc4078569f98b4a0500ffcde991cdac8829a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "terminated_recipient_preserves_reply_message_binding_and_wake_before_ack",
+          "source": "crates/connect-store/src/tasks/tests/effect_crashes.rs",
+          "source_sha256": "279a6a23e4070ce855c6cef316f3bc4078569f98b4a0500ffcde991cdac8829a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "accepted_task_send_without_receipt_is_not_redispatched_after_server_restart",
+          "source": "crates/connect-server/tests/gate4_task_uncertainty.rs",
+          "source_sha256": "63872dbc2056812251a787978532d6de6d492e0dc249c14b6aecf966876d8448",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "accepted_task_send_without_receipt_is_not_redispatched_after_server_restart",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "snapshot_restores_uncertain_effect_without_redispatch_and_rechecks_current_grant",
+          "source": "crates/connect-server/tests/gate4_task_uncertainty.rs",
+          "source_sha256": "63872dbc2056812251a787978532d6de6d492e0dc249c14b6aecf966876d8448",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "snapshot_restores_uncertain_effect_without_redispatch_and_rechecks_current_grant",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "every_crash_boundary_restarts_original_intents_and_records_one_business_action",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "source_sha256": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "every_crash_boundary_restarts_original_intents_and_records_one_business_action",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "a_running_worker_recovers_server_restart_and_catches_up_an_explicit_reply",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "source_sha256": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "a_running_worker_recovers_server_restart_and_catches_up_an_explicit_reply",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "competing_worker_and_unassigned_message_cannot_repeat_or_select_the_business_action",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "source_sha256": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "competing_worker_and_unassigned_message_cannot_repeat_or_select_the_business_action",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "current_revocation_denies_restarting_a_saved_workflow_without_owner_fallback",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "source_sha256": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "current_revocation_denies_restarting_a_saved_workflow_without_owner_fallback",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "cancelling_a_running_task_stops_the_runner_without_a_follow_up",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "source_sha256": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "cancelling_a_running_task_stops_the_runner_without_a_follow_up",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "a_controller_token_cannot_be_used_as_the_invocation_configuration",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "source_sha256": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "a_controller_token_cannot_be_used_as_the_invocation_configuration",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "a_known_stale_consume_cas_reconciles_with_a_new_preserved_control_intent",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "source_sha256": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "a_known_stale_consume_cas_reconciles_with_a_new_preserved_control_intent",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "app_and_server_restarts_retain_actual_provider_uncertainty_without_redispatch",
+          "source": "examples/review-loop/tests/task_uncertainty.rs",
+          "source_sha256": "21018c24ce48bf9be30e5d9c2ed8fe9d62a173f0a79d31a6806072fc1539725f",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "app_and_server_restarts_retain_actual_provider_uncertainty_without_redispatch",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        }
+      ],
+      "fixture_sources": {}
+    },
+    {
+      "id": "T-A4",
+      "assertion_review": "Unbound replies stay unassigned until explicit owner assignment; identical replay, reordered completion and consumed events do not move another task. Assignment/consumption rollback leaves no acknowledged partial effect; task/installation cursors retain their binding after restart.",
+      "status": "current execution pending",
+      "tests": [
+        {
+          "test": "two_tasks_keep_unassigned_replies_and_route_only_by_explicit_assignment",
+          "source": "crates/connect-store/src/tasks/tests/replies.rs",
+          "source_sha256": "f205fcab8f9bf02a675afe9a9369ddeb374c93ffde6acbf9e58213d9e3ce9572",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "matching_replay_after_restart_and_consumption_never_advances_twice",
+          "source": "crates/connect-store/src/tasks/tests/replies.rs",
+          "source_sha256": "f205fcab8f9bf02a675afe9a9369ddeb374c93ffde6acbf9e58213d9e3ce9572",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "task_cursor_is_bound_to_task_identity_installation_and_current_authority",
+          "source": "crates/connect-store/src/tasks/tests/replies.rs",
+          "source_sha256": "f205fcab8f9bf02a675afe9a9369ddeb374c93ffde6acbf9e58213d9e3ce9572",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "assignment_and_consumption_roll_back_if_receipt_commit_fails",
+          "source": "crates/connect-store/src/tasks/tests/replies.rs",
+          "source_sha256": "f205fcab8f9bf02a675afe9a9369ddeb374c93ffde6acbf9e58213d9e3ce9572",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "concurrent_assignment_to_two_tasks_commits_exactly_one_route",
+          "source": "crates/connect-store/src/tasks/tests/reply_races.rs",
+          "source_sha256": "e57fd656e4bb0e11e19dbd161c841e2cbc67f437e1f36a249ccd892cb0b9aafd",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "concurrent_consumers_cannot_ack_the_same_reply_twice",
+          "source": "crates/connect-store/src/tasks/tests/reply_races.rs",
+          "source_sha256": "e57fd656e4bb0e11e19dbd161c841e2cbc67f437e1f36a249ccd892cb0b9aafd",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "unassigned_reply_and_assignment_survive_restart_with_exact_task_catch_up",
+          "source": "crates/connect-server/tests/gate4_reply_recovery.rs",
+          "source_sha256": "eafd4430e498aa87555e348dcb20ddc400a4778048b30b0106fa800159a96212",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "unassigned_reply_and_assignment_survive_restart_with_exact_task_catch_up",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        }
+      ],
+      "fixture_sources": {}
+    },
+    {
+      "id": "T-A5",
+      "assertion_review": "Old facts beyond the initial serialized context projection are recovered with journal source IDs and provenance. Changed authority, expired grant, deleted/missing/expired artifact, another task cursor and snapshot-ahead cursor deny access or return explicit unavailable metadata without artifact bytes or server paths.",
+      "status": "current execution pending",
+      "tests": [
+        {
+          "test": "bounded_mcp_pages_retrieve_old_source_and_deny_another_tasks_cursor",
+          "source": "crates/connect-server/tests/gate4_mcp_recall.rs",
+          "source_sha256": "26406dd70bbefc07c9881621a45215dcaa0ecef78b54cf8819ffe03f21dab41a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "bounded_mcp_pages_retrieve_old_source_and_deny_another_tasks_cursor",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "cursor_is_bound_to_task_installation_and_recall_resource",
+          "source": "crates/connect-store/src/tasks/tests/recall_authority.rs",
+          "source_sha256": "41e1374355470809b5ce05b125e11b21fd98f5f995ff1a64bc2b81089eb18beb",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "current_grant_and_backing_authority_apply_to_every_continuation_page",
+          "source": "crates/connect-store/src/tasks/tests/recall_authority.rs",
+          "source_sha256": "41e1374355470809b5ce05b125e11b21fd98f5f995ff1a64bc2b81089eb18beb",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "owner_recall_requires_current_read_scope_inside_task_ceiling",
+          "source": "crates/connect-store/src/tasks/tests/recall_authority.rs",
+          "source_sha256": "41e1374355470809b5ce05b125e11b21fd98f5f995ff1a64bc2b81089eb18beb",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "cursor_newer_than_restored_snapshot_is_rejected_without_reset_or_leak",
+          "source": "crates/connect-store/src/tasks/tests/recall_authority.rs",
+          "source_sha256": "41e1374355470809b5ce05b125e11b21fd98f5f995ff1a64bc2b81089eb18beb",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "artifact_recall_uses_current_state_and_never_returns_bytes_or_server_paths",
+          "source": "crates/connect-store/src/tasks/tests/recall_sources.rs",
+          "source_sha256": "e60288b9a05e477cf6a0305bb6c0c6e865cdc25050fe90e7faece66d5b86cfe6",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "symlink_artifact_is_unavailable_without_following_the_file",
+          "source": "crates/connect-store/src/tasks/tests/recall_sources.rs",
+          "source_sha256": "e60288b9a05e477cf6a0305bb6c0c6e865cdc25050fe90e7faece66d5b86cfe6",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "session_recall_has_recorded_timestamp_and_current_ended_leg_metadata",
+          "source": "crates/connect-store/src/tasks/tests/recall_sources.rs",
+          "source_sha256": "e60288b9a05e477cf6a0305bb6c0c6e865cdc25050fe90e7faece66d5b86cfe6",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "missing_message_source_is_explicit_and_does_not_prevent_later_recall",
+          "source": "crates/connect-store/src/tasks/tests/recall_sources.rs",
+          "source_sha256": "e60288b9a05e477cf6a0305bb6c0c6e865cdc25050fe90e7faece66d5b86cfe6",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "old_required_fact_outside_initial_context_is_recalled_without_other_conversation_leakage",
+          "source": "crates/connect-store/src/tasks/tests/recall.rs",
+          "source_sha256": "9d6cf68d098b87531f59e5a84e705237583150bb3a17e0745f3ca3678d116e4f",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "serialized_budget_pages_make_progress_and_explicitly_omit_oversized_text",
+          "source": "crates/connect-store/src/tasks/tests/recall.rs",
+          "source_sha256": "9d6cf68d098b87531f59e5a84e705237583150bb3a17e0745f3ca3678d116e4f",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "recalled_provider_text_does_not_execute_instructions_or_modify_authority",
+          "source": "crates/connect-store/src/tasks/tests/recall.rs",
+          "source_sha256": "9d6cf68d098b87531f59e5a84e705237583150bb3a17e0745f3ca3678d116e4f",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        }
+      ],
+      "fixture_sources": {}
+    },
+    {
+      "id": "T-A6",
+      "assertion_review": "Local native voice records a sourced decision, ends its session, restarts the server and continues the original task through the selected eligible SMS/chat path. Sibling task and another-conversation contrast remain unchanged. Actual provider/model and carrier evidence is separately source-labelled.",
+      "status": "all mapped tests observed passing; phase qualification still required",
+      "tests": [
+        {
+          "test": "voice_decision_survives_restart_and_stop_then_one_sms_reply_returns_to_its_task",
+          "source": "crates/connect-server/tests/gate4_voice_sms_continuity.rs",
+          "source_sha256": "c9ca4689d24779b535a3ef6e29738c8c09749f11811280e8503ee8f9d8f2e41e",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "voice_decision_survives_restart_and_stop_then_one_sms_reply_returns_to_its_task",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "voice_question_and_decision_survive_restart_then_chat_replies_once_in_same_task",
+          "source": "crates/connect-server/tests/gate4_vapi_post_call.rs",
+          "source_sha256": "637166122c5ce8fe4a4d600dc899bec040f2a6b3243a9a67c77e9281d2948043",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "voice_question_and_decision_survive_restart_then_chat_replies_once_in_same_task",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        }
+      ],
+      "fixture_sources": {
+        "crates/connect-server/tests/support/voice_decision.rs": {
+          "sha256": "5f5b74704b63547d1d1c07b678de3b4938dfb6112cba0d99db05b9a91f842361",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true
+        }
+      }
+    },
+    {
+      "id": "T-A7",
+      "assertion_review": "Signed STOP cancels queued SMS before any provider send, HELP/STOP/START acknowledgements remain provider-owned, and START only permits fresh eligible intent. Cancelled effect replay stays denied through restart and stale duplicate controls cannot replace newer suppression state.",
+      "status": "current execution pending",
+      "tests": [
+        {
+          "test": "signed_controls_and_late_sms_reply_preserve_one_task_without_reviving_cancelled_sends",
+          "source": "crates/connect-server/tests/gate4_sms_callback_journey.rs",
+          "source_sha256": "433218621e871a586cd445795a2263e7e968b84474b00cd76a76ee02591f93c3",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "signed_controls_and_late_sms_reply_preserve_one_task_without_reviving_cancelled_sends",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "voice_decision_survives_restart_and_stop_then_one_sms_reply_returns_to_its_task",
+          "source": "crates/connect-server/tests/gate4_voice_sms_continuity.rs",
+          "source_sha256": "c9ca4689d24779b535a3ef6e29738c8c09749f11811280e8503ee8f9d8f2e41e",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "voice_decision_survives_restart_and_stop_then_one_sms_reply_returns_to_its_task",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "task_dispatch_uses_its_selected_purpose_for_owner_and_invocation",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "task_without_sms_ceiling_cannot_borrow_conversation_enrollment",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "wrong_or_missing_reviewed_purpose_rolls_back_admission",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "enrollment_for_another_conversation_cannot_be_attached_to_the_task",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "removal_and_stale_lease_cannot_fall_back_to_another_eligible_purpose",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "stop_and_start_do_not_revive_the_old_effect_or_cancel_the_task",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "schema_twelve_upgrade_preserves_old_grant_digest_and_task_receipts",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "start_cannot_restore_a_cancelled_sms_task_or_its_invocation",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        },
+        {
+          "test": "sms_storage_failure_preserves_pending_job_without_dispatch_ack",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [],
+          "installed_host_observations": [],
+          "verified_execution": false
+        }
+      ],
+      "fixture_sources": {}
+    },
+    {
+      "id": "T-A8",
+      "assertion_review": "A slow accepted effect returns honest pending within the bounded tool response; dropped MCP response recovers the same receipt. New protected host grants resume the exact retained session and task, catch up the journal and do not create a second logical mutation.",
+      "status": "current execution pending",
+      "tests": [
+        {
+          "test": "slow_provider_effect_remains_pending_then_reconnect_catches_up_exact_reply_once",
+          "source": "crates/connect-server/tests/gate4_vapi_pending_continuation.rs",
+          "source_sha256": "43e0bb28b3320dcea4bc006123f14ba9e052ba80daa2f7a15a80cec6c37e6e3c",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "slow_provider_effect_remains_pending_then_reconnect_catches_up_exact_reply_once",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "real_tools_share_one_effect_artifact_sources_and_pending_journal_handle",
+          "source": "crates/connect-server/tests/gate4_mcp_tools.rs",
+          "source_sha256": "970902c9e5d0feafa9beae626207b94c865f756dd7b67014d22be66223a430e8",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "real_tools_share_one_effect_artifact_sources_and_pending_journal_handle",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "every_advertised_schema_rejects_authority_selectors_and_invalid_shapes",
+          "source": "crates/connect-server/tests/gate4_mcp_tools.rs",
+          "source_sha256": "970902c9e5d0feafa9beae626207b94c865f756dd7b67014d22be66223a430e8",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "every_advertised_schema_rejects_authority_selectors_and_invalid_shapes",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "abandoned_accepted_response_recovers_same_receipt_and_one_message",
+          "source": "crates/connect-server/tests/gate4_mcp_ack_recovery.rs",
+          "source_sha256": "644cdb051712746af7792f21c0748980680ff11cbb6dcd2b1ece6ac9050e157b",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "abandoned_accepted_response_recovers_same_receipt_and_one_message",
+              "result": "ok",
+              "detail": ""
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": true
+        },
+        {
+          "test": "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+          "source": "crates/connect-server/tests/gate4_codex_packaged_runtime.rs",
+          "source_sha256": "4849c0fe91c2a5a7f9ff6903c5261ae3abb3da211be4f533d9f988e0b10940da",
+          "matches_frozen_source": true,
+          "matches_installed_candidate": true,
+          "workspace_observations": [
+            {
+              "name": "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+              "result": "ignored",
+              "detail": ", requires selected installed Codex; packaged launcher uses scripted loopback Responses without inference"
+            }
+          ],
+          "installed_host_observations": [],
+          "verified_execution": false
+        }
+      ],
+      "fixture_sources": {}
+    }
+  ],
+  "supplemental_adversarial_checks": {
+    "cancellation_and_revocation_at_dispatch": [
+      {
+        "test": "task_grant_revocation_blocks_dispatch_even_while_account_authority_remains_valid",
+        "source": "crates/connect-store/src/tasks/tests/effect_providers.rs",
+        "source_sha256": "d8d91afd0e224b5b01e60c9e7927f3227a30a372be2ba9ad65037ded52343134",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "cancellation_blocks_queued_dispatch_but_preserves_the_conversation_message",
+        "source": "crates/connect-store/src/tasks/tests/effect_providers.rs",
+        "source_sha256": "d8d91afd0e224b5b01e60c9e7927f3227a30a372be2ba9ad65037ded52343134",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "cancelled_tasks_cannot_claim_queued_voice_or_sip_starts",
+        "source": "crates/connect-store/src/tasks/tests/media_authority.rs",
+        "source_sha256": "28fff8de9c9e7ef7538b30c528e75a818cac577c6c7dfbf9e38a2bd7b0f70171",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "revoked_invocation_is_rechecked_after_claim_before_voice_dispatch",
+        "source": "crates/connect-store/src/tasks/tests/media_authority.rs",
+        "source_sha256": "28fff8de9c9e7ef7538b30c528e75a818cac577c6c7dfbf9e38a2bd7b0f70171",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "cancelled_task_is_rechecked_after_sip_preparation_before_commit",
+        "source": "crates/connect-store/src/tasks/tests/media_authority.rs",
+        "source_sha256": "28fff8de9c9e7ef7538b30c528e75a818cac577c6c7dfbf9e38a2bd7b0f70171",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "each_physical_start_can_be_admitted_only_once",
+        "source": "crates/connect-store/src/tasks/tests/media_authority.rs",
+        "source_sha256": "28fff8de9c9e7ef7538b30c528e75a818cac577c6c7dfbf9e38a2bd7b0f70171",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "cancelled_task_has_no_provider_effect_and_fresh_owner_hangup_still_works",
+        "source": "crates/connect-server/tests/gate4_voice_authority.rs",
+        "source_sha256": "7c0bd36326a4e688f5e96cfa16923c5f2e1caa627f3dfd73d80058b5078aa183",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [
+          {
+            "name": "cancelled_task_has_no_provider_effect_and_fresh_owner_hangup_still_works",
+            "result": "ok",
+            "detail": ""
+          }
+        ],
+        "installed_host_observations": [],
+        "verified_execution": true
+      }
+    ],
+    "storage_failure_and_current_authority": [
+      {
+        "test": "receipt_failure_rolls_back_task_and_journal_and_same_intent_can_retry",
+        "source": "crates/connect-store/src/tasks/tests/transactions.rs",
+        "source_sha256": "3a785a7665e733b9a8b29613097254f0390ac687495baae7d1d55adeb02745da",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "receipt_failure_rolls_back_message_reply_and_task_transition_then_retry_is_safe",
+        "source": "crates/connect-store/src/tasks/tests/native_reply.rs",
+        "source_sha256": "07e86a8f295948df15ffc1bc028713ed24e9aa202be40f43ef71a83894c61b54",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "failed_cancellation_does_not_ack_or_consume_reservation_and_same_id_can_retry",
+        "source": "crates/connect-store/src/tasks/tests/cancellation_budget.rs",
+        "source_sha256": "9c6cd71b05463eb5d62d8b4cfea34a771d2c1024f6d398357a6bca7fa07f38dd",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "delegated_cancel_receipt_capacity_failure_rolls_back_state_event_and_grant_revocation",
+        "source": "crates/connect-store/src/tasks/tests/delegated_cancel.rs",
+        "source_sha256": "7f3aace7852ec327b38fea85e75b71a0e906f1d15914386eb345d4d01b436c8b",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "failure_after_reply_insertion_rolls_back_message_task_and_provider_completion",
+        "source": "crates/connect-store/src/tasks/tests/effect_provider_boundaries.rs",
+        "source_sha256": "973971f9ae2d5e0cef0870e8d1579c9709c08f31bacde0718526d39f06016d0d",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "infrastructure_failure_is_not_recorded_as_an_authorization_denial",
+        "source": "crates/connect-store/src/tasks/tests/media_authority.rs",
+        "source_sha256": "28fff8de9c9e7ef7538b30c528e75a818cac577c6c7dfbf9e38a2bd7b0f70171",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "sms_storage_failure_preserves_pending_job_without_dispatch_ack",
+        "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+        "source_sha256": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      }
+    ],
+    "forged_input_and_retrieved_evidence": [
+      {
+        "test": "caller_claimed_authority_is_rejected_before_admission_on_the_wire",
+        "source": "crates/connect-server/tests/gate4_task_wire.rs",
+        "source_sha256": "a3b064dff3dcc0126836c5c22188620af4fe6707e4c7453026a051ad99d61f3c",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [
+          {
+            "name": "caller_claimed_authority_is_rejected_before_admission_on_the_wire",
+            "result": "ok",
+            "detail": ""
+          }
+        ],
+        "installed_host_observations": [],
+        "verified_execution": true
+      },
+      {
+        "test": "another_conversation_and_nested_task_command_cannot_escape_task_scope",
+        "source": "crates/connect-server/tests/gate4_task_wire.rs",
+        "source_sha256": "a3b064dff3dcc0126836c5c22188620af4fe6707e4c7453026a051ad99d61f3c",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [
+          {
+            "name": "another_conversation_and_nested_task_command_cannot_escape_task_scope",
+            "result": "ok",
+            "detail": ""
+          }
+        ],
+        "installed_host_observations": [],
+        "verified_execution": true
+      },
+      {
+        "test": "forged_signature_unknown_grant_wrong_origin_and_changed_metadata_are_denied",
+        "source": "crates/connect-store/src/tasks/tests/grants.rs",
+        "source_sha256": "997bf09628e2145c1ea9c8cb0285c1e9282fde655a993222754f8df17131a1bc",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "a_call_chat_or_host_header_cannot_select_another_task_or_create_a_binding",
+        "source": "crates/connect-store/src/tasks/tests/grants.rs",
+        "source_sha256": "997bf09628e2145c1ea9c8cb0285c1e9282fde655a993222754f8df17131a1bc",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "permitted_task_context_is_bounded_source_backed_and_does_not_inherit_remote_history",
+        "source": "crates/connect-store/src/tasks/tests/effect_provider_boundaries.rs",
+        "source_sha256": "973971f9ae2d5e0cef0870e8d1579c9709c08f31bacde0718526d39f06016d0d",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      },
+      {
+        "test": "recalled_provider_text_does_not_execute_instructions_or_modify_authority",
+        "source": "crates/connect-store/src/tasks/tests/recall.rs",
+        "source_sha256": "9d6cf68d098b87531f59e5a84e705237583150bb3a17e0745f3ca3678d116e4f",
+        "matches_frozen_source": true,
+        "matches_installed_candidate": true,
+        "workspace_observations": [],
+        "installed_host_observations": [],
+        "verified_execution": false
+      }
+    ]
+  },
+  "test_reference_summary": {
+    "mapped_references": 60,
+    "unique_mapped_tests": 57,
+    "supplemental_references": 20,
+    "unique_additional_tests": 18,
+    "total_unique_tests": 75,
+    "unique_tests_observed_passing": 28,
+    "counting_note": "Shared tests appear under more than one T-A boundary. References are not added together as distinct executed tests; child_operation is the fixture entrypoint whose parent tests assert real child termination."
+  },
+  "ignored_workspace_case_followups": [
+    {
+      "test": "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+      "workspace_reason": "Gate 3 qualification profile runs one and four sessions for 60 seconds each",
+      "required_separate_phase": "media-pressure",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    },
+    {
+      "test": "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+      "workspace_reason": "requires explicitly selected installed Codex; scripted peer executes no inference",
+      "required_separate_phase": "installed-host",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    },
+    {
+      "test": "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+      "workspace_reason": "requires explicitly selected installed Codex; scripted peer executes no inference",
+      "required_separate_phase": "installed-host",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    },
+    {
+      "test": "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+      "workspace_reason": "requires explicitly selected installed Codex; scripted peer executes no inference",
+      "required_separate_phase": "installed-host",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    },
+    {
+      "test": "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+      "workspace_reason": "requires installed Codex; deterministic local Responses, no model inference",
+      "required_separate_phase": "installed-host",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    },
+    {
+      "test": "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+      "workspace_reason": "requires selected installed Codex; packaged launcher uses scripted loopback Responses without inference",
+      "required_separate_phase": "installed-host",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    },
+    {
+      "test": "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up",
+      "workspace_reason": "requires selected installed Codex; scripted loopback peer executes no inference",
+      "required_separate_phase": "installed-host",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    },
+    {
+      "test": "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+      "workspace_reason": "requires explicitly selected installed Codex; no model turn is executed",
+      "required_separate_phase": "installed-host",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    },
+    {
+      "test": "retired_setups_reuse_capacity_through_the_full_session_limit",
+      "workspace_reason": "Full real-clock retirement profile; scripts/check-voice-retirement.py owns its private report and deadline",
+      "required_separate_phase": "voice-setup-retirement",
+      "phase_status": "not yet completed",
+      "selected_test_log": null,
+      "selected_test_log_sha256": null,
+      "test_observations": [],
+      "qualified": false
+    }
+  ],
+  "source_reconciliation": {
+    "all_prior_matrix_files_match_frozen_baseline": true,
+    "installed_candidate": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+    "candidate_source_archive_sha256": "2f323a9fcb4d2603281beb321a2aece9d41caf8d90a2d8b6428f69365c051c74",
+    "all_mapped_test_sources_match_candidate_archive": true,
+    "package_evidence": "docs/evidence/gate-4/package-7edb1b1.json",
+    "installed_checks_passed": 17
+  },
+  "retained_failures": [
+    "docs/evidence/gate-4/offline-596e9b7-attempt-1.json",
+    "docs/evidence/gate-4/chat-fixture-reconnect.json",
+    "docs/evidence/gate-4/task-lock-expiry.json",
+    "docs/evidence/gate-4/task-tools-qualification.json"
+  ],
+  "boundaries": [
+    "Mapped behavior source and assertion review do not substitute for execution; uncompleted phases are explicit.",
+    "Workspace-ignored host/pressure/retirement cases qualify only through their separately selected phases.",
+    "Retrieved malicious text is tested as evidence, never authority. This is not a general claim that a real model resists prompt injection.",
+    "Source, installed package and actual provider/model journeys retain their actual revisions and independent evidence."
+  ]
+}

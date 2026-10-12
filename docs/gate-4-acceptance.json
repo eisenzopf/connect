@@ -1,8 +1,8 @@
 {
-  "revision": 4,
+  "revision": 5,
   "updated": "2026-10-12",
   "status": "in-progress",
-  "scope": "Gate 4 task-correlated agent/app follow-through. Actual Vapi voice/chat, reviewed SMS controls, and final installed Codex draft/reply and incoming-contact journeys have passed at their recorded source revisions. Full regression, installed recovery and source reconciliation remain in progress.",
+  "scope": "Gate 4 agent/app follow-through with one normal revocable communication identity as the default local installation and optional scoped tasks/grants. Earlier provider, SMS and installed-model journeys remain source-specific proof of the scoped mode. Baseline regression and qualification of the owner-approved access correction are in progress.",
   "product_plan": "connect-gate-4-plan.html",
   "implementation": "connect-gate-4-implementation.html",
   "entry_contract": "connect-task-authority.html",
@@ -86,7 +86,7 @@
     },
     {
       "id": "A4-02",
-      "title": "Narrow current authority",
+      "title": "Current identity access and optional scoped authority",
       "milestones": [
         "G4-B"
       ],
@@ -113,7 +113,7 @@
         "G4-029",
         "G4-031"
       ],
-      "proof": "Two tasks with the same participants cannot share authority. Forged cid/header/call binding, expired grant and revoked actor fail on first execution and replay.",
+      "proof": "Scoped invocation grants for two tasks with the same participants cannot share authority. Forged cid/header/call binding, expired grant and revoked actor fail on first execution and replay. Ordinary identity mode supports multiple authorized conversations and owned tasks without a per-task grant; current key revocation/expiry, foreign access and replay denials pass. Narrow cross-task isolation remains required only for scoped invocation grants.",
       "evidence_class": "local",
       "required": true,
       "status": "in-progress",
@@ -124,7 +124,7 @@
         "evidence/gate-4/authority-matrix.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence. Decision 010 normal-identity qualification remains required.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -340,7 +340,7 @@
         "G4-033",
         "G4-034"
       ],
-      "proof": "Exact product/version, installation, authority and continuation mode are evidenced. One host beyond Vapi installs with supplied assets and continues the original task; no handwritten glue or context reconstruction.",
+      "proof": "Exact product/version, installation, authority and continuation mode are evidenced. One host beyond Vapi installs with supplied assets and continues the original task; no handwritten glue or context reconstruction. The delivered normal installation uses one non-admin identity key across conversations, preserves exact sessions and needs no per-task grant renewal.",
       "evidence_class": "host",
       "required": true,
       "status": "in-progress",
@@ -356,7 +356,7 @@
         "evidence/gate-4/reply-reference-repair.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress.",
+      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress. Decision 010 normal-identity qualification remains required.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -388,7 +388,7 @@
         "G4-031",
         "G4-033"
       ],
-      "proof": "Real MCP lifecycle/discovery/tool calls and installed skill cover resolve, message, artifacts, history, event wait, task controls and supported sessions. SDK/HTTP/CLI operations enforce the same authority, IDs, receipts and errors.",
+      "proof": "Real MCP lifecycle/discovery/tool calls and installed skill cover resolve, message, artifacts, history, event wait, task controls and supported sessions. SDK/HTTP/CLI operations enforce the same authority, IDs, receipts and errors. Ordinary MCP tools delegate the existing service operations; optional task tools and scoped mode retain their documented semantics.",
       "evidence_class": "local",
       "required": true,
       "status": "in-progress",
@@ -402,7 +402,7 @@
         "evidence/gate-4/mcp-session-controls.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence. Decision 010 normal-identity qualification remains required.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -479,7 +479,7 @@
         "G4-030",
         "G4-034"
       ],
-      "proof": "Selected assistant shares a draft, asks a human, receives the bound reply after restart and performs one visible follow-up on the original task. Independently initiated communication into the assistant works too.",
+      "proof": "Selected assistant shares a draft, asks a human, receives the bound reply after restart and performs one visible follow-up on the original task. Independently initiated communication into the assistant works too. Repeat the installed actual-model journey with the normal identity-key default across two conversations, preserving optional tracked work and independent incoming contact.",
       "evidence_class": "host-and-local",
       "required": true,
       "status": "in-progress",
@@ -495,7 +495,7 @@
         "evidence/gate-4/reply-reference-repair.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress.",
+      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress. Decision 010 normal-identity qualification remains required.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -614,7 +614,7 @@
         "G4-031",
         "G4-034"
       ],
-      "proof": "Vapi tool wait is at most ten seconds; pending returns a task handle. Disconnection recovers via journal/status; readiness and task diagnostics distinguish waiting/uncertain/failed from completed effects. Frozen resource limits pass.",
+      "proof": "Vapi tool wait is at most ten seconds; pending returns a task handle. Disconnection recovers via journal/status; readiness and task diagnostics distinguish waiting/uncertain/failed from completed effects. Frozen resource limits pass. Retained owner inspection works after revoking the agent key without restoring continuation authority. Ordinary key expiry is distinguished from optional grant expiry.",
       "evidence_class": "local-and-live",
       "required": true,
       "status": "in-progress",
@@ -628,7 +628,7 @@
         "evidence/gate-4/live-voice-continuity.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence. Decision 010 normal-identity qualification remains required.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -660,7 +660,7 @@
         "G4-035",
         "G4-036"
       ],
-      "proof": "All required offline, installed, host and bounded live checks pass at identified source/package versions. Upgrade/restore/rollback preserve data, code quality review is resolved, docs agree and platform/host limits are published for owner review.",
+      "proof": "All required offline, installed, host and bounded live checks pass at identified source/package versions. Upgrade/restore/rollback preserve data, code quality review is resolved, docs agree and platform/host limits are published for owner review. The normal-key default is qualified in a fresh package and actual-model journey after decision 010.",
       "evidence_class": "local-and-live",
       "required": true,
       "status": "in-progress",
@@ -671,7 +671,7 @@
         "evidence/gate-4/review-findings.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence. Decision 010 normal-identity qualification remains required.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -680,13 +680,16 @@
   "closure_rule": "All required A4-01\u2013A4-14 and T-A1\u2013T-A8 pass with source-linked evidence, including separately invoked bounded live qualification. A blocked, skipped or deferred required check prevents closure.",
   "limits": [
     "Local macOS arm64 only; no remote Connect deployment or public release.",
-    "OpenAI Codex CLI is selected. Extracted 32f4fad checks use scripted loopback Responses; real-model instruction following and whole Gate 4 acceptance remain open.",
-    "Entry decisions and earlier live results are not Gate 4 runtime evidence."
+    "Codex CLI is selected with explicit exact-session resume. Actual-model scoped-mode journeys have passed; the normal-key default requires its own installation and model proof.",
+    "Normal credential lifetime is configurable (existing 30-day default); optional invocation grants retain their five-minute ceiling. Neither lifetime silently renews.",
+    "Conversation membership, current revocation and reviewed SMS suppression apply to both modes.",
+    "Entry decisions and earlier live results are not proof of changed runtime behavior."
   ],
   "qualification_boundaries": {
-    "complete_offline_baseline": "3a272c9; all 39 phases passed; evidence/gate-4/offline-3a272c9.json",
-    "installed_local_candidate": "32f4fad; all 11 checks passed, including nine Vapi checks; evidence/gate-4/package-candidate.json",
-    "merged_source_offline": "32f4fad: 23 original phases, unchanged targeted capacity diagnostic, and 15 remaining phases passed. All 39 phase requirements have passing observations on unchanged source; the original full invocation failed and its startup cause remains unresolved. See evidence/gate-4/offline-32f4fad-remaining.json.",
-    "provider_and_model": "Unrun for Gate 4 under the current local-only execution scope; required separately for closure"
+    "complete_offline_baseline": "3a272c9 all 39 phases passed. Clean 5d23d73 failed after 13 of 41 phases: provider_flow initial native send timed out; required later phases remain unrun. Fixture correction and normal identity default require new qualification.",
+    "installed_scoped_candidate": "7edb1b1 all 17 installed checks passed; evidence/gate-4/package-7edb1b1.json. This precedes the access-default correction.",
+    "actual_model_scoped_mode": "7edb1b1 actual draft/reply/restart and independent incoming-contact journeys passed; source-specific limits are preserved.",
+    "provider_and_sms": "Actual Vapi chat/Connect-carried voice continuity at 596e9b7 and reviewed SMS suppression at 9ab2609 have separate retained evidence; changed behavior needs requalification.",
+    "normal_identity_default": "Decision 010; implementation and adversarial/package/model qualification pending. Earlier narrow-mode proof is not sufficient."
   }
 }

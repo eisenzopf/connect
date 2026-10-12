@@ -5,8 +5,20 @@ are admission ceilings, not a throughput promise. The executable profile below
 measures a separate server through the public Python SDK, its persistent Rust
 helper and native UCTP/QUIC. It creates real records; it does not seed SQLite.
 The [recorded results](evidence/gate-4/task-operating-profile.json) cover this
-component of [G4-030](connect-gate-4-implementation.html#G4-030), which remains
-in progress.
+component of [G4-030](connect-gate-4-implementation.html#G4-030), whose current
+status is recorded in the numbered plan. Original component measurements retain
+their tested revisions.
+The [final operating reconciliation](evidence/gate-4/final-operating-reconciliation.json)
+records the current common-source qualification separately.
+
+The measurements describe the current implementation. Native and HTTP clients
+can use ordinary identity credentials; the Gate 4 MCP/host adapters currently
+use narrower task/conversation-bound grants with five-minute lifetimes and
+protected renewal. The owner is reviewing a simpler default: reusable agent
+access across conversations, activity tracking and revocation, with narrow
+task delegation optional. The running baseline remains unchanged. Its results
+verify current enforcement and do not endorse the narrower adapter model as
+the final product default or qualify a future broader access path.
 
 ## Run the profile
 
@@ -374,6 +386,40 @@ installed candidate and source reconciliation. Actual Codex model journeys and
 have separate evidence. Scripted capacity checks do not establish model or
 carrier behavior by themselves.
 
+The offline run starting at clean source `5d23d73` failed in its workspace
+phase at `provider_flow::owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit`.
+Its installed-host and operating phases were not run and cannot be recorded as
+passes. This preserves the failed baseline while the approved reusable-agent
+default is implemented and qualified separately. The
+[authority reconciliation](evidence/gate-4/authority-workspace-5d23d73.json)
+checks the frozen source hashes, concrete test observations and separately
+executed workspace-ignored cases. The
+[operating reconciliation](evidence/gate-4/final-operating-reconciliation.json)
+records the following required workloads and marks unfinished phases explicitly:
+
+| Required phase | Qualified workload |
+|---|---|
+| Native task capacity | 1,024 active tasks, 10,000 retained records, 16 step leases, 1,000 unconsumed replies, bounded journal pages and the maximum native wait. |
+| Host capacity | Sixteen actual Codex processes, one attributed reply per task and exact saved-session continuation after server restart; scripted Responses without inference. |
+| Reference-runner capacity | Sixteen live worker leases, explicit denial of a seventeenth claim, slot reuse with the original intent and one application action per conversation after restart. |
+| MCP operating load | 512 KiB bodies, both oversized framing modes, 32 occupied admission permits, deadline recovery, honest pending waits and bounded source-backed recall. |
+| Grant lifecycle | Thirty-two tasks, real expiry, accepted-send replay denial, explicit protected renewal and independently scoped autonomous cancellation. |
+| Task/artifact retention | Thirty-two short-lived tasks and files, bounded range reads, expired replay denial, retained unavailable sources and two restarts. |
+| Voice setup retirement | 10,000 immutable setup bindings, 313 real-expiry batches, all listener slots retired, retained-capacity denial and unchanged bindings after restart. |
+
+Protocol/store admission tests separately enforce maximum lifetimes, scope and
+identifier shape, page/cursor bounds and terminal reasons. Short-lived load
+checks measure expiry behavior; they do not claim 24-hour endurance. The frozen
+application ceilings and deadlines remain unchanged.
+
+The normal installed `7edb1b1` candidate has
+[17 passing package checks](evidence/gate-4/package-7edb1b1.json). Its mapped
+authority tests and operating-profile sources match the frozen baseline bytes.
+The actual model draft/restart and incoming-contact journeys use that same
+installed candidate; historical live Vapi/SMS evidence retains its own source.
+Final source integration and the whole gate's acceptance remain separate from
+those individual passes.
+
 A fresh macOS executable can pause before application initialization. The
 [startup diagnosis](evidence/gate-4/candidate-startup-diagnosis.json) records
 native samples and unchanged-binary observations. Installed qualification now
@@ -390,3 +436,25 @@ require an authorized explicit assignment. A completed or stopped host turn
 requires the documented resume action; a healthy server alone does not prove
 that an agent is running. Per-action approval prompts are not required for
 operations already included in the developer's configured task authority.
+
+The continuation modes are explicit. A running reference worker catches up the
+journal after disconnect or owned server restart; restarting a stopped worker
+uses its saved checkpoint. An active Codex turn can call bounded waits, while a
+completed or stopped turn resumes through the protected launcher and its exact
+saved session. A bound reply by itself does not start a model process. Vapi can
+continue during its active invocation or begin a new chat invocation bound to
+the same original task after voice ends. None of these modes creates new task
+authority from an ended call, a phone number or model-supplied identifiers.
+
+Unassigned replies remain inspectable communication evidence until authorized
+explicit assignment. Uncertain external work needs an attributed provider or
+operator observation; retain its original logical ID instead of submitting a
+fresh effect. The actual model journeys show useful continuation, while the
+scripted profiles establish wiring, capacity and recovery under their stated
+local workloads.
+
+Tasks inside one conversation share its authorized conversation context. Task
+isolation keeps grants, reply consumption and effects bound to the correct task;
+it does not create a separate private history for each task. Recall still denies
+another conversation and a cursor borrowed from another task or installation.
+Ending a voice session or task preserves the conversation and its sourced history.

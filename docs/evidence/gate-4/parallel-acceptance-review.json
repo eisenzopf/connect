@@ -1,0 +1,462 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T09:30:21.499734+00:00",
+  "status": "documentation and requirement review complete; final execution/source acceptance pending",
+  "reviewed_checkout_revision": "2d583fea80421276999b0a276cdd523b065c1790",
+  "scope": "Read-only requirement/source-evidence audit and documentation corrections for local macOS arm64 Gate 4. No tests, builds, provider calls, database mutations or security changes were performed by this reviewer.",
+  "requirements_reviewed": {
+    "implementation_items": 36,
+    "acceptance_criteria": 14,
+    "plans": [
+      "docs/connect-gate-4-plan.html",
+      "docs/connect-gate-4-implementation.html",
+      "docs/connect-v0.1-contract.html",
+      "docs/connect-first-ten-minutes.html",
+      "docs/roadmap.json",
+      "docs/feature-coverage.json"
+    ]
+  },
+  "criteria": [
+    {
+      "id": "A4-01",
+      "title": "Durable task lifecycle",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Task state and conversation/session separation have persistent Store, historical executable recovery and installed restart/restore proof. Verify final historical-task-recovery and all current workspace results before closure.",
+      "required_final_phases_or_checks": [
+        "historical-task-recovery",
+        "workspace"
+      ],
+      "evidence": [
+        "evidence/gate-4/task-persistence.json",
+        "evidence/gate-4/historical-recovery.json",
+        "evidence/gate-4/vapi-setup-restart.json",
+        "evidence/gate-4/package-candidate.json"
+      ]
+    },
+    {
+      "id": "A4-02",
+      "title": "Narrow current authority",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Task/invocation authority, current parent revocation, wrong task/cid/recipient/provider binding and replay are controlled adversarial checks. The actual Vapi rehearsal is task-bound, but does not replace negative fixtures. Final T-A1/T-A2 source-linked matrix remains required.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "installed-host"
+      ],
+      "evidence": [
+        "evidence/gate-4/task-authority-audit.json",
+        "evidence/gate-4/task-dispatch-audit.json",
+        "evidence/gate-4/vapi-setup-restart.json",
+        "evidence/gate-4/authority-matrix.json"
+      ]
+    },
+    {
+      "id": "A4-03",
+      "title": "Explicit reply routing",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Task-bound journal reply assignment and ambiguous SMS handling are explicit. The final actual Codex draft has two tasks in one conversation; only task A receives the reply and one attributed follow-up, while task B remains waiting. The model-facing reply reference uses the received conversation event, not source/message/question/task-event IDs.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "installed-host"
+      ],
+      "evidence": [
+        "evidence/gate-4/reply-inbox-recovery.json",
+        "evidence/gate-4/worker-execution-readiness.json",
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json"
+      ]
+    },
+    {
+      "id": "A4-04",
+      "title": "Durable resume and one logical effect",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Actual exact-session continuation preserves draft bytes and one follow-up. Competing workers, commit/ACK crash ordering and unknown remote acceptance are separately tested; uncertainty is retained without blind redispatch. Final current-source recovery/runner results are required.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "installed-host",
+        "crash-replay",
+        "example-recovery",
+        "current-recovery"
+      ],
+      "evidence": [
+        "evidence/gate-4/task-effect-recovery-audit.json",
+        "evidence/gate-4/task-runner-audit.json",
+        "evidence/gate-4/connected-app-artifacts.json",
+        "evidence/gate-4/agent-incoming-example.json",
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/package-7edb1b1.json"
+      ]
+    },
+    {
+      "id": "A4-05",
+      "title": "Source-backed bounded recall",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Controlled bounded recall tests cover older-than-projection context, current authorization, source provenance, retention and malicious text. Actual Vapi voice uses an unspoken prior day/time/code; its decision is retained and used in post-restart chat. Missing end report leaves completeness explicitly incomplete.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "task-artifact-retention"
+      ],
+      "evidence": [
+        "evidence/gate-4/task-recall-audit.json",
+        "evidence/gate-4/vapi-continuation-audit.json",
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/artifact-retention-load.json",
+        "evidence/gate-4/live-voice-continuity.json"
+      ]
+    },
+    {
+      "id": "A4-06",
+      "title": "SMS task eligibility and suppression",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Actual reviewed handset HELLO/HELP/STOP/START and signed callback evidence is retained on 9abf38f. STOP blocks queued/new provider sends and replay; START keeps old jobs cancelled and permits one new eligible mutation. Current-source dispatch/source composition must establish continued policy equivalence.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "dispatch",
+        "historical-task-recovery"
+      ],
+      "evidence": [
+        "evidence/gate-4/task-dispatch-audit.json",
+        "evidence/gate-4/sms-callback-journey.json",
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/sms-0737-rehearsal.json",
+        "evidence/gate-4/live-voice-continuity.json"
+      ]
+    },
+    {
+      "id": "A4-07",
+      "title": "One researched, installed additional host",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Codex CLI 0.162.0-alpha.17.2 is the selected researched host. Supplied install assets/skill/MCP load on normal installed 7edb1b1; actual model turns resume exact saved sessions without reconstructed context. Explicit developer resume and protected short-lived grant renewal are disclosed. Other assistant names remain research outcomes.",
+      "required_final_phases_or_checks": [
+        "installed-host",
+        "host-capacity",
+        "agent-incoming-host"
+      ],
+      "evidence": [
+        "evidence/gate-4/host-selection.json",
+        "evidence/gate-4/codex-owned-runtime.json",
+        "evidence/gate-4/host-concurrency.json",
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/real-model-draft-journey.json",
+        "evidence/gate-4/real-model-incoming-596e9b7.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/package-7edb1b1.json"
+      ]
+    },
+    {
+      "id": "A4-08",
+      "title": "MCP, skill and public-interface parity",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "The extracted package qualifies public SDKs, native helper, HTTP/JSON facade, skill assets and installed host use. Current MCP lifecycle/tool/catalog/session controls and language parity remain separate controlled workspace checks; only the normal helper is the native QUIC path.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "installed-host",
+        "typescript-tests",
+        "python-sdk",
+        "typescript-probe"
+      ],
+      "evidence": [
+        "evidence/gate-4/native-public-interface-audit.json",
+        "evidence/gate-4/language-task-parity-audit.json",
+        "evidence/gate-4/mcp-transport-audit.json",
+        "evidence/gate-4/task-tools-audit.json",
+        "evidence/gate-4/codex-workflow-export.json",
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/mcp-session-controls.json",
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/package-7edb1b1.json"
+      ]
+    },
+    {
+      "id": "A4-09",
+      "title": "Vapi invokes Connect tools in chat and voice",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Real Vapi voice and post-restart chat invoke Connect MCP with actual provider receipts. Read-only retained setup/grant rows confirm distinct verified call/chat-session bindings to the original task. Model tool receipts contain the original step/request/effect identities. Controlled fixtures qualify forgery, expiry and replay.",
+      "required_final_phases_or_checks": [
+        "workspace"
+      ],
+      "evidence": [
+        "evidence/gate-4/vapi-setup-restart.json",
+        "evidence/gate-4/vapi-continuation-audit.json",
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/parallel-acceptance-review.json",
+        "evidence/gate-4/package-7edb1b1.json"
+      ]
+    },
+    {
+      "id": "A4-10",
+      "title": "Agent-presence follow-through",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Actual installed Codex authors two draft artifacts/questions, preserves bytes/digests through server restart, adopts renewed narrow authority without replacing its sessions, then produces one source-backed follow-up only for the answered task. Independent incoming contact uses the supplied example and a fact not repeated in its request.",
+      "required_final_phases_or_checks": [
+        "installed-host",
+        "agent-incoming-host",
+        "host-capacity"
+      ],
+      "evidence": [
+        "evidence/gate-4/codex-draft-journey.json",
+        "evidence/gate-4/agent-incoming-example.json",
+        "evidence/gate-4/codex-owned-runtime.json",
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/real-model-draft-journey.json",
+        "evidence/gate-4/real-model-incoming-596e9b7.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/package-7edb1b1.json"
+      ]
+    },
+    {
+      "id": "A4-11",
+      "title": "Connected app in both directions",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Independent public-SDK app artifacts, review decisions and intake tickets use a separate application database and public clients. Both directions, rejected identities, crash-before-ACK, duplicate requests/replies and one business effect have mapped controlled proof. Final workspace/example/recovery checks must requalify those sources.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "examples",
+        "example-recovery",
+        "current-recovery"
+      ],
+      "evidence": [
+        "evidence/gate-4/connected-app.json",
+        "evidence/gate-4/connected-app-artifacts.json",
+        "evidence/gate-4/worker-execution-readiness.json",
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/package-7edb1b1.json"
+      ]
+    },
+    {
+      "id": "A4-12",
+      "title": "Cross-channel task and conversation continuity",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Actual native UCTP/QUIC audio passes through local Connect to Vapi WebSocket, uses the prior fact, journals a sourced decision, ends its bounded session and continues via a new Vapi chat invocation plus delivered SMS after restart in the same task/conversation. Sibling task unchanged; isolation/deleted-context adversaries are controlled fixtures.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "installed-host"
+      ],
+      "evidence": [
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/vapi-continuation-audit.json",
+        "evidence/gate-4/sms-callback-journey.json",
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/sms-0737-rehearsal.json"
+      ]
+    },
+    {
+      "id": "A4-13",
+      "title": "Bounded waiting and observable recovery",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Tool/MCP deadlines and declared task, grant, queue, payload and lifecycle limits have independent profiles and truthful pending/effect status. Voice model delivery inference is explicitly limited; later chat actually observes its exact effect pending then succeeded. Complete current profiles and diagnostics are required before closure.",
+      "required_final_phases_or_checks": [
+        "workspace",
+        "native-task-capacity",
+        "reference-runner-capacity",
+        "mcp-operating-load",
+        "grant-lifecycle-load",
+        "task-artifact-retention",
+        "voice-setup-retirement",
+        "host-capacity"
+      ],
+      "evidence": [
+        "evidence/gate-4/worker-execution-readiness.json",
+        "evidence/gate-4/mcp-operating-load.json",
+        "evidence/gate-4/grant-lifecycle-load.json",
+        "evidence/gate-4/runner-concurrency.json",
+        "evidence/gate-4/host-concurrency.json",
+        "evidence/gate-4/voice-retirement-load.json",
+        "evidence/gate-4/live-voice-continuity.json"
+      ]
+    },
+    {
+      "id": "A4-14",
+      "title": "Reproducible candidate and evidence closure",
+      "required": true,
+      "status": "proof mapped; final prerequisites pending",
+      "finding": "Final acceptance must reconcile the clean 5d full runner, normal installed 7ed candidate, actual model/provider source versions and integration delta. Preserve earlier failed/partial runs, exact archive/binary digests, current-source authority/limits/recovery proof and all 36 item dependencies. Local owner review does not publish v0.1 or start Gate 5.",
+      "required_final_phases_or_checks": [
+        "all-41-required-phases",
+        "final-source-composition",
+        "documentation-consistency"
+      ],
+      "evidence": [
+        "evidence/gate-4/offline-runner.json",
+        "evidence/gate-4/historical-recovery.json",
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/review-findings.json",
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/parallel-acceptance-review.json"
+      ]
+    }
+  ],
+  "live_report_integrity": {
+    "status": "passed",
+    "private_files_checked": 48,
+    "reports": [
+      {
+        "report": "live-voice-continuity.json",
+        "private_files_checked": 12,
+        "mismatches": []
+      },
+      {
+        "report": "sms-0737-rehearsal.json",
+        "private_files_checked": 13,
+        "mismatches": []
+      },
+      {
+        "report": "real-model-draft-7edb1b1.json",
+        "private_files_checked": 15,
+        "mismatches": []
+      },
+      {
+        "report": "real-model-incoming-7edb1b1.json",
+        "private_files_checked": 8,
+        "mismatches": []
+      }
+    ]
+  },
+  "provider_invocation_correlation": {
+    "method": "Read-only connection to the retained isolated rehearsal database; non-secret task grant/effect rows plus original provider tool receipts. No database or provider resource was changed.",
+    "task_id": "442a711a-aadd-4971-96e7-7121afe8b309",
+    "conversation_id": "845144b8-e910-458a-823c-6cd4128e2054",
+    "voice": {
+      "binding_kind": "provider_call",
+      "provider_call_id": "01a12ee2-884a-799f-958b-c23fccb96073",
+      "invocation_grant_id": "75904b06-0343-484c-a04e-42b0a972c6f4",
+      "step_id": "step_2",
+      "logical_request_id": "record_decision_1",
+      "effect_id": "d21e8f2c-77cf-4cdb-bc14-a8f936d22103",
+      "effect_state": "succeeded",
+      "provider_receipt_contains_step_request_and_effect": true,
+      "private_setup_sha256": "579cced2b7627c26902bba663dc1e48735147552791cad28e20dbc7fc7e0acfa"
+    },
+    "post_restart_chat": {
+      "binding_kind": "provider_chat",
+      "provider_session_id": "30c9de1b-cf64-45bc-b275-3ec449f34ddf",
+      "provider_chat_turn_id": "c86fb1ff-191d-4eee-a884-0aaf976b8f77",
+      "invocation_grant_id": "dda1f1e4-064f-42db-9664-ce25dcfce3a8",
+      "step_and_logical_request_id": "f8456562668f4950b4103f98b92e281a02",
+      "effect_id": "239b3727-bb4c-4eec-abb7-718bcb95d28c",
+      "effect_state": "succeeded",
+      "provider_receipt_contains_step_request_and_effect": true,
+      "private_setup_sha256": "1a6736c9d7fc68da26e9d51e6f018e9ed41409c83479ae19de4b99b9692e1e36",
+      "private_provider_receipt_sha256": "76cce3473330c7755899c4b8ad3cb61250a09c7d979ffc6c85cdf80d92e261ab"
+    },
+    "evidence_boundary": "Correlation retains actual installed 596e9b7 source and binary. Final 7ed source equivalence is a separate required reconciliation, not a claim that a new provider run occurred."
+  },
+  "documentation_checks": {
+    "local_guide_links_checked": 68,
+    "missing_links": [],
+    "guide_sha256": {
+      "docs/CODEX_TASK_HOST.md": "811cc1b749310d8ddd387e2648baf91fe84ef6139d005be8931734d21e9e07ba",
+      "docs/TASK_ACCESS.md": "30ef13b954434f6610ae99995384c0ababd9542269f12bf43627c2e91bff1be2",
+      "docs/VAPI_TASK_HOST.md": "d81d996f27def14a08a058d3ab594703f183b5a9443f499c8b332324fe7558d9",
+      "docs/VAPI_TASK_BOOTSTRAP.md": "cd8b31b2eae519bfe40b62a6455ca4f0c985809a08fba8b7d83f6907671bcc96",
+      "docs/LOCAL_RELEASE.md": "2277cdb7068d561f8e8b726000244209c8a1688ebbcc9a294e8ec91abe4bb103",
+      "docs/TASK_RECOVERY.md": "814c532a46617236aaaa0877eaaf7f1cf42bca13dc23e45afefd476914d36958"
+    },
+    "changed_guides": [
+      "docs/TASK_ACCESS.md",
+      "docs/VAPI_TASK_BOOTSTRAP.md",
+      "docs/LOCAL_RELEASE.md",
+      "docs/TASK_RECOVERY.md"
+    ],
+    "changes": "Remove stale host-qualification claims; link actual installed candidate and recovery; distinguish voice per-call model.tools from chat tools:append; preserve original recorded evidence and whole-gate pending status.",
+    "visual_browser_qa": "not performed; browser refused file URL protocol and no alternative preview was attempted. Text and status corrections retain existing visual styles."
+  },
+  "reproducibility_layers": [
+    {
+      "evidence": "offline-3a272c9.json",
+      "scope": "Actual fresh-checkout clean stable historical 39-phase full baseline."
+    },
+    {
+      "evidence": ".local/gate-4-checks/20261012T090156.434214Z/result.json",
+      "scope": "Clean 5d source, current complete 41-phase run, prepared pins, per-phase input fingerprints and owned isolated fixtures; still running at this review. The existing directory is not claimed to be freshly cloned."
+    },
+    {
+      "evidence": "package-7edb1b1.json",
+      "scope": "Independent archive extraction, pinned dependency preparation, native SDK compilation, exact-source fault build and 17 passed installed checks outside the checkout."
+    }
+  ],
+  "required_before_closure": [
+    "Finish all required current offline phases with nonzero/missing/ignored failures accounted for.",
+    "Integrate the reviewed 7ed narrow metadata/skill/package delta and reconcile actual source/binary/archive versions.",
+    "Requalify T-A1\u2013T-A8, measured limits and historical/current recovery from completed logs.",
+    "Synchronize all 14 A4 criteria, 36 task dependencies, current vision banners, roadmap/feature mappings and root-owned review report.",
+    "Retain unsuccessful model, provider, startup and regression attempts; distinguish unresolved causal hypotheses from observed limits."
+  ],
+  "gate_5_preserved": [
+    "Video",
+    "Full contributor connector kit and capability/test harness",
+    "Independent wire implementation and protocol conformance",
+    "Complete first-run/resource selection and reference-client usability",
+    "Supported release/platform envelope and owner-reviewed community publication"
+  ],
+  "limits": [
+    "One successful actual-model scenario is not a statistical model reliability claim.",
+    "Codex continuation is explicit; neither MCP nor the installed skill supplies automatic model wake or grant issuance.",
+    "The voice model did not inspect exact SMS delivery before its spoken completion claim; independent delivery proof and later chat effect-status checks are retained.",
+    "A missing Vapi end report leaves transcript/context completeness incomplete.",
+    "Earlier executable startup stalls remain unresolved observations. No security settings changed or service restarted.",
+    "Offline fixture tests do not contact live provider accounts or create public ingress. Existing user state/resources remain preserved."
+  ],
+  "public_copy_consistency": {
+    "recorded_at": "2026-10-12T09:45:13.545334+00:00",
+    "status": "available project source is vision-aligned; two progress-note updates recommended",
+    "primary_page": "https://rudeless.ai/connect",
+    "live_page_check": "not verified; the primary page was unavailable via the web tool and search did not return it. No access-policy workaround was attempted.",
+    "reviewed_source": {
+      "repository": "https://github.com/eisenzopf/rudeless",
+      "revision": "608404e5aa2e747806bf82ed7acfb3924f98b510",
+      "clean_checkout": true,
+      "files_sha256": {
+        "frontend/src/app/connect/page.tsx": "9164c98f9f321a6dda1160d427f6ca6cc1aa57e29bfe42f1eac85c32cb378ca6",
+        "frontend/src/app/connect/vision/page.tsx": "813b4d1fcfdbbcbece4c075830b02fd299206dce13cf918dff74cd5fb0fb5629",
+        "frontend/src/app/connect/connectors/page.tsx": "85c9f477472caf9ea0ed098c389594cb828e73837ed5836cd458da9ba7b3e89d",
+        "frontend/src/components/connect/conversation-example.tsx": "625114daf8062ae1421ee79c1b8d79cd3628c17c3f416d497e8d1331dca2d3e3"
+      }
+    },
+    "finding": "Server/SDK-first identity, two-way agent/app presence and persistent same-conversation context agree with the Gate 4 deliverable. Video, full connector/conformance kit, complete first-run experience and publication remain vision/Gate 5 commitments. Two overview/connector development notes still describe first-gate/chat-only progress; updated wording is prepared privately for owner review, without a website or database change.",
+    "context_boundary": "Voice legs remain within one persistent conversation unless the application explicitly chooses a new conversation. Authorized conversation context can be shared by tasks in that conversation; task-specific authority, reply consumption and effects remain separate. The public vision assigns context visibility and transfer to explicit application/integration policy.",
+    "copy_recommendation": "The two exact progress-note replacements are included in reviewable_draft below and retained under ignored .local/gate-4-final/parallel/docs/rudeless-public-copy-recommendations.json. No Rudeless files or deployment were changed.",
+    "reviewable_draft": {
+      "status": "proposed copy only; not applied or deployed",
+      "prepared_at": "2026-10-12T09:45:13.545334+00:00",
+      "replacements": [
+        {
+          "source_file": "frontend/src/app/connect/page.tsx",
+          "purpose": "Update only the dated factual development note; keep vision, identity, illustration and release boundary.",
+          "existing_copy_in_reviewed_source": "The local messaging foundation has passed its first delivery gate. Vapi chat is working in development; real SMS and voice are still being qualified. No full v0.1 release is available yet.",
+          "proposed_copy": "The local macOS arm64 server and SDK now demonstrate conversations, files, QUIC voice, SIP/WebRTC, Vapi tools, reviewed Telnyx SMS, and Codex task continuation. Final Gate 4 review is in progress; no full v0.1 release is available yet."
+        },
+        {
+          "source_file": "frontend/src/app/connect/connectors/page.tsx",
+          "purpose": "Distinguish observed local/provider paths from the still-future complete connector kit and release.",
+          "existing_copy_in_reviewed_source": "These are Connect\u2019s v0.1 integration priorities, not a list of released features. The local server and Rust SDK have passed the first messaging gate, and Vapi chat has been demonstrated. Real Telnyx SMS, voice paths, agent tools, and the contributor kit still need qualification. rvoip supplies the transport and media foundation.",
+          "proposed_copy": "These are Connect\u2019s v0.1 integration priorities. Source-linked local checks and separate provider rehearsals now cover the server and SDK, files, voice paths, Vapi tools, reviewed SMS, and the selected Codex integration. The complete contributor kit and independent protocol conformance remain next-gate work. No full v0.1 release is available yet. rvoip supplies the transport and media foundation."
+        }
+      ],
+      "review_boundary": "The primary deployed page could not be fetched, so this draft is based on the clean local Rudeless source at the recorded revision. It does not attest deployed-copy synchronization or production readiness."
+    }
+  },
+  "updated_at": "2026-10-12T09:45:13.545334+00:00",
+  "access_default_amendment": "This review preceded decision010. It remains a scoped-mode/source checkpoint; it does not qualify the normal identity-key default or establish final closure."
+}

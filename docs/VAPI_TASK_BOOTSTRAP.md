@@ -65,6 +65,12 @@ new local MCP listener and drains it during shutdown.
 Opening native audio uses the existing rvoip attachment and media bridge. The
 bootstrap stages the nonce and MCP tool before call creation. `stage_call`
 always returns options with an admission hook; it never performs its own POST.
+Protected composition reads the saved assistant model and appends the scoped
+MCP entry under that call's `model.tools`, preserving the saved model, prompt
+and existing tools. The saved assistant is not edited. This differs from the
+chat-session `tools:append` path above; the
+[voice model repair evidence](evidence/gate-4/vapi-voice-model-repair.json)
+retains the rejected voice configuration and actual corrected tool use.
 The source-locked, opt-in rvoip hook runs after request preparation and directly
 before HTTP send. In one Store transaction, it rechecks current task, backing
 credential, authenticated media caller, operation ceilings, original expiry and
@@ -103,8 +109,11 @@ cancellation. They do not establish public reachability or actual cloud-provider
 compatibility. The [operator CLI](VAPI_TASK_HOST.md) now composes this setup
 through `connect vapi-task serve` and exact-resource recovery through
 `connect vapi-task reconcile`. Its independent local process checks and
-[extracted release checks](evidence/gate-4/package-candidate.json) pass. Actual provider/model qualification now has separate live evidence; final
-source and installed-candidate reconciliation remains tracked under G4-034.
+[extracted release checks](evidence/gate-4/package-7edb1b1.json) pass. Actual
+provider/model qualification is recorded separately at its tested source in
+the [live continuity report](evidence/gate-4/live-voice-continuity.json). Final
+source reconciliation remains tracked under G4-034; the installed simulator
+checks do not imply a new provider rehearsal.
 
 ## Tool results and continuation
 

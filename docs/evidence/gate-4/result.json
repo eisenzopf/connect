@@ -37,5 +37,10 @@
   ],
   "implementation_items_done": 28,
   "implementation_items_total": 36,
-  "offline_status": "Clean 5d23d73 complete 41-phase rerun is executing; 13 phases passed and workspace tests are running. The corrected chat fixture passed all three targeted cases. The earlier 596e9b7 failed invocation remains recorded."
+  "offline_status": "Clean 5d23d73 failed in workspace at provider_flow initial send after13 passing phases; later phases unrun. Failed attempt retained; fixture correction and owner-approved normal identity default pending qualification.",
+  "agent_access_default": {
+    "decision": "docs/decisions/010-agent-identity-access.md",
+    "status": "implementation-and-qualification-in-progress",
+    "legacy_scoped_proof": "retained; does not qualify the new default"
+  }
 }

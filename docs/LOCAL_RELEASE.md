@@ -20,6 +20,9 @@ daemon, DNS, tunnel, or existing installation change is required.
 
 ## Start a private local installation
 
+Replace `CONNECT` and `EXAMPLE` below with the installed absolute paths of
+`bin/connect` and `bin/connect-example` respectively.
+
 In terminal 1:
 
 ```sh
@@ -53,9 +56,17 @@ restart either worker with the same files to exercise durable continuation.
 
 ## Gate 4 task and agent workflows
 
-Gate 4 package qualification is still in progress. The numbered
-[implementation plan](connect-gate-4-implementation.html#G4-033) records actual
-results; new packaging code is not an installed-candidate attestation.
+The [7edb1b1 local candidate](evidence/gate-4/package-7edb1b1.json) passes all
+17 installed-package checks. Separate actual-model reports qualify
+[Codex draft/reply continuation](evidence/gate-4/real-model-draft-7edb1b1.json)
+and [incoming contact](evidence/gate-4/real-model-incoming-7edb1b1.json) on that
+normal installed binary. The numbered
+[implementation plan](connect-gate-4-implementation.html#G4-033) tracks the
+remaining whole-regression, source integration and acceptance review.
+
+Archive documents reflect the source checkpoint at packaging time. Later
+progress and review documents live in the repository; they do not change the
+archives or their recorded hashes. This candidate remains unpublished.
 
 The runtime carries [task contracts](../contracts/connect-task-v1.md),
 [protected grant setup](TASK_ACCESS.md), the [workflow skill](../skills/connect/SKILL.md)
@@ -146,7 +157,7 @@ The current Gate 4 source migrates supported schemas 1–15 to schema 16, adding
 durable Vapi task-session setup bindings. Older task-linked legs receive an
 unknown-intent marker and must continue with a new voice leg on the same task
 and conversation. This preserves their history without guessing lost setup
-credentials. The [schema-16 local candidate](evidence/gate-4/package-candidate.json)
+credentials. The [schema-16 local candidate](evidence/gate-4/package-7edb1b1.json)
 passes installed walkthrough, Vapi host, SDK and recovery checks. Whole Gate 4
 acceptance remains open. Check the installed manifest for its exact source and schema; older Gate 3 archives use schema 10. A live Session becomes
 interrupted across restart; Connect preserves durable intent and never claims a

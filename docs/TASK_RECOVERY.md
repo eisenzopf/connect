@@ -15,11 +15,15 @@ private setup. Ordinary sessions and existing conversation history are preserved
 Use the existing explicit backup/migrate workflow. No running installation is
 changed by these local tests. The [complete 3a272c9 offline run](evidence/gate-4/offline-3a272c9.json)
 requalified schema-16 historical executable upgrade, refusal, rollback, task backup
-and interrupted snapshot recovery. The [32f4fad installed candidate](evidence/gate-4/package-candidate.json)
-also passes packaged upgrade/restore and crash/replay checks. The earlier
-schema-15 evidence is retained for that version. The merged-source full run and
-whole Gate 4 acceptance remain open. The [local repair audit](evidence/gate-4/vapi-setup-restart.json)
-provides the separate Store migration and Vapi restart component evidence.
+and interrupted snapshot recovery. The
+[7edb1b1 installed candidate](evidence/gate-4/package-7edb1b1.json) passes its
+packaged upgrade/restore and crash/replay checks outside the checkout. The
+earlier schema-15 and 32f4fad package records retain their original versions.
+The current clean-source full run and final source reconciliation remain open
+in [G4-032](connect-gate-4-implementation.html#G4-032); an installed package pass
+does not qualify an unexecuted historical recovery phase. The
+[local repair audit](evidence/gate-4/vapi-setup-restart.json) supplies separate
+Store migration and Vapi restart component evidence.
 
 ## Reproduce the executable checks
 

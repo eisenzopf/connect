@@ -112,10 +112,12 @@ server authority. Provider grants require their verified adapter and cannot be
 converted. The host must supply the retained bearer through its protected
 environment, and MCP still checks current task, parent and grant authority.
 The packaged `run-codex` launcher retains the exact session ID and original
-launch intent. Its local process qualification is recorded in the
-[Codex host guide](CODEX_TASK_HOST.md); actual model/host qualification remains
-open in G4-021–G4-023. Export alone does not attest that Codex has loaded the
-skill or made a tool call.
+launch intent. The [Codex host guide](CODEX_TASK_HOST.md) links both scripted
+runtime qualification and actual-model journeys on the installed 7edb1b1
+candidate. Those journeys load the supplied skill, share drafts, resume the
+original sessions after restart and answer independent incoming contact.
+Export alone does not establish those behaviors. Whole Gate 4 acceptance still
+requires the remaining regression and source reconciliation in the numbered plan.
 
 For an existing Codex installation, issue a fresh grant with a new issuance ID
 and expiry, retaining the exact task, binding and operation list. Then use
@@ -124,7 +126,7 @@ to adopt it under the host lock before explicit resume. This keeps the saved
 session and interrupted intent intact. It does not give the host a backing
 credential or make the original expired grant usable again. The
 [renewal guide](CODEX_TASK_HOST.md#credential-refresh-and-failure-behavior)
-records the local qualification and remaining host requirements.
+records protected renewal, exact-session continuation and the host's limits.
 
 ## Native SDK and JSON CLI
 

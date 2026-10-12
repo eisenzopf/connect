@@ -1,6 +1,10 @@
 # 009 · Durable task runtime and invocation authority
 
 Status: Gate 4 implementation contract, owner-authorized October 9, 2026.
+The default local agent installation is amended by
+[decision 010](010-agent-identity-access.md): one regular revocable identity
+credential, with optional task tracking. This decision continues to specify
+scoped invocation grants and verified provider bindings.
 Implements T-01–T-07; qualification remains T-A1–T-A8 / A4-01–A4-14.
 This decision freezes G4-002/G4-004 interfaces and G4-005 boundaries. It does
 not claim the store, grant runtime, MCP endpoint or host journey is delivered.

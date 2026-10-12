@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T09:26:20.357594+00:00",
+  "items": [
+    "G4-032",
+    "G4-033"
+  ],
+  "status": "focused review and artifact verification passed; full regression and final source integration pending",
+  "scope": "Independent focused static review and recomputation of existing artifact/log hashes; no new builds, test loops, provider operations, database writes or security changes.",
+  "reviewed_source_sha256": {
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/capacity.rs": "0e437ef551f2ea092ac10a3397658071551e37767fd4f2edad8b72c4915c79ae",
+    "crates/connect-mcp/src/budget.rs": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+    "crates/connect-mcp/src/supervision.rs": "408d970ee5524f569aff0d04ecb4454d5c9191a761ab0a65a81600123bde79a7",
+    "crates/connect-mcp/src/listener.rs": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
+    "crates/connect-mcp/src/vapi_auth.rs": "6a2db205b6995e1b8f965b0d891bb146b85e97df169c6df370314ca8ee60977f",
+    "crates/connect-store/src/tasks/authority.rs": "d6d98d0d46ad29db96852108c3c2590eaaf35177b2d11a32346b7b9145b439d0",
+    "crates/connect-store/src/tasks/lifecycle.rs": "c6ece0fd430cdc0d6bb6a3da8ee87b20ccfd4744b45d1226b20691385be3f597",
+    "crates/connect-store/src/tasks/effects/dispatch.rs": "49a3283cd61ad1b0ce6b50a64ffb3ef6826525c6e9905a8c721f1b919ede00b8",
+    "crates/connect-store/src/tasks/grants/execution.rs": "cda5eea891ba6c76c420d91a730421ffea191b7ec14978a3c71c65c586a3d574",
+    "crates/connect-store/src/tasks/grants/authentication.rs": "55ccdbe6092c02dfea16a3984231667c4e402cebf9ca157a0581821ddd352536",
+    "crates/connect-service/src/tasks/access.rs": "aa3454d6c1c2ec67b61b485a5197d62aed68fedde1c70ea36b27e00b002ea796",
+    "crates/connect-service/src/tasks/provider_setup.rs": "6b989852f0bbea0c21df2166309ffad47fb2850ce13f969042847edf4bdfd2bc",
+    "crates/connect-server/src/vapi_bootstrap/call.rs": "6dd9aff37e88cfce925136f684fadc6f46b6b014406c4d28501abb6a1f0d7f2b",
+    "crates/connect-server/src/vapi_bootstrap/admission.rs": "09c80087ffea8337bfdb0860bcb41d9a9b43e4e090122f693cd6783cc15989dd",
+    "crates/connect-server/src/vapi_bootstrap/dispatch.rs": "1a776f5b26323da49ec521465783fd06f3ef765d04394907a1052d67f1aa6788",
+    "crates/connect-server/src/vapi_bootstrap/voice_model.rs": "3c1e12d35986a2c4e1deead8e86722ea89201ac3936167bd5b93194ddbafe048",
+    "crates/connect-server/src/vapi_bootstrap/call_failure.rs": "72138aa215ed4413aeb2ec25afc150c27c0cad5fff0f835bdaba11a029221956",
+    "crates/connect-server/src/cli/task_access/codex_host/diagnostics.rs": "fa6b75b129086239c54e7129fd19ccd084897351a47452e5393136fa1cfbdba9",
+    "crates/connect-server/src/cli/task_access/codex_host/renewal.rs": "f382e70061a3674bae2fbe96871f16e06e50b9e7315353ab2159ad852eb65491",
+    "scripts/lib/recovery_upgrade.py": "92251856c360adc78f1212c3fb32ef2d37490c8808b5edbf45a8626c4fff85f8",
+    "scripts/lib/recovery_tasks.py": "d70ebe9d9d1be184a4158a18ed895c6eda2a9c966f1bd513bd68612d6175ba60",
+    "scripts/lib/recovery_interruption.py": "dd6de89d2300fe1903e2ed6758f78cd24fb38d549fbe0287f99eebd67feb1ddc",
+    "scripts/check-package.py": "b88b43d2b690d3d4c442886f51cd4eb9521fa31b38a27c602766a02c11c7b023",
+    "crates/connect-mcp/Cargo.toml": "5a01d2c82a88fa1dcea97191c829e37b8a26b5b94a661e99883008668634bc1a",
+    "examples/review-loop/Cargo.toml": "893363bd6a1b6ede3cc6ec608204647146fff27aefb448557f52247414b1717e"
+  },
+  "findings": [
+    {
+      "area": "Crate ownership",
+      "result": "MCP production delegates to Service and Protocol; connect-store is dev-only. Review-loop production communicates through connect-client. Its application state is separate from authoritative Connect state."
+    },
+    {
+      "area": "Current authority and replay",
+      "result": "Invocation admission runs inside the Store transaction before effect or receipt access. Task continuation revalidates the original backing credential, immutable conversation and operation/recipient ceilings. Provider effect dispatch reloads committed credential/grant links at last-mile admission."
+    },
+    {
+      "area": "Cancellation and uncertainty",
+      "result": "Terminal task transitions revoke grants and cancel prepared effects atomically. Interrupted MCP work produces transport-uncertain with logical correlation and reconciliation guidance. No timeout is presented as completed work or permission to send again."
+    },
+    {
+      "area": "Resource ownership",
+      "result": "Shared MCP request/listener admission is 32 with immediate overload rather than an unbounded queue. Wait work retains time for authority recheck and response projection. Listener slots live with the accept task and shutdown observation survives panic/aborted startup."
+    },
+    {
+      "area": "Provider bootstrap",
+      "result": "Private bootstrap bearer verification precedes correlation parsing. A bounded assistant lookup preserves its saved model/tools; current task authority is checked again before staging. rvoip admission owns the final current authorization and one-dispatch boundary. Closed CallStage diagnostics avoid private causes in logs."
+    },
+    {
+      "area": "Host renewal and diagnostics",
+      "result": "Renewal preserves exact task, binding and operations under the host lock. It retains original installation/session intent and cannot revive cancelled server authority. Diagnostic state uses bounded/private reads, a second sample and sanitized metadata; it does not attest model progress or delivery."
+    },
+    {
+      "area": "Recovery verification",
+      "result": "Historical fixtures inspect table/row preservation, real artifact bytes and receipts, old-binary schema refusal and matching-snapshot rollback. Interrupted snapshot uses a FIFO only in a disposable copy and refuses a missing manifest. Recovered tasks retain source/question/cursor state and recheck current cancellation before replay."
+    },
+    {
+      "area": "Rust maintainability",
+      "result": "New Gate 4 MCP/host/bootstrap/runner responsibilities are split into focused modules, documented at crate/API boundaries and under unsafe_code=forbid. Public communication examples exercise the client. Existing largest cross-gate source files are recorded below; this review found no blocking need for an arbitrary line-count split."
+    },
+    {
+      "area": "Qualification harness",
+      "result": "Archive extraction restricts regular files/directories and rejects traversal, mutable private state and checkout/build directories. Runtime and exact-source fault controls are separate. Initial executable launch is recorded separately while existing request/task/recovery deadlines remain in force."
+    }
+  ],
+  "blocking_code_findings": [],
+  "review_limits": [
+    "Focused review of the listed source boundaries, not a line-by-line audit of every file or proof against every adversarial interleaving.",
+    "Readability review and strict checks support community review readiness but are not a guarantee of third-party acceptance.",
+    "Intermittent prior startup and capacity initialization failures remain retained; their causes are not established by later passes."
+  ],
+  "largest_source_files_observed": [
+    {
+      "path": "crates/connect-protocol/src/lib.rs",
+      "lines": 730
+    },
+    {
+      "path": "crates/connect-server/src/main.rs",
+      "lines": 582
+    },
+    {
+      "path": "crates/connect-client/src/operations.rs",
+      "lines": 577
+    },
+    {
+      "path": "crates/connect-store/src/sessions.rs",
+      "lines": 563
+    },
+    {
+      "path": "crates/connect-server/src/media_lifecycle.rs",
+      "lines": 523
+    },
+    {
+      "path": "crates/connect-connectors/src/setup.rs",
+      "lines": 520
+    },
+    {
+      "path": "crates/connect-store/src/voice.rs",
+      "lines": 518
+    },
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "lines": 512
+    }
+  ],
+  "strict_recorded_checks_reverified": {
+    "format": {
+      "status": "passed",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ]
+    },
+    "lint": {
+      "status": "passed",
+      "log_sha256": "84ec94e7e0f1f9d6ee0b7ea6152482b7e5c5b8f12474d25b0b86b8ebcde86240",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    "rustdoc": {
+      "status": "passed",
+      "log_sha256": "b2fc5e879c4b5a2a600d399069c19364dd75e258e35b68059b5e458cdaa4f1b8",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ]
+    }
+  },
+  "package_reverification": {
+    "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0",
+    "normal_binary_sha256": "8784157abc325d7ec8b23a1347f2f072a96c66d9e3823898360e555fd8159f03",
+    "manifest_sha256": "87a2d48756a07e13444b3a1d06081e36018d34f71426331cbba9a810cb653e0c",
+    "runtime_manifest_files_verified": 1286,
+    "archives_sha256": {
+      "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0-qualification.tar.gz": "7f050869838c550127c88e3ad1fb80bc8b84cf02af10e441d34df86dcbf0b380",
+      "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0-source.tar.gz": "2f323a9fcb4d2603281beb321a2aece9d41caf8d90a2d8b6428f69365c051c74",
+      "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0.tar.gz": "0aa335ccf28b05323255689bc01ce1fa28bb716d1f83ede3412c9872d3c345bb"
+    },
+    "post_qualification_python_import_caches": {
+      "files": 11,
+      "scope": "Generated only in the unpacked local copy by later SDK use; all recorded archive checksums remain unchanged and no archive contains __pycache__."
+    },
+    "archive_member_counts": {
+      "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0-qualification.tar.gz": 3,
+      "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0-source.tar.gz": 1199,
+      "connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0.tar.gz": 1781
+    },
+    "private_qualification_report_sha256": "98a53da0e55b3755776792750c36bc0d6742183d9010a557025252b9456243c0",
+    "qualification_log_hashes_verified": 15,
+    "all_recorded_package_checks": {
+      "archive-checksums": "passed",
+      "inventory": "passed",
+      "sdk-source-build": "passed",
+      "first-launch-connect": "passed",
+      "first-launch-example": "passed",
+      "first-launch-schema1": "passed",
+      "installed-walkthrough": "passed",
+      "restart-shutdown": "passed",
+      "installed-language-sdks": "passed",
+      "installed-gate4-agent": "passed",
+      "qualification-fixture-build": "passed",
+      "first-launch-fault-connect": "passed",
+      "first-launch-fault-connect-example": "passed",
+      "check-examples.py": "passed",
+      "check-recovery.py": "passed",
+      "check-crash-replay.py": "passed",
+      "check-example-recovery.py": "passed"
+    },
+    "source_lock_sha256": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+    "recorded_patch_digests_verified": {
+      "patches/rvoip/parley-conference.patch": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+      "patches/rvoip/connect-quic-application.patch": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+      "patches/rvoip/connect-session-context.patch": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+      "patches/rvoip/external-session-projection.patch": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+      "patches/rvoip/sip-terminal-media-race.patch": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+      "patches/rvoip/audio-queue-policy.patch": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+      "patches/rvoip/transport-audio-queues.patch": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+      "patches/rvoip/authenticated-envelope-guard.patch": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+      "patches/rvoip/vapi-call-admission.patch": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa"
+    },
+    "license_inventory_present": true
+  },
+  "recovery_current_runner": {
+    "source_revision": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
+    "runner_status": "running",
+    "phases": {
+      "schema-six-build": {
+        "status": "not run yet"
+      },
+      "schema-ten-build": {
+        "status": "not run yet"
+      },
+      "historical-task-recovery": {
+        "status": "not run yet"
+      },
+      "crash-replay": {
+        "status": "not run yet"
+      },
+      "example-recovery": {
+        "status": "not run yet"
+      },
+      "current-recovery": {
+        "status": "not run yet"
+      }
+    },
+    "required_recovery_phases_passed": false,
+    "historical_component_evidence": "docs/evidence/gate-4/historical-recovery.json",
+    "current_package_recovery": "docs/evidence/gate-4/package-7edb1b1.json"
+  },
+  "completion_notes": {
+    "G4-032": "Historical schema-10/schema-6 migration/refusal/rollback, snapshot interruption and task source/reply/current-authority components passed previously; final package recovery/replay passes. Close only after the current required historical/current recovery phases and G4-029/G4-031 dependencies pass. Preserve old failures and exact baseline/schema hashes.",
+    "G4-033": "Candidate 7edb1b1 passes all 17 installed-package checks plus four focused MCP and 48 runner checks, strict Clippy/Rustdoc/format, and actual-model draft/incoming journeys. This independent review verifies package inventory, archive/report/log digests, patch provenance and the reviewed authority/cancellation/resource boundaries. Close after current full baseline/recovery completion and the root integrates and checks the narrow final union. Record distinct runtime revisions rather than asserting one common-source execution."
+  },
+  "remaining": [
+    "Finish current complete 41-phase baseline runner and its dependencies.",
+    "Integrate the qualified narrow metadata/skill/test/harness repair while preserving the main chat fixture correction; record targeted integrated checks.",
+    "Publish final authority, operating-profile, source composition and acceptance reconciliation."
+  ],
+  "source_composition": "docs/evidence/gate-4/final-source-composition.json",
+  "access_default_amendment": "This review preceded decision010. It remains a scoped-mode/source checkpoint; it does not qualify the normal identity-key default or establish final closure."
+}
