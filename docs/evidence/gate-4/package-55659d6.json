@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T02:27:54.710590+00:00",
+  "status": "Installed account-free package qualification passed; actual provider admission repair is newer",
+  "source_revision": "55659d6b8f6944ebdf4d074e77a328c37c0bcb6c",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-55659d6b8f69",
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "installed-gate4-agent": {
+      "result": "passed",
+      "detail": "Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback"
+    },
+    "qualification-fixture-build": {
+      "result": "passed",
+      "detail": "Exact extracted source; owned compilation phase; test-only controls isolated from installed runtime binaries"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-55659d6b8f69-qualification.tar.gz": "bbb5c8a5bffb18e0ae94d4af91c2736d6c528de77b2b548131ceed0f4f1b38a9",
+    "connect-0.1.0-alpha.1-macos-arm64-55659d6b8f69-source.tar.gz": "d323ce4d00c46064b886a83d180e43ed2366c72c70afce6953daa84aa30ac357",
+    "connect-0.1.0-alpha.1-macos-arm64-55659d6b8f69.tar.gz": "47a9456310683a5aa78817192d353ed0fdae52836ee74b02ca770bace3d6484c"
+  },
+  "private_report_sha256": "a0f31c124402dd11f684d364757403c9cbe2b00dcd6a91527dc6ce098e4ef84c",
+  "limits": [
+    "No actual model/provider inference is claimed from installed fixtures.",
+    "The new scoped-owner host case brings installed Vapi fixture coverage to ten checks.",
+    "The actual cloud chat discovered the tools but denied recall; new callback serialization and prompt assets require a later candidate."
+  ]
+}

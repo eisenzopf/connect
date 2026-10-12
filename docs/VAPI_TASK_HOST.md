@@ -58,6 +58,22 @@ credentials, path prefixes and selectors are rejected. The pinned private SDK
 currently excludes IPv6 HTTP simulator origins. Local qualification clears
 inherited provider credentials and supplies a fixture key and loopback origin.
 
+## Assistant prompt
+
+Use the reusable [Connect presence prompt](../examples/agent-presence/vapi-system-prompt.txt)
+as the assistant's system message. It treats an initial context snapshot as
+incomplete, directs recall before answering about earlier work, follows source
+paging, records decisions through the available tools and distinguishes confirmed
+effects from pending work. Dynamic MCP tool names may have a server prefix.
+The prompt contains no account defaults, authority, conversation IDs or test answers.
+
+This follows Vapi's [prompting guide](https://docs.vapi.ai/prompting-guide) and
+[MCP guidance](https://docs.vapi.ai/tools/mcp): use clear tool procedures, concise
+voice turns, focused tool descriptions and explicit failure handling. Apply it
+to an owned assistant with a saved configuration snapshot, then test actual
+source recall, dependent actions and failure recovery. Prompt changes cannot
+authorize a rejected request or substitute for server-side permission checks.
+
 ## Run
 
 ```sh

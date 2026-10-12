@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T02:20:10.366930+00:00",
+  "status": "Owned test assistant prompt updated and independently verified; behavioral qualification remains open",
+  "prompt": "examples/agent-presence/vapi-system-prompt.txt",
+  "prompt_sha256": "3094557eef33b93354d686f434991ae2c5d104d651f347478e8e53bfac1b9830",
+  "prompt_words": 479,
+  "model_provider": "openai",
+  "model_name": "gpt-4o-mini",
+  "model_settings_preserved": true,
+  "non_model_configuration_preserved": true,
+  "sources": [
+    "https://docs.vapi.ai/prompting-guide",
+    "https://docs.vapi.ai/tools/mcp",
+    "https://docs.vapi.ai/tools"
+  ],
+  "changes": [
+    "Recall missing prior context using discovered tools instead of treating an absent injected snapshot as no memory.",
+    "Page sources, honor current corrections, then perform the dependent action.",
+    "Record a decision and confirm the actual tool result; distinguish sent questions, pending work and carrier delivery.",
+    "Use actual dynamically prefixed tool names and keep voice turns brief.",
+    "Preserve logical mutation IDs when reconciling uncertainty."
+  ],
+  "private_snapshot_sha256": "03f05ade2ae6777710901f8519bf2bf5fb06dd0bd39d3c4831767d615d8e638a",
+  "remaining": "Repair transport/admission failure; verify actual model recall and visible effects in representative chat and native voice scenarios."
+}

@@ -16,6 +16,7 @@ pub struct BootstrapAuth {
     service: Arc<Service>,
     provider: Arc<Vapi>,
     directory: PathBuf,
+    admission: tokio::sync::Mutex<()>,
 }
 impl BootstrapAuth {
     /// Compose before opening the listener, so preparation can save its actual
@@ -25,12 +26,18 @@ impl BootstrapAuth {
             service,
             provider,
             directory,
+            admission: tokio::sync::Mutex::new(()),
         }
     }
 }
 #[async_trait]
 impl McpAuthenticator for BootstrapAuth {
     async fn authenticate(&self, headers: &HeaderMap) -> Result<TaskInvocation> {
+        // Vapi's idle GET and tool POST can overlap. Queue this endpoint's
+        // verification without blocking an executor or mistaking its own file
+        // lock for invalid authority. MCP admission still bounds wait/capacity;
+        // every request reads current authority after acquiring this guard.
+        let _admission = self.admission.lock().await;
         let mut held = Locked::load(&self.directory).map_err(|_| Error::forbidden())?;
         let state = &held.state;
         let credential = bearer(headers)?;

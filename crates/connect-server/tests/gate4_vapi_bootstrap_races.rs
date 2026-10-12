@@ -93,6 +93,72 @@ async fn recovered_resource_return_rechecks_authority_after_private_lookup() {
         f.close().await;
     }
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn overlapping_callbacks_wait_and_recheck_authority_instead_of_denying_contention() {
+    for cancel in [false, true] {
+        let f = fixture::Fixture::start().await;
+        let setup = bootstrap::Setup::start(&f, 500, Duration::ZERO).await;
+        setup.uncertain(&f).await;
+        let (barrier, sdk) = paused::PausedLookup::with_response(
+            "/session/session-one",
+            json!({"id":"session-one","assistantId":"assistant-one","status":"active",
+                "metadata":{"variableValues":{"connect_invocation_id":setup.state["nonce"]}}}),
+        )
+        .await;
+        let auth = Arc::new(BootstrapAuth::new(
+            f.server.service.clone(),
+            Arc::new(sdk),
+            setup.directory.clone(),
+        ));
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(
+            "authorization",
+            format!("Bearer {}", setup.secret()).parse().unwrap(),
+        );
+        headers.insert("x-session-id", "session-one".parse().unwrap());
+        headers.insert("x-chat-id", "first-chat".parse().unwrap());
+        headers.insert("x-call-id", "first-chat".parse().unwrap());
+        let first_auth = auth.clone();
+        let first_headers = headers.clone();
+        let first = tokio::spawn(async move { first_auth.authenticate(&first_headers).await });
+        barrier.wait_for_lookup().await;
+        // Vapi opens an idle GET while listing or invoking a tool. Both requests
+        // authenticate through this one endpoint, with the same protected origin.
+        let second = auth.authenticate(&headers);
+        tokio::pin!(second);
+        let initial = tokio::time::timeout(Duration::from_millis(100), &mut second).await;
+        let waited = initial.is_err();
+        barrier.release();
+        assert!(first.await.unwrap().is_ok());
+        if cancel {
+            change_authority(&f, true).await;
+        }
+        let before = Store::inspect_snapshot(f.server.store.path()).unwrap();
+        let result = match initial {
+            Ok(result) => result,
+            Err(_) => {
+                barrier.release();
+                tokio::time::timeout(Duration::from_secs(5), second)
+                    .await
+                    .unwrap()
+            }
+        };
+        let unchanged = Store::inspect_snapshot(f.server.store.path()).unwrap() == before;
+        barrier.close().await;
+        setup.close().await;
+        f.close().await;
+        assert!(
+            waited,
+            "Overlapping authenticated requests must wait for verification"
+        );
+        assert_eq!(result.is_ok(), !cancel);
+        assert!(
+            unchanged,
+            "Replayed admission must not create another grant or effect"
+        );
+    }
+}
 async fn change_authority(f: &fixture::Fixture, cancel: bool) {
     if cancel {
         let mut owner = ConnectClient::open(f.owner.clone()).await.unwrap();

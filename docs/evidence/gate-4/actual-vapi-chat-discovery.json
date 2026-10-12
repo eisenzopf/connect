@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T02:11:28.061046+00:00",
+  "source_revision": "55659d6b8f6944ebdf4d074e77a328c37c0bcb6c",
+  "status": "Actual Vapi model discovers tools and attempts recall; recall denied, no visible effect",
+  "scope": "Separate actual provider/model rehearsal using manifest-verified installed binary/SDK and protected scoped owner; no SMS driver or carrier send",
+  "rpc_observations": [
+    {
+      "http_method": "POST",
+      "rpc_method": "initialize",
+      "status": 200
+    },
+    {
+      "http_method": "POST",
+      "rpc_method": "notifications/initialized",
+      "status": 202
+    },
+    {
+      "http_method": "GET",
+      "rpc_method": null,
+      "status": 401
+    },
+    {
+      "http_method": "POST",
+      "rpc_method": "tools/list",
+      "status": 200
+    },
+    {
+      "http_method": "POST",
+      "rpc_method": "initialize",
+      "status": 200
+    },
+    {
+      "http_method": "POST",
+      "rpc_method": "notifications/initialized",
+      "status": 202
+    },
+    {
+      "http_method": "POST",
+      "rpc_method": "tools/call",
+      "status": 401
+    },
+    {
+      "http_method": "GET",
+      "rpc_method": null,
+      "status": 405
+    }
+  ],
+  "actual_model_calls": [
+    "trycloudflare-connect_recall"
+  ],
+  "before_after_source_unchanged": true,
+  "correlation_verified": true,
+  "hypothesis": "Protected bootstrap file lock is acquired with try_lock and held across private resource verification. Vapi concurrently opens an idle GET and sends POST tools/list/call. Reproduce this contention locally before attributing the 401 cause.",
+  "private_evidence_sha256": {
+    "requests-private.jsonl": "bf981d5719d036252d1243b2e86874e8ba75ea2b88d824d721a175d905925282",
+    "chat-turn/inspection-2b5f0d1c81c24dae86ed93aa56ab5b2a/chat-response.json": "a17750a7a78b4c8dda89f1aeb0731f34d3c1073e224fbf4e62548e96d8533bcb",
+    "chat-turn/inspection-2b5f0d1c81c24dae86ed93aa56ab5b2a/result.json": "892cc9c61720c244ddaac26e88ed870403cf69d1f68167dc3c43c8448cceec7a",
+    "chat-turn/inspection-2b5f0d1c81c24dae86ed93aa56ab5b2a/before.json": "f4b3b4b02299ec8f00458e1b5fa0148afa43535d0884dbd4e7bed5f824d0fa3c",
+    "chat-turn/inspection-2b5f0d1c81c24dae86ed93aa56ab5b2a/after.json": "f4b3b4b02299ec8f00458e1b5fa0148afa43535d0884dbd4e7bed5f824d0fa3c"
+  },
+  "remaining": "Prove and repair overlapping admission, then repeat actual chat and native voice source use; captured receipt alone is not success."
+}
