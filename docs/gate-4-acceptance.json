@@ -1,8 +1,8 @@
 {
-  "revision": 5,
+  "revision": 6,
   "updated": "2026-10-12",
   "status": "in-progress",
-  "scope": "Gate 4 agent/app follow-through with one normal revocable communication identity as the default local installation and optional scoped tasks/grants. Earlier provider, SMS and installed-model journeys remain source-specific proof of the scoped mode. Baseline regression and qualification of the owner-approved access correction are in progress.",
+  "scope": "Gate 4 agent/app follow-through with one normal revocable communication identity as the default local installation and optional scoped tasks/grants. The final installed normal-key model and fresh Vapi text journeys pass; retained voice/SMS results remain source-specific. Complete account-free regression and final reconciliation are in progress.",
   "product_plan": "connect-gate-4-plan.html",
   "implementation": "connect-gate-4-implementation.html",
   "entry_contract": "connect-task-authority.html",
@@ -76,10 +76,11 @@
         "evidence/gate-4/task-persistence.json",
         "evidence/gate-4/historical-recovery.json",
         "evidence/gate-4/vapi-setup-restart.json",
-        "evidence/gate-4/package-candidate.json"
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/package-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -121,10 +122,14 @@
         "evidence/gate-4/task-authority-audit.json",
         "evidence/gate-4/task-dispatch-audit.json",
         "evidence/gate-4/vapi-setup-restart.json",
-        "evidence/gate-4/authority-matrix.json"
+        "evidence/gate-4/authority-matrix.json",
+        "evidence/gate-4/agent-default-authority.json",
+        "evidence/gate-4/agent-context-default.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence. Decision 010 normal-identity qualification remains required.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -168,7 +173,7 @@
         "evidence/gate-4/voice-sms-continuity.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -215,10 +220,14 @@
         "evidence/gate-4/package-candidate.json",
         "evidence/gate-4/real-model-draft-7edb1b1.json",
         "evidence/gate-4/real-model-incoming-7edb1b1.json",
-        "evidence/gate-4/reply-reference-repair.json"
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/agent-default-authority.json",
+        "evidence/gate-4/agent-context-default.json",
+        "evidence/gate-4/real-model-agent-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -260,10 +269,14 @@
         "evidence/gate-4/vapi-continuation-audit.json",
         "evidence/gate-4/voice-sms-continuity.json",
         "evidence/gate-4/artifact-retention-load.json",
-        "evidence/gate-4/live-voice-continuity.json"
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/agent-default-authority.json",
+        "evidence/gate-4/agent-context-default.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -306,7 +319,7 @@
         "evidence/gate-4/live-voice-continuity.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -353,10 +366,14 @@
         "evidence/gate-4/real-model-incoming-596e9b7.json",
         "evidence/gate-4/real-model-draft-7edb1b1.json",
         "evidence/gate-4/real-model-incoming-7edb1b1.json",
-        "evidence/gate-4/reply-reference-repair.json"
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/agent-default-authority.json",
+        "evidence/gate-4/agent-context-default.json",
+        "evidence/gate-4/real-model-agent-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress. Decision 010 normal-identity qualification remains required.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -399,10 +416,14 @@
         "evidence/gate-4/task-tools-audit.json",
         "evidence/gate-4/codex-workflow-export.json",
         "evidence/gate-4/package-candidate.json",
-        "evidence/gate-4/mcp-session-controls.json"
+        "evidence/gate-4/mcp-session-controls.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/agent-default-authority.json",
+        "evidence/gate-4/agent-context-default.json",
+        "evidence/gate-4/real-model-agent-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence. Decision 010 normal-identity qualification remains required.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -442,10 +463,11 @@
         "evidence/gate-4/vapi-setup-restart.json",
         "evidence/gate-4/vapi-continuation-audit.json",
         "evidence/gate-4/package-candidate.json",
-        "evidence/gate-4/live-voice-continuity.json"
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -492,10 +514,13 @@
         "evidence/gate-4/real-model-incoming-596e9b7.json",
         "evidence/gate-4/real-model-draft-7edb1b1.json",
         "evidence/gate-4/real-model-incoming-7edb1b1.json",
-        "evidence/gate-4/reply-reference-repair.json"
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/agent-default-authority.json",
+        "evidence/gate-4/agent-context-default.json",
+        "evidence/gate-4/real-model-agent-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The normal installed 7edb1b1 candidate passes actual-model overlapping drafts, exact-session restart, one correctly attributed follow-up and independent incoming contact. Final regression, installed recovery and acceptance reconciliation remain in progress. Decision 010 normal-identity qualification remains required.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -531,10 +556,11 @@
         "evidence/gate-4/connected-app.json",
         "evidence/gate-4/connected-app-artifacts.json",
         "evidence/gate-4/worker-execution-readiness.json",
-        "evidence/gate-4/package-candidate.json"
+        "evidence/gate-4/package-candidate.json",
+        "evidence/gate-4/package-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -575,10 +601,11 @@
         "evidence/gate-4/vapi-continuation-audit.json",
         "evidence/gate-4/sms-callback-journey.json",
         "evidence/gate-4/live-voice-continuity.json",
-        "evidence/gate-4/sms-0737-rehearsal.json"
+        "evidence/gate-4/sms-0737-rehearsal.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -625,10 +652,14 @@
         "evidence/gate-4/runner-concurrency.json",
         "evidence/gate-4/host-concurrency.json",
         "evidence/gate-4/voice-retirement-load.json",
-        "evidence/gate-4/live-voice-continuity.json"
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/agent-default-authority.json",
+        "evidence/gate-4/agent-context-default.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence. Decision 010 normal-identity qualification remains required.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -668,10 +699,15 @@
         "evidence/gate-4/offline-runner.json",
         "evidence/gate-4/historical-recovery.json",
         "evidence/gate-4/package-candidate.json",
-        "evidence/gate-4/review-findings.json"
+        "evidence/gate-4/review-findings.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/agent-default-authority.json",
+        "evidence/gate-4/agent-context-default.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json"
       ],
       "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "Finish the final regression/package run and reconcile source-linked acceptance evidence. Decision 010 normal-identity qualification remains required.",
+      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
       "not_run_prerequisites": [
         "Final current-source regression and installed-candidate reconciliation"
       ]
@@ -680,7 +716,7 @@
   "closure_rule": "All required A4-01\u2013A4-14 and T-A1\u2013T-A8 pass with source-linked evidence, including separately invoked bounded live qualification. A blocked, skipped or deferred required check prevents closure.",
   "limits": [
     "Local macOS arm64 only; no remote Connect deployment or public release.",
-    "Codex CLI is selected with explicit exact-session resume. Actual-model scoped-mode journeys have passed; the normal-key default requires its own installation and model proof.",
+    "Codex CLI is selected with explicit exact-session resume. The current normal identity-key installation and actual-model journey pass; optional scoped installation and historical model journeys remain separately attributed.",
     "Normal credential lifetime is configurable (existing 30-day default); optional invocation grants retain their five-minute ceiling. Neither lifetime silently renews.",
     "Conversation membership, current revocation and reviewed SMS suppression apply to both modes.",
     "Entry decisions and earlier live results are not proof of changed runtime behavior."
@@ -689,7 +725,9 @@
     "complete_offline_baseline": "3a272c9 all 39 phases passed. Clean 5d23d73 failed after 13 of 41 phases: provider_flow initial native send timed out; required later phases remain unrun. Fixture correction and normal identity default require new qualification.",
     "installed_scoped_candidate": "7edb1b1 all 17 installed checks passed; evidence/gate-4/package-7edb1b1.json. This precedes the access-default correction.",
     "actual_model_scoped_mode": "7edb1b1 actual draft/reply/restart and independent incoming-contact journeys passed; source-specific limits are preserved.",
-    "provider_and_sms": "Actual Vapi chat/Connect-carried voice continuity at 596e9b7 and reviewed SMS suppression at 9ab2609 have separate retained evidence; changed behavior needs requalification.",
-    "normal_identity_default": "Decision 010; implementation and adversarial/package/model qualification pending. Earlier narrow-mode proof is not sufficient."
+    "provider_and_sms": "Actual Vapi voice/Connect-carried continuity at596e9b7 and reviewed SMS suppression at9abf38f remain retained source-specific evidence. Changed sharedMCP behavior passes fresh actual dc73996 Vapi chat with3 successful calls/0errors and verified source/effect/cleanup.",
+    "normal_identity_default": "Decision 010 implemented. Frozen dc73996 installed package passes17/17; actual normal model uses one key across two conversations,30 successful MCP calls/0errors with verified original effects and restart replay. Full41 regression and final evidence synchronization remain in progress.",
+    "installed_normal_candidate": "dc73996 all17 installed checks passed; evidence/gate-4/package-dc73996.json. Its source and SDK rebuilds are outside the checkout.",
+    "current_regression": "Full41 at9546c6 documentation checkpoint has the same839 runtime/test inputs as frozen dc73996. Workspace578/0, media-pressure1/0 and installed-host7/0 pass; later phases remain in progress. dirty=true is documentation-only, not a clean-checkout assertion."
   }
 }

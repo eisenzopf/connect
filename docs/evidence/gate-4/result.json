@@ -2,23 +2,24 @@
   "schema": 1,
   "status": "in-progress",
   "recorded_at": "2026-10-12",
-  "status_note": "Normal identity access is implemented. Current-source regression and actual-model qualification remain open; this is not gate closure or release approval.",
-  "offline_phases_passed": 13,
+  "status_note": "The final package and actual normal-agent/Vapi journeys are qualified. The complete account-free regression and operating profiles remain in progress.",
+  "offline_phases_passed": 16,
   "installed_checks_passed": 17,
   "candidate": {
-    "Packaged normal-access source": "09b77a3f8219b6ea37acad1ad4473f9de836c564; all17 installed checks passed",
-    "Packaged binary SHA-256": "56a945b6d2aefbf3e1638a03795c44fba6b69c0a1921eb9f548026d5bc93ccd6",
-    "Prior scoped model proof": "7edb1b1487d0aef765f89792b4244a0d0418e4ea; historical, does not qualify normal key default",
-    "Carrier voice/SMS proof": "596e9b7 voice/MCP/cross-channel;9ab SMS handset controls; current shared MCP chat rehearsal pending",
+    "Frozen runtime source": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "Installed candidate": "connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9;17/17 checks passed",
+    "Server SHA-256": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+    "Runtime manifest SHA-256": "15485b312ad2b6b5a84c15fcb01c3db3fb4556c75e07cb827333e30d936c31ff",
     "Platform": "local macOS arm64",
-    "Selected additional host": "Codex CLI0.162.0-alpha.17.2; explicit exact-session resume",
-    "Normal actual-model attempt": "09b77a3;15 successful tool calls,2 missing-limit context calls; first turn recovered but strict proof failed",
-    "Next source qualification": "Bounded normal context default30, unchanged optional scoped contracts; source freeze pending",
-    "Security/startup scope": "Security settings unchanged. Earlier startup stalls have no established root cause."
+    "Selected host": "Codex CLI0.162.0-alpha.17.2; one ordinary key, explicit exact-session resume",
+    "Actual normal model": "30successful MCP calls/0errors; corrected independent observer verifies original effects/replay after additional restart, original failures retained",
+    "Actual Vapi": "3successful tools/0errors, one independently sourced message/effect; cleanup verified; original resources unchanged",
+    "Current regression": "Cache-isolated full41 at9546c6 docs checkpoint; runtime input hashes equal frozen dc73996",
+    "Archive docs": "Immutable documents reflect the packaging checkpoint; latest qualification and owner review are in repository docs"
   },
   "quality_review": [
     "Protocol, store, service, client, server and MCP retain separate responsibilities. Examples use the public client and own their separate application state.",
-    "Normal identity/MCP/CLI modules are separated by responsibility and have focused source-stable lint/Rustdoc/format and25 passing behavior checks. Packaged09b77a3 passes17 installed checks. Full regression stopped at disk-full linking before Rust tests; next default correction is not yet qualified.",
+    "Strict whole-workspace/all-target/all-feature Clippy and Rustdoc pass. Current workspace578/0, media-pressure1/0 and installed-host7/0 pass. The final package passes17 installed checks with exact compiled-target equality, host fixtures and historical/crash recovery. Actual normal model/provider journeys pass at their recorded source boundaries; remaining full regression and operating/recovery phases are running.",
     "Adversarial checks cover current authority, reply assignment, duplicate/reordered events, failed storage, cancellation, expiry and uncertain provider effects. Known uncertainty preserves the original logical ID.",
     "Recovery evidence includes matching snapshots, schema upgrade, incompatible-binary refusal, rollback and a resumed task under current authorization. Original user state is preserved."
   ],
@@ -38,10 +39,10 @@
   ],
   "implementation_items_done": 28,
   "implementation_items_total": 36,
-  "offline_status": "Frozen09b77a3 passed13/41 prerequisites, then failed linking because the external drive filled. Zero Rust workspace tests executed; later phases are explicitly unrun. Reproducible caches are being reclaimed before qualification of the bounded normal-context default.",
+  "offline_status": "The original disk-full run and later workspace interruption remain failed. Standard ignored-cache isolation preserves generated outputs; the unchanged full41 runner is executing the same dc73996 runtime hashes. No product limit, functional deadline or security setting changed.",
   "agent_access_default": {
     "decision": "docs/decisions/010-agent-identity-access.md",
-    "status": "implemented; focused25 behavior checks and17 installed package checks passed; final correction/regression/model qualification pending",
+    "status": "implemented and qualified by current22 normal/context integrations plus5 CLI component checks,17 installed package checks and actual model journey; final full regression/operating qualification pending",
     "legacy_scoped_proof": "retained; does not qualify the new default"
   }
 }
