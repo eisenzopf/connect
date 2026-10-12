@@ -7,9 +7,17 @@ configured tools and track work with task IDs. Routine communication requires
 no per-task grant or five-minute renewal. The owner may still choose a narrow
 task installation for a particular delegation.
 
-This source change is awaiting current qualification. Earlier task-grant,
-installed-package and provider reports retain their original source and scope.
-See the [Gate 4 numbered plan](connect-gate-4-implementation.html) for status.
+The [installed dc73996 candidate](evidence/gate-4/package-dc73996.json) passes
+all 17 local package checks. Its [actual-model proof](evidence/gate-4/real-model-agent-dc73996.json)
+uses one regular key across two authorized conversations, writes source-backed
+artifacts and questions, then resumes the exact host session after server
+restart to handle a tracked reply and an independent incoming contact. The
+immutable first/resume transcripts contain 30 successful tool calls and zero
+failed calls. A separate public-SDK observer was corrected without new inference
+or answer injection; its original failed reports remain failed. Full current
+regression and whole-Gate 4 acceptance remain in progress in the
+[numbered plan](connect-gate-4-implementation.html). Earlier scoped/provider
+reports retain their own source and scope.
 
 ## Set up the identity once
 
@@ -130,7 +138,13 @@ tracking is optional: create/inspect a task and use task-send/wait for a correla
 question. Authorized tasks can share conversation context while keeping their
 questions and effects distinct. Ending voice preserves the conversation.
 Normal sends, task sends and tracked replies have different schemas and reply
-references; the skill explains those differences.
+references; the skill explains those differences. A normal `connect_task_wait`
+returns the native task wrapper: an attributed reply's received conversation
+journal event ID is `data.data.events[*].data.data.event_id`. Use that ID in
+`connect_task_send.reply_to` to authorize and correlate a follow-up. It does not
+implicitly consume the reply's inbox marker. Explicit `consume_reply` is a
+separate native task command, not an ordinary MCP tool. `connect_reply` instead
+references the original tracked question's message ID when answering it.
 
 ## Revoke the agent connection
 

@@ -3,20 +3,28 @@
 The default agent setup uses [one regular communication credential](AGENT_ACCESS.md),
 one MCP URL and the supplied skill across authorized conversations. It needs no
 per-task issuance or five-minute renewal. Task IDs optionally track work.
-Regular-agent installation is being qualified separately; it reuses the bounded
-launcher and exact-session continuation.
+The [dc73996 installed candidate](evidence/gate-4/package-dc73996.json) passes
+all 17 package checks, including the supplied host/runtime assets. The regular
+installation uses the bounded launcher and exact-session continuation.
 
 The task-grant installation below remains the optional narrow mode. Existing
 exports retain their authority, saved intent and original evidence; they are
 never broadened during recovery. Both modes avoid per-action approval prompts.
 
 The tested host is `codex-cli 0.162.0-alpha.17.2` on local macOS arm64. The
-[actual-model scoped draft journey](evidence/gate-4/real-model-draft-7edb1b1.json)
-and [scoped incoming-contact journey](evidence/gate-4/real-model-incoming-7edb1b1.json)
-record useful model behavior separately from scripted runtime tests. Each report
-identifies its tested source. The [implementation plan](connect-gate-4-implementation.html)
-tracks final normal-key candidate and actual-model qualification.
+[normal-agent actual-model proof](evidence/gate-4/real-model-agent-dc73996.json)
+records one regular key across two authorized conversations, source-backed
+artifacts/questions, the exact saved session after server restart, a correlated
+follow-up and an independent incoming answer. Its immutable first/resume
+transcripts contain 30 successful tool calls and zero failures. A corrected
+separate public-SDK observer reconciles those same transcripts/effects without
+new inference or answer injection; failed observer reports remain failed.
 
+The archived [scoped draft journey](evidence/gate-4/real-model-draft-7edb1b1.json)
+and [scoped incoming-contact journey](evidence/gate-4/real-model-incoming-7edb1b1.json)
+retain their earlier `7edb1b1` source. The
+[implementation plan](connect-gate-4-implementation.html) tracks the current
+full regression and whole-Gate 4 acceptance, which remain in progress.
 
 ## Optional narrow-task installation
 
@@ -73,6 +81,12 @@ is the received **conversation journal event ID**. In `connect_task_wait`, use
 The outer task-event ID, message ID, source ID and question ID are different.
 For an independent incoming task, its `initiating_event_id` supplies that
 reference. Source IDs belong in message citations, not reply-routing arguments.
+The reference authorizes and correlates a task follow-up; it does not implicitly
+consume the reply's inbox marker. Explicit `consume_reply` is a separate native
+task command, not an ordinary MCP tool. The regular-key mode uses
+`connect_task_send` and its native `Outcome::Task` wrapper, so the received reply
+reference is `data.data.events[*].data.data.event_id` there. `connect_reply` uses
+the original tracked question's message ID when answering that question.
 
 The [agent-presence example](../examples/agent-presence/README.md) accepts an
 independent contact, creates a source-bound task and invokes this host through

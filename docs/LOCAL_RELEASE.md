@@ -9,8 +9,10 @@ evidence is recorded separately from the package qualification.
 The default local agent installation uses [one regular revocable identity
 credential](AGENT_ACCESS.md) across authorized conversations, with optional task
 tracking. [Scoped task installation](TASK_ACCESS.md) remains available for a
-narrow delegation. Earlier package reports qualify their recorded scoped-mode
-sources; the current normal-key candidate is undergoing separate qualification.
+narrow delegation. The [dc73996 candidate](evidence/gate-4/package-dc73996.json)
+passes all 17 required installed checks, with no failures or omissions. Earlier
+package reports retain their recorded scoped-mode sources. Current full
+regression and whole-Gate 4 acceptance remain in progress.
 
 ## Verify and install
 
@@ -70,13 +72,25 @@ restart either worker with the same files to exercise durable continuation.
 
 ## Gate 4 task and agent workflows
 
-The [7edb1b1 local candidate](evidence/gate-4/package-7edb1b1.json) passes all
-17 installed-package checks. Separate actual-model reports qualify
-[Codex draft/reply continuation](evidence/gate-4/real-model-draft-7edb1b1.json)
-and [incoming contact](evidence/gate-4/real-model-incoming-7edb1b1.json) on that
-normal installed binary. The numbered
+The [dc73996 local candidate](evidence/gate-4/package-dc73996.json) packages
+source revision `dc739966ddd9a38ec5d19f54217b293ece51b4e4` and passes all 17
+installed checks. The [normal-agent actual-model proof](evidence/gate-4/real-model-agent-dc73996.json)
+uses one regular key across two conversations, verifies artifacts and correlated
+questions, resumes the exact session after server restart and handles both a
+tracked reply and an independent contact. Its immutable first/resume transcripts
+contain 30 successful tool calls and zero failures. A corrected independent
+public-SDK observer verifies those existing effects without new inference or
+answer injection; original failed observer reports remain failed.
+
+The [fresh Vapi text proof](evidence/gate-4/actual-vapi-chat-dc73996.json) on the
+same candidate discovers seven scoped tools and completes task status, source
+recall and one useful cited send with three successful model calls and zero
+failures. It retains the optional provider-bound mode. Historical
+[scoped Codex draft/reply](evidence/gate-4/real-model-draft-7edb1b1.json) and
+[incoming-contact](evidence/gate-4/real-model-incoming-7edb1b1.json) reports remain
+archived at `7edb1b1`; they do not substitute for the new regular-key proof. The
 [implementation plan](connect-gate-4-implementation.html#G4-033) tracks the
-remaining whole-regression, source integration and acceptance review.
+still-running full regression and whole-Gate 4 acceptance review.
 
 Archive documents reflect the source checkpoint at packaging time. Later
 progress and review documents live in the repository; they do not change the
@@ -85,16 +99,22 @@ archives or their recorded hashes. This candidate remains unpublished.
 The runtime carries [task contracts](../contracts/connect-task-v1.md),
 [protected grant setup](TASK_ACCESS.md), the [workflow skill](../skills/connect/SKILL.md)
 and [Codex installation/resume instructions](CODEX_TASK_HOST.md). The server
-exports the matching embedded skill and private host configuration. Developer
-setup grants the agent its task capabilities once; individual actions do not
-require approval prompts.
+exports the matching embedded skill and private host configuration. The
+[default agent setup](AGENT_ACCESS.md) issues one regular communication credential;
+tasks optionally track work without per-task issuance or five-minute renewal.
+Individual configured communication actions need no approval prompts. A narrow
+task export remains a separately selected installation.
 
 The [incoming-contact example](../examples/agent-presence/README.md) runs from
 `examples/agent-presence/codex-inbox.py` with `PYTHONPATH` set to the installed
 `sdk/python` directory and `--executable` set to installed `bin/connect`.
-Use a private application state directory and the documented explicit-contact
-policy. One invocation processes one contact; later continuation uses the saved
-host session. Both task history and current authority survive restart.
+This example driver uses the optional narrow-task host. Use a private application
+state directory and the documented explicit-contact policy. One invocation
+processes one contact; later continuation uses the saved host session. The
+regular-key host uses the separate [agent-access setup](AGENT_ACCESS.md) and can
+inspect its authorized inbox through the same connection. Neither host adapter
+is an automatic model scheduler. Task/conversation history survives restart;
+every new operation still checks current authority.
 
 Package qualification runs its test harness from the extracted source archive,
 while the application, Python SDK and native executable must load from the
@@ -171,9 +191,10 @@ The current Gate 4 source migrates supported schemas 1–15 to schema 16, adding
 durable Vapi task-session setup bindings. Older task-linked legs receive an
 unknown-intent marker and must continue with a new voice leg on the same task
 and conversation. This preserves their history without guessing lost setup
-credentials. The [schema-16 local candidate](evidence/gate-4/package-7edb1b1.json)
+credentials. The [schema-16 dc73996 candidate](evidence/gate-4/package-dc73996.json)
 passes installed walkthrough, Vapi host, SDK and recovery checks. Whole Gate 4
-acceptance remains open. Check the installed manifest for its exact source and schema; older Gate 3 archives use schema 10. A live Session becomes
+acceptance remains open. Check the installed manifest for its exact source and
+schema; older Gate 3 archives use schema 10. A live Session becomes
 interrupted across restart; Connect preserves durable intent and never claims a
 socket or media pump survived. Roll back by restoring the matching pre-upgrade
 backup into a new directory and using its compatible binary.

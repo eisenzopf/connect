@@ -9,16 +9,22 @@ component of [G4-030](connect-gate-4-implementation.html#G4-030), whose current
 status is recorded in the numbered plan. Original component measurements retain
 their tested revisions.
 The [final operating reconciliation](evidence/gate-4/final-operating-reconciliation.json)
-records the current common-source qualification separately.
+records source-qualified component results and unfinished phases separately.
 
-The measurements describe the current implementation. Native and HTTP clients
-can use ordinary identity credentials; the Gate 4 MCP/host adapters currently
-use narrower task/conversation-bound grants with five-minute lifetimes and
-protected renewal. The owner is reviewing a simpler default: reusable agent
-access across conversations, activity tracking and revocation, with narrow
-task delegation optional. The running baseline remains unchanged. Its results
-verify current enforcement and do not endorse the narrower adapter model as
-the final product default or qualify a future broader access path.
+The default native, HTTP and local MCP agent interface now uses
+[one regular revocable communication credential](AGENT_ACCESS.md) across
+authorized conversations. Tasks optionally track questions, replies and effects;
+they do not impose a five-minute lifetime on the agent connection. Narrow
+host/provider-bound grants and protected renewal remain available for selected
+delegations. Task capacity ceilings apply to tracked work in either access mode;
+the grant/provider profiles below qualify optional delegation. Each profile
+retains its original measured source and workload.
+
+The [dc73996 package](evidence/gate-4/package-dc73996.json) passes all 17 installed
+checks. The [normal-agent actual-model proof](evidence/gate-4/real-model-agent-dc73996.json)
+qualifies the reusable-key experience separately from scripted profiles. Current
+full regression and whole-Gate 4 acceptance remain in progress; those passes do
+not relabel an earlier failed run or qualify every operating phase automatically.
 
 ## Run the profile
 
@@ -304,8 +310,9 @@ include local tool overhead; they are not throughput or memory guarantees.
 Five verifier controls and all 33 qualification-runner tests pass. Both full and
 source-only qualification run this profile after normal executable builds.
 
-The grants are short by design. Existing contract tests establish the
-300-second grant maximum; this is not a 300-second endurance run. Task lifetimes
+These optional delegation grants are short by design; the default regular
+agent credential does not require their renewal. Existing contract tests establish
+the 300-second grant maximum; this is not a 300-second endurance run. Task lifetimes
 outlast these grants, so elapsed-task terminalization, artifact expiry under
 load and retired voice metadata retain their separate operating checks.
 
@@ -389,8 +396,8 @@ carrier behavior by themselves.
 The offline run starting at clean source `5d23d73` failed in its workspace
 phase at `provider_flow::owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit`.
 Its installed-host and operating phases were not run and cannot be recorded as
-passes. This preserves the failed baseline while the approved reusable-agent
-default is implemented and qualified separately. The
+passes. This preserves the failed pre-default baseline; the reusable-agent
+implementation and current package/model evidence are recorded separately. The
 [authority reconciliation](evidence/gate-4/authority-workspace-5d23d73.json)
 checks the frozen source hashes, concrete test observations and separately
 executed workspace-ignored cases. The
@@ -412,13 +419,20 @@ identifier shape, page/cursor bounds and terminal reasons. Short-lived load
 checks measure expiry behavior; they do not claim 24-hour endurance. The frozen
 application ceilings and deadlines remain unchanged.
 
-The normal installed `7edb1b1` candidate has
-[17 passing package checks](evidence/gate-4/package-7edb1b1.json). Its mapped
-authority tests and operating-profile sources match the frozen baseline bytes.
-The actual model draft/restart and incoming-contact journeys use that same
-installed candidate; historical live Vapi/SMS evidence retains its own source.
-Final source integration and the whole gate's acceptance remain separate from
-those individual passes.
+The current installed `dc73996` candidate has
+[17 passing package checks](evidence/gate-4/package-dc73996.json), with zero
+failures or omissions. Its [normal-agent model evidence](evidence/gate-4/real-model-agent-dc73996.json)
+uses one regular key across two conversations and resumes the exact saved host
+session after server restart. The immutable first/resume transcripts contain
+30 successful calls and zero failures; the corrected independent public-SDK
+observer reuses those effects without new inference or answer injection. Original
+failed observer reports remain failed.
+
+The [fresh Vapi text proof](evidence/gate-4/actual-vapi-chat-dc73996.json) verifies
+current shared MCP instructions/handlers and source-backed model work in the
+optional provider-bound mode. The earlier `7edb1b1` package/model reports remain
+archived scoped-mode evidence; historical live voice/SMS retains its own source.
+The current complete offline runner and whole-Gate 4 acceptance remain in progress.
 
 A fresh macOS executable can pause before application initialization. The
 [startup diagnosis](evidence/gate-4/candidate-startup-diagnosis.json) records
@@ -435,7 +449,8 @@ notifications only indicate that it may have changed. Unassigned replies
 require an authorized explicit assignment. A completed or stopped host turn
 requires the documented resume action; a healthy server alone does not prove
 that an agent is running. Per-action approval prompts are not required for
-operations already included in the developer's configured task authority.
+operations already included in the configured communication credential or
+optional delegated task authority.
 
 The continuation modes are explicit. A running reference worker catches up the
 journal after disconnect or owned server restart; restarting a stopped worker
@@ -453,8 +468,13 @@ fresh effect. The actual model journeys show useful continuation, while the
 scripted profiles establish wiring, capacity and recovery under their stated
 local workloads.
 
+A task follow-up's `reply_to` authorizes and correlates its effect; it does not
+implicitly consume the reply's inbox marker. Explicit `consume_reply` is a
+separate native task command, not an ordinary MCP tool. Consuming releases reply
+inbox capacity while preserving the source, attribution and task journal.
+
 Tasks inside one conversation share its authorized conversation context. Task
-isolation keeps grants, reply consumption and effects bound to the correct task;
+isolation keeps grants, explicit reply consumption and effects bound to the correct task;
 it does not create a separate private history for each task. Recall still denies
 another conversation and a cursor borrowed from another task or installation.
 Ending a voice session or task preserves the conversation and its sourced history.

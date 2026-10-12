@@ -1,17 +1,28 @@
 # Installed Vapi task host
 
-This operator entry point stages one existing Connect task for Vapi. Agents use
-its configured SDK/MCP capabilities autonomously. Initial server configuration
+This optional provider-bound entry point stages one existing Connect task for
+Vapi. The [default local agent connection](AGENT_ACCESS.md) uses a regular
+communication credential across conversations; this composer keeps Vapi's exact
+call/session binding and narrow invocation grant. Agents use its configured
+SDK/MCP capabilities autonomously. Initial server configuration
 and exact-resource recovery use the private operator credential; neither command
 is an agent tool. This is Gate 4 composition, not the Gate 5 first-run wizard.
 
 The [local CLI component checks](evidence/gate-4/vapi-task-host.json) pass,
 including restart, uncertainty, expiry, shutdown and native voice/MCP behavior.
-The [extracted local release](evidence/gate-4/package-7edb1b1.json) records
-installed simulator checks at its stated source. Separate
-[live evidence](evidence/gate-4/live-voice-continuity.json) proves actual Vapi
-voice/chat MCP invocation, sourced decisions and delivered SMS after restart.
-Final candidate reconciliation is tracked in the implementation plan.
+The [dc73996 local release](evidence/gate-4/package-dc73996.json) passes all 17
+installed checks, including 12 Vapi host simulator cases with no skips. The
+[fresh Vapi text proof](evidence/gate-4/actual-vapi-chat-dc73996.json) uses that
+installed runtime and the supplied prompt: seven tools discovered, three actual
+model calls with zero failures, exact task/session/chat correlation, independent
+source recall and one visible native message/effect. All newly verified provider
+resources were removed and original resources stayed unchanged.
+
+Historical [live voice/chat/SMS evidence](evidence/gate-4/live-voice-continuity.json)
+retains its separately recorded source and channel scope. The fresh text proof
+does not claim another physical call or SMS test. Full current regression and
+whole-Gate 4 acceptance remain in progress in the
+[implementation plan](connect-gate-4-implementation.html).
 
 ## Preparation
 
@@ -137,11 +148,26 @@ provider resource that may already have been created.
 
 An advertised URL requires operator-managed routing to the printed local
 listener. For chat, configure the mapping to its fixed `callback_bind` before
-starting. For voice, configure it after setup and before opening native audio.
+starting. Ensure the advertised hostname resolves and the configured proxy is
+ready; if using a tunnel, wait for its connection registration before creating
+a provider session or invocation grant.
+A URL banner alone does not prove DNS or route readiness. For voice, prepare the
+public hostname/routing first, finish the local mapping after setup, and verify
+it before opening native audio.
 The proxy must rewrite `Host` to the backend address and preserve Authorization,
 Origin when present, and provider correlation headers. Backend host/origin
 checks remain enabled. The manifest accepts HTTPS or explicit loopback HTTP,
 exactly `/mcp`, without credentials, query or fragment.
+
+After the task host binds the local endpoint, check an unauthenticated GET to the
+advertised `/mcp` before sending a chat turn or opening audio. Require its backend
+401 authentication rejection and a matching proxy/backend observation; a DNS
+answer or a proxy-generated response alone does not prove Connect was reached.
+This probe has no bearer, source retrieval or model/tool effect. The
+[fresh text qualification](evidence/gate-4/actual-vapi-chat-dc73996.json) observed
+80 seconds of operator DNS preparation before an invocation existed, followed by
+a matched backend 401 and successful model work. Ingress preparation leaves the
+product's task, tool, provider-request and invocation deadlines unchanged.
 
 This command does not create a tunnel, public listener, DNS record or TLS
 termination. Offline tests use an owned loopback simulator and no provider account. The
