@@ -1,5 +1,5 @@
 {
-  "status": "partial-live-qualification",
+  "status": "passed live SMS task and signed-control rehearsal",
   "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
   "candidate": "connect-0.1.0-alpha.1-macos-arm64-9abf38f191a0",
   "binary_sha256": "a0f9683434d6870bd6c439f52fc27922bbf4402efcf900d621227297d0546f75",
@@ -18,7 +18,7 @@
     "The automatic Vapi conversation responder was attached and independently exercised with an authenticated native peer message; its response was recorded and confirmed delivered through Telnyx.",
     "HELP was recorded through the signed callback; the owner confirmed the provider help acknowledgment.",
     "Signed STOP cancelled the queued task SMS before Telnyx submission. A fresh logical send was accepted into the journal but blocked at dispatch; neither job obtained a provider ID. Both replayed requests returned the retained provider failure.",
-    "Signed START cleared suppression under the current reviewed grant. Both cancelled requests remained cancelled on replay; a new distinct authorized task update is pending delivery verification."
+    "Signed START cleared suppression under the current reviewed grant. Both cancelled requests stayed cancelled on replay. A distinct new task update was confirmed delivered once; its public effect became succeeded."
   ],
   "restoration": {
     "cause": "The isolated test disabled the legacy automatic Vapi chat route, then created the new SMS conversation without its responder. The owner received SMS but there was no automatic reply worker.",
@@ -27,9 +27,7 @@
     "mcp_chat_id": "e663f4b3-3eeb-4fee-8231-7fe45a19edfd"
   },
   "remaining": [
-    "Confirm the new post-START task update is delivered; whole task voice/SMS cross-channel continuation still pending.",
-    "Corrected normal voice with source-backed MCP effect and cross-channel restart proof.",
-    "Current complete offline, installed-package and final acceptance qualification."
+    "Final full offline, installed-package and gate acceptance reconciliation are separate requirements."
   ],
   "private_evidence_sha256": {
     "sms-approval-intent.json": "369b5a3e981faa72a0c6ff170d04191c29bd6f7a7ece20910d1eac542ef7a383",
@@ -38,7 +36,13 @@
     "sms-reply-final-turn/inspection-c0ee9085b04140a0a851f4d812013014/chat-response.json": "613360e7e43efc32230049b5226a02bf004befd5e155310b65196de207b43baf",
     "delivery-after-final-model-reply.json": "728e61e9c38a390089d48f5a55acc7dd1ad1810e0edadf3d22b6f6e8dec7b162",
     "automatic-responder-status.json": "e1ab4714807e32a5ebecbc7c0ad6cc3a8009864dafb347bfdaf2e05128fd8f64",
-    "verified-automatic-sms-delivery.json": "b0a8461fc315a0a1bc2f167b0ec7f1176425c9556a03e68708842a42f83a7c17"
+    "verified-automatic-sms-delivery.json": "b0a8461fc315a0a1bc2f167b0ec7f1176425c9556a03e68708842a42f83a7c17",
+    "stop-cancellation-observation.json": "b5f46908513d440d52ba4014aeb2b08c971526e8b5388ff98eb92df187e0c474",
+    "stopped-current-status.json": "75fd5f66ef6ed2c7e25742b83e0f18dff20a2b16595f2b908ff2e22836eebafd",
+    "stopped-dispatch-verified.json": "095bea7ccc046d2db5aa94a77ef8478488e4593599565f32be3fd98fb697985c",
+    "after-start-old-replay-denied.json": "f3986a6316daedc0bb7a19703d061840fcd1175a3b2719c08f1dd4e7503be103",
+    "after-start-delivery-verified.json": "53c4faac469564ae8ec8c5aff9a80d46da6eb0db7d33aa7c5b2e5e94b07f383d",
+    "after-start-delivered-current-effect.json": "b25cea2035a32964c633c2265a7f53faf94c35fb43560f396e4ea2fd6589ea5a"
   },
   "voice_attempt": {
     "result": "failed before provider call dispatch; no Call created",
@@ -50,5 +54,13 @@
     "An initial STOP went to the separately owned 858 number and did not reach Connect.",
     "The corrected STOP reached Connect but the deliberately provider-paused private test fixture lacked TELNYX_PUBLIC_KEY and returned 503. Restarted that fixture with the actual account public verification key; a fresh signed STOP passed.",
     "The private harness incorrectly expected STOP to reject logical journal acceptance instead of denying provider dispatch. Corrected the observation to the public failed effect and both undelivered cancelled jobs; no production policy changed."
-  ]
+  ],
+  "sms_controls_status": "passed on recorded installed 9abf38f candidate; final combined current-candidate voice/SMS qualification remains open",
+  "post_voice_continuation": "docs/evidence/gate-4/live-voice-continuity.json",
+  "teardown": {
+    "original_callback_restored": true,
+    "readback_verified": true,
+    "temporary_ingress_stopped": true,
+    "original_server_preserved": true
+  }
 }

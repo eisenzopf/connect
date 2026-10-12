@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "status": "diagnosed pre-main platform delay; unchanged package qualification repeat running",
+  "recorded_at": "2026-10-12T07:20:13.129684+00:00",
+  "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+  "observations": [
+    "Initial installed package run passed archive inventory and extracted SDK build, then --version exceeded its 15-second deadline. That invocation remains failed.",
+    "Three fresh private copies also exceeded 15 seconds. One diagnostic launch exceeded 60 seconds.",
+    "One-second native samples showed only _dyld_start, no Connect frames, and 112 KiB process footprint. Code signature verification passed.",
+    "Contemporaneous syspolicyd logs include XProtect assessment activity for the diagnostic paths and network timeouts. Exact attribution of each assessment delay is not proved.",
+    "After allowing the retained copies to remain on disk, the unchanged copy launched in 10.309 seconds and an ad-hoc re-signed copy in 0.679 seconds. A newly copied, otherwise unchanged original binary then launched in 0.729 seconds. Re-signing is therefore not established as necessary and is not a packaging change."
+  ],
+  "qualification_limits_unchanged": true,
+  "system_security_settings_unchanged": true,
+  "production_code_unchanged": true,
+  "interpretation": "Observed failure precedes application initialization. Treat cold macOS loader/security assessment as a platform-dependent installation consideration; do not attribute it to the QUIC service or claim the historical unrelated startup failures have the same cause.",
+  "private_evidence_sha256": {
+    "long-observation.json": "bbfd155e1ebc522f6730a373c94456679108d6a31cc195d5e3327ba9b183fae2",
+    "system-launch.log": "f08252027d1e5506714ef6c88e3b517c20efedc4205f16fe15fe86437eacc280",
+    "result.json": "ad2e1d7390b5b2aa2624f8d4108a3aa69e75271f5e525874f348459f5180eddf",
+    "retained-copy-warm.json": "348c12a606d60e3a693ee0f571a64d981d484eb77590118122eae21b69c9f098",
+    "workspace-copy-observations.json": "475bde96b480a3702c224b22556b0d8cab8ebb171bfcddad814f9b4e19587f40",
+    "sample-0.txt": "d5591c34f8d474912c802605bbbe4865433364ae1d550c3fb8c13ae05c83cc4a",
+    "sample-1.txt": "bad55c1f9cf566813149705da5299e7bfd12b1c40f87f951928b3dc557bd2e41",
+    "sample-2.txt": "1364aa2afb2a6400a466532401906ae9220c619d16cfe2523435891f6afa8dcd",
+    "cold-completion.json": "3c42b6f3241bf60c8ce1e863d7be6895c319a59b47380f745b91ec4bf69dbad3"
+  }
+}

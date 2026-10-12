@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-12T07:14:48.131094+00:00",
+  "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+  "binary_sha256": "4d4a8717a198747e9aa251a4abf3fb8f5bafc3505d50dd1b6f7239e4d91b3473",
+  "scope": "Separately authorized live rehearsal on installed macOS arm64 candidate; actual Vapi model and Telnyx SMS; no remote Connect deployment. Original database retained; isolated backed-up copy used.",
+  "topology": [
+    "Native SDK media over UCTP/QUIC to local Connect",
+    "Connect bridges audio to Vapi WebSocket transport",
+    "Actual Vapi model invokes Connect MCP through temporary authenticated, narrowly routed ingress",
+    "Connect journals decision and dispatches reviewed Telnyx programmable SMS",
+    "Restart Connect, then actual Vapi chat recalls the decision and sends one sourced follow-up"
+  ],
+  "observations": {
+    "actual_voice_mcp_tools": [
+      "trycloudflare-connect_context_view",
+      "trycloudflare-connect_send",
+      "trycloudflare-connect_task_wait"
+    ],
+    "prior_fact_not_in_spoken_request": true,
+    "prior_day_time_code_used": true,
+    "human_voice_changed_day_and_time": true,
+    "original_code_preserved": true,
+    "decision_has_journal_message_and_voice_transcript_sources": true,
+    "voice_effect_succeeded_and_sms_delivered": true,
+    "same_task_and_conversation_after_voice_end_and_restart": true,
+    "sibling_task_unchanged": true,
+    "post_voice_chat_recalled_source_then_sent_once": true,
+    "post_voice_chat_checked_exact_pending_effect_to_success": true,
+    "post_voice_followup_delivered": true,
+    "contrast_fact_not_used": true,
+    "task_and_conversation_retained_after_bounded_voice_session": true
+  },
+  "correlation": {
+    "conversation_id": "845144b8-e910-458a-823c-6cd4128e2054",
+    "task_id": "442a711a-aadd-4971-96e7-7121afe8b309",
+    "voice_session_id": "05f4f8e1-7957-4543-b8de-0730ed1b1923",
+    "provider_call_id": "01a12ee2-884a-799f-958b-c23fccb96073",
+    "provider_chat_id": "c86fb1ff-191d-4eee-a884-0aaf976b8f77",
+    "prior_source_id": "db620fff-c971-46b4-a1e1-2762c4852bcb",
+    "decision_source_id": "067bab3d-1994-4972-82ec-71fbe64354a2",
+    "voice_effect_id": "d21e8f2c-77cf-4cdb-bc14-a8f936d22103",
+    "followup_effect_id": "239b3727-bb4c-4eec-abb7-718bcb95d28c"
+  },
+  "authority_and_failure_evidence": [
+    "docs/evidence/gate-4/vapi-voice-model-repair.json",
+    "docs/evidence/gate-4/vapi-call-diagnostics.json",
+    "docs/evidence/gate-4/vapi-continuation-audit.json",
+    "docs/evidence/gate-4/voice-sms-continuity.json",
+    "docs/evidence/gate-4/sms-0737-rehearsal.json"
+  ],
+  "teardown": {
+    "original_telnyx_callback_restored_and_read_back": true,
+    "original_server_and_ingress_preserved": true,
+    "temporary_test_server_proxy_and_tunnels_stopped": true,
+    "saved_vapi_assistant_not_edited": true,
+    "protected_call_scoped_model_override_used": true
+  },
+  "limits": [
+    "Native test peer supplied scripted speech to a real Vapi model. This is actual model/provider/media execution, not a claim of human microphone UX qualification.",
+    "The voice model checked task events, not exact delivery, before its spoken completion claim. Connect effect and Telnyx final delivery were independently verified. The later chat model correctly read its exact pending effect to succeeded.",
+    "Voice transcript completeness remains explicitly incomplete when an end report is absent. The retained decision message and transcript sources were actually available and used.",
+    "Contrast conversation denial, expired/deleted context, malicious retrieved text and uncertain-dispatch recovery are separately qualified by the referenced controlled fixtures.",
+    "SMS HELP/STOP/START ran on 9abf38f; the 596e9b7 diagnostic-only descendant repeats actual task SMS delivery and source-backed continuation. The signed control evidence retains its actual source."
+  ],
+  "retained_harness_failures": [
+    "First native driver supplied the owner instead of the human session peer; rejected locally before media/provider create. Corrected the peer on the same accepted session, with no duplicate call.",
+    "First post-call setup raced server readiness and then used a disallowed zero callback port; no provider chat was created. A fresh bounded invocation on the original task/conversation succeeded."
+  ],
+  "private_evidence_sha256": {
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/call-ended-private.json": "7fc35660f39350da469b904680d516e512853c76736b7180be12691c82dbac68",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/normal-native-audio-corrected/result.json": "f277c70a77cb9536fb0dafc3f6fcf239e33868b5e8f13f7ef6383523f6cb6e51",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/voice-current-effect.json": "0961ef13a9e76150b965169353b0d64d933e5129a08245b13242a35d440524be",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/voice-delivery-semantic.json": "73c2c6ce708f5c189fd460b9e78c73a247091d83a4932a34c04dfbac44b06b99",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/voice-after-ended-context.json": "0ef7fd6ae6f9bd9b279faa9f1140d282698ff41866d00d5bcb9d9635e4ec5ed0",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/voice-sibling-before-restart.json": "a4b7419bcfbd5fe2fa8dddf80a31007cb0eb351ce1f29f7e61a935a2f5679391",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/teardown-result.json": "d0f944a6e711c079a4b8af3a70c0ad8433a0e2f1760f98db7bfd17f6a9df03d9",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/post-voice-continuation/semantic-result.json": "8eba53e33939e4a88c585d57b1600de5303fcbf7021b7719acb9b33ddd321526",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/post-voice-continuation/public-current-effect.json": "34f8161caca630a5e9f00f2b8915fa1f9845963cc2321119163ddb3abc8d55de",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/post-voice-continuation/sibling-after-restart.json": "ad1ad2757b187f9376810bbb7627b20772771baaa5196c94bf5530e17cc3329e",
+    "gate-4-live/voice-mcp-proof-20261012T064823Z/post-voice-continuation/delivery-private.json": "dc173b4dca48011028d07695007efe3ab421669db5375283a88a514ec74bdbc1",
+    "gate-4-live/normal-voice-sms-20261012T050115Z/handset-0737/callback-restored.json": "4434bd2cafadd4b7796ea17560a7fa607d649fbf49bb350d071bff0b8292353e"
+  }
+}
