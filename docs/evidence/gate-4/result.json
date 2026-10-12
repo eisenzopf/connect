@@ -2,8 +2,8 @@
   "schema": 1,
   "status": "in-progress",
   "recorded_at": "2026-10-12",
-  "status_note": "The final package and actual normal-agent/Vapi journeys are qualified. The complete account-free regression and operating profiles remain in progress.",
-  "offline_phases_passed": 16,
+  "status_note": "The final package and actual normal-agent/Vapi journeys are qualified. A fresh clean checkout is being prepared for the required complete account-free regression; final operating/recovery qualification remains open.",
+  "offline_phases_passed": 17,
   "installed_checks_passed": 17,
   "candidate": {
     "Frozen runtime source": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
@@ -14,7 +14,7 @@
     "Selected host": "Codex CLI0.162.0-alpha.17.2; one ordinary key, explicit exact-session resume",
     "Actual normal model": "30successful MCP calls/0errors; corrected independent observer verifies original effects/replay after additional restart, original failures retained",
     "Actual Vapi": "3successful tools/0errors, one independently sourced message/effect; cleanup verified; original resources unchanged",
-    "Current regression": "Cache-isolated full41 at9546c6 docs checkpoint; runtime input hashes equal frozen dc73996",
+    "Current regression": "Current development-directory run passed workspace578/0, media-pressure1/0 and installed-host7/0. A fresh clean dc73996 checkout will execute the complete41-phase contract.",
     "Archive docs": "Immutable documents reflect the packaging checkpoint; latest qualification and owner review are in repository docs"
   },
   "quality_review": [
@@ -37,7 +37,7 @@
     "Complete first-run configuration, secret handling and the reference human-facing experience.",
     "Design the supported platform/release envelope and community distribution after owner review."
   ],
-  "implementation_items_done": 28,
+  "implementation_items_done": 29,
   "implementation_items_total": 36,
   "offline_status": "The original disk-full run and later workspace interruption remain failed. Standard ignored-cache isolation preserves generated outputs; the unchanged full41 runner is executing the same dc73996 runtime hashes. No product limit, functional deadline or security setting changed.",
   "agent_access_default": {
