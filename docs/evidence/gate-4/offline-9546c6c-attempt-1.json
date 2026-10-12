@@ -1,0 +1,479 @@
+{
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "mode": "complete-offline",
+  "status": "failed",
+  "source_revision": "9546c6ca7e3bfaa22518dfdc4f32384f24c7d612",
+  "dirty": true,
+  "started_at": "2026-10-12T13:08:38.275663+00:00",
+  "finished_at": "2026-10-12T14:00:46.551106+00:00",
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.7.0",
+    "npm": "12.0.2",
+    "codex": "codex-cli 0.162.0-alpha.17.2",
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+  },
+  "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
+  "error": {
+    "type": "RuntimeError",
+    "detail": "Phase failed: upstream-vapi; see private log"
+  },
+  "not_run": [
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "schema": 1,
+  "recorded_at": "2026-10-12T14:13:53.488396+00:00",
+  "private_report": {
+    "path": ".local/gate-4-checks/20261012T130838.274702Z/result.json",
+    "sha256": "6ee489049697c1e750f73d7c877b786080e2b85338d65e10795fe905a8874c31"
+  },
+  "source_inputs_manifest_sha256": "ee01cc40a9d75f5273ec2b942f4f3d26f124fc74d7ac4c834721c44ba2dfc24d",
+  "source_manifest_hash_encoding": "UTF-8 json.dumps(mapping, sort_keys=True), default separators",
+  "source_manifest_files": 839,
+  "runtime_source_boundary": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "source_inputs_identical_to_final_runtime": true,
+  "required_phases": 41,
+  "passed_phases": 17,
+  "steps": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.3,
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.695,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "typescript-install",
+      "command": [
+        "npm",
+        "ci",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-install.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.893,
+      "log_sha256": "b8d4c51f140ce1f73ea16c0f80592552ea60f101952b19920da43b3cfcbcadfd"
+    },
+    {
+      "name": "typescript-tests",
+      "command": [
+        "npm",
+        "test",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.612,
+      "log_sha256": "8723c10f78fa6d3b10fbe43996c41c2670cac490be9d310410efecb4860b539d"
+    },
+    {
+      "name": "typescript-format",
+      "command": [
+        "npm",
+        "run",
+        "format:check",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 120,
+      "log": "typescript-format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.536,
+      "log_sha256": "f17c3858caccd03c85616cc718a6d37a742c110df9a4249585573d6d52256f57"
+    },
+    {
+      "name": "typescript-distribution",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "sdk/typescript/dist"
+      ],
+      "timeout_seconds": 60,
+      "log": "typescript-distribution.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.067,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python-sdk",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "timeout_seconds": 300,
+      "log": "python-sdk.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.683,
+      "log_sha256": "d2831f364e73ec8342d200a18ce2a24b9053ccc48f7b3eff9bde6802fa817ae0"
+    },
+    {
+      "name": "agent-incoming-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "examples/agent-presence/tests",
+        "-p",
+        "test_incoming*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "agent-incoming-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.191,
+      "python_tests": {
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "e49c07ae220356172b77eeac911ac6504c334a270ad1245e7651b8b5baa2cb95"
+    },
+    {
+      "name": "runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "runner-failure-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.534,
+      "log_sha256": "73063518a94fe162a28308a925ba2f344c15dc13f52b1135b5c35d7483e99e93"
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_task_voice.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "voice-rehearsal-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.136,
+      "python_tests": {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "1a902fd4c537c33c9c15041b84a9ad5661cfe31a3f4d21f81c9f7ae7a631eec6"
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_*chat*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "chat-rehearsal-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 2.94,
+      "python_tests": {
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "7fa2418edabcd0f5a5802e5627bb05d1adaa2171ba898ff76c0a58ccbbf3a43d"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 2400,
+      "log": "lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.36,
+      "log_sha256": "308be4ef209cb40af0764094b860510edcfa10de55924d0c7f1021f88b94058e"
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 2400,
+      "log": "rustdoc.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 6.23,
+      "log_sha256": "6494a2f7c83485fc92fd003fad200a375f544ef151a32721d249dcc96c286cb1"
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 7200,
+      "log": "workspace.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1983.594,
+      "rust_tests": {
+        "passed": 578,
+        "failed": 0,
+        "ignored": 9
+      },
+      "ignored_follow_up": [
+        "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+        "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+        "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+        "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+        "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+        "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+        "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+        "retired_setups_reuse_capacity_through_the_full_session_limit",
+        "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
+      ],
+      "log_sha256": "6e994e45d458bc683b5b7574c2c0a52dd5415f6fd00819e8a2ec296c6aafd991"
+    },
+    {
+      "name": "media-pressure",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate3_media_pressure",
+        "--",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 1200,
+      "log": "media-pressure.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 122.344,
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "c27f402e87cb3e2609ff101080cdd7f4ca9cd1b8906247f3303fc1861753ad30"
+    },
+    {
+      "name": "installed-host",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_codex_runtime",
+        "--test",
+        "gate4_codex_call_intent",
+        "--test",
+        "gate4_codex_reply_workflow",
+        "--test",
+        "gate4_codex_packaged_runtime",
+        "--test",
+        "gate4_codex_draft_journey",
+        "--",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 1800,
+      "log": "installed-host.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 22.79,
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "4aef55946d55c1e62df13a8e0a5d45c62b3062bdef9416ac40de0b202953ad0a"
+    },
+    {
+      "name": "upstream-regression",
+      "command": [
+        "bash",
+        "scripts/check-baseline.sh"
+      ],
+      "timeout_seconds": 3600,
+      "log": "upstream-regression.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 976.086,
+      "rust_tests": {
+        "passed": 942,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "d1cac80d618c651158317f5722ed43495e1b0e30a35c739529af28ad8f688e05"
+    },
+    {
+      "name": "upstream-vapi",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-vapi",
+        "--test",
+        "mock_transport"
+      ],
+      "timeout_seconds": 1200,
+      "log": "upstream-vapi.log",
+      "status": "failed",
+      "error": "InterruptedError",
+      "detail": "Qualification was interrupted",
+      "group_cleanup": "signalled",
+      "seconds": 0.052,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "scope_limits": [
+    "Retained failed partial main-directory run, not a fresh-checkout or whole-suite pass.",
+    "Seventeen phases passed, including workspace 578/0/9, media-pressure 1/0/0, installed-host 7/0/0 and upstream regression 942/0/0.",
+    "The owner requested the literal final-source clean-checkout full run. After upstream success was saved, only the verified owned main runner was signalled; upstream-vapi had started and records InterruptedError after 0.052 seconds.",
+    "All unrun operating/recovery phases remain unrun here. Source-linked G4-029 component readiness is separately reconciled; it does not close G4-030/031/032 or the gate.",
+    "The source revision is a docs-only package-evidence commit; all 839 non-document inputs equal frozen dc739966. The dirty-at-start flag is retained, not silently converted to clean."
+  ],
+  "whole_suite_pass_claimed": false
+}

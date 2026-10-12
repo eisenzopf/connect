@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "source_revision": "9546c6ca7e3bfaa22518dfdc4f32384f24c7d612",
+  "runtime_source_boundary": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "status": "failed; intentionally interrupted partial preparation run",
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "private_report": ".local/gate-4-checks/20261012T130838.274702Z/result.json",
+  "private_report_sha256": "6ee489049697c1e750f73d7c877b786080e2b85338d65e10795fe905a8874c31",
+  "started_at": "2026-10-12T13:08:38.275663+00:00",
+  "finished_at": "2026-10-12T14:00:46.551106+00:00",
+  "passed_phases": 17,
+  "required_phases": 41,
+  "failed_phase": {
+    "name": "upstream-vapi",
+    "command": [
+      "env",
+      "CARGO_TARGET_DIR=target/upstream",
+      "cargo",
+      "test",
+      "--locked",
+      "--manifest-path",
+      ".deps/rvoip/Cargo.toml",
+      "-p",
+      "rvoip-vapi",
+      "--test",
+      "mock_transport"
+    ],
+    "timeout_seconds": 1200,
+    "log": "upstream-vapi.log",
+    "status": "failed",
+    "error": "InterruptedError",
+    "detail": "Qualification was interrupted",
+    "group_cleanup": "signalled",
+    "seconds": 0.052
+  },
+  "not_run": [
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "source_manifest_files": 839,
+  "source_manifest_sha256": "ee01cc40a9d75f5273ec2b942f4f3d26f124fc74d7ac4c834721c44ba2dfc24d",
+  "source_stable_through_stop": true,
+  "dirty_at_start": true,
+  "current_workspace": {
+    "passed": 578,
+    "failed": 0,
+    "ignored": 9
+  },
+  "media_pressure": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0
+  },
+  "installed_host": {
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0
+  },
+  "upstream_regression": {
+    "name": "upstream-regression",
+    "command": [
+      "bash",
+      "scripts/check-baseline.sh"
+    ],
+    "timeout_seconds": 3600,
+    "log": "upstream-regression.log",
+    "status": "passed",
+    "exit_code": 0,
+    "leftover_group_members": [],
+    "group_cleanup": "signalled",
+    "seconds": 976.086,
+    "rust_tests": {
+      "passed": 942,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "authority_component_evidence": "docs/evidence/gate-4/authority-workspace-9546c6c.json",
+  "qualification_boundary": "The complete main-directory run is not a fresh checkout. Its authority components are valid current-source behavior evidence, but this invocation is not a passed whole suite. Root required the literal final-source clean-checkout full 41 phases, so only this owned runner was stopped after upstream completion; no additional operating profile was run here.",
+  "owned_cleanup": "The runner exited, the active phase group was signalled and no Cargo/rustc/Clippy process remained on read-only inspection.",
+  "preserved": "All private reports/logs, generated caches, databases, dependencies, installed packages and original running server are retained; no security setting, product deadline or source changed."
+}
