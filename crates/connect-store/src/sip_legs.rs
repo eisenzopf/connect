@@ -4,6 +4,8 @@ use crate::{conversations::authorized_conversation, now, Actor, Store};
 use connect_protocol::{Error, Result, Session, SipLeg};
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 mod dispatch;
+mod termination;
+pub use termination::SipConnectionEnd;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SipLegAction {
@@ -277,21 +279,6 @@ impl Store {
             .execute(
                 "UPDATE sip_legs SET state=?1,ended_reason=?2,end_requested=CASE WHEN ?3=1 THEN 0 ELSE end_requested END,updated_at=?4 WHERE id=?5 AND state NOT IN ('ended','failed','cancelled')",
                 params![state, reason, clear_end_request, now(), job.leg.id],
-            )
-            .map_err(|_| Error::storage())?;
-        Ok(())
-    }
-
-    pub fn finish_sip_connection(
-        &self,
-        connection_id: &str,
-        failed: bool,
-        reason: &str,
-    ) -> Result<()> {
-        self.connection()?
-            .execute(
-                "UPDATE sip_legs SET state=?1,ended_reason=?2,end_requested=0,updated_at=?3 WHERE connection_id=?4 AND state NOT IN ('ended','failed','cancelled')",
-                params![if failed { "failed" } else { "ended" }, reason, now(), connection_id],
             )
             .map_err(|_| Error::storage())?;
         Ok(())

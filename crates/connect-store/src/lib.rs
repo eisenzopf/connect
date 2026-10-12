@@ -41,7 +41,7 @@ use std::{
 pub use identity::{Actor, IssuedCredential, Scope};
 pub use recovery::Snapshot;
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
-pub use sip_legs::{SipLegAction, SipLegJob};
+pub use sip_legs::{SipConnectionEnd, SipLegAction, SipLegJob};
 pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation, VapiSessionContext,
 };

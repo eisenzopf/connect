@@ -1,5 +1,5 @@
 use anyhow::Result;
-use connect_store::Store;
+use connect_store::{SipConnectionEnd, Store};
 use rvoip_core::{
     adapter::EndReason,
     commands::InboundAction,
@@ -205,8 +205,17 @@ impl MediaLifecycle {
                             .await;
                         }
                     }
-                    Ok(Event::ConnectionEnded { connection_id, .. }) => {
-                        finish_connection(&orchestrator, &store, &mut state, &connection_id, false)
+                    Ok(Event::ConnectionEnded {
+                        connection_id,
+                        reason,
+                        ..
+                    }) => {
+                        let end = if matches!(reason, EndReason::Cancelled) {
+                            SipConnectionEnd::Cancelled
+                        } else {
+                            SipConnectionEnd::Ended
+                        };
+                        finish_connection(&orchestrator, &store, &mut state, &connection_id, end)
                             .await;
                     }
                     Ok(Event::ConnectionFailed {
@@ -215,8 +224,14 @@ impl MediaLifecycle {
                         ..
                     }) => {
                         tracing::warn!(%connection_id, %detail, "media connection failed");
-                        finish_connection(&orchestrator, &store, &mut state, &connection_id, true)
-                            .await;
+                        finish_connection(
+                            &orchestrator,
+                            &store,
+                            &mut state,
+                            &connection_id,
+                            SipConnectionEnd::Failed,
+                        )
+                        .await;
                     }
                     Ok(_) => {}
                     Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
@@ -342,7 +357,7 @@ async fn finish_connection(
     store: &Arc<Store>,
     state: &mut MediaState,
     connection_id: &ConnectionId,
-    failed: bool,
+    end: SipConnectionEnd,
 ) {
     state.credentials.remove(connection_id);
     let durable_session = state.sessions.remove(connection_id);
@@ -372,10 +387,10 @@ async fn finish_connection(
         tracing::warn!(code = error.code, "could not persist media termination");
     }
     if sip_leg.is_some() {
-        if let Err(error) = store.finish_sip_connection(
+        if let Err(error) = store.observe_sip_connection_end(
             connection_id.as_str(),
-            failed,
-            if failed {
+            end,
+            if end == SipConnectionEnd::Failed {
                 "sip-connection-failed"
             } else {
                 "sip-connection-ended"

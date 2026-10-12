@@ -2,7 +2,7 @@
 #![allow(clippy::unwrap_used)]
 use super::{activation, finish_origination, OriginationOutcome};
 use connect_protocol::{Limits, Operation, Outcome};
-use connect_store::{Scope, SipLegJob, Store};
+use connect_store::{Scope, SipConnectionEnd, SipLegJob, Store};
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -11,6 +11,7 @@ use std::{
     time::Duration,
 };
 use tokio_util::sync::CancellationToken;
+mod cancellation;
 
 struct Fixture {
     _dir: tempfile::TempDir,
@@ -158,13 +159,21 @@ async fn failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched() {
     let f = Fixture::new();
     let stopping = CancellationToken::new();
     let dropped = Arc::new(AtomicBool::new(false));
+    let callback_store = f.store.clone();
     stopping.cancel();
     let result = activation::wait(
         PendingRequest(dropped.clone()),
         f.store.clone(),
         f.job.clone(),
         stopping,
-        || async {
+        || async move {
+            callback_store
+                .observe_sip_connection_end(
+                    "pending-activation",
+                    SipConnectionEnd::Cancelled,
+                    "adapter-cancelled-before-cleanup-result",
+                )
+                .unwrap();
             Err(rvoip_core::RvoipError::InvalidState(
                 "fixture cleanup failure",
             ))
@@ -191,6 +200,7 @@ async fn stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation(
     let dropped = Arc::new(AtomicBool::new(false));
     let cleanup_dropped = Arc::new(AtomicBool::new(false));
     let cleanup_guard = cleanup_dropped.clone();
+    let callback_store = f.store.clone();
     let result = tokio::time::timeout(
         Duration::from_secs(5),
         activation::wait(
@@ -198,7 +208,16 @@ async fn stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation(
             f.store.clone(),
             f.job.clone(),
             stopping,
-            || PendingRequest(cleanup_guard),
+            || async move {
+                callback_store
+                    .observe_sip_connection_end(
+                        "pending-activation",
+                        SipConnectionEnd::Cancelled,
+                        "adapter-cancelled-before-stalled-cleanup",
+                    )
+                    .unwrap();
+                PendingRequest(cleanup_guard).await
+            },
         ),
     )
     .await
