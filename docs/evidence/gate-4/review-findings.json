@@ -1,6 +1,6 @@
 {
   "status": "review-reconciled; final current-source qualification remains open",
-  "recorded_at": "2026-10-11T17:52:16.831966+00:00",
+  "recorded_at": "2026-10-12T09:14:34.063600+00:00",
   "quic_parity": {
     "status": "fixture scheduling defect corrected; historical failures retained",
     "repair_commit": "025384ae7ecda80a5bb4ea136db64e1103841ead",
@@ -18,7 +18,8 @@
   "debug_cli_startup": {
     "status": "unresolved",
     "evidence": "docs/evidence/gate-4/artifact-retention-load.json",
-    "detail": "Separate 15-second CLI initialization failure remains open. This reconciliation does not assign the QUIC fixture cause to the CLI."
+    "detail": "Separate 15-second CLI initialization failure remains open. This reconciliation does not assign the QUIC fixture cause to the CLI.",
+    "original_review_status": "unresolved"
   },
   "voice_retirement": {
     "status": "full-retirement-component-qualified",
@@ -26,7 +27,7 @@
   },
   "gate_status": "No task completion inferred from this review.",
   "installed_vapi_composition": {
-    "status": "operator/callback implementation and extracted local candidate qualified; actual provider/model remains open",
+    "status": "supplied operator/rehearsal path, installed fixtures and actual provider/model journey qualified; full baseline reconciliation in progress",
     "items": [
       "G4-022",
       "G4-033",
@@ -62,6 +63,18 @@
       "evidence": "docs/evidence/gate-4/vapi-task-host.json",
       "scope": "Cargo-built component qualification plus extracted default-feature release chat/voice/MCP/recovery checks with loopback simulators; no actual provider/model pass",
       "installed_evidence": "docs/evidence/gate-4/package-candidate.json"
+    },
+    "original_review_status": "operator/callback implementation and extracted local candidate qualified; actual provider/model remains open",
+    "live_qualification": {
+      "status": "passed",
+      "evidence": "docs/evidence/gate-4/live-voice-continuity.json",
+      "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+      "detail": "Native UCTP/QUIC voice through Connect invokes authenticated Vapi MCP and retains a sourced decision. After server restart a fresh chat on the original task recalls that decision and emits one delivered SMS. Temporary routing is cleaned up and the original callback is restored."
+    },
+    "current_installed_qualification": {
+      "status": "passed",
+      "evidence": "docs/evidence/gate-4/package-7edb1b1.json",
+      "detail": "All 17 installed checks pass on 7edb1b1, including Vapi fixtures. Provider/model proof remains separately source-linked."
     }
   },
   "reference_runner_startup": {
@@ -76,5 +89,24 @@
     "status": "corrected and locally qualified; original failed full invocation retained",
     "evidence": "docs/evidence/gate-4/retention-expiry-boundary.json",
     "detail": "The verifier now distinguishes boundary HTTP/RPC/tool authority denials. All five real retention phases and 48 verifier tests pass without changing limits or production code."
+  },
+  "chat_rehearsal_owner": {
+    "status": "fixture corrected; three targeted tests passed; complete baseline rerun in progress",
+    "evidence": "docs/evidence/gate-4/chat-fixture-reconnect.json",
+    "retained_failure": "docs/evidence/gate-4/offline-596e9b7-attempt-1.json",
+    "detail": "An independently running driver outlived the fixture owner connection idle limit. The fixture now closes the unused owner and reconnects/negotiates the same task before cancellation. Production behavior and timeouts are unchanged."
+  },
+  "reply_reference_guidance": {
+    "status": "corrected and qualified on installed actual-model journeys",
+    "evidence": "docs/evidence/gate-4/reply-reference-repair.json",
+    "detail": "The MCP field description and skill name the received journal event ID. A regression denies wrong ID classes without effects; actual Codex sessions resume after restart, route one attributed reply and leave the sibling task waiting."
+  },
+  "executable_first_launch": {
+    "status": "installed candidate launch and all package checks passed; earlier timeout causes remain unproven",
+    "evidence": [
+      "docs/evidence/gate-4/candidate-startup-diagnosis.json",
+      "docs/evidence/gate-4/package-7edb1b1.json"
+    ],
+    "detail": "Freshly extracted 7edb1b1 reached --version in 36.943 seconds under the explicit installation-startup phase. Original application deadlines remain unchanged. Gatekeeper and SIP remain enabled; no assessment-service restart occurred. A passing launch does not establish the cause of earlier timeouts."
   }
 }

@@ -69,9 +69,10 @@
       "gate_4_criteria": [
         "A4-08"
       ],
-      "gate_4_progress": "Native task client/CLI components qualified; current full and installed acceptance remain open.",
+      "gate_4_progress": "Native task client/CLI components and final installed package checks pass. Current full baseline regression remains in progress.",
       "component_evidence": [
-        "evidence/gate-4/native-public-interface-audit.json"
+        "evidence/gate-4/native-public-interface-audit.json",
+        "evidence/gate-4/package-7edb1b1.json"
       ]
     },
     {
@@ -97,9 +98,10 @@
       "gate_4_criteria": [
         "A4-08"
       ],
-      "gate_4_progress": "Task parity across native Python/TypeScript helpers, HTTP and JSON CLI components qualified; current full/candidate refresh remains open.",
+      "gate_4_progress": "Task parity across native Python/TypeScript helpers, HTTP and JSON CLI is qualified, including final installed SDK checks. Current full baseline regression remains in progress.",
       "component_evidence": [
-        "evidence/gate-4/language-task-parity-audit.json"
+        "evidence/gate-4/language-task-parity-audit.json",
+        "evidence/gate-4/package-7edb1b1.json"
       ]
     },
     {
@@ -138,11 +140,13 @@
         "A4-06",
         "A4-12"
       ],
-      "gate_4_progress": "Task-aware eligibility, signed keyword callbacks and post-voice SMS passed local fixtures. Earlier live SMS evidence is preserved separately.",
+      "gate_4_progress": "Task-aware eligibility, signed callbacks and actual authorized handset HELP/STOP/START checks pass; new eligible delivery never revives cancelled intent.",
       "component_evidence": [
         "evidence/gate-4/task-dispatch-audit.json",
         "evidence/gate-4/sms-callback-journey.json",
-        "evidence/gate-4/voice-sms-continuity.json"
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/sms-0737-rehearsal.json",
+        "evidence/gate-4/live-voice-continuity.json"
       ]
     },
     {
@@ -218,7 +222,7 @@
       "id": "F-10",
       "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
       "delivery_gate": 4,
-      "status": "Codex CLI is the selected additional host. Supplied MCP/skill installation, exact-session resume, protected renewal, actual-model draft/artifact and independent incoming-contact journeys have evidence. Final reply-reference guidance and candidate qualification remain in progress.",
+      "status": "Codex CLI is the selected additional host. Supplied MCP/skill installation, protected renewal, exact-session resume and actual-model draft/artifact and incoming-contact journeys pass on final installed 7edb1b1. All 17 installed checks pass; full baseline and final acceptance reconciliation remain open.",
       "required_evidence": "Human reply reaches originating task; documented installation and resumption",
       "v0_1_required": true,
       "milestones": [
@@ -238,8 +242,13 @@
         "evidence/gate-4/host-selection.json",
         "evidence/gate-4/codex-owned-runtime.json",
         "evidence/gate-4/agent-incoming-example.json",
-        "evidence/gate-4/host-concurrency.json"
-      ]
+        "evidence/gate-4/host-concurrency.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/package-7edb1b1.json"
+      ],
+      "gate_4_progress": "Actual-model draft/reply/restart and incoming-contact journeys pass on the installed candidate. Explicit session resume, current narrow grants and returned journal reply IDs are documented."
     },
     {
       "id": "F-11",
@@ -360,10 +369,11 @@
         "A4-10",
         "A4-12"
       ],
-      "gate_4_progress": "Task-correlated voice, retained source recall and subsequent SMS pass the combined local fixture through restart. Actual model/live cross-channel task acceptance remains open.",
+      "gate_4_progress": "Actual UCTP/QUIC voice through Connect, Vapi MCP recall, retained sourced decisions and post-restart chat/SMS pass on the original task and conversation. Final source and full-suite reconciliation remain open.",
       "component_evidence": [
         "evidence/gate-4/voice-sms-continuity.json",
-        "evidence/gate-4/vapi-continuation-audit.json"
+        "evidence/gate-4/vapi-continuation-audit.json",
+        "evidence/gate-4/live-voice-continuity.json"
       ]
     },
     {
@@ -454,7 +464,7 @@
         "A4-13",
         "A4-14"
       ],
-      "gate_4_progress": "Local task/reply, host/runner, MCP, grant and artifact-retention profiles are qualified at their recorded sources. Full voice retirement qualifies 10,000 sessions. Current full runner and installed-candidate refresh remain open.",
+      "gate_4_progress": "Operating profiles retain their recorded evidence, including 10,000 voice setups. Final installed package passes; the corrected complete baseline rerun and current profile reconciliation remain in progress.",
       "component_evidence": [
         "evidence/gate-4/task-operating-profile.json",
         "evidence/gate-4/host-concurrency.json",
@@ -462,7 +472,8 @@
         "evidence/gate-4/mcp-operating-load.json",
         "evidence/gate-4/grant-lifecycle-load.json",
         "evidence/gate-4/artifact-retention-load.json",
-        "evidence/gate-4/voice-retirement-load.json"
+        "evidence/gate-4/voice-retirement-load.json",
+        "evidence/gate-4/package-7edb1b1.json"
       ]
     },
     {
@@ -532,11 +543,14 @@
         "A4-11",
         "A4-14"
       ],
-      "gate_4_progress": "Both local journey components exist, including independently initiated contact and artifact/business-effect recovery. Model/provider acceptance and first-run product usability remain incomplete.",
+      "gate_4_progress": "Both directions have actual-model and independent app evidence, including artifacts and replay-safe effects. Final gate reconciliation remains open; complete first-run usability is Gate 5 scope.",
       "component_evidence": [
         "evidence/gate-4/agent-incoming-example.json",
         "evidence/gate-4/codex-draft-journey.json",
-        "evidence/gate-4/connected-app-artifacts.json"
+        "evidence/gate-4/connected-app-artifacts.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/live-voice-continuity.json"
       ]
     }
   ],

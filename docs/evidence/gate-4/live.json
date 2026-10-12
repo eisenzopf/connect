@@ -41,7 +41,7 @@
   "candidate_delta": {
     "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
     "evidence": "reply-reference-repair.json",
-    "qualification": "Final installed actual-model draft/reply and incoming-contact tests pass. Strict quality and focused regression pass; full installed recovery and offline regression are still running."
+    "qualification": "Final installed actual-model draft/reply and incoming-contact tests pass. Strict quality, focused regression and all 17 installed-package checks pass. Full baseline regression and final source integration/reconciliation remain open."
   },
   "limits": [
     "The voice model did not inspect the exact SMS effect before its spoken completion claim; delivery was independently verified. The later chat model did inspect pending-to-succeeded status.",

@@ -122,14 +122,17 @@
           "reuse": "Parley worker/pending-command patterns; Thelve managed-MCP design. Verify current host interfaces during this milestone.",
           "experiment": "E6 research",
           "status": "in-progress",
-          "qualification": "Codex CLI is selected and actual-model draft and independent-contact journeys are evidenced at their recorded sources. Packaged explicit session resume, protected renewal and sixteen concurrent scripted hosts are implemented. Final reply-reference repair and installed-candidate reconciliation are in progress.",
+          "qualification": "Codex CLI is selected. Actual-model draft/reply/restart and independent incoming-contact journeys pass on installed 7edb1b1 using the supplied MCP/skill. Exact-session resume and protected renewal are explicit. All 17 installed-package checks pass; final full baseline and source reconciliation remain open.",
           "component_evidence": [
             "evidence/gate-4/host-selection.json",
             "evidence/gate-4/codex-owned-runtime.json",
             "evidence/gate-4/host-concurrency.json",
             "evidence/gate-4/real-model-draft-journey.json",
             "evidence/gate-4/real-model-incoming-596e9b7.json",
-            "evidence/gate-4/reply-reference-repair.json"
+            "evidence/gate-4/reply-reference-repair.json",
+            "evidence/gate-4/real-model-draft-7edb1b1.json",
+            "evidence/gate-4/real-model-incoming-7edb1b1.json",
+            "evidence/gate-4/package-7edb1b1.json"
           ]
         },
         {
@@ -145,7 +148,7 @@
           "experiment": "E6 tool contract",
           "status": "in-progress",
           "evidence": "evidence/gate-4/task-access.json",
-          "qualification": "Task lifecycle, SDK/HTTP/CLI parity, MCP tools, skill/export and protected Vapi composition are implemented. Actual Vapi voice/chat MCP invocation and source-backed SMS continuity passed on installed 596e9b7. The current full offline run and corrected installed package remain in progress.",
+          "qualification": "Task lifecycle, SDK/HTTP/CLI parity, MCP tools, skill/export and protected Vapi composition are implemented. Actual Vapi voice/chat MCP invocation and sourced SMS continuity pass on installed 596e9b7. Final 7edb1b1 reply guidance, actual Codex model journeys and all 17 installed checks pass. The clean full baseline rerun remains in progress.",
           "historical_qualification": "Native task-control and protected grant installation retain their source ca31393 qualification: full workspace 322 passed, zero failed, one existing optional media pressure profile ignored; strict Clippy, format and Rustdoc pass. Follow-up b5bd121 qualifies typed native helper startup/authentication errors and trusted auth.session expiry rejection before dispatch: 14 targeted Rust integrations, 21 Python and 147 Node tests pass, plus strict client/server quality checks. See native-task-grants.json, native-helper-errors.json and task-access.json. A prior reconnect timeout during concurrent compilation is retained for operating-limit qualification. Full lifecycle/pending parity, scoped native media/artifact attachment, durable runner, installed Codex continuation and verified Vapi tools remain open. Follow-up eb5d0ce qualifies one shared MCP admission/body/tool budget, truthful bounded pending and actual lost-ACK recovery: all 18 MCP integrations pass across 12 binaries, plus strict MCP/server Clippy, Rustdoc and format. Authentication remains 5 seconds; tool cutoff is 9.5 seconds and HTTP response construction is bounded to 10 seconds. Baseline 12.011-second failure is retained; no limit relaxed. See mcp-deadline.json for the targeted source boundary; this does not extend the historical whole-workspace attestation to current source. Durable native SDK runner component 128de1b is qualified in task-runner.json: 14 tests, strict example quality checks, normal fault exclusion, server/runner crash recovery, competing workers, cancellation/revocation/renewal and bounded known-CAS reconciliation. Actual provider uncertainty and dependency/host/journey acceptance remain open. Resource-binding component 7d6c1f9 is qualified in native-task-resources.json: 132 store/service tests and three actual QUIC regression tests plus strict component quality checks pass. Task-specific session provenance and current role/authority are enforced at the resource boundary. At that historical resource checkpoint, raw media scopes were disabled. Follow-up bfa0865 adds the recorded envelope guard and narrow audio scope: five actual QUIC tests and 136 store/service tests qualify scoped attachment and current authorization, with artifact-byte proof recorded separately at a729dfd. The broader bfa0865 run failed on native SDK denial classification: 124 passed, one failed and one optional case ignored before the run stopped. Correction adfd79f passes five targeted QUIC grant/lifecycle tests and adds fixed Vapi call/chat/session MCP admission: two actual endpoint tests, 41 header/bearer denials, matching replay and terminal authority cases pass with strict component Clippy/Rustdoc. See native-task-media.json, native-task-artifacts.json, native-control-envelope-errors.json and vapi-mcp-admission.json. Two ordinary helper requests exceeded their existing 15-second deadline; subsequent debug-diagnostic and ordinary actual Python/TypeScript helper runs passed with unchanged limits. The earlier failures remain for operating-limit and installed-candidate qualification, and a new full workspace regression is required. Provider lifecycle setup, bounded context, actual host/provider invocation and full Gate 4 acceptance remain open.",
           "component_evidence": [
             "evidence/gate-4/task-authority-audit.json",
@@ -156,7 +159,9 @@
             "evidence/gate-4/vapi-setup-restart.json",
             "evidence/gate-4/voice-retirement-load.json",
             "evidence/gate-4/live-voice-continuity.json",
-            "evidence/gate-4/sms-0737-rehearsal.json"
+            "evidence/gate-4/sms-0737-rehearsal.json",
+            "evidence/gate-4/package-7edb1b1.json",
+            "evidence/gate-4/reply-reference-repair.json"
           ]
         },
         {
@@ -171,7 +176,7 @@
           "reuse": "Connect durable inbox/receipts and the existing independent app example; host adapter maintains task binding. Phone/SMS journey additionally requires the SMS lane.",
           "experiment": "E6 / E7 complete",
           "status": "in-progress",
-          "qualification": "Actual-model and independent app journeys preserve artifacts, task/reply attribution and one effect across restart. Live voice-to-chat-to-SMS continuation keeps the original conversation and task; reviewed HELP/STOP/START behavior is verified. Final source, package and agent follow-up qualification remain open.",
+          "qualification": "Actual-model and independent app journeys preserve artifacts, reply attribution and one effect across restart. Live voice-to-chat-to-SMS continuation retains the original conversation and task; HELP/STOP/START is verified. Both Codex journeys pass on final installed 7edb1b1. Full baseline and final acceptance reconciliation remain open; complete v0.1 first-run usability remains Gate 5 work.",
           "component_evidence": [
             "evidence/gate-4/agent-incoming-example.json",
             "evidence/gate-4/codex-draft-journey.json",
@@ -180,14 +185,17 @@
             "evidence/gate-4/offline-runner.json",
             "evidence/gate-4/live-voice-continuity.json",
             "evidence/gate-4/real-model-incoming-596e9b7.json",
-            "evidence/gate-4/sms-0737-rehearsal.json"
+            "evidence/gate-4/sms-0737-rehearsal.json",
+            "evidence/gate-4/real-model-draft-7edb1b1.json",
+            "evidence/gate-4/real-model-incoming-7edb1b1.json",
+            "evidence/gate-4/package-7edb1b1.json"
           ]
         }
       ],
       "implementation": "connect-gate-4-implementation.html",
       "entry_contract": "connect-task-authority.html",
       "acceptance": "gate-4-acceptance.json",
-      "progress_scope": "27 of 36 items complete. Actual model/provider/SMS journeys have recorded evidence; final frozen-source regression, reply guidance repair, installed package and acceptance review remain in progress. Historical evidence retains its original scope."
+      "progress_scope": "28 of 36 items complete. Actual model/provider/SMS journeys and all 17 final installed-package checks pass within their recorded source boundaries. The corrected complete 41-phase baseline rerun, source reconciliation and final acceptance review remain in progress."
     },
     {
       "id": 5,
@@ -351,9 +359,13 @@
       "id": "D-05",
       "title": "Additional assistant and reply-delivery mode",
       "due": "G4-A",
-      "decision": "Codex CLI selected in G4-006, with exact-session resume and protected MCP installation. Vapi remains required. Actual host qualification remains G4-023.",
+      "decision": "Codex CLI selected and installed actual-model draft/reply/restart and incoming-contact journeys qualified, with exact-session explicit resume and protected MCP installation. Vapi remains required; automatic host wake is not claimed.",
       "source": "evidence/gate-4/host-selection.json",
-      "status": "selected-not-qualified"
+      "status": "qualified-explicit-resume",
+      "qualification_evidence": [
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json"
+      ]
     },
     {
       "id": "D-06",

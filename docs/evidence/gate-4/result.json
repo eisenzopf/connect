@@ -12,11 +12,12 @@
     "Platform": "local macOS arm64",
     "Selected additional host": "Codex CLI 0.162.0-alpha.17.2; explicit same-session resume",
     "First candidate startup": "Earlier 180-second and 600-second observations timed out before main. Fresh extracted package launched in 36.943 seconds; unchanged settings, Gatekeeper enabled, no assessment-service restart. Earlier failures retained.",
-    "Final binary SHA-256": "8784157abc325d7ec8b23a1347f2f072a96c66d9e3823898360e555fd8159f03"
+    "Final binary SHA-256": "8784157abc325d7ec8b23a1347f2f072a96c66d9e3823898360e555fd8159f03",
+    "Current offline source": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab; full 41-phase rerun in progress"
   },
   "quality_review": [
     "Protocol, store, service, client, server and MCP retain separate responsibilities. Examples use the public client and own their separate application state.",
-    "Task, MCP, host and provider setup modules are separated by responsibility. Strict workspace Clippy, Rustdoc and repository formatting pass for the final narrow repair; full regression and installed qualification remain running.",
+    "Task, MCP, host and provider setup modules are separated by responsibility. Strict workspace Clippy, Rustdoc and repository formatting pass for the final narrow repair; all 17 installed-package checks pass. Full baseline regression and final source reconciliation remain in progress.",
     "Adversarial checks cover current authority, reply assignment, duplicate/reordered events, failed storage, cancellation, expiry and uncertain provider effects. Known uncertainty preserves the original logical ID.",
     "Recovery evidence includes matching snapshots, schema upgrade, incompatible-binary refusal, rollback and a resumed task under current authorization. Original user state is preserved."
   ],
@@ -36,5 +37,5 @@
   ],
   "implementation_items_done": 28,
   "implementation_items_total": 36,
-  "offline_status": "Failed at chat-rehearsal fixture cancellation after 13 passing phases; corrected reconnect fixture is under test."
+  "offline_status": "Clean 5d23d73 complete 41-phase rerun is executing; 13 phases passed and workspace tests are running. The corrected chat fixture passed all three targeted cases. The earlier 596e9b7 failed invocation remains recorded."
 }
