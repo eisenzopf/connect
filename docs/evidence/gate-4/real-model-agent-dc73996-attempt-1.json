@@ -1,0 +1,105 @@
+{
+  "status": "failed",
+  "scope": "local macOS arm64; actual Codex inference; no live communication providers",
+  "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "binary_sha256": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+  "qualification_report_sha256": "e7f11d3a886cf8b811f02779b6defbab2ad6bac0a12942d2a3a92b826660083a",
+  "runtime_manifest_sha256": "15485b312ad2b6b5a84c15fcb01c3db3fb4556c75e07cb827333e30d936c31ff",
+  "harness_sha256": "6624c925908eac693d0f7558781ce18d4cf752f8e0b132f068e2ea6fb60ddec0",
+  "actual_codex_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "host_turn_budget_seconds": 300,
+  "outer_budget_seconds": 1100,
+  "access_mode": "regular-agent-credential",
+  "model_tool_calls": {
+    "model-first": {
+      "calls_passed": 15,
+      "calls_failed": 0,
+      "successful_tools": {
+        "connect_artifact_append": 2,
+        "connect_artifact_begin": 2,
+        "connect_artifact_finish": 2,
+        "connect_context_view": 2,
+        "connect_inspect": 1,
+        "connect_task_create": 2,
+        "connect_task_send": 2,
+        "connect_task_wait": 2
+      },
+      "event_sha256": "b4ef52d4b71f936c8ca703a517d0ed6cb94e13d523f35425ce5892f3616c0a84",
+      "rule": "Model/schema/transport errors are retained and counted as failures; a corrected later call does not turn that failure into a pass."
+    }
+  },
+  "phase": "model-first",
+  "error_class": "ProofFailure",
+  "failure_label": "bounded-complete-history",
+  "original_identity_conversations_host_intents_retained": true,
+  "owned_process_cleanup": [
+    {
+      "pid": 60536,
+      "exit_code": 0,
+      "owned_process_group_cleanup": true
+    }
+  ],
+  "delivered_cli_commands": [
+    {
+      "name": "init",
+      "interface": [
+        "init",
+        "--directory"
+      ]
+    },
+    {
+      "name": "create-agent",
+      "interface": [
+        "agent-access",
+        "create-identity"
+      ]
+    },
+    {
+      "name": "issue-agent",
+      "interface": [
+        "issue",
+        "--config"
+      ]
+    },
+    {
+      "name": "issue-human",
+      "interface": [
+        "issue",
+        "--config"
+      ]
+    },
+    {
+      "name": "export-agent",
+      "interface": [
+        "agent-access",
+        "export-codex"
+      ]
+    },
+    {
+      "name": "model-first",
+      "interface": [
+        "agent-access",
+        "run-codex"
+      ]
+    }
+  ],
+  "schema": "connect.gate4.actual-normal-agent-attempt/1",
+  "recorded_at": "2026-10-12T12:57:09.490350+00:00",
+  "private_report": {
+    "path": ".local/gate4-agent-access/identity-model-20261012T125324.862842Z/result.json",
+    "location": "managed final-review worktree",
+    "sha256": "c14ee09606636f3fe31db6ad0d64dd49a7c31584890b3374adfcbc1a419546d5"
+  },
+  "observer_failure": {
+    "reason": "Private harness assumed a nonempty short history page must have next=null. Native history returns a continuation cursor for every nonempty page; an empty subsequent page establishes completion.",
+    "protocol_source": "crates/connect-store/src/conversation_queries.rs",
+    "protocol_source_sha256": "575b22db66f06957f9b96f738fe9febe642c9c7ca1da3280f08635736290c295",
+    "correction": "Bounded public SDK pagination through an empty terminal page; no product code or native contract change."
+  },
+  "not_run": [
+    "Independent full draft/task verification",
+    "Server restart and exact-session resume",
+    "Source-backed reply/incoming answer and request replay"
+  ],
+  "whole_gate_closure_claimed": false
+}

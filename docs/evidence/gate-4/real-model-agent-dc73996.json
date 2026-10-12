@@ -1,0 +1,193 @@
+{
+  "scope": "local macOS arm64; actual Codex inference; no live communication providers",
+  "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "binary_sha256": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+  "qualification_report_sha256": "e7f11d3a886cf8b811f02779b6defbab2ad6bac0a12942d2a3a92b826660083a",
+  "runtime_manifest_sha256": "15485b312ad2b6b5a84c15fcb01c3db3fb4556c75e07cb827333e30d936c31ff",
+  "actual_codex_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "host_turn_budget_seconds": 300,
+  "access_mode": "regular-agent-credential",
+  "model_tool_calls": {
+    "model-first": {
+      "calls_passed": 15,
+      "calls_failed": 0,
+      "successful_tools": {
+        "connect_artifact_append": 2,
+        "connect_artifact_begin": 2,
+        "connect_artifact_finish": 2,
+        "connect_context_view": 2,
+        "connect_inspect": 1,
+        "connect_task_create": 2,
+        "connect_task_send": 2,
+        "connect_task_wait": 2
+      },
+      "event_sha256": "85bce4c9b0213cfdaa2dc5787b6165431dbb4fa2d3a6f92d64ba4e1e16a5e672",
+      "rule": "Model/schema/transport errors are retained and counted as failures; a corrected later call does not turn that failure into a pass."
+    },
+    "model-resume": {
+      "calls_passed": 15,
+      "calls_failed": 0,
+      "successful_tools": {
+        "connect_context_view": 2,
+        "connect_effect_status": 2,
+        "connect_inbox": 1,
+        "connect_inspect": 1,
+        "connect_request_status": 2,
+        "connect_send": 1,
+        "connect_task_send": 1,
+        "connect_task_status": 1,
+        "connect_task_transition": 1,
+        "connect_task_wait": 3
+      },
+      "event_sha256": "22935f91083c8fbfb6e2384d027cf712765bc819bd06e9d5d7bc69bbb8e471ae",
+      "rule": "Model/schema/transport errors are retained and counted as failures; a corrected later call does not turn that failure into a pass."
+    }
+  },
+  "actual_inference": true,
+  "one_credential_across_two_authorized_conversations": true,
+  "artifacts_verified_before_after_restart": {
+    "a": {
+      "conversation_id": "1825e504-a505-4d29-ac5a-eacaa7a79c20",
+      "question_id": "b2c62d7b-9ff2-433b-a46d-f1abcb8b05c1",
+      "task_id": "9982911d-4f76-4281-899a-78ee7ce7fd0a",
+      "artifact_id": "c77d0801-5dd8-4821-991c-407a60ea4e46",
+      "sha256": "df7cdadd11ed0a2ba2bfb27b128e2721c5298d3d9cacc26e54aa8ca3a8fa057d",
+      "size": 620,
+      "source_message_id": "39784829-8600-48e0-ae40-785f0e89e108"
+    },
+    "b": {
+      "conversation_id": "2e44f1be-ab45-420a-bb94-6edda7ee0e63",
+      "question_id": "8259bb82-832a-4ff9-9ce6-65908eacf2b6",
+      "task_id": "a6ab6beb-3ca0-44cd-8e07-12d6735f92c0",
+      "artifact_id": "4ccc93e3-bdd5-42af-8c36-6afb1d34cd29",
+      "sha256": "b11f00fe57f7c1f9f992f822a38d2f3d2e5e52993e861445127281623656a638",
+      "size": 623,
+      "source_message_id": "8ffa4b5d-244e-4cb0-99af-d416b6b065e4"
+    }
+  },
+  "same_exact_host_session_after_server_restart": true,
+  "first_turn": {
+    "session_id": "01a13030-3ebf-79f3-9a35-5f860df0a149",
+    "run_id": "93a1265a-8173-42d1-ab8e-372d3d400eff",
+    "seconds": 92.154,
+    "tools": {
+      "connect_artifact_append": 2,
+      "connect_artifact_begin": 2,
+      "connect_artifact_finish": 2,
+      "connect_context_view": 2,
+      "connect_inspect": 1,
+      "connect_task_create": 2,
+      "connect_task_send": 2,
+      "connect_task_wait": 2
+    },
+    "failed_tool_calls": 0,
+    "event_sha256": "85bce4c9b0213cfdaa2dc5787b6165431dbb4fa2d3a6f92d64ba4e1e16a5e672",
+    "exec_shim_sha256": "77d6b3cb84b4212481798e72ddc326e517c2f7a5733266ba39b947492c52b328",
+    "owned_host_leader_reaped": true
+  },
+  "resumed_turn": {
+    "session_id": "01a13030-3ebf-79f3-9a35-5f860df0a149",
+    "run_id": "431e0210-9c96-43e0-93ad-418af0a519e8",
+    "seconds": 61.364,
+    "tools": {
+      "connect_context_view": 2,
+      "connect_effect_status": 2,
+      "connect_inbox": 1,
+      "connect_inspect": 1,
+      "connect_request_status": 2,
+      "connect_send": 1,
+      "connect_task_send": 1,
+      "connect_task_status": 1,
+      "connect_task_transition": 1,
+      "connect_task_wait": 3
+    },
+    "failed_tool_calls": 0,
+    "event_sha256": "22935f91083c8fbfb6e2384d027cf712765bc819bd06e9d5d7bc69bbb8e471ae",
+    "exec_shim_sha256": "2002e41dde99f4340e77e417059520f1cd445d323c6172844cfc5ea7eed32559",
+    "owned_host_leader_reaped": true
+  },
+  "source_backed_review_followup_count": 1,
+  "source_backed_independent_incoming_answer_count": 1,
+  "unanswered_review_task_still_waiting": true,
+  "original_reply_attribution_retained_once": true,
+  "public_request_replay_preserves_messages": true,
+  "no_task_grant_issuance_or_renewal": true,
+  "continuation": "explicit exact saved session resume; delivered continuation prompt, without new user-supplied facts or reconstructed context",
+  "limits": [
+    "Local regular identity profile only; prior scoped-host/provider/SMS proofs retain their original recorded source and scope.",
+    "Explicit host turn/resume, not an always-running scheduler or unattended mailbox service.",
+    "No live voice/SMS/provider operation, remote deployment or security change."
+  ],
+  "owned_process_cleanup": [
+    {
+      "pid": 69037,
+      "exit_code": 0,
+      "owned_process_group_cleanup": true
+    }
+  ],
+  "reply_semantics": {
+    "reply_to": "authorizes/correlates the tracked effect; it does not implicitly consume the inbox marker",
+    "consumed_marker": false,
+    "explicit_consume": "separate native task command, not advertised in the ordinary MCP catalog",
+    "followup_effect_id": "b11525df-449d-4342-ae08-f7d228c12b14",
+    "exact_reply_event_id": "53f2002d-6390-408f-ba14-36014b03dab7"
+  },
+  "observed_model_turns_reused": true,
+  "new_inference_runs": 0,
+  "new_answer_or_source_injection": false,
+  "original_failed_observer_preserved": true,
+  "observation_scope": "Actual first/resume model events from retained attempt; independent public SDK observer reconciles pagination, exact follow-up effect/reply correlation and original mutation replay after an additional server restart. No original failure is relabelled.",
+  "schema": "connect.gate4.actual-normal-agent-observation/1",
+  "recorded_at": "2026-10-12T13:27:27.671332+00:00",
+  "status": "passed actual-model behavior with corrected independent observer; original failed observer attempts retained",
+  "whole_gate_closure_claimed": false,
+  "private_report": {
+    "path": ".local/gate4-agent-access/identity-model-20261012T132238.230429Z/result.json",
+    "location": "managed final-review worktree",
+    "sha256": "4992d0fb25748342f731d97103400664d9e1a626dee707dc90e6a9172b7e33a8"
+  },
+  "model_execution_report": {
+    "path": ".local/gate4-agent-access/identity-model-20261012T125709.782372Z/result.json",
+    "sha256": "d47713fe0f724dcf607c90d3c761a6e58b7f3817a194a4cabbc2c70e171e1884",
+    "original_status": "failed; incorrect implicit-consume observer requirement, not a model/tool failure"
+  },
+  "observer_reconciliation": {
+    "method": "Reused immutable actual first/resume transcripts, original identities/key/session/database and public SDK; additional server restart, exact-call/journal/effect correlation and only original reviewer request replays. No new inference, source/answer injection or private database inspection.",
+    "history_semantics": "Every nonempty page supplies next; a subsequent empty page establishes completion.",
+    "reply_semantics": "reply_to authorizes/correlates the send; explicit consume is a separate native command. No implicit consumption claimed.",
+    "failed_observer_reports_retained": [
+      {
+        "path": ".local/gate4-agent-access/identity-model-20261012T131519.712395Z/result.json",
+        "sha256": "15d555b4e8c9b28bed21dd1f8b29e1fd949fd50890fd06697492c7054d067604",
+        "failure_label": "selected-agent-identity"
+      },
+      {
+        "path": ".local/gate4-agent-access/identity-model-20261012T131659.148413Z/result.json",
+        "sha256": "fed761b680a8d49730e9ded7491ed4f5f44bc3b15df056abb71d09285b0c5c6d",
+        "failure_label": "same-selected-normal-key"
+      },
+      {
+        "path": ".local/gate4-agent-access/identity-model-20261012T131908.255236Z/result.json",
+        "sha256": "f82838161f13bd3ae686fe659a97f0dac9b12d4026e401877899da20467a400c",
+        "failure_label": "private-observer-operation-failed"
+      },
+      {
+        "path": ".local/gate4-agent-access/identity-model-20261012T132121.310739Z/result.json",
+        "sha256": "defd083b1b58d86df0481ccdb530cdcbbdeb6d782a368ad037367488efd72905",
+        "failure_label": "private-observer-operation-failed"
+      },
+      {
+        "path": ".local/gate4-agent-access/identity-model-20261012T132145.569124Z/result.json",
+        "sha256": "e75418f0afba6c57844621ef101c61ea2eb599639f48b72e50dfaf098d80ee3d",
+        "failure_label": "one-original-followup-effect-in-journal"
+      }
+    ],
+    "driver_sha256": "ccec6f0a715ca533b82dc53adac104d2237d755b984378330a9709ccd72528f6",
+    "updated_workflow_harness_sha256": "b9676197859f8eaa5f07a52d59340b3f10ddd8a70f14381a1e9f50966280fb8b"
+  },
+  "retained_failures": [
+    "real-model-agent-09b77a3-attempt-1.json",
+    "real-model-agent-dc73996-attempt-1.json",
+    "real-model-agent-dc73996-attempt-2.json"
+  ]
+}
