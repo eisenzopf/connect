@@ -99,39 +99,90 @@ pub struct IssuedCredential {
 }
 impl Store {
     pub fn create_identity(&self, alias: &str) -> Result<Identity> {
-        if alias.is_empty()
-            || alias.len() > 64
-            || !alias
-                .chars()
-                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+        let connection = self.connection()?;
+        create_identity_on_connection(&connection, alias)
+    }
+    /// Protected local provisioning with one atomic creation receipt. Current
+    /// administrator authority is rechecked before replay; an existing alias
+    /// without this exact actor/request intent is never silently adopted.
+    pub fn create_identity_as(
+        &self,
+        actor: &Actor,
+        request_id: &str,
+        alias: &str,
+    ) -> Result<Identity> {
+        use connect_protocol::Outcome;
+        use sha2::{Digest, Sha256};
+        if request_id.is_empty()
+            || request_id.len() > 128
+            || !request_id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
         {
             return Err(Error::new(
                 "invalid-request",
-                "Alias must be 1–64 lowercase ASCII letters, digits or hyphens",
+                "Invalid identity creation request ID",
             ));
         }
-        let identity = Identity {
-            id: uuid::Uuid::new_v4().to_string(),
-            alias: alias.into(),
-            capabilities: vec!["messaging".into()],
-        };
-        let connection = self.connection()?;
-        match connection.execute(
-            "INSERT INTO identities(id,alias,capabilities) VALUES(?1,?2,?3)",
-            params![
-                identity.id,
-                alias,
-                serde_json::to_string(&identity.capabilities).map_err(|_| Error::storage())?
-            ],
-        ) {
-            Ok(_) => Ok(identity),
-            Err(rusqlite::Error::SqliteFailure(code, _))
-                if code.code == rusqlite::ErrorCode::ConstraintViolation =>
-            {
-                Err(Error::new("conflict", "Alias already exists"))
+        let mut connection = self.connection()?;
+        let tx = connection
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        let actor = actor_from_connection(&tx, &actor.credential_id)?;
+        actor.require("admin")?;
+        let intent = format!(
+            "identity-create/1:{}",
+            hex::encode(Sha256::digest(alias.as_bytes()))
+        );
+        let saved: Option<(String, String, String)> = tx
+            .query_row(
+                "SELECT digest,operation,result FROM requests WHERE actor=?1 AND id=?2",
+                params![actor.identity_id, request_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .optional()
+            .map_err(|_| Error::storage())?;
+        if let Some((digest, operation, result)) = saved {
+            if digest != intent || operation != "admin" {
+                return Err(Error::new(
+                    "conflict",
+                    "Logical request ID already has different inputs",
+                ));
             }
-            Err(_) => Err(Error::storage()),
+            let outcome: Result<Outcome> =
+                serde_json::from_str(&result).map_err(|_| Error::storage())?;
+            return match outcome? {
+                Outcome::Identity(identity) => Ok(identity),
+                _ => Err(Error::storage()),
+            };
         }
+        let receipts: u64 = tx
+            .query_row(
+                "SELECT (SELECT COUNT(*) FROM requests)+(SELECT COUNT(*) FROM task_requests)",
+                [],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        if !crate::tasks::budget::fits(&tx, self.limits.operation_receipts, receipts, 1)? {
+            return Err(Error::new(
+                "capacity-exceeded",
+                "Durable request receipt capacity exceeded",
+            ));
+        }
+        let identity = create_identity_on_connection(&tx, alias)?;
+        let result: Result<Outcome> = Ok(Outcome::Identity(identity.clone()));
+        tx.execute(
+            "INSERT INTO requests VALUES(?1,?2,?3,'admin','[]',?4)",
+            params![
+                actor.identity_id,
+                request_id,
+                intent,
+                serde_json::to_string(&result).map_err(|_| Error::storage())?
+            ],
+        )
+        .map_err(|_| Error::storage())?;
+        tx.commit().map_err(|_| Error::storage())?;
+        Ok(identity)
     }
     pub fn identity(&self, id: &str) -> Result<Identity> {
         self.connection()?
@@ -208,6 +259,26 @@ impl Store {
             .map_err(|_| Error::storage())?;
         self.revalidate(&id.ok_or_else(Error::unauthorized)?)
     }
+    /// Inspect an existing installation credential without migrations, cleanup,
+    /// journaling or artifact mutations. Intended for protected local installers;
+    /// runtime operations must still revalidate inside their admission transaction.
+    pub fn authenticate_file(path: &std::path::Path, token: &str) -> Result<Actor> {
+        if token.len() != 64 {
+            return Err(Error::unauthorized());
+        }
+        let connection =
+            rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+                .map_err(|_| Error::storage())?;
+        let id: Option<String> = connection
+            .query_row(
+                "SELECT id FROM credentials WHERE verifier=?1",
+                [verifier(token)],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|_| Error::storage())?;
+        actor_from_connection(&connection, &id.ok_or_else(Error::unauthorized)?)
+    }
     pub fn revalidate(&self, credential_id: &str) -> Result<Actor> {
         let connection = self.connection()?;
         actor_from_connection(&connection, credential_id)
@@ -226,6 +297,43 @@ impl Store {
         };
         tx.commit().map_err(|_| Error::storage())?;
         Ok(())
+    }
+}
+fn create_identity_on_connection(
+    connection: &rusqlite::Connection,
+    alias: &str,
+) -> Result<Identity> {
+    if alias.is_empty()
+        || alias.len() > 64
+        || !alias
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+    {
+        return Err(Error::new(
+            "invalid-request",
+            "Alias must be 1–64 lowercase ASCII letters, digits or hyphens",
+        ));
+    }
+    let identity = Identity {
+        id: uuid::Uuid::new_v4().to_string(),
+        alias: alias.into(),
+        capabilities: vec!["messaging".into()],
+    };
+    match connection.execute(
+        "INSERT INTO identities(id,alias,capabilities) VALUES(?1,?2,?3)",
+        params![
+            identity.id,
+            alias,
+            serde_json::to_string(&identity.capabilities).map_err(|_| Error::storage())?
+        ],
+    ) {
+        Ok(_) => Ok(identity),
+        Err(rusqlite::Error::SqliteFailure(code, _))
+            if code.code == rusqlite::ErrorCode::ConstraintViolation =>
+        {
+            Err(Error::new("conflict", "Alias already exists"))
+        }
+        Err(_) => Err(Error::storage()),
     }
 }
 fn identity_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Identity> {

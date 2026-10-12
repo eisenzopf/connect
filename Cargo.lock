@@ -703,6 +703,7 @@ dependencies = [
  "connect-store",
  "futures-util",
  "rmcp",
+ "serde",
  "serde_json",
  "tempfile",
  "tokio",

@@ -51,3 +51,26 @@ impl State {
         Ok(())
     }
 }
+
+impl super::process::TurnState for State {
+    fn run_id(&self) -> &str {
+        &self.run_id
+    }
+    fn attempts(&self) -> u32 {
+        self.attempts
+    }
+    fn session_id(&self) -> Option<&str> {
+        self.session_id.as_deref()
+    }
+    fn prompt(&self) -> &str {
+        &self.prompt
+    }
+    fn remember_session(&mut self, directory: &Path, id: &str) -> Result<()> {
+        self.session_id = Some(id.to_owned());
+        self.save(directory)
+    }
+    fn mark_completed(&mut self, directory: &Path) -> Result<()> {
+        self.completed = true;
+        self.save(directory)
+    }
+}

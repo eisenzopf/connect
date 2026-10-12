@@ -11,6 +11,21 @@ use connect_protocol::{
 use rusqlite::TransactionBehavior;
 
 impl Store {
+    /// Optional tracking defaults are derived after current owner admission and
+    /// under the same serialized transaction as canonical Create receipt replay.
+    pub fn create_task_with_defaults(
+        &self,
+        credential_id: &str,
+        input: super::TaskCreateDefaults,
+        runtime: &DiscoveryRuntime,
+    ) -> Result<TaskOutcome> {
+        self.execute_task_runtime_with(
+            credential_id,
+            runtime,
+            Clock::Current,
+            move |c, actor, timestamp| super::defaults::request(c, actor, input, timestamp),
+        )
+    }
     /// Admit a typed task command with current authority and one serialized
     /// transaction. Service/client exposure is a separate application extension.
     pub fn execute_task(&self, credential_id: &str, request: &TaskRequest) -> Result<TaskOutcome> {
@@ -46,12 +61,23 @@ impl Store {
         runtime: &DiscoveryRuntime,
         clock: Clock,
     ) -> Result<TaskOutcome> {
+        self.execute_task_runtime_with(credential_id, runtime, clock, |_, _, _| Ok(request.clone()))
+    }
+    fn execute_task_runtime_with(
+        &self,
+        credential_id: &str,
+        runtime: &DiscoveryRuntime,
+        clock: Clock,
+        make_request: impl FnOnce(&rusqlite::Connection, &crate::Actor, i64) -> Result<TaskRequest>,
+    ) -> Result<TaskOutcome> {
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let timestamp = clock.read();
         let actor = actor_from_connection_at(&tx, credential_id, timestamp)?;
+        let request = make_request(&tx, &actor, timestamp)?;
+        let request = &request;
         request.validate(timestamp)?;
         actor.require(request.command.required_scope())?;
         if let TaskCommand::Reply {

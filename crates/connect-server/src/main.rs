@@ -22,6 +22,11 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Install a regular agent communication credential with MCP tools and skill.
+    AgentAccess {
+        #[command(subcommand)]
+        command: connect_server::cli::agent_access::Command,
+    },
     /// Run an owner-configured Vapi task host with protected callback setup.
     VapiTask {
         #[command(subcommand)]
@@ -287,6 +292,7 @@ async fn main() -> Result<()> {
         )
         .init();
     match Cli::parse().command {
+        Command::AgentAccess { command } => command.execute().await?,
         Command::VapiTask { command } => connect_server::cli::vapi_task::run(command).await?,
         Command::DiscardFailedChat {
             config,

@@ -1,5 +1,10 @@
 # Give an assistant a Connect presence
 
+The default tools/skill installation is [regular agent access](../../docs/AGENT_ACCESS.md):
+one revocable identity credential, one MCP URL and optional task tracking.
+The incoming-contact task-grant example below remains an explicitly scoped
+demonstration; it is not required to install the default agent connection.
+
 This local sample talks to a real Vapi assistant through Connect's public SDK.
 SMS uses that same conversation when an operator configures the human's number.
 The assistant can also initiate a message: use `assistant.toml` rather than

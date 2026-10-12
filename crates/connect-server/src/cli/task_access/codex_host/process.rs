@@ -1,5 +1,5 @@
 //! A bounded JSONL child stream preserves exact session mapping before return.
-use super::{child::OwnedChild, state::State};
+use super::child::OwnedChild;
 use crate::cli::init::private_write;
 use anyhow::{Context, Result};
 use serde_json::Value;
@@ -12,20 +12,35 @@ use tokio::{
 const MAX_EVENTS: u64 = 4 * 1024 * 1024;
 const MAX_EVENT: usize = 512 * 1024;
 
-pub(super) async fn execute(
+/// Shared process ownership and session persistence, independent of access mode.
+pub(crate) trait TurnState {
+    fn run_id(&self) -> &str;
+    fn attempts(&self) -> u32;
+    fn session_id(&self) -> Option<&str>;
+    fn prompt(&self) -> &str;
+    fn remember_session(&mut self, directory: &Path, id: &str) -> Result<()>;
+    fn mark_completed(&mut self, directory: &Path) -> Result<()>;
+}
+
+pub(crate) async fn execute(
     directory: &Path,
     binary: &Path,
     config: &str,
+    bearer_environment: &str,
     bearer: &str,
-    state: &mut State,
+    state: &mut impl TurnState,
     deadline: tokio::time::Instant,
 ) -> Result<()> {
-    let event_path = directory.join(format!("host-{}-{}.jsonl", state.run_id, state.attempts));
+    let event_path = directory.join(format!(
+        "host-{}-{}.jsonl",
+        state.run_id(),
+        state.attempts()
+    ));
     private_write(&event_path, b"")?;
     let mut journal = std::fs::OpenOptions::new().append(true).open(event_path)?;
     let mut command = Command::new(binary);
     command.arg("exec");
-    if let Some(id) = &state.session_id {
+    if let Some(id) = state.session_id() {
         command.args(["resume", id]);
     }
     command
@@ -39,7 +54,7 @@ pub(super) async fn execute(
         ])
         .current_dir(directory)
         .env_clear()
-        .env("CONNECT_TASK_GRANT", bearer)
+        .env(bearer_environment, bearer)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
@@ -82,12 +97,12 @@ async fn read_turn(
     owned: &mut OwnedChild,
     directory: &Path,
     bearer: &str,
-    state: &mut State,
+    state: &mut impl TurnState,
     journal: &mut File,
 ) -> Result<()> {
     let child = owned.child()?;
     let mut stdin = child.stdin.take().context("Missing Codex stdin")?;
-    stdin.write_all(state.prompt.as_bytes()).await?;
+    stdin.write_all(state.prompt().as_bytes()).await?;
     stdin.shutdown().await?;
     // EOF requires closing the pipe, not just shutting down its writer.
     drop(stdin);
@@ -115,11 +130,10 @@ async fn read_turn(
                 .context("Missing host session ID")?;
             uuid::Uuid::parse_str(id).context("Invalid host session ID")?;
             anyhow::ensure!(
-                state.session_id.as_deref().is_none_or(|saved| saved == id),
+                state.session_id().is_none_or(|saved| saved == id),
                 "Codex returned a different session; task mapping is preserved"
             );
-            state.session_id = Some(id.to_owned());
-            state.save(directory)?;
+            state.remember_session(directory, id)?;
         }
         completed |= event["type"] == "turn.completed";
         failed |= event["type"] == "turn.failed" || event["type"] == "error";
@@ -130,11 +144,10 @@ async fn read_turn(
     }
     let status = owned.wait().await?;
     anyhow::ensure!(
-        status.success() && completed && !failed && state.session_id.is_some(),
+        status.success() && completed && !failed && state.session_id().is_some(),
         "Codex turn was not confirmed complete; preserve original task/session and reconcile tool results"
     );
-    state.completed = true;
-    state.save(directory)?;
+    state.mark_completed(directory)?;
     Ok(())
 }
 

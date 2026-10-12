@@ -6,6 +6,12 @@ use serde_json::{Map, Value};
 
 pub(crate) fn validate(spec: &Spec, arguments: &Map<String, Value>) -> Result<(), ErrorData> {
     let schema = schemas::input(spec);
+    validate_schema(&schema, arguments)
+}
+pub(crate) fn validate_schema(
+    schema: &Map<String, Value>,
+    arguments: &Map<String, Value>,
+) -> Result<(), ErrorData> {
     let valid = schema["properties"].as_object().is_some_and(|properties| {
         arguments.iter().all(|(name, value)| {
             properties
@@ -34,6 +40,7 @@ fn accepts(shape: &Value, value: &Value) -> bool {
         "boolean" => value.is_boolean(),
         "null" => value.is_null(),
         "array" => value.is_array(),
+        "object" => value.is_object(),
         _ => false,
     };
     let correct_type = match &shape["type"] {
@@ -42,6 +49,13 @@ fn accepts(shape: &Value, value: &Value) -> bool {
         _ => false,
     };
     if !correct_type {
+        return false;
+    }
+    if shape
+        .get("enum")
+        .and_then(Value::as_array)
+        .is_some_and(|allowed| !allowed.contains(value))
+    {
         return false;
     }
     if let Some(text) = value.as_str() {
@@ -68,6 +82,28 @@ fn accepts(shape: &Value, value: &Value) -> bool {
         if shape["minItems"].as_u64().is_some_and(|min| length < min)
             || shape["maxItems"].as_u64().is_some_and(|max| length > max)
             || items.iter().any(|item| !accepts(&shape["items"], item))
+        {
+            return false;
+        }
+    }
+    if let Some(object) = value.as_object() {
+        let Some(properties) = shape.get("properties").and_then(Value::as_object) else {
+            return false;
+        };
+        if shape.get("additionalProperties") != Some(&Value::Bool(false))
+            || object.iter().any(|(name, value)| {
+                properties
+                    .get(name)
+                    .is_none_or(|shape| !accepts(shape, value))
+            })
+            || shape
+                .get("required")
+                .and_then(Value::as_array)
+                .is_none_or(|required| {
+                    required
+                        .iter()
+                        .any(|name| name.as_str().is_none_or(|name| !object.contains_key(name)))
+                })
         {
             return false;
         }

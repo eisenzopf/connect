@@ -1,4 +1,4 @@
 interface:
   display_name: "Connect"
-  short_description: "Communicate and resume a bound Connect task"
+  short_description: "Communicate and continue work through Connect"
   default_prompt: "Use $connect to share this draft and continue when the assigned reply arrives."

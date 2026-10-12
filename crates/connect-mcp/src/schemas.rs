@@ -117,15 +117,15 @@ pub(crate) fn input(spec: &Spec) -> Map<String, Value> {
     schema.insert("additionalProperties".into(), json!(false));
     schema
 }
-fn string(max: usize) -> Value {
+pub(crate) fn string(max: usize) -> Value {
     json!({"type":"string","maxLength":max})
 }
-fn nullable_string(max: usize) -> Value {
+pub(crate) fn nullable_string(max: usize) -> Value {
     json!({"type":["string","null"],"maxLength":max})
 }
-fn integer(min: u64, max: u64) -> Value {
+pub(crate) fn integer(min: u64, max: u64) -> Value {
     json!({"type":"integer","minimum":min,"maximum":max})
 }
-fn identifier() -> Value {
+pub(crate) fn identifier() -> Value {
     json!({"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_.:-]+$"})
 }

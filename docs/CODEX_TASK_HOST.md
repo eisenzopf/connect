@@ -1,5 +1,15 @@
 # Codex task host installation contract
 
+The default agent setup uses [one regular communication credential](AGENT_ACCESS.md),
+one MCP URL and the supplied skill across authorized conversations. It needs no
+per-task issuance or five-minute renewal. Task IDs optionally track work.
+Regular-agent installation is being qualified separately; it reuses the bounded
+launcher and exact-session continuation.
+
+The task-grant installation contract and dated qualification checkpoints below
+remain the optional narrow mode. Existing exports retain their authority, saved
+intent and original evidence; they are never broadened during recovery.
+
 Status: selected Gate 4 host; the local grant/skill export component is qualified.
 The packaged launcher passes local process fixtures and the
 [extracted release](evidence/gate-4/package-candidate.json) passes the actual Codex
@@ -10,7 +20,7 @@ checks do not establish model recovery behavior. Actual runtime discovery is
 qualified separately below. Full skill injection and saved-call replay now pass
 a scripted runtime check; real-model follow-through remains open.
 
-## Required installation flow
+## Optional narrow-task installation flow
 
 1. Install the qualified Connect candidate and initialize isolated local state.
    Keep existing server state and provider credentials intact.

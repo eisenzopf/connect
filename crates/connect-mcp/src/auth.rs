@@ -11,16 +11,31 @@ use connect_protocol::{
     tasks::{InvocationBinding, InvocationKind},
     Error,
 };
-use connect_service::{tasks::TaskInvocation, Service};
+use connect_service::{tasks::TaskInvocation, IdentityAccess, Service};
 use std::{sync::Arc, time::Duration};
 
 /// Trusted origin adapter. Returned handles have private service/store fields
 /// and every tool execution revalidates their current durable authority.
+#[derive(Clone)]
+pub enum McpAccess {
+    /// Reusable communication identity, with current membership and credential checks.
+    Identity(IdentityAccess),
+    /// Optional narrowly delegated work, bound to one verified task/origin.
+    Task(TaskInvocation),
+}
+
+/// Trusted transport admission for ordinary identity or optional narrow access.
 #[async_trait]
 pub trait McpAuthenticator: Send + Sync {
     /// Authenticate configured narrow authority before interpreting any provider
     /// correlation headers. Headers or model parameters never mint a binding.
     async fn authenticate(&self, headers: &HeaderMap) -> Result<TaskInvocation, Error>;
+
+    /// Select the configured access mode before tool arguments. Existing narrow
+    /// adapters retain their exact task admission through this default method.
+    async fn authenticate_access(&self, headers: &HeaderMap) -> Result<McpAccess, Error> {
+        self.authenticate(headers).await.map(McpAccess::Task)
+    }
 }
 
 /// Protected native/host installation with one explicitly registered binding.
@@ -119,7 +134,7 @@ pub(crate) async fn admit(
     };
     let admission = tokio::select! {
         _ = state.cancellation.cancelled() => return StatusCode::SERVICE_UNAVAILABLE.into_response(),
-        result = tokio::time::timeout(Duration::from_secs(5), state.authenticator.authenticate(request.headers())) => result,
+        result = tokio::time::timeout(Duration::from_secs(5), state.authenticator.authenticate_access(request.headers())) => result,
     };
     let invocation = match admission {
         Ok(Ok(invocation)) => invocation,

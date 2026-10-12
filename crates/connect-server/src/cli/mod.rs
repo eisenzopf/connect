@@ -8,6 +8,7 @@ pub mod recovery;
 pub mod media_stdio;
 pub mod stdio;
 
+pub mod agent_access;
 pub mod presence;
 pub mod request;
 pub mod task_access;

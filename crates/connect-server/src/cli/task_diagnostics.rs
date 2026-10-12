@@ -37,6 +37,7 @@ impl Arguments {
     pub async fn execute(self) -> Result<()> {
         let mut client = ConnectClient::open(ClientConfig::load(&self.config)?).await?;
         let result = async {
+            let binding = client.negotiate_task(&self.task_id).await?;
             let mut task = client
                 .task_diagnostics(
                     &self.task_id,
@@ -50,13 +51,16 @@ impl Arguments {
                 .await?;
             let selected = self.codex_installation;
             let task_id = self.task_id.clone();
+            let owner_id = binding.owner_id.clone();
             let codex_worker = tokio::task::spawn_blocking(move || {
-                diagnostics::inspect(selected.as_deref(), &task_id)
+                super::agent_access::diagnostics::inspect(selected.as_deref(), &owner_id)
+                    .unwrap_or_else(|| diagnostics::inspect(selected.as_deref(), &task_id))
             })
             .await?;
             let current = client.negotiate_task(&self.task_id).await?;
             anyhow::ensure!(
-                current.conversation_id == task.task.conversation_id,
+                current.conversation_id == task.task.conversation_id
+                    && current.owner_id == binding.owner_id,
                 "Task binding changed"
             );
             task.changed_during_sample |= current.revision != task.task.revision;

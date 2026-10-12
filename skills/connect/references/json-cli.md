@@ -1,39 +1,52 @@
 # Native JSON CLI fallback
 
-Use the developer-supplied protected **Native task-grant** configuration and
-bound task ID. HostSession/provider MCP grants are not native credentials.
-Missing tools do not authorize exporting an owner/operator token to a model.
-Developer setup uses `task-access export-native`; the model does not mint,
-refresh or select another grant.
+Use the installed protected agent client configuration for ordinary communication.
+The same identity credential covers its authorized conversations and configured
+operations. It needs no per-task grant, and a task ID is a work reference rather
+than a credential. Missing tools do not authorize using an administrator key.
 
-The installed binary accepts one public operation on stdin:
+The installed binary accepts one public operation on standard input:
+
+```sh
+connect request --config "$connect_client_config" --envelope < send.json
+```
+
+For an ordinary message, `send.json` uses native fields:
+
+```json
+{
+  "op": "send",
+  "request_id": "saved-logical-message-id",
+  "conversation_id": "EXISTING_CONVERSATION_ID",
+  "body": "Here is the review update."
+}
+```
+
+Retain the ID and exact inputs before uncertain dispatch. Normal sends have no
+task `reply_to` or `wait_for_reply` field. Source references belong in the body.
+Use request status and history/inbox to inspect receipt, delivery and replies.
+Starting or ending a media leg does not create a replacement conversation.
+
+For an optional tracked task, negotiate the same saved task reference:
 
 ```sh
 connect request --config "$connect_client_config" \
   --task-id "$connect_task_id" --envelope < task-get.json
 ```
 
-`connect_client_config` names the protected Native grant configuration;
-`connect_task_id` is the task supplied by installation. The CLI negotiates it
-through a matching Get, without directory permission.
-Neither is inferred from message text. The JSON input is limited to 64 KiB.
-The native helper uses UCTP/QUIC; an HTTP control option is a separate interface.
-
-For inspection, `task-get.json` has this shape; replace `TASK_ID` with the task
-supplied by protected setup:
+`task-get.json` has the public task shape:
 
 ```json
 {
   "op": "task",
   "request": {
     "task_profile": "connect-task/1",
-    "command": { "action": "get", "task_id": "TASK_ID" }
+    "command": { "action": "get", "task_id": "SAVED_TASK_ID" }
   }
 }
 ```
 
-For a bounded journal read, preserve the previously returned `next` value as
-`after` (initially null):
+Task waits retain the returned `next` cursor as `after`, initially null:
 
 ```json
 {
@@ -41,21 +54,23 @@ For a bounded journal read, preserve the previously returned `next` value as
   "request": {
     "task_profile": "connect-task/1",
     "command": {
-      "action": "wait", "task_id": "TASK_ID",
+      "action": "wait", "task_id": "SAVED_TASK_ID",
       "after": null, "limit": 100, "wait_ms": 1000
     }
   }
 }
 ```
 
-With `--envelope`, stdout preserves the `connect-control/1` response and its
-structured success/error; a rejected request also exits unsuccessfully. Inspect
-the response and process exit. An empty inbox remains pending. Transport failure
-can leave a mutation uncertain, so retain and reconcile its original logical IDs.
-An unsupported task profile never negotiates or silently falls back to owner authority.
+An explicitly installed Native task grant also uses this facade, but its backing
+identity's broader rights are unavailable. HostSession/provider MCP grants cannot
+be used as native credentials. Preserve the access mode of existing installations;
+the CLI never broadens a grant while retrying or resuming.
 
-An MCP communication call derives its task/conversation server-side. A native
-`invoke` command instead contains the protected task ID, step/request IDs and a
-typed communication operation. Do not mechanically send MCP arguments to the
-CLI, invent fields or introduce a new conversation during recovery. Current
-schemas and public SDK types define the command shapes.
+With `--envelope`, stdout preserves the `connect-control/1` structured response;
+a rejection also exits unsuccessfully. Inspect both. The input is bounded to
+64 KiB. The native helper uses UCTP/QUIC; HTTP control is a separate interface.
+
+MCP and native task commands have distinct argument shapes. Use current schemas
+and SDK types. Task-tracked Invoke follow-ups refer to the received journal event;
+the public Reply command refers to the original question message. Do not substitute
+source IDs or mechanically send tool arguments to the CLI.

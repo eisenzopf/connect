@@ -1,0 +1,115 @@
+{
+  "status": "reviewed-no-actionable-findings",
+  "recorded_at": "2026-10-12T11:25:34.291852+00:00",
+  "scope": "static source and strict Rust quality review for ordinary identity MCP access plus optional owned tasks; excludes a blanket release or whole-Gate completion attestation",
+  "source_base_revision": "733d27acb08ddb56cc8fde4c950503092dfffd83",
+  "source_manifest_canonical_sha256": "9c10fe250d16473a1d4049c42f3806c1f7101e3642d9277efc0e21a6ec5d360d",
+  "reviewed_files": [
+    {
+      "path": "crates/connect-mcp/src/auth.rs",
+      "sha256": "9c5e945ce47ffbdea9e5acb8e09271e134124e87db3f8573299dd1f9d2adcbb9",
+      "lines": 155
+    },
+    {
+      "path": "crates/connect-mcp/src/identity_auth.rs",
+      "sha256": "e751baf79324b83793c4aa768a2f4713aa6cef27759efb6a66091105f15b3da9",
+      "lines": 48
+    },
+    {
+      "path": "crates/connect-mcp/src/identity_catalog.rs",
+      "sha256": "008f9a7445fdc0c0544a172683d17b0291152112e244ab6bbe5014fb2a8e80d9",
+      "lines": 137
+    },
+    {
+      "path": "crates/connect-mcp/src/identity_commands.rs",
+      "sha256": "514cdf46bb1287c9793fbea7eef157bdae93413eefcf432f8824a11f34a99fdb",
+      "lines": 102
+    },
+    {
+      "path": "crates/connect-mcp/src/identity_schemas.rs",
+      "sha256": "547f11d2f334a78cffe0165429c6ab00c1fd19ffd20cd3232ab787dc0df864dc",
+      "lines": 205
+    },
+    {
+      "path": "crates/connect-mcp/src/execution.rs",
+      "sha256": "c14a2d55f9ae1441b231053337c8ccf5b3417938aefe83e98053e11ac0483369",
+      "lines": 144
+    },
+    {
+      "path": "crates/connect-mcp/src/handler.rs",
+      "sha256": "9a93b89a8b3fd3fb57855a0142076ebd6369c793b9ee032443b35282dab60a76",
+      "lines": 120
+    },
+    {
+      "path": "crates/connect-mcp/src/arguments.rs",
+      "sha256": "61d96daeeebdd2d129e77cfa39c6b5c65e365d2233812be416510f89805d8de0",
+      "lines": 112
+    },
+    {
+      "path": "crates/connect-service/src/identity_access.rs",
+      "sha256": "848ce94cbb1749f29f157144cfc7138234bbb352dbbffd5166bbcb525030798c",
+      "lines": 123
+    },
+    {
+      "path": "crates/connect-store/src/identity.rs",
+      "sha256": "67fadcb20f51f08080462e6311335154d9908bdb95788fae193a2d514f45c636",
+      "lines": 401
+    },
+    {
+      "path": "crates/connect-store/src/tasks/defaults.rs",
+      "sha256": "9e215489904ffdc3109a324e724661dfe24ad3e9252e5fe85d0d5f23284ae8e3",
+      "lines": 131
+    },
+    {
+      "path": "crates/connect-store/src/tasks/owner.rs",
+      "sha256": "b7f224225e6ea6bb96c25cda1c909b16ae177d3514013f1a513639bd6ab6d6d4",
+      "lines": 293
+    }
+  ],
+  "findings": [],
+  "checks": [
+    {
+      "area": "default agent experience",
+      "finding": "LocalAuth accepts a reusable ordinary identity credential. Closed native conversation/inbox/context/files/session/call/SIP operations do not require a task. Tasks are optional bounded tracking; normal connection/conversation continuity does not inherit task lifetime."
+    },
+    {
+      "area": "authority handles and arguments",
+      "finding": "IdentityAccess fields are private, issued by Service authentication, and tied to an installation. Tool input never selects an actor, bearer or provider authority. Closed schemas reject unknown fields and ordinary mode rejects provider-correlation headers."
+    },
+    {
+      "area": "current operation and replay admission",
+      "finding": "Each discovery/execution rechecks the current identity view; the ordinary Store transaction rechecks credential expiry/revocation after lock acquisition, current conversation membership/resources before receipt lookup, and saved receipt scope. Identity creation and ergonomic task defaults use current actor checks in the same serialized transaction as canonical replay."
+    },
+    {
+      "area": "queued channel effects",
+      "finding": "The existing provider claim transaction rechecks original sender/delegate/current membership and reviewed SMS eligibility before marking a job sending. Voice/SIP retain their existing separate final dispatch admission. Revocation does not retract already admitted/dispatched work; no stronger transport-atomic claim is made."
+    },
+    {
+      "area": "cancellation and uncertainty",
+      "finding": "Existing owned MCP capacity, request/tool deadlines, shutdown/caller cancellation and uncertain reconciliation metadata are preserved. Cancelling a wait cannot roll back a blocking committed mutation. Optional owner-task cancellation uses existing owner/current checks."
+    },
+    {
+      "area": "native and narrow result contracts",
+      "finding": "Normal tools preserve native Outcome wrapping including Outcome::Task. Narrow adapters retain historical TaskOutcome and exact grant/provider binding through the trait default. Tracked Invoke reply_to uses a received journal event ID; native connect_reply uses the delivered question message ID. Schemas and skill state each distinct nesting."
+    },
+    {
+      "area": "read-only installation validation",
+      "finding": "Store.authenticate_file opens SQLite read-only and uses existing credential verifier/current actor loading, without application migrations, orphan blob cleanup, journaling or receipt writes. Export rejects administrator/wildcard-operation and task-grant credentials; old installations are not silently broadened."
+    },
+    {
+      "area": "structure and documentation",
+      "finding": "MCP auth, catalog/schema, typed mapping, execution and handler responsibilities are split into small modules. New service handles and Store helpers include public Rust docs. Reviewed files are 48\u2013401 lines. No new permission registry, schema migration or direct Store dependency in production MCP dispatch was introduced."
+    }
+  ],
+  "verification": "agent-access-quality.json plus the separate normal-agent/CLI behavior evidence",
+  "remaining_qualification": [
+    "Current final merged-source regression and retained recovery phases.",
+    "New normal-default installed package, source manifests/digests and actual model discovery/communication journey.",
+    "Parent updates stable gate IDs only when their actual acceptance evidence is complete."
+  ],
+  "historical_evidence_boundary": "5d baseline and 7ed package/live/recovery evidence retain their recorded revisions. This source materially changes default MCP semantics and must not be described as one literal common-source run of historical proof.",
+  "behavior_evidence": [
+    "agent-default-authority.json",
+    "agent-cli-unit.json"
+  ]
+}

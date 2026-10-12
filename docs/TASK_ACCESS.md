@@ -1,5 +1,10 @@
 # Install a local task grant
 
+This is the optional narrow-delegation interface. Routine agent communication
+uses [one regular agent credential](AGENT_ACCESS.md) across its authorized
+conversations. Task IDs can track work without an additional grant. Existing
+scoped installations preserve their original recovery rules.
+
 Developer setup creates a task through the public SDK or JSON CLI under a
 currently authorized application credential. Use that credential to issue a
 narrow grant for the task; give the model only the resulting protected host
