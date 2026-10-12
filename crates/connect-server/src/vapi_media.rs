@@ -92,7 +92,11 @@ impl VapiMedia {
         let options = if let Some(setup) = self.task_setups.get(binding.durable_session) {
             match setup.options(binding.credential, &route).await {
                 Ok(options) => options,
-                Err(_) => {
+                Err(error) => {
+                    tracing::warn!(
+                        stage = crate::vapi_bootstrap::call_failure_stage(&error),
+                        "could not prepare scoped Vapi call"
+                    );
                     let _ = store.finish_context_delivery(&delivery, "failed", None);
                     return Err("vapi-task-setup-denied");
                 }

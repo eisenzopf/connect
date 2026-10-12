@@ -1,0 +1,117 @@
+{
+  "result": "Four focused behavior checks and strict quality checks passed",
+  "source_base": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+  "scope": "local macOS arm64; no live provider operations",
+  "changes": [
+    "Classify protected call setup failures with closed static stage labels. Log only that label; retain the underlying error privately for developer diagnostics.",
+    "Exercise provider response, bad assistant/model, cancellation during lookup and lookup deadline without staging dispatch."
+  ],
+  "checks": [
+    {
+      "name": "behavior",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_voice_model",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 115.687,
+      "rust_tests": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "9f5dea4a32ff621260bda75afa98eee25f26014db9926c1139e719a6fc6c62ec"
+    },
+    {
+      "name": "diagnostic-unit",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--lib",
+        "vapi_bootstrap::call_failure::tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 55.268,
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "ac3a820ef6302aaa1f8604268a68ed93fba8ea261e02d6c306ee1d41a03b77d4"
+    },
+    {
+      "name": "strict-lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 206.489,
+      "rust_tests": null,
+      "log_sha256": "65975cfc0655ff9d285e8fc268ac0dcc0f2b430e8fb6bba1be22d8f4391ed093"
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--no-deps"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 28.279,
+      "rust_tests": null,
+      "log_sha256": "fb4de9450b12fe3189ba8b8e74c4c20a3aa0c6198ea323da0f5bcd95fe082112"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 0.749,
+      "rust_tests": null,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "source_files_sha256": {
+    "crates/connect-server/src/vapi_bootstrap/call.rs": "6dd9aff37e88cfce925136f684fadc6f46b6b014406c4d28501abb6a1f0d7f2b",
+    "crates/connect-server/src/vapi_bootstrap/call_failure.rs": "72138aa215ed4413aeb2ec25afc150c27c0cad5fff0f835bdaba11a029221956",
+    "crates/connect-server/src/vapi_bootstrap/mod.rs": "f018e302a59613bf3e5eea027e8e0e0fecf3fb155fe226dee4771afdaea27759",
+    "crates/connect-server/src/vapi_media.rs": "4f3f565c89ba5d26a116d24b6bbb9de9844f2b21eb99d7157e35af940d5cd799",
+    "crates/connect-server/tests/gate4_vapi_voice_model.rs": "21768f60d896ddaab29264fa29abcaf1fc6cea1688c6166d41dbc7ff7c421728"
+  },
+  "whole_gate_complete": false
+}

@@ -1,6 +1,6 @@
 //! Stage one rvoip-owned call creation before provider I/O.
-use super::{state::Locked, Definition};
-use anyhow::Result;
+use super::{call_failure::CallStage, state::Locked, Definition};
+use anyhow::{Context, Result};
 use connect_connectors::{vapi_origin::OriginKind, Vapi};
 use connect_service::Service;
 use connect_store::VapiSessionRoute;
@@ -23,11 +23,11 @@ pub async fn stage_call(
     expected: &VapiSessionRoute,
     provider: &Vapi,
 ) -> Result<VapiCallOptions> {
-    let mut held = Locked::load(directory)?;
+    let mut held = Locked::load(directory).context(CallStage::IntentRead)?;
     let state = &held.state;
     anyhow::ensure!(
         state.definition.origin == OriginKind::Call,
-        "Call setup requires Call origin"
+        CallStage::Origin
     );
     let actual = service
         .authorize_vapi_task_session_setup(
@@ -35,16 +35,16 @@ pub async fn stage_call(
             state.definition.task_id.clone(),
             expected.session_id.clone(),
         )
-        .await?;
+        .await
+        .context(CallStage::SessionAuthority)?;
     anyhow::ensure!(
         actual == *expected && actual.assistant_id == state.definition.assistant_id,
-        "Task voice route differs from protected setup"
+        CallStage::Route
     );
-    authorize(&service, &state.definition, &state.nonce).await?;
-    anyhow::ensure!(
-        !state.posted,
-        "Call creation may already be dispatched; retain and reconcile the original intent"
-    );
+    authorize(&service, &state.definition, &state.nonce)
+        .await
+        .context(CallStage::InvocationAuthority)?;
+    anyhow::ensure!(!state.posted, CallStage::PriorDispatch);
     let assistant = tokio::time::timeout(
         Duration::from_secs(5),
         provider
@@ -53,29 +53,30 @@ pub async fn stage_call(
             .get(&state.definition.assistant_id),
     )
     .await
-    .map_err(|_| anyhow::anyhow!("Saved assistant lookup deadline exceeded"))?
-    .map_err(|_| anyhow::anyhow!("Saved assistant model could not be read"))?;
+    .map_err(|_| CallStage::ModelDeadline)?
+    .map_err(|_| CallStage::ModelLookup)?;
     anyhow::ensure!(
         assistant.id == state.definition.assistant_id,
-        "Saved assistant differs from protected voice setup"
+        CallStage::Assistant
     );
-    let model = assistant
-        .model
-        .ok_or_else(|| anyhow::anyhow!("Saved assistant has no model"))?;
+    let model = assistant.model.ok_or(CallStage::ModelShape)?;
     let overrides =
-        super::voice_model::overrides(model, &state.nonce, &state.mcp_url, &state.secret)?;
+        super::voice_model::overrides(model, &state.nonce, &state.mcp_url, &state.secret)
+            .context(CallStage::ModelShape)?;
     // A read-only lookup is not authority. Recheck before freezing dispatch,
     // including cancellation, parent revocation and expiry during that lookup.
-    authorize(&service, &state.definition, &state.nonce).await?;
+    authorize(&service, &state.definition, &state.nonce)
+        .await
+        .context(CallStage::CurrentAuthority)?;
     let options = VapiCallOptions::new(VapiAssistant::saved_with_overrides(
         state.definition.assistant_id.clone(),
         overrides,
     ))
     .with_audio_format(VapiAudioFormat::MuLaw8Khz)
     .with_name("connect-session");
-    options.validate()?;
+    options.validate().context(CallStage::Options)?;
     held.state.posted = true;
-    held.save()?;
+    held.save().context(CallStage::IntentWrite)?;
     Ok(options.with_admission(Arc::new(super::dispatch::Dispatch {
         store: service.store.clone(),
         directory: directory.into(),

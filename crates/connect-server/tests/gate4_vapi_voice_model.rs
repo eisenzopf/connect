@@ -60,17 +60,23 @@ async fn failed_or_invalid_saved_model_cannot_stage_dispatch_or_echo_provider_da
         .prepare_vapi_task_session(&sid, call_setup::definition(&f), &directory, sdk.clone())
         .await
         .unwrap();
-    for (status, body) in [
-        (503, json!({"error":"private-provider-content-sentinel"})),
+    for (status, body, stage) in [
+        (
+            503,
+            json!({"error":"private-provider-content-sentinel"}),
+            "model-lookup",
+        ),
         (
             200,
             json!({"id":"wrong-assistant","model":{"provider":"openai"}}),
+            "assistant",
         ),
-        (200, json!({"id":ASSISTANT})),
-        (200, json!({"id":ASSISTANT,"model":{}})),
+        (200, json!({"id":ASSISTANT}), "model-shape"),
+        (200, json!({"id":ASSISTANT,"model":{}}), "model-shape"),
         (
             200,
             json!({"id":ASSISTANT,"model":{"provider":"openai","tools":null}}),
+            "model-shape",
         ),
     ] {
         let response = Mock::given(method("GET"))
@@ -90,6 +96,7 @@ async fn failed_or_invalid_saved_model_cannot_stage_dispatch_or_echo_provider_da
         .await
         .err()
         .unwrap();
+        assert_eq!(error.to_string(), stage);
         assert!(!error
             .to_string()
             .contains("private-provider-content-sentinel"));
@@ -148,7 +155,10 @@ async fn task_cancellation_during_saved_model_lookup_prevents_dispatch_intent() 
         .unwrap();
     let after = Store::inspect_snapshot(f.h.server.store.path()).unwrap();
     barrier.release();
-    assert!(staging.await.unwrap().is_err());
+    assert_eq!(
+        staging.await.unwrap().err().unwrap().to_string(),
+        "current-authority"
+    );
     assert!(!posted(&directory));
     assert_eq!(
         Store::inspect_snapshot(f.h.server.store.path()).unwrap(),
@@ -199,7 +209,7 @@ async fn slow_saved_model_lookup_is_bounded_without_staging_a_call() {
     )
     .await
     .unwrap();
-    assert!(result.is_err());
+    assert_eq!(result.err().unwrap().to_string(), "model-deadline");
     assert!(started.elapsed() >= Duration::from_secs(5));
     assert!(!posted(&directory));
     f.close().await;

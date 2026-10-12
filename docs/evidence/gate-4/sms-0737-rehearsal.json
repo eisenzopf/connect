@@ -1,0 +1,54 @@
+{
+  "status": "partial-live-qualification",
+  "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-9abf38f191a0",
+  "binary_sha256": "a0f9683434d6870bd6c439f52fc27922bbf4402efcf900d621227297d0546f75",
+  "scope": "explicitly authorized local test with real Telnyx and Vapi; controlled handset ending 0737; no remote Connect deployment",
+  "original_installation": "Original server and database preserved. A backed-up isolated database hosts an explicit new test conversation.",
+  "consent": "Original affirmative Rudeless form record verified through the authenticated operator interface; disclosure and request preserved. Review binds the controlled sender, new conversation and fixed expiry.",
+  "conversation_id": "845144b8-e910-458a-823c-6cd4128e2054",
+  "task_id": "442a711a-aadd-4971-96e7-7121afe8b309",
+  "handset_suffix": "0737",
+  "sender": "+12702628454",
+  "verified": [
+    "Task-originated welcome SMS was delivered with its current reviewed consent grant.",
+    "Actual HELLO arrived through the signed Telnyx callback and was recorded in the conversation.",
+    "Owner explicitly assigned that untagged SMS reply to the waiting task; task returned to ready.",
+    "Actual Vapi model called connect_context_view and connect_send through its scoped MCP session; the resulting SMS was confirmed delivered.",
+    "The automatic Vapi conversation responder was attached and independently exercised with an authenticated native peer message; its response was recorded and confirmed delivered through Telnyx.",
+    "HELP was recorded through the signed callback; the owner confirmed the provider help acknowledgment.",
+    "Signed STOP cancelled the queued task SMS before Telnyx submission. A fresh logical send was accepted into the journal but blocked at dispatch; neither job obtained a provider ID. Both replayed requests returned the retained provider failure.",
+    "Signed START cleared suppression under the current reviewed grant. Both cancelled requests remained cancelled on replay; a new distinct authorized task update is pending delivery verification."
+  ],
+  "restoration": {
+    "cause": "The isolated test disabled the legacy automatic Vapi chat route, then created the new SMS conversation without its responder. The owner received SMS but there was no automatic reply worker.",
+    "fix": "Configure the new conversation's Vapi responder through the normal owner CLI. Preserve all prior bindings. Respond to the original HELLO through the selected task-bound MCP model and verify the automatic path separately.",
+    "first_mcp_response": "Captured but not a pass: the model supplied a message source ID as the optional task-reply event reference. Connect refused that send. The corrected invocation retrieved recent context and omitted the optional reference.",
+    "mcp_chat_id": "e663f4b3-3eeb-4fee-8231-7fe45a19edfd"
+  },
+  "remaining": [
+    "Confirm the new post-START task update is delivered; whole task voice/SMS cross-channel continuation still pending.",
+    "Corrected normal voice with source-backed MCP effect and cross-channel restart proof.",
+    "Current complete offline, installed-package and final acceptance qualification."
+  ],
+  "private_evidence_sha256": {
+    "sms-approval-intent.json": "369b5a3e981faa72a0c6ff170d04191c29bd6f7a7ece20910d1eac542ef7a383",
+    "sms-welcome-current-effect.json": "19908be39b96f62401b58d2207a2ff10b9a6202964b2d53d1b699096484d3a48",
+    "assign-hello-receipt.json": "9d175551190b1bd819bcb40f83ee08947a64ce0b5fa3ff0d4aa04bd8a2dc351b",
+    "sms-reply-final-turn/inspection-c0ee9085b04140a0a851f4d812013014/chat-response.json": "613360e7e43efc32230049b5226a02bf004befd5e155310b65196de207b43baf",
+    "delivery-after-final-model-reply.json": "728e61e9c38a390089d48f5a55acc7dd1ad1810e0edadf3d22b6f6e8dec7b162",
+    "automatic-responder-status.json": "e1ab4714807e32a5ebecbc7c0ad6cc3a8009864dafb347bfdaf2e05128fd8f64",
+    "verified-automatic-sms-delivery.json": "b0a8461fc315a0a1bc2f167b0ec7f1176425c9556a03e68708842a42f83a7c17"
+  },
+  "voice_attempt": {
+    "result": "failed before provider call dispatch; no Call created",
+    "classification": "Connect protected task-voice setup",
+    "precise_step": "not isolated yet; generic error discarded details",
+    "private_sdk_lookup_probe": "Exact saved model decoded and fetched through the production SDK within the five-second budget; probe was read-only and is not a voice acceptance pass"
+  },
+  "failed_attempts": [
+    "An initial STOP went to the separately owned 858 number and did not reach Connect.",
+    "The corrected STOP reached Connect but the deliberately provider-paused private test fixture lacked TELNYX_PUBLIC_KEY and returned 503. Restarted that fixture with the actual account public verification key; a fresh signed STOP passed.",
+    "The private harness incorrectly expected STOP to reject logical journal acceptance instead of denying provider dispatch. Corrected the observation to the public failed effect and both undelivered cancelled jobs; no production policy changed."
+  ]
+}

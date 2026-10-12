@@ -4,6 +4,7 @@
 mod admission;
 mod binding;
 mod call;
+mod call_failure;
 mod creation;
 mod dispatch;
 mod media;
@@ -16,6 +17,7 @@ use crate::cli::init::{private_directory, private_write};
 pub use admission::BootstrapAuth;
 use anyhow::Result;
 pub use call::stage_call;
+pub(crate) use call_failure::stage as call_failure_stage;
 use connect_connectors::vapi_origin::OriginKind;
 use connect_protocol::tasks::{GrantDefinition, InvocationBinding, InvocationKind, TaskPermission};
 use connect_service::Service;
