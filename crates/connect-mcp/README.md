@@ -37,13 +37,14 @@ and export a separate grant to its protected MCP headers. This adapter does
 not perform provider lookup or webhook verification, and the default server's
 native/host configuration rejects provider origins. The server's
 `vapi_task_setup::issue` factory verifies an already-existing resource through
-the private SDK and atomically registers/issues under current authority. Resource
-creation and first-invocation bootstrap remain open; existing-resource setup
-does not qualify those steps.
-The local tests use explicitly registered fixture origins; they do not qualify
-an actual Vapi account. Never use one assistant-wide bearer to select tasks
-from `X-Call-Id`, `X-Chat-Id` or `X-Session-Id`. These headers cannot create or
-replace an invocation binding. See [Vapi's MCP header contract](https://docs.vapi.ai/tools/mcp).
+the private SDK and atomically registers/issues under current authority.
+Separate [server bootstrap](../../docs/VAPI_TASK_BOOTSTRAP.md) implements
+chat-session creation and rvoip-owned voice staging, verifying the first callback
+before binding it. Existing-resource setup alone does not qualify resource creation.
+Local and installed tests use provider simulators; actual account/model evidence
+retains its separately recorded source and limits. Never use one assistant-wide
+bearer to select tasks from `X-Call-Id`, `X-Chat-Id` or `X-Session-Id`. These headers
+cannot create or replace an invocation binding. See [Vapi's MCP header contract](https://docs.vapi.ai/tools/mcp).
 
 ```rust,no_run
 # async fn start(service: std::sync::Arc<connect_service::Service>, binding: connect_protocol::tasks::InvocationBinding) -> Result<(), Box<dyn std::error::Error>> {
@@ -135,9 +136,11 @@ authoritative inbox page remains the normal pending result with its cursor.
 The adapter never invents a page after a timed-out read. Request cancellation
 stops the waiter, not a store transaction that may already have committed.
 
-Optional native grant authentication, protected CLI issuance/export and independent MCP
-transport are locally qualified in the numbered plan. Protected host installation,
-provider creation/bootstrap, installed hosts and complete Gate 4 acceptance remain open.
+Optional native grants, protected CLI issuance/export, host installation and
+provider bootstrap are implemented. The [09b77a3 local package](../../docs/evidence/gate-4/package-09b77a3.json)
+passes all 17 installed checks, including 12 Vapi simulator cases. Current full
+regression, actual normal-agent model qualification and final Gate 4 acceptance
+remain separate; live provider reports retain their recorded source and limits.
 `connect_task_cancel` is visible only when the developer explicitly includes
 `task_cancel` in both the task ceiling and this invocation grant. It cancels only
 the bound task and atomically revokes its grants; replay through that grant is
@@ -152,8 +155,9 @@ the numbered plan records which candidate checks have actually passed.
 protected first-invocation component. It saves creation intent before one
 provider POST and requires private nonce verification before binding callbacks
 to a task. Its setup credential is distinct from ordinary task grants. Call
-creation, voice-runtime composition, operator installation and actual provider
-host qualification remain open; the guide records the component's limits.
+staging, voice-runtime composition and the operator entry points are implemented
+and locally checked. The guide links installed and live evidence separately;
+final current-source acceptance remains pending.
 
 ## Shared endpoint capacity
 

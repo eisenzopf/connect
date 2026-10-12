@@ -77,6 +77,10 @@ Python and Rust use snake_case helpers; TypeScript uses `browserBinding`,
 
 ## Task control
 
+Agents use the same regular, revocable identity credential as applications for
+ordinary SDK, HTTP and CLI communication. Tasks optionally track work in their
+authorized conversations. See [agent installation](../docs/AGENT_ACCESS.md).
+
 The `connect-task/1` extension carries durable task control on the existing
 native UCTP/QUIC connection or the explicit HTTP facade. Discover support with
 `negotiate_tasks(address, conversation_id)` in Python/Rust or
@@ -84,13 +88,14 @@ native UCTP/QUIC connection or the explicit HTTP facade. Discover support with
 the advertised extension returns `unsupported-profile`; ordinary operations
 remain usable. A new native connection needs discovery again.
 
-A Native model grant can negotiate its exact bound task without directory
-permission: call `negotiate_task(task_id)` / `negotiateTask(taskId)`. Use the
+For optional narrow delegation, a Native model grant can negotiate its exact
+bound task without directory permission: call `negotiate_task(task_id)` /
+`negotiateTask(taskId)`. Use the
 protected SDK configuration exported by `connect task-access export-native`;
 HTTP clients receive only that Native bearer. See [installation](../docs/TASK_ACCESS.md).
-Model communication goes through task Invoke, not primitive operations or an
-owner fallback. Host/provider grants are not native credentials; raw media and
-artifact HTTP permissions are not inherited. The server rechecks current task,
+Communication under that grant goes through task Invoke, not primitive
+operations or an owner fallback. Host/provider grants are not native credentials;
+raw media and artifact HTTP permissions are not inherited. The server rechecks current task,
 grant and parent authority on each command and replay.
 
 Use `task(command)` with the typed command union. The result distinguishes task
@@ -100,10 +105,10 @@ reconciliation. Neither means completed. Keep task, conversation, step and
 logical request IDs across reconnects. Save returned cursors with the effects
 of consuming their events; cursors themselves never grant access.
 
-These methods use the client's backing credential. Give a developer or durable
-runner only its necessary operations and concrete recipients. Model invocations
-require the separately authenticated, task-bound adapter; these methods do not
-turn a broad credential into a narrow model grant. Ownership, credential secrets
+An ordinary identity credential with the named task operations can use these
+methods for optional owned work. Narrow delegated invocations use their
+separately authenticated, task-bound adapter; these methods do not issue or
+convert a credential into an invocation grant. Ownership, credential secrets
 and verified invocation bindings are not task command arguments.
 
 ```python

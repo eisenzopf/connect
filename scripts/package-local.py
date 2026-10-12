@@ -49,11 +49,14 @@ subprocess.run(['npm', 'run', 'build', '--prefix', 'sdk/typescript'], cwd=ROOT, 
 subprocess.run(['cargo', 'build', '--locked', '--release', '-p', 'connect-server',
                 '-p', 'connect-review-loop', '--bins'], cwd=ROOT, check=True)
 ensure_source_unchanged()
+metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--format-version=1'], cwd=ROOT))
+# Use the build's Cargo configuration, including an explicit CARGO_TARGET_DIR.
+target_directory = pathlib.Path(metadata['target_directory'])
 output.mkdir(parents=True)
 runtime = output/candidate
 (runtime/'bin').mkdir(parents=True)
 for name in ['connect', 'connect-example']:
-    source = ROOT/'target/release'/name
+    source = target_directory/'release'/name
     for control in [b'CONNECT_TEST_FAULT_STAGE', b'CONNECT_EXAMPLE_FAULT_STAGE', b'CONNECT_CONNECTED_APP_FAULT']:
         if control in source.read_bytes():
             raise RuntimeError('Release binary contains a test-only fault control')
@@ -92,7 +95,6 @@ shutil.copytree(ROOT/'examples/conversation-client', runtime/'examples/conversat
                 ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
 # Preserve dependency license/notice texts alongside a readable package index.
 # The workspace graph is a conservative superset of the two runtime binaries.
-metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--format-version=1'], cwd=ROOT))
 notices = []
 for package in metadata['packages']:
     if not (package.get('source') or '').startswith('registry+'):
