@@ -1,0 +1,360 @@
+{
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "mode": "complete-offline",
+  "status": "failed",
+  "source_revision": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
+  "dirty": false,
+  "started_at": "2026-10-12T09:01:56.434717+00:00",
+  "finished_at": "2026-10-12T10:45:27.317287+00:00",
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.7.0",
+    "npm": "12.0.2",
+    "codex": "codex-cli 0.162.0-alpha.17.2",
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+  },
+  "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
+  "error": {
+    "type": "RuntimeError",
+    "detail": "Phase failed: workspace; see private log"
+  },
+  "not_run": [
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "recorded_at": "2026-10-12T10:49:56.749970+00:00",
+  "private_report": {
+    "path": ".local/gate-4-checks/20261012T090156.434214Z/result.json",
+    "sha256": "4bbfc713203b3fef0888e9ca4fc2ee9248437629fc88e94d5dc3e49f63eaf7a5"
+  },
+  "source_inputs_manifest_sha256": "574495fe9b2f16e9b8dce4ac0db3c5081391cb8dc52601a0f4815d6e492908fc",
+  "required_phases": 41,
+  "passed_phases": 13,
+  "steps": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.236,
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.667,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "typescript-install",
+      "command": [
+        "npm",
+        "ci",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-install.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.758,
+      "log_sha256": "3e8b3128585050dea29c4d685b90eb65845cb19ead068837c7fcee650e4b3e2a"
+    },
+    {
+      "name": "typescript-tests",
+      "command": [
+        "npm",
+        "test",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.701,
+      "log_sha256": "7bb20670b3c70500bfff490a643e8344c7c2c29aad12faaafa3f4c5fd43794e4"
+    },
+    {
+      "name": "typescript-format",
+      "command": [
+        "npm",
+        "run",
+        "format:check",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 120,
+      "log": "typescript-format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.503,
+      "log_sha256": "f17c3858caccd03c85616cc718a6d37a742c110df9a4249585573d6d52256f57"
+    },
+    {
+      "name": "typescript-distribution",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "sdk/typescript/dist"
+      ],
+      "timeout_seconds": 60,
+      "log": "typescript-distribution.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.069,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python-sdk",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "timeout_seconds": 300,
+      "log": "python-sdk.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.474,
+      "log_sha256": "bf83a5a85f7129eba6ead0772733903cf823ce7752d33b2ceea34ff80df230f4"
+    },
+    {
+      "name": "agent-incoming-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "examples/agent-presence/tests",
+        "-p",
+        "test_incoming*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "agent-incoming-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.18,
+      "python_tests": {
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "806f01f047c8ec9a9c18ca86883baa0158190fbc78ef7598b22902e1f44741d1"
+    },
+    {
+      "name": "runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "runner-failure-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.532,
+      "log_sha256": "3397fa1bc3bdd603582f22e819f6e517b27eb54e16fba8a9dbb2c295af7b89bd"
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_task_voice.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "voice-rehearsal-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.124,
+      "python_tests": {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "85bdb3d23316195a7aad16b696a688d839cd6f3a8ddf856daed46f675b993098"
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_*chat*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "chat-rehearsal-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 2.929,
+      "python_tests": {
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "0545d5fb751fc5bda1904cf303327ff4f64a1900c72dd6e0785c9a449569e1c3"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 2400,
+      "log": "lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 12.489,
+      "log_sha256": "ebbe7f5225c44f152175741961ae3ff9708d0a01676bb09237a2501091286a67"
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 2400,
+      "log": "rustdoc.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 22.945,
+      "log_sha256": "07c77b29da47ab874f83172cf9601bf97367896d1d8c4187ae28e907450f18e0"
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 7200,
+      "log": "workspace.log",
+      "status": "failed",
+      "exit_code": 101,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 6160.402,
+      "rust_tests": {
+        "passed": 310,
+        "failed": 1,
+        "ignored": 9
+      },
+      "log_sha256": "5515e9a464bb5a0353c58d4aa7fc7eefac3279b452eec62ae3d92044dc06598d",
+      "rust_test_summary": {
+        "passed": 310,
+        "failed": 1,
+        "ignored": 9
+      }
+    }
+  ],
+  "scope_limits": [
+    "Account-free local fixtures. Installed Codex uses scripted loopback Responses without inference. Actual model/provider execution has separate evidence.",
+    "Nine deliberate workspace ignores require the later installed-host, media-pressure and voice-retirement phases. This invocation stopped before those phases; none is claimed passed by this report.",
+    "Source 5d23d73 is the frozen scoped-mode baseline before decision 010. Later fixture corrections and the normal identity-key default require separate qualification; prior installed/model/provider proof is retained at its actual source.",
+    "Earlier failed invocations remain failed. Functional deadlines and system security settings were not changed. Startup stalls before application initialization have no established root cause."
+  ]
+}

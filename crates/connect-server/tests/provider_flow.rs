@@ -326,11 +326,14 @@ async fn owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit
     let bot = ClientConfig::load(&dir.join("agent.toml")).unwrap();
     let op = ClientConfig::load(&dir.join("operator.toml")).unwrap();
     let actor = server.store.authenticate(&op.credential).unwrap();
-    let mut client = ConnectClient::open(config).await.unwrap();
+    let mut client = ConnectClient::open(config.clone()).await.unwrap();
     let conv = client
         .create("create", vec![bot.identity_id.clone()])
         .await
         .unwrap();
+    // Provider fixture setup is independent of the native connection. Keep it
+    // closed until the worker is ready so setup cannot exhaust its idle budget.
+    client.close().await;
     server
         .store
         .configure_route(
@@ -361,6 +364,7 @@ async fn owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit
         .await;
     let driver = Arc::new(Vapi::new("fake", &mock.uri()).unwrap());
     let worker = Worker::with_drivers(server.service.clone(), vec![driver.clone()]).unwrap();
+    client = ConnectClient::open(config.clone()).await.unwrap();
     client.send("send", &conv.id, "question").await.unwrap();
     tokio::time::timeout(Duration::from_secs(3), async {
         while !mock
@@ -375,7 +379,11 @@ async fn owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit
     })
     .await
     .unwrap();
+    // Draining the deliberately stalled provider can outlast QUIC's idle
+    // timeout. Reconnect for inspection instead of reusing an idle transport.
+    client.close().await;
     worker.shutdown().await.unwrap();
+    client = ConnectClient::open(config).await.unwrap();
     assert_eq!(
         client.provider_status(&conv.id).await.unwrap()[0].state,
         "uncertain"
