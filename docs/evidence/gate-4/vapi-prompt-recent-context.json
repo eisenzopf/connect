@@ -1,0 +1,21 @@
+{
+  "result": "normal API update independently verified",
+  "assistant_id": "3b16e6b3-0b42-4c4e-b4c5-6083f85587c6",
+  "model": "gpt-4o-mini",
+  "prompt_asset": "examples/agent-presence/vapi-system-prompt.txt",
+  "prompt_sha256": "65e6afe1cd1cc630228de5e8f617e0705edfbafc6cbec705fdb9afa34391d3f4",
+  "scope": "Owned isolated test assistant only; provider resources and model selection preserved",
+  "guidance": [
+    "Prefer existing recent bounded context for recent work; chronological paged recall remains available for older history",
+    "Copy opaque continuation cursors exactly",
+    "Distinct IDs for new logical actions, stable IDs when reconciling uncertainty"
+  ],
+  "original_backup": ".local/gate-4-live/vapi-current-20261012T020305Z/assistant-original-private.json",
+  "before_private_sha256": "21d5a3c647c48e33b3b7e02f815279242b70b57773383357e16fbec3babe6f4c",
+  "verified_private_sha256": "11519848b3f44d5a4d4911341196de7296cd5d9bb150237096d5b933a41c069d",
+  "official_sources": [
+    "https://docs.vapi.ai/prompting-guide",
+    "https://docs.vapi.ai/tools/mcp"
+  ],
+  "recorded_at": "2026-10-12T03:11:05.616608+00:00"
+}

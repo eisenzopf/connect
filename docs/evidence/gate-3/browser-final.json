@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T23:15:44.635600+00:00",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "network": {
+    "connectionState": "connected",
+    "iceConnectionState": "connected",
+    "audio": [
+      {
+        "direction": "inbound",
+        "codec": "audio/opus",
+        "packets": 1918,
+        "bytes": 180594
+      },
+      {
+        "direction": "outbound",
+        "codec": "audio/opus",
+        "packets": 447,
+        "bytes": 35296
+      }
+    ],
+    "selectedPair": {
+      "id": "CP+9+0GAhB_J7qPR6SP",
+      "localType": "host",
+      "remoteType": "host",
+      "protocol": "udp"
+    }
+  },
+  "three_turns": {
+    "independent_answers": [
+      "The preferred rehearsal day in the anchor rehearsal draft is Thursday.",
+      "The anchor browser decision is Yellow Sun.",
+      "The anchor browser decision is Yellow Sun."
+    ],
+    "audio_sha256": "87d4d050e4a73fc5de26233ca639afc4340893aa9f28c33dda28de5074beae3e",
+    "turn_start_seconds": [
+      0.00020000001788139342,
+      13.071100000023842,
+      27.0185
+    ],
+    "tracks_after_hangup": [
+      "ended"
+    ]
+  },
+  "interruption": {
+    "independent_answers": [
+      "Every evening, as the sun dips below the horizon, the light, the anchor interruption decision",
+      "is apple pie.",
+      "The anchor interruption decision is apple pie."
+    ],
+    "behavior": "Story prefix interrupted by actual spoken instruction; Apple Pie acknowledged and recalled.",
+    "audio_sha256": "f5d0c2d8e988e6c9e3444b277fbf0421f49027a9db37076e098668ee645a391a"
+  },
+  "provider_end": {
+    "result": "passed",
+    "provider_remote_end": true,
+    "session_state": "ended",
+    "session_reason": "media-leg-ended",
+    "input_tracks": [
+      "ended"
+    ],
+    "raw_rehearsal_result": "failed",
+    "interpretation": "Expected provider hangup interrupted the three-turn scenario; terminal-state check passed independently. Invalid unstaged scenario trial preserved separately."
+  },
+  "artifact_roundtrip": "Browser public SDK uploaded both WAV recordings; Python public HTTP SDK downloaded in 32 KiB chunks and verified SHA-256 before independent decoding.",
+  "scope": "Chrome 154 loopback host/host UDP Opus, generated input without microphone permission; owner microphone confirmation remains browser-owner.json. WAN/TURN/mobile not qualified."
+}

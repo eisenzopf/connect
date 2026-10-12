@@ -1,0 +1,46 @@
+{
+  "status": "MCP artifact expiry and retention component qualified; G4-017 remains open",
+  "items": [
+    "G4-017"
+  ],
+  "recorded_at": "2026-10-10T23:54:50.785422+00:00",
+  "source_base": "6009f7870f13d9bc065aeda7c0723c21469a50f9",
+  "source_files": {
+    "crates/connect-server/tests/gate4_mcp_retention.rs": "6b28318fc09355eb64b0ae8f0db66b8eef5232d58be54cd4c2c6b0b7b1622706",
+    "crates/connect-server/tests/support/mcp_fixture.rs": "4d30f765d5592d9047fbab027d626e916dece07417ff5d0aa3da7fbeef975a01",
+    "crates/connect-server/tests/support/mcp_client.rs": "94dedf984b53077a5efe1557ae4ef168939c8beac6a43a5e48c9313ce2aba8b3",
+    "crates/connect-store/src/artifacts.rs": "999497b3a8aa63c44a9fe8a27e314cdbcbb8ad809b8706d0523ab7a0cca1f2bc",
+    "crates/connect-store/src/tasks/recall/projection.rs": "965e986694af98d0f3d18906fce19ea1305fbc955170e4b464f9f5c2d855cea9",
+    "crates/connect-mcp/src/commands.rs": "5ede60b4d263751a99a68d2b0c22f9106a7e0e7c249482d98a56070b3ecdfb2c"
+  },
+  "scope": "Local macOS arm64; actual independent MCP client and disposable loopback server; no account, live ingress, deployment or production state",
+  "behavior": [
+    "Authorized begin/append/finish and chunk read return the exact SHA-256-qualified bytes through a real MCP connection.",
+    "After actual Unix-time expiry, matching read and fresh-connection replay return forbidden without encoded bytes.",
+    "Bounded recall preserves artifact source references, observed expired state, absent bodies and source provenance; retained references cannot substitute for an authorized byte read.",
+    "The task remains running in its original conversation; artifact expiry does not close unrelated work."
+  ],
+  "checks": [
+    {
+      "log": ".local/gate-4-planning/mcp-retention-clippy.log",
+      "log_sha256": "ca9fd0d6d3cca8258986f9111f4476fc89234873de9c6ff8a71d0fb4bb7d7d04",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/mcp-retention-wire.log",
+      "log_sha256": "d06f1f084e57b372b70d934246d6bbcddf2371dee7f62dd75eda5a0ae12adea7",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/mcp-retention-format-final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "terminal_exit": 0
+    }
+  ],
+  "test_passes": 1,
+  "quality": "Strict new test target Clippy and repository format pass; no production change or lint suppression. Test module is 106 lines.",
+  "not_claimed": [
+    "Immediate physical erasure of expired files",
+    "Complete G4-017 tool set, cancellation delegation, installed hosts or full acceptance"
+  ]
+}

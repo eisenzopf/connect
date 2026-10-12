@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-session_invite",
+  "ts": "2026-10-08T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "session_invite",
+    "request_id": "session-invite-1",
+    "conversation_id": "conversation-1",
+    "participant_id": "identity-2",
+    "media": [
+      "audio"
+    ]
+  }
+}

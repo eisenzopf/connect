@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T13:54:41.667324+00:00",
+  "items": [
+    "G4-021",
+    "G4-023",
+    "G4-031"
+  ],
+  "status": "packaged actual-runtime component qualified at stable source with strict lint",
+  "source_boundary": "The original working-tree probe is retained below. Current source-stable qualification is recorded separately in codex-owned-runtime.json.",
+  "runtime": "codex-cli 0.162.0-alpha.17.2",
+  "runtime_check": {
+    "log": {
+      "path": ".local/gate-4-planning/codex-packaged-runtime.log",
+      "sha256": "6ec24219aa65a962e2d862dcf6f60db010ead1d635693a3189edd67613b9ce09"
+    },
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "exit_code": 0
+  },
+  "runner_checks": {
+    "log": {
+      "path": ".local/gate-4-planning/codex-packaged-runner-tests.log",
+      "sha256": "cd5d6631cc679ae61dd158c6c6414af844d783192a507c29631d28e3afeb99ff"
+    },
+    "passed": 9,
+    "failed": 0,
+    "exit_code": 0
+  },
+  "behavior": [
+    "A fresh packaged run-codex process launches the actual installed runtime with exported assets and a protected HostSession grant.",
+    "A test-only exec shim selects scripted loopback Responses and empty account roots, preserving launcher stdin, JSONL, PID and process group. No inference or model account is used.",
+    "Trusted renewal issuance uses the actual public protected HTTP exchange. The original grant is revoked; renew-codex preserves saved host-state bytes while selecting the replacement.",
+    "After Connect server restart, a native participant sends an attributed reply. The same Codex session uses its retained cursor and authorized source to produce one visible follow-up.",
+    "Replaying the saved follow-up changes no Store state. A contrast conversation stays empty; later parent revocation denies required MCP initialization before another Responses request.",
+    "The runner now requires six external-runtime checks and rejects the earlier five-check set or an ignored packaged test."
+  ],
+  "limits": [
+    "The shim supplies deterministic Responses; no real-model inference is qualified.",
+    "Original probe warnings, the later build-lock timeout and failed test-process cleanup remain recorded. The corrected seven-check set and strict Clippy pass.",
+    "Whole installed-candidate, cold/warm setup, provider and Gate 4 acceptance remain open."
+  ],
+  "scoped_lint_observation": {
+    "exit_code": 0,
+    "path": ".local/gate-4-planning/codex-packaged-lint.log",
+    "sha256": "1bb05ce0189a068ff7d7b89bff5c10c3947de082743d3196b77e3ab0202e03f1",
+    "scope": "Strict all-feature packaged-runtime target completed in 54m20s. Shared test helpers changed while that command was active, so this standalone call is not treated as final source-stable qualification. The current-source seven-check sequence includes a fresh strict-lint phase."
+  },
+  "qualified_source_revision": "88aec46045aea8aef97ce1e2b88c89fcd56d7e39",
+  "qualification": "docs/evidence/gate-4/codex-owned-runtime.json"
+}

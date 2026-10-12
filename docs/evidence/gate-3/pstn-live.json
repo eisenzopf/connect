@@ -1,0 +1,28 @@
+{
+  "scope": "Controlled outbound Connect-carried PSTN qualification",
+  "date": "2026-10-08",
+  "result": "failed-before-answer",
+  "route": [
+    "Connect durable Session",
+    "rvoip SIP adapter",
+    "Telnyx credential connection",
+    "operator-controlled handset"
+  ],
+  "caller_id": "owned Connect test number; redacted",
+  "destination": "operator-controlled handset; redacted",
+  "observed_sip_statuses": [
+    100,
+    407,
+    100,
+    180,
+    603
+  ],
+  "digest_authentication": "passed",
+  "ringing": "observed from carrier",
+  "carrier_terminal_class": "network blocked",
+  "audio": "not run because the downstream network rejected the call before answer",
+  "durability": "one stored intent converged once from pending to failed without automatic redial",
+  "implementation_finding": "A wildcard SIP signaling listener had incorrectly reused its public advertised IP as the local RTP bind address.",
+  "implementation_fix": "Connect now requires a concrete media_bind_ip for wildcard SIP listeners and keeps it separate from advertised signaling and media addresses.",
+  "claim_boundary": "This proves local RTP allocation, Telnyx resolution, Digest authentication, outbound INVITE, carrier Trying and Ringing, and terminal failure convergence. It does not prove PSTN audio or an answered call."
+}

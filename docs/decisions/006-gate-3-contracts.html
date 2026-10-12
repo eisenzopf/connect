@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Connect — Gate 3 contracts</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0d12;
+        --panel: #121722;
+        --text: #f2f0ea;
+        --muted: #a9b0be;
+        --line: #293142;
+        --cyan: #63d5ff;
+        --violet: #b59cff;
+        --ok: #77e6b6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+      }
+      .shell {
+        max-width: 1080px;
+        margin: auto;
+        padding: 0 24px;
+      }
+      header {
+        padding: 56px 0 32px;
+        border-bottom: 1px solid var(--line);
+      }
+      h1 {
+        font-size: clamp(42px, 7vw, 78px);
+        line-height: 1;
+        margin: 0.2em 0;
+      }
+      h2 {
+        margin-top: 54px;
+        font-size: 30px;
+      }
+      h3 {
+        color: var(--cyan);
+      }
+      p,
+      li {
+        max-width: 78ch;
+      }
+      .lead {
+        font-size: 21px;
+        color: var(--muted);
+      }
+      .eyebrow,
+      .status {
+        font:
+          12px ui-monospace,
+          monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--cyan);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+        gap: 16px;
+      }
+      .card,
+      pre,
+      .table {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .ok {
+        color: var(--ok);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 13px;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--violet);
+      }
+      code {
+        color: var(--cyan);
+      }
+      a {
+        color: var(--cyan);
+      }
+      footer {
+        padding: 48px 24px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="shell">
+        <div class="eyebrow">Decision 006 · Gate 3 · October 9, 2026</div>
+        <h1>One durable conversation.<br />Disposable live media.</h1>
+        <p class="lead">
+          Connect owns application authority and history. rvoip owns live
+          cross-transport orchestration. UCTP carries the standard session,
+          connection and stream lifecycle; <code>connect-control/1</code> adds
+          durable application operations without replacing UCTP.
+        </p>
+        <p class="status">
+          Accepted for the implemented local Gate 3 core · completion audit closed with qualified changed-profile evidence
+        </p>
+      </div>
+    </header>
+    <main class="shell">
+      <h2>Ownership</h2>
+      <div class="table">
+        <table>
+          <thead>
+            <tr>
+              <th>Noun</th>
+              <th>Durable owner</th>
+              <th>Live projection</th>
+              <th>Restart rule</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Conversation</td>
+              <td>Connect SQLite, persistent by default</td>
+              <td>Exact namespaced ID in rvoip</td>
+              <td>History survives; projection is rebuilt</td>
+            </tr>
+            <tr>
+              <td>Session</td>
+              <td>Connect invitation and terminal state</td>
+              <td>Exact namespaced rvoip Session</td>
+              <td>Socket loss becomes interrupted; no socket resurrection</td>
+            </tr>
+            <tr>
+              <td>Message</td>
+              <td>Connect journal and immutable receipt</td>
+              <td>Selected context only</td>
+              <td>Canonical source remains retained</td>
+            </tr>
+            <tr>
+              <td>Participant</td>
+              <td>Authorized conversation membership</td>
+              <td>rvoip role on a live Session</td>
+              <td>Identity never inferred from caller ID</td>
+            </tr>
+            <tr>
+              <td>Connection</td>
+              <td>Connect stores a bounded observation</td>
+              <td>rvoip adapter owns socket and pumps</td>
+              <td>Always disposable</td>
+            </tr>
+            <tr>
+              <td>Stream</td>
+              <td>Negotiated metadata and provenance</td>
+              <td>rvoip media stream/router</td>
+              <td>Always renegotiated</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <h2>Lifecycle</h2>
+      <pre>
+developer creates cid once
+  → session.invite / session.accept under that cid
+  → authenticated UCTP resolver rechecks credential + membership
+  → Connect projects canonical cid/sid into rvoip
+  → connection.offer binds an authorized stream
+  → connection.ready advances durable Session to ready
+  → media datagrams flow; messages and artifacts continue concurrently
+  → connection loss records interruption
+  → session.end closes the bounded leg, never the Conversation</pre>
+      <div class="grid">
+        <article class="card">
+          <h3>Application profile</h3>
+          <p>
+            The existing <code>connect-control/1</code> profile gains additive
+            typed operations for sessions, context, availability and artifacts.
+            Old clients continue to use the earlier operation set. Incompatible
+            wire changes require a new profile.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Session authority</h3>
+          <p>
+            The wire Session ID resolves into
+            <code>connect:&lt;installation&gt;:&lt;sid&gt;</code>. Every bind
+            and refresh rechecks the current credential, conversation membership
+            and nonterminal Session state. Cross-peer reuse cannot alias global
+            media state.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Context</h3>
+          <p>
+            <code>context_view</code> returns an authorized, chronological
+            selection with source IDs, actor IDs, journal sequence watermark and
+            explicit omission count. The current bound is 32 KiB. A new Session
+            does not create a new Conversation.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Availability</h3>
+          <p>
+            Available and unavailable are expiring observations. Expired or
+            absent data returns unknown. A preferred route is an expiring hint
+            and never triggers automatic contact or fallback.
+          </p>
+        </article>
+      </div>
+      <h2>Files and limits</h2>
+      <p>
+        Gate 3 operations use begin, offset-checked append, digest-verified
+        finish, resumable get and explicit delete. The frozen local profile is
+        16 MiB per artifact, 256 MiB per installation and 32 KiB decoded chunks.
+        Current authorization is rechecked on every operation. Managed external blob storage, current-authority checks, manifest-coupled backup/restore and bounded orphan cleanup are implemented. Full lifecycle pressure and deletion qualification remains tracked in G3-027.
+      </p>
+      <h2>Verified now</h2>
+      <ul>
+        <li class="ok">
+          Two authenticated native SDK peers share one durable Session and
+          exchange PCMU/8 kHz audio through the server over UCTP/QUIC datagrams.
+        </li>
+        <li class="ok">
+          A saved-assistant Vapi route attaches through the pinned rvoip duplex
+          WebSocket adapter. A loopback provider proves audio in both
+          directions, bounded context injection and a durable delivery outcome
+          without account effects.
+        </li>
+        <li class="ok">
+          HTTP and native QUIC operations observe the same session, context,
+          availability and artifact state.
+        </li>
+        <li class="ok">
+          Python and TypeScript helpers carry raw PCMU over real native UCTP/QUIC
+          sessions; browser code uses an explicit WebRTC-only entry.
+        </li>
+        <li class="ok">
+          Local SIP and authenticated WebRTC routes enter through configured
+          authority, bridge duplex audio to the same fake Vapi agent and keep
+          their bounded Sessions inside the durable Conversation.
+        </li>
+        <li class="ok">
+          Artifact bytes are integrity checked in managed storage and restored
+          with their database metadata through backup manifest v2.
+        </li>
+        <li class="ok">
+          The high level rvoip Orchestrator receives the canonical
+          conversation/session projection; Connect records ready and interrupted
+          transitions.
+        </li>
+        <li>
+          Earlier live Vapi, Telnyx PSTN and browser evidence remains recorded.
+          The completion audit found queue defaults above the frozen media
+          budget and missing explicit RTP reordering. The changed profile now passes clean-source offline, installed and separate live qualification. See the
+          <a href="../connect-gate-3-implementation.html#G3-016">current checklist</a>.
+        </li>
+      </ul>
+      <p>
+        <a href="../connect-gate-3-plan.html">Product plan</a> ·
+        <a href="../connect-gate-3-implementation.html">Implementation plan</a>
+        · <a href="007-gate-3-media-profile.html">Media profile</a>
+      </p>
+    </main>
+    <footer class="shell">Connect · architecture decision record</footer>
+  </body>
+</html>
+

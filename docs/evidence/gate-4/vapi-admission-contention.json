@@ -1,0 +1,176 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T02:30:59.840205+00:00",
+  "status": "Reproduced callback contention repaired; all 19 selected behavior checks and strict quality checks pass",
+  "before_source_revision": "55659d6b8f69",
+  "before_admission_sha256": "661a62d97c9e2d45097510a45791bee6712ca808f56f24c20ca15a128c97b04f",
+  "regression": "overlapping_callbacks_wait_and_recheck_authority_instead_of_denying_contention",
+  "regression_file": "crates/connect-server/tests/gate4_vapi_bootstrap_races.rs",
+  "regression_sha256": "5e371579ef58691569138818486db333fc02cb44c2bbae5ccf8d71b561852b23",
+  "reproduction": [
+    {
+      "name": "reproduce",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_bootstrap_races",
+        "overlapping_callbacks_wait_and_recheck_authority_instead_of_denying_contention",
+        "--",
+        "--nocapture"
+      ],
+      "timeout_seconds": 120,
+      "log": "reproduce.log",
+      "status": "failed",
+      "exit_code": 101,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 35.273
+    }
+  ],
+  "private_report_sha256": "d41cd7ec1a08544cd0d8cdd8a5d77a50565e17e660a9fce58fbd95fe7d3ae0bf",
+  "cause": "A protected nonblocking file lock was held across private resource verification. A second valid callback on the same endpoint returned forbidden while the first was in flight. Admission middleware converted that error to HTTP 401.",
+  "repair": "An async mutex serializes only this endpoint's verification before acquiring the file lock. The existing five-second authentication deadline, aggregate capacity, interprocess file protection and current task/issuer/resource/grant validation remain enforced.",
+  "authority_control": "The regression also cancels the task while the second callback waits; that callback must deny without creating another grant or effect.",
+  "retained_attempt": "First regression invocation exhausted its unchanged 120-second budget during startup; the subsequent exact-code repeat reached the expected assertion failure. Neither is counted as a behavior pass.",
+  "remaining": "Build a new clean normal release and verify actual model chat/voice source recall and visible effects. Final owner-controller/SMS and whole-package/gate qualification remain separate.",
+  "repair_qualification": {
+    "recorded_at": "2026-10-12T02:42:56.158654+00:00",
+    "checks": [
+      {
+        "name": "compile",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_vapi_bootstrap_races",
+          "--test",
+          "gate4_vapi_bootstrap",
+          "--test",
+          "gate4_vapi_bootstrap_denials",
+          "--test",
+          "gate4_vapi_host_chat",
+          "--test",
+          "gate4_vapi_host_voice",
+          "--test",
+          "gate4_vapi_mcp_binding",
+          "--no-run"
+        ],
+        "timeout_seconds": 2400,
+        "log": "compile.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 58.344
+      },
+      {
+        "name": "behavior",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_vapi_bootstrap_races",
+          "--test",
+          "gate4_vapi_bootstrap",
+          "--test",
+          "gate4_vapi_bootstrap_denials",
+          "--test",
+          "gate4_vapi_host_chat",
+          "--test",
+          "gate4_vapi_host_voice",
+          "--test",
+          "gate4_vapi_mcp_binding",
+          "--",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1800,
+        "log": "behavior.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 393.165,
+        "rust_tests": {
+          "passed": 19,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "strict-lint",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "timeout_seconds": 1800,
+        "log": "strict-lint.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 202.637
+      },
+      {
+        "name": "rustdoc",
+        "command": [
+          "cargo",
+          "doc",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--no-deps"
+        ],
+        "timeout_seconds": 1200,
+        "log": "rustdoc.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 23.029
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.647
+      }
+    ],
+    "private_result_sha256": "e2fbcfe955f94feebb07a0fbc6cc40816baf36f4f09b8af5da38ce413786dfc3",
+    "source_inputs_sha256": {
+      "crates/connect-server/src/vapi_bootstrap/admission.rs": "09c80087ffea8337bfdb0860bcb41d9a9b43e4e090122f693cd6783cc15989dd",
+      "crates/connect-server/tests/gate4_vapi_bootstrap_races.rs": "5e371579ef58691569138818486db333fc02cb44c2bbae5ccf8d71b561852b23",
+      "examples/agent-presence/vapi-system-prompt.txt": "3094557eef33b93354d686f434991ae2c5d104d651f347478e8e53bfac1b9830"
+    }
+  }
+}

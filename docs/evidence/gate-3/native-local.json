@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "gate": 3,
+  "scope": "Native account-free qualification; local macOS arm64; no provider calls",
+  "recorded_at": "2026-10-09T21:31:14.799319+00:00",
+  "result": "passed",
+  "source_revision": "ecdb2b7235f4ec86b14679adc46d0718e3f719bf",
+  "aggregation": "Indexed subset of the recorded full qualification, not an additional test execution.",
+  "source_evidence": "local.json",
+  "steps": [
+    {
+      "name": "native-media-parity",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_parity"
+      ],
+      "log": "native-media-parity.log",
+      "exit_code": 0,
+      "seconds": 13.63,
+      "result": "passed"
+    },
+    {
+      "name": "native-sdk-media-helper",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_sdk_media_helper"
+      ],
+      "log": "native-sdk-media-helper.log",
+      "exit_code": 0,
+      "seconds": 16.83,
+      "result": "passed"
+    },
+    {
+      "name": "media-pressure-smoke",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_media_pressure",
+        "--",
+        "--include-ignored"
+      ],
+      "log": "media-pressure-smoke.log",
+      "exit_code": 0,
+      "seconds": 138.45,
+      "result": "passed"
+    },
+    {
+      "name": "vapi-duplex-media",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_vapi_media"
+      ],
+      "log": "vapi-duplex-media.log",
+      "exit_code": 0,
+      "seconds": 8.75,
+      "result": "passed"
+    },
+    {
+      "name": "vapi-observer-lifecycle",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--lib",
+        "vapi_observer"
+      ],
+      "log": "vapi-observer-lifecycle.log",
+      "exit_code": 0,
+      "seconds": 5.46,
+      "result": "passed"
+    },
+    {
+      "name": "vapi-adapter-failures",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-vapi",
+        "--test",
+        "mock_transport"
+      ],
+      "log": "vapi-adapter-failures.log",
+      "exit_code": 0,
+      "seconds": 4.88,
+      "result": "passed"
+    }
+  ],
+  "measurements": "media-profile.json"
+}

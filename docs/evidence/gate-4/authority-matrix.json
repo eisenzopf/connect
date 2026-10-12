@@ -1,0 +1,250 @@
+{
+  "schema": 1,
+  "item": "G4-029",
+  "recorded_at": "2026-10-12T15:52:08.876316+00:00",
+  "status": "passed current-source authority qualification; whole-gate acceptance is recorded separately",
+  "contract": "docs/decisions/009-task-runtime.md#required-behavior-evidence",
+  "scope": "Clean local macOS arm64 final-source server/store, native SDK, real MCP, reference runner and scripted installed-host/provider boundaries. Ordinary reusable identity access and optional scoped delegation are separately mapped. Installed/actual model/carrier evidence keeps its own exact source and limitations.",
+  "checks": [
+    {
+      "id": "T-A1",
+      "requirement": "Two concurrent tasks in one conversation retain independent grants, replies, effects and context.",
+      "status": "passed current-source behavior evidence",
+      "test_sources_sha256": {
+        "crates/connect-server/tests/gate4_vapi_call_isolation.rs": "7ebd51316810f17ee3a956ef75cd699b54b820a9de5a81e7d247d14f716fcfa7",
+        "crates/connect-server/tests/gate4_codex_draft_journey.rs": "71faecd9e637a04bd12bcd5cd9eb0d2197654f13f51921f740b3ec9b4dc9606a",
+        "crates/connect-store/src/tasks/tests/reply_races.rs": "e57fd656e4bb0e11e19dbd161c841e2cbc67f437e1f36a249ccd892cb0b9aafd"
+      },
+      "component_evidence": [
+        "docs/evidence/gate-4/task-authority-audit.json",
+        "docs/evidence/gate-4/codex-draft-journey.json",
+        "docs/evidence/gate-4/reply-inbox-recovery.json"
+      ],
+      "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4"
+    },
+    {
+      "id": "T-A2",
+      "requirement": "Forged task/conversation/provider selectors, expired grants and revoked credentials cannot execute or replay effects.",
+      "status": "passed current-source behavior evidence",
+      "test_sources_sha256": {
+        "crates/connect-server/tests/gate4_mcp_authority.rs": "ff77e3d816cf65044940864dc23c0f528492479f42fbf9fd46398b05a0a79d53",
+        "crates/connect-server/tests/gate4_mcp_task_cancel.rs": "0ac9535af499389f13c374b37e257c063b45e27071c47c3995df49356b35e4be",
+        "crates/connect-store/src/tasks/tests/lock_expiry.rs": "be9ed04f77a4d93482ec455062d7fb924e3a42a00abaebfa3ad47268ecfc5d04"
+      },
+      "component_evidence": [
+        "docs/evidence/gate-4/task-authority-audit.json",
+        "docs/evidence/gate-4/task-lock-expiry.json",
+        "docs/evidence/gate-4/task-tools-audit.json"
+      ],
+      "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4"
+    },
+    {
+      "id": "T-A3",
+      "requirement": "Commit/dispatch/application/ACK interruption and competing workers preserve one effect or explicit uncertainty.",
+      "status": "passed current-source behavior evidence",
+      "test_sources_sha256": {
+        "crates/connect-store/src/tasks/tests/effect_crashes.rs": "279a6a23e4070ce855c6cef316f3bc4078569f98b4a0500ffcde991cdac8829a",
+        "crates/connect-server/tests/gate4_task_uncertainty.rs": "63872dbc2056812251a787978532d6de6d492e0dc249c14b6aecf966876d8448",
+        "examples/review-loop/tests/task_recovery.rs": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+        "examples/review-loop/tests/task_uncertainty.rs": "21018c24ce48bf9be30e5d9c2ed8fe9d62a173f0a79d31a6806072fc1539725f"
+      },
+      "component_evidence": [
+        "docs/evidence/gate-4/task-effect-recovery-audit.json",
+        "docs/evidence/gate-4/task-runner-audit.json",
+        "docs/evidence/gate-4/task-runner-uncertainty.json"
+      ],
+      "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4"
+    },
+    {
+      "id": "T-A4",
+      "requirement": "Duplicate, reordered and ambiguous replies remain attributed; only explicit assignment selects a task.",
+      "status": "passed current-source behavior evidence",
+      "test_sources_sha256": {
+        "crates/connect-store/src/tasks/tests/replies.rs": "f205fcab8f9bf02a675afe9a9369ddeb374c93ffde6acbf9e58213d9e3ce9572",
+        "crates/connect-store/src/tasks/tests/reply_races.rs": "e57fd656e4bb0e11e19dbd161c841e2cbc67f437e1f36a249ccd892cb0b9aafd",
+        "crates/connect-server/tests/gate4_reply_recovery.rs": "eafd4430e498aa87555e348dcb20ddc400a4778048b30b0106fa800159a96212"
+      },
+      "component_evidence": [
+        "docs/evidence/gate-4/reply-inbox-recovery.json",
+        "docs/evidence/gate-4/voice-sms-continuity.json"
+      ],
+      "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4"
+    },
+    {
+      "id": "T-A5",
+      "requirement": "Paged recall retrieves an older source, preserves unavailable references and rechecks task/cursor/source authority.",
+      "status": "passed current-source behavior evidence",
+      "test_sources_sha256": {
+        "crates/connect-server/tests/gate4_mcp_recall.rs": "26406dd70bbefc07c9881621a45215dcaa0ecef78b54cf8819ffe03f21dab41a",
+        "crates/connect-store/src/tasks/tests/recall_authority.rs": "41e1374355470809b5ce05b125e11b21fd98f5f995ff1a64bc2b81089eb18beb",
+        "crates/connect-store/src/tasks/tests/recall_sources.rs": "e60288b9a05e477cf6a0305bb6c0c6e865cdc25050fe90e7faece66d5b86cfe6",
+        "crates/connect-store/src/tasks/tests/recall.rs": "9d6cf68d098b87531f59e5a84e705237583150bb3a17e0745f3ca3678d116e4f"
+      },
+      "component_evidence": [
+        "docs/evidence/gate-4/task-recall-audit.json",
+        "docs/evidence/gate-4/voice-sms-continuity.json"
+      ],
+      "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4"
+    },
+    {
+      "id": "T-A6",
+      "requirement": "A sourced decision survives voice termination and restart, then informs a follow-up on the original task over SMS.",
+      "status": "passed current-source behavior evidence",
+      "test_sources_sha256": {
+        "crates/connect-server/tests/gate4_voice_sms_continuity.rs": "c9ca4689d24779b535a3ef6e29738c8c09749f11811280e8503ee8f9d8f2e41e",
+        "crates/connect-server/tests/support/voice_decision.rs": "5f5b74704b63547d1d1c07b678de3b4938dfb6112cba0d99db05b9a91f842361",
+        "crates/connect-server/tests/gate4_vapi_post_call.rs": "637166122c5ce8fe4a4d600dc899bec040f2a6b3243a9a67c77e9281d2948043"
+      },
+      "component_evidence": [
+        "docs/evidence/gate-4/voice-sms-continuity.json",
+        "docs/evidence/gate-4/vapi-continuation-audit.json"
+      ],
+      "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4"
+    },
+    {
+      "id": "T-A7",
+      "requirement": "STOP blocks queued SMS; START permits only eligible fresh intent and never revives a cancelled effect.",
+      "status": "passed current-source behavior evidence",
+      "test_sources_sha256": {
+        "crates/connect-server/tests/gate4_sms_callback_journey.rs": "433218621e871a586cd445795a2263e7e968b84474b00cd76a76ee02591f93c3",
+        "crates/connect-server/tests/gate4_voice_sms_continuity.rs": "c9ca4689d24779b535a3ef6e29738c8c09749f11811280e8503ee8f9d8f2e41e",
+        "crates/connect-store/src/tasks/tests/sms_policy.rs": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a"
+      },
+      "component_evidence": [
+        "docs/evidence/gate-4/sms-callback-journey.json",
+        "docs/evidence/gate-4/voice-sms-continuity.json",
+        "docs/evidence/gate-4/task-dispatch-audit.json"
+      ],
+      "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4"
+    },
+    {
+      "id": "T-A8",
+      "requirement": "Bounded tools return pending and reconnect through durable status/journal without repeating dispatch.",
+      "status": "passed current-source behavior evidence",
+      "test_sources_sha256": {
+        "crates/connect-server/tests/gate4_vapi_pending_continuation.rs": "43e0bb28b3320dcea4bc006123f14ba9e052ba80daa2f7a15a80cec6c37e6e3c",
+        "crates/connect-server/tests/gate4_mcp_tools.rs": "970902c9e5d0feafa9beae626207b94c865f756dd7b67014d22be66223a430e8",
+        "crates/connect-server/tests/gate4_mcp_ack_recovery.rs": "644cdb051712746af7792f21c0748980680ff11cbb6dcd2b1ece6ac9050e157b",
+        "crates/connect-server/tests/gate4_codex_packaged_runtime.rs": "4849c0fe91c2a5a7f9ff6903c5261ae3abb3da211be4f533d9f988e0b10940da"
+      },
+      "component_evidence": [
+        "docs/evidence/gate-4/vapi-continuation-audit.json",
+        "docs/evidence/gate-4/task-tools-audit.json",
+        "docs/evidence/gate-4/codex-owned-runtime.json"
+      ],
+      "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4"
+    }
+  ],
+  "execution_plan": [
+    "Completed unchanged clean final-source full runner: workspace 578/0/9, explicit media-pressure 1/0/0, installed-host 7/0/0 and full voice-retirement 1/0/0; every required phase passed with owned cleanup.",
+    "Source-file digests, actual terminal test results and assertion reviews are reconciled for all eight stable T-A checks plus AG-A1\u2013AG-A8 and AG-C1\u2013AG-C2. No test name or previous execution is used as a substitute for current behavior.",
+    "Earlier failures and exact mode/source differences remain archived. Product/provider/model prerequisites and final gate closure are independently reconciled in the acceptance documents."
+  ],
+  "additional_review": [
+    "Retrieved malicious text is evidence, not authorization. Current selectors, membership and credentials are enforced; no general claim of model resistance to arbitrary malicious text is inferred.",
+    "The current installed package passes 17 checks; the actual normal-key model journey and actual optional Vapi text journey retain independently source-labelled proof. This authority map does not replace those proofs.",
+    "All 75 unique legacy behaviors, 20 ordinary-agent behaviors and two context-default behaviors are qualified at clean dc739966. The original 5d workspace failure, 09b disk-full failure and both intentional main-directory interruptions remain failed with their original unrun phases.",
+    "Tasks in one authorized conversation share its conversation context. Task isolation protects grants, replies, cursors and effects; it does not invent separate private histories within that conversation."
+  ],
+  "baseline_reconciliation": {
+    "source_revision": "3a272c92b6047c04ec3dc60e7599fde0a82b377b",
+    "evidence": "docs/evidence/gate-4/offline-3a272c9.json",
+    "status": "All mapped test source files match the completed 39-phase baseline; latest operator/callback source still requires its common-source run.",
+    "schema_fixture_update": "sms_policy.rs hash updated for 916fbeb: historical schema-12 fixture removes the schema-16 Vapi setup table before testing upgrade. All nine sms_policy tests passed in the baseline."
+  },
+  "current_workspace_reconciliation": {
+    "evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+    "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "status": "passed",
+    "private_report": ".local/gate-4-checks/20261012T140701.094207Z/result.json",
+    "private_report_sha256": "24d12fa2ee4a985fd1dba02514c04d2aa10c8bbdb79482ae3c0c5de91f90750f",
+    "checkout_root": "/Users/jonathaneisenzopf/.codex/worktrees/gate4-clean-qualification/Connect",
+    "clean_fresh_checkout": true,
+    "source_files": 839,
+    "source_manifest_sha256": "ee01cc40a9d75f5273ec2b942f4f3d26f124fc74d7ac4c834721c44ba2dfc24d",
+    "counts": {
+      "legacy_unique": 75,
+      "legacy_observed_passing": 75,
+      "legacy_qualified": 75,
+      "ordinary_unique": 20,
+      "ordinary_observed_passing": 20,
+      "ordinary_qualified": 20,
+      "context_default_unique": 2,
+      "context_default_observed_passing": 2,
+      "context_default_qualified": 2
+    },
+    "full_offline_evidence": "docs/evidence/gate-4/offline-dc73996.json",
+    "all_41_phases_passed": true,
+    "all_nine_workspace_ignored_followups_qualified": true
+  },
+  "previous_workspace_reconciliations": [
+    {
+      "evidence": "docs/evidence/gate-4/authority-workspace-9235d79.json",
+      "source_revision": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
+      "status": "Mapped local workspace and separately executed installed-host tests passed. The full suite and whole gate remain open."
+    },
+    {
+      "evidence": "docs/evidence/gate-4/authority-workspace-5d23d73.json",
+      "source_revision": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
+      "status": "failed frozen baseline; authority execution incomplete and new default qualification pending"
+    },
+    {
+      "evidence": "docs/evidence/gate-4/authority-workspace-09b77a3.json",
+      "source_revision": "09b77a3f8219b6ea37acad1ad4473f9de836c564",
+      "status": "failed",
+      "authority_ready": false,
+      "boundary": "Preserved original source-labelled execution, not a passed literal fresh full suite."
+    },
+    {
+      "evidence": "docs/evidence/gate-4/authority-workspace-9546c6c.json",
+      "source_revision": "9546c6ca7e3bfaa22518dfdc4f32384f24c7d612",
+      "status": "failed",
+      "authority_ready": true,
+      "boundary": "Preserved original source-labelled execution, not a passed literal fresh full suite."
+    }
+  ],
+  "access_default_review": {
+    "status": "owner-approved easier default implemented and qualified at current source",
+    "current_mcp_host_enforcement": "One regular revocable nonadministrator communication credential across authorized conversations. Identity/privacy and SMS eligibility remain enforced; task tracking is optional. Explicit narrow grants retain operation/recipient/provider binding and their five-minute ceiling.",
+    "existing_identity_interfaces": "Native, HTTP JSON and ordinary local MCP authenticate the same configured identity. Current revocation/expiry applies at invocation, accepted replay and queued dispatch.",
+    "requested_product_direction": "Easy reusable agent access, activity tracking and revocation, with optional narrow delegation and less ceremony than Thelve.",
+    "qualification_boundary": "Twenty ordinary-agent behaviors and two context-default behaviors passed alongside all 75 legacy T-A behaviors in the clean current full 41-phase run. Real-model and provider evidence are independent; whole gate acceptance is not asserted by this matrix."
+  },
+  "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "final_gate_closure_claimed": false,
+  "previous_matrix": {
+    "evidence": "docs/evidence/gate-4/authority-matrix-5d23d73-retained.json",
+    "sha256": "a3b55c04d53bbd24b1db6353a62001ff0a0c58bfd1b369c522d7aeb40f8ce779",
+    "source_revision": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
+    "status": "failed frozen baseline; common-source execution incomplete and new default qualification pending"
+  },
+  "ordinary_default": {
+    "contract": "docs/decisions/010-agent-identity-access.md",
+    "implementation_evidence": "docs/evidence/gate-4/agent-default-authority.json",
+    "current_execution_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+    "context_default_evidence": "docs/evidence/gate-4/agent-context-default.json",
+    "status": "passed current-source ordinary identity mode and unchanged optional scoped mode",
+    "stable_check_ids": [
+      "AG-A1",
+      "AG-A2",
+      "AG-A3",
+      "AG-A4",
+      "AG-A5",
+      "AG-A6",
+      "AG-A7",
+      "AG-A8"
+    ],
+    "current_behavior_tests": 20,
+    "context_default_tests": 2,
+    "separate_owner_inspection_after_revocation": true,
+    "no_per_task_grant_or_five_minute_renewal_for_basic_communication": true
+  }
+}

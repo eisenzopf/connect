@@ -1,0 +1,1184 @@
+{
+  "valid": {
+    "record": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    },
+    "replies": {
+      "kind": "replies",
+      "data": {
+        "items": [
+          {
+            "event_id": "event-a",
+            "conversation_id": "conversation-a",
+            "task_id": "task-a",
+            "reply_to": "question-a",
+            "assigned_by": "human-a",
+            "consumed": false
+          }
+        ],
+        "next": "cursor-a"
+      }
+    },
+    "inbox": {
+      "kind": "inbox",
+      "data": {
+        "events": [
+          {
+            "id": "journal-state",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 1,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "state",
+              "data": {
+                "state": "waiting",
+                "revision": 2,
+                "reason": null
+              }
+            }
+          },
+          {
+            "id": "journal-reply",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 2,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "reply",
+              "data": {
+                "event_id": "event-a",
+                "conversation_id": "conversation-a",
+                "task_id": "task-a",
+                "reply_to": "question-a",
+                "assigned_by": "human-a",
+                "consumed": false
+              }
+            }
+          },
+          {
+            "id": "journal-effect",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 3,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "effect",
+              "data": {
+                "id": "effect-a",
+                "task_id": "task-a",
+                "step_id": "step-a",
+                "request_id": "mutation-a",
+                "state": "succeeded",
+                "outcome": {
+                  "kind": "accepted",
+                  "data": {
+                    "request_id": "mutation-a",
+                    "message_id": "message-a",
+                    "conversation_id": "conversation-a"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "journal-claim",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 4,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "claim",
+              "data": {
+                "task_id": "task-a",
+                "step_id": "step-a",
+                "worker_id": "worker-a",
+                "revision": 1,
+                "expires_at": 1791700030
+              }
+            }
+          }
+        ],
+        "next": "cursor-a"
+      }
+    },
+    "recall": {
+      "kind": "recall",
+      "data": {
+        "sources": [
+          {
+            "source_id": "source-a",
+            "kind": "message",
+            "actor_id": "human-a",
+            "created_at": null,
+            "provenance": "timestamp-not-recorded",
+            "state": "available",
+            "body": "Keep this source in the same conversation."
+          },
+          {
+            "source_id": "deleted-a",
+            "kind": "message",
+            "actor_id": "human-a",
+            "created_at": null,
+            "provenance": "timestamp-not-recorded",
+            "state": "deleted",
+            "body": null
+          }
+        ],
+        "next": "cursor-a",
+        "omitted": 2
+      }
+    },
+    "effect": {
+      "kind": "effect",
+      "data": {
+        "id": "effect-a",
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "request_id": "mutation-a",
+        "state": "succeeded",
+        "outcome": {
+          "kind": "accepted",
+          "data": {
+            "request_id": "mutation-a",
+            "message_id": "message-a",
+            "conversation_id": "conversation-a"
+          }
+        }
+      }
+    },
+    "effect-known-error": {
+      "kind": "effect",
+      "data": {
+        "id": "effect-a",
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "request_id": "mutation-a",
+        "state": "failed",
+        "outcome": {
+          "kind": "accepted",
+          "data": {
+            "request_id": "mutation-a",
+            "message_id": "message-a",
+            "conversation_id": "conversation-a"
+          }
+        },
+        "error": {
+          "code": "provider-failed",
+          "message": "Observed failure"
+        }
+      }
+    },
+    "claim": {
+      "kind": "claim",
+      "data": {
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "worker_id": "worker-a",
+        "revision": 1,
+        "expires_at": 1791700030
+      }
+    },
+    "claim-absent": {
+      "kind": "claim",
+      "data": null
+    },
+    "completed": {
+      "kind": "tool",
+      "data": {
+        "status": "completed",
+        "task_id": "task-a",
+        "outcome": {
+          "kind": "accepted",
+          "data": {
+            "request_id": "mutation-a",
+            "message_id": "message-a",
+            "conversation_id": "conversation-a"
+          }
+        }
+      }
+    },
+    "pending": {
+      "kind": "tool",
+      "data": {
+        "status": "pending",
+        "task_id": "task-a",
+        "effect_id": "effect-a"
+      }
+    },
+    "pending-without-effect": {
+      "kind": "tool",
+      "data": {
+        "status": "pending",
+        "task_id": "task-a",
+        "effect_id": null
+      }
+    },
+    "uncertain": {
+      "kind": "tool",
+      "data": {
+        "status": "uncertain",
+        "task_id": "task-a",
+        "effect_id": "effect-a"
+      }
+    },
+    "reply-accepted": {
+      "kind": "reply_accepted",
+      "data": {
+        "request_id": "reply-a",
+        "message_id": "message-a",
+        "reply": {
+          "event_id": "event-a",
+          "conversation_id": "conversation-a",
+          "task_id": "task-a",
+          "reply_to": "question-a",
+          "assigned_by": "human-a",
+          "consumed": false
+        }
+      }
+    },
+    "optional-sms": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ],
+          "sms_enrollments": [
+            {
+              "source": "reviewed",
+              "grant_id": "enrollment-a",
+              "purpose": "Review requested by the enrolled recipient"
+            }
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    },
+    "explicit-task-cancel": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "task_cancel"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    }
+  },
+  "invalid": {
+    "record-boolean-revision": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "ready",
+        "revision": true,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    },
+    "record-unknown-state": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "paused",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    },
+    "record-missing-nullable": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": 123
+      }
+    },
+    "scope-admin-permission": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "task_grant"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    },
+    "scope-sms-null": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ],
+          "sms_enrollments": null
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    },
+    "scope-sms-malformed": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ],
+          "sms_enrollments": [
+            {
+              "source": "reviewed",
+              "grant_id": "a",
+              "purpose": 42
+            }
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    },
+    "reply-next-integer": {
+      "kind": "replies",
+      "data": {
+        "items": [
+          {
+            "event_id": "event-a",
+            "conversation_id": "conversation-a",
+            "task_id": "task-a",
+            "reply_to": "question-a",
+            "assigned_by": "human-a",
+            "consumed": false
+          }
+        ],
+        "next": 2
+      }
+    },
+    "reply-consumed-string": {
+      "kind": "replies",
+      "data": {
+        "items": [
+          {
+            "event_id": "event-a",
+            "conversation_id": "conversation-a",
+            "task_id": "task-a",
+            "reply_to": "question-a",
+            "assigned_by": "human-a",
+            "consumed": "false"
+          }
+        ],
+        "next": "cursor-a"
+      }
+    },
+    "inbox-event-sequence-boolean": {
+      "kind": "inbox",
+      "data": {
+        "events": [
+          {
+            "id": "journal-state",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": false,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "state",
+              "data": {
+                "state": "waiting",
+                "revision": 2,
+                "reason": null
+              }
+            }
+          },
+          {
+            "id": "journal-reply",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 2,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "reply",
+              "data": {
+                "event_id": "event-a",
+                "conversation_id": "conversation-a",
+                "task_id": "task-a",
+                "reply_to": "question-a",
+                "assigned_by": "human-a",
+                "consumed": false
+              }
+            }
+          },
+          {
+            "id": "journal-effect",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 3,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "effect",
+              "data": {
+                "id": "effect-a",
+                "task_id": "task-a",
+                "step_id": "step-a",
+                "request_id": "mutation-a",
+                "state": "succeeded",
+                "outcome": {
+                  "kind": "accepted",
+                  "data": {
+                    "request_id": "mutation-a",
+                    "message_id": "message-a",
+                    "conversation_id": "conversation-a"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "journal-claim",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 4,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "claim",
+              "data": {
+                "task_id": "task-a",
+                "step_id": "step-a",
+                "worker_id": "worker-a",
+                "revision": 1,
+                "expires_at": 1791700030
+              }
+            }
+          }
+        ],
+        "next": "cursor-a"
+      }
+    },
+    "inbox-event-data-unknown": {
+      "kind": "inbox",
+      "data": {
+        "events": [
+          {
+            "id": "journal-state",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 1,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "instruction",
+              "data": {
+                "state": "waiting",
+                "revision": 2,
+                "reason": null
+              }
+            }
+          },
+          {
+            "id": "journal-reply",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 2,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "reply",
+              "data": {
+                "event_id": "event-a",
+                "conversation_id": "conversation-a",
+                "task_id": "task-a",
+                "reply_to": "question-a",
+                "assigned_by": "human-a",
+                "consumed": false
+              }
+            }
+          },
+          {
+            "id": "journal-effect",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 3,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "effect",
+              "data": {
+                "id": "effect-a",
+                "task_id": "task-a",
+                "step_id": "step-a",
+                "request_id": "mutation-a",
+                "state": "succeeded",
+                "outcome": {
+                  "kind": "accepted",
+                  "data": {
+                    "request_id": "mutation-a",
+                    "message_id": "message-a",
+                    "conversation_id": "conversation-a"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "journal-claim",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 4,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "claim",
+              "data": {
+                "task_id": "task-a",
+                "step_id": "step-a",
+                "worker_id": "worker-a",
+                "revision": 1,
+                "expires_at": 1791700030
+              }
+            }
+          }
+        ],
+        "next": "cursor-a"
+      }
+    },
+    "inbox-state-revision-string": {
+      "kind": "inbox",
+      "data": {
+        "events": [
+          {
+            "id": "journal-state",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 1,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "state",
+              "data": {
+                "state": "waiting",
+                "revision": "2",
+                "reason": null
+              }
+            }
+          },
+          {
+            "id": "journal-reply",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 2,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "reply",
+              "data": {
+                "event_id": "event-a",
+                "conversation_id": "conversation-a",
+                "task_id": "task-a",
+                "reply_to": "question-a",
+                "assigned_by": "human-a",
+                "consumed": false
+              }
+            }
+          },
+          {
+            "id": "journal-effect",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 3,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "effect",
+              "data": {
+                "id": "effect-a",
+                "task_id": "task-a",
+                "step_id": "step-a",
+                "request_id": "mutation-a",
+                "state": "succeeded",
+                "outcome": {
+                  "kind": "accepted",
+                  "data": {
+                    "request_id": "mutation-a",
+                    "message_id": "message-a",
+                    "conversation_id": "conversation-a"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "journal-claim",
+            "task_id": "task-a",
+            "actor_id": "agent-a",
+            "sequence": 4,
+            "created_at": 1791700000,
+            "data": {
+              "kind": "claim",
+              "data": {
+                "task_id": "task-a",
+                "step_id": "step-a",
+                "worker_id": "worker-a",
+                "revision": 1,
+                "expires_at": 1791700030
+              }
+            }
+          }
+        ],
+        "next": "cursor-a"
+      }
+    },
+    "recall-omitted-negative": {
+      "kind": "recall",
+      "data": {
+        "sources": [
+          {
+            "source_id": "source-a",
+            "kind": "message",
+            "actor_id": "human-a",
+            "created_at": null,
+            "provenance": "timestamp-not-recorded",
+            "state": "available",
+            "body": "Keep this source in the same conversation."
+          },
+          {
+            "source_id": "deleted-a",
+            "kind": "message",
+            "actor_id": "human-a",
+            "created_at": null,
+            "provenance": "timestamp-not-recorded",
+            "state": "deleted",
+            "body": null
+          }
+        ],
+        "next": "cursor-a",
+        "omitted": -1
+      }
+    },
+    "recall-body-number": {
+      "kind": "recall",
+      "data": {
+        "sources": [
+          {
+            "source_id": "source-a",
+            "kind": "message",
+            "actor_id": "human-a",
+            "created_at": null,
+            "provenance": "timestamp-not-recorded",
+            "state": "available",
+            "body": 4
+          },
+          {
+            "source_id": "deleted-a",
+            "kind": "message",
+            "actor_id": "human-a",
+            "created_at": null,
+            "provenance": "timestamp-not-recorded",
+            "state": "deleted",
+            "body": null
+          }
+        ],
+        "next": "cursor-a",
+        "omitted": 2
+      }
+    },
+    "recall-created-at-boolean": {
+      "kind": "recall",
+      "data": {
+        "sources": [
+          {
+            "source_id": "source-a",
+            "kind": "message",
+            "actor_id": "human-a",
+            "created_at": true,
+            "provenance": "timestamp-not-recorded",
+            "state": "available",
+            "body": "Keep this source in the same conversation."
+          },
+          {
+            "source_id": "deleted-a",
+            "kind": "message",
+            "actor_id": "human-a",
+            "created_at": null,
+            "provenance": "timestamp-not-recorded",
+            "state": "deleted",
+            "body": null
+          }
+        ],
+        "next": "cursor-a",
+        "omitted": 2
+      }
+    },
+    "effect-outcome-malformed": {
+      "kind": "effect",
+      "data": {
+        "id": "effect-a",
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "request_id": "mutation-a",
+        "state": "succeeded",
+        "outcome": {
+          "kind": "accepted",
+          "data": {}
+        }
+      }
+    },
+    "effect-unknown-state": {
+      "kind": "effect",
+      "data": {
+        "id": "effect-a",
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "request_id": "mutation-a",
+        "state": "retry",
+        "outcome": {
+          "kind": "accepted",
+          "data": {
+            "request_id": "mutation-a",
+            "message_id": "message-a",
+            "conversation_id": "conversation-a"
+          }
+        }
+      }
+    },
+    "effect-error-malformed": {
+      "kind": "effect",
+      "data": {
+        "id": "effect-a",
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "request_id": "mutation-a",
+        "state": "failed",
+        "outcome": {
+          "kind": "accepted",
+          "data": {
+            "request_id": "mutation-a",
+            "message_id": "message-a",
+            "conversation_id": "conversation-a"
+          }
+        },
+        "error": {
+          "code": "failed",
+          "message": null
+        }
+      }
+    },
+    "claim-boolean-expiry": {
+      "kind": "claim",
+      "data": {
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "worker_id": "worker-a",
+        "revision": 1,
+        "expires_at": true
+      }
+    },
+    "claim-malformed-container": {
+      "kind": "claim",
+      "data": []
+    },
+    "tool-completed-without-outcome": {
+      "kind": "tool",
+      "data": {
+        "status": "completed",
+        "task_id": "task-a",
+        "outcome": null
+      }
+    },
+    "tool-pending-malformed-effect": {
+      "kind": "tool",
+      "data": {
+        "status": "pending",
+        "task_id": "task-a",
+        "effect_id": 17
+      }
+    },
+    "tool-uncertain-missing-effect": {
+      "kind": "tool",
+      "data": {
+        "status": "uncertain",
+        "task_id": "task-a",
+        "effect_id": null
+      }
+    },
+    "reply-accepted-malformed": {
+      "kind": "reply_accepted",
+      "data": {
+        "request_id": "reply-a",
+        "message_id": "message-a",
+        "reply": {}
+      }
+    },
+    "nested-outcome-depth": {
+      "kind": "effect",
+      "data": {
+        "id": "effect-a",
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "request_id": "mutation-a",
+        "state": "succeeded",
+        "outcome": {
+          "kind": "task",
+          "data": {
+            "kind": "effect",
+            "data": {
+              "id": "effect-a",
+              "task_id": "task-a",
+              "step_id": "step-a",
+              "request_id": "mutation-a",
+              "state": "succeeded",
+              "outcome": {
+                "kind": "task",
+                "data": {
+                  "kind": "effect",
+                  "data": {
+                    "id": "effect-a",
+                    "task_id": "task-a",
+                    "step_id": "step-a",
+                    "request_id": "mutation-a",
+                    "state": "succeeded",
+                    "outcome": {
+                      "kind": "task",
+                      "data": {
+                        "kind": "effect",
+                        "data": {
+                          "id": "effect-a",
+                          "task_id": "task-a",
+                          "step_id": "step-a",
+                          "request_id": "mutation-a",
+                          "state": "succeeded",
+                          "outcome": {
+                            "kind": "task",
+                            "data": {
+                              "kind": "effect",
+                              "data": {
+                                "id": "effect-a",
+                                "task_id": "task-a",
+                                "step_id": "step-a",
+                                "request_id": "mutation-a",
+                                "state": "succeeded",
+                                "outcome": {
+                                  "kind": "task",
+                                  "data": {
+                                    "kind": "effect",
+                                    "data": {
+                                      "id": "effect-a",
+                                      "task_id": "task-a",
+                                      "step_id": "step-a",
+                                      "request_id": "mutation-a",
+                                      "state": "succeeded",
+                                      "outcome": {
+                                        "kind": "task",
+                                        "data": {
+                                          "kind": "effect",
+                                          "data": {
+                                            "id": "effect-a",
+                                            "task_id": "task-a",
+                                            "step_id": "step-a",
+                                            "request_id": "mutation-a",
+                                            "state": "succeeded",
+                                            "outcome": {
+                                              "kind": "task",
+                                              "data": {
+                                                "kind": "effect",
+                                                "data": {
+                                                  "id": "effect-a",
+                                                  "task_id": "task-a",
+                                                  "step_id": "step-a",
+                                                  "request_id": "mutation-a",
+                                                  "state": "succeeded",
+                                                  "outcome": {
+                                                    "kind": "task",
+                                                    "data": {
+                                                      "kind": "effect",
+                                                      "data": {
+                                                        "id": "effect-a",
+                                                        "task_id": "task-a",
+                                                        "step_id": "step-a",
+                                                        "request_id": "mutation-a",
+                                                        "state": "succeeded",
+                                                        "outcome": {
+                                                          "kind": "task",
+                                                          "data": {
+                                                            "kind": "effect",
+                                                            "data": {
+                                                              "id": "effect-a",
+                                                              "task_id": "task-a",
+                                                              "step_id": "step-a",
+                                                              "request_id": "mutation-a",
+                                                              "state": "succeeded",
+                                                              "outcome": {
+                                                                "kind": "task",
+                                                                "data": {
+                                                                  "kind": "effect",
+                                                                  "data": {
+                                                                    "id": "effect-a",
+                                                                    "task_id": "task-a",
+                                                                    "step_id": "step-a",
+                                                                    "request_id": "mutation-a",
+                                                                    "state": "succeeded",
+                                                                    "outcome": {
+                                                                      "kind": "accepted",
+                                                                      "data": {
+                                                                        "request_id": "mutation-a",
+                                                                        "message_id": "message-a",
+                                                                        "conversation_id": "conversation-a"
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "record-extra-owner-binding": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null,
+        "unexpected": "untrusted value"
+      }
+    },
+    "scope-extra-wildcard": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ],
+          "unexpected": "untrusted value"
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      }
+    },
+    "result-extra-grant": {
+      "kind": "record",
+      "data": {
+        "id": "task-a",
+        "owner_id": "agent-a",
+        "conversation_id": "conversation-a",
+        "scope": {
+          "operations": [
+            "send",
+            "history"
+          ],
+          "recipients": [
+            "human-a"
+          ]
+        },
+        "state": "ready",
+        "revision": 1,
+        "expires_at": 1791800000,
+        "initiating_event_id": null,
+        "created_at": 1791700000,
+        "updated_at": 1791700000,
+        "reason": null
+      },
+      "unexpected": "untrusted value"
+    },
+    "effect-extra-token": {
+      "kind": "effect",
+      "data": {
+        "id": "effect-a",
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "request_id": "mutation-a",
+        "state": "succeeded",
+        "outcome": {
+          "kind": "accepted",
+          "data": {
+            "request_id": "mutation-a",
+            "message_id": "message-a",
+            "conversation_id": "conversation-a"
+          }
+        },
+        "unexpected": "untrusted value"
+      }
+    },
+    "claim-extra-binding": {
+      "kind": "claim",
+      "data": {
+        "task_id": "task-a",
+        "step_id": "step-a",
+        "worker_id": "worker-a",
+        "revision": 1,
+        "expires_at": 1791700030,
+        "unexpected": "untrusted value"
+      }
+    }
+  }
+}

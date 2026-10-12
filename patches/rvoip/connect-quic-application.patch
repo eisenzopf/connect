@@ -1,0 +1,84 @@
+diff --git a/crates/uctp/rvoip-quic/src/adapter.rs b/crates/uctp/rvoip-quic/src/adapter.rs
+--- a/crates/uctp/rvoip-quic/src/adapter.rs
++++ b/crates/uctp/rvoip-quic/src/adapter.rs
+@@ -81,6 +81,8 @@
+ }
+ 
+ pub struct UctpQuicConfig {
++    /// Opt-in application profile; installed before signaling ingress.
++    pub application_handler: Option<Arc<dyn rvoip_uctp::application::ApplicationHandler>>,
+     pub endpoint: Arc<quinn::Endpoint>,
+     /// ALPN-filtered stream of established connections from the dispatcher.
+     pub accept_rx: mpsc::Receiver<quinn::Connection>,
+@@ -128,12 +130,18 @@
+ }
+ 
+ impl UctpQuicConfig {
++    pub fn with_application_handler(mut self, handler: Arc<dyn rvoip_uctp::application::ApplicationHandler>) -> Self {
++        self.application_handler = Some(handler);
++        self
++    }
++
+     pub fn new(
+         endpoint: Arc<quinn::Endpoint>,
+         accept_rx: mpsc::Receiver<quinn::Connection>,
+         bearer_validator: Arc<dyn BearerValidator>,
+     ) -> Self {
+         Self {
++            application_handler: None,
+             endpoint,
+             accept_rx,
+             bearer_validator,
+@@ -295,6 +303,7 @@
+             config.coordinator_caps,
+             config.sig9421,
+             ingress_observer,
++            config.application_handler,
+         );
+ 
+         Ok(Arc::new(Self {
+diff --git a/crates/uctp/rvoip-quic/src/server.rs b/crates/uctp/rvoip-quic/src/server.rs
+--- a/crates/uctp/rvoip-quic/src/server.rs
++++ b/crates/uctp/rvoip-quic/src/server.rs
+@@ -58,6 +58,7 @@
+         coordinator_caps: rvoip_uctp::state::UctpCoordinatorCaps,
+         sig9421: Option<rvoip_uctp::state::Sig9421Config>,
+         rtp_ingress_observer: Option<mpsc::Sender<rvoip_uctp::substrate::RtpIngressObservation>>,
++        application_handler: Option<Arc<dyn rvoip_uctp::application::ApplicationHandler>>,
+     ) -> Arc<Self> {
+         let admission_cancel = CancellationToken::new();
+         let accept_cancel = admission_cancel.clone();
+@@ -87,6 +88,7 @@
+                         continue;
+                     }
+                 };
++                let application_handler = application_handler.clone();
+                 let bearer = bearer.clone();
+                 let events_tx = events_tx.clone();
+                 let lifecycle_sink = lifecycle_sink.clone();
+@@ -120,6 +122,7 @@
+                         caps,
+                         sig9421,
+                         rtp_ingress_observer,
++                        application_handler,
+                     )
+                     .await;
+                     metrics::gauge!("uctp_active_connections", "transport" => "quic")
+@@ -374,6 +377,7 @@
+     coordinator_caps: rvoip_uctp::state::UctpCoordinatorCaps,
+     sig9421: Option<rvoip_uctp::state::Sig9421Config>,
+     rtp_ingress_observer: Option<mpsc::Sender<rvoip_uctp::substrate::RtpIngressObservation>>,
++    application_handler: Option<Arc<dyn rvoip_uctp::application::ApplicationHandler>>,
+ ) {
+     // Wire Session IDs are peer-controlled and need only be unique within one
+     // authenticated substrate peer. Never resolve them through the adapter-
+@@ -465,6 +469,9 @@
+             coordinator_caps,
+         )
+     };
++    if let Some(handler) = application_handler {
++        coord.set_application_handler(handler);
++    }
+     if let Err(error) = coord.set_resource_bindings(Arc::clone(&resource_bindings)) {
+         warn!(%error, "rvoip-quic: failed to install coordinator resource authority");
+         media_cancel.cancel();

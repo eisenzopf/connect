@@ -1,0 +1,294 @@
+[
+  {
+    "id": "R01",
+    "priority": "High",
+    "kind": "repair",
+    "title": "Discovery does not describe the capabilities we now deliver.",
+    "promise": "Product brief: discover supported media, operations, limits and permissions. Roadmap F-16 / G3-A; Gate 3 journey: inspect permitted routes before inviting.",
+    "observed": "Identity creation stores only [\"messaging\"]. Resolve returns that stored value; no public operation returns a route-aware capability/limit catalog. An isolated test accepted an audio session and still resolved its participant as messaging-only. Media negotiation and rejection exist, but are not a discoverable product interface.",
+    "impact": "An agent cannot reliably choose files, voice or a permitted route without documentation and installation-specific knowledge. This is a partial Gate 3/product commitment, not a missing QUIC implementation.",
+    "action": "Add an authenticated capability query or additive resolve result covering configured route, supported operations/media, limits and caller permissions. Keep declared capability, configured readiness and expiring availability separate. Do not advertise video yet or infer provider readiness from a key.",
+    "proof": "Compare messaging-only and media-enabled installations; different scopes see only permitted capabilities. Unconfigured, unsupported and stale states are explicit. Run the same query through native, HTTP and language clients.",
+    "when": "Close before Gate 4 tool schemas are frozen.",
+    "refs": [
+      [
+        "crates/connect-store/src/identity.rs",
+        109
+      ],
+      [
+        "crates/connect-store/src/conversation_queries.rs",
+        10
+      ],
+      [
+        "crates/connect-protocol/src/lib.rs",
+        309
+      ]
+    ],
+    "resolution": {
+      "status": "closed-local",
+      "record": "closure.json",
+      "note": "Original finding preserved; source repairs and offline verification appended. Production SMS and replacement package qualification are separate."
+    }
+  },
+  {
+    "id": "R02",
+    "priority": "Medium",
+    "kind": "repair",
+    "title": "Context-delivery visibility stops at the oldest 100 records.",
+    "promise": "G3-012 / A3-10: expose bounded context, provenance and submission/outcome separately. Persistent conversations must remain inspectable over time.",
+    "observed": "The query orders context_deliveries ascending and takes 100 with no continuation. The isolated 101-delivery fixture confirms that the newest delivery disappears from context_view; omitted remains zero because that field counts source items, not delivery records.",
+    "impact": "The history is retained, but a developer or agent cannot use this API to inspect the latest delivery failure in a long-running conversation. This is an observability defect, not evidence that stored context was lost.",
+    "action": "Return recent deliveries with an explicit continuation, or provide an authorized lookup/page API by session or delivery ID. Report delivery truncation separately from source omission. Avoid mixing growing diagnostic receipts into model input unnecessarily.",
+    "proof": "Create more than 100 deliveries with distinct timestamps, including recent pending/failed outcomes. Verify newest visibility, stable pagination, authorization and restart through SDK/HTTP.",
+    "when": "Repair before Gate 4 relies on context receipts.",
+    "refs": [
+      [
+        "crates/connect-store/src/context.rs",
+        100
+      ],
+      [
+        "crates/connect-protocol/src/lib.rs",
+        398
+      ]
+    ],
+    "resolution": {
+      "status": "closed-local",
+      "record": "closure.json",
+      "note": "Original finding preserved; source repairs and offline verification appended. Production SMS and replacement package qualification are separate."
+    }
+  },
+  {
+    "id": "R03",
+    "priority": "High",
+    "kind": "repair",
+    "title": "The reference client can show one conversation while joining voice in another.",
+    "promise": "G3-026: same-conversation messaging/files/voice, visible context delivery/failure. The example should teach public SDK use and recovery.",
+    "observed": "The page lets the user select or create a conversation, but Join voice supplies only URL and credential. Server WebRTC admission uses its fixed configured conversation; the UI neither checks nor displays that binding. Separately, refresh fetches only the first 100 history messages, ignores the next cursor and filters newer ordinary messages out of context. It never renders context.deliveries or omitted. A Node fixture reproduces the hidden-new-message and hidden-failure behavior.",
+    "impact": "The recorded correctly configured voice demo remains valid. Changing the displayed conversation can mislead a user about which history the assistant receives. Longer conversations also appear to stop updating. This is a reference-experience gap, not a bypass of server authorization.",
+    "action": "Expose the authoritative browser binding and prevent a displayed-conversation mismatch before capture/join; an explicitly locked route is sufficient for this local gate. Add paginated timeline handling, context outcome/omission display, and retained mutation intent for uncertain sends/uploads. Repeated button presses currently generate new request IDs.",
+    "proof": "Configure voice for A, display B and require a clear rejection or explicit switch to A. Show message 101 and recent context failures. Lose a response, refresh/retry with the saved ID and prove one accepted effect.",
+    "when": "Repair before using this client as the Gate 4 human-reply reference.",
+    "refs": [
+      [
+        "examples/conversation-client/app.js",
+        59
+      ],
+      [
+        "examples/conversation-client/app.js",
+        95
+      ],
+      [
+        "examples/conversation-client/app.js",
+        192
+      ],
+      [
+        "sdk/typescript/src/browser_voice.ts",
+        47
+      ],
+      [
+        "crates/connect-server/src/media_ingress.rs",
+        43
+      ]
+    ],
+    "resolution": {
+      "status": "closed-local",
+      "record": "closure.json",
+      "note": "Original finding preserved; source repairs and offline verification appended. Production SMS and replacement package qualification are separate."
+    }
+  },
+  {
+    "id": "R04",
+    "priority": "Medium",
+    "kind": "repair",
+    "title": "The current-status documents disagree, and one experience rule contradicts the contract.",
+    "promise": "G3-034 / A3-13: actual capabilities, roadmap, public contract and candidate documentation agree.",
+    "observed": "README still says the Connect-hosted bridge is future Gate 3 work. roadmap.json retains a reopened completion_audit message. The Gate 3 plan says every criterion is not run and its footer claims no implementation completion. The experience draft says ambiguous/unverified callers start a separate conversation, while the accepted contract requires unresolved binding until explicit application policy chooses. Legacy G2-024/026 still show not-started despite their Gate 3 successors being qualified.",
+    "impact": "The prior 35/35 attestation overstates documentation synchronization. A contributor can choose the wrong implementation target or copy a conversation-splitting rule that conflicts with the vision.",
+    "action": "Keep historical records, but make their date and superseding evidence unmistakable. Reconcile current status from one structured manifest, mark legacy tasks transferred rather than unfinished, and replace the ambiguous-caller rule with explicit policy. Add semantic checks for status contradictions, not only valid links.",
+    "proof": "README \u2192 index \u2192 roadmap \u2192 gate plan/checklist \u2192 SDK leads to the same qualified scope and next work. A fresh reader can distinguish current behavior, historical evidence and v0.1 promises. Check rudeless.ai/connect separately when readable.",
+    "when": "Close before approving the Gate 4 plan.",
+    "refs": [
+      [
+        "README.md",
+        9
+      ],
+      [
+        "docs/roadmap.json",
+        114
+      ],
+      [
+        "docs/connect-first-ten-minutes.html",
+        60
+      ],
+      [
+        "docs/connect-gate-3-plan.html",
+        1
+      ],
+      [
+        "docs/decisions/007-gate-3-media-profile.html",
+        238
+      ]
+    ],
+    "resolution": {
+      "status": "closed-local",
+      "record": "closure.json",
+      "note": "Original finding preserved; source repairs and offline verification appended. Production SMS and replacement package qualification are separate."
+    }
+  },
+  {
+    "id": "R05",
+    "priority": "Medium",
+    "kind": "qualify",
+    "title": "Reachability needs an operational readiness signal, not only process health.",
+    "promise": "Give an agent presence; F-18/F-19 readiness and failure visibility. G3-011 requires worker failures to reach supervision/shutdown.",
+    "observed": "Provider workers can exit on storage/commit errors. The runtime retains their join handles until shutdown; main waits for an OS signal. Health reports installation ID, schema and profile, not worker/route readiness. Existing Gate 3 evidence also retains an unexplained long-idle inbound telephone reachability failure. Fresh registration passed; that does not settle sustained reachability.",
+    "impact": "A running server may accept local work while an integration no longer progresses. The qualified short-route proofs are real, but do not justify an always-reachable assistant claim. This was source/evidence review, not a newly injected runtime failure.",
+    "action": "Expose per-worker/per-route ready, degraded, unavailable and uncertain status. Observe worker exits promptly; do not automatically retry uncertain provider mutations. Qualify registration refresh and idle recovery locally with a fake registrar; keep any later live soak separately authorized and bounded.",
+    "proof": "Inject a worker failure and prove health/readiness changes promptly while queued intent remains recoverable. Drop/reject registration refresh and demonstrate truthful readiness and bounded recovery. Record the disposition of the prior idle failure.",
+    "when": "Include in Gate 4 entry work for dependable task continuation; settle telephone readiness before advertising persistent reachability.",
+    "refs": [
+      [
+        "crates/connect-server/src/providers.rs",
+        85
+      ],
+      [
+        "crates/connect-server/src/runtime.rs",
+        252
+      ],
+      [
+        "crates/connect-server/src/main.rs",
+        514
+      ],
+      [
+        "crates/connect-store/src/conversations.rs",
+        81
+      ],
+      [
+        "docs/evidence/gate-3/result.json",
+        1
+      ]
+    ],
+    "resolution": {
+      "status": "closed-local",
+      "evidence": "entry-closure.json",
+      "limit": "The historical live idle telephone failure remains an unreproduced carrier/network observation; no continuous external reachability or live soak is claimed."
+    }
+  },
+  {
+    "id": "R06",
+    "priority": "Medium",
+    "kind": "qualify",
+    "title": "Some important proofs are not yet repeatable through the contributor checks.",
+    "promise": "A3-13 / G3-033: reproducible candidate, schema-6 upgrade/restore and community review. Evidence should be rerunnable without private implementation knowledge.",
+    "observed": "The real schema-6 \u2192 9 installed drill passed, but its qualification fixture is an ignored .local script. The checked-in recovery script assumes schema 1 for its archived-binary failure injection. CI runs check-local.py --ci, which includes workspace tests but not the ignored Gate 3 pressure profile or the dedicated WebRTC allocated-queue check from check-gate-3.py. This is selective coverage, not absence of CI.",
+    "impact": "A reviewer can read the successful results but cannot reproduce all the closing checks from the public commands. Future changes can miss exactly the pressure/queue conditions that previously reopened Gate 3.",
+    "action": "Promote a parameterized schema-6 recovery fixture with documented source/binary provenance. Add a named offline Gate 3 CI/release lane, including pressure and adapter queue tests. Keep live providers out of CI. Publish configurable phone/continuity rehearsal scaffolding rather than private account data.",
+    "proof": "A fresh checkout runs the schema-6 drill and named offline media lane without ignored scripts. A broken queue cap or rollback fixture causes a failing check. Explicitly report which expensive checks run on PRs versus release qualification.",
+    "when": "Before community handoff; make it part of Gate 4 verification setup.",
+    "refs": [
+      [
+        "docs/evidence/gate-3/schema-six-installed.json",
+        1
+      ],
+      [
+        "scripts/check-recovery.py",
+        74
+      ],
+      [
+        ".github/workflows/local-checks.yml",
+        28
+      ],
+      [
+        "scripts/check-local.py",
+        37
+      ],
+      [
+        "scripts/check-gate-3.py",
+        63
+      ],
+      [
+        "crates/connect-server/tests/gate3_media_pressure.rs",
+        284
+      ]
+    ],
+    "resolution": {
+      "status": "closed-local",
+      "evidence": "entry-closure.json",
+      "limit": "GitHub Actions is configured but has not run remotely. A source archive without Git history requires the documented verified baseline executable."
+    }
+  },
+  {
+    "id": "R07",
+    "priority": "Medium",
+    "kind": "design",
+    "title": "The connector seam is useful, but the core still knows Vapi-specific behavior.",
+    "promise": "F-13 / G5-B: a contributor adds a connector without changing core conversation/routing logic. Server and SDK remain one coherent product.",
+    "observed": "The connector crate correctly excludes SQLite. However, store route validation special-cases Telnyx/Vapi, session resolution queries Vapi directly, and chat context dispatch is conditional on the literal vapi connector. VoiceConnector request types assume assistant and phone-number IDs. These are practical first-provider choices, not yet the general extension contract.",
+    "impact": "A second provider with Vapi-like context or voice requirements would need more than composition registration. Adding a Gate 4 host directly into these branches would deepen the coupling the product eventually promises to remove.",
+    "action": "Before the next integration, define normalized capability/context/lifecycle contracts and keep provider validation in adapters or registration descriptors. Keep conversation authority, receipts and uncertain-effect decisions in Connect. Use one independent fake connector to prove the seam. Full manifests/templates/conformance can remain Gate 5.",
+    "proof": "Add the fixture through the connector API and composition only, including a context-bearing reply or normalized voice outcome. No edits to core conversation authorization or provider-name switches for that fixture.",
+    "when": "Narrow design/refactor ahead of adding integrations; full contributor kit remains correctly assigned to Gate 5.",
+    "refs": [
+      [
+        "crates/connect-connector-api/src/lib.rs",
+        37
+      ],
+      [
+        "crates/connect-store/src/providers.rs",
+        141
+      ],
+      [
+        "crates/connect-store/src/session_routes.rs",
+        9
+      ],
+      [
+        "crates/connect-store/src/provider_chat_context.rs",
+        85
+      ],
+      [
+        "docs/CONNECTORS.md",
+        1
+      ]
+    ],
+    "resolution": {
+      "status": "closed-entry-seam",
+      "evidence": "entry-closure.json",
+      "limit": "Existing Vapi telephone/media DTOs and Telnyx callbacks remain explicit integrations. Full generic media connector kit and independent contributor conformance remain Gate 5."
+    }
+  },
+  {
+    "id": "R08",
+    "priority": "Decision",
+    "kind": "design",
+    "title": "Freeze task binding and bounded-memory behavior before exposing agent tools.",
+    "promise": "G4-B/G4-C and F-15/F-20: Vapi tool calls and human replies resume the right authorized task. VoIP 3 conversation persists beyond any one call or model context window.",
+    "observed": "Current credential Scope contains operations and recipients; conversation membership adds another check. It does not express an originating task/call or a per-invocation conversation allowlist. Context selects recent source items within 32 KiB; original history remains, with omissions reported. There is no automatic summary, pinned-fact retrieval or host wake/resume integration. These are limits/design inputs, not a newly discovered authority bypass or a claim that the recorded continuity proof failed.",
+    "impact": "Two tasks with the same participants need an explicit binding rule; a model-supplied conversation ID or provider correlation header is not sufficient authority. A long-lived conversation can retain an important fact that is no longer in the initial model snapshot.",
+    "action": "Decide the server-enforced mapping among Connect actor, task, conversation, call/chat and tool invocation. Reuse current revocation and durable mutation semantics; no per-action approval console. Select one host and declare automatic, bounded-wait or explicit-resume behavior. Define authorized history retrieval and source precedence before promising long-term assistant recall; richer summarization can remain a separate decision.",
+    "proof": "Two concurrent tasks with the same people cannot consume each other\u2019s replies or exercise unintended authority. Duplicate replies apply one business effect, restart resumes the correct task, revocation still denies replay, and an omitted older fact can be retrieved without leaking another conversation.",
+    "when": "Required decisions in the Gate 4 product plan, followed by numbered implementation and acceptance criteria.",
+    "refs": [
+      [
+        "crates/connect-store/src/identity.rs",
+        8
+      ],
+      [
+        "crates/connect-store/src/context.rs",
+        6
+      ],
+      [
+        "docs/roadmap.json",
+        118
+      ],
+      [
+        "docs/backlog.html",
+        1
+      ]
+    ],
+    "resolution": {
+      "status": "closed-decision",
+      "evidence": "entry-closure.json",
+      "limit": "Task records, invocation grants, task-aware tools and host resume are Gate 4 implementation. T-A1\u2013T-A8 are not claimed as runtime passes; additional host research remains G4-A."
+    }
+  }
+]

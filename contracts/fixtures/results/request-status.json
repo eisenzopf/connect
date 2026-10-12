@@ -1,0 +1,26 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env_fixture-result",
+  "in_reply_to": "env_fixture-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "request_status",
+        "data": {
+          "state": "accepted",
+          "outcome": {
+            "kind": "accepted",
+            "data": {
+              "request_id": "send-1",
+              "message_id": "message-1",
+              "conversation_id": "conversation-1"
+            }
+          }
+        }
+      }
+    }
+  },
+  "ts": "2026-10-07T00:00:00Z"
+}

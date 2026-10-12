@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env_fixture-result",
+  "in_reply_to": "env_fixture-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "provider_status",
+        "data": {
+          "deliveries": [
+            {
+              "job_id": "job-1",
+              "message_id": "message-1",
+              "connector": "vapi",
+              "state": "completed",
+              "provider_id": "chat-1",
+              "sms_decision": null,
+              "sms_grant_id": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  "ts": "2026-10-07T00:00:00Z"
+}

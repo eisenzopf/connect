@@ -1,0 +1,27 @@
+[package]
+name = "connect-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+connect-protocol.workspace = true
+connect-service.workspace = true
+rmcp.workspace = true
+axum.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+futures-util.workspace = true
+
+[dev-dependencies]
+connect-store.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

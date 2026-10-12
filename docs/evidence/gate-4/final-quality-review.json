@@ -1,0 +1,239 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T15:51:49.069492+00:00",
+  "status": "passed current-source quality and recovery reconciliation",
+  "scope": "Local macOS arm64 owner review; frozen runtime dc73996, subsequent documentation-only changes",
+  "runtime_source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "current_main_revision_at_review": "65e7fb9d43650f5dad04ec83ab668853a0232ed8",
+  "runtime_inputs_verified_unchanged": 838,
+  "documented_input_delta": {
+    "path": "README.md",
+    "type": "status-only documentation",
+    "frozen_sha256": "7eff2883d5d601f118fb6c370e5a71e04ed2604049418604f7ce3ca7de6fddec",
+    "review_sha256": "56369f7bc91f171d327fd6d931ffb8253812224ecccee1647b55a1ea15c002b1"
+  },
+  "strict_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.771
+    },
+    {
+      "name": "typescript-tests",
+      "command": [
+        "npm",
+        "test",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.79
+    },
+    {
+      "name": "typescript-format",
+      "command": [
+        "npm",
+        "run",
+        "format:check",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 120,
+      "log": "typescript-format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.583
+    },
+    {
+      "name": "typescript-distribution",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "sdk/typescript/dist"
+      ],
+      "timeout_seconds": 60,
+      "log": "typescript-distribution.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.069
+    },
+    {
+      "name": "python-sdk",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "timeout_seconds": 300,
+      "log": "python-sdk.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.54
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 2400,
+      "log": "lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 132.856
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 2400,
+      "log": "rustdoc.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 128.443
+    }
+  ],
+  "behavior_and_recovery": {
+    "complete_offline_phases": 41,
+    "workspace": {
+      "passed": 578,
+      "failed": 0,
+      "explicit_ignored_followups": 9
+    },
+    "authority_cases": {
+      "legacy": 75,
+      "ordinary_identity": 20,
+      "bounded_context": 2
+    },
+    "installed_candidate": {
+      "passed": 17,
+      "failed": 0,
+      "required_omissions": 0
+    }
+  },
+  "independent_reviews": [
+    "agent-access-source-review.json",
+    "source-structure-review.json",
+    "parallel-quality-review.json"
+  ],
+  "current_evidence": [
+    "offline-dc73996.json",
+    "authority-workspace-dc73996.json",
+    "package-dc73996.json",
+    "real-model-agent-dc73996.json",
+    "actual-vapi-chat-dc73996.json",
+    "final-operating-reconciliation.json"
+  ],
+  "findings": [],
+  "blocking_findings": [],
+  "reviewed_responsibilities": [
+    "Protocol types, current authority, store transactions, service orchestration, client transport and server/provider/MCP boundaries remain in separate crates/modules.",
+    "Public SDK, CLI, HTTP and MCP retain the same logical mutation IDs and current authorization; examples own only their application state and use the public client.",
+    "New normal-key modules are focused; scoped provider admission stays separate. Public Rust documentation compiles with warnings denied.",
+    "Recovery proves matching snapshots, populated historical schema upgrades, incompatible older-binary refusal, deliberate migration rollback, interrupted snapshots, cancelled/revoked replay and uncertain acceptance without redispatch.",
+    "The package selects the actual Cargo target root, and compiled/package binary hashes match; runtime installation requires no path into the developer checkout or .deps."
+  ],
+  "largest_source_modules": [
+    {
+      "path": "crates/connect-protocol/src/lib.rs",
+      "lines": 730,
+      "sha256": "b6a5162c865753bdbb4101cecd8761a96b649e3f7367791a3447bba6b45e16f5"
+    },
+    {
+      "path": "crates/connect-server/src/main.rs",
+      "lines": 588,
+      "sha256": "b7ee9a70801518c4391d017f34171d2d3a3eb818edfacec1d7abd37baf4e0933"
+    },
+    {
+      "path": "crates/connect-client/src/operations.rs",
+      "lines": 577,
+      "sha256": "a5f97ccd9ee13f026fbe783a40cbd17cf3c40a19c94145a74ac1aac7b67afe29"
+    },
+    {
+      "path": "crates/connect-store/src/sessions.rs",
+      "lines": 563,
+      "sha256": "1aa86249d9c32103988ce6787cf16b5d82c0c47e0757542b7593a2c8b862f692"
+    },
+    {
+      "path": "crates/connect-server/src/media_lifecycle.rs",
+      "lines": 523,
+      "sha256": "5c1da91a036ae49d3a783040db3c7905fc00cc31fca57b5066e15e18fd5c8537"
+    },
+    {
+      "path": "crates/connect-connectors/src/setup.rs",
+      "lines": 520,
+      "sha256": "e109fac94be6b19c5f4ad99dd7bae48246cf199fc0a1b8ce6d7b377e886d7b5a"
+    },
+    {
+      "path": "crates/connect-store/src/voice.rs",
+      "lines": 518,
+      "sha256": "4e9c75dd11e9ecb7f1157be940f3cda381072b8b737eaed77162766ba16eaac1"
+    },
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "lines": 512,
+      "sha256": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa"
+    },
+    {
+      "path": "crates/connect-client/src/media.rs",
+      "lines": 424,
+      "sha256": "a9b703fcad26ede6f6c2010dbdb08db4df102816cc1cf0be14b0bc7304c2321c"
+    },
+    {
+      "path": "crates/connect-connectors/src/voice_setup.rs",
+      "lines": 420,
+      "sha256": "856f4ff65bc6901f344cc24d3bf5b25cfe2b692f484dca57258e0b9a6301216a"
+    }
+  ],
+  "known_diagnostic_limits": [
+    "Earlier executable startup/cache delays have no established causal diagnosis; later clean-source and installed runs passed without changing security settings or application deadlines.",
+    "The debug/fault linker compact-unwind advisory is retained. It is not a Rust source lint failure; the normal installed release and strict quality checks pass.",
+    "Static HTML links/IDs and inline JavaScript syntax are validated. Visual browser preview is not counted as performed after local file navigation was blocked.",
+    "This is tested local alpha readiness, not a guarantee of community acceptance, full v0.1 coverage or other-platform qualification."
+  ]
+}

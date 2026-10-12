@@ -1,0 +1,110 @@
+{
+  "item": "G4-011",
+  "status": "G4-011 qualified",
+  "recorded_at": "2026-10-10T23:17:30.194326+00:00",
+  "source_base": "a89d9e8e47537cde701e4a979ff221f7b15b344a",
+  "source_files": {
+    "crates/connect-store/src/tasks/recall.rs": "73d4e78874aaf0b8d1d38325e53419a65f8f6c08a21193c17141eaefbf54af8d",
+    "crates/connect-store/src/tasks/recall/projection.rs": "965e986694af98d0f3d18906fce19ea1305fbc955170e4b464f9f5c2d855cea9",
+    "crates/connect-service/src/tasks.rs": "46459a571a3062ad231281e0d3398424741a0709b5f35c85a4d4d6c31def4739",
+    "crates/connect-service/tests/task_authority.rs": "12b1e7ea703765c13fda6bec20a887018d017362b7ff1a8159ef1d42bace9145",
+    "crates/connect-store/src/tasks/tests/recall.rs": "9d6cf68d098b87531f59e5a84e705237583150bb3a17e0745f3ca3678d116e4f",
+    "crates/connect-store/src/tasks/tests/recall_authority.rs": "41e1374355470809b5ce05b125e11b21fd98f5f995ff1a64bc2b81089eb18beb",
+    "crates/connect-store/src/tasks/tests/recall_sources.rs": "e60288b9a05e477cf6a0305bb6c0c6e865cdc25050fe90e7faece66d5b86cfe6"
+  },
+  "scope": "Local macOS arm64; isolated Store/Service source fixtures and actual public native QUIC/provider SDK flows. No installed host/model or live provider claim.",
+  "requirements": [
+    {
+      "requirement": "Retrieve required old fact outside the 32 KiB initial projection without another conversation leaking",
+      "tests": [
+        "tasks::tests::recall::old_required_fact_outside_initial_context_is_recalled_without_other_conversation_leakage"
+      ],
+      "status": "qualified"
+    },
+    {
+      "requirement": "Serialized bounded pages retain cursor, omission count and source provenance; oversized text cannot stall catch-up",
+      "tests": [
+        "tasks::tests::recall::serialized_budget_pages_make_progress_and_explicitly_omit_oversized_text"
+      ],
+      "status": "qualified"
+    },
+    {
+      "requirement": "Current authority, task and installation apply to every continuation; source cursor is not authority",
+      "tests": [
+        "tasks::tests::recall_authority::cursor_is_bound_to_task_installation_and_recall_resource",
+        "tasks::tests::recall_authority::current_grant_and_backing_authority_apply_to_every_continuation_page",
+        "tasks::tests::recall_authority::owner_recall_requires_current_read_scope_inside_task_ceiling",
+        "tasks::tests::recall_authority::cursor_newer_than_restored_snapshot_is_rejected_without_reset_or_leak",
+        "facade_projects_bounded_sources_and_revalidates_recall_continuation"
+      ],
+      "status": "qualified"
+    },
+    {
+      "requirement": "Artifact references reauthorize and expose current missing/expired/deleted states; source metadata never leaks bytes or paths",
+      "tests": [
+        "tasks::tests::recall_sources::artifact_recall_uses_current_state_and_never_returns_bytes_or_server_paths",
+        "tasks::tests::recall_sources::symlink_artifact_is_unavailable_without_following_the_file",
+        "tasks::tests::recall_sources::session_recall_has_recorded_timestamp_and_current_ended_leg_metadata",
+        "tasks::tests::recall_sources::missing_message_source_is_explicit_and_does_not_prevent_later_recall"
+      ],
+      "status": "qualified"
+    },
+    {
+      "requirement": "Untrusted source text cannot alter task grants or routing; real public SDK exposes recall",
+      "tests": [
+        "tasks::tests::recall::recalled_provider_text_does_not_execute_instructions_or_modify_authority",
+        "native_question_reply_recall_and_terminal_receipts_keep_the_same_conversation",
+        "task_grants_bound_provider_context_and_replies_across_native_and_http"
+      ],
+      "status": "qualified"
+    }
+  ],
+  "focused_store_cases": [
+    "tasks::tests::recall::old_required_fact_outside_initial_context_is_recalled_without_other_conversation_leakage",
+    "tasks::tests::recall::serialized_budget_pages_make_progress_and_explicitly_omit_oversized_text",
+    "tasks::tests::recall::recalled_provider_text_does_not_execute_instructions_or_modify_authority",
+    "tasks::tests::recall_authority::cursor_is_bound_to_task_installation_and_recall_resource",
+    "tasks::tests::recall_authority::current_grant_and_backing_authority_apply_to_every_continuation_page",
+    "tasks::tests::recall_authority::owner_recall_requires_current_read_scope_inside_task_ceiling",
+    "tasks::tests::recall_authority::cursor_newer_than_restored_snapshot_is_rejected_without_reset_or_leak",
+    "tasks::tests::recall_sources::artifact_recall_uses_current_state_and_never_returns_bytes_or_server_paths",
+    "tasks::tests::recall_sources::symlink_artifact_is_unavailable_without_following_the_file",
+    "tasks::tests::recall_sources::session_recall_has_recorded_timestamp_and_current_ended_leg_metadata",
+    "tasks::tests::recall_sources::missing_message_source_is_explicit_and_does_not_prevent_later_recall"
+  ],
+  "checks": [
+    {
+      "log": ".local/gate-4-planning/reply-recovery-store.log",
+      "log_sha256": "f9d3bb38abd7e32352233c85039c3a07698e760b54c40d476831f15a25de8ddf",
+      "terminal_exit": 0,
+      "passed": 149,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-recall-service-current.log",
+      "log_sha256": "4a16ba9a6c049c25e4250026d9b8779c9cf9750583cca0dbe8d77630cd99fc8a",
+      "terminal_exit": 0,
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/reply-recovery-wire.log",
+      "log_sha256": "eebc0ed648fc79ee944053d57e9795b0a934520ee818f7ecc9b5f11d45cf5cb7",
+      "terminal_exit": 0,
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    }
+  ],
+  "total_behavior_passes": 156,
+  "quality": "Strict public production Rustdoc, Store/Service all-target Clippy and formatting qualified in task-lock-expiry.json on unchanged production source; server public-client fixtures additionally checked in reply-inbox-recovery.json.",
+  "not_claimed": [
+    "Actual host/model retrieval or use of the fact",
+    "Full A4-05/T-A5 integrated acceptance",
+    "A source timestamp when the original journal never recorded one"
+  ],
+  "historical_foundation": "task-recall-foundation.json",
+  "closure": "Core recall requirements qualified after G4-008/G4-009 dependencies; integrated host/provider journeys remain open."
+}

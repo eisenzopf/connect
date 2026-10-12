@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T22:39:54.481181+00:00",
+  "status": "failed behavioral acceptance; retained first actual-model attempts",
+  "runtime_source": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
+  "runtime_binary_sha256": "6a34f2ef7bbcb41bad5a52d108db5c8c26583a7ef36f509ff3ee26907056394f",
+  "scope": "Actual installed Codex using inherited model account and Connect tools; separate from scripted Responses tests. No Vapi/Telnyx call or SMS.",
+  "attempts": [
+    {
+      "proposal": "a",
+      "runtime_confirmed_turn_completed": true,
+      "mcp_calls": [
+        {
+          "tool": "connect_task_status",
+          "status": "completed"
+        },
+        {
+          "tool": "connect_recall",
+          "status": "completed"
+        }
+      ],
+      "canonical_call_inputs": [
+        {
+          "name": "exec",
+          "input_retained": true,
+          "call_id_retained": true
+        },
+        {
+          "name": "exec",
+          "input_retained": true,
+          "call_id_retained": true
+        },
+        {
+          "name": "exec",
+          "input_retained": true,
+          "call_id_retained": true
+        }
+      ],
+      "command_exit_codes": [
+        0,
+        0
+      ],
+      "log_sha256": {
+        "host-728b971d-bfc7-4aff-acf0-8cb6dac4f9ff-1.jsonl": "b04c9ddd542933bce8b544e88ebd77bc81cf1eaee7fb4bfa5539e001598d142a"
+      },
+      "outcome": "model reported storage requirement and declined communications; this journey failed"
+    },
+    {
+      "proposal": "b",
+      "runtime_confirmed_turn_completed": true,
+      "mcp_calls": [
+        {
+          "tool": "connect_task_status",
+          "status": "completed"
+        },
+        {
+          "tool": "connect_recall",
+          "status": "completed"
+        },
+        {
+          "tool": "connect_task_wait",
+          "status": "completed"
+        }
+      ],
+      "canonical_call_inputs": [
+        {
+          "name": "exec",
+          "input_retained": true,
+          "call_id_retained": true
+        },
+        {
+          "name": "exec",
+          "input_retained": true,
+          "call_id_retained": true
+        },
+        {
+          "name": "exec",
+          "input_retained": true,
+          "call_id_retained": true
+        },
+        {
+          "name": "exec",
+          "input_retained": true,
+          "call_id_retained": true
+        }
+      ],
+      "command_exit_codes": [
+        0,
+        2
+      ],
+      "log_sha256": {
+        "host-56761bdb-6865-4061-9488-08af137590b9-1.jsonl": "f84aadae1d911842a66b91efe3d4af5dc697ac3767815c13371ce1c16c03dca0"
+      },
+      "outcome": "model reported storage requirement and declined communications; this journey failed"
+    }
+  ],
+  "public_sdk_observation": {
+    "messages": 0,
+    "private_history_sha256": "747c4a044233edce6b383b363192d9b2df61fc710e430a9015acbddfafa9afcc"
+  },
+  "finding": "Generic durability instruction omitted the shipped Codex runtime/launcher retention mechanism. Both models stopped before artifact upload or question send.",
+  "correction": "Skill now explains supplied Codex call-input retention and directs the model to use installed tools without an extra persistence tool. Static validation passed; actual corrected behavioral qualification remains pending.",
+  "boundaries": [
+    "A confirmed model turn is not a completed task or successful communication journey.",
+    "Canonical call records were observed after these turns; before-dispatch ordering is supported separately by codex-call-intent.json, not inferred from this observation.",
+    "No item completion inferred."
+  ],
+  "existing_retention_ordering_evidence": "docs/evidence/gate-4/codex-call-intent.json"
+}

@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T23:15:04.590856+00:00",
+  "status": "retained failed package invocation; compilation exhausted runtime phase budget",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-59b551990c00",
+  "private_report": ".local/package-checks/20261011T224550.486732Z/result.json",
+  "private_report_sha256": "1866ad6e27864438408c0f8d65ccff9f69fec2b0060c0b909147ac4979a6c96f",
+  "passed_checks": [
+    "archive-checksums",
+    "inventory",
+    "sdk-source-build",
+    "installed-walkthrough",
+    "restart-shutdown",
+    "installed-language-sdks",
+    "installed-gate4-agent",
+    "check-examples.py",
+    "check-recovery.py"
+  ],
+  "error": "TimeoutExpired",
+  "installed_host": "passed",
+  "finding": "Legacy crash qualification compiled the checkout fault variant inside its 600-second behavior deadline. Compilation had not finished, so the crash behavior was not executed and is not a pass.",
+  "correction_in_progress": "Prepare exact-source fixtures with their own owned 2400-second build phase; run extracted-source behavior checks with provided test-only binaries and owned-process cleanup. Behavior deadline remains 600 seconds. New end-to-end qualification is required.",
+  "boundary": "Actual-model draft/reply proof is separate from this failed package invocation; neither closes the whole gate."
+}

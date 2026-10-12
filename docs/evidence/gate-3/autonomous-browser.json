@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "evidence": "autonomous-chrome-live-audio",
+  "status": "passed",
+  "recorded_at": "2026-10-09T20:42:53.861220+00:00",
+  "source_revision": "ecdb2b7235f4ec86b14679adc46d0718e3f719bf",
+  "scope": "macOS arm64; Chrome 154; loopback WebRTC signaling; host/host UDP ICE; Opus; real Vapi WebSocket backend",
+  "public_sdk": "BrowserVoiceSession.open optional inputStream; BrowserHttpClient artifacts",
+  "three_turns": {
+    "independently_decoded_answers": [
+      "Marigold Comet / Thursday",
+      "Silver Lighthouse / Marigold Comet",
+      "Silver Lighthouse"
+    ],
+    "rtp_audio": [
+      {
+        "direction": "inbound",
+        "codec": "audio/opus",
+        "packets": 2494,
+        "bytes": 246084
+      },
+      {
+        "direction": "outbound",
+        "codec": "audio/opus",
+        "packets": 1030,
+        "bytes": 80107
+      }
+    ],
+    "received_samples": 2428928,
+    "audio_sha256": "24fb1f3af567b88ccc7b7d4e73d153ac0258bb2b3bc7c2166e419cc6013c089d"
+  },
+  "interruption": {
+    "reply_trigger": "received speech energy followed by one-second delay",
+    "first_answer_truncated": "A lighthouse keeper is responsible.",
+    "next_answer_and_recall": "Paper Tiger",
+    "turn_start_seconds": [
+      0.00020000001788139342,
+      7.241100000023842,
+      23.08690000000596
+    ],
+    "rtp_audio": [
+      {
+        "direction": "inbound",
+        "codec": "audio/opus",
+        "packets": 1726,
+        "bytes": 156924
+      },
+      {
+        "direction": "outbound",
+        "codec": "audio/opus",
+        "packets": 598,
+        "bytes": 46637
+      }
+    ],
+    "audio_sha256": "15b0b7ff2c65d9783e35afd7696131ba8bd1ee7d36e30458944c365c06c1d78c"
+  },
+  "decoder": "Local faster-whisper base.en CPU/int8; captured received WAV, not provider transcript",
+  "cleanup": {
+    "input_tracks_after_local_hangup": [
+      "ended"
+    ],
+    "remote_hangup": "Earlier real Chrome server-ended observation retained in browser-live.json; application reset controls and released microphone; regression tests cover remote BYE and initial resource-construction failure."
+  },
+  "artifact_roundtrip": "Captured recording uploaded in 32 KiB chunks through public browser SDK; downloaded through public Python HTTP SDK; SHA-256 matched.",
+  "owner_confirmation": "browser-owner.json",
+  "earlier_failures": [
+    "Original WebSocket-open race and route admission failures retained in browser-live.json.",
+    "Two generated-audio harness runs loaded an older cached SDK and requested the microphone; not counted as passes. Fresh import namespace established generated input and independent returned-audio proof.",
+    "First recording upload exceeded the default request bound; retained failed intent, then corrected chunk size."
+  ],
+  "private_evidence": [
+    ".local/gate-3-live/automated/browser-result.json",
+    ".local/gate-3-live/automated/browser-interruption-result.json",
+    ".local/gate-3-live/automated/browser-interruption-received.asr.json",
+    ".local/gate-3-live/automated/browser-interruption-proof.png"
+  ],
+  "limits": "No WAN/TURN/device qualification. Generated input does not attest particular microphone/speaker hardware; owner browser confirmation is separately recorded."
+}

@@ -1,0 +1,58 @@
+# Public template; no credentials or private key material.
+# Paths are relative to this configuration file. Use connect init to create them.
+bind = "127.0.0.1:4433"
+# Optional plaintext loopback conformance listener (not the native SDK):
+# websocket_bind = "127.0.0.1:8088"
+database = "state.sqlite3"
+certificate = "certificate.der"
+private_key = "private-key.der"
+
+# Optional authenticated WebRTC signaling. The browser supplies a current
+# communications credential in a private WebSocket subprotocol value.
+# [webrtc]
+# bind = "127.0.0.1:8090"
+# [webrtc.route]
+# credential_id = "configured-route-credential-id"
+# conversation_id = "configured-conversation-id"
+# assistant_identity_id = "configured-assistant-identity-id"
+# Optional: join this already accepted audio session. When both WebRTC and SIP
+# routes name the same session, Connect pairs their live connections.
+# session_id = "configured-accepted-session-id"
+
+# Optional SIP/RTP ingress. Use a concrete advertised address when binding an
+# unspecified interface. Caller ID and SIP headers never select authority.
+# [sip]
+# bind = "127.0.0.1:5060"
+# media_bind_ip = "127.0.0.1"
+# advertised = "127.0.0.1:5060"
+# media_public = "127.0.0.1:10000"
+#
+# Optional outbound carrier trunk. Keep its password outside this file:
+# export CONNECT_SIP_PASSWORD='carrier-secret'
+# [sip.outbound]
+# proxy_uri = "sip:sip.telnyx.com;lr"
+# identity_uri = "sip:+12702628454@sip.telnyx.com"
+# auth_username = "replace-with-connection-username"
+# auth_password_env = "CONNECT_SIP_PASSWORD"
+# [sip.route]
+# credential_id = "configured-route-credential-id"
+# conversation_id = "configured-conversation-id"
+# assistant_identity_id = "configured-assistant-identity-id"
+# Optional: join this already accepted audio session. Omit it to create a new
+# inbound session for each admitted SIP call.
+# session_id = "configured-accepted-session-id"
+
+[limits]
+message_bytes = 16384
+page_size = 100
+journal_events = 100000
+operation_receipts = 100000
+message_storage_bytes = 67108864
+participants = 8
+wait_ms = 5000
+request_timeout_ms = 10000
+connections = 64
+sessions = 10000
+artifact_file_bytes = 16777216
+artifact_bytes = 268435456
+artifact_chunk_bytes = 32768

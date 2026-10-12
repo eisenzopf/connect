@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T20:17:20.877327+00:00",
+  "status": "documentation compatibility review; no live execution evidence",
+  "items": [
+    "G4-022",
+    "G4-034"
+  ],
+  "sources": [
+    {
+      "url": "https://docs.vapi.ai/tools/mcp",
+      "observation": "Streamable HTTP MCP accepts custom server.headers. Calls carry X-Call-Id; chats carry X-Chat-Id and session chats also X-Session-Id. Tool calls can use new MCP connections.",
+      "implementation": "call.rs supplies the explicit setup bearer and shttp protocol; admission.rs verifies these headers against protected state and the private API."
+    },
+    {
+      "url": "https://docs.vapi.ai/server-url/server-authentication",
+      "observation": "Request-supplied server URLs do not inherit organization credentials under the documented rollout. Explicit request server.headers is a documented authentication option.",
+      "implementation": "The setup supplies its own per-invocation Authorization header; it does not depend on a saved organization credential being attached."
+    },
+    {
+      "url": "https://docs.vapi.ai/chat/variable-substitution",
+      "observation": "Session creation stores supplied variableValues in session.metadata.variableValues.",
+      "implementation": "vapi_origin.rs verifies the original protected nonce at that session metadata path rather than accepting incoming header selectors as authority."
+    },
+    {
+      "url": "https://docs.vapi.ai/squads",
+      "observation": "Assistant overrides support inline tools through tools:append.",
+      "implementation": "Per-invocation setup appends its MCP tool while preserving the saved assistant definition."
+    }
+  ],
+  "source_sha256": {
+    "crates/connect-server/src/vapi_bootstrap/call.rs": "8de88a75e616b686b973c58608c429aacf39a41943db19da9da188eeb6e9853f",
+    "crates/connect-server/src/vapi_bootstrap/admission.rs": "0bd5e44852d4941e5c45c8fdc20fa699b250e26b0fb95398cd455be8f59aaf3a",
+    "crates/connect-connectors/src/vapi_origin.rs": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b"
+  },
+  "limits": [
+    "Documentation agreement is not evidence of successful live Vapi discovery, invocation, audio or model follow-through.",
+    "Actual cloud header propagation, saved resource verification and tool results must still be captured in the separately invoked bounded rehearsal.",
+    "No provider account, resource, public callback ingress or deployment was accessed or changed."
+  ]
+}

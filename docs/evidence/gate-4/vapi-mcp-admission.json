@@ -1,0 +1,99 @@
+{
+  "recorded_at": "2026-10-10T19:53:58.884987+00:00",
+  "source_base": "d575e81d7bc6b47a3b9ac9d01c9431e2ba76d6bb",
+  "source_checkpoint": "adfd79f579dcf4e135ad65b5a20a2f01f352169c",
+  "source_verification": {
+    "base_commit": "d575e81d7bc6b47a3b9ac9d01c9431e2ba76d6bb",
+    "files": {
+      "crates/connect-mcp/src/auth.rs": "9216321950a8e2fd492f116e4debb0459dbaf5096a880d75fad7a4c73d3f8c94",
+      "crates/connect-mcp/src/lib.rs": "2cb7ac484e046122f5f80148c9a1455160a684dd99fa45075718acda3ef3e6b7",
+      "crates/connect-mcp/src/vapi_auth.rs": "d310999324d2b423699471e4576b7995302604f230fc5a73a2a70944149b08de",
+      "crates/connect-mcp/README.md": "fa639d11f267e3e5bb298e3ec2f9515cf54fa43bf17e310855c708d23782de3a",
+      "crates/connect-server/tests/gate4_vapi_mcp_binding.rs": "0c06b869159b2696acbbf26703efdb5a2acd456d6adf657adcef6987d0ed9210",
+      "crates/connect-server/tests/gate4_vapi_mcp_lifecycle.rs": "92fc75ebe526b47519eaeffe58786fe42cc4f7e44bbfef6a3c18cc30a7d7afd5",
+      "crates/connect-server/tests/support/vapi_bindings.rs": "c1a46b195321a34ec46a339a594cbbf33acca53c065ac940b09430fef7b2a71f",
+      "crates/connect-client/src/client.rs": "0269d1d6800fa8f236a829821f7c7518318ff754fc7e44546b90f9d2916121c4"
+    },
+    "fingerprint": "a2fe5543e869b0f1ed6dec9aa6c66e1d18880c4fe5019560194a6e1fed79df07"
+  },
+  "qualification": "Local macOS arm64; disposable stores and loopback MCP/QUIC only. No provider account, public ingress, production database or deployment changed.",
+  "status": "Registered-origin Vapi MCP admission component qualified; provider lifecycle composition and full Gate 4 acceptance remain open",
+  "items": [
+    "G4-008",
+    "G4-016",
+    "G4-019"
+  ],
+  "primary_contract_sources": [
+    "https://docs.vapi.ai/tools/mcp"
+  ],
+  "implemented": [
+    "One fixed registered provider binding per adapter; current narrow grant authority is authenticated before provider correlation is interpreted. No shared bearer selects tasks from headers.",
+    "Exact call and standalone chat admission, plus session-scoped chat admission requiring the registered session ID and a bounded chat ID. A session grant covers chats in that one session.",
+    "Local/native or host-session bindings, wrong provider kind, malformed/duplicate/missing/conflicting IDs, owner bearers, cross-task grants and wrong resources are rejected.",
+    "The MCP layer has no SQL or provider lookup and cannot register origins, mint grants or promote authority. Existing native/host server configuration still rejects provider origins."
+  ],
+  "verification": [
+    {
+      "log": ".local/gate-4-planning/vapi-binding-final.log",
+      "log_sha256": "ecc62881be22e6d23c8cf0dc51d3bb23a7ef5fe846abb6575858c43661822093",
+      "terminal_exit": 0,
+      "result": "2 actual MCP integration tests passed: three origin modes, two tasks in one installation, matching send replay with one message per origin, 41 raw bearer/header denials, grant revocation and expiry/cancellation/backing-credential revocation. Denials leave snapshots unchanged.",
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --test gate4_vapi_mcp_binding --test gate4_vapi_mcp_lifecycle"
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-binding-clippy.log",
+      "log_sha256": "13435cd73f995395637f1dff4abf9b48907ad69244c5560aa89ffc2656d00b65",
+      "terminal_exit": 0,
+      "result": "Strict MCP/server all-feature all-target Clippy passed before the final secondary-header fixture expansion."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-binding-clippy-final.log",
+      "log_sha256": "ed271e596c6f437e3fe395848568d4d4c774d3f7bfb260c86deb208600c4e780",
+      "terminal_exit": 0,
+      "result": "Strict Clippy passed on final expanded fixture targets and affected selected packages.",
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-client -p connect-mcp -p connect-server --all-features --test gate4_vapi_mcp_binding --test gate4_vapi_mcp_lifecycle -- -D warnings"
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-binding-rustdoc.log",
+      "log_sha256": "fff6ff426d5108e9f93d4f68928cf1c29a01a8af5007c7638769646132071cad",
+      "terminal_exit": 0,
+      "result": "Strict public MCP Rustdoc passed.",
+      "command": "CARGO_BUILD_JOBS=4 RUSTDOCFLAGS=\"-D warnings\" cargo doc --locked -p connect-mcp --no-deps"
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-binding-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+      "terminal_exit": 0,
+      "result": "Recorded upstream dependency preparation passed."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-control-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "terminal_exit": 0,
+      "result": "Workspace formatting passed."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-binding-doc-links.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410",
+      "terminal_exit": 0,
+      "result": "Documentation links, anchors, stable task IDs and dependency checks passed."
+    }
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/vapi-binding-tests.log",
+      "log_sha256": "a67048177044cbddb780a471cfe821d009e77bc92e3033322c68bb8906de2144",
+      "terminal_exit": 101,
+      "result": "Initial duplicate-header fixture used reqwest default_headers, which retains only the first default value. Changed the fixture to apply request headers directly so duplicates reach the server; no admission guard was weakened. Local installed reqwest source confirmed the behavior."
+    }
+  ],
+  "limits": [
+    "Trusted local fixture composition registers provider IDs; this is not provider identity verification or actual Vapi invocation.",
+    "Provider lookup/authenticated lifecycle registration, per-invocation credential export, first-request setup, bounded task context and post-call continuation remain required.",
+    "Existing macOS debug linker warning remains visible. Complete acceptance and packaging are not claimed."
+  ],
+  "related_evidence": [
+    "native-control-envelope-errors.json",
+    "native-task-media.json"
+  ]
+}

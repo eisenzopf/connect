@@ -1,0 +1,178 @@
+{
+  "status": "local-existing-resource-setup-component-qualified; full authority and provider lifecycle closure remain open",
+  "recorded_at": "2026-10-10T22:43:07.622067+00:00",
+  "source_base": "3b07c2bcf4eb3b89037e4593e010d264f3df2233",
+  "source_files": {
+    "crates/connect-server/src/lib.rs": "99340a347b8e71d1de18927f8079df9353e93656986a2a36c6291292c3542092",
+    "crates/connect-server/src/vapi_task_setup.rs": "897861f005b62736679a55c97b6d3da88e0e75d2cc88129547c841c9d8626a34",
+    "crates/connect-server/tests/gate4_vapi_setup_denials.rs": "5bbeec30a2453988847972b9402e1a9690da4b863a2982deaa81b0952b856f94",
+    "crates/connect-server/tests/gate4_vapi_setup_races.rs": "3a85a9b3f3a9ab7211055f1754346ed03ceb053e696b94a992b3db7177005f82",
+    "crates/connect-server/tests/gate4_vapi_verified_setup.rs": "c3a81bc09a150177ea1c72fae0ff7b0fed22df934590abc61f99f5f59923ff16",
+    "crates/connect-server/tests/support/paused_vapi_lookup.rs": "bea373d97e1dd770ef1f532dc945e2c594fa3a32bc8705e31cb18d0dbef7bedf",
+    "crates/connect-server/tests/support/vapi_setup.rs": "fc5163d74772cfb0e94f83c0b2d343975b384542e6725c76a9bb4fbb23ef47b8",
+    "crates/connect-service/src/tasks.rs": "46459a571a3062ad231281e0d3398424741a0709b5f35c85a4d4d6c31def4739",
+    "crates/connect-service/src/tasks/provider_setup.rs": "95255cf6e4e68b10b3a5247785fda97931bbf7f8b658b6734063c3a4210238ef",
+    "crates/connect-store/src/tasks/grants/issuance.rs": "563cc7f74e78599c2f7aec98925b06ddf769d77846a865f0b980242f8e9df394",
+    "crates/connect-store/src/tasks/grants/mod.rs": "12931456fe389c26e1a12868012968da172caa6191ed25324f1a3b59e4add1a5",
+    "crates/connect-store/src/tasks/grants/provider.rs": "917976656117bafe47ba2ba83f2a4695efb27275ba028a7753b5740bc29ee29f",
+    "crates/connect-store/src/tasks/tests/mod.rs": "bee5b87d4db1dd7f0d4e1f5e7aee4a36355fc3e81bd2bab97d96a6d909bed483",
+    "crates/connect-store/src/tasks/tests/provider_setup.rs": "1c755ea35c4ec608a13fa998ddc00ea328c07d3b8d9aff3addb956c346465a87"
+  },
+  "scope": "Local macOS arm64, fake private SDK API, isolated Store, actual loopback MCP and public native client; no live account operations",
+  "items": [
+    "G4-008",
+    "G4-019"
+  ],
+  "implementation": [
+    "Protected setup preflights current owner/task/operation authority before any private lookup.",
+    "Private SDK verification matches the exact resource mode, ID and expected assistant.",
+    "After network I/O the immediate issuance transaction rechecks current authority, registers the binding and issues one narrow grant atomically.",
+    "Call, standalone chat and session chat use separate adapter namespaces. Replay retains the exact secret and expiry.",
+    "Provider setup is absent from model TaskCommand and public local TaskAccess exchange."
+  ],
+  "verified": [
+    {
+      "command": "cargo test -p connect-store --all-features --lib tasks::tests::provider_setup",
+      "terminal_exit": 0,
+      "result": "5 passed; 0 failed; 0 ignored",
+      "log_sha256": "8cad7c370eb015b82c86543540d9308e7a732c3f09f564fb212252f2f3e6849a"
+    },
+    {
+      "command": "cargo test -p connect-server --test gate4_vapi_verified_setup --test gate4_vapi_setup_denials --test gate4_vapi_setup_races --test gate4_vapi_mcp_binding --test gate4_vapi_mcp_lifecycle",
+      "terminal_exit": 0,
+      "result": "6 passed; 0 failed; 0 ignored across 5 integration binaries",
+      "log": ".local/gate-4-planning/vapi-setup-wire-qualified.log",
+      "log_sha256": "a3f7898f2944c139752db8ad8639ca2bd6b34c30f4f23336d0fc1453556fd4a3"
+    },
+    {
+      "command": "cargo test -p connect-server --test gate4_native_grants --test gate4_native_grant_lifecycle --test gate4_task_access --test gate4_task_access_bounds",
+      "terminal_exit": 0,
+      "result": "9 passed; 0 failed; 0 ignored across 4 integration binaries",
+      "log": ".local/gate-4-planning/vapi-setup-native-regression.log",
+      "log_sha256": "db45b1b6c5d6a07e05588e99695535a645113239dca81c17ff0ead61caa446af"
+    },
+    {
+      "check": "prepare",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.172,
+      "result": "Passed",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "check": "store",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "connect-store",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 978.319,
+      "result": "195 passed; 0 failed; 0 ignored across 16 harnesses",
+      "log_sha256": "4ccf59afe7c5f9c9177dd181bba7384286587c502c4a2efef25223a93353c7f4"
+    },
+    {
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-server",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 140.004,
+      "result": "Passed",
+      "log_sha256": "74334f29163dfd958bc2d720671b662c7099033b9fdb25c6d9c71f04fc0022e6"
+    },
+    {
+      "check": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 45.211,
+      "result": "Passed",
+      "log_sha256": "13cee3bfeae6484f2642b23bb54f6bd5a845f602c79bae11552b150db1573afb"
+    },
+    {
+      "check": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.402,
+      "result": "Passed",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "qualification_pending": [],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/vapi-setup-wire.log",
+      "terminal_exit": 101,
+      "result": "Compilation rejected an unborrowed String passed to Error::new; corrected borrowing. No behavior tests ran."
+    }
+  ],
+  "remaining": [
+    "Provider resource creation and uncertain creation reconciliation",
+    "First invocation bootstrap/install of protected MCP configuration",
+    "Main runtime provider configuration",
+    "Actual remote Vapi invocation and final Gate 4 journeys"
+  ],
+  "closure": "This component does not close G4-019 or any A4 criterion.",
+  "behavior": [
+    "Three private SDK origin modes reach real MCP and an independent native QUIC recipient. Matching grant export preserves bearer and expiry; matching tool replay produces one message.",
+    "Wrong scope and revoked parent are denied before any SDK request; provider failure, assistant mismatch, ended call, session-chat mismatch and completed session leave the complete logical database snapshot unchanged.",
+    "Explicit paused-GET barrier proves parent revocation and task cancellation during verification deny the final issuance without new database rows.",
+    "Existing MCP origin forgery/current-authority and native/protected-access regressions remain passing."
+  ],
+  "review": {
+    "production_modules": {
+      "server_setup_lines": 108,
+      "service_setup_lines": 37,
+      "store_setup_lines": 64
+    },
+    "boundaries": "Store owns the atomic transaction; Service bridges blocking storage; Server composes private SDK lookup and fixed MCP admission. No SQL enters MCP or examples. Existing schema, upstream sources, Cargo.lock and public model/local-grant exchanges are unchanged.",
+    "corrected_finding": "Pre-lock timestamp capture reproduced on fe4674a was corrected and independently qualified in task-lock-expiry.json (149 final Store units and 15 native/HTTP/MCP integrations). The original 210-test component proof retains its historical source scope."
+  },
+  "behavior_test_totals": {
+    "full_store": 195,
+    "provider_sdk_mcp": 6,
+    "native_and_protected_access": 9,
+    "total": 210,
+    "failed": 0,
+    "ignored": 0
+  },
+  "source_verification": {
+    "frozen_rust_files": 14,
+    "mismatches": 0,
+    "cargo_lock_unchanged": true
+  },
+  "retained_observations": [
+    "macOS linker reported the existing oversized __eh_frame warning. No compile/link flags, test deadlines or assertions were relaxed."
+  ]
+}

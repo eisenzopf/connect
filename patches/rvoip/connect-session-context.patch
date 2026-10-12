@@ -1,0 +1,74 @@
+diff --git a/crates/foundation/rvoip-core/src/events.rs b/crates/foundation/rvoip-core/src/events.rs
+index e89a9b4..3101081 100644
+--- a/crates/foundation/rvoip-core/src/events.rs
++++ b/crates/foundation/rvoip-core/src/events.rs
+@@ -87,6 +87,9 @@ pub enum Event {
+     /// Authorization decisions should compare `principal.ownership_key()`.
+     ConnectionPrincipalAuthenticated {
+         connection_id: ConnectionId,
++        /// Canonical Session supplied by an atomic authenticated inbound
++        /// adapter handoff. Legacy authentication refreshes may omit it.
++        session_id: Option<SessionId>,
+         participant_id: String,
+         principal: AuthenticatedPrincipal,
+         at: DateTime<Utc>,
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+index 77ffef8..7824955 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -293,6 +293,7 @@ impl std::fmt::Debug for DeferredPrincipalAuthentication {
+ 
+ struct PendingInboundPublication {
+     connection_id: ConnectionId,
++    session_id: Option<SessionId>,
+     transport: Transport,
+     participant_id: Option<String>,
+     principal: Option<AuthenticatedPrincipal>,
+@@ -6512,6 +6513,7 @@ impl Orchestrator {
+             });
+             self.emit(Event::ConnectionPrincipalAuthenticated {
+                 connection_id: pending.connection_id.clone(),
++                session_id: pending.session_id.clone(),
+                 participant_id: deferred.participant_id,
+                 principal: deferred.principal,
+                 at: deferred.at,
+@@ -6528,6 +6530,7 @@ impl Orchestrator {
+             });
+             self.emit(Event::ConnectionPrincipalAuthenticated {
+                 connection_id: pending.connection_id.clone(),
++                session_id: pending.session_id.clone(),
+                 participant_id: participant_id.clone(),
+                 principal,
+                 at: pending.observed_at,
+@@ -7107,6 +7110,7 @@ impl Orchestrator {
+             });
+             self.emit(Event::ConnectionPrincipalAuthenticated {
+                 connection_id: connection_id.clone(),
++                session_id: None,
+                 participant_id: participant_id.to_owned(),
+                 principal: principal.clone(),
+                 at,
+@@ -7433,6 +7437,7 @@ impl Orchestrator {
+                     Err(_) => return,
+                 };
+                 self.gate_or_publish_inbound(PendingInboundPublication {
++                    session_id: Some(connection.session_id.clone()),
+                     connection_id: connection.id,
+                     transport,
+                     participant_id: Some(participant_id),
+@@ -7672,6 +7677,7 @@ impl Orchestrator {
+                     Err(_) => return,
+                 };
+                 self.gate_or_publish_inbound(PendingInboundPublication {
++                    session_id: Some(connection.session_id.clone()),
+                     connection_id: connection.id,
+                     transport,
+                     participant_id: None,
+@@ -7764,6 +7770,7 @@ impl Orchestrator {
+                 });
+                 self.emit(Event::ConnectionPrincipalAuthenticated {
+                     connection_id,
++                    session_id: None,
+                     participant_id,
+                     principal,
+                     at,

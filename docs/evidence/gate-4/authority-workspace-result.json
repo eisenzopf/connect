@@ -1,0 +1,26 @@
+{
+  "status": "Completed with four migration fixture failures; not a workspace pass",
+  "source_checkpoint": "f928fcf8ef47f89928be563567f2512dc275649a",
+  "source_manifest_sha256": "589d8f73ffdcaba30e99a135ebb7c8590f2efaadcd800a40ef998c9a88cfc971",
+  "frozen_source_files_verified": 552,
+  "command": "CARGO_BUILD_JOBS=4 cargo test --locked --workspace --all-features --no-fail-fast",
+  "terminal_exit": 101,
+  "harnesses": 97,
+  "passed": 361,
+  "failed": 4,
+  "ignored": 1,
+  "log": ".local/gate-4-planning/authority-workspace.log",
+  "log_sha256": "906ee7b597b65db9324ba8475e6518e8dd15b720fc5ea5ba096333e97a9f2176",
+  "failures": [
+    "upgrade_populated_ten_preserves_all_existing_rows_and_verified_backup",
+    "schema_three_upgrade_requires_backup_and_preserves_conversations",
+    "schema_four_upgrade_preserves_voice_and_requires_snapshot",
+    "schema_five_upgrade_retains_inbound_bindings_and_reconciles_legacy_end_intent"
+  ],
+  "limits": [
+    "This frozen baseline does not include the isolated provider context/reply fix or the new SDK integration test.",
+    "The ignored optional legacy media profile is not counted as a pass.",
+    "The four migration fixture repairs are independently qualified in the isolated store and still need main-source verification."
+  ],
+  "recorded_at": "2026-10-10T21:09:50.486585+00:00"
+}

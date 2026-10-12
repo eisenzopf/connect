@@ -1,0 +1,192 @@
+{
+  "result": "27 focused voice/model behavior checks and strict quality checks passed",
+  "source_base": "641e8ab187ed65cef642369462df3143f5964f63",
+  "scope": "local macOS arm64; no live provider inference in these checks",
+  "diagnostic_basis": "vapi-voice-tool-placement-diagnostic.json",
+  "changes": [
+    "Use a bounded private SDK read of the exact saved assistant model. Preserve its settings and other tools, and install voice MCP configuration under per-call model.tools.",
+    "Do not mutate the saved assistant. Chat-session setup remains separately unchanged.",
+    "Malformed/missing provider model, failed lookup and timeout do not stage call dispatch. Current authority is rechecked after lookup, with rvoip still owning final admission and the sole provider POST."
+  ],
+  "files_sha256": {
+    "crates/connect-server/src/vapi_bootstrap/call.rs": "5199d67dafc9ab1387165f5aab1ef19022a7bed45034b49b98373930a5dd6dc7",
+    "crates/connect-server/src/vapi_bootstrap/voice_model.rs": "3c1e12d35986a2c4e1deead8e86722ea89201ac3936167bd5b93194ddbafe048",
+    "crates/connect-server/src/vapi_bootstrap/media.rs": "8615939941cabd4461cc079c24787a466e27cdf1f72e4f5b780e9926a8002673",
+    "crates/connect-server/tests/gate4_vapi_voice_model.rs": "da4823ed7340ab194a6a1e25e9908ab30bb1f134784328e50c526a89ef6e2443"
+  },
+  "checks": [
+    {
+      "name": "compile",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_voice_model",
+        "--test",
+        "gate4_vapi_call_bootstrap",
+        "--test",
+        "gate4_vapi_host_voice",
+        "--test",
+        "gate4_vapi_callback_proxy",
+        "--test",
+        "gate4_vapi_call_isolation",
+        "--test",
+        "gate4_vapi_call_recovery",
+        "--test",
+        "gate4_vapi_recovery_revocation",
+        "--test",
+        "gate4_vapi_host_chat",
+        "--test",
+        "gate4_vapi_pending_continuation",
+        "--test",
+        "gate4_vapi_setup_restart",
+        "--test",
+        "gate4_vapi_task_voice",
+        "--test",
+        "gate4_vapi_voice_revocation",
+        "--test",
+        "gate4_voice_sms_continuity",
+        "--no-run"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 129.283,
+      "leftover_group_members": [],
+      "log_sha256": "e3ded005efad9efa6895cdf4a56290f1dc3ead024dcc1fa832c3a6d17a6d68db"
+    },
+    {
+      "name": "behavior",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_voice_model",
+        "--test",
+        "gate4_vapi_call_bootstrap",
+        "--test",
+        "gate4_vapi_host_voice",
+        "--test",
+        "gate4_vapi_callback_proxy",
+        "--test",
+        "gate4_vapi_call_isolation",
+        "--test",
+        "gate4_vapi_call_recovery",
+        "--test",
+        "gate4_vapi_recovery_revocation",
+        "--test",
+        "gate4_vapi_host_chat",
+        "--test",
+        "gate4_vapi_pending_continuation",
+        "--test",
+        "gate4_vapi_setup_restart",
+        "--test",
+        "gate4_vapi_task_voice",
+        "--test",
+        "gate4_vapi_voice_revocation",
+        "--test",
+        "gate4_voice_sms_continuity",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 1443.96,
+      "leftover_group_members": [],
+      "log_sha256": "abe2f2327e8ef50defccd75da51c2e54932649c0a5a401378554f3ae027c6f21",
+      "rust_tests": {
+        "passed": 25,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "model-unit",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--lib",
+        "vapi_bootstrap::voice_model::tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 110.095,
+      "leftover_group_members": [],
+      "log_sha256": "07330f63ddb7f6db142c7bbd1beaf22618dca7a490e108b71eb6d37e9df57e9d",
+      "rust_tests": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "strict-lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 244.43,
+      "leftover_group_members": [],
+      "log_sha256": "0f1700909be0c1436e32d2b819dcd9ca672c05848dd3374c44f95ff8da6473fc"
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--no-deps"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 23.318,
+      "leftover_group_members": [],
+      "log_sha256": "d6c58aa4df62f3fe6add38882ac05968b959c6cb4614fb9314a78abdf92e8406"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 0.777,
+      "leftover_group_members": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "private_report_sha256": "6f38aa163997ad3dc0a0eab3968d09afe0b656fb35de73a709042bf6e6c9748c",
+  "limits": [
+    "Actual corrected normal release voice/model/SMS proof remains required.",
+    "The new independent callback-listener CLI option and installed package checks are qualified separately."
+  ],
+  "recorded_at": "2026-10-12T04:50:08.205093+00:00"
+}

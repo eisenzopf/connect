@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Connect automated voice rehearsal</title>
+    <style>
+      body {
+        font: 16px system-ui;
+        background: #18131f;
+        color: #eee;
+        max-width: 860px;
+        margin: 40px auto;
+        padding: 24px;
+      }
+      label {
+        display: block;
+        margin: 18px 0;
+      }
+      input {
+        display: block;
+        width: 95%;
+        padding: 10px;
+        background: #282030;
+        color: #fff;
+        border: 1px solid #746184;
+      }
+      button,
+      a {
+        padding: 12px;
+        color: #fff;
+        background: #57416b;
+        border: 0;
+        border-radius: 8px;
+      }
+      pre {
+        white-space: pre-wrap;
+      }
+      audio {
+        display: block;
+        margin: 16px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Automated browser voice rehearsal</h1>
+    <p>
+      This separately invoked live test uses generated speech through the public
+      SDK and real WebRTC. It records received audio for independent local
+      speech recognition. It does not request a microphone, configure accounts,
+      dial telephone numbers or run in CI.
+    </p>
+    <label
+      >WebRTC signaling<input id="signaling" value="ws://127.0.0.1:8190"
+    /></label>
+    <label
+      >Credential<input id="credential" type="password" autocomplete="off"
+    /></label>
+    <label
+      >HTTP API (optional recording upload)<input
+        id="http"
+        value="http://127.0.0.1:8191"
+    /></label>
+    <label
+      >Conversation ID (optional recording upload)<input id="conversation"
+    /></label>
+    <label>Scenario URL<input id="scenario" value="scenario.json" /></label>
+    <button id="run">Run three-turn rehearsal</button
+    ><button id="stop" disabled>Stop</button
+    ><button id="upload" disabled>Store received recording in Connect</button>
+    <audio id="remote" controls muted></audio>
+    <p id="status" role="status">Ready.</p>
+    <pre id="result"></pre>
+    <div id="downloads"></div>
+    <script type="module" src="browser-voice.js"></script>
+  </body>
+</html>

@@ -1,0 +1,127 @@
+{
+  "result": "controlled interruption for safe call failure diagnostics; not a whole-run pass",
+  "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "completed_phases": [
+    {
+      "name": "dependencies",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.178
+    },
+    {
+      "name": "format",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.707
+    },
+    {
+      "name": "typescript-install",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.546
+    },
+    {
+      "name": "typescript-tests",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 3.273
+    },
+    {
+      "name": "typescript-format",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.563
+    },
+    {
+      "name": "typescript-distribution",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.07
+    },
+    {
+      "name": "python-sdk",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 3.362
+    },
+    {
+      "name": "agent-incoming-unit",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.183
+    },
+    {
+      "name": "runner-failure-tests",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 1.825
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.192
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 2.986
+    },
+    {
+      "name": "lint",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 22.579
+    },
+    {
+      "name": "rustdoc",
+      "status": "passed",
+      "rust_tests": null,
+      "seconds": 0.503
+    },
+    {
+      "name": "workspace",
+      "status": "failed",
+      "rust_tests": {
+        "passed": 186,
+        "failed": 0,
+        "ignored": 8
+      },
+      "seconds": 4592.967
+    }
+  ],
+  "not_run": [
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "reason": "Normal voice failed before provider dispatch, but the generic error discarded the failing stage. Preserve this partial run and qualify the diagnostic source change.",
+  "private_report_sha256": "d76a8091d42656bc16627ca61189e0edbd8d74208600ab35db9e7e27c40255e7",
+  "whole_run_passed": false
+}

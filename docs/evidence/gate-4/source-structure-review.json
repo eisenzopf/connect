@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T08:46:37.727490+00:00",
+  "status": "focused review, strict checks and all 17 installed checks passed; full baseline and source reconciliation in progress",
+  "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+  "review_scope": "Focused inspection of MCP/service boundaries, model input metadata, Vapi origin authentication and bootstrap admission, voice model composition, sanitized errors, task-owner credential issuance, and package first-launch handling. Historical module review is retained separately. This is not a line-by-line audit of every repository file.",
+  "source_sha256": {
+    "crates/connect-mcp/Cargo.toml": "5a01d2c82a88fa1dcea97191c829e37b8a26b5b94a661e99883008668634bc1a",
+    "crates/connect-mcp/src/lib.rs": "1a02d8ea6e52e04775d5be0f0b1de313986bc734daabffed834cdd52670aa4e2",
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/supervision.rs": "408d970ee5524f569aff0d04ecb4454d5c9191a761ab0a65a81600123bde79a7",
+    "crates/connect-mcp/src/capacity.rs": "0e437ef551f2ea092ac10a3397658071551e37767fd4f2edad8b72c4915c79ae",
+    "crates/connect-mcp/src/budget.rs": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+    "examples/review-loop/Cargo.toml": "893363bd6a1b6ede3cc6ec608204647146fff27aefb448557f52247414b1717e",
+    "examples/review-loop/src/task_runner/state.rs": "90415aa83d7f1c9485ee8ffe499a7123cf0325fe9fabaa29b72e537eedef1b73",
+    "examples/review-loop/src/connected_app/state.rs": "b797ef8b35000317e86f15d4e2dde1ea3c00a85af13e1d20831f11b736ff517d",
+    "crates/connect-server/src/main.rs": "e0c187f23a3456dffaf76194b08799852424291b23874bbb5f4489f261dc1b3a",
+    "crates/connect-mcp/src/schemas.rs": "0ffe4878640a4e3dba18d29dce65874e27b3eb37c2d54be9fe6579db534ca4b9",
+    "crates/connect-mcp/src/vapi_auth.rs": "6a2db205b6995e1b8f965b0d891bb146b85e97df169c6df370314ca8ee60977f",
+    "crates/connect-server/src/cli/credentials.rs": "51ffaff2cade036d91b4a0f46d5eda6d857f388d35cc628dad5abf5498c25303",
+    "crates/connect-server/src/cli/vapi_task.rs": "6341f18b8b6a8e5d6d3467b343517fdb24d1d377505f95f448117ab1437c246f",
+    "crates/connect-server/src/cli/task_access/codex_host/diagnostics.rs": "fa6b75b129086239c54e7129fd19ccd084897351a47452e5393136fa1cfbdba9",
+    "crates/connect-server/src/vapi_bootstrap/admission.rs": "09c80087ffea8337bfdb0860bcb41d9a9b43e4e090122f693cd6783cc15989dd",
+    "crates/connect-server/src/vapi_bootstrap/call.rs": "6dd9aff37e88cfce925136f684fadc6f46b6b014406c4d28501abb6a1f0d7f2b",
+    "crates/connect-server/src/vapi_bootstrap/call_failure.rs": "72138aa215ed4413aeb2ec25afc150c27c0cad5fff0f835bdaba11a029221956",
+    "crates/connect-server/src/vapi_bootstrap/voice_model.rs": "3c1e12d35986a2c4e1deead8e86722ea89201ac3936167bd5b93194ddbafe048",
+    "crates/connect-store/src/identity.rs": "c321cbf844c2157d4819b4690c6d21574c7842f31e4dca8bc443adb5f2dde09d",
+    "crates/connect-server/tests/gate4_mcp_reply_reference.rs": "19ddef21a505286e872301b78562f3fb74041dc5aa7355792bc0282c2e1eb1c6",
+    "scripts/check-package.py": "b88b43d2b690d3d4c442886f51cd4eb9521fa31b38a27c602766a02c11c7b023"
+  },
+  "findings": [
+    {
+      "area": "MCP boundary",
+      "result": "Production dependencies are protocol/service plus transport/runtime libraries. Store is dev-only. Handler dispatches through Service; current authority is checked before tool projection/execution. No direct SQLite access in reviewed adapter production code."
+    },
+    {
+      "area": "Example state ownership",
+      "result": "Example production depends on the public client, not Connect store/service/server. Its SQLite is separately bound application state with process locks, schema checks and immutable binding verification. Read-only inspection does not claim or edit Connect server state."
+    },
+    {
+      "area": "Cancellation and bounds",
+      "result": "MCP handler distinguishes cancelled/expired work as transport-uncertain, retains correlation IDs and directs reconciliation. The shared capacity pool limits listeners and requests to 32 with immediate overload; bounded wait reserves time for current authority and response projection. Shutdown observation distinguishes expected stop from unexpected exit."
+    },
+    {
+      "area": "Module structure",
+      "result": "Task runners, application journal/state, MCP and provider bootstrap responsibilities use separate modules. Larger existing top-level protocol/client files remain; no arbitrary line-count threshold is claimed. Main delegates Gate 4 task access, diagnostics and Vapi host work to CLI modules rather than implementing those workflows inline."
+    },
+    {
+      "area": "Vapi current origin and admission",
+      "result": "Shared correlation parsing rejects duplicate/malformed identifiers and mismatching aliases. Provider session correlation remains separate from authority. The async admission mutex serializes bootstrap verification while the shared MCP deadline and capacity bounds remain in force; current authority is rechecked after acquisition."
+    },
+    {
+      "area": "Voice model composition and errors",
+      "result": "The saved assistant model and its existing tools are preserved in a per-call override. A bounded read-only lookup precedes dispatch intent; authority is checked again after lookup. Original uncertain dispatch prevents another creation. Logs select closed diagnostic stage labels rather than provider bodies or private causes."
+    },
+    {
+      "area": "Task-owner issuance",
+      "result": "The explicit --tasks flag adds named ownership/delegation operations without admin scope or broader recipients. Credential issuance now permits up to 64 named operations so voice and task rights fit without a wildcard; the store regression covers the upper bound. This is separate from invocation grant and task limits."
+    },
+    {
+      "area": "Reply-reference usability",
+      "result": "MCP input metadata and the shipped skill distinguish journal routing references from citation/message IDs. The new end-to-end MCP test rejects three wrong references before effect creation and proves exact receipt replay with the correct event ID. The final actual model uses that reference successfully."
+    },
+    {
+      "area": "First executable launch",
+      "result": "The installation checker records first --version execution under its own 180-second budget and the existing owned-process supervisor. Application and communication deadlines are unchanged. Prior timeouts remain failures; no security-policy changes or service restart were needed for the subsequent passing launch."
+    }
+  ],
+  "module_size_observation": {
+    "crates/connect-mcp/src": {
+      "rust_files": 14,
+      "largest_files": [
+        {
+          "path": "crates/connect-mcp/src/catalog.rs",
+          "lines": 202
+        },
+        {
+          "path": "crates/connect-mcp/src/listener.rs",
+          "lines": 168
+        },
+        {
+          "path": "crates/connect-mcp/src/handler.rs",
+          "lines": 155
+        }
+      ]
+    },
+    "crates/connect-server/src/cli/task_access": {
+      "rust_files": 13,
+      "largest_files": [
+        {
+          "path": "crates/connect-server/src/cli/task_access/codex_host/diagnostics.rs",
+          "lines": 168
+        },
+        {
+          "path": "crates/connect-server/src/cli/task_access/codex_host/process.rs",
+          "lines": 148
+        },
+        {
+          "path": "crates/connect-server/src/cli/task_access/codex_host/renewal.rs",
+          "lines": 139
+        }
+      ]
+    },
+    "crates/connect-server/src/cli/vapi_task": {
+      "rust_files": 3,
+      "largest_files": [
+        {
+          "path": "crates/connect-server/src/cli/vapi_task/host.rs",
+          "lines": 137
+        },
+        {
+          "path": "crates/connect-server/src/cli/vapi_task/manifest.rs",
+          "lines": 81
+        },
+        {
+          "path": "crates/connect-server/src/cli/vapi_task/manifest_tests.rs",
+          "lines": 79
+        }
+      ]
+    },
+    "crates/connect-server/src/vapi_bootstrap": {
+      "rust_files": 12,
+      "largest_files": [
+        {
+          "path": "crates/connect-server/src/vapi_bootstrap/media.rs",
+          "lines": 178
+        },
+        {
+          "path": "crates/connect-server/src/vapi_bootstrap/mod.rs",
+          "lines": 135
+        },
+        {
+          "path": "crates/connect-server/src/vapi_bootstrap/call.rs",
+          "lines": 110
+        }
+      ]
+    },
+    "examples/review-loop/src/task_runner": {
+      "rust_files": 10,
+      "largest_files": [
+        {
+          "path": "examples/review-loop/src/task_runner/tests.rs",
+          "lines": 299
+        },
+        {
+          "path": "examples/review-loop/src/task_runner/journal.rs",
+          "lines": 217
+        },
+        {
+          "path": "examples/review-loop/src/task_runner/diagnostics.rs",
+          "lines": 196
+        }
+      ]
+    },
+    "examples/review-loop/src/connected_app": {
+      "rust_files": 13,
+      "largest_files": [
+        {
+          "path": "examples/review-loop/src/connected_app/state.rs",
+          "lines": 226
+        },
+        {
+          "path": "examples/review-loop/src/connected_app/artifacts.rs",
+          "lines": 219
+        },
+        {
+          "path": "examples/review-loop/src/connected_app/decisions.rs",
+          "lines": 217
+        }
+      ]
+    }
+  },
+  "verification": {
+    "format": {
+      "status": "passed",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lint": {
+      "status": "passed",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log_sha256": "84ec94e7e0f1f9d6ee0b7ea6152482b7e5c5b8f12474d25b0b86b8ebcde86240"
+    },
+    "rustdoc": {
+      "status": "passed",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "log_sha256": "b2fc5e879c4b5a2a600d399069c19364dd75e258e35b68059b5e458cdaa4f1b8"
+    }
+  },
+  "remaining": [
+    "Full baseline regression and integration of the qualified narrow repair remain in progress; all 17 installed-package checks have passed.",
+    "Earlier intermittent executable startup timeouts remain retained. Their complete cause is not established by a later successful run.",
+    "Final source-linked acceptance and documentation reconciliation remain in progress."
+  ],
+  "prior_findings": "docs/evidence/gate-4/review-findings.json",
+  "previous_review": "docs/evidence/gate-4/source-structure-review-d47be55.json",
+  "additional_verification": {
+    "focused_mcp_regressions": 4,
+    "qualification_runner_checks": 48,
+    "actual_model_draft": "docs/evidence/gate-4/real-model-draft-7edb1b1.json",
+    "actual_model_incoming": "docs/evidence/gate-4/real-model-incoming-7edb1b1.json",
+    "installed_package": {
+      "evidence": "docs/evidence/gate-4/package-7edb1b1.json",
+      "checks_passed": 17
+    }
+  }
+}

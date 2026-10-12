@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-12T07:17:18.523390+00:00",
+  "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+  "scope": "Actual selected model through installed Connect server, SDK, incoming-contact example and supplied Codex host assets; local communication, no phone provider operation.",
+  "observed_behavior": {
+    "independent_human_contact_into_assistant": true,
+    "source_backed_task_created": true,
+    "prior_window_code_and_source_not_repeated_in_request": true,
+    "one_useful_reply": true,
+    "server_and_model_processes_exited": true,
+    "fixture_model": false
+  },
+  "continuation": "First incoming turn; separate draft/reply evidence qualifies exact-session restart.",
+  "private_evidence_sha256": {
+    "intent.json": "d4e451637ac52d3687d3f6ef92bead9fcc037ec6d86f4699c6329059d1fa70cb",
+    "seed-receipt.json": "23353317d4dd0bf3d2a68d175139d7c60d69935cbaf7b97f33796bf00f1dacdf",
+    "contact-receipt.json": "49cb6e26880b03771b0ba52ec25b9ad4a4709ec488e78e9e81487d8835cefb01",
+    "model-command-result.json": "81868a6e94ffc0178bf833deb1c9013d9fab4ee95ddb876a5e8ec4f1d26376d2",
+    "history-after-model.json": "21f82bc458477d719873242ab505ef736694d0b7665d69f3911418a1f993f80f",
+    "result.json": "18451fbc64a81cd5a86187ad0c646b4c05db3c1a211e2587b8fd0bcafa67aac2",
+    "server-exit.json": "81868a6e94ffc0178bf833deb1c9013d9fab4ee95ddb876a5e8ec4f1d26376d2"
+  },
+  "retained_harness_failure": "Initial runtime glob selected an archive instead of its extracted directory; failed before state creation or model invocation. Explicit directory selection corrected it."
+}

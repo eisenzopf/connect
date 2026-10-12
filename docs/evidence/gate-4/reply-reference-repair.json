@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "status": "passed component and actual installed-model qualification",
+  "recorded_at": "2026-10-12T07:59:47.377936+00:00",
+  "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+  "baseline_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+  "non_documentation_delta": [
+    "contracts/connect-task-v1.md",
+    "crates/connect-mcp/src/schemas.rs",
+    "crates/connect-server/tests/gate4_mcp_reply_reference.rs",
+    "scripts/check-package.py",
+    "skills/connect/SKILL.md"
+  ],
+  "finding": "The actual model could not distinguish the received conversation journal event ID from message and original-question IDs when filling connect_send.reply_to. Current authority correctly denied both wrong references without a follow-up effect.",
+  "repair": "MCP input metadata, shipped skill and task contract now name the exact field and distinguish citation IDs. Dispatch, storage, task authority and wire behavior are unchanged.",
+  "new_test": {
+    "path": "crates/connect-server/tests/gate4_mcp_reply_reference.rs",
+    "sha256": "19ddef21a505286e872301b78562f3fb74041dc5aa7355792bc0282c2e1eb1c6",
+    "behaviors": [
+      "Read actual reply event via official MCP client",
+      "Reject question ID, message ID and outer task-event ID with no follow-up message",
+      "Accept one follow-up using received journal event ID",
+      "Return identical accepted receipt on matching replay",
+      "Advertise journal event reference in discovered input schema"
+    ]
+  },
+  "tests": {
+    "mcp_integration": 4,
+    "qualification_runner": 48,
+    "strict_workspace_clippy": "passed",
+    "strict_workspace_rustdoc": "passed",
+    "repository_format": "passed"
+  },
+  "evidence": {
+    "reply-reference-corrected.log": {
+      "sha256": "d42763d1d52ac6dbc6f34037115486723de8e34859993df6ea7ab0a944ff8b5a",
+      "status": "passed"
+    },
+    "qualification-runner.log": {
+      "sha256": "b490d59c8b5f0faaa5822d85ed368738ee74bcfd0f8f9519960c71e142667cbf",
+      "status": "passed"
+    },
+    "clippy.log": {
+      "sha256": "84ec94e7e0f1f9d6ee0b7ea6152482b7e5c5b8f12474d25b0b86b8ebcde86240",
+      "status": "passed"
+    },
+    "rustdoc.log": {
+      "sha256": "b2fc5e879c4b5a2a600d399069c19364dd75e258e35b68059b5e458cdaa4f1b8",
+      "status": "passed"
+    },
+    "format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "passed"
+    }
+  },
+  "retained_failure": {
+    "path": ".local/final-review/reply-reference.log",
+    "sha256": "7213483bbd75096341cf86a4634f5473cd9ae620a4876cf366256c156c6caa89",
+    "detail": "First new regression did not compile because a JSON closure captured an inferred reference lifetime; adding the explicit &str parameter fixes the fixture. No production behavior changed."
+  },
+  "package_harness_delta": {
+    "reason": "Measured macOS first execution can wait in _dyld_start before application code. Record a bounded installation preflight separately.",
+    "first_launch_seconds": 180,
+    "subsequent_cli_seconds": 15,
+    "communication_deadlines": "unchanged",
+    "cleanup": "Existing bounded owned-process supervisor",
+    "security_settings": "unchanged",
+    "prior_failed_installations": "retained; not relabelled as passing",
+    "qualification": "All 17 installed package checks passed; see docs/evidence/gate-4/package-7edb1b1.json."
+  },
+  "actual_model_qualification": {
+    "draft_reply": "docs/evidence/gate-4/real-model-draft-7edb1b1.json",
+    "incoming_contact": "docs/evidence/gate-4/real-model-incoming-7edb1b1.json",
+    "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+    "binary_sha256": "8784157abc325d7ec8b23a1347f2f072a96c66d9e3823898360e555fd8159f03",
+    "correct_followup_event_reference": true,
+    "no_macos_security_setting_changes": true,
+    "assessment_service_restarted": false
+  },
+  "updated_at": "2026-10-12T08:44:15.606550+00:00",
+  "retained_first_installation_attempt": {
+    "status": "not executed; pure version launch timed out before server start",
+    "error_class": "TimeoutExpired",
+    "seconds": 180,
+    "private_result_sha256": "7d19200f97f08db52a973d7897c51fce509f5aa196e4bf0021bb4c0ad0a898f3",
+    "original_state": "unchanged; no grant, server or model started"
+  }
+}

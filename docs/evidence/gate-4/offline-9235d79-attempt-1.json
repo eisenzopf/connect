@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "status": "failed full run retained; focused corrected retention profile passed",
+  "recorded_at": "2026-10-11T21:56:42.402565+00:00",
+  "source_revision": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
+  "source_dirty": false,
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "private_report": ".local/gate-4-checks/20261011T213619.464535Z/result.json",
+  "worktree": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
+  "passed_phases_at_snapshot": [
+    "dependencies",
+    "format",
+    "typescript-install",
+    "typescript-tests",
+    "typescript-format",
+    "typescript-distribution",
+    "python-sdk",
+    "agent-incoming-unit",
+    "runner-failure-tests",
+    "voice-rehearsal-unit",
+    "chat-rehearsal-unit",
+    "lint",
+    "rustdoc",
+    "workspace",
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load"
+  ],
+  "required_phases": 41,
+  "boundary": "Single-revision complete-offline qualification is ongoing. No component or gate status becomes complete from this snapshot. Prior failed invocations remain retained.",
+  "workspace_tests": {
+    "passed": 538,
+    "failed": 0,
+    "ignored": 9
+  },
+  "primary_source_reconciliation": {
+    "primary_head": "78f94770ac81ee3ab4fe1d33695696b0a1a930b0",
+    "baseline_source_revision": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
+    "unchanged_existing_inputs": 804,
+    "changed_or_missing_inputs": [],
+    "additional_inputs_sha256": {
+      "crates/connect-server/tests/gate4_mcp_sessions.rs": "6e43673ab96eaebd6af131a156a33a561ac933b8dfb240b27daf2ceca4b6a21d"
+    },
+    "additional_verification": "docs/evidence/gate-4/mcp-session-controls.json",
+    "boundary": "All existing non-documentation source inputs match the frozen run. The added session test is separately qualified; it is not claimed to have run in that workspace invocation. Documentation is excluded from runtime input fingerprinting and checked separately. This comparison was recorded before the retention-verifier correction; later script changes require separate qualification."
+  },
+  "failed_phase": {
+    "name": "task-artifact-retention",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "scripts/check-retention-load.py"
+    ],
+    "timeout_seconds": 240,
+    "log": "task-artifact-retention.log",
+    "status": "failed",
+    "exit_code": 1,
+    "leftover_group_members": [],
+    "group_cleanup": "signalled",
+    "seconds": 44.619
+  },
+  "not_run": [
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "private_report_sha256": "cab2a77ebdb94b722ea29b07d0d26a019312b0c8d50ce639dc74bb28d13d6b18",
+  "failure_analysis": {
+    "profile": ".local/retention-load/20261011T215304.496691Z/result.json",
+    "profile_sha256": "14076eca5b705d4214f3e9f78f9b09a498c3021903984216a4da8afc788f000d",
+    "observation": "All three artifact expiry/restart phases passed. A task-status request crossing expiry returned HTTP 200 with MCP isError=true and code=forbidden. The verifier incorrectly treated every HTTP 200 as a successful tool result.",
+    "source_explanation": "crates/connect-mcp/src/auth.rs authenticates admission; handler.rs revalidates grant and execute_task_invocation rechecks current authority. Expiry between these stages can reject inside a successful HTTP transport response.",
+    "correction": "Qualified in docs/evidence/gate-4/retention-expiry-boundary.json: exact authority denials are classified with request timestamps; early/unrelated denials and post-expiry success remain failures. Frozen limits and final fresh-request HTTP 401 requirement are unchanged."
+  }
+}

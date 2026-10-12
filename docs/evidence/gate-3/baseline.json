@@ -1,0 +1,256 @@
+{
+  "scope": "local macOS arm64; no remote deployment or live providers",
+  "archived_binary_qualification": "required",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "steps": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "log": "dependencies.log",
+      "exit_code": 0,
+      "seconds": 0.2,
+      "result": "passed"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "log": "format.log",
+      "exit_code": 0,
+      "seconds": 0.25,
+      "result": "passed"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "lint.log",
+      "exit_code": 0,
+      "seconds": 0.6,
+      "result": "passed"
+    },
+    {
+      "name": "typescript-sdk-install",
+      "command": [
+        "npm",
+        "ci",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "log": "typescript-sdk-install.log",
+      "exit_code": 0,
+      "seconds": 0.81,
+      "result": "passed"
+    },
+    {
+      "name": "typescript-sdk-build",
+      "command": [
+        "npm",
+        "run",
+        "build",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "log": "typescript-sdk-build.log",
+      "exit_code": 0,
+      "seconds": 0.65,
+      "result": "passed"
+    },
+    {
+      "name": "typescript-sdk-format",
+      "command": [
+        "npm",
+        "run",
+        "format:check",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "log": "typescript-sdk-format.log",
+      "exit_code": 0,
+      "seconds": 0.43,
+      "result": "passed"
+    },
+    {
+      "name": "typescript-sdk-failures",
+      "command": [
+        "node",
+        "--test",
+        "sdk/tests/clients.test.mjs"
+      ],
+      "log": "typescript-sdk-failures.log",
+      "exit_code": 0,
+      "seconds": 2.11,
+      "result": "passed"
+    },
+    {
+      "name": "python-sdk-failures",
+      "command": [
+        "env",
+        "PYTHONPATH=sdk/python",
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "log": "python-sdk-failures.log",
+      "exit_code": 0,
+      "seconds": 2.9,
+      "result": "passed"
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "log": "workspace.log",
+      "exit_code": 0,
+      "seconds": 258.85,
+      "result": "passed"
+    },
+    {
+      "name": "connector-example",
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "-p",
+        "connect-connector-api",
+        "--example",
+        "echo"
+      ],
+      "log": "connector-example.log",
+      "exit_code": 0,
+      "seconds": 0.6,
+      "result": "passed"
+    },
+    {
+      "name": "upstream",
+      "command": [
+        "bash",
+        "scripts/check-baseline.sh"
+      ],
+      "log": "upstream.log",
+      "exit_code": 0,
+      "seconds": 599.13,
+      "result": "passed"
+    },
+    {
+      "name": "dispatch",
+      "command": [
+        "python3",
+        "scripts/check-dispatch.py"
+      ],
+      "log": "dispatch.log",
+      "exit_code": 0,
+      "seconds": 2.38,
+      "result": "passed"
+    },
+    {
+      "name": "typescript-probe",
+      "command": [
+        "python3",
+        "scripts/check-typescript.py"
+      ],
+      "log": "typescript-probe.log",
+      "exit_code": 0,
+      "seconds": 1.39,
+      "result": "passed"
+    },
+    {
+      "name": "datagram-probe",
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--example",
+        "quic_audio"
+      ],
+      "log": "datagram-probe.log",
+      "exit_code": 0,
+      "seconds": 1.12,
+      "result": "passed"
+    },
+    {
+      "name": "identity-process",
+      "command": [
+        "python3",
+        "scripts/check-identity.py"
+      ],
+      "log": "identity-process.log",
+      "exit_code": 0,
+      "seconds": 34.91,
+      "result": "passed"
+    },
+    {
+      "name": "recovery-process",
+      "command": [
+        "python3",
+        "scripts/check-recovery.py"
+      ],
+      "log": "recovery-process.log",
+      "exit_code": 0,
+      "seconds": 9.68,
+      "result": "passed"
+    },
+    {
+      "name": "crash-replay",
+      "command": [
+        "python3",
+        "scripts/check-crash-replay.py"
+      ],
+      "log": "crash-replay.log",
+      "exit_code": 0,
+      "seconds": 10.87,
+      "result": "passed"
+    },
+    {
+      "name": "examples",
+      "command": [
+        "python3",
+        "scripts/check-examples.py"
+      ],
+      "log": "examples.log",
+      "exit_code": 0,
+      "seconds": 17.55,
+      "result": "passed"
+    },
+    {
+      "name": "example-recovery",
+      "command": [
+        "python3",
+        "scripts/check-example-recovery.py"
+      ],
+      "log": "example-recovery.log",
+      "exit_code": 0,
+      "seconds": 18.16,
+      "result": "passed"
+    }
+  ],
+  "result": "passed",
+  "source_inputs_sha256": "2d51ea2849870a9170cce0f092034aaa3336915c091c9cc204b63ec326a603dd",
+  "source_inputs_still_match": true,
+  "private_result": ".local/checks/20261009T225938.736646Z/result.json"
+}

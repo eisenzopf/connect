@@ -1,0 +1,49 @@
+{
+  "gate": 3,
+  "evidence": "offline-regression",
+  "recorded_at": "2026-10-09T07:25:44.884470+00:00",
+  "source_revision": "ecc90949b702b6bca7c69fcd7739d457ad4c363b",
+  "dirty": false,
+  "scope": "Gate 3 offline; local macOS arm64; no provider calls, account changes, or remote deployment",
+  "command": "bash scripts/check-gate-3.sh",
+  "private_result": ".local/gate-3-checks/20261009T072544.869899Z/result.json",
+  "result": "passed",
+  "passed_phases": [
+    "dependencies",
+    "format",
+    "lint",
+    "contract-fixtures",
+    "durable-model",
+    "native-media-parity",
+    "native-sdk-media-helper",
+    "media-pressure-smoke",
+    "vapi-duplex-media",
+    "vapi-observer-lifecycle",
+    "provider-chat-context",
+    "provider-chat-flow",
+    "vapi-adapter-failures",
+    "sip-duplex-media",
+    "sip-registration-lifecycle",
+    "sip-codec-failures",
+    "webrtc-duplex-media",
+    "webrtc-security",
+    "sip-webrtc-interop",
+    "artifact-recovery",
+    "artifact-lifecycle",
+    "transport-authority",
+    "language-sdk-facade",
+    "typescript-sdk",
+    "python-sdk"
+  ],
+  "gate_2_regression": {
+    "command": "bash scripts/check-gate-2.sh",
+    "result": "passed",
+    "private_log": ".local/gate-3-live/gate-2-after-browser-fix.log"
+  },
+  "open": [
+    "Human native/browser audio and continuity observations.",
+    "Connect-carried inbound/outbound Telnyx SIP/PSTN audio.",
+    "Qualification of the subsequent route credential restriction and installed candidate."
+  ],
+  "gate_status": "in-progress"
+}

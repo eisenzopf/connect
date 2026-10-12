@@ -1,0 +1,59 @@
+{
+  "recorded_at": "2026-10-11T00:08:23.377945+00:00",
+  "source_base": "6009f7870f13d9bc065aeda7c0723c21469a50f9",
+  "item": "G4-016",
+  "status": "G4-016 qualified",
+  "qualification_record": "public-interface-qualification.json",
+  "requirements": [
+    {
+      "requirement": "Official pinned MCP SDK exposes supported initialize/list/call through an independently connected real client",
+      "tests": [
+        "independent_mcp_client_negotiates_discovers_and_uses_only_its_bound_task",
+        "all_twenty_three_communication_tools_match_native_outcomes_and_known_denials",
+        "every_advertised_schema_rejects_authority_selectors_and_invalid_shapes"
+      ],
+      "proof": "rmcp 3.5.1 Streamable HTTP; known protocols through 2025-11-25; 27 existing schemas and 23 communication handlers under current task ceilings",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Current scoped authentication precedes model arguments; origin/host/protocol/body negatives cannot amplify credentials",
+      "tests": [
+        "raw_http_requires_current_task_grant_and_rejects_spoofing_and_oversized_bodies",
+        "wrong_binding_duplicate_authorization_and_revoked_parent_are_denied",
+        "expired_bearer_cannot_reinitialize_or_discover",
+        "mcp_config_has_no_secret_and_rejects_provider_origins_and_wildcard_listeners"
+      ],
+      "proof": "Native/HostSession local authority; provider origins remain a separately verified lifecycle; bearer removed before SDK HTTP context; forged selectors/duplicate auth/foreign origins rejected",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Body/authentication/capacity/tool deadlines and shutdown remain bounded, with truthful pending or uncertain handles",
+      "tests": [
+        "authentication_timeout_releases_admission_and_a_fresh_request_is_authenticated",
+        "stalled_body_times_out_without_a_parsed_tool_and_next_request_succeeds",
+        "stalled_authenticated_chunked_body_is_cancelled_and_connection_is_drained",
+        "thirty_two_stalled_admissions_are_bounded_and_shutdown_cancels_them",
+        "maximum_wait_includes_slow_admission_and_returns_usable_pending_cursor",
+        "late_decoded_tool_returns_uncertain_task_handle_and_original_ids_recover_once"
+      ],
+      "proof": "18 current real MCP integrations; shared 10-second request budget, auth 5 seconds, tool 9.5 seconds, 32 admissions and 512 KiB body bound; no limit weakened",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Reconnect/lost ACK/current cancellation and owned failed-start/drain recover without another task identity or duplicate effect",
+      "tests": [
+        "abandoned_accepted_response_recovers_same_receipt_and_one_message",
+        "cancellation_denies_existing_mcp_client_and_nonloopback_binding_is_refused",
+        "configured_server_owns_mcp_listener_and_drains_it_with_native_transport",
+        "occupied_mcp_port_fails_startup_and_releases_installation_for_retry"
+      ],
+      "proof": "Fresh MCP client reconciles original accepted receipt and one message; current cancellation invalidates existing client; owned listeners drain/release without affecting other runtime",
+      "status": "qualified in the recorded local scope"
+    }
+  ],
+  "not_claimed": [
+    "G4-017 task cancellation delegation/complete tool and retention qualification",
+    "Vapi first-invocation/resource bootstrap or installed host/model",
+    "Whole A4-07/A4-08 or full Gate 4 acceptance"
+  ]
+}

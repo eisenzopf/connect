@@ -1,0 +1,98 @@
+{
+  "item": "G4-008",
+  "status": "G4-008 requirement audit qualified",
+  "requirements": [
+    {
+      "requirement": "Owner task creation, inspection and cancellation require current authority",
+      "tests": [
+        "tasks::tests::authority::creation_does_not_mint_recipient_operation_origin_or_lifetime_authority",
+        "tasks::tests::authority::owner_replacement_credential_cannot_continue_revoked_backing_authority",
+        "tasks::tests::lifecycle"
+      ],
+      "proof": "Final 149 Store units; native/protected control fixtures",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Grant cannot widen task, credential, membership, recipient or expiry ceilings",
+      "tests": [
+        "tasks::tests::grants::grant_cannot_expand_subset_expiry_recipient_or_unregistered_origin",
+        "tasks::tests::grant_boundaries::task_and_issuer_expiry_are_independent_upper_bounds",
+        "tasks::tests::grant_boundaries::lost_membership_and_removed_issuer_operations_deny_previous_authority",
+        "tasks::tests::grant_operations::an_immutable_room_cannot_broadcast_outside_the_task_recipient_ceiling"
+      ],
+      "proof": "Final 149 Store units",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Execution, discovery, paging and accepted replay recheck current grant, task and backing authority",
+      "tests": [
+        "tasks::tests::grants::cached_handle_rechecks_expiry_and_revocation_before_each_read",
+        "tasks::tests::grants::backing_revocation_and_task_cancel_invalidate_an_already_authenticated_handle",
+        "tasks::tests::recall_authority::current_grant_and_backing_authority_apply_to_every_continuation_page",
+        "gate4_native_grants",
+        "gate4_native_grant_lifecycle",
+        "gate4_vapi_mcp_lifecycle"
+      ],
+      "proof": "Final Store units and actual QUIC/HTTP/MCP regression",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Provider invocation binds server-side; caller headers and model IDs cannot select another task or origin",
+      "tests": [
+        "tasks::tests::grants::a_call_chat_or_host_header_cannot_select_another_task_or_create_a_binding",
+        "tasks::tests::grants::forged_signature_unknown_grant_wrong_origin_and_changed_metadata_are_denied",
+        "tasks::tests::provider_setup",
+        "gate4_vapi_mcp_binding",
+        "gate4_vapi_verified_setup",
+        "gate4_vapi_setup_denials",
+        "gate4_vapi_setup_races"
+      ],
+      "proof": "Private SDK GET, atomic protected issuance and actual MCP. Canonical call/chat/session namespaces are distinct. First provider creation/bootstrap stays G4-019.",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Only hashes/non-secret metadata persist; intended secrets redact and replay does not extend expiry",
+      "tests": [
+        "tasks::tests::grants::issuance_retry_after_restart_regenerates_secret_without_extending_expiry_or_leaking_it",
+        "tasks::tests::grant_boundaries::concurrent_matching_issuance_has_one_secret_and_changed_intent_conflicts",
+        "tasks::tests::local_access",
+        "tasks::tests::provider_setup"
+      ],
+      "proof": "Final Store units; matching SDK/MCP issuance replay",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Expiry/cancellation/revocation races fail before effects and preserve failed-write recovery",
+      "tests": [
+        "tasks::tests::lock_expiry::expiry_while_waiting_for_the_store_lock_denies_public_authority_and_effects",
+        "tasks::tests::cancellation_budget",
+        "tasks::tests::grant_boundaries::binding_and_grant_capacity_preserve_matching_retries_and_rollback_failures",
+        "gate4_vapi_setup_races",
+        "gate4_native_grant_lifecycle"
+      ],
+      "proof": "Real shared-mutex expiry across 8 public paths; deterministic fixed-clock boundaries; retained insert rollback; explicit private API barrier with revocation and cancellation",
+      "status": "qualified in the recorded local scope"
+    }
+  ],
+  "not_claimed": [
+    "Actual Vapi account/model installation or first-call bootstrap",
+    "Host installation and model turns",
+    "Full A4/T-A integrated gate closure"
+  ],
+  "source_base": "fe4674a41e80ce9b5031672ebeeb2cae2384140f",
+  "source_files": {
+    "crates/connect-store/src/tasks/clock.rs": "70a5f21ec09cdc7ce1562d7bff83aa249c38c0cba98c22cc9905255ce80668ce",
+    "crates/connect-store/src/tasks/grants/authentication.rs": "55ccdbe6092c02dfea16a3984231667c4e402cebf9ca157a0581821ddd352536",
+    "crates/connect-store/src/tasks/grants/execution.rs": "dbd0b1178aa936094d587cb31467b7c66718dee5c68f811691dcd6fb74479a59",
+    "crates/connect-store/src/tasks/grants/issuance.rs": "7d9f4d5a3ae51823d764d381b1dbbae2dc528b80b9bdd7010ea6c00f60d36a64",
+    "crates/connect-store/src/tasks/grants/mod.rs": "3748b17a2c6387a352439a14a946bdeae87017f3b63875de1e2c35e489a20486",
+    "crates/connect-store/src/tasks/grants/provider.rs": "fd605eacf65e1e335afaa6ebdebbbf39fffc086381b7274e424f437802b78e6d",
+    "crates/connect-store/src/tasks/mod.rs": "fb2d625b5b11da5079d5a3e8a60cc8c17165bd3c1ec192f29538ff8e21a12f84",
+    "crates/connect-store/src/tasks/owner.rs": "e492cc487ddb3d599b46d73a294e31333cbb889ee248da11988b5507d8dcd50b",
+    "crates/connect-store/src/tasks/tests/lock_expiry.rs": "be9ed04f77a4d93482ec455062d7fb924e3a42a00abaebfa3ad47268ecfc5d04",
+    "crates/connect-store/src/tasks/tests/mod.rs": "d386f0e14caac4efeb45467bca5997b269b1eba7d24b026fc1415a3dce5b9c22"
+  },
+  "checked_at": "2026-10-10T23:05:02.559407+00:00",
+  "scope": "Local macOS arm64; Store unit tests and real QUIC/HTTP/MCP with a private SDK loopback provider; no live accounts, model turns or remote deployment",
+  "behavior_test_total": 164
+}

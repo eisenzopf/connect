@@ -1,0 +1,142 @@
+{
+  "status": "failed",
+  "scope": "local macOS arm64; actual Codex inference; no live communication providers",
+  "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "binary_sha256": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+  "qualification_report_sha256": "e7f11d3a886cf8b811f02779b6defbab2ad6bac0a12942d2a3a92b826660083a",
+  "runtime_manifest_sha256": "15485b312ad2b6b5a84c15fcb01c3db3fb4556c75e07cb827333e30d936c31ff",
+  "harness_sha256": "3082b0415c55e6076845059614f4b7c863e724a9744463f21ec5311334fee795",
+  "actual_codex_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "host_turn_budget_seconds": 300,
+  "outer_budget_seconds": 1100,
+  "access_mode": "regular-agent-credential",
+  "model_tool_calls": {
+    "model-first": {
+      "calls_passed": 15,
+      "calls_failed": 0,
+      "successful_tools": {
+        "connect_artifact_append": 2,
+        "connect_artifact_begin": 2,
+        "connect_artifact_finish": 2,
+        "connect_context_view": 2,
+        "connect_inspect": 1,
+        "connect_task_create": 2,
+        "connect_task_send": 2,
+        "connect_task_wait": 2
+      },
+      "event_sha256": "85bce4c9b0213cfdaa2dc5787b6165431dbb4fa2d3a6f92d64ba4e1e16a5e672",
+      "rule": "Model/schema/transport errors are retained and counted as failures; a corrected later call does not turn that failure into a pass."
+    },
+    "model-resume": {
+      "calls_passed": 15,
+      "calls_failed": 0,
+      "successful_tools": {
+        "connect_context_view": 2,
+        "connect_effect_status": 2,
+        "connect_inbox": 1,
+        "connect_inspect": 1,
+        "connect_request_status": 2,
+        "connect_send": 1,
+        "connect_task_send": 1,
+        "connect_task_status": 1,
+        "connect_task_transition": 1,
+        "connect_task_wait": 3
+      },
+      "event_sha256": "22935f91083c8fbfb6e2384d027cf712765bc819bd06e9d5d7bc69bbb8e471ae",
+      "rule": "Model/schema/transport errors are retained and counted as failures; a corrected later call does not turn that failure into a pass."
+    }
+  },
+  "phase": "model-resume",
+  "error_class": "ProofFailure",
+  "failure_label": "attributed-reply-consumed-by-own-tracked-followup",
+  "original_identity_conversations_host_intents_retained": true,
+  "owned_process_cleanup": [
+    {
+      "pid": 61414,
+      "exit_code": 0,
+      "owned_process_group_cleanup": true
+    },
+    {
+      "pid": 61711,
+      "exit_code": 0,
+      "owned_process_group_cleanup": true
+    }
+  ],
+  "delivered_cli_commands": [
+    {
+      "name": "init",
+      "interface": [
+        "init",
+        "--directory"
+      ]
+    },
+    {
+      "name": "create-agent",
+      "interface": [
+        "agent-access",
+        "create-identity"
+      ]
+    },
+    {
+      "name": "issue-agent",
+      "interface": [
+        "issue",
+        "--config"
+      ]
+    },
+    {
+      "name": "issue-human",
+      "interface": [
+        "issue",
+        "--config"
+      ]
+    },
+    {
+      "name": "export-agent",
+      "interface": [
+        "agent-access",
+        "export-codex"
+      ]
+    },
+    {
+      "name": "model-first",
+      "interface": [
+        "agent-access",
+        "run-codex"
+      ]
+    },
+    {
+      "name": "model-resume",
+      "interface": [
+        "agent-access",
+        "run-codex"
+      ]
+    }
+  ],
+  "schema": "connect.gate4.actual-normal-agent-attempt/1",
+  "recorded_at": "2026-10-12T13:10:22.179600+00:00",
+  "private_report": {
+    "path": ".local/gate4-agent-access/identity-model-20261012T125709.782372Z/result.json",
+    "location": "managed final-review worktree",
+    "sha256": "d47713fe0f724dcf607c90d3c761a6e58b7f3817a194a4cabbc2c70e171e1884"
+  },
+  "observer_failure": {
+    "reason": "Private harness assumed tracked reply_to implicitly consumes an inbox marker. It correlates/authorizes the effect; consumption is a separate native command. Ordinary MCP does not advertise consume.",
+    "correction": "Verify the single succeeded follow-up effect carries the exact attributed reply event, plus completed task/waiting sibling and stable public replay. Do not require or claim implicit consumption.",
+    "protocol_sources": {
+      "crates/connect-store/src/tasks/effects/dispatch.rs": "49a3283cd61ad1b0ce6b50a64ffb3ef6826525c6e9905a8c721f1b919ede00b8",
+      "crates/connect-store/src/tasks/replies.rs": "f0d527a13dc09f2ab79a8c2e97717036990cbddada46cd0aeb929745a3a42812"
+    }
+  },
+  "observed_before_failure": [
+    "Actual first/resume turns each15successful MCP calls;0failed calls",
+    "Exact saved-session resume after server restart",
+    "Both draft byte/digest/source checks pass",
+    "One useful sourced follow-up and one independently initiated answer; sibling task waiting"
+  ],
+  "not_run": [
+    "Final exact effect/reply observer reconciliation",
+    "Original public reviewer request replay"
+  ],
+  "whole_gate_closure_claimed": false
+}

@@ -1,0 +1,121 @@
+{
+  "item": "G4-009",
+  "status": "G4-009 qualified",
+  "source_base": "1802795c15d34cc0e186d070412b1b7f11cf57e8",
+  "recorded_at": "2026-10-10T23:12:39.909072+00:00",
+  "scope": "Local macOS arm64; owned server restarts, persistent isolated SQLite and real public QUIC SDK. Provider regression uses the pinned SDK with a loopback fake API. No live provider operations or deployment.",
+  "source_files": {
+    "crates/connect-server/tests/gate4_reply_recovery.rs": "eafd4430e498aa87555e348dcb20ddc400a4778048b30b0106fa800159a96212",
+    "crates/connect-server/tests/support/native_tasks.rs": "7b4578d2f8efb761c795198bd3b2cde9f9a676fbf074a2954ab2a39ec7a78e4d"
+  },
+  "requirements": [
+    {
+      "requirement": "Exact reply-to/event attribution; sender identity cannot choose a task",
+      "tests": [
+        "tasks::tests::native_reply",
+        "tasks::tests::effect_questions",
+        "tasks::tests::effect_provider_boundaries",
+        "gate4_native_tasks",
+        "gate4_provider_tasks"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Atomic message, reply binding, task wake and receipt before ACK",
+      "tests": [
+        "tasks::tests::native_reply::receipt_failure_rolls_back_message_reply_and_task_transition_then_retry_is_safe",
+        "tasks::tests::effect_crashes::terminated_recipient_preserves_reply_message_binding_and_wake_before_ack",
+        "tasks::tests::effect_provider_boundaries"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Unassigned history, authorized explicit assignment and attributed assignment event",
+      "tests": [
+        "tasks::tests::replies",
+        "tasks::tests::reply_races",
+        "gate4_reply_recovery"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Duplicate/reordered replies, matching assignment/consumption replay and one route under competing connections",
+      "tests": [
+        "tasks::tests::replies",
+        "tasks::tests::reply_races",
+        "tasks::tests::effect_provider_boundaries",
+        "gate4_reply_recovery"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Bound cursor catch-up survives restart and rechecks current authority; notifications remain hints",
+      "tests": [
+        "tasks::tests::replies::task_cursor_is_bound_to_task_identity_installation_and_current_authority",
+        "tasks::tests::recall_authority",
+        "tasks::tests::commit_between_task_catchup_and_wait_is_not_lost_for_owner_or_grant",
+        "tasks::tests::revocation_during_wait_is_rechecked_before_returning_events",
+        "gate4_reply_recovery"
+      ],
+      "status": "qualified in recorded scope"
+    }
+  ],
+  "pending": [],
+  "not_claimed": [
+    "Whole T-A/A4 integrated acceptance",
+    "Runner business-effect/checkpoint qualification (G4-015)",
+    "Installed actual provider or host model behavior"
+  ],
+  "checks": [
+    {
+      "phase": "store",
+      "terminal_exit": 0,
+      "passed": 149,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-4-planning/reply-recovery-store.log",
+      "log_sha256": "f9d3bb38abd7e32352233c85039c3a07698e760b54c40d476831f15a25de8ddf"
+    },
+    {
+      "phase": "service",
+      "terminal_exit": 0,
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-4-planning/reply-recovery-service.log",
+      "log_sha256": "2104169cc50d8cc2f572785ee0feb09282eb4ef0519e230037902ef5a8fb0215"
+    },
+    {
+      "phase": "wire",
+      "terminal_exit": 0,
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-4-planning/reply-recovery-wire.log",
+      "log_sha256": "eebc0ed648fc79ee944053d57e9795b0a934520ee818f7ecc9b5f11d45cf5cb7"
+    },
+    {
+      "phase": "reply-recovery-clippy.log",
+      "terminal_exit": 0,
+      "log": ".local/gate-4-planning/reply-recovery-clippy.log",
+      "log_sha256": "58490769c1f0e64fcfa4eec6022912a19c9300c338df9be6d291fac677536f80"
+    },
+    {
+      "phase": "reply-recovery-format.log",
+      "terminal_exit": 0,
+      "log": ".local/gate-4-planning/reply-recovery-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "total_behavior_passes": 156,
+  "review": {
+    "test_module_lines": 172,
+    "shared_fixture_lines": 137,
+    "new_production_logic": false,
+    "boundaries": "Restart fixture owns only its isolated server and public clients. Task replies, transitions and authorization remain Store/Service-owned. No application or example bypasses the public interface.",
+    "rustdoc": "Existing strict Store/Service/Server public Rustdoc qualification recorded in task-lock-expiry.json remains applicable; this change adds test-only code and documents the restart fixture."
+  },
+  "retained_observations": [
+    "Existing macOS oversized __eh_frame linker warning; no flags, deadlines or assertions relaxed."
+  ]
+}

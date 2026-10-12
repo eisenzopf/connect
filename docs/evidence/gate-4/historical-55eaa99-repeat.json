@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T01:32:32.999063+00:00",
+  "status": "Exact historical recovery phase passed at frozen 55eaa99 with unchanged 660-second outer/600-second internal budgets",
+  "source_revision": "55eaa99d91534588a4b26b8c88443248b7c82276",
+  "phase": {
+    "name": "historical-task-recovery",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "scripts/check-gate4-recovery.py",
+      "--previous-binary",
+      ".local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect"
+    ],
+    "timeout_seconds": 660,
+    "log": "historical-task-recovery.log",
+    "status": "passed",
+    "exit_code": 0,
+    "leftover_group_members": [],
+    "group_cleanup": "signalled",
+    "seconds": 3.63
+  },
+  "private_result_sha256": "bf47da49ff653eb92423fbbea1560bed6c527da206dee35d4edd1631d6ff6c87",
+  "retained_failure": "docs/evidence/gate-4/offline-55eaa99-attempt-1.json",
+  "limits": [
+    "Original cold backup startup failure remains unresolved; this pass does not establish its retrospective cause.",
+    "The separate remaining-offline invocation stopped at dispatch; later checks and current corrected source remain unqualified.",
+    "A separate voice-test startup sample observed _dyld_start before Rust test entry; that is not proof of the historical backup failure cause."
+  ]
+}

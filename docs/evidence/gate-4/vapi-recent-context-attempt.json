@@ -1,0 +1,17 @@
+{
+  "scope": "Separate authorized actual Vapi chat rehearsal, installed local release; no SMS dispatch or remote Connect deployment",
+  "result": "tool transport passed; source/useful-effect acceptance not passed",
+  "runtime_revision": "82d62898d070335f10959e152dc853c87f030306",
+  "task_id": "572092b0-501d-44de-9200-4419afa744b2",
+  "conversation_id": "b300016a-b474-4223-996c-137f85caecfb",
+  "observations": [
+    "Actual Vapi session chat reached initialize, tools/list and tools/call with successful HTTP responses after the asynchronous admission fix.",
+    "The assistant used chronological recall on a conversation with 945 messages, changed an opaque continuation cursor, and restarted the first page.",
+    "It did not retrieve the recent Atlas draft or perform the requested visible follow-up. Capture success is not product acceptance.",
+    "The next explicit bounded task will include the existing recent context operation and precise tool guidance; prior immutable task scope is not widened."
+  ],
+  "private_capture": ".local/gate-4-live/vapi-qualified-20261012T024904Z/chat-turn/inspection-018c5e9d03c748729b6334817308b859",
+  "private_capture_sha256": "b4afa46387130cdad38051bda764b3b5659f4524fc0333f08d6d993df18b605f",
+  "proxy_capture_sha256": "ceb89d35448029714659177075d0353a01ffa358e16bb6409194cf3e217a0cf1",
+  "recorded_at": "2026-10-12T03:09:52.073026+00:00"
+}

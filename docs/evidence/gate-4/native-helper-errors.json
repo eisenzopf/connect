@@ -1,0 +1,132 @@
+{
+  "status": "Native control-helper failure classification qualified; G4-014 and Gate 4 remain in progress",
+  "recorded_at": "2026-10-10T16:41:48.682135+00:00",
+  "qualification": "Local macOS arm64, account-free isolated server and real shipped language SDKs",
+  "items": [
+    "G4-013",
+    "G4-014"
+  ],
+  "source_base": "5607faf30f9fd1eb60fe6e5a5bdaf17576ab1e63",
+  "source_checkpoint": "b5bd1219e0bafef5b15e8b884b3be18695bacd62",
+  "source_verification": {
+    "changed_files": {
+      "crates/connect-client/src/client.rs": "edbaecced431e4a93e03ebc17a8bff920639dd85fc18728b9d915266591d04d9",
+      "crates/connect-server/src/cli/client_errors.rs": "b0e7c37e57f8182b55d4f0e348b795599ba41c4eeeae69d752ae51f48d79b2cc",
+      "crates/connect-server/src/cli/mod.rs": "f5f4e112af1f75ced24e0057247c933c5b0a117e70bc2433f7ef56338f9c83af",
+      "crates/connect-server/src/cli/request.rs": "98837ddc84c8b935ba436feaad1d0c83e5f4f465a5352e0e872be134f0d58e4a",
+      "crates/connect-server/src/cli/stdio.rs": "4bae899842f017ba8c38b3a17ba2b2d2e5d351ec9a11d32f2b5f57f6b83e8c02",
+      "crates/connect-server/tests/gate4_helper_auth.rs": "8ca10ead212aa81717b824f4ccb93ac6020d555dae73e13777f33776e23a1055",
+      "docs/SDK.md": "cc3d34116fdc3dc88e322ffdfb4dec531f63ce31c604beea958fd0b54450c39c",
+      "sdk/README.md": "3bab862bc843446b9470b93dbcb0d713fea79a42fe9e7ad41742229833b82e7b",
+      "sdk/tests/helper_auth_probe.mjs": "f6a72acd32c4d1a11e5f7d91b7f88014cd3b44fbfe59c017eca7b79124b398b2",
+      "sdk/tests/helper_auth_probe.py": "8fba34b40fca4dc29ba282227acdddfb33dd2dc64b27043c25e39e7339653ca8"
+    },
+    "mismatches": 0,
+    "fingerprint": "72bfbed6035bce0dd080706c0323cd1385f56dfa5561b79cae527c98088b42b3"
+  },
+  "behavior": [
+    "The control helper returns an input-ID-correlated configuration or unauthorized error for startup rejection, and repeated calls preserve that classification.",
+    "Both Python and TypeScript use only the intended Native grant. Missing configuration, corrupt grant, elapsed authority on an actively used peer and reconnect with that elapsed grant are rejected without owner fallback.",
+    "Rust retains the verified UCTP auth.session expiry and rejects expired sessions before dispatch. It never reclassifies a timeout or transport failure after dispatch by inspecting the later clock.",
+    "Helper and JSON CLI share exhaustive typed failure mapping; protocol and application errors retain their classes. Credentials stay fixed until an explicit new client is created.",
+    "Existing grant replay/export/language parity, bounded wait, cancellation, deadline recovery and stable mutation identity checks pass. The observer sees no messages from the negative helper cases."
+  ],
+  "verification": [
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_helper_auth --test gate4_native_grants --test gate4_native_grant_lifecycle --test gate4_grant_sdk_parity --test language_sdks",
+      "terminal_exit": 0,
+      "result": "8 passed; zero failures or ignored cases",
+      "log": ".local/gate-4-planning/helper-errors-final-5.log",
+      "log_sha256": "cc11db72d22b87508e8fcdfd3f2c65ec44318992e912ed6d42e80a2012199f5e"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test sdk_facade --test gate4_task_wire",
+      "terminal_exit": 0,
+      "result": "6 passed; zero failures or ignored cases",
+      "log": ".local/gate-4-planning/helper-errors-exchange-regression.log",
+      "log_sha256": "a8f1720be235a4f3e2003151b87222ba69b187e8cb3e82e968607f6d29107049"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-client -p connect-server --all-features --all-targets -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/helper-errors-clippy-final.log",
+      "log_sha256": "0ce477e6f86d86c1da79c54ca26abb0a2ae6f79b7a7198a23423103dea0f9215"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-client -p connect-server --all-features --no-deps",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/helper-errors-rustdoc-final.log",
+      "log_sha256": "c67282b5bacf561ef28366ee568732f79dd895db94e1ce01e34530816d4b03bc"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/helper-errors-format-final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "npm --prefix sdk/typescript run format:check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/helper-errors-ts-format.log",
+      "log_sha256": "f17c3858caccd03c85616cc718a6d37a742c110df9a4249585573d6d52256f57"
+    },
+    {
+      "command": "PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p 'test_*.py'",
+      "terminal_exit": 0,
+      "result": "21 passed; zero failed",
+      "log": ".local/gate-4-planning/helper-errors-python.log",
+      "log_sha256": "1561137212e43090f13a9fe9cd8e14e43f00b82d15e880f8fe2db6188e236d4f"
+    },
+    {
+      "command": "node --test sdk/tests/*.test.mjs",
+      "terminal_exit": 0,
+      "result": "147 passed; zero failed",
+      "log": ".local/gate-4-planning/helper-errors-node-all.log",
+      "log_sha256": "d1396c1d19fbbd7926c60424aa4ee52567b7688e73f4a23c623b286c5e235832"
+    },
+    {
+      "command": "python3 .local/gate-4-planning/validate-docs.py",
+      "terminal_exit": 0,
+      "result": "HTML links, anchors, stable task IDs, dependency graph and acceptance mappings passed",
+      "log": ".local/gate-4-planning/helper-errors-doc-links-final.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
+    }
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/helper-errors-baseline.log",
+      "result": "Failed on corrupt credential: old helper closed and Python reported transport-uncertain instead of unauthorized."
+    },
+    {
+      "log": ".local/gate-4-planning/helper-errors-final.log",
+      "result": "Expiry fixture first waited past the QUIC idle timeout; corrected to exercise expiry on an actively used peer, without changing transport settings."
+    },
+    {
+      "log": ".local/gate-4-planning/helper-errors-final-2.log",
+      "result": "Fixture assertion used the wrong TaskOutcome record nesting; corrected against the shipped SDK contract."
+    },
+    {
+      "log": ".local/gate-4-planning/helper-errors-final-3.log",
+      "result": "Active-peer expiry still appeared as transport loss because the rvoip authentication guard closes the peer. Corrected by retaining the verified auth.session expiry for pre-dispatch rejection."
+    },
+    {
+      "log": ".local/gate-4-planning/helper-errors-final-4.log",
+      "result": "Reconnect exceeded the existing SDK deadline while other compilation was running. Same-source isolated diagnostic passed; final unchanged-source lane recorded separately. The exact source of this timing failure is not established."
+    }
+  ],
+  "limits": [
+    "The prior 322-test whole-workspace qualification belongs to ca31393, not this changed component. This component uses the targeted compatibility/error lanes recorded above.",
+    "Mac linker large __eh_frame warning remains visible; no timer or resource-limit weakening and no lint suppression.",
+    "One retained reconnect timeout occurred during concurrent compilation. This does not establish performance under build load; retain it for G4-030 operating-limit qualification.",
+    "No database migration, dependency patch, Rudeless extraction/database change, provider account action, public ingress or remote deployment."
+  ],
+  "remaining": [
+    "Complete lifecycle/reply/recall/cancel and pending/uncertain parity matrix across public interfaces",
+    "Scoped native media/resource attachment, durable SDK runner, installed host and verified provider origin/context qualification",
+    "Whole tool deadline, integrated recovery/upgrade/package qualification and remaining Gate 4 acceptance"
+  ]
+}

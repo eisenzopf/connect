@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T16:22:25.789417+00:00",
+  "scope": "Post-qualification origin/main integration; CI setup and contributor documentation only",
+  "runtime_source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "owner_review_checkpoint": "d749dfea7ff477b25cfeb4c40173cbc2d838fb94",
+  "ci_setup_revision": "295ec10942566df2f28230eb5e0c07bc1f20d8ab",
+  "ci_status": "Native Opus prerequisite added; fresh hosted CI rerun pending",
+  "failed_runs": [
+    {
+      "id": 38275304656,
+      "url": "https://github.com/eisenzopf/connect/actions/runs/38275304656",
+      "revision": "d749dfea7ff477b25cfeb4c40173cbc2d838fb94",
+      "status": "failed",
+      "detail": "Both jobs stopped at the Rust lint build; initial workflow did not print the retained compiler log."
+    },
+    {
+      "id": 38276217851,
+      "url": "https://github.com/eisenzopf/connect/actions/runs/38276217851",
+      "revision": "765dc7dad1bc10bcebd0a06f25e5c0c3ce2c8be5",
+      "status": "failed",
+      "detail": "Diagnostic rerun: audiopus_sys 0.2.2 could not find native Opus; CMake 4 rejected the older bundled Opus minimum policy version."
+    }
+  ],
+  "diagnostic_log_sha256": "3bf629592047ce8bf2584121d73ceb370bf5d0b363f2bb7f47418b75a49fb656",
+  "repair": "Both account-free macOS CI jobs explicitly install opus and pkgconf and verify the static library. Compiler diagnostics are printed on failure. No Rust source, Cargo lock, provider configuration or existing application state changed.",
+  "source_reconciliation": {
+    "recorded_inputs": 839,
+    "unchanged_inputs": 836,
+    "changed_inputs": [
+      {
+        "path": ".github/workflows/local-checks.yml",
+        "frozen_sha256": "2c2c627ef3cfb4a02d4d548bf6e6b3e0f931ee7b3e4e3e53edbbb90553310bb4",
+        "current_sha256": "850cb8ca5375e590e4f78e35d5ab91ed60c80582378a4d4d68667fd1b859fafd"
+      },
+      {
+        "path": "CONTRIBUTING.md",
+        "frozen_sha256": "abce74fdf46bb0eb0ac1747630393b71a874171b26cb306ce568862096752bfe",
+        "current_sha256": "921b3daccae03c359b639c9b6021f932893d6add64d7516771b68db51dc85a05"
+      },
+      {
+        "path": "README.md",
+        "frozen_sha256": "7eff2883d5d601f118fb6c370e5a71e04ed2604049418604f7ce3ca7de6fddec",
+        "current_sha256": "56369f7bc91f171d327fd6d931ffb8253812224ecccee1647b55a1ea15c002b1"
+      }
+    ]
+  },
+  "local_native_dependencies": {
+    "opus": "1.6.1",
+    "pkgconf": "3.0.5",
+    "cmake": "4.4.2"
+  },
+  "existing_qualification": "The frozen runtime keeps its 41/41 clean-checkout phases, 17/17 installed checks and unchanged archive hashes. Hosted source-only CI is separate from full local acceptance; no new runtime qualification or skipped-check pass is claimed."
+}

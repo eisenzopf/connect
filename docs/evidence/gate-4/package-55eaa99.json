@@ -1,0 +1,157 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T23:51:39.118329+00:00",
+  "status": "All 12 installed-candidate checks passed; whole Gate 4 and item dependencies remain open",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-55eaa99d9153",
+  "source_revision": "55eaa99d91534588a4b26b8c88443248b7c82276",
+  "private_report": ".local/package-checks/20261011T233915.247013Z/result.json",
+  "private_report_sha256": "eaa6311a21370866c6ba242b58c92b09fb0dbfcc86ab21a6ee94f699865fa54d",
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "installed-gate4-agent": {
+      "result": "passed",
+      "detail": "Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback"
+    },
+    "qualification-fixture-build": {
+      "result": "passed",
+      "detail": "Exact extracted source; owned compilation phase; test-only controls isolated from installed runtime binaries"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "fault_fixture_build": {
+    "status": "passed",
+    "source_revision": "55eaa99d91534588a4b26b8c88443248b7c82276",
+    "scope": "extracted candidate source; test-only binaries, never runtime assets",
+    "phase": {
+      "name": "build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-review-loop",
+        "--features",
+        "connect-server/test-support,connect-review-loop/test-support",
+        "--bin",
+        "connect",
+        "--bin",
+        "connect-example"
+      ],
+      "timeout_seconds": 2400,
+      "log": "build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 181.873
+    },
+    "binaries_sha256": {
+      "connect": "e2f0c796a8378e090b786768898e142f52e4ec0d92dd513c74b79221f0621347",
+      "connect-example": "92c4008ced79541b11f92a1c95872a32c49d37b2dd795332786b7d667a503bf2"
+    }
+  },
+  "legacy_phases": [
+    {
+      "name": "check-examples.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-22gwm9nn/connect-source/scripts/check-examples.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-examples.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 5.473
+    },
+    {
+      "name": "check-recovery.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-22gwm9nn/connect-source/scripts/check-recovery.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-recovery.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 2.52
+    },
+    {
+      "name": "check-crash-replay.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-22gwm9nn/connect-source/scripts/check-crash-replay.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-crash-replay.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 8.401
+    },
+    {
+      "name": "check-example-recovery.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-22gwm9nn/connect-source/scripts/check-example-recovery.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-example-recovery.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 9.602
+    }
+  ],
+  "retained_failed_invocation": "docs/evidence/gate-4/package-59b5519-attempt-1.json",
+  "scope": "Unpublished local macOS arm64 release installed outside checkout; account-free scripted provider/model fixtures, no production credentials or deployment",
+  "limits": [
+    "Actual Vapi provider chat/voice and task-driven carrier SMS remain separate live requirements.",
+    "Full current-source offline rerun and integrated item dependencies remain open."
+  ]
+}

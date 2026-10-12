@@ -1,0 +1,45 @@
+{
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "steps": [
+    {
+      "name": "gate1",
+      "result": "passed",
+      "log": ".local/gate-3-media-audit/gate1-final.log"
+    },
+    {
+      "name": "gate2",
+      "result": "passed",
+      "log": ".local/gate-3-media-audit/gate2-final.log"
+    },
+    {
+      "name": "rustdoc",
+      "result": "passed",
+      "log": ".local/gate-3-media-audit/rustdoc-final.log"
+    }
+  ],
+  "result": "passed",
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T23:19:10.755771+00:00",
+  "gate_1": {
+    "result": "passed",
+    "phases": 19,
+    "private_result": ".local/checks/20261009T225938.736646Z/result.json"
+  },
+  "gate_2": {
+    "result": "passed",
+    "command": "bash scripts/check-gate-2.sh",
+    "private_log": ".local/gate-3-media-audit/gate2-final.log"
+  },
+  "rustdoc": {
+    "result": "passed",
+    "command": "RUSTDOCFLAGS=\"-D warnings\" cargo doc --locked --workspace --no-deps",
+    "private_log": ".local/gate-3-media-audit/rustdoc-final.log"
+  },
+  "source_equivalence": "All recorded Gate 1 runtime/test/script/SDK source input hashes still match; ongoing changes affect documentation only.",
+  "sdk_tests": {
+    "typescript": 34,
+    "python": 14
+  },
+  "known_build_warning": "Apple debug linker may report large __eh_frame; optimized package and qualification pass. This host warning was not claimed fixed."
+}

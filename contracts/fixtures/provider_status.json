@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-provider_status",
+  "ts": "2026-10-07T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "provider_status",
+    "conversation_id": "conversation-1"
+  }
+}

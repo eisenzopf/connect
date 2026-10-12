@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-context_deliveries",
+  "ts": "2026-10-08T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "context_deliveries",
+    "conversation_id": "conversation-1",
+    "before": null,
+    "limit": 25,
+    "actor": "unauthorized"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-call_end",
+  "ts": "2026-10-07T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "call_end",
+    "request_id": "call-end-1",
+    "conversation_id": "conversation-1",
+    "call_id": "call-1",
+    "sender": "spoofed"
+  }
+}

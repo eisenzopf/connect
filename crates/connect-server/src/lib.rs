@@ -1,0 +1,26 @@
+//! Local server composition and command-line operations.
+pub mod cli;
+pub mod config;
+pub mod installation;
+mod media_ingress;
+mod media_lifecycle;
+pub mod media_profile;
+mod media_transports;
+mod registration_monitor;
+pub mod runtime;
+mod sip_outbound;
+mod sip_registration;
+pub mod tls;
+mod transports;
+pub mod vapi_bootstrap;
+mod vapi_media;
+mod vapi_observer;
+pub mod vapi_task_setup;
+
+pub mod providers;
+
+pub mod voice;
+
+mod sms_authority;
+mod startup;
+mod worker;

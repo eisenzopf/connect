@@ -1,0 +1,57 @@
+{
+  "reviewed_revision": "a20de339fa7038576a116600ae5f582ee8388279",
+  "date": "2026-10-09",
+  "scope": "Product, roadmap, Gates 1\u20133, architecture and targeted code review. Local only; no live provider operations.",
+  "recorded_task_counts": {
+    "1": {
+      "done": 53
+    },
+    "3": {
+      "done": 35
+    },
+    "2": {
+      "done": 23,
+      "deferred": 2,
+      "not-started": 2
+    }
+  },
+  "existing_evidence": "Gate 3 result.json records 13/13 criteria, 27 offline phases, 19 baseline phases and 10 installed checks. Read as historical qualification, not newly rerun here. Runtime code unchanged from e457960 to reviewed HEAD.",
+  "checks": [
+    {
+      "name": "dependency preparation",
+      "result": "passed",
+      "command": "bash scripts/prepare-dependencies.sh"
+    },
+    {
+      "name": "store audit reproduction",
+      "result": "findings reproduced",
+      "command": "cargo test --locked -p connect-store --test pre_gate_four_review_probe -- --nocapture",
+      "fixture": "store-probe.rs",
+      "detail": "Isolated temporary SQLite state: audio session accepted while resolve advertises only messaging; 101 context deliveries stored but public view omits newest and has no delivery cursor/omission count. Temporary test copied into store tests, then removed."
+    },
+    {
+      "name": "reference refresh reproduction",
+      "result": "findings reproduced",
+      "command": "node .local/pre-gate-4-review/ui_probe.mjs",
+      "fixture": "ui-probe.mjs",
+      "detail": "Executes actual refresh function in a deterministic Node DOM fixture. Newest message outside first history page and failed delivery do not render. Not browser E2E."
+    }
+  ],
+  "not_run": [
+    "Full regression suites; no runtime changes in this review.",
+    "New live provider/phone/audio qualification.",
+    "Current rudeless.ai/connect parity: web fetch unavailable; direct read returned HTTP 403.",
+    "Runtime worker-failure/long-idle telephone reproduction; findings distinguish source inspection and existing evidence."
+  ],
+  "private_logs": [
+    {
+      "path": ".local/pre-gate-4-review/probe.log",
+      "sha256": "6f8f171fd1876e1e1c026e7637a274bc2abf5ea8ca9d3d079a075a0a971aa009"
+    },
+    {
+      "path": ".local/pre-gate-4-review/ui_probe.log",
+      "sha256": "1c66f0aaf5c89a2ba15fda91347f2f19292436dfb69dd3ce6e3cef442eb5b67f"
+    }
+  ],
+  "report": "../../connect-pre-gate-4-review.html"
+}

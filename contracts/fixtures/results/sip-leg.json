@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env-sip-leg-result",
+  "in_reply_to": "env-sip-leg-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "sip_leg",
+        "data": {
+          "id": "sip-leg-1",
+          "conversation_id": "conversation-1",
+          "session_id": "session-1",
+          "destination": "sip:alice@127.0.0.1:5099",
+          "state": "active",
+          "connection_id": "connection-1",
+          "ended_reason": null,
+          "end_requested": false,
+          "created_at": 1791417600,
+          "updated_at": 1791417601
+        }
+      }
+    }
+  },
+  "ts": "2026-10-09T00:00:00Z"
+}

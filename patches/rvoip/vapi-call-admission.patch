@@ -1,0 +1,77 @@
+--- a/crates/extensions/rvoip-vapi/src/types.rs
++++ b/crates/extensions/rvoip-vapi/src/types.rs
+@@ -226,9 +226,20 @@
+     LeaveCallerConnected,
+ }
+ 
++/// Optional host authorization at the final REST dispatch boundary.
++/// The host owns durable intent and must reject repeated possibly-sent attempts.
++/// Defaults to absent, preserving existing call creation behavior.
++#[async_trait::async_trait]
++pub trait VapiCallAdmission: Send + Sync {
++    /// Revalidate current authority and durably admit one request. This runs
++    /// after request preparation and immediately before the HTTP send.
++    async fn admit(&self) -> Result<()>;
++}
++
+ /// Per-call options carried opaquely through `OriginateRequest`.
+ #[derive(Clone)]
+ pub struct VapiCallOptions {
++    pub(crate) admission: Option<std::sync::Arc<dyn VapiCallAdmission>>,
+     pub(crate) api_key: Option<crate::VapiApiKey>,
+     pub assistant: VapiAssistant,
+     pub audio_format: VapiAudioFormat,
+@@ -241,12 +252,20 @@
+     pub fn new(assistant: VapiAssistant) -> Self {
+         Self {
+             assistant,
++            admission: None,
+             api_key: None,
+             audio_format: VapiAudioFormat::default(),
+             name: None,
+             metadata: None,
+             peer_failure_policy: VapiPeerFailurePolicy::default(),
+         }
++    }
++
++    /// Set a host-owned admission guard for this call only. The shared adapter
++    /// remains unchanged; existing-call handoff performs no new REST dispatch.
++    pub fn with_admission(mut self, admission: std::sync::Arc<dyn VapiCallAdmission>) -> Self {
++        self.admission = Some(admission);
++        self
+     }
+ 
+     /// Supply a credential for this call only; never changes the shared adapter.
+--- a/crates/extensions/rvoip-vapi/src/client.rs
++++ b/crates/extensions/rvoip-vapi/src/client.rs
+@@ -45,7 +45,7 @@
+             .join("call")
+             .map_err(|_| VapiError::InvalidConfiguration("the API base cannot join /call"))?;
+         let operation = async {
+-            let mut response = self
++            let request = self
+                 .client
+                 .post(endpoint)
+                 .bearer_auth(
+@@ -57,7 +57,11 @@
+                         ))?
+                         .expose_secret(),
+                 )
+-                .json(&options.create_call_payload())
++                .json(&options.create_call_payload());
++            if let Some(admission) = &options.admission {
++                admission.admit().await?;
++            }
++            let mut response = request
+                 .send()
+                 .await
+                 .map_err(|_| VapiError::Http)?;
+--- a/crates/extensions/rvoip-vapi/src/lib.rs
++++ b/crates/extensions/rvoip-vapi/src/lib.rs
+@@ -28,5 +28,5 @@
+ pub use events::{VapiEvent, VapiEventEnvelope};
+ pub use health::VapiMediaHealth;
+ pub use types::{
+-    VapiAssistant, VapiAudioFormat, VapiCallOptions, VapiExistingCall, VapiPeerFailurePolicy,
++    VapiAssistant, VapiAudioFormat, VapiCallAdmission, VapiCallOptions, VapiExistingCall, VapiPeerFailurePolicy,
+ };

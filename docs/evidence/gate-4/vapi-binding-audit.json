@@ -1,0 +1,405 @@
+{
+  "item": "G4-019",
+  "status": "Local implementation item verified; actual provider/model and whole Gate 4 acceptance remain open",
+  "recorded_at": "2026-10-11T03:24:39.330260+00:00",
+  "source_base": "1a6dae507d0523d1eca972a2c1ab9deed6d4e49e",
+  "source_files": {
+    "Cargo.lock": "e01d6633125f1c70e922a5cc241376ab2f33bb6f4e999183e7ed1b5534010e3f",
+    "crates/connect-connectors/src/vapi_origin.rs": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b",
+    "crates/connect-connectors/tests/vapi_origin.rs": "36940d944e6cf1f5de6f84befa27c6eb7f795d8ceb14f42b0ff3547a98089611",
+    "crates/connect-mcp/src/auth.rs": "9216321950a8e2fd492f116e4debb0459dbaf5096a880d75fad7a4c73d3f8c94",
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/listener.rs": "5183bafeceb8fa492ef0b385b89aed876e37e8a41437f180c18f7935db7c88ae",
+    "crates/connect-mcp/src/vapi_auth.rs": "d310999324d2b423699471e4576b7995302604f230fc5a73a2a70944149b08de",
+    "crates/connect-server/src/vapi_bootstrap/admission.rs": "0bd5e44852d4941e5c45c8fdc20fa699b250e26b0fb95398cd455be8f59aaf3a",
+    "crates/connect-server/src/vapi_bootstrap/binding.rs": "6423d7ca0f5c3e4c7ebcfd91a2b2eb235d8e746e7507489de8c134437cdf88ad",
+    "crates/connect-server/src/vapi_bootstrap/call.rs": "8de88a75e616b686b973c58608c429aacf39a41943db19da9da188eeb6e9853f",
+    "crates/connect-server/src/vapi_bootstrap/creation.rs": "dc1eab858a3d1eadd8d455547b0c03648bb251575e7abc3eee574015704a29ff",
+    "crates/connect-server/src/vapi_bootstrap/dispatch.rs": "1a776f5b26323da49ec521465783fd06f3ef765d04394907a1052d67f1aa6788",
+    "crates/connect-server/src/vapi_bootstrap/media.rs": "ebbe5fcdfc0d580fb86647c13e8b4fd8527abd638f6dbbefa75256c1a08c24d9",
+    "crates/connect-server/src/vapi_bootstrap/mod.rs": "e14be8ab119ea13fb8c4b485c178109303b7d515cf37bf51783726deee4f3df5",
+    "crates/connect-server/src/vapi_bootstrap/recovery.rs": "449142eeac248921ff49ded98a8cb8e4548cbfa24598cd9e13c0b78e3166d287",
+    "crates/connect-server/src/vapi_bootstrap/state.rs": "2155e0106cf126b92fb6023f75abfd64d19796923e0a67c212b11dba49a4b25d",
+    "crates/connect-server/src/vapi_media.rs": "086ed29b48b534f524990d2369038349c6e10233da7297dfad19eb8163be71d7",
+    "crates/connect-server/src/vapi_task_setup.rs": "897861f005b62736679a55c97b6d3da88e0e75d2cc88129547c841c9d8626a34",
+    "crates/connect-server/tests/gate4_vapi_admission_hook.rs": "38148297e8fcacc64460777d04766e23b8a68117e772085e678e40eb42c2344e",
+    "crates/connect-server/tests/gate4_vapi_bootstrap.rs": "74fbef0a6f89e7487a7ca8b5f9af5021f3bbf3e761f72651ef2ef68802f9d57f",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_denials.rs": "06afaefd1318a800f3c874918c44f25eb6f603bd44e0f740d9647efa6640ff14",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_preparation.rs": "b9064da972a6380236135728b0ee86a4d9c247e2ae27f1b35fd7689aa23144f5",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_races.rs": "2d5942d99bba1ed2c6d7a31d840438fac228cfd43fef456b559127a26ace0895",
+    "crates/connect-server/tests/gate4_vapi_bootstrap_recovery.rs": "8c1437a3e0f8d8e1ceda9d619051b0303b6297643b9c951f97101b8318f947fd",
+    "crates/connect-server/tests/gate4_vapi_call_bootstrap.rs": "3ffc4b426439470f6d6d6cdf12c14d2a515ac62ca1853b7d3245d1b86bd2df10",
+    "crates/connect-server/tests/gate4_vapi_call_isolation.rs": "7ebd51316810f17ee3a956ef75cd699b54b820a9de5a81e7d247d14f716fcfa7",
+    "crates/connect-server/tests/gate4_vapi_call_recovery.rs": "6094f39f607ad6f428d3678c69cd53824b4955a71acb7e075956c42cbdc4039d",
+    "crates/connect-server/tests/gate4_vapi_mcp_binding.rs": "0c06b869159b2696acbbf26703efdb5a2acd456d6adf657adcef6987d0ed9210",
+    "crates/connect-server/tests/gate4_vapi_mcp_lifecycle.rs": "92fc75ebe526b47519eaeffe58786fe42cc4f7e44bbfef6a3c18cc30a7d7afd5",
+    "crates/connect-server/tests/gate4_vapi_recovery_revocation.rs": "c3307185f418b6e77ae859240d3c9343f0ee6488c08b10cf08936c07a5a01a0b",
+    "crates/connect-server/tests/gate4_vapi_setup_denials.rs": "5bbeec30a2453988847972b9402e1a9690da4b863a2982deaa81b0952b856f94",
+    "crates/connect-server/tests/gate4_vapi_setup_races.rs": "3a85a9b3f3a9ab7211055f1754346ed03ceb053e696b94a992b3db7177005f82",
+    "crates/connect-server/tests/gate4_vapi_verified_setup.rs": "c3a81bc09a150177ea1c72fae0ff7b0fed22df934590abc61f99f5f59923ff16",
+    "crates/connect-server/tests/support/mcp_fixture.rs": "4d30f765d5592d9047fbab027d626e916dece07417ff5d0aa3da7fbeef975a01",
+    "crates/connect-server/tests/support/native_grants.rs": "dff676f56f19be8d1c7df5de2a73179875a8b452efb5a17bc14a74065ada4544",
+    "crates/connect-server/tests/support/native_media.rs": "6adcf9c3c0612941f0ec5189e00418f04de1603ef067abc5ca54c536051d94d2",
+    "crates/connect-server/tests/support/native_tasks.rs": "7b4578d2f8efb761c795198bd3b2cde9f9a676fbf074a2954ab2a39ec7a78e4d",
+    "crates/connect-server/tests/support/paused_vapi_lookup.rs": "85ef2cddeba2873b618c189370962bf0ea6a0a7a9e91256ab8a73b22d6a10ffb",
+    "crates/connect-server/tests/support/vapi_bindings.rs": "c1a46b195321a34ec46a339a594cbbf33acca53c065ac940b09430fef7b2a71f",
+    "crates/connect-server/tests/support/vapi_bootstrap.rs": "89ed0c1945769aa30f3b7fb9c32f2d2f25aaec02e9acbc20c0f39d702ed6eb32",
+    "crates/connect-server/tests/support/vapi_call_isolation_support.rs": "936a03c7ac64d4850128400b14347dc74f88a848e900500a20ef168d95b48c59",
+    "crates/connect-server/tests/support/vapi_call_setup.rs": "b5cbd3694e9c18c7d55ddf691469dd2c52a9049818b0946331ab2826f0b05a8d",
+    "crates/connect-server/tests/support/vapi_setup.rs": "fc5163d74772cfb0e94f83c0b2d343975b384542e6725c76a9bb4fbb23ef47b8",
+    "crates/connect-server/tests/support/vapi_two_calls.rs": "47ec72878523cb9efc282acbf8d24f57b5e7f3fe37ac62ace2f0b993ed746d94",
+    "crates/connect-service/src/tasks/provider_setup.rs": "a00c8b81b24173713fcd9238348465e9721436f39f5a693b8d45da5ccb87239c",
+    "crates/connect-store/src/tasks/grants/admission.rs": "129f807a1aea048bb40b7078916f4f87e4f58f0025bde5d5e629c78a6b2c3023",
+    "crates/connect-store/src/tasks/grants/authentication.rs": "55ccdbe6092c02dfea16a3984231667c4e402cebf9ca157a0581821ddd352536",
+    "crates/connect-store/src/tasks/grants/authority.rs": "7d9bde002afde04e9011b78c44da18c22dedb0e12a413a7bcb373bd3200b4fd9",
+    "crates/connect-store/src/tasks/grants/bindings.rs": "114527fe66e2791efd94aeed64618a938dd975f730163d65a0857bb7542a4628",
+    "crates/connect-store/src/tasks/grants/execution.rs": "cda5eea891ba6c76c420d91a730421ffea191b7ec14978a3c71c65c586a3d574",
+    "crates/connect-store/src/tasks/grants/issuance.rs": "7d9f4d5a3ae51823d764d381b1dbbae2dc528b80b9bdd7010ea6c00f60d36a64",
+    "crates/connect-store/src/tasks/grants/mod.rs": "3748b17a2c6387a352439a14a946bdeae87017f3b63875de1e2c35e489a20486",
+    "crates/connect-store/src/tasks/grants/native.rs": "a3a2a30795b229b2e3853e882328ed301be5339787643fa8112cc5adf1b2ae87",
+    "crates/connect-store/src/tasks/grants/native_resources.rs": "d42a526ca9d9f068f65cc6f68e16cc5ca001deb2da1615ebc2a98fd17fa102ac",
+    "crates/connect-store/src/tasks/grants/provider.rs": "fd605eacf65e1e335afaa6ebdebbbf39fffc086381b7274e424f437802b78e6d",
+    "crates/connect-store/src/tasks/grants/rows.rs": "cbbe40e71212c52c472fabe5cbea9930f2a9d40091cc1fdf85f912da233436a8",
+    "crates/connect-store/src/tasks/grants/secret.rs": "25bdf051e44bee51e6c220f69a9764a063416a18cbb857b6a140cc4cc593d417",
+    "crates/connect-store/src/tasks/media_setup.rs": "e41447b082edfae68528c6c7bbe81aae61515dc3a29df2bf3c2b99bc061efff0",
+    "crates/connect-store/src/tasks/tests/provider_setup.rs": "1c755ea35c4ec608a13fa998ddc00ea328c07d3b8d9aff3addb956c346465a87",
+    "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+    "patches/rvoip/vapi-call-admission.patch": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa"
+  },
+  "scope": "Local macOS arm64; disposable databases and authenticated loopback provider APIs. Real Connect MCP/QUIC and rvoip call creation/media; no actual cloud model/provider, public ingress, remote deployment, production database or public release.",
+  "requirements": [
+    {
+      "requirement": "Verified call/chat resource to existing actor/conversation/task and exact invocation binding",
+      "source": [
+        "crates/connect-server/src/vapi_task_setup.rs",
+        "crates/connect-connectors/src/vapi_origin.rs",
+        "crates/connect-store/src/tasks/grants/provider.rs"
+      ],
+      "checks": [
+        "gate4_vapi_verified_setup",
+        "vapi_origin",
+        "provider_setup"
+      ],
+      "result": "Verified by listed current-source checks and inspected responsibility boundaries"
+    },
+    {
+      "requirement": "Actual Connect MCP with documented per-invocation tools; trusted setup rather than model authority",
+      "source": [
+        "crates/connect-server/src/vapi_bootstrap",
+        "crates/connect-mcp/src/auth.rs",
+        "crates/connect-mcp/src/vapi_auth.rs"
+      ],
+      "checks": [
+        "gate4_vapi_call_bootstrap",
+        "gate4_vapi_bootstrap",
+        "gate4_vapi_mcp_binding"
+      ],
+      "result": "Verified by listed current-source checks and inspected responsibility boundaries"
+    },
+    {
+      "requirement": "Authenticated replay, forged identifiers, tool retries and expired grants",
+      "source": [
+        "crates/connect-mcp/src/vapi_auth.rs",
+        "crates/connect-server/src/vapi_bootstrap/binding.rs"
+      ],
+      "checks": [
+        "gate4_vapi_mcp_binding",
+        "gate4_vapi_mcp_lifecycle",
+        "gate4_vapi_setup_denials",
+        "gate4_vapi_bootstrap_denials",
+        "gate4_vapi_bootstrap_races",
+        "gate4_vapi_setup_races"
+      ],
+      "result": "Verified by listed current-source checks and inspected responsibility boundaries"
+    },
+    {
+      "requirement": "Distinct concurrent calls cannot share authority",
+      "source": [
+        "crates/connect-server/tests/gate4_vapi_call_isolation.rs"
+      ],
+      "checks": [
+        "gate4_vapi_call_isolation"
+      ],
+      "result": "Verified by listed current-source checks and inspected responsibility boundaries"
+    },
+    {
+      "requirement": "Safe correlation/outcomes only; no bearer, private body or owner credential leakage",
+      "source": [
+        "crates/connect-server/src/vapi_bootstrap/binding.rs",
+        "crates/connect-server/src/vapi_task_setup.rs",
+        "crates/connect-mcp/src/auth.rs",
+        "crates/connect-server/src/vapi_media.rs",
+        "source-locked rvoip-vapi diagnostic-safe error/span implementation"
+      ],
+      "checks": [
+        "gate4_vapi_call_isolation",
+        "gate4_vapi_mcp_binding",
+        "vapi_origin"
+      ],
+      "result": "Verified by listed current-source checks and inspected responsibility boundaries"
+    },
+    {
+      "requirement": "Journal retains original intent through uncertain creation, rollback and current-authority changes",
+      "source": [
+        "crates/connect-server/src/vapi_bootstrap/recovery.rs",
+        "crates/connect-store/src/tasks/grants/provider.rs"
+      ],
+      "checks": [
+        "provider_setup",
+        "gate4_vapi_bootstrap_recovery",
+        "gate4_vapi_call_recovery",
+        "gate4_vapi_recovery_revocation"
+      ],
+      "result": "Verified by listed current-source checks and inspected responsibility boundaries"
+    }
+  ],
+  "integration_summary": "34 tests passed; 0 failed; 0 ignored. 23 Server checks across 15 Cargo-built artifacts, six private-origin connector cases and five targeted atomic provider-issuance Store cases. 151 unrelated Store unit cases filtered, not reported as this audit passes.",
+  "integration_artifacts": [
+    {
+      "test": "gate4_vapi_mcp_binding",
+      "executable": "target/debug/deps/gate4_vapi_mcp_binding-bee7422e24235dd7",
+      "binary_sha256": "ca858838809ee43ad1acba9934330f424376c93809503915d1025017b60ccab0",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_mcp_binding.log",
+      "log_sha256": "a8ea5e912115c6ea3020646dd955c3e76ccf734568d496ee0cda9ee49295d45e",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_mcp_lifecycle",
+      "executable": "target/debug/deps/gate4_vapi_mcp_lifecycle-8668d772ed22bd0b",
+      "binary_sha256": "9a80ca5d3474248314c8a704f32de9d54b9c96914633e6391d05431219363d5b",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_mcp_lifecycle.log",
+      "log_sha256": "22a34f81fd5ec29e7db41923c30d8d37180461b55aee641121ddaa7ce9ed0080",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_call_isolation",
+      "executable": "target/debug/deps/gate4_vapi_call_isolation-4bdf8f06f1ce574a",
+      "binary_sha256": "53b7f1b8db925b1d418b07e97cab0329a65f704bb1cb7e95f12cdcedcd68a0c8",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_call_isolation.log",
+      "log_sha256": "7e02f9922d4595f48143e3eba4cc5b2a248e2375d3305971141a10fa39be35e0",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_verified_setup",
+      "executable": "target/debug/deps/gate4_vapi_verified_setup-0f4b97db94ce801f",
+      "binary_sha256": "eef489c5712c11bd6e09919c5c8bdccf71de5692bdb293bfd9014138520b471c",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_verified_setup.log",
+      "log_sha256": "fc3ac8749cd4c74ab61c4cc093878c8c37c09b1c99c87ee27bb38bcc6052cf2a",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_bootstrap",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap-8b551be9e6e9963d",
+      "binary_sha256": "68a8bfb8de43f1ed7319350069179a5681d1cd3926b87c5c2d31fad5265e5a1b",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_bootstrap.log",
+      "log_sha256": "0c4371b49cecf5b3c6eef9a7b021e63c9986faba9829c6840053bca765d70a7a",
+      "passed": 2
+    },
+    {
+      "test": "gate4_vapi_setup_denials",
+      "executable": "target/debug/deps/gate4_vapi_setup_denials-1660372978b7fd7a",
+      "binary_sha256": "1cdb9dd589ea07e96d04a6e90e80add78a462b0dd4e1af876d98b7d2c482dd13",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_setup_denials.log",
+      "log_sha256": "c586ac46148d0d5c989cf7dc79d72ae91a85e0d9fb97fc33a54caf71a2ec1873",
+      "passed": 2
+    },
+    {
+      "test": "gate4_vapi_bootstrap_preparation",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap_preparation-5386eb276c82dcfc",
+      "binary_sha256": "f3d5332449f62c58bba8d35f6de2e9080413e8db870e00ecfcac544302fe601d",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_bootstrap_preparation.log",
+      "log_sha256": "e95e2d72df218848a49e51c9b1f15326c04657065d29aa80341c5dc3612211b5",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_bootstrap_denials",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap_denials-40885baa99c8da5f",
+      "binary_sha256": "05da00ffd16c4b6ef57d39cbc5d2982c4b4545050c73578ffdfc77e9991ba11a",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_bootstrap_denials.log",
+      "log_sha256": "1d4ad03ff5101ed980b5d37c71c5b074b74573352f0406d451b89e53cbcd5bb5",
+      "passed": 3
+    },
+    {
+      "test": "gate4_vapi_bootstrap_races",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap_races-702270b042fd1b89",
+      "binary_sha256": "90e136a95d105295b6568df7f38bfcda1dcd64202e9d1ed8750b91fdaf6b2d0e",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_bootstrap_races.log",
+      "log_sha256": "9262270623921713b25986615a541422aecc3f844d7ffc0ce7f235354be09ad0",
+      "passed": 2
+    },
+    {
+      "test": "gate4_vapi_call_bootstrap",
+      "executable": "target/debug/deps/gate4_vapi_call_bootstrap-12fcf298f7d52d02",
+      "binary_sha256": "0256e7ee17f98df080d76852a1fce3e33f5cb3647a28dce1529decd8062b665b",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_call_bootstrap.log",
+      "log_sha256": "0cd05971fe25f6d80d051edb2036ebadaa9d32bafcc4a198fc68725dbf58e531",
+      "passed": 2
+    },
+    {
+      "test": "gate4_vapi_admission_hook",
+      "executable": "target/debug/deps/gate4_vapi_admission_hook-1dcb100fa6866285",
+      "binary_sha256": "e4d90f82ab04b31360940306a489aab810cd311537730d07619a0943be627f5a",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_admission_hook.log",
+      "log_sha256": "d9fb2f29ab637265214713d9045f7088447aebf924a4716a6a805fe03185f595",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_bootstrap_recovery",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap_recovery-49334eb2d6cd38e3",
+      "binary_sha256": "c308a39dd989e6e4ef54be37de8a0b43ed13dedcb0af388dc0111a747791df5d",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_bootstrap_recovery.log",
+      "log_sha256": "2c3be565b1301a9f313e0fbb7a0d04b72a59c995edbc172d783c693a86d6dc8c",
+      "passed": 3
+    },
+    {
+      "test": "gate4_vapi_setup_races",
+      "executable": "target/debug/deps/gate4_vapi_setup_races-e69a28e1bbb535b3",
+      "binary_sha256": "9a3d34eaf49fac749f5cfa4c88cb22c2240dfe35a48a916bc5f11150744e257e",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_setup_races.log",
+      "log_sha256": "ed3b905318abc507ea5aed69c8110013983604cfef99d7c569f6e96ca7449693",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_recovery_revocation",
+      "executable": "target/debug/deps/gate4_vapi_recovery_revocation-85e503daca446e72",
+      "binary_sha256": "a85bb36b56a6df6bae4a95dd0c96b033a73f689ba3d817483c36a675509c9b1d",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_recovery_revocation.log",
+      "log_sha256": "15b599dae4787f0db5fa3bc0b1be32c71a4cbad7cbfc3bb2b693303d65305066",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_call_recovery",
+      "executable": "target/debug/deps/gate4_vapi_call_recovery-0b15b44fc69c2789",
+      "binary_sha256": "a9d476c5c382a52eeb6f539dc3e3a0990ba33fd10ccada231bb56780ac311036",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-isolation-audit-qa-gate4_vapi_call_recovery.log",
+      "log_sha256": "0533ee1168dac083d87bb654113756c00e87b797ca4a3575b5d9ed078c5e1623",
+      "passed": 1
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo test --locked -p connect-store --all-features --lib tasks::tests::provider_setup",
+      "terminal_exit": 0,
+      "result": "5 passed; 0 failed; 0 ignored; 151 other tests deliberately filtered",
+      "log": ".local/gate-4-planning/vapi-isolation-store.log",
+      "log_sha256": "f5e160f63727550a3c82ee5588d4b7966969475a98e0a84f2cf517a15fd56987"
+    },
+    {
+      "command": "cargo test --locked -p connect-connectors --test vapi_origin",
+      "terminal_exit": 0,
+      "result": "6 passed; 0 failed; 0 ignored",
+      "log": ".local/gate-4-planning/vapi-isolation-origins.log",
+      "log_sha256": "93ab30b62e6d13d066753d52cf83cba1b09bd327227dcc7e63fe92a82257e4ea"
+    },
+    {
+      "command": "cargo clippy --locked -p connect-server --all-targets --all-features -- -D warnings",
+      "terminal_exit": 0,
+      "result": "All targets passed before the final test-only denial refinements; production source unchanged",
+      "log": ".local/gate-4-planning/vapi-isolation-clippy.log",
+      "log_sha256": "85423ea8d5889bfcc7fc0479dd574e230e1a55958f418d1168ca59c1be0afb4a"
+    },
+    {
+      "command": "cargo clippy --locked -p connect-server --all-features --test gate4_vapi_call_isolation -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Final expanded test/helpers passed strict lint; source inputs unchanged after this check",
+      "log": ".local/gate-4-planning/vapi-isolation-clippy-final.log",
+      "log_sha256": "57e622690073cfea219b44d392540d84d34c3c9fd202bb0e0f31e6b2c3394986"
+    },
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-isolation-audit-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-isolation-audit-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "python3 .local/gate-4-planning/validate-docs.py",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-isolation-audit-docs-final.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410"
+    },
+    {
+      "command": "git diff --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-isolation-audit-diff-final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "component_evidence": {
+    "docs/evidence/gate-4/vapi-mcp-admission.json": "34660fd666af45b25c3e2156b2a39c6819f16779f7a42dfd0afbc67b04118c87",
+    "docs/evidence/gate-4/vapi-origin-verification.json": "5ead243bbae361d206d42ee28f0908d1309a83a52dfa3d4e26975e834c57b2ec",
+    "docs/evidence/gate-4/vapi-task-setup.json": "774d06b645a34413d94e5aeb4522b06ef67f19e829d7f35525de634b228d1a2c",
+    "docs/evidence/gate-4/vapi-bootstrap.json": "0f990f256bbea8570b6e12c0b8c710f5e7925f1e276dec5fb06dda6b167cd2f5",
+    "docs/evidence/gate-4/vapi-call-bootstrap.json": "430b27dcd365cbb4741a806f8a0fa59e0139282de072772393478e96b02cdf33",
+    "docs/evidence/gate-4/vapi-bootstrap-recovery.json": "6478a44689801552d5fee03d9622232003ecc9875cd4b4994f707409bd330101"
+  },
+  "verified_new_behavior": [
+    "Two actual rvoip call creations to the same saved assistant share one Connect conversation but have distinct task, session, private nonce, resource ID, setup secret and MCP endpoint.",
+    "Crossed setup secrets and crossed active resource IDs fail before and after the first independent bindings. Denials preserve the entire durable snapshot and both protected intents; HTTP responses contain neither setup bearer nor owner bearer.",
+    "Concurrent first MCP discovery binds each resource to its original task. Concurrent identical request_id/step_id sends produce one independent task effect each; matching replay preserves each receipt and exactly two public-client history messages.",
+    "MCP schema rejects model-selected task IDs without durable mutation.",
+    "Closing the first native/provider pair makes its callback unavailable while the second retains valid task tools and bidirectional QUIC audio. Cancelling only the first task does not cancel the second.",
+    "Both calls end without a third creation; server shutdown drains both owned MCP endpoints."
+  ],
+  "code_review": {
+    "new_test_module_lines": {
+      "test": 256,
+      "independent_private_api": 185,
+      "protected_setup_and_mcp_helpers": 153
+    },
+    "responsibilities": "Protected Server composition chooses the task/route and retains intent. Connector private lookup proves resource/assistant/nonce. Service/Store atomically issue and recheck authority. MCP admits a derived task handle and removes Authorization before SDK handling. rvoip owns creation/media/paired termination.",
+    "safe_diagnostics": "Bootstrap/setup error mapping omits provider bodies and private URLs. The pinned rvoip-vapi error type retains only safe status/static diagnostics and its media span uses a connection ID. Current HTTP denial checks compare both bare setup secrets and the owner credential; no secret-bearing state is logged.",
+    "production_change": "This audit adds three isolated test fixture files only. Current binding/lookup/issuance implementation was already present and is now qualified against the whole numbered item.",
+    "public_rustdoc": "No public API changed in this audit. Existing strict affected Rustdoc is recorded by vapi-bootstrap-recovery.json at the unchanged production source; no additional Rustdoc pass is fabricated.",
+    "source_snapshot": "All 61 frozen inputs unchanged after checks; tracked dependency source lock and patches verified."
+  },
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/vapi-isolation-test-initial.log",
+      "log_sha256": "1d0a5aab4c3f45137c54b2c8cdd66c0b61238599d66cfd0da9ca4c5341f640b7",
+      "result": "Initial new test failed because it expected an isError tool result for an invalid authority selector; the correct closed-schema behavior was MCP -32602. An unused-mut warning was also corrected. No production defect was masked."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-isolation-test-corrected.log",
+      "log_sha256": "4caf963cac5eb37e7118a4ee78da29ae3f49a2558c146317ba1e76c01550082f",
+      "result": "Corrected test passed through independent teardown. Final test then added post-binding cross-denial checks and bare-token leak assertions; this preliminary pass is not counted again."
+    }
+  ],
+  "limits": [
+    "Local macOS arm64; isolated database and fake authenticated private API. Actual cloud assistant behavior remains G4-022.",
+    "Creation/media attachments are currently serialized by the existing media lifecycle; the proof covers two simultaneously active calls and concurrent first MCP binding, not independent parallel POST latency.",
+    "Developer composition selects existing task/route and original expiry; turnkey installation, aggregate operating limits and full journeys remain separate Gate 4 work.",
+    "No A4/T-A or whole gate closure inferred from one item audit."
+  ],
+  "remaining_gate_work": [
+    "G4-020 pending/disconnect/post-call continuation audit",
+    "G4-022 actual provider/model qualification and G4-025/G4-026 complete journeys",
+    "G4-024/G4-030 aggregate operating limits/diagnostics",
+    "Other unfinished numbered items and final A4/T-A acceptance"
+  ],
+  "completion_claim": "G4-019 local implementation/behavior contract verified. No G4-020, A4-09/T-A2/T-A8, actual host/provider, installed package, performance limit or whole gate closure claimed."
+}

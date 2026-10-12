@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Connect — Gate 3 media profile</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0d12;
+        --panel: #121722;
+        --text: #f2f0ea;
+        --muted: #a9b0be;
+        --line: #293142;
+        --cyan: #63d5ff;
+        --violet: #b59cff;
+        --ok: #77e6b6;
+        --warn: #ffd27a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+      }
+      .shell {
+        max-width: 1080px;
+        margin: auto;
+        padding: 0 24px;
+      }
+      header {
+        padding: 56px 0 32px;
+        border-bottom: 1px solid var(--line);
+      }
+      h1 {
+        font-size: clamp(42px, 7vw, 76px);
+        line-height: 1;
+        margin: 0.2em 0;
+      }
+      h2 {
+        margin-top: 52px;
+        font-size: 30px;
+      }
+      .lead {
+        font-size: 21px;
+        color: var(--muted);
+      }
+      .eyebrow {
+        font:
+          12px ui-monospace,
+          monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--cyan);
+      }
+      .card,
+      .table {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .table {
+        overflow: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 13px;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--violet);
+      }
+      .done {
+        color: var(--ok);
+      }
+      .open {
+        color: var(--warn);
+      }
+      code,
+      a {
+        color: var(--cyan);
+      }
+      footer {
+        padding: 48px 24px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="shell">
+        <div class="eyebrow">Decision 007 · Gate 3 · October 9, 2026</div>
+        <h1>Media is negotiated,<br />bounded and measurable.</h1>
+        <p class="lead">
+          The first native profile chooses the simplest codec shared by
+          telephony and Vapi. Each additional transport must prove its real
+          topology before Connect advertises it.
+        </p>
+      </div>
+    </header>
+    <main class="shell">
+      <h2>Frozen starting profile</h2>
+      <div class="table">
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>Decision</th>
+              <th>State</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Native audio</td>
+              <td>
+                PCMU, 8 kHz, mono, 20 ms, payload type 0; full RTP carried
+                inside UCTP QUIC datagrams
+              </td>
+              <td class="done">Implemented and locally proven</td>
+            </tr>
+            <tr>
+              <td>Control</td>
+              <td>
+                Reliable UCTP envelopes; media has a separate datagram path and
+                peer-global local stream IDs
+              </td>
+              <td class="done">Implemented</td>
+            </tr>
+            <tr>
+              <td>Vapi</td>
+              <td>
+                Saved assistant, duplex call WebSocket, mu-law 8 kHz first;
+                private URL and key stay server-side
+              </td>
+              <td class="done">
+                Prior loopback and live duplex/context proofs pass;
+                changed queue-profile qualification passes at clean e457960.
+              </td>
+            </tr>
+            <tr>
+              <td>SIP/PSTN</td>
+              <td>
+                Telnyx SIP termination into rvoip SIP, then shared Session
+                bridge to Vapi/native; PCMU baseline
+              </td>
+              <td class="done">
+                Prior local and Connect-carried Telnyx voice proofs pass;
+                changed queue-profile qualification passes at clean e457960.
+              </td>
+            </tr>
+            <tr>
+              <td>Browser</td>
+              <td>
+                WebRTC audio through rvoip; browser receives short-lived scoped
+                credentials; no native-QUIC claim
+              </td>
+              <td class="done">
+                Prior authenticated WebRTC and real Chrome proofs pass;
+                changed queue-profile qualification passes at clean e457960.
+              </td>
+            </tr>
+            <tr>
+              <td>Video</td>
+              <td>Two-party VP8 feasibility profile only</td>
+              <td class="open">
+                Later gate implementation; not advertised as delivered
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <h2>Native wire proof</h2>
+      <div class="card">
+        <p>
+          Two independent physical QUIC peers authenticate, bind the same
+          durable Session through namespaced canonical IDs, offer one PCMU
+          stream each, subscribe to the other publisher and exchange audio in
+          both directions. The first best-effort media packet may precede the
+          reliable subscriber-stream announcement; the receiver registers the
+          announced peer-local stream and subsequent packets flow. This is
+          normal datagram loss behavior, so applications must not treat the
+          first RTP packet as a control acknowledgement.
+        </p>
+      </div>
+      <h2>Local cross-transport proof</h2>
+      <div class="card">
+        <p>
+          The SIP test admits a configured route, carries PCMU both ways through
+          the pinned rvoip SIP adapter and ends only the bounded Session. The
+          WebRTC test authenticates its retained signaling lease, negotiates
+          Opus, uses rvoip's Opus↔PCMU media graph for the Vapi boundary, carries
+          audio both ways and imports the final transcript into the same
+          Conversation. Neither test claims public-network or provider
+          reachability.
+        </p>
+      </div>
+      <h2>Local operating envelope</h2>
+      <ul>
+        <li>
+          Target: one and four concurrent two-party sessions for at least 60
+          seconds.
+        </li>
+        <li>
+          Target: p95 server forwarding contribution at or below 50 ms,
+          excluding provider/model and playout time.
+        </li>
+        <li>
+          Target: queued audio at or below 200 ms; paired teardown within five
+          seconds.
+        </li>
+        <li>
+          Network rehearsal: 3% loss and up to 100 ms delay variation without
+          crash, runaway queues or stuck teardown.
+        </li>
+      </ul>
+      <p>
+        The operating profile uses ten 20 ms frames as each local audio
+        queue's ceiling. Connect explicitly configures rvoip orchestration,
+        native QUIC streams and the Vapi adapter with this limit. The opt-in
+        upstream interfaces are preserved in a source-locked patch; upstream
+        defaults remain compatible. This is a buffering limit, not a claim
+        that total network, model and playout latency is 200 ms.
+      </p>
+      <p>
+        The completed audit qualifies real reordered RTP, unknown-stream rejection,
+        saturation with provider queue measurements, credential expiry and
+        bounded cancellation/peer-loss recovery. One- and four-Session
+        60-second profiles run with deterministic source loss, delay variation
+        and concurrent reliable artifact traffic. Changed-profile qualification
+        is in progress; provider and human audible checks remain separate live
+        evidence.
+      </p>
+      <h2>Reachability matrix</h2>
+      <div class="table">
+        <table>
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>Listener / trust</th>
+              <th>External prerequisite</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Native SDK ↔ Connect</td>
+              <td>Loopback QUIC, pinned local certificate</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td>Connect ↔ Vapi</td>
+              <td>
+                Outbound WSS with Web PKI; provider credential server-side
+              </td>
+              <td>
+                Vapi account, saved assistant and duplex transport availability
+              </td>
+            </tr>
+            <tr>
+              <td>Telnyx ↔ Connect SIP/RTP</td>
+              <td>
+                Separate local RTP bind interface, public SIP/media mappings,
+                RTP range, and credentials or IP ACL
+              </td>
+              <td>
+                Reachable host/network; an HTTPS callback tunnel is insufficient
+              </td>
+            </tr>
+            <tr>
+              <td>Browser ↔ Connect</td>
+              <td>HTTPS/WSS signaling plus ICE; scoped token</td>
+              <td>Named browser; TURN required for unsupported NAT paths</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <a href="006-gate-3-contracts.html">Contracts</a> ·
+        <a href="../connect-gate-3-plan.html">Product plan</a> ·
+        <a href="../connect-gate-3-implementation.html">Implementation plan</a>
+      </p>
+    <p class="shell">Current <a href="../evidence/gate-3/queue-audit.json">queue audit</a> verifies actual SIP/WebRTC channels, Vapi burst high-water, expiry and active cancellation; <a href="../evidence/gate-3/media-profile.json">one/four-session measurements</a> retain the frozen bounds. Each channel holds at most ten 20 ms frames. Multiple stages and remote network/model/playout latency remain separate. Seven source-locked patches preserve upstream defaults.</p></main>
+    <footer class="shell">Connect · media decision record</footer>
+  </body>
+</html>

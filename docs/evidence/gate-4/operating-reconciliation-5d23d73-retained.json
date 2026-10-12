@@ -1,0 +1,387 @@
+{
+  "schema": 1,
+  "item": "G4-030",
+  "recorded_at": "2026-10-12T10:54:58.742712+00:00",
+  "status": "failed frozen baseline; full-profile execution incomplete and new default qualification pending",
+  "access_default_review": {
+    "status": "owner approved easier default agent access; isolated implementation needs separate qualification; this frozen baseline stays unchanged",
+    "current_mcp_host_enforcement": "Task/conversation-bound invocation grants, operation/recipient ceilings and five-minute maximum lifetime, with protected refresh. These are the current adapters being tested, not a newly endorsed product default.",
+    "existing_identity_interfaces": "Native and HTTP clients can use ordinary authenticated identity credentials. Their configured authority remains distinct from the narrower task-grant path.",
+    "requested_product_direction": "Easy reusable agent access across conversations, activity tracking and revocation, with narrow task delegation optional and less ceremony than Thelve.",
+    "qualification_boundary": "Current results verify the implemented baseline. A changed default-access path needs deliberate design, contract/documentation reconciliation and its own behavior qualification. Final gate closure is not claimed here."
+  },
+  "final_gate_closure_claimed": false,
+  "source_revision": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
+  "scope": "Local macOS arm64; native UCTP/QUIC SDK operations, loopback MCP/provider fixtures, sixteen actual Codex processes with scripted Responses and sixteen reference-runner processes. No carrier/provider latency, deployment or indefinite-idle reachability claim.",
+  "run": {
+    "report": ".local/gate-4-checks/20261012T090156.434214Z/result.json",
+    "status": "failed",
+    "active_phase": null
+  },
+  "frozen_contract": "docs/decisions/009-task-runtime.md#recall-and-communication-limits",
+  "frozen_constants_verified": {
+    "MAX_TOOL_WAIT_MS": "10_000",
+    "TASK_CONTEXT_BYTES": "32 * 1024",
+    "MAX_SCOPE_ITEMS": "32",
+    "MAX_TASK_ID_BYTES": "128",
+    "MAX_TASK_TTL_SECONDS": "86_400",
+    "MAX_GRANT_TTL_SECONDS": "300",
+    "MAX_ACTIVE_TASKS": "1_024",
+    "MAX_RETAINED_TASKS": "10_000",
+    "MAX_TASK_INBOX_EVENTS": "1_000",
+    "MAX_RUNNING_TASKS": "16",
+    "TASK_CLAIM_SECONDS": "30"
+  },
+  "shared_mcp_runtime_bounds_verified": {
+    "request_body_bytes_including_jsonrpc_framing": 524288,
+    "aggregate_request_admissions": 32,
+    "aggregate_listeners": 32,
+    "authentication_seconds": 5,
+    "owned_listener_drain_seconds": 5,
+    "maximum_tool_response_ms": 10000
+  },
+  "source_inputs": {
+    "crates/connect-protocol/src/tasks/mod.rs": {
+      "sha256": "f5787c790b8cfab544f2881adfe4ca58908680773e3a5c21ff8a3aea1b25c1e3",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "crates/connect-protocol/src/tasks/validation.rs": {
+      "sha256": "b8bb92a81e087ba602a30795bb1593cf1bfe71d7e13dc4501548b11a1ed28aa1",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "crates/connect-mcp/src/capacity.rs": {
+      "sha256": "0e437ef551f2ea092ac10a3397658071551e37767fd4f2edad8b72c4915c79ae",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "crates/connect-mcp/src/listener.rs": {
+      "sha256": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "crates/connect-mcp/src/auth.rs": {
+      "sha256": "9216321950a8e2fd492f116e4debb0459dbaf5096a880d75fad7a4c73d3f8c94",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "crates/connect-mcp/src/budget.rs": {
+      "sha256": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "scripts/lib/gate4_phases.py": {
+      "sha256": "4869fba890e2d24e302eee6bcf6c107635020dff35496ffeda21976354b7f189",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "scripts/check-task-capacity.py": {
+      "sha256": "792709b5568195af0a341a138a8f7b24ececb2357da25807e47f627b975baae0",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "scripts/check-host-capacity.py": {
+      "sha256": "f816b0bd29e2ce4e5460049129f0f648a760825f44bfb612fda138952c05cff6",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "scripts/check-runner-capacity.py": {
+      "sha256": "dc531efc80a21015d2f1fe7817692e94157d8294975fb08d0f0f9023c3a8e89b",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "scripts/check-mcp-load.py": {
+      "sha256": "4538680dd52d9d868597abc8d23a98c032da196dbafe9b9c1e7002388d72f070",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "scripts/check-grant-lifecycle.py": {
+      "sha256": "52826f29035f4b55a2fd3ad957e89fcf20d04156b9c60fbd6624b9bada9c0609",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "scripts/check-retention-load.py": {
+      "sha256": "a78c9c4fabdd1ead06aba2712d6e533cae28b9ea2c9e2e5f842bca287040f0f3",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    },
+    "scripts/check-voice-retirement.py": {
+      "sha256": "796d53c9cf74b68c0b0d96945225c2dff63a336da0167c3d77de91634806026b",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true
+    }
+  },
+  "limit_admission_observations": [
+    {
+      "test": "expiry_boundaries_and_overflow_fail_admission",
+      "source": "crates/connect-protocol/tests/task_contract.rs",
+      "source_sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [
+        {
+          "name": "expiry_boundaries_and_overflow_fail_admission",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "verified_execution": true
+    },
+    {
+      "test": "wait_and_pagination_bounds_are_explicit",
+      "source": "crates/connect-protocol/tests/task_contract.rs",
+      "source_sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [
+        {
+          "name": "wait_and_pagination_bounds_are_explicit",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "verified_execution": true
+    },
+    {
+      "test": "empty_duplicate_and_excessive_scopes_cannot_delegate",
+      "source": "crates/connect-protocol/tests/task_contract.rs",
+      "source_sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [
+        {
+          "name": "empty_duplicate_and_excessive_scopes_cannot_delegate",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "verified_execution": true
+    },
+    {
+      "test": "trusted_grant_shapes_do_not_invent_provider_authority",
+      "source": "crates/connect-protocol/tests/task_contract.rs",
+      "source_sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [
+        {
+          "name": "trusted_grant_shapes_do_not_invent_provider_authority",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "verified_execution": true
+    },
+    {
+      "test": "creation_does_not_mint_recipient_operation_origin_or_lifetime_authority",
+      "source": "crates/connect-store/src/tasks/tests/authority.rs",
+      "source_sha256": "9368d2bd1c17d258a1fec79a5269c22e48853a6c834a4bf935515abedbb1684b",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [],
+      "installed_host_observations": [],
+      "verified_execution": false
+    },
+    {
+      "test": "task_and_issuer_expiry_are_independent_upper_bounds",
+      "source": "crates/connect-store/src/tasks/tests/grant_boundaries.rs",
+      "source_sha256": "27be14abe59e06535ec7210896d3c47cb1234e622b595bc20586fbffa8d1d5ee",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [],
+      "installed_host_observations": [],
+      "verified_execution": false
+    },
+    {
+      "test": "renew_and_reclaim_require_current_revision_and_replay_does_not_extend_lifetime",
+      "source": "crates/connect-store/src/tasks/tests/claims.rs",
+      "source_sha256": "03ce1b1f3594a95fde850072e7174b12f21215c62fc366b3689390800353fd4c",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [],
+      "installed_host_observations": [],
+      "verified_execution": false
+    },
+    {
+      "test": "global_sixteen_step_limit_allows_renewal_but_rejects_more_active_leases",
+      "source": "crates/connect-store/src/tasks/tests/claims.rs",
+      "source_sha256": "03ce1b1f3594a95fde850072e7174b12f21215c62fc366b3689390800353fd4c",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [],
+      "installed_host_observations": [],
+      "verified_execution": false
+    },
+    {
+      "test": "lease_expiry_cannot_reclaim_a_step_that_has_a_durable_effect",
+      "source": "crates/connect-store/src/tasks/tests/claims.rs",
+      "source_sha256": "03ce1b1f3594a95fde850072e7174b12f21215c62fc366b3689390800353fd4c",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [],
+      "installed_host_observations": [],
+      "verified_execution": false
+    },
+    {
+      "test": "explicit_cancel_affects_only_the_bound_task_and_revokes_its_own_connection",
+      "source": "crates/connect-server/tests/gate4_mcp_task_cancel.rs",
+      "source_sha256": "0ac9535af499389f13c374b37e257c063b45e27071c47c3995df49356b35e4be",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [
+        {
+          "name": "explicit_cancel_affects_only_the_bound_task_and_revokes_its_own_connection",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "verified_execution": true
+    },
+    {
+      "test": "primary_and_task_endpoints_share_thirty_two_admissions_and_recover_after_shutdown",
+      "source": "crates/connect-server/tests/gate4_mcp_capacity.rs",
+      "source_sha256": "4c70e0c9b30b3c3f8aee0fe4f8f8d662ecaf5236650a34f8fa1664128823611b",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [
+        {
+          "name": "primary_and_task_endpoints_share_thirty_two_admissions_and_recover_after_shutdown",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "verified_execution": true
+    },
+    {
+      "test": "server_rejects_excess_setups_before_private_intent_and_releases_all_on_shutdown",
+      "source": "crates/connect-server/tests/gate4_vapi_setup_capacity.rs",
+      "source_sha256": "b89663cd2ebc599fdc3ce59a0b5ce83279079133736409df7955afd01526b744",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [
+        {
+          "name": "server_rejects_excess_setups_before_private_intent_and_releases_all_on_shutdown",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "verified_execution": true
+    },
+    {
+      "test": "expired_idle_setup_closes_endpoint_but_preserves_task_and_recovery_intent",
+      "source": "crates/connect-server/tests/gate4_vapi_setup_capacity.rs",
+      "source_sha256": "b89663cd2ebc599fdc3ce59a0b5ce83279079133736409df7955afd01526b744",
+      "matches_frozen_source": true,
+      "matches_installed_candidate": true,
+      "workspace_observations": [
+        {
+          "name": "expired_idle_setup_closes_endpoint_but_preserves_task_and_recovery_intent",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "verified_execution": true
+    }
+  ],
+  "profile_phases": {
+    "host-capacity": {
+      "status": "not yet completed"
+    },
+    "native-task-capacity": {
+      "status": "not yet completed"
+    },
+    "reference-runner-capacity": {
+      "status": "not yet completed"
+    },
+    "mcp-operating-load": {
+      "status": "not yet completed"
+    },
+    "grant-lifecycle-load": {
+      "status": "not yet completed"
+    },
+    "task-artifact-retention": {
+      "status": "not yet completed"
+    },
+    "voice-setup-retirement": {
+      "status": "not yet completed"
+    }
+  },
+  "current_measurements": {
+    "host-capacity": {
+      "status": "not yet qualified in current run"
+    },
+    "native-task-capacity": {
+      "status": "not yet qualified in current run"
+    },
+    "reference-runner-capacity": {
+      "status": "not yet qualified in current run"
+    },
+    "mcp-operating-load": {
+      "status": "not yet qualified in current run"
+    },
+    "grant-lifecycle-load": {
+      "status": "not yet qualified in current run"
+    },
+    "task-artifact-retention": {
+      "status": "not yet qualified in current run"
+    },
+    "voice-setup-retirement": {
+      "status": "not yet qualified in current run"
+    }
+  },
+  "previous_component_evidence": [
+    "docs/evidence/gate-4/task-operating-profile.json",
+    "docs/evidence/gate-4/host-concurrency.json",
+    "docs/evidence/gate-4/runner-concurrency.json",
+    "docs/evidence/gate-4/mcp-operating-load.json",
+    "docs/evidence/gate-4/grant-lifecycle-load.json",
+    "docs/evidence/gate-4/artifact-retention-load.json",
+    "docs/evidence/gate-4/voice-retirement-load.json"
+  ],
+  "installation": {
+    "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+    "checks_passed": 17,
+    "first_connect_version_seconds": 36.943,
+    "installation_timeout_seconds": 180,
+    "evidence": "docs/evidence/gate-4/package-7edb1b1.json",
+    "application_deadlines_changed": false,
+    "security_settings_changed": false
+  },
+  "actual_host_provider_examples": [
+    "docs/evidence/gate-4/real-model-draft-7edb1b1.json",
+    "docs/evidence/gate-4/real-model-incoming-7edb1b1.json",
+    "docs/evidence/gate-4/live-voice-continuity.json",
+    "docs/evidence/gate-4/sms-0737-rehearsal.json"
+  ],
+  "host_operation": {
+    "codex": "Protected launcher prepares current task-scoped authority, launches or explicitly resumes the exact saved session, and checkpoints durable intents before effects. A stopped turn requires documented resume; a bound reply alone does not wake a model automatically.",
+    "vapi": "Protected chat/call bootstrap and provider verification bind tools to the original task. A new post-call chat invocation reuses the original task and conversation; an ended call never creates new tool authority.",
+    "reference_runner": "A running worker catches up from the journal, recovers owned server restart and uses retained logical IDs. Notifications are hints, not authoritative state.",
+    "unassigned_replies": "Authorized explicit assignment is required when no safe task binding exists; sender/phone identity does not select a task.",
+    "reconciliation": "Possibly dispatched external work remains uncertain until an attributed observation. Diagnostics/recovery retain original intent; a new effect ID is not a retry."
+  },
+  "retained_failures": [
+    "docs/evidence/gate-4/offline-596e9b7-attempt-1.json",
+    "docs/evidence/gate-4/chat-fixture-reconnect.json",
+    "docs/evidence/gate-4/candidate-startup-diagnosis.json",
+    "docs/evidence/gate-4/review-findings.json"
+  ],
+  "measurement_limits": [
+    "Admission ceilings are not throughput SLOs. Full capacity checks exercise the specified records; sixteen measured hosts are not a new host admission ceiling.",
+    "Per-exchange SDK timings include helper, loopback, authorization, store and response work. Model/provider timings are not attributed to QUIC.",
+    "RSS is sampled, not an exact peak or memory guarantee. Server-only samples exclude drivers and helper/host children; retirement samples include the entire test process.",
+    "Grant/artifact/task expiry checks use real short lifetimes plus exact maximum-admission contract tests. They do not attest 24-hour endurance or long-idle carrier reachability.",
+    "The installation-only first-launch phase is separate from unchanged CLI/MCP/task/media deadlines. Earlier startup timeouts remain failures with unresolved causes.",
+    "Per-action human approval is not required for actions already delegated by the developer. Current task/credential/recipient authority still applies.",
+    "Historical measurements above retain original sources; no aggregate throughput or provider qualification is inferred from scripted profiles."
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "status": "resolved for current local alpha qualification; diagnostic limits retained",
+  "recorded_at": "2026-10-12T09:14:34.063600+00:00",
+  "quic_parity": {
+    "status": "fixture scheduling defect corrected; historical failures retained",
+    "repair_commit": "025384ae7ecda80a5bb4ea136db64e1103841ead",
+    "evidence": {
+      "path": "docs/evidence/gate-4/quic-shutdown-diagnosis.json",
+      "sha256": "d0791aa44336ef8286a261b5854d9da8251ab27bbdc5ac671f07bca4640a2333"
+    },
+    "current_fixture": {
+      "path": "crates/connect-server/tests/gate3_parity.rs",
+      "sha256": "330131d165e788fcfda4ef5a934f6dcde6b7f05d33b84df8e6afe4ff7e770a98"
+    },
+    "basis": "Verified hashes for both diagnostic failures and all seven repair checks. Diagnostics measured a 20.539-second synchronous HTTP client construction on the single-threaded active QUIC executor. The repair constructs one loopback client on a blocking worker before QUIC peers start. The current fixture has the exact qualified repair hash.",
+    "limits": "The Quinn close-timer mechanism is an inference; server RTT and the exact internal host initialization function were not measured. The five-second shutdown deadline remains unchanged. Later current-source full regression and installed candidate are still required; historical pre-repair notes must not be interpreted as a new post-repair failure."
+  },
+  "debug_cli_startup": {
+    "status": "unresolved",
+    "evidence": "docs/evidence/gate-4/artifact-retention-load.json",
+    "detail": "Separate 15-second CLI initialization failure remains open. This reconciliation does not assign the QUIC fixture cause to the CLI.",
+    "original_review_status": "unresolved"
+  },
+  "voice_retirement": {
+    "status": "full-retirement-component-qualified",
+    "evidence": "docs/evidence/gate-4/voice-retirement-load.json"
+  },
+  "gate_status": "No task completion inferred from this review.",
+  "installed_vapi_composition": {
+    "status": "supplied operator/rehearsal path, installed fixtures and actual provider/model journey qualified; full baseline reconciliation in progress",
+    "items": [
+      "G4-022",
+      "G4-033",
+      "G4-034"
+    ],
+    "finding": "Protected Vapi task voice setup is exposed through RunningServer::prepare_vapi_task_session and exercised by library integration fixtures. The installed Gate 4 package harness currently invokes the Codex incoming-contact path, not Vapi bootstrap. The guide explicitly leaves a turnkey operator installer open. A concrete shipped operator/setup and rehearsal path must be established before claiming installed Vapi chat/voice qualification; fake provider tests alone cannot satisfy that criterion.",
+    "source_sha256": {
+      "crates/connect-server/src/vapi_bootstrap/media.rs": "717b2ae5667a4cecbfa966825c7743771138920e9344dda357ef6fc1c0a74711",
+      "scripts/lib/package_gate4.py": "19ef1cf08fb3a4c49141cf05ab265100c06776a302f8c0195129b921012d764a",
+      "scripts/check-package.py": "eb2d2ae8335f01063a40d5a168b7e8dd6233cc231c0e3bb5fdd84ab64cfeca8a",
+      "docs/VAPI_TASK_BOOTSTRAP.md": "23a499e632bfa1a6f5fa32a608b0f9afb6f4441c23406c0f626d2d381fd5d6fb"
+    },
+    "next_action": "Finish the full current-source offline run and reconcile acceptance. Keep actual provider/model qualification separate from these account-free local checks.",
+    "scope": "Review finding only; no provider account, production configuration, public ingress or runtime authority changed.",
+    "callback_address_gap": "The voice helper passes its loopback listener URL directly into the immutable bootstrap intent. A live rehearsal also needs an explicit advertised callback URL and operator-managed ingress mapping; an external tunnel alone would not replace the saved loopback URL. This must be locally tested without creating public ingress.",
+    "callback_progress": {
+      "recorded_at": "2026-10-11T19:00:51.133960+00:00",
+      "status": "local component qualified",
+      "implementation": "Additive prepare_vapi_task_session_with_callback API preserves the existing local default, validates an advertised URL before side effects, and still uses the owned shared-capacity loopback listener. The operator proxy rewrites backend Host while preserving Authorization, Origin and provider correlation; host/origin checks stay enabled.",
+      "checks_pending": [],
+      "interrupted_attempt": "Initial dependency compilation was intentionally stopped before callback tests ran: code review found the raw TCP fixture preserved a disallowed advertised Host. It is not a test pass or failure. The corrected fixture models an HTTP proxy with documented Host rewriting.",
+      "source_sha256": {
+        "crates/connect-server/src/vapi_bootstrap/media.rs": "18de98e72ba6b0ac47f0037d0475dc7065934d3ddc29b2b8445c19a4a8258b47",
+        "crates/connect-server/tests/gate4_vapi_callback_proxy.rs": "f10c24c0ba2828e86336e767ea5df226581fc2f2e852d0b5a876cac8091e242b",
+        "crates/connect-server/tests/gate4_vapi_callback_urls.rs": "2e1acdbcd416120c31fbea70ac59c5fa1094f32aa88b57c6535d75340a8d283f",
+        "crates/connect-server/tests/support/callback_forwarder.rs": "8096aadc12c174e6823fb36f5b2caced6ea0395897ce10d2e7ec8a3c639847b0"
+      },
+      "evidence_boundary": "Frozen-source 3a272c9 complete offline run is separate and predates this additive callback API. No installed Vapi or actual provider qualification is inferred.",
+      "qualification": "docs/evidence/gate-4/vapi-callback-address.json"
+    },
+    "operator_progress": {
+      "status": "merged at baf27d1 and packaged from 32f4fad; extracted release passes nine Vapi checks",
+      "evidence": "docs/evidence/gate-4/vapi-task-host.json",
+      "scope": "Cargo-built component qualification plus extracted default-feature release chat/voice/MCP/recovery checks with loopback simulators; no actual provider/model pass",
+      "installed_evidence": "docs/evidence/gate-4/package-candidate.json"
+    },
+    "original_review_status": "operator/callback implementation and extracted local candidate qualified; actual provider/model remains open",
+    "live_qualification": {
+      "status": "passed",
+      "evidence": "docs/evidence/gate-4/live-voice-continuity.json",
+      "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+      "detail": "Native UCTP/QUIC voice through Connect invokes authenticated Vapi MCP and retains a sourced decision. After server restart a fresh chat on the original task recalls that decision and emits one delivered SMS. Temporary routing is cleaned up and the original callback is restored."
+    },
+    "current_installed_qualification": {
+      "status": "passed",
+      "evidence": "docs/evidence/gate-4/package-7edb1b1.json",
+      "detail": "All 17 installed checks pass on 7edb1b1, including Vapi fixtures. Provider/model proof remains separately source-linked."
+    }
+  },
+  "reference_runner_startup": {
+    "status": "unresolved initial capacity startup failure; unchanged diagnostic passed",
+    "evidence": "docs/evidence/gate-4/offline-32f4fad-attempt-1.json",
+    "detail": "Sixteen workers produced no questions within the unchanged 15-second observation limit; all sixteen logs were empty and no worker database was created. SIGINT cleanup saw -2 rather than expected graceful zero exits. No process group remained after the outer cleanup. An additional manifest-verified installed-release run passes all three capacity phases without changing the limit. The original cause remains unresolved.",
+    "next_action": "Retain original failure. New pre-cleanup observations and preserved primary timeout are qualified with a real deliberately delayed 16-process fixture. Current normal capacity passed; historical startup cause remains unresolved. Use captured process metadata if initialization failure recurs.",
+    "installed_diagnostic": "docs/evidence/gate-4/offline-32f4fad-remaining.json",
+    "diagnostic_improvement": "docs/evidence/gate-4/runner-startup-diagnostics.json"
+  },
+  "retention_expiry_verifier": {
+    "status": "corrected and locally qualified; original failed full invocation retained",
+    "evidence": "docs/evidence/gate-4/retention-expiry-boundary.json",
+    "detail": "The verifier now distinguishes boundary HTTP/RPC/tool authority denials. All five real retention phases and 48 verifier tests pass without changing limits or production code."
+  },
+  "chat_rehearsal_owner": {
+    "status": "fixture corrected; three targeted tests passed; complete baseline rerun in progress",
+    "evidence": "docs/evidence/gate-4/chat-fixture-reconnect.json",
+    "retained_failure": "docs/evidence/gate-4/offline-596e9b7-attempt-1.json",
+    "detail": "An independently running driver outlived the fixture owner connection idle limit. The fixture now closes the unused owner and reconnects/negotiates the same task before cancellation. Production behavior and timeouts are unchanged."
+  },
+  "reply_reference_guidance": {
+    "status": "corrected and qualified on installed actual-model journeys",
+    "evidence": "docs/evidence/gate-4/reply-reference-repair.json",
+    "detail": "The MCP field description and skill name the received journal event ID. A regression denies wrong ID classes without effects; actual Codex sessions resume after restart, route one attributed reply and leave the sibling task waiting."
+  },
+  "executable_first_launch": {
+    "status": "installed candidate launch and all package checks passed; earlier timeout causes remain unproven",
+    "evidence": [
+      "docs/evidence/gate-4/candidate-startup-diagnosis.json",
+      "docs/evidence/gate-4/package-7edb1b1.json"
+    ],
+    "detail": "Freshly extracted 7edb1b1 reached --version in 36.943 seconds under the explicit installation-startup phase. Original application deadlines remain unchanged. Gatekeeper and SIP remain enabled; no assessment-service restart occurred. A passing launch does not establish the cause of earlier timeouts."
+  },
+  "previous_status_before_final_qualification": "review-reconciled; final current-source qualification remains open",
+  "final_qualification": {
+    "source": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "fresh_offline_phases_passed": 41,
+    "installed_checks_passed": 17,
+    "actual_normal_agent_calls": 30,
+    "actual_vapi_text_calls": 3,
+    "required_blocking_findings": [],
+    "evidence": "final-quality-review.json",
+    "earlier_failures_remain_unchanged": true,
+    "earlier_startup_cause": "unestablished; no security-policy change or service restart occurred"
+  }
+}

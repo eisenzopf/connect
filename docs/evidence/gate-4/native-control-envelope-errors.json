@@ -1,0 +1,94 @@
+{
+  "recorded_at": "2026-10-10T19:53:58.884987+00:00",
+  "source_base": "d575e81d7bc6b47a3b9ac9d01c9431e2ba76d6bb",
+  "source_checkpoint": "adfd79f579dcf4e135ad65b5a20a2f01f352169c",
+  "source_verification": {
+    "base_commit": "d575e81d7bc6b47a3b9ac9d01c9431e2ba76d6bb",
+    "files": {
+      "crates/connect-mcp/src/auth.rs": "9216321950a8e2fd492f116e4debb0459dbaf5096a880d75fad7a4c73d3f8c94",
+      "crates/connect-mcp/src/lib.rs": "2cb7ac484e046122f5f80148c9a1455160a684dd99fa45075718acda3ef3e6b7",
+      "crates/connect-mcp/src/vapi_auth.rs": "d310999324d2b423699471e4576b7995302604f230fc5a73a2a70944149b08de",
+      "crates/connect-mcp/README.md": "fa639d11f267e3e5bb298e3ec2f9515cf54fa43bf17e310855c708d23782de3a",
+      "crates/connect-server/tests/gate4_vapi_mcp_binding.rs": "0c06b869159b2696acbbf26703efdb5a2acd456d6adf657adcef6987d0ed9210",
+      "crates/connect-server/tests/gate4_vapi_mcp_lifecycle.rs": "92fc75ebe526b47519eaeffe58786fe42cc4f7e44bbfef6a3c18cc30a7d7afd5",
+      "crates/connect-server/tests/support/vapi_bindings.rs": "c1a46b195321a34ec46a339a594cbbf33acca53c065ac940b09430fef7b2a71f",
+      "crates/connect-client/src/client.rs": "0269d1d6800fa8f236a829821f7c7518318ff754fc7e44546b90f9d2916121c4"
+    },
+    "fingerprint": "a2fe5543e869b0f1ed6dec9aa6c66e1d18880c4fe5019560194a6e1fed79df07"
+  },
+  "qualification": "Local macOS arm64; disposable stores and loopback MCP/QUIC only. No provider account, public ingress, production database or deployment changed.",
+  "status": "Typed native control denial and actual language helper checks qualified; intermittent deadline characterization and whole-workspace regression remain open",
+  "items": [
+    "G4-008",
+    "G4-013",
+    "G4-014"
+  ],
+  "implemented": [
+    "An authenticated control request receiving raw UCTP 403 returns the typed forbidden application denial. 401 remains authentication failure, 503 maps to the typed storage error, malformed/unknown wire errors remain protocol failures.",
+    "Initial handshake classification and trusted expiry checks are unchanged; no raw wire reason is copied to public errors. The current authorization guard remains enforced."
+  ],
+  "verification": [
+    {
+      "log": ".local/gate-4-planning/native-control-denial-final.log",
+      "log_sha256": "f8b75f261af14f67ef0dbc55a4c8550749441ad9465c8aad331387ca17c1c6b1",
+      "terminal_exit": 0,
+      "result": "5 actual QUIC grant/lifecycle tests passed, including the previously failing exact forbidden assertion after revocation and initial invalid-origin rejection.",
+      "command": "CARGO_BUILD_JOBS=4 RUST_BACKTRACE=1 cargo test --locked -p connect-server --test gate4_native_grants --test gate4_native_grant_lifecycle"
+    },
+    {
+      "log": ".local/gate-4-planning/native-control-error-quality.log",
+      "log_sha256": "7cfc0b460155e7b28e5f27a3f473ea36bdd4b4a9cd6a8eb971905def4c370c1d",
+      "terminal_exit": 0,
+      "result": "Strict all-feature/all-target client Clippy passed.",
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-client --all-features --all-targets -- -D warnings"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --test gate4_helper_auth",
+      "log": ".local/gate-4-planning/native-control-helper-normal.log",
+      "log_sha256": "21c81fa13e9c127810e230cad599e52142ebbb92180649071aecce647a05ef1d",
+      "terminal_exit": 0,
+      "result": "Actual Python/TypeScript helper authentication/expiry test passed with ordinary logging in 91.45 seconds. Existing request and child deadlines unchanged; no owner fallback."
+    }
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/native-media-workspace.log",
+      "log_sha256": "a72dd912c4bc742f958d74ed2b7e14c152041b4dcb7fcd0d623c55a2ef6efd6b",
+      "terminal_exit": 101,
+      "result": "Earlier frozen bfa0865 workspace stopped at the exact forbidden assertion because all raw control errors were classified as authentication failures. 124 tests passed, one failed, one optional case was ignored; the incomplete run is not a pass."
+    },
+    {
+      "log": ".local/gate-4-planning/native-control-error-regression.log",
+      "log_sha256": "1e0ac438e1576e2eeb7732c3f9f3afbb51a9b08a1a743f97a6942889b42945ce",
+      "terminal_exit": 101,
+      "result": "Follow-up stopped at the Python helper bad-credential check: the existing 15-second request deadline expired before a correlated authentication response. Subsequent native tests did not run in this command."
+    },
+    {
+      "log": ".local/gate-4-planning/native-control-helper-recheck.log",
+      "log_sha256": "3c2b406fff293cacbd05eaf695a153f357615e613260fcf469a3542755030c49",
+      "terminal_exit": 101,
+      "result": "The same helper deadline failure recurred with unchanged source and unchanged limits. It remains unresolved; neither attempt is counted as a pass."
+    }
+  ],
+  "diagnostics": [
+    {
+      "path": ".local/gate-4-planning/debug-helper-startup-probe.json",
+      "observation": "A separate connect --help startup probe completed in 0.053 seconds. It does not explain or qualify the failed authenticated helper request."
+    },
+    {
+      "command": "RUST_LOG=connect_client=debug CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --test gate4_helper_auth",
+      "log": ".local/gate-4-planning/native-control-helper-diagnostic.log",
+      "log_sha256": "feb340ff70ca7739613874307f339a9ec53ac7b366d620d15a673abb8e250ba8",
+      "terminal_exit": 0,
+      "result": "Actual Python/TypeScript helper auth/expiry test passed in 91.33 seconds with unchanged deadlines. Debug message-type logging was enabled; this does not explain the two earlier failures or replace ordinary-log qualification."
+    }
+  ],
+  "pending": [
+    "Two earlier debug-helper 15-second deadline failures remain unexplained and retained for G4-030/G4-033 operating-limit and installed-candidate qualification. Subsequent debug-diagnostic and ordinary runs passed, but do not establish a load/cold-start guarantee.",
+    "Whole-workspace regression remains required after the correction; the earlier frozen bfa0865 workspace stopped with a failure."
+  ],
+  "related_evidence": [
+    "vapi-mcp-admission.json",
+    "native-task-media.json"
+  ]
+}

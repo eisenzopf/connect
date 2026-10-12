@@ -1,0 +1,202 @@
+# Connect task application extension v1
+
+The frozen typed inputs/results are `connect_protocol::tasks`. Required profile:
+`connect-task/1`, an additive application operation inside `connect-control/1`.
+This is Connect task policy carried over UCTP, not an upstream UCTP revision.
+G4-013 wires `{"op":"task","request":{"task_profile":"connect-task/1", "command":...}}`
+inside the existing control request. Results use the outer `kind: "task"` and the
+typed task outcome inside `data`. Capabilities advertise the task profile through
+`extensions`; old results without that field mean no task support. The native
+client discovers this feature with `negotiate_tasks(address, conversation_id)`
+or a capabilities query before sending typed `task(command)` requests.
+
+Native/HTTP entry points accept backing credentials for developer/controller
+operations and signed registered Native grants for model task operations. A Native
+grant authenticates as `connect-task-grant:<grant UUID>`, distinct from its parent
+credential; the service reconstructs its private invocation only from the trusted
+principal and rechecks current task/parent/grant authority in the command transaction.
+It admits only `Operation::Task`; ordinary primitive operations do not bypass the
+task facade. HostSession and provider grants use their separately verified adapters.
+Neither entry point can mint a grant, select an owner or register an external origin.
+
+For a narrow grant without directory permission, use `negotiate_task(task_id)` in
+Rust/Python or `negotiateTask(taskId)` in TypeScript. This sends a versioned Get for
+one explicit task and requires a matching record before further task requests.
+Capability discovery remains supported for backing credentials. Failed discovery
+cannot negotiate; negotiation never widens authority. Native language helpers carry
+explicit `task_binding` only with that exact versioned Get. The JSON CLI accepts
+`--task-id` or the existing `--task-address`, mutually exclusively.
+
+Raw UCTP session/data/subscription scopes are not inherited from a grant's parent.
+Existing owner media paths retain their declared permissions. Native model media
+attachment and raw HTTP artifact transfer need their own resource-bound qualification;
+this task-control boundary does not claim those capabilities. Task-wrapped declared
+communication/artifact operations still check the grant ceiling and effect ledger.
+
+Task waits receive their bounded requested wait plus the configured client exchange
+budget; malformed waits cannot expand that addition beyond ten seconds. Other
+control exchanges retain their existing timeout behavior.
+Old control commands retain their behavior and authority. Unknown profile/action
+or claimed owner/binding fields fail before admission.
+
+Task scope optionally contains `sms_enrollments`, a bounded list of
+`{source, grant_id, purpose}` references to immutable approved enrollment evidence.
+Absence means no task-origin SMS authority; native communication remains usable.
+Each reference must belong to the task's conversation and match the exact reviewed
+purpose. The developer selects these references at task creation; an invocation
+cannot choose or alter them. This selection neither enrolls a recipient nor renews
+consent, overrides STOP or proves that arbitrary message text fits the purpose.
+The application remains responsible for sending the requested content.
+
+At SMS dispatch, the selected evidence must match recipient, sender, conversation
+and purpose, remain active/unexpired, and have a fresh trusted authority lease.
+STOP suppression is independently enforced. No other conversation enrollment is
+borrowed as fallback. Non-dispatch is recorded as `task-sms-purpose-required`,
+`task-sms-enrollment-unavailable` or `opted-out`; storage failure remains an error
+without dispatch acknowledgement. START cannot revive cancelled effects or tasks.
+Existing ordinary SMS clients retain their current enrollment policy.
+
+Empty SMS scope is omitted from serialization, preserving existing canonical grant
+digests. Storage schema 13 marks this policy boundary so an older binary cannot
+dispatch newer task work without enforcing it. The task profile remains
+`connect-task/1`; the typed contract checkpoint is revision 5. Revision 5 adds
+only explicit bound-task cancellation permission, described below; it leaves
+the versioned command shapes and existing grant digests unchanged.
+
+Task states: ready → running → waiting → ready; running → completed. Any
+nonterminal state may become cancelled, failed or expired. Terminal states never
+reopen. Mutations use one stable logical request ID and expected revision where
+state-dependent. Matching replay needs current authority before receipt lookup.
+
+Effect states: prepared → dispatched/cancelled; dispatched → succeeded/failed/
+uncertain; uncertain → succeeded/failed from attributed reconciliation only.
+An expired lease cannot turn possible dispatch back into prepared work.
+
+Contract revision 3 adds owner-authorized runner coordination: `Claim`,
+`ClaimGet` and `ReleaseClaim`. A fresh claim requires no prior revision;
+renewal/reclaim uses the exact retained revision. Leases last at most 30 seconds,
+within task and credential lifetime, and at most 16 may be active. Matching
+request replay returns the original lease without extending it. Reclaim is
+denied once the step has a durable dispatched, uncertain or terminal effect;
+read/reconcile that effect instead. Worker IDs are coordination labels, not
+credentials. Narrow model invocation grants cannot acquire runner authority.
+
+`Invoke.wait_for_reply` explicitly marks a message question. It defaults to
+false and is omitted when false, preserving previous serialized inputs. Only
+Send may wait or carry `reply_to`. That reference must be a delivered initiating
+event or a reply assigned to the calling task. An assistant answering another
+task's verified question uses its own current send grant; the recipient task is
+derived from the question, never borrowed as authority. An accepted question can
+have a succeeded communication effect while its tool result stays pending until
+the specific attributed answer exists. Other replies cannot satisfy that wait.
+
+`Invoke.reply_to` is the **received conversation journal event ID**, not the
+message ID, source ID, outer task-event ID or original question ID. MCP exposes
+it in `connect_task_wait` at `data.events[*].data.data.event_id` for a `reply`
+event. `TaskRecord.initiating_event_id` supplies the corresponding reference for
+an independently initiated task. The native `TaskCommand::Reply.reply_to`
+instead identifies the question message being answered; these fields belong to
+different operations and are not interchangeable.
+
+Effects retain the original logical request ID. The store derives a separate
+wire receipt ID from task, step and logical ID so two tasks cannot alias an
+account-level receipt. The operation receipt, local mutation, effect intent,
+authority reference and journal events commit atomically. Known business
+rejections retain an optional effect `error`; missing `error` in older results
+defaults to none. Infrastructure failure rolls back rather than accepting a
+partial operation. Queued provider jobs stay pending; unknown remote outcomes
+stay uncertain without redispatch. Legacy effects without protected dispatch
+metadata remain read-only and cannot be promoted by assuming missing jobs passed.
+
+Task input cannot supply owner, credential or provider authority. Creation derives
+those from authenticated state and validates existing conversation membership,
+concrete recipient/operation subsets and expiry. Provider call/chat correlation
+is registered by trusted composition, never inferred from a model's headers.
+Grant issuance is outside the model-facing command enum; five-minute grants
+cannot refresh themselves. Protected host adapters may refresh only through
+current backing authority and unchanged task scope.
+
+`task_cancel` is an explicit, default-off permission for the existing `Cancel`
+command. Both the task ceiling and the invocation grant must contain it, and
+the parent must still hold current task-cancel authority. It authorizes only
+the authenticated task; it does not grant creation, transition, claim, grant
+issuance or conversation closure. Existing grants omit it and retain their
+previous behavior. Older strict SDKs reject a task record containing this new
+permission rather than assuming support; update the SDK before opting in.
+
+Cancellation commits terminal state, journal evidence, prepared-effect
+cancellation, grant revocation and its control receipt atomically. A receipt or
+capacity failure rolls back all of those writes. Successful cancellation
+immediately invalidates the invoking grant, so its matching replay is denied.
+A separately authorized owner can inspect the original control receipt with
+the retained request ID and input. Lost acknowledgement is not permission to
+issue broader credentials or create replacement work. Cancellation leaves the
+conversation and sibling tasks intact and cannot undo an already dispatched
+provider effect.
+
+The [protected local task-access profile](connect-task-access-v1.md) installs
+Native/HostSession grants outside this model-facing contract. Its secret-bearing
+response is an intended developer credential exchange, never a normal task
+result, receipt or tool outcome. Provider origin registration remains separate.
+
+Limits and the executable acceptance mapping are in
+[decision 009](../docs/decisions/009-task-runtime.md). Task events have stable
+source/actor attribution. Native `Reply` takes conversation, question reference, body and logical ID under
+the sender’s current `send` authority. It cannot choose task ownership. The store
+derives a task only from a verified question delivered to that participant and
+commits message, reply/inbox and lifecycle atomically before ACK. Terminal tasks
+retain unassigned incoming evidence rather than reopening.
+
+Reply assignment is explicit and auditable; ambiguous
+replies remain unassigned. A task cursor binds installation, principal, task and
+journal sequence. Recall has a 32 KiB budget, explicit omissions and source
+provenance. A missing timestamp is explicit for legacy sources; no fabricated
+metadata. Retrieval text cannot change grants or routes.
+
+Recall traverses the existing recipient conversation journal oldest first, with
+at most 100 source entries and a 32 KiB serialized result including metadata and
+cursor. `omitted` counts eligible entries after the input cursor not returned
+in that page. An individually oversized body returns an unavailable source with
+an explicit budget note and advances the cursor; it never stalls catch-up or
+silently truncates evidence. Missing sources also remain explicit. Messages
+have no timestamp in the existing schema, so `created_at` is null with a
+timestamp-not-recorded note rather than a fabricated date. If a missing source
+also lost its attribution, `actor_id` is empty.
+
+Session and artifact bodies project current metadata rather than stale journal
+snapshots. Deleted, expired, missing or invalid artifact blobs have no body;
+recall never follows symlinks or exports file bytes/paths. Metadata is conversation
+context under history/context-view authority. Artifact byte retrieval separately
+requires the current task, invocation, actor and artifact-get authority. Cursors
+bind installation, identity, task and recall resource; every continuation rechecks
+the current grant, credential and conversation access.
+
+Admission reserves one terminal journal entry and one mutation receipt for each
+nonterminal task within the existing installation limits. Ordinary operations,
+nonterminal progress and new admission cannot spend this room. A terminal transition
+updates state and consumes its released reservation in the same transaction.
+Elapsed time does not free a reservation before the expiry event commits. A
+write failure or a configured limit lowered below retained usage returns an
+explicit error without acknowledging cancellation; recovery retries use the
+same logical ID. The reserve protects terminal control records, not an unlimited
+number of later reconciliation observations or a filesystem write guarantee.
+
+A matching terminal lifecycle transition receipt remains inspectable under the
+current owner's task-transition scope and conversation access, as cancellation
+receipts already are. Revoked reader credentials fail. This inspection neither
+reopens the task nor revives its grants; a new transition and every effect replay
+still enforce continuation authority. Creation receipts and effect receipts do
+not gain an exception from this terminal-control rule.
+
+Contract errors use existing Connect `{code,message}` shapes. Unknown profiles:
+`unsupported-profile`; malformed input: `invalid-request`; missing current
+credential: `unauthorized`; disallowed operation/resource/binding: `forbidden`;
+stale or illegal state: `task-state-conflict` / `effect-state-conflict`; mismatched
+logical intent: `request-conflict`; capacity: `capacity-exceeded`; storage failure:
+`storage-unavailable`. Pending and uncertain tool results never claim completion.
+Lease conflicts use `task-claim-conflict`; a step that requires effect inspection
+instead of reclamation uses `effect-reconciliation-required`. A known provider
+failure uses `provider-failed` and retains its accepted local outcome separately.
+
+Typed fixtures prove admission and exhaustive state transitions. Runtime denial,
+crash/recovery, provider and actual host evidence are separate required items.

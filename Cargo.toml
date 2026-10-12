@@ -1,0 +1,68 @@
+[workspace]
+resolver = "2"
+exclude = [".deps/rvoip", ".deps/parley"]
+members = ["crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "crates/connect-connectors", "crates/connect-mcp"]
+
+[workspace.package]
+version = "0.1.0-alpha.1"
+edition = "2021"
+rust-version = "1.97.1"
+license = "MIT"
+repository = "https://github.com/eisenzopf/connect"
+
+[workspace.dependencies]
+connect-connector-api = { path = "crates/connect-connector-api" }
+connect-protocol = { path = "crates/connect-protocol" }
+connect-store = { path = "crates/connect-store" }
+connect-service = { path = "crates/connect-service" }
+connect-client = { path = "crates/connect-client" }
+connect-connectors = { path = "crates/connect-connectors" }
+connect-mcp = { path = "crates/connect-mcp" }
+rmcp = { version = "=3.5.1", default-features = false, features = ["server", "transport-streamable-http-server"] }
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+telnyx = { version = "0.1.0", default-features = false, features = ["messaging", "numbers", "sip", "webhooks", "rustls-ring"] }
+vapi = { path = ".deps/parley/vendor/server-sdk-rust" }
+rvoip-core = { path = ".deps/rvoip/crates/foundation/rvoip-core", features = ["opus"] }
+rvoip-uctp = { path = ".deps/rvoip/crates/uctp/rvoip-uctp" }
+rvoip-quic = { path = ".deps/rvoip/crates/uctp/rvoip-quic" }
+rvoip-vapi = { path = ".deps/rvoip/crates/extensions/rvoip-vapi" }
+rvoip-websocket = { path = ".deps/rvoip/crates/uctp/rvoip-websocket" }
+rvoip-sip = { path = ".deps/rvoip/crates/sip/rvoip-sip" }
+rvoip-webrtc = { path = ".deps/rvoip/crates/webrtc/rvoip-webrtc", features = ["comprehensive"] }
+rvoip-auth-core = { path = ".deps/rvoip/crates/identity/auth-core" }
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+async-trait = "0.1"
+futures-util = "0.3"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+rusqlite = { version = "0.32", features = ["bundled", "backup"] }
+sha2 = "0.10"
+hex = "0.4"
+hmac = "0.12"
+rand = "0.8"
+clap = { version = "4", features = ["derive"] }
+toml = "0.8"
+anyhow = "1"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+quinn = { version = "0.11", default-features = false, features = ["runtime-tokio", "rustls-ring"] }
+rcgen = "0.14"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tempfile = "3"
+fs2 = "0.4"
+x509-parser = "0.18"
+tokio-tungstenite = "0.29"
+base64 = "0.22"
+parking_lot = "0.12"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"

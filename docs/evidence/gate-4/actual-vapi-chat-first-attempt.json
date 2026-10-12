@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T00:03:07.268988+00:00",
+  "status": "Actual Vapi chat captured and reconciled; model tool discovery failed; G4-022 remains open",
+  "scope": "Separately authorized live Vapi chat on installed 55eaa99, bounded authenticated MCP callback; no phone call, SMS, remote Connect deployment or changes to the saved assistant",
+  "runtime_source": "55eaa99d91534588a4b26b8c88443248b7c82276",
+  "observations": {
+    "provider_session_verified": true,
+    "provider_session_configured_tool_types": [
+      "mcp"
+    ],
+    "chat_model_tool_types": [],
+    "model_reported_connect_tools_unavailable": true,
+    "visible_connect_model_effects": 0,
+    "public_native_history_messages": 1,
+    "normalized_input": [
+      {
+        "role": "user",
+        "content": "exact original prompt; omitted from public evidence"
+      }
+    ],
+    "session_and_name_matched": true,
+    "original_chat_reconciled_by_get_only": true,
+    "model_turns_submitted": 1
+  },
+  "correction": {
+    "receipt_verifier": "Accept exact original string or exactly one user message with the same text; additional messages, changed text/role or extra fields still denied.",
+    "focused_unit_tests": {
+      "passed": 18,
+      "failed": 0,
+      "ignored": 0,
+      "raw_log": ".local/gate-4-review/chat-normalized-input-units-2.log",
+      "sha256": "3cfe0a745766a0110ba9fb0d7b8f11d57422221b5b64892554bab3965b1d536f"
+    },
+    "retained_failed_unit_attempt": {
+      "log": ".local/gate-4-review/chat-normalized-input-units.log",
+      "finding": "One existing assertion was misplaced during test editing; corrected placement and reran all 18 checks."
+    }
+  },
+  "private_evidence_sha256": {
+    "chat-response": "8faf7b3c0dacb62a193b6b2e6f9a9f1e36dd10152d46585ef9f0884c05c1a14c",
+    "session-observation": "af6242cdd9bb9b4d9e57d5c3cef8a6aaf42f7793b527f19015d4066888843ca4",
+    "history-after-chat": "c74771549f1991476a80451e0282fbfc324492eed9ebbeb14f8983b8648a8bba",
+    "chat-intent-after-reconciliation": "871e6ac7a60d5b5c013a88d3b9059ea707452fdd99eeca17806b4f1d1d3fb0e1"
+  },
+  "remaining": "Trace actual provider catalog requests, transport reachability and correlation headers. No cause or whole live pass inferred from a configured MCP descriptor. Then repeat bounded chat/voice with actual source-backed model use.",
+  "primary_documentation": [
+    "https://docs.vapi.ai/tools/mcp",
+    "https://docs.vapi.ai/chat/session-management"
+  ],
+  "authorization_failures_retained": ".local/gate-4-live/vapi-20261011T234155Z/attempt-result.json"
+}

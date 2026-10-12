@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T23:15:44.635600+00:00",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
+  "observed_reply": "The latest decisions and details from our conversation are as follows:\n\n- **Anchor Native Decision**: \"Pine Tree.\"\n- **Anchor Browser Decision**: \"Yellow Sun.\"\n- **Anchor Inbound Telephone Decision**: \"Coffee.\"\n- **Anchor Outbound Telephone Decision**: \"Chocolate.\"\n- **Anchor Rehearsal Code**: \"Forest Lake.\"\n- **Preferred Rehearsal Day**: \"Thursday.\"",
+  "same_conversation_across_routes_and_restart": true,
+  "draft": "Forest Lake / Thursday, introduced only by public SDK text draft.",
+  "restart": "Graceful installed e457960 restart retained the original database; follow-up contained no answer facts.",
+  "delivery": {
+    "state": "delivered",
+    "watermark": 2526,
+    "selected_items": 140,
+    "omitted_items": 1122,
+    "selection_sha256": "1bc111561da7446f7f4d8eef17726b3dc80aae6293fa62ae55acbe5160ad1db2"
+  },
+  "routes": [
+    {
+      "route": "native QUIC",
+      "new_spoken_decision": "Pine Tree",
+      "status": "passed",
+      "session_id_sha256": "111519867638dc5fe8d0db4ad5feb89b02611a89093353ecceb8e9c8e914fc45",
+      "exact_delivered_source_sequences": [
+        2258
+      ],
+      "source_ids_sha256": [
+        "c512c39f2cb72c7361b3087c5c60ffab079dc9c111c815f966556d15f9e33ba6"
+      ]
+    },
+    {
+      "route": "browser WebRTC",
+      "new_spoken_decision": "Yellow Sun",
+      "status": "passed",
+      "session_id_sha256": "3c8d9d275d819afe4b715d51127cdc164824b9143c78bd00a8072bde31d03c9d",
+      "exact_delivered_source_sequences": [
+        2264
+      ],
+      "source_ids_sha256": [
+        "089012663d74c25ab1026dcd4c04642e578e8f81cec1b5373349c23c7f86c722"
+      ]
+    },
+    {
+      "route": "inbound Telnyx telephone",
+      "new_spoken_decision": "Coffee",
+      "status": "passed",
+      "session_id_sha256": "63840c0553c96becaac71c48642b76afc26c29ce644230b15d512f4194758ada",
+      "exact_delivered_source_sequences": [
+        2250,
+        2276
+      ],
+      "source_ids_sha256": [
+        "9efc2689feb0e7ccdad58745a14987899b6771afdc3cb8b25585fb531e634d6c",
+        "6c83855486ce3134ff40052f00ed04432b20e7db32734427e954642058a545f2"
+      ]
+    },
+    {
+      "route": "outbound Telnyx telephone",
+      "new_spoken_decision": "Chocolate",
+      "status": "passed",
+      "session_id_sha256": "220b84843c8a6f1d3746e17214b59b2192b41bf7e19f7890a4a3a98c76751c6b",
+      "exact_delivered_source_sequences": [
+        2374,
+        2380,
+        2392
+      ],
+      "source_ids_sha256": [
+        "4f95a2243cb26fe6bfe9524c78dac59a9e2b29480a02226a8574043d1a6f6417",
+        "9dd5b02f4efd5228c3a4cfce1b376cb05ec770ddde03a09c941ca9817aa78225",
+        "d58f350ea0bdaf98a674261c3ff23e4615675e1088d700c8a19d0442f035a5c2"
+      ]
+    }
+  ],
+  "limits": [
+    "32 KiB newest-context item budget; current delivered selection explicitly omits older items. Authorized history retains them. No automatic summaries or pinned-fact retrieval.",
+    "Earlier phonetic/conflicting source failures retained; the current prompt accepts live facts instead of treating the initial snapshot as exclusive. This does not guarantee all future model recall."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-send",
+  "ts": "2026-10-07T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "send",
+    "request_id": "send-1",
+    "conversation_id": "conversation-1",
+    "body": "Review the draft"
+  }
+}

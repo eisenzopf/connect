@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "status": "passed targeted fixture correction; full suite pending",
+  "recorded_at": "2026-10-12T09:01:29.539546+00:00",
+  "source_base": "c81d2f2",
+  "production_code_changed": false,
+  "fixture": "crates/connect-server/tests/gate4_task_chat_rehearsal.rs",
+  "fixture_sha256": "7fbade8b5a033f3705ff706ff3e82667f6cbe118ccb5de2918793bcf932eec39",
+  "finding": "The successful chat driver and repeat denial completed after the fixture owner had been idle for over 33 seconds. Its subsequent cancellation timed out. The pinned native QUIC client configures a 30-second idle timeout. The separate driver already retained the original provider turn and sourced context.",
+  "correction": "Close the unused owner connection before running the independent Python driver. Open a fresh authenticated client and negotiate the same retained task before the separate owner cancellation. All original assertions and deadlines remain.",
+  "verification": {
+    "name": "chat-rehearsal-reconnect",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "connect-server",
+      "--all-features",
+      "--test",
+      "gate4_task_chat_rehearsal",
+      "--",
+      "--test-threads=1"
+    ],
+    "timeout_seconds": 1200,
+    "log": "chat-rehearsal-reconnect.log",
+    "status": "passed",
+    "exit_code": 0,
+    "leftover_group_members": [],
+    "group_cleanup": "signalled",
+    "seconds": 247.636
+  },
+  "rust_tests": {
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0
+  },
+  "private_report_sha256": "012611568dc240171fc54e620723347393519136a0a8802c127e80c71f5650e3",
+  "log_sha256": "8cf3000fde684238d3ab991567cca5e12570294492244d1aab7e869baa37b384",
+  "failed_full_run": "docs/evidence/gate-4/offline-596e9b7-attempt-1.json",
+  "other_retained_attempt": {
+    "reason": "Initial focused command omitted --all-features and was interrupted while rebuilding another feature combination. Corrected invocation uses the qualification feature set.",
+    "evidence_sha256": "22a7e21d15b3b2dff0a35d5953baa94e117087a62ce9f0ef30200b66e27df6b4"
+  },
+  "limits": [
+    "This targeted result does not qualify unrun phases of the complete offline suite.",
+    "The debug linker emitted a compact-unwind size warning. The normal installed release is qualified separately.",
+    "No macOS security setting or service was changed."
+  ]
+}

@@ -1,0 +1,360 @@
+{
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "mode": "complete-offline",
+  "status": "failed",
+  "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+  "dirty": false,
+  "started_at": "2026-10-12T06:46:39.282297+00:00",
+  "finished_at": "2026-10-12T08:46:13.115676+00:00",
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.7.0",
+    "npm": "12.0.2",
+    "codex": "codex-cli 0.162.0-alpha.17.2",
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+  },
+  "build_profile": "dev/test with debug assertions; debug symbols and incremental caching disabled",
+  "error": {
+    "type": "RuntimeError",
+    "detail": "Phase failed: workspace; see private log"
+  },
+  "not_run": [
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "recorded_at": "2026-10-12T08:46:58.205141+00:00",
+  "private_report": {
+    "path": ".local/gate-4-checks/20261012T064639.281554Z/result.json",
+    "sha256": "2c5793faa706117241a2c56eff672c33249e120a1af0c7dfe0919b6c6ea04ab9"
+  },
+  "source_inputs_manifest_sha256": "6d793dcd593af680b3504c1eb27304cbaae01174de1d153f51496b5e90c25174",
+  "required_phases": 41,
+  "passed_phases": 13,
+  "steps": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.37,
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.999,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "typescript-install",
+      "command": [
+        "npm",
+        "ci",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-install.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.914,
+      "log_sha256": "72ce716ce3c60738fe663fffea42e2a97e551c905b11a89ef873415c5b827567"
+    },
+    {
+      "name": "typescript-tests",
+      "command": [
+        "npm",
+        "test",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.596,
+      "log_sha256": "acba08070e82542e0e5f4668535aee608369d4d7524d65a80bb64e68851c8da7"
+    },
+    {
+      "name": "typescript-format",
+      "command": [
+        "npm",
+        "run",
+        "format:check",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 120,
+      "log": "typescript-format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.555,
+      "log_sha256": "f17c3858caccd03c85616cc718a6d37a742c110df9a4249585573d6d52256f57"
+    },
+    {
+      "name": "typescript-distribution",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "sdk/typescript/dist"
+      ],
+      "timeout_seconds": 60,
+      "log": "typescript-distribution.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.069,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python-sdk",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "timeout_seconds": 300,
+      "log": "python-sdk.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.612,
+      "log_sha256": "44f992c2bd555dcc3a063296e8976d4051028792be4c094e8abf2c3b3f18d960"
+    },
+    {
+      "name": "agent-incoming-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "examples/agent-presence/tests",
+        "-p",
+        "test_incoming*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "agent-incoming-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.246,
+      "python_tests": {
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "e49c07ae220356172b77eeac911ac6504c334a270ad1245e7651b8b5baa2cb95"
+    },
+    {
+      "name": "runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "runner-failure-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.976,
+      "log_sha256": "1f900ded293de7a8e0dd4cd74a1f6a9e55cb4d7edb8ff8a950d4038a616b55cb"
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_task_voice.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "voice-rehearsal-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.187,
+      "python_tests": {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "b3422b145032ac3a56ce40c0e8bbe6f04030fe26a1ce1f5388afec7a5b7cbee0"
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_*chat*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "chat-rehearsal-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.06,
+      "python_tests": {
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log_sha256": "01858b79243751f65edb8a467ee9ba46f58daa11071c5aeb219c5bcf11be53b7"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 2400,
+      "log": "lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 23.865,
+      "log_sha256": "c2d2c290a602f5b049026d11a8ed204e689f844b69c10209a7ff028c588096f0"
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 2400,
+      "log": "rustdoc.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.392,
+      "log_sha256": "41a0da19dcaa55e7db503fb8654f12f1c68df30149b10ded763f9921ca0caa71"
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 7200,
+      "log": "workspace.log",
+      "status": "failed",
+      "exit_code": 101,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 7133.051,
+      "rust_tests": {
+        "passed": 232,
+        "failed": 1,
+        "ignored": 8
+      },
+      "log_sha256": "8bcaa01ede6886c07234bd585474671c48790a1b9d3abe39335af3cc051d6beb",
+      "rust_test_summary": {
+        "passed": 230,
+        "failed": 0,
+        "ignored": 8
+      }
+    }
+  ],
+  "scope_limits": [
+    "Account-free local fixtures; actual Codex CLI uses scripted loopback Responses and no inference. Live model/provider evidence is separate.",
+    "Workspace deliberate ignores are explicitly selected by required installed-host, media-pressure and voice-retirement phases.",
+    "Source 596e9b7 is the frozen runtime baseline. Final 7edb1b1 changes one MCP input description, the skill/task documentation, adds a reply-reference regression and separates measured first package launch. Its focused tests, strict quality and installed/actual-model qualification are separate.",
+    "Private test enumeration was used to let macOS assess fresh test executables; --list executes no test bodies and is not behavior evidence. Security settings and functional deadlines were not changed."
+  ]
+}

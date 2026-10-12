@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T22:56:35.997949+00:00",
+  "status": "passed actual-model draft/reply component; whole Gate 4 remains open",
+  "scope": "Fresh installed Connect release, actual Codex model account, supplied installer/skill and public native SDK; loopback communications; no Vapi/Telnyx operations or SMS",
+  "source_revision": "59b551990c0053ad32d5359a3b29fbaa0ee78790",
+  "binary_sha256": "4629b6b342707fc6a1224e7cb2d06f333f637dc31a2c5520e5d4d868b865b6a6",
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64",
+    "version": "26.6.2"
+  },
+  "sessions": [
+    {
+      "proposal": "a",
+      "task_id": "733f7796-5a38-4026-a6b6-7b834a4a944a",
+      "session_id": "01a12d25-878e-7e13-9f6a-d3a96011123e",
+      "same_session_after_server_restart": true,
+      "confirmed_turns": 2,
+      "cli_version": "0.162.0-alpha.17.2",
+      "observed_models": [
+        "gpt-6.1-sol"
+      ],
+      "observed_tools": {
+        "connect_task_status": 3,
+        "connect_recall": 3,
+        "connect_artifact_begin": 2,
+        "connect_artifact_append": 1,
+        "connect_artifact_finish": 1,
+        "connect_send": 3,
+        "connect_task_wait": 4
+      },
+      "rejected_operations": [
+        {
+          "code": "invalid-request",
+          "message": "Artifact media type is invalid"
+        },
+        {
+          "code": "forbidden",
+          "message": "Operation or resource is not permitted"
+        }
+      ],
+      "canonical_call_count": 15,
+      "canonical_call_inputs_retained": true
+    },
+    {
+      "proposal": "b",
+      "task_id": "a21e9453-6924-4909-b58f-d6c5beccf179",
+      "session_id": "01a12d25-878e-7a83-9146-01153f75fecd",
+      "same_session_after_server_restart": true,
+      "confirmed_turns": 2,
+      "cli_version": "0.162.0-alpha.17.2",
+      "observed_models": [
+        "gpt-6.1-sol"
+      ],
+      "observed_tools": {
+        "connect_task_status": 2,
+        "connect_task_wait": 4,
+        "connect_recall": 3,
+        "connect_send": 2,
+        "connect_history": 1,
+        "connect_artifact_begin": 2,
+        "connect_artifact_append": 1,
+        "connect_artifact_finish": 1
+      },
+      "rejected_operations": [
+        {
+          "code": "invalid-request",
+          "message": "Artifact media type is invalid"
+        }
+      ],
+      "canonical_call_count": 14,
+      "canonical_call_inputs_retained": true
+    }
+  ],
+  "observed_behavior": {
+    "independent_tasks_in_shared_conversation": true,
+    "ready_artifacts": 2,
+    "both_downloaded_and_verified_before_and_after_restart": true,
+    "distinct_approval_questions": 2,
+    "native_reply_bound_only_to_task_a": true,
+    "useful_follow_up_messages": 1,
+    "follow_up_incorporated_new_reply_fact": true,
+    "unanswered_task_b_remains_waiting": true,
+    "human_message_and_follow_up_in_original_conversation": true,
+    "resume_without_retyping_context": true,
+    "protected_renewal_preserved_host_state": true
+  },
+  "private_evidence_sha256": {
+    "corrected-first-history-private.json": "f9c36dd412ddd0ee14c42094320f2f4c5b00b1f48bf96b99b22f0435d7755c84",
+    "human-answer-a-receipt.json": "397f9ac95069a4bb43766a48592e53aecee2d071031b46a53ae8d4b102797bf3",
+    "after-corrected-resume-history-private.json": "729bcb10856a79918dc2fd6f4848c1446b808f26559dd24652ac48a2daa95321",
+    "release-a-before.txt": "aef7fa7bcc860318b90da502ed871a6f2d883683e14716cfeb56d8954a233ae2",
+    "release-b-before.txt": "51e107a0abab7b0e91d00ae322df8c5bff3d417ed62f93b50812d619724debbd",
+    "after-corrected-resume-observation.json": "7f0c2d16ab51e553889549bc4b6c491cb4f9f8dde8c33a0dc301a0bf6f73f682",
+    "model-turn-timings.json": "fb71d522442847ad397573543031a991cae01c52b8928a150a4125b1b05149eb"
+  },
+  "retained_first_failed_attempt": "docs/evidence/gate-4/real-model-first-attempt.json",
+  "limits": [
+    "This proves the listed installed skill/host behavior with a real model. It does not qualify real Vapi, SMS, voice continuity or every authority/recovery criterion.",
+    "The MIME parameter form was rejected before acceptance; both models recovered to the supported bare text/plain form.",
+    "No replay of the final program after these completed turns was performed; separate frozen-source tests cover deduplication and interruption.",
+    "Canonical call input was inspected after these turns. Before-dispatch durability ordering remains supported by the separate paused-admission fixture evidence."
+  ],
+  "cold_warm_model_turns": {
+    "model_turn_seconds": {
+      "a": [
+        75.428,
+        37.569
+      ],
+      "b": [
+        68.883,
+        36.813
+      ]
+    },
+    "scope": "end-to-end model turn including host and tools; not QUIC latency or a general benchmark"
+  },
+  "continuation_mode": "Explicit developer invocation of run-codex with the existing installation; no new prompt or reconstructed context; automatic wake is unsupported."
+}

@@ -1,0 +1,126 @@
+{
+  "recorded_at": "2026-10-11T00:23:08.960238+00:00",
+  "source_base": "8c38ac178ee683f80cebf9b7365015a90f6ee0e2",
+  "status": "Actual public-SDK app/provider uncertainty recovery qualified",
+  "qualification": "Local macOS arm64; owned example child processes and disposable loopback servers; pinned private Vapi SDK against a fake remote. No live account, model, ingress, production state or deployment.",
+  "source_files": {
+    "Cargo.lock": "c3eb1839594491e35a11b6bdfcf4b65d772ac7d7a36f1e1f16530ac9c14e110f",
+    "dependencies/source-lock.json": "cda757ccc91da37fb6c6e7fea6c542d214f0717b117ac7df525f63fd923c439c",
+    "examples/review-loop/tests/task_recovery.rs": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+    "examples/review-loop/tests/task_uncertainty.rs": "db4d56d1bb8c5059bf1e39b5e9adcc8ff93c52ecd33996fe7cef619a6eb84043",
+    "examples/review-loop/src/lib.rs": "5fb98f32e79b93858c14e4d6df640ed7f4b5ce9418d003c3f871a39cb37b8588",
+    "examples/review-loop/src/store.rs": "0d13f28da78485b8279cdf385d21ccf31bfad0178b425650860f0442e11fc306",
+    "examples/review-loop/src/worker.rs": "a890b61e627d5535857a700265df4c822ab1e581266a8d564069ce421a888c38",
+    "examples/review-loop/src/main.rs": "0008bfb63cdd7b1ae82f74b4fe806750329af2aec721b6374131643d7522a76d",
+    "examples/review-loop/src/task_runner/journal.rs": "bf23e002701388614300aa072e5edc5c6f02a4051f33b7a020f57befce009d98",
+    "examples/review-loop/src/task_runner/reconciliation.rs": "5406e44e06e341f172e12775d04fa44578e547292a33056374c0363d0f79d298",
+    "examples/review-loop/src/task_runner/commands.rs": "4c6ec1263073778062d611471dbb4da33d9253697ccf95bb95392427d18eb171",
+    "examples/review-loop/src/task_runner/mod.rs": "d5cbbbb1202b53112034d44e72c580c4fa15987653e14b24b39b7a9b15c4733e",
+    "examples/review-loop/src/task_runner/state.rs": "200ed1762cfa3eec519ceafe142a3dfa7caa4aa00a6e6c5a84909d8ec409da7a",
+    "examples/review-loop/src/task_runner/workflow.rs": "f08655e734c1d27e851e20ea00454500d546a910c6502f5b932021247be9e45b",
+    "examples/review-loop/src/task_runner/driver.rs": "e54601782bccad8a0d8983739f8897562b20029cb3c9d6b1852f6e0036b0c42f",
+    "examples/review-loop/src/task_runner/tests.rs": "8d084c54ae43edaa3b6bb94f0e9455147e1d2547771be7dd95fbac71298f2b0c",
+    "examples/review-loop/tests/support/task_fixture.rs": "a2edf2c7bc95ad838acdb09003bb76541794d3f4c18af3fa79285a9e256106aa",
+    "examples/review-loop/Cargo.toml": "150e375706af3fad2ca9e918c5177fe1757bda6ab2438e50a06ed64489792f6c",
+    "examples/review-loop/TASK_RUNNER.md": "dbd69add95bf6f06789453e3db32c959b2b025b22b47e9829accee6bb4b0c245"
+  },
+  "first_source_files": {
+    "Cargo.lock": "c3eb1839594491e35a11b6bdfcf4b65d772ac7d7a36f1e1f16530ac9c14e110f",
+    "dependencies/source-lock.json": "cda757ccc91da37fb6c6e7fea6c542d214f0717b117ac7df525f63fd923c439c",
+    "examples/review-loop/tests/task_recovery.rs": "bbb1a85afffc801323801b3885a5813593515724d76b1d2e479b7bec9d2c6a19",
+    "examples/review-loop/tests/task_uncertainty.rs": "14cacd1355b656a2552cb507d2c6ca170245332773becd3c936c15e75549862c",
+    "examples/review-loop/src/lib.rs": "5fb98f32e79b93858c14e4d6df640ed7f4b5ce9418d003c3f871a39cb37b8588",
+    "examples/review-loop/src/store.rs": "0d13f28da78485b8279cdf385d21ccf31bfad0178b425650860f0442e11fc306",
+    "examples/review-loop/src/worker.rs": "a890b61e627d5535857a700265df4c822ab1e581266a8d564069ce421a888c38",
+    "examples/review-loop/src/main.rs": "0008bfb63cdd7b1ae82f74b4fe806750329af2aec721b6374131643d7522a76d",
+    "examples/review-loop/src/task_runner/journal.rs": "bf23e002701388614300aa072e5edc5c6f02a4051f33b7a020f57befce009d98",
+    "examples/review-loop/src/task_runner/reconciliation.rs": "5406e44e06e341f172e12775d04fa44578e547292a33056374c0363d0f79d298",
+    "examples/review-loop/src/task_runner/commands.rs": "4c6ec1263073778062d611471dbb4da33d9253697ccf95bb95392427d18eb171",
+    "examples/review-loop/src/task_runner/mod.rs": "d5cbbbb1202b53112034d44e72c580c4fa15987653e14b24b39b7a9b15c4733e",
+    "examples/review-loop/src/task_runner/state.rs": "200ed1762cfa3eec519ceafe142a3dfa7caa4aa00a6e6c5a84909d8ec409da7a",
+    "examples/review-loop/src/task_runner/workflow.rs": "f08655e734c1d27e851e20ea00454500d546a910c6502f5b932021247be9e45b",
+    "examples/review-loop/src/task_runner/driver.rs": "e54601782bccad8a0d8983739f8897562b20029cb3c9d6b1852f6e0036b0c42f",
+    "examples/review-loop/src/task_runner/tests.rs": "8d084c54ae43edaa3b6bb94f0e9455147e1d2547771be7dd95fbac71298f2b0c",
+    "examples/review-loop/tests/support/task_fixture.rs": "a2edf2c7bc95ad838acdb09003bb76541794d3f4c18af3fa79285a9e256106aa",
+    "examples/review-loop/Cargo.toml": "150e375706af3fad2ca9e918c5177fe1757bda6ab2438e50a06ed64489792f6c"
+  },
+  "source_boundary": "The initial full runner run passed 14 existing cases and failed only the new provider fixture. Its history-granted assistant lacked the required context placeholder. Correcting that fixture changes no production source, timers, grant scope or recovery behavior. The corrected target has a fresh strict Clippy/test/format pass. All production runner sources are unchanged from the full run.",
+  "checks": [
+    {
+      "log": ".local/gate-4-planning/runner-uncertainty-all-tests.log",
+      "log_sha256": "3119829a213d1f8ddaa13e1beef50d87c100243c54393dd546b70dc53c8526be",
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-review-loop --all-features",
+      "terminal_exit": 101,
+      "passed": 14,
+      "failed": 1,
+      "ignored": 0,
+      "status": "Initial fixture failure retained; existing seven app-state and seven process-recovery cases passed"
+    },
+    {
+      "log": ".local/gate-4-planning/runner-uncertainty-corrected-test.log",
+      "log_sha256": "962e905f6619f3d140f21475ed8fdd2269312a96929383d6487b454ff365451b",
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-review-loop --all-features --test task_uncertainty",
+      "terminal_exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/runner-uncertainty-clippy-final.log",
+      "log_sha256": "0b53209db424367e80c52cd8cde8b75e37af110438a0efde777104a1463956de",
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-review-loop --all-features --all-targets -- -D warnings",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/runner-uncertainty-corrected-clippy.log",
+      "log_sha256": "58a7c351c9990404351b9091f8c5a065f7105899e9e6b93ae1f8162afc50fa43",
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-review-loop --all-features --test task_uncertainty -- -D warnings",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/runner-uncertainty-rustdoc.log",
+      "log_sha256": "6cac1d8c7e1de33cf28c16185c3f0a55f8f70bb67d06bd7f80548476b0dd3103",
+      "command": "CARGO_BUILD_JOBS=4 RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-review-loop --all-features --no-deps",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/runner-uncertainty-corrected-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "bash scripts/format.sh --check",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/runner-uncertainty-normal-build.log",
+      "log_sha256": "4c99346a37c802ac45e0b3786b8a985c5fc54a0d4ff76a8e3c6a9e41222ad7de",
+      "command": "CARGO_BUILD_JOBS=4 cargo build --locked -p connect-review-loop --bin connect-example",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/runner-uncertainty-normal-check.log",
+      "log_sha256": "35c8625110a7f0a7e5c79dc3ae4443e587f01d86bd4c556b69b17d0d47b01e0d",
+      "command": "Normal binary fault marker exclusion and legacy/task CLI help checks",
+      "terminal_exit": 0
+    }
+  ],
+  "behavior_passes": 15,
+  "retained_initial_failures": 1,
+  "test": "app_and_server_restarts_retain_actual_provider_uncertainty_without_redispatch",
+  "behavior": [
+    "The actual independent app child exits with code 86 after Connect accepts its question and before the app commits its result; its own persisted exact command has no outcome.",
+    "The fake remote records one acceptance outside Connect state and withholds its HTTP receipt. Provider worker shutdown durably marks the dispatch uncertain.",
+    "An owned server restart reuses its database and native endpoint. App restarts reuse the same task, conversation, grant, protected configs and app state; no new issue or owner communication fallback.",
+    "The app saves the real uncertain TaskToolResult. Public effect inspection confirms the same original request ID, effect ID, task and local accepted-send conversation receipt.",
+    "A second app restart preserves the identical saved command/outcome and journal catch-up. Public provider status has one uncertain job; history has exactly one question and no review response/follow-up; app business effects remain zero.",
+    "The final independent acceptance counter remains one and the HTTP mock expects exactly one POST. Unknown acceptance never becomes a fresh dispatch or an approval."
+  ],
+  "quality": {
+    "test_lines": 190,
+    "changes": "Dev-only connector/wiremock dependencies; Cargo.lock gains only their two example dependency references. No new resolved package version, production runner code, upstream patch or database schema change. Test inspects only its app-owned SQLite; Connect data are read through public clients.",
+    "checks": "Strict all-target example Clippy and Rustdoc pass; corrected fixture has strict target Clippy and formatting; normal binary excludes both fault controls and retains legacy/task command help."
+  },
+  "limits": [
+    "macOS debug linker large __eh_frame warning retained; no exception performance or cold-start operating-limit guarantee",
+    "Local deterministic example and controlled remote acceptance are not installed host/model, live Vapi or universal exactly-once external effects",
+    "Owned Connect server restart is graceful; app crash is abrupt. Separate task store commit-crash evidence remains its original scope."
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "status": "Source review: confirmed implementation gaps; no behavior pass claimed",
+  "recorded_at": "2026-10-10T20:11:49.106324+00:00",
+  "source_checkpoint": "f928fcf8ef47f89928be563567f2512dc275649a",
+  "items": [
+    "G4-009",
+    "G4-020"
+  ],
+  "sources": {
+    "crates/connect-store/src/provider_chat_context.rs": "ebcf3862496e697368f2db0b682fe57b15b7f4fd8b4e478d67c43453cd2906d3",
+    "crates/connect-store/src/providers.rs": "c3db8d372a2e9f69a49653bf4915a2ffdd2a4bfb31b4da185fd6d05d3cf9a0df",
+    "crates/connect-store/src/tasks/effects/dispatch.rs": "49a3283cd61ad1b0ce6b50a64ffb3ef6826525c6e9905a8c721f1b919ede00b8",
+    "crates/connect-store/src/tasks/effects/links.rs": "c4fdface0aefd293a3789a9d2cbf8efa51d8866f7721fca8ab33af691796ce45",
+    "crates/connect-store/src/tasks/native_reply.rs": "7b3307beb27ab1c675612370ca1767edb60867ea0529b08d842ffbc17d67d13c",
+    "crates/connect-store/src/tasks/recall.rs": "73d4e78874aaf0b8d1d38325e53419a65f8f6c08a21193c17141eaefbf54af8d"
+  },
+  "findings": [
+    {
+      "id": "provider-task-context-ceiling",
+      "observed": "claim_provider_job revalidates the original task effect, but provider_chat_context::begin separately uses the backing credential for context_view. The original invocation grant and task context ceiling are absent from that selection.",
+      "required": "Derive task context admission from the committed effect and current original grant. A Send-only grant must not export history; authorized task recall must remain source-backed and bounded."
+    },
+    {
+      "id": "provider-task-remote-history",
+      "observed": "claim_provider_job reads provider_context.chat_id by route_id, without a task or invocation scope. A task send with no context selection can therefore reuse an earlier provider chat history.",
+      "required": "Task delivery must not inherit a route-wide previous_chat_id. Preserve conversation continuity through explicitly authorized local projections."
+    },
+    {
+      "id": "provider-task-reply-binding",
+      "observed": "finish_provider_job inserts the reply as an ordinary provider message. It does not use the committed provider_job effect link/question message to add a task reply event or wake its waiting task.",
+      "required": "Use the exact durable job/question binding to record the response atomically with job completion. Terminal tasks retain the communication as unassigned; never infer task identity from a sender or route."
+    }
+  ],
+  "qualification": "Local source review only. The active frozen-source workspace run tests the preceding checkpoint; it cannot establish these missing behaviors.",
+  "pending_verification": [
+    "Send-only grant with broad backing credential cannot disclose context or previous provider chat history",
+    "Permitted bounded task recall contains source provenance, omission and a checkpoint with no other-conversation content",
+    "Two tasks in one conversation receive only their own provider replies despite reordered completion",
+    "Cancelled/expired tasks preserve incoming communication without resuming",
+    "Duplicate completion and replay do not duplicate a message or inbox effect",
+    "Failure during reply persistence rolls back the whole completion"
+  ],
+  "limits": [
+    "No production provider call, remote deployment, credentials or existing database changes performed for this review.",
+    "G4-020 and all affected acceptance criteria remain open."
+  ],
+  "follow_up": "provider-task-boundaries.json",
+  "resolution": {
+    "status": "Both reviewed store defects fixed and main component qualified",
+    "evidence": "docs/evidence/gate-4/provider-task-boundaries.json",
+    "source_files": {
+      "crates/connect-store/src/provider_chat_context.rs": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852",
+      "crates/connect-store/src/providers.rs": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa",
+      "crates/connect-store/src/tasks/effects/mod.rs": "81b83aac026b7d5ca59a700e25a70ce7783faf09cab6389fa7830434dd962935",
+      "crates/connect-store/src/tasks/effects/provider.rs": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f",
+      "crates/connect-store/src/tasks/grants/mod.rs": "99e81e5b705a426eefeda055b4f83f7ea56619e69501fea73f3b25e5d3e78da9",
+      "crates/connect-store/src/tasks/mod.rs": "9c72664c4fd1c9f60f7fc4db07fd51c8d32916ae0f6b18b3f5d9be378a2946d6",
+      "crates/connect-store/src/tasks/tests/effect_provider_boundaries.rs": "973971f9ae2d5e0cef0870e8d1579c9709c08f31bacde0718526d39f06016d0d",
+      "crates/connect-store/src/tasks/tests/effect_providers.rs": "d8d91afd0e224b5b01e60c9e7927f3227a30a372be2ba9ad65037ded52343134",
+      "crates/connect-store/src/tasks/tests/mod.rs": "ba3d5ae7b724856679727df826aab050b926fdfdfb970ce4338e9404b307de0e",
+      "crates/connect-store/tests/task_migration.rs": "e98bafbbaf98f637fceb7afa49cf890cfb712741a72f39e13c8d5b8411b907ef",
+      "crates/connect-store/tests/voice.rs": "29175e072e86c214dd4508c21f1648ad6d644ecb9f115a31f5a70cb09a6263a7",
+      "crates/connect-server/tests/gate4_provider_tasks.rs": "ed45cabf6096c29d193b5206e85124a69b4bd1e3efba04e34ab11b676777dc8e",
+      "crates/connect-server/tests/support/provider_task_flow.rs": "71ab20f269981f7c6160e0febd4005f52f6db5c4741bc68e3efba5b47728bbcb"
+    },
+    "remaining": "Verified provider lifecycle, MCP, task native Vapi voice and host acceptance remain open."
+  }
+}

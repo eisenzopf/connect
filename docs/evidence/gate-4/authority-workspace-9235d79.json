@@ -1,0 +1,458 @@
+{
+  "schema": 1,
+  "status": "current workspace reconciliation; whole offline run in progress",
+  "recorded_at": "2026-10-11T21:51:54.920726+00:00",
+  "source_revision": "9235d795f31e3dc360f7bab597e59e8a9c461a98",
+  "scope": "Current local fixtures; no actual provider/model evidence",
+  "workspace": {
+    "name": "workspace",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--workspace",
+      "--all-features",
+      "--",
+      "--test-threads=1"
+    ],
+    "timeout_seconds": 7200,
+    "log": "workspace.log",
+    "status": "passed",
+    "exit_code": 0,
+    "leftover_group_members": [],
+    "group_cleanup": "signalled",
+    "seconds": 700.737,
+    "rust_tests": {
+      "passed": 538,
+      "failed": 0,
+      "ignored": 9
+    },
+    "ignored_follow_up": [
+      "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+      "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+      "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+      "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+      "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+      "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+      "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+      "retired_setups_reuse_capacity_through_the_full_session_limit",
+      "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
+    ]
+  },
+  "workspace_log": ".local/gate-4-checks/20261011T213619.464535Z/workspace.log",
+  "workspace_log_sha256": "640d59fd5a5a37118235575bdf261934372081cd19003589559f9ec1d5d4a83f",
+  "checks": [
+    {
+      "id": "T-A1",
+      "status": "mapped local workspace and required installed-host cases passed; whole criterion acceptance pending",
+      "source_hashes_match_existing_matrix": true,
+      "tests": [
+        {
+          "test": "concurrent_first_calls_and_identical_tool_intents_stay_bound_to_their_own_tasks",
+          "source": "crates/connect-server/tests/gate4_vapi_call_isolation.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+          "source": "crates/connect-server/tests/gate4_codex_draft_journey.rs",
+          "workspace_result": "ignored, requires installed Codex; deterministic local Responses, no model inference",
+          "installed_host_result": "ok"
+        },
+        {
+          "test": "concurrent_assignment_to_two_tasks_commits_exactly_one_route",
+          "source": "crates/connect-store/src/tasks/tests/reply_races.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "concurrent_consumers_cannot_ack_the_same_reply_twice",
+          "source": "crates/connect-store/src/tasks/tests/reply_races.rs",
+          "workspace_result": "ok"
+        }
+      ],
+      "fixture_sources": []
+    },
+    {
+      "id": "T-A2",
+      "status": "mapped local workspace and required installed-host cases passed; whole criterion acceptance pending",
+      "source_hashes_match_existing_matrix": true,
+      "tests": [
+        {
+          "test": "wrong_binding_duplicate_authorization_and_revoked_parent_are_denied",
+          "source": "crates/connect-server/tests/gate4_mcp_authority.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "expired_bearer_cannot_reinitialize_or_discover",
+          "source": "crates/connect-server/tests/gate4_mcp_authority.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "ordinary_grants_cannot_discover_cancel_or_amplify_the_task_ceiling",
+          "source": "crates/connect-server/tests/gate4_mcp_task_cancel.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "explicit_cancel_affects_only_the_bound_task_and_revokes_its_own_connection",
+          "source": "crates/connect-server/tests/gate4_mcp_task_cancel.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "explicit_native_cancellation_uses_the_same_scoped_terminal_contract",
+          "source": "crates/connect-server/tests/gate4_mcp_task_cancel.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "expiry_while_waiting_for_the_store_lock_denies_public_authority_and_effects",
+          "source": "crates/connect-store/src/tasks/tests/lock_expiry.rs",
+          "workspace_result": "ok"
+        }
+      ],
+      "fixture_sources": []
+    },
+    {
+      "id": "T-A3",
+      "status": "mapped local workspace and required installed-host cases passed; whole criterion acceptance pending",
+      "source_hashes_match_existing_matrix": true,
+      "tests": [
+        {
+          "test": "child_operation",
+          "source": "crates/connect-store/src/tasks/tests/effect_crashes.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "terminated_owner_and_grant_processes_preserve_effect_identity_before_and_after_commit",
+          "source": "crates/connect-store/src/tasks/tests/effect_crashes.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "terminated_recipient_preserves_reply_message_binding_and_wake_before_ack",
+          "source": "crates/connect-store/src/tasks/tests/effect_crashes.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "accepted_task_send_without_receipt_is_not_redispatched_after_server_restart",
+          "source": "crates/connect-server/tests/gate4_task_uncertainty.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "snapshot_restores_uncertain_effect_without_redispatch_and_rechecks_current_grant",
+          "source": "crates/connect-server/tests/gate4_task_uncertainty.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "every_crash_boundary_restarts_original_intents_and_records_one_business_action",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "a_running_worker_recovers_server_restart_and_catches_up_an_explicit_reply",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "competing_worker_and_unassigned_message_cannot_repeat_or_select_the_business_action",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "current_revocation_denies_restarting_a_saved_workflow_without_owner_fallback",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "cancelling_a_running_task_stops_the_runner_without_a_follow_up",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "a_controller_token_cannot_be_used_as_the_invocation_configuration",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "a_known_stale_consume_cas_reconciles_with_a_new_preserved_control_intent",
+          "source": "examples/review-loop/tests/task_recovery.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "app_and_server_restarts_retain_actual_provider_uncertainty_without_redispatch",
+          "source": "examples/review-loop/tests/task_uncertainty.rs",
+          "workspace_result": "ok"
+        }
+      ],
+      "fixture_sources": []
+    },
+    {
+      "id": "T-A4",
+      "status": "mapped local workspace and required installed-host cases passed; whole criterion acceptance pending",
+      "source_hashes_match_existing_matrix": true,
+      "tests": [
+        {
+          "test": "two_tasks_keep_unassigned_replies_and_route_only_by_explicit_assignment",
+          "source": "crates/connect-store/src/tasks/tests/replies.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "matching_replay_after_restart_and_consumption_never_advances_twice",
+          "source": "crates/connect-store/src/tasks/tests/replies.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "task_cursor_is_bound_to_task_identity_installation_and_current_authority",
+          "source": "crates/connect-store/src/tasks/tests/replies.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "assignment_and_consumption_roll_back_if_receipt_commit_fails",
+          "source": "crates/connect-store/src/tasks/tests/replies.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "concurrent_assignment_to_two_tasks_commits_exactly_one_route",
+          "source": "crates/connect-store/src/tasks/tests/reply_races.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "concurrent_consumers_cannot_ack_the_same_reply_twice",
+          "source": "crates/connect-store/src/tasks/tests/reply_races.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "unassigned_reply_and_assignment_survive_restart_with_exact_task_catch_up",
+          "source": "crates/connect-server/tests/gate4_reply_recovery.rs",
+          "workspace_result": "ok"
+        }
+      ],
+      "fixture_sources": []
+    },
+    {
+      "id": "T-A5",
+      "status": "mapped local workspace and required installed-host cases passed; whole criterion acceptance pending",
+      "source_hashes_match_existing_matrix": true,
+      "tests": [
+        {
+          "test": "bounded_mcp_pages_retrieve_old_source_and_deny_another_tasks_cursor",
+          "source": "crates/connect-server/tests/gate4_mcp_recall.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "cursor_is_bound_to_task_installation_and_recall_resource",
+          "source": "crates/connect-store/src/tasks/tests/recall_authority.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "current_grant_and_backing_authority_apply_to_every_continuation_page",
+          "source": "crates/connect-store/src/tasks/tests/recall_authority.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "owner_recall_requires_current_read_scope_inside_task_ceiling",
+          "source": "crates/connect-store/src/tasks/tests/recall_authority.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "cursor_newer_than_restored_snapshot_is_rejected_without_reset_or_leak",
+          "source": "crates/connect-store/src/tasks/tests/recall_authority.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "artifact_recall_uses_current_state_and_never_returns_bytes_or_server_paths",
+          "source": "crates/connect-store/src/tasks/tests/recall_sources.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "symlink_artifact_is_unavailable_without_following_the_file",
+          "source": "crates/connect-store/src/tasks/tests/recall_sources.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "session_recall_has_recorded_timestamp_and_current_ended_leg_metadata",
+          "source": "crates/connect-store/src/tasks/tests/recall_sources.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "missing_message_source_is_explicit_and_does_not_prevent_later_recall",
+          "source": "crates/connect-store/src/tasks/tests/recall_sources.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "old_required_fact_outside_initial_context_is_recalled_without_other_conversation_leakage",
+          "source": "crates/connect-store/src/tasks/tests/recall.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "serialized_budget_pages_make_progress_and_explicitly_omit_oversized_text",
+          "source": "crates/connect-store/src/tasks/tests/recall.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "recalled_provider_text_does_not_execute_instructions_or_modify_authority",
+          "source": "crates/connect-store/src/tasks/tests/recall.rs",
+          "workspace_result": "ok"
+        }
+      ],
+      "fixture_sources": []
+    },
+    {
+      "id": "T-A6",
+      "status": "mapped local workspace and required installed-host cases passed; whole criterion acceptance pending",
+      "source_hashes_match_existing_matrix": true,
+      "tests": [
+        {
+          "test": "voice_decision_survives_restart_and_stop_then_one_sms_reply_returns_to_its_task",
+          "source": "crates/connect-server/tests/gate4_voice_sms_continuity.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "voice_question_and_decision_survive_restart_then_chat_replies_once_in_same_task",
+          "source": "crates/connect-server/tests/gate4_vapi_post_call.rs",
+          "workspace_result": "ok"
+        }
+      ],
+      "fixture_sources": [
+        "crates/connect-server/tests/support/voice_decision.rs"
+      ]
+    },
+    {
+      "id": "T-A7",
+      "status": "mapped local workspace and required installed-host cases passed; whole criterion acceptance pending",
+      "source_hashes_match_existing_matrix": true,
+      "tests": [
+        {
+          "test": "signed_controls_and_late_sms_reply_preserve_one_task_without_reviving_cancelled_sends",
+          "source": "crates/connect-server/tests/gate4_sms_callback_journey.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "voice_decision_survives_restart_and_stop_then_one_sms_reply_returns_to_its_task",
+          "source": "crates/connect-server/tests/gate4_voice_sms_continuity.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "task_dispatch_uses_its_selected_purpose_for_owner_and_invocation",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "task_without_sms_ceiling_cannot_borrow_conversation_enrollment",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "wrong_or_missing_reviewed_purpose_rolls_back_admission",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "enrollment_for_another_conversation_cannot_be_attached_to_the_task",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "removal_and_stale_lease_cannot_fall_back_to_another_eligible_purpose",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "stop_and_start_do_not_revive_the_old_effect_or_cancel_the_task",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "schema_twelve_upgrade_preserves_old_grant_digest_and_task_receipts",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "start_cannot_restore_a_cancelled_sms_task_or_its_invocation",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "sms_storage_failure_preserves_pending_job_without_dispatch_ack",
+          "source": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+          "workspace_result": "ok"
+        }
+      ],
+      "fixture_sources": []
+    },
+    {
+      "id": "T-A8",
+      "status": "mapped local workspace and required installed-host cases passed; whole criterion acceptance pending",
+      "source_hashes_match_existing_matrix": true,
+      "tests": [
+        {
+          "test": "slow_provider_effect_remains_pending_then_reconnect_catches_up_exact_reply_once",
+          "source": "crates/connect-server/tests/gate4_vapi_pending_continuation.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "real_tools_share_one_effect_artifact_sources_and_pending_journal_handle",
+          "source": "crates/connect-server/tests/gate4_mcp_tools.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "every_advertised_schema_rejects_authority_selectors_and_invalid_shapes",
+          "source": "crates/connect-server/tests/gate4_mcp_tools.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "abandoned_accepted_response_recovers_same_receipt_and_one_message",
+          "source": "crates/connect-server/tests/gate4_mcp_ack_recovery.rs",
+          "workspace_result": "ok"
+        },
+        {
+          "test": "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+          "source": "crates/connect-server/tests/gate4_codex_packaged_runtime.rs",
+          "workspace_result": "ignored, requires selected installed Codex; packaged launcher uses scripted loopback Responses without inference",
+          "installed_host_result": "ok"
+        }
+      ],
+      "fixture_sources": []
+    }
+  ],
+  "boundaries": [
+    "This file maps executed test names to the existing reviewed T-A1\u2013T-A8 source coverage; matching names alone is not a review of every assertion.",
+    "Support files have no independent test result. Process control tests are not counted as separate product journeys.",
+    "Two mapped tests ignored by the workspace phase passed in the separate installed-host phase. The original workspace ignores remain reported and are not reclassified.",
+    "The full 41-phase suite, installed-candidate refresh and separate actual provider/model acceptance remain open."
+  ],
+  "installed_host": {
+    "name": "installed-host",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "connect-server",
+      "--all-features",
+      "--test",
+      "gate4_codex_runtime",
+      "--test",
+      "gate4_codex_call_intent",
+      "--test",
+      "gate4_codex_reply_workflow",
+      "--test",
+      "gate4_codex_packaged_runtime",
+      "--test",
+      "gate4_codex_draft_journey",
+      "--",
+      "--ignored",
+      "--test-threads=1"
+    ],
+    "timeout_seconds": 1800,
+    "log": "installed-host.log",
+    "status": "passed",
+    "exit_code": 0,
+    "leftover_group_members": [],
+    "group_cleanup": "signalled",
+    "seconds": 14.929,
+    "rust_tests": {
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "installed_host_log": ".local/gate-4-checks/20261011T213619.464535Z/installed-host.log",
+  "installed_host_log_sha256": "9f5083c72df336facd9156255843309b00651825a6a1a23bc1f6aa49427ddf31"
+}

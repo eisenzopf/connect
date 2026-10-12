@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d",
+  "source_revision": "a91a75abba7da1955551dcd469bfcd7f08f1c939",
+  "primary_qualified_source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "exact_binary_equivalence": {
+    "byte_identical_executables": {
+      "connect": "aea69cde9b04abf91b3818634ceac75e5a0617a6babadcd36ebfd5b23db1e176",
+      "connect-example": "daf4aaf32d44cfe6908c8985f3b666632648c2cb89727617260540a448de2ee3"
+    },
+    "changes_only_docs": true,
+    "changed_docs": 42
+  },
+  "installed_checks": 10,
+  "package_evidence": "package-a91a75a.json",
+  "archive_hashes": {
+    "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d-qualification.tar.gz": "8c58e3ce421ce3fdf0acafc0cb72dbf87ebdc3a3b5eea198e6a1eebca9401748",
+    "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d-source.tar.gz": "6047f1062fd983197131e945f96dd5aa26f8421ba0cea90083f426448508cae2",
+    "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d.tar.gz": "6011f7f5e7b6db9963a3cc7239f0e7c8307f742ffb2989e64c9b4dfddad6f3d6"
+  },
+  "manifest_sha256": "5d536f3f34496940f190715d4a32715dc043c1e07c14122d867bf1bdc5a4543f",
+  "documentation": "The clean a91a75a bundle includes the reviewed 35-task plan, qualified product/roadmap and evidence report. This post-build checksum/equivalence attestation is external to those archives to avoid self-referential hashes. Bundled evidence identifies e457960 as the original live/source candidate.",
+  "original_live_database_preserved": true,
+  "remote_deployment_or_publication": false
+}

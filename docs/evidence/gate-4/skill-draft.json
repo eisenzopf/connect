@@ -1,0 +1,58 @@
+{
+  "status": "Skill draft: structure validated; installed-host behavior remains unqualified",
+  "recorded_at": "2026-10-10T12:43:28.182385+00:00",
+  "source_sha256": {
+    "skills/connect/SKILL.md": "e44eb5225eec117bb5cbf0b652fee5ed017a042e39ed06afb44e15ae305c78de",
+    "skills/connect/agents/openai.yaml": "62a639ede28013f697da75fbe85fdaaa747e704d3188e241a30733ea0a5f7982",
+    "skills/connect/references/json-cli.md": "15d23453750b72212fa1daf240972676fa808a1d3aae97326ac55482a1e50eee"
+  },
+  "checks": [
+    {
+      "command": "Private validation venv (PyYAML 6.0.3): skill-creator quick_validate.py skills/connect",
+      "exit_code": 0,
+      "private_log_name": "skill-validate-final.log",
+      "log_sha256": "db349825903d66adffea3ecf1bd8e1803043e8a71cf1a051235dabc5371f5bb0"
+    },
+    {
+      "scope": "Reference target exists; two JSON CLI examples parse; no unfinished initializer placeholders",
+      "status": "passed"
+    },
+    {
+      "example": 0,
+      "scope": "Installed development binary accepts documented JSON before deliberately missing config; no server/account operation",
+      "process_exit_code": 1,
+      "expected_response_code": "configuration",
+      "status": "passed",
+      "private_log_name": "skill-cli-probe-0.log",
+      "log_sha256": "e4736b7db7abc43e916925752f94525ed7591389fd47cc9c2cf5a11155277f2d"
+    },
+    {
+      "example": 1,
+      "scope": "Installed development binary accepts documented JSON before deliberately missing config; no server/account operation",
+      "process_exit_code": 1,
+      "expected_response_code": "configuration",
+      "status": "passed",
+      "private_log_name": "skill-cli-probe-1.log",
+      "log_sha256": "e4736b7db7abc43e916925752f94525ed7591389fd47cc9c2cf5a11155277f2d"
+    },
+    {
+      "development_binary_sha256": "aba6d210194d02c9a7263184d8b40b5ccb5049cbef884809c3e829bd9a4340ca",
+      "qualification": "Input parsing only, not an installed package or host acceptance"
+    }
+  ],
+  "remaining": [
+    "Protected installation/configuration and grant renewal",
+    "Real host loads the skill and tools without user-written glue",
+    "Behavioral journey/recovery and missing-tool/expired-authority host proof"
+  ],
+  "gate_status": "G4-018 in progress; no A4 acceptance closure",
+  "retained_failures": [
+    {
+      "command": "Bundled Python skill-creator quick_validate.py skills/connect",
+      "exit_code": 1,
+      "private_log_name": "skill-validate.log",
+      "log_sha256": "c69f6d4a10ad3de703fbb7221bf7a4a49c7b512f9b00139f4ffbe42080b41aa9",
+      "status": "failed-environment"
+    }
+  ]
+}

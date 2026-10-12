@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "evidence": "native-voice-to-messaging-after-restart",
+  "recorded_at": "2026-10-09T00:22:37-07:00",
+  "status": "partial",
+  "source_revision": "cc2d0632f0be4abbb215bea30c39ef4cd89659a1",
+  "dirty": true,
+  "source_sha256": {
+    "crates/connect-connectors/src/chat_context.rs": "60af82258dd153686bc5da284ea76efe09bed5b4b9cd045c7a8ad7321ea091ea",
+    "crates/connect-connectors/prompts/assistant.txt": "a4450f83b91b1916213c330d5d5d437748b1c192b76e7006266c9bcf972b1ae4",
+    "crates/connect-store/src/provider_chat_context.rs": "8659ec092a1f7fae2945ecc430d565d2cc9c74777001e8da2d80c27fbcff4704",
+    "crates/connect-store/src/providers.rs": "f19f4465c9b1874382982487e6ba233901bb4c5ebcece970b1a8a408bab07350",
+    "crates/connect-server/src/providers.rs": "ea90ba931a074cddaea217c52dd00972136002fd1af8a87d03a3e099cb17d97e"
+  },
+  "journey": [
+    "Synthesized test speech sent through the public native audio SDK over UCTP/QUIC to the real Vapi assistant.",
+    "Final user voice transcripts retained the phrase Orchard Violet in the durable conversation.",
+    "Connect restarted; the conversation ID remained unchanged.",
+    "A new public native SDK message asked for the earlier verification phrase without supplying the answer.",
+    "Connect selected and journaled the authorized history, checked the assistant's system-prompt template, and supplied the projection through Vapi's documented chat variable mechanism.",
+    "The real assistant replied with Orchard Violet; the reply and delivered context outcome were read back through the public SDK."
+  ],
+  "observed_reply": "The verification phrase you asked me to remember during the earlier voice test is \"Orchard Violet.\" If you need more information, feel free to ask!",
+  "failed_attempts": [
+    "The original messaging path used only previousChatId and recalled the release word instead of the voice verification phrase.",
+    "An oversized chat input message received a definite 400 validation rejection. An operator acknowledgement retained the failed selection without retrying that job.",
+    "A bounded input-array request was accepted but the model did not use its supplied system-message history. This is recorded as a failed continuity observation despite API success."
+  ],
+  "provider_requirement": "Vapi assistant system prompt must include {{connect_context}}. Newly provisioned Connect assistants include it; existing assistants are checked and never edited automatically.",
+  "private_receipts": [
+    ".local/gate-3-live/qualified-native-context.json",
+    ".local/gate-3-live/variable-chat-recall-intent.json",
+    ".local/gate-3-live/variable-chat-recall-receipt.json",
+    ".local/gate-3-live/variable-chat-recall-history.json",
+    ".local/gate-3-live/variable-chat-recall-context.json"
+  ],
+  "remaining": "Human audibility and interruption, human native/browser/PSTN continuity, and Connect-carried phone routes remain required. This is actual provider/model proof using synthesized native speech; it is not human or PSTN qualification."
+}

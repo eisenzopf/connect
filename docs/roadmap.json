@@ -1,0 +1,428 @@
+{
+  "updated": "2026-10-12",
+  "product": "Connect",
+  "identity": "Communication for people, apps, and agents",
+  "priority": "Server and SDK first",
+  "release": "Gates 1 and 2 qualified within their recorded scope; full v0.1 remains unreleased.",
+  "gates": [
+    {
+      "id": 1,
+      "name": "Reachable identity",
+      "outcome": "Local server, native Rust SDK and two independent participants exchange durable messages over UCTP/QUIC.",
+      "status": "complete-local",
+      "plan": "connect-gate-1-plan.html",
+      "implementation": "connect-gate-1-implementation.html",
+      "evidence": "evidence/gate-1/result.json"
+    },
+    {
+      "id": 2,
+      "name": "Assistant chat and telephone voice",
+      "outcome": "Vapi chat and real Telnyx inbound/outbound telephone calls through local Connect SDK/API; approved SMS conversation, native SDK recall and HELP/STOP/START suppression/recovery verified.",
+      "status": "complete-recorded-scope-sms-qualified",
+      "plan": "connect-gate-2-plan.html",
+      "implementation": "connect-gate-2-implementation.html",
+      "evidence": "evidence/gate-2/result.json",
+      "acceptance": "gate-2-acceptance.json",
+      "offline_qualification": "evidence/gate-2/completion-qualification.json",
+      "live_evidence": "evidence/gate-2/completion-live.json",
+      "package_qualification": "evidence/stabilization/result.json",
+      "stabilization": "evidence/stabilization/result.json"
+    },
+    {
+      "id": 3,
+      "name": "Native media and interoperability",
+      "outcome": "Native media, session/capability/availability contracts, basic files and explicit cross-channel continuity.",
+      "status": "qualified-in-recorded-local-scope",
+      "plan": "connect-gate-3-plan.html",
+      "milestones": [
+        {
+          "id": "G3-A",
+          "title": "Set the conversation and media contracts",
+          "depends_on": [
+            "gate-2"
+          ],
+          "outcome": "Specify the six VoIP 3.0 nouns and their lifecycle/ownership in Connect before media integration. Define durable conversation context and its bounded runtime projections, invite/accept/reject/end, negotiated route capabilities and basic availability. Select media/network and minimal video profiles. Implement the contracts and compatibility experiments defined in the Gate 3 product and numbered implementation plans.",
+          "acceptance": "Reviewable contracts and executable rejection fixtures: unsupported route/media, unauthorized invitation, stale/unknown availability and ambiguous context binding. Record B-001 ownership/scope and the selected network/codec profile. Demonstrate that session end, connection replacement and provider-ID changes do not erase the conversation record. Explicitly identify membership/handoff limitations; preserve Session history while treating live connection/media state as transient.",
+          "reuse": "rvoip/UCTP session and capability primitives; Parley conversation semantics. Review upstream gaps before adding Connect-specific protocol extensions.",
+          "experiment": "E3 / E5 design",
+          "status": "complete-local"
+        },
+        {
+          "id": "G3-B",
+          "title": "Carry native QUIC audio through Connect",
+          "depends_on": [
+            "G3-A"
+          ],
+          "outcome": "Bridge reliable UCTP control and bidirectional QUIC datagram audio to Vapi\u2019s WebSocket interface using rvoip media components. Bind both media legs to Participants and Connections in a Session belonging to the durable Conversation.",
+          "acceptance": "Distinct client/server processes; audible two-way assistant conversation, negotiated formats, interruptions, loss/disconnect, cancellation and paired teardown. Preserve trace evidence separating QUIC and provider WebSocket legs.",
+          "reuse": "rvoip QUIC media and Vapi adapter; Parley audio-host behavior. Requalify against Connect\u2019s pinned dependency graph.",
+          "experiment": "E3; legacy G2-024",
+          "status": "complete-local-and-live"
+        },
+        {
+          "id": "G3-C",
+          "title": "Prove the SIP, telephone and browser routes",
+          "depends_on": [
+            "G3-A",
+            "G3-B"
+          ],
+          "outcome": "Carry Telnyx SIP/PSTN audio through Connect to Vapi; add browser WebRTC participation and a named SIP endpoint. Keep the existing direct provider route available and labeled separately.",
+          "acceptance": "Inbound and outbound Connect-carried telephone conversations, SIP endpoint and browser microphone/speaker audio. Test each-side hangup, hold where advertised, interruptions, provider failures and the selected NAT/TURN conditions. Preserve the Conversation/Session model across unlike transports; do not create separate application conversations for each provider leg.",
+          "reuse": "rvoip SIP/WebRTC; Parley browser/SIP host; Bridgefu provider-control patterns if the chosen topology needs them. Resource creation alone is not media proof.",
+          "experiment": "E5; legacy G2-026",
+          "status": "complete-local-and-live"
+        },
+        {
+          "id": "G3-D",
+          "title": "Deliver the artifact foundation",
+          "depends_on": [
+            "G3-A"
+          ],
+          "outcome": "Add authorized file upload/download, conversation attachment references, integrity checks, size/retention policy and SDK methods. Provide a minimal human test surface for messages and files. This can proceed alongside media.",
+          "acceptance": "One native app shares a draft; its authorized recipient retrieves matching bytes; another identity is denied. Test interrupted transfer, restart, expiry/deletion and unsupported channel behavior.",
+          "reuse": "rvoip attachment model and Parley blob patterns are inputs, not a complete file service. Connect owns its access and lifecycle contract.",
+          "experiment": "Early portion of E8",
+          "status": "complete-local"
+        },
+        {
+          "id": "G3-E",
+          "title": "Keep the conversation coherent across channels",
+          "depends_on": [
+            "G3-B",
+            "G3-C",
+            "G3-D"
+          ],
+          "outcome": "Prove VoIP 3.0 conversation continuity across native messages, Vapi chat and voice. Persist authorized history, artifact references and accumulated context at the Conversation level; give each runtime a bounded, attributable projection and persist its outcomes. Extend the test client to audio and basic availability.",
+          "acceptance": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; finish live HELP/STOP/START enforcement.",
+          "reuse": "Parley chat/session mapping, Connect identity/journal and Thelve authority-design lessons. Call-ID correlation by itself does not prove model context transfer.",
+          "experiment": "E3 / E5 / E7 integration",
+          "status": "complete-local-and-live"
+        }
+      ],
+      "implementation": "connect-gate-3-implementation.html",
+      "acceptance": "gate-3-acceptance.json",
+      "evidence": "evidence/gate-3/acceptance.html",
+      "completion_audit": "Closed with corrected queue ceilings, reordered-RTP and current offline/installed/live qualification; see evidence/gate-3/acceptance.html and pre_gate_4_entry for later repairs and limits."
+    },
+    {
+      "id": 4,
+      "name": "Agent follow-through",
+      "outcome": "MCP and skill, Vapi tool use, one selected host and complete task-correlated agent/app follow-through.",
+      "status": "complete-local-and-live",
+      "plan": "connect-gate-4-plan.html",
+      "milestones": [
+        {
+          "id": "G4-A",
+          "title": "Select and qualify one additional assistant host",
+          "depends_on": [
+            "gate-1"
+          ],
+          "outcome": "Research the exact Meta Muse, Grokbot, OpenClaw, Codex and other candidate products. Choose one installable integration using documented interfaces. Owner deferred this research and selection to Gate 4.",
+          "acceptance": "Compare installation, scoped authentication, conversation/task binding, incoming reply delivery and continuation. Record tested versions and automatic, bounded-wait or explicit-resume behavior. Name one winner with evidence; do not imply all candidates are supported.",
+          "reuse": "Parley worker/pending-command patterns; Thelve managed-MCP design. Verify current host interfaces during this milestone.",
+          "experiment": "E6 research",
+          "status": "complete-local-and-live",
+          "qualification": "Codex CLI is the selected additional host. Supplied MCP/skill installation uses one regular non-admin key across authorized conversations, optional owned task tracking and explicit exact-session resume. Actual current model 30successful MCP calls/0errors, installed17/17 and current full regression pass. Optional scoped-host history remains source-specific.",
+          "component_evidence": [
+            "evidence/gate-4/host-selection.json",
+            "evidence/gate-4/codex-owned-runtime.json",
+            "evidence/gate-4/host-concurrency.json",
+            "evidence/gate-4/real-model-draft-journey.json",
+            "evidence/gate-4/real-model-incoming-596e9b7.json",
+            "evidence/gate-4/reply-reference-repair.json",
+            "evidence/gate-4/real-model-draft-7edb1b1.json",
+            "evidence/gate-4/real-model-incoming-7edb1b1.json",
+            "evidence/gate-4/package-7edb1b1.json",
+            "evidence/gate-4/offline-dc73996.json",
+            "evidence/gate-4/package-dc73996.json",
+            "evidence/gate-4/real-model-agent-dc73996.json",
+            "evidence/gate-4/actual-vapi-chat-dc73996.json",
+            "evidence/gate-4/final-source-composition.json"
+          ]
+        },
+        {
+          "id": "G4-B",
+          "title": "Ship tools and a useful skill",
+          "depends_on": [
+            "G3-D",
+            "G4-A"
+          ],
+          "outcome": "Expose discoverable Connect MCP tools backed by the same public operations and credentials. Package the workflow skill and JSON CLI instructions. Configure Vapi to consume the tools in both chat and voice.",
+          "acceptance": "Installed tools resolve, message, share a file, read history, wait for events and control supported sessions. Vapi makes an authorized tool call in chat and a live voice session; identity, call/chat, conversation and tool results correlate. Denials and retries match SDK behavior.",
+          "reuse": "Thelve Streamable HTTP MCP patterns; existing SDK/CLI; Parley tool-correlation lessons. A provider-specific tool callback is not automatically an MCP endpoint.",
+          "experiment": "E6 tool contract",
+          "status": "complete-local-and-live",
+          "evidence": "evidence/gate-4/task-access.json",
+          "qualification": "MCP/skill, native SDK/HTTP/JSON parity, task lifecycle and optional scoped-provider composition pass. Fresh dc73996 Vapi text discovers7tools and invokes3/0; historical596e9b7 voice/tool continuity and9abf38f SMS controls remain separately attributed. Current full41/41 and installed17/17 close the source composition.",
+          "historical_qualification": "Native task-control and protected grant installation retain their source ca31393 qualification: full workspace 322 passed, zero failed, one existing optional media pressure profile ignored; strict Clippy, format and Rustdoc pass. Follow-up b5bd121 qualifies typed native helper startup/authentication errors and trusted auth.session expiry rejection before dispatch: 14 targeted Rust integrations, 21 Python and 147 Node tests pass, plus strict client/server quality checks. See native-task-grants.json, native-helper-errors.json and task-access.json. A prior reconnect timeout during concurrent compilation is retained for operating-limit qualification. Full lifecycle/pending parity, scoped native media/artifact attachment, durable runner, installed Codex continuation and verified Vapi tools remain open. Follow-up eb5d0ce qualifies one shared MCP admission/body/tool budget, truthful bounded pending and actual lost-ACK recovery: all 18 MCP integrations pass across 12 binaries, plus strict MCP/server Clippy, Rustdoc and format. Authentication remains 5 seconds; tool cutoff is 9.5 seconds and HTTP response construction is bounded to 10 seconds. Baseline 12.011-second failure is retained; no limit relaxed. See mcp-deadline.json for the targeted source boundary; this does not extend the historical whole-workspace attestation to current source. Durable native SDK runner component 128de1b is qualified in task-runner.json: 14 tests, strict example quality checks, normal fault exclusion, server/runner crash recovery, competing workers, cancellation/revocation/renewal and bounded known-CAS reconciliation. Actual provider uncertainty and dependency/host/journey acceptance remain open. Resource-binding component 7d6c1f9 is qualified in native-task-resources.json: 132 store/service tests and three actual QUIC regression tests plus strict component quality checks pass. Task-specific session provenance and current role/authority are enforced at the resource boundary. At that historical resource checkpoint, raw media scopes were disabled. Follow-up bfa0865 adds the recorded envelope guard and narrow audio scope: five actual QUIC tests and 136 store/service tests qualify scoped attachment and current authorization, with artifact-byte proof recorded separately at a729dfd. The broader bfa0865 run failed on native SDK denial classification: 124 passed, one failed and one optional case ignored before the run stopped. Correction adfd79f passes five targeted QUIC grant/lifecycle tests and adds fixed Vapi call/chat/session MCP admission: two actual endpoint tests, 41 header/bearer denials, matching replay and terminal authority cases pass with strict component Clippy/Rustdoc. See native-task-media.json, native-task-artifacts.json, native-control-envelope-errors.json and vapi-mcp-admission.json. Two ordinary helper requests exceeded their existing 15-second deadline; subsequent debug-diagnostic and ordinary actual Python/TypeScript helper runs passed with unchanged limits. The earlier failures remain for operating-limit and installed-candidate qualification, and a new full workspace regression is required. Provider lifecycle setup, bounded context, actual host/provider invocation and full Gate 4 acceptance remain open.",
+          "component_evidence": [
+            "evidence/gate-4/task-authority-audit.json",
+            "evidence/gate-4/native-public-interface-audit.json",
+            "evidence/gate-4/language-task-parity-audit.json",
+            "evidence/gate-4/mcp-transport-audit.json",
+            "evidence/gate-4/task-tools-audit.json",
+            "evidence/gate-4/vapi-setup-restart.json",
+            "evidence/gate-4/voice-retirement-load.json",
+            "evidence/gate-4/live-voice-continuity.json",
+            "evidence/gate-4/sms-0737-rehearsal.json",
+            "evidence/gate-4/package-7edb1b1.json",
+            "evidence/gate-4/reply-reference-repair.json",
+            "evidence/gate-4/offline-dc73996.json",
+            "evidence/gate-4/package-dc73996.json",
+            "evidence/gate-4/real-model-agent-dc73996.json",
+            "evidence/gate-4/actual-vapi-chat-dc73996.json",
+            "evidence/gate-4/final-source-composition.json"
+          ]
+        },
+        {
+          "id": "G4-C",
+          "title": "Complete the agent and app follow-through journeys",
+          "depends_on": [
+            "G3-E",
+            "G4-B"
+          ],
+          "outcome": "The selected assistant shares a draft, asks a human, receives the reply and continues the original task. The review app both initiates and answers independently initiated requests through public interfaces.",
+          "acceptance": "Install without user-written glue. Restart/resume, deduplicate replies/business effects, reject unauthorized actions and demonstrate the declared host wake/resume mode. Prove both entry points; a successful send alone does not pass.",
+          "reuse": "Connect durable inbox/receipts and the existing independent app example; host adapter maintains task binding. Phone/SMS journey additionally requires the SMS lane.",
+          "experiment": "E6 / E7 complete",
+          "status": "complete-local-and-live",
+          "qualification": "Both agent and app entry points preserve artifacts, explicit replies and one effect across restart. Current normal-key actual model and installed app pass; historical voice/chat/SMS and HELP/STOP/START keep their actual source. Complete v0.1 first-run usability remains Gate 5.",
+          "component_evidence": [
+            "evidence/gate-4/agent-incoming-example.json",
+            "evidence/gate-4/codex-draft-journey.json",
+            "evidence/gate-4/connected-app-artifacts.json",
+            "evidence/gate-4/voice-sms-continuity.json",
+            "evidence/gate-4/offline-runner.json",
+            "evidence/gate-4/live-voice-continuity.json",
+            "evidence/gate-4/real-model-incoming-596e9b7.json",
+            "evidence/gate-4/sms-0737-rehearsal.json",
+            "evidence/gate-4/real-model-draft-7edb1b1.json",
+            "evidence/gate-4/real-model-incoming-7edb1b1.json",
+            "evidence/gate-4/package-7edb1b1.json",
+            "evidence/gate-4/offline-dc73996.json",
+            "evidence/gate-4/package-dc73996.json",
+            "evidence/gate-4/real-model-agent-dc73996.json",
+            "evidence/gate-4/actual-vapi-chat-dc73996.json",
+            "evidence/gate-4/final-source-composition.json"
+          ]
+        }
+      ],
+      "implementation": "connect-gate-4-implementation.html",
+      "entry_contract": "connect-task-authority.html",
+      "acceptance": "gate-4-acceptance.json",
+      "progress_scope": "36 of 36 items and 14 of 14 required criteria complete for local macOS arm64 owner review. Fresh clean dc73996 passes all 41 offline phases; installed package 17/17 and actual normal-model/fresh Vapi text are qualified. Historical voice/SMS retain their exact-source proof. No public release or remote deployment."
+    },
+    {
+      "id": 5,
+      "name": "Downloadable v0.1",
+      "outcome": "Video, connector/protocol conformance, first-run setup, measured end-to-end acceptance and published v0.1.",
+      "status": "planned",
+      "plan": null,
+      "milestones": [
+        {
+          "id": "G5-A",
+          "title": "Qualify the agreed video experience",
+          "depends_on": [
+            "G3-E"
+          ],
+          "outcome": "Implement the minimal two-party video profile selected in G3-A, including public SDK/session behavior and the human reference client. Files and video remain v0.1 commitments.",
+          "acceptance": "Visible video and audio between distinct clients on every advertised video path; negotiation, unsupported-profile response, access, interruption and teardown. Publish the actual topology/codecs; do not imply every provider supports video.",
+          "reuse": "rvoip VP8/H.264/WebRTC/QUIC primitives and tests; requalify the exact selected Connect path.",
+          "experiment": "Video portion of E8",
+          "status": "planned"
+        },
+        {
+          "id": "G5-B",
+          "title": "Finish the contributor and protocol extension kit",
+          "depends_on": [
+            "G3-A",
+            "G4-B"
+          ],
+          "outcome": "Extend the existing storage-independent connector API with a capability/configuration manifest, lifecycle guidance, template and shared contract harness. Publish the interoperable wire profile and conformance materials.",
+          "acceptance": "An independent contributor adds a fixture connector without changing core conversation/routing logic; explicit composition registration is allowed. A separately implemented wire client\u2014not just the same Rust helper\u2014negotiates and exchanges permitted requests/events using the published specification.",
+          "reuse": "Current connect-connector-api; Bridgefu provider/recipe boundaries; Parley connector guidance. No marketplace or automatic third-party code loading is required.",
+          "experiment": "Connector portion of E8; independent conformance",
+          "status": "planned"
+        },
+        {
+          "id": "G5-C",
+          "title": "Make first-run setup usable and explicit",
+          "depends_on": [
+            "G4-C"
+          ],
+          "outcome": "Finish resource selection/change preview, protected credential storage, human-contact ownership checks, inbound/outbound readiness diagnostics and interruption-safe setup. Define supported endpoint/NAT/ingress configuration without introducing a hosted service requirement.",
+          "acceptance": "A new developer installs and runs the native demo with no account; with ready accounts, chooses resources and completes authorized provider setup. Invalid keys, unreachable callbacks and unready SMS yield specific next actions. Measure setup time after install; do not claim ten minutes before measurement.",
+          "reuse": "Existing Connect provisioning/checkpoints; Parley resource handling and Thelve durable intent patterns. Confirm provenance/licensing before any additional extraction.",
+          "experiment": "E1 / E4 / E5 product setup",
+          "status": "planned"
+        },
+        {
+          "id": "G5-D",
+          "title": "Run the complete product acceptance matrix",
+          "depends_on": [
+            "G5-A",
+            "G5-B",
+            "G5-C",
+            "G2-SMS"
+          ],
+          "outcome": "Qualify files, messages, voice and video through the public SDK and reference client; rerun both agent and app journeys across declared interfaces. Publish measured limits and recovery behavior.",
+          "acceptance": "Fresh-user walkthroughs, cross-channel continuity, independent protocol client, SDK/MCP/CLI parity, credential revocation, file access/retention, restart/replay, unknown provider outcomes and network-loss/load tests. Publish supported OS/runtime, topology, concurrency, latency/loss and retention limits with evidence.",
+          "reuse": "Reuse the existing local/package/recovery harness; add the missing media, artifact, host and live-provider evidence. Local Gate 1/2 qualification is a baseline, not this release test.",
+          "experiment": "E1\u2013E8 integrated release evidence",
+          "status": "planned"
+        },
+        {
+          "id": "G5-E",
+          "title": "Publish a reproducible developer release",
+          "depends_on": [
+            "G5-D"
+          ],
+          "outcome": "Prepare versioned server/SDK distributions, examples, tool/skill installation, source/dependency notices, specification licensing, compatibility matrix and release notes matching the tested capabilities.",
+          "acceptance": "A reviewer outside the development workspace installs the candidate, completes both supported journeys, upgrades/restores safely and follows the connector guide. Release artifacts and documentation agree. Owner reviews before publication.",
+          "reuse": "Current unpublished macOS arm64 packaging and source hashes; broader platforms require their own qualification. Existing local upstream patches remain explicit until replaced and requalified.",
+          "experiment": "Release qualification",
+          "status": "planned"
+        }
+      ],
+      "implementation": null
+    }
+  ],
+  "source_of_truth": {
+    "scope": "connect-v0.1-contract.html",
+    "journeys": "connect-first-ten-minutes.html",
+    "reuse": "connect-technical-readiness.html",
+    "gate_product_plans": "connect-gate-N-plan.html",
+    "gate_implementation": "connect-gate-N-implementation.html",
+    "actual_evidence": "evidence/gate-N/",
+    "delivery": "connect-roadmap.html (human-readable) and roadmap.json (structured milestone data)"
+  },
+  "required_feature_coverage": "feature-coverage.json",
+  "planning_gaps": [
+    "Gate 5 detailed product and numbered implementation plans remain to be written; no required v0.1 feature is removed by Gate 4 closure."
+  ],
+  "decision_backlog": "backlog.html",
+  "gate_1_completion_audit": "connect-gate-1-audit.html",
+  "local_patches": "Accepted for now; source-lock digests verified",
+  "revision": 8,
+  "document": "connect-roadmap.html",
+  "planning_status": "Gates 1\u20134 are locally qualified within recorded source/platform/topology limits and Gate 4 is ready for owner review. Gate 5 remains planned; no automatic implementation, release or deployment is authorized by this status.",
+  "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
+  "parallel_lanes": [
+    {
+      "id": "G2-SMS",
+      "title": "Return deferred SMS to live qualification",
+      "status": "qualified",
+      "trigger": "Completed: carrier approval, number assignment, reviewed self-enrollment, signed callbacks, conversation, native context recall and HELP/STOP/START enforcement/recovery.",
+      "depends_on": [
+        "gate-2"
+      ],
+      "acceptance": "Send and receive real SMS; verify a signed provider callback, message/delivery correlation, second-turn context and assistant-initiated summary/reply through authorized tools. Keep uncertain sends from being duplicated.",
+      "existing_items": [
+        "G2-018",
+        "G2-019"
+      ],
+      "blocks": [
+        "G5-D"
+      ],
+      "note": "Historical Gate 2 closure is preserved. The owner reactivated G2-018/G2-019 for completion before Gate 4; all original acceptance requirements remain.",
+      "evidence": "evidence/pre-gate-4/sms-live.json"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-01",
+      "title": "Availability and the scope of B-001",
+      "due": "G3-A",
+      "decision": "Basic presence with a small optional preference override; available, unavailable and unknown with freshness/expiry. Keep schedules, full registries and automatic channel fallback in the backlog. No per-action permission console.",
+      "source": "backlog.html#B-001",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Define the wire fields, update authority, freshness durations and the bounded override semantics in G3-A; prove in G3-E.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
+    },
+    {
+      "id": "D-02",
+      "title": "Session, voice, video and network profiles",
+      "due": "G3-A",
+      "decision": "Connect-carried two-party sessions over native UCTP/QUIC, Telnyx SIP/PSTN and browser WebRTC. Use invite/accept/reject/active/end-or-failure semantics; agents may auto-accept under their configured authority. Select the minimal video profile now for Gate 5 delivery.",
+      "source": "connect-v0.1-contract.html#review",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Finalize codec set, media topology, network/NAT/TURN conditions and measurable thresholds with the first rvoip/Vapi compatibility experiment.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
+    },
+    {
+      "id": "D-03",
+      "title": "Context-transfer and ambiguous-reply policy",
+      "due": "G3-A",
+      "decision": "VoIP 3.0 continuity is a core architectural requirement. Retained history and accumulated context belong to the Conversation; assistant runtimes receive explicit authorized bounded projections. Session end or transport change does not close or reset the Conversation. Never infer continuity from matching IDs alone. Persistent is the default; only explicit developer/application intent creates a new conversation.",
+      "source": "connect-first-ten-minutes.html#start",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Specify context items, provenance, versioning/watermarks, provider delivery acknowledgments, retention and ambiguous-caller behavior. Prove useful context in both directions across chat/voice, including restart.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
+    },
+    {
+      "id": "D-04",
+      "title": "Artifact lifecycle and channel representation",
+      "due": "G3-A",
+      "decision": "Connect-managed local files behind a storage interface. Conversation-based metadata/access and reliable byte transfer; a native UCTP/QUIC path with an explicit HTTP option where needed. Deliver basic files in Gate 3 before the Gate 4 artifact workflow.",
+      "source": "connect-v0.1-contract.html#conversation",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Define upload/download profile, limits, integrity, resume, retention/deletion and protected-link rules. File bytes do not use unreliable media datagrams.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
+    },
+    {
+      "id": "D-05",
+      "title": "Additional assistant and reply-delivery mode",
+      "due": "G4-A",
+      "decision": "Codex CLI selected and qualified with supplied MCP/skill, one normal revocable key, optional task tracking and explicit exact-session resume. Other assistants remain research outcomes; automatic model wake is not claimed.",
+      "source": "evidence/gate-4/host-selection.json",
+      "status": "qualified-explicit-resume",
+      "qualification_evidence": [
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/package-dc73996.json"
+      ]
+    },
+    {
+      "id": "D-06",
+      "title": "Reachable ingress, secret storage and contact verification",
+      "due": "G3-A",
+      "decision": "Keep the server local. Use explicitly configured development ingress for live provider tests; qualify HTTP callback and SIP/media reachability separately. Keep environment-variable credentials initially.",
+      "source": "connect-first-ten-minutes.html#start",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Choose the supported ingress strategy, protected persistent secret handling and contact ownership checks; finish usable setup in G5-C. This decision does not authorize a remote deployment.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
+    },
+    {
+      "id": "D-07",
+      "title": "Published compatibility and extension surface",
+      "due": "G3-A",
+      "decision": "Reuse UCTP/rvoip interfaces first. Connect owns durable application policy; general protocol/media improvements should go upstream. Explicit pinned local patches remain acceptable. Incompatible wire changes require a new negotiated profile.",
+      "source": "connect-v0.1-contract.html#boundaries",
+      "status": "direction-accepted",
+      "engineering_follow_up": "Map the six VoIP 3.0 nouns to current APIs and persistence before adding parallel abstractions. Complete conformance, capability manifests and source/specification distribution details in G5-B/E.",
+      "accepted_by": "Owner in conversation, 2026-10-08"
+    }
+  ],
+  "principle": {
+    "name": "VoIP 3.0 conversation continuity",
+    "sources": [
+      "https://rudeless.ai/voip3",
+      "https://github.com/eisenzopf/rvoip/blob/main/docs/voip-3-conversation-model.md",
+      "https://github.com/eisenzopf/rvoip/blob/main/docs/CONVERSATION_PROTOCOL.md"
+    ],
+    "reviewed": "2026-10-08",
+    "source_status": "Conceptual working draft; not evidence of complete rvoip/Connect implementation or a replacement wire specification.",
+    "core": "Conversation is the durable home for communication history and accumulated context. Sessions, Messages, Participants, Connections and Streams retain distinct responsibilities; transport/provider identifiers are bindings, not the conversation identity.",
+    "context_policy": "Persist conversation history and context according to declared retention/access policy. Supply authorized bounded projections to assistant runtimes, with source references, version/watermark and delivery outcome. A summary is derived context, not a replacement for retained source history. Context unavailable at a provider boundary must be explicit.",
+    "gate_3_proof": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; live HELP/STOP/START enforcement and recovery are verified.",
+    "scope_boundary": "The model must represent human/AI kinds, conversation roles and connection changes without losing conversation context. G3-A records gaps in current immutable membership and plans the minimum lifecycle contract; this does not declare live human handoff, multiparty mixing or cross-device transfer already implemented.",
+    "lifetime_policy": "Connect defaults to persistent conversations. New sessions, provider legs, connections and bounded runtime context views reuse the existing cid. Only explicit developer/application intent creates a new conversation; unresolved inbound binding is not an automatic split or merge."
+  },
+  "pre_gate_4_entry": {
+    "status": "closed-with-recorded-limits",
+    "review": "connect-pre-gate-4-entry.html",
+    "evidence": "evidence/pre-gate-4/entry-closure.json",
+    "task_decisions": "connect-task-authority.html"
+  }
+}

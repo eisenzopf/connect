@@ -1,0 +1,338 @@
+{
+  "status": "Main store and public SDK/provider-worker component qualified; Gate 4 acceptance remains open",
+  "recorded_at": "2026-10-10T21:33:33.596176+00:00",
+  "qualification": "Local macOS arm64; isolated temporary databases, real public QUIC/HTTP clients, real provider worker and pinned Vapi SDK using a loopback HTTP fixture. No live provider operations or deployment.",
+  "items": [
+    "G4-009",
+    "G4-013",
+    "G4-020"
+  ],
+  "baseline": "f928fcf8ef47f89928be563567f2512dc275649a",
+  "draft_files": {
+    "crates/connect-store/src/provider_chat_context.rs": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852",
+    "crates/connect-store/src/providers.rs": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa",
+    "crates/connect-store/src/tasks/effects/mod.rs": "81b83aac026b7d5ca59a700e25a70ce7783faf09cab6389fa7830434dd962935",
+    "crates/connect-store/src/tasks/effects/provider.rs": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f",
+    "crates/connect-store/src/tasks/grants/mod.rs": "99e81e5b705a426eefeda055b4f83f7ea56619e69501fea73f3b25e5d3e78da9",
+    "crates/connect-store/src/tasks/mod.rs": "9c72664c4fd1c9f60f7fc4db07fd51c8d32916ae0f6b18b3f5d9be378a2946d6",
+    "crates/connect-store/src/tasks/tests/effect_provider_boundaries.rs": "973971f9ae2d5e0cef0870e8d1579c9709c08f31bacde0718526d39f06016d0d",
+    "crates/connect-store/src/tasks/tests/effect_providers.rs": "d8d91afd0e224b5b01e60c9e7927f3227a30a372be2ba9ad65037ded52343134",
+    "crates/connect-store/src/tasks/tests/mod.rs": "ba3d5ae7b724856679727df826aab050b926fdfdfb970ce4338e9404b307de0e",
+    "crates/connect-store/tests/task_migration.rs": "e98bafbbaf98f637fceb7afa49cf890cfb712741a72f39e13c8d5b8411b907ef",
+    "crates/connect-store/tests/voice.rs": "29175e072e86c214dd4508c21f1648ad6d644ecb9f115a31f5a70cb09a6263a7"
+  },
+  "resolved_dependency_versions_match_baseline": true,
+  "behavior_proved": [
+    "Send-only invocation and owner task cannot inherit the backing credential history or route-wide previous provider chat ID",
+    "Explicitly permitted task recall stays within the byte budget, preserves source provenance/omission/cursor and excludes another conversation",
+    "Two tasks in one conversation receive only their exact job-bound replies even when completion order is reversed; only the correct waiting task becomes ready",
+    "Duplicate provider completion is rejected without message or task changes",
+    "Cancelled and expired tasks retain late replies as unassigned communication without resuming",
+    "Revoked original invocation remains forbidden, while currently authorized provider reply is retained for the owner to resume under fresh explicit authority",
+    "Failure after reply persistence rolls back message, task, inbox and provider completion; a later definite local retry creates one reply",
+    "Schema-10 populated migration compares all original fields and verifies the added grant column remains NULL; schema-3/4/5 voice fixtures remove schema-15 state exactly once"
+  ],
+  "checks": [
+    {
+      "log": ".local/gate-4-planning/provider-task-store-qualified.log",
+      "log_sha256": "17cafda9f0cf22e6263c8ba63b298fb76a95a2446d2a3ba7ced9088ea9d2b580",
+      "terminal_exit": 0,
+      "result": "186 passes across 16 completed store harnesses, no failures or skips; 139 unit tests include all 12 provider effect/boundary cases."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-quality-qualified.log",
+      "log_sha256": "82c08510a6a3fd9ef9d80c52cc861a2d66d72eb7f09dc33f0b09ae450f05704c",
+      "terminal_exit": 0,
+      "result": "Strict store Clippy with all targets/features passed on the final isolated source."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-rustdoc.log",
+      "log_sha256": "5072f8e7cec9ba753531430c6b4dd2b1c42e5765e690241b697a1d4681266acf",
+      "terminal_exit": 0,
+      "result": "Strict store public Rustdoc and broken-link checks passed; production source unchanged by subsequent test fixture repairs."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-format-qualified.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "terminal_exit": 0,
+      "result": "Final isolated three-crate formatting check passed."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-main-format-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "terminal_exit": 0,
+      "result": "Main workspace formatting check passed without modifying the frozen source."
+    }
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/provider-task-baseline.log",
+      "log_sha256": "ea39220db7362567b6a6b0f2b10c9c5612501c8e6aa0200f05b649e9888bd3dc",
+      "terminal_exit": 101,
+      "result": "Original store copy reproduced both production gaps: inherited history under a Send-only grant and missing task reply wakeup; four existing effect tests passed."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-expanded.log",
+      "log_sha256": "72b16751cfc49b18c207bd50d1afdfbee1ccc937221dbed8fe1a764ad088b6eb",
+      "terminal_exit": 143,
+      "result": "Stopped only this isolated test after a stack sample proved its fixture held the store mutex while calling finish_provider_job. The production guard was not changed. The cancellation fixture also incorrectly expected inspection of a cancelled task inbox to succeed."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-cancel-diagnostic.log",
+      "log_sha256": "c9648eca87d129a388a50fba364d807df3d8d403dbaf110aa4215a7a9d8ab732",
+      "terminal_exit": 101,
+      "result": "Confirmed cancelled task inbox is forbidden by existing authority. Fixture corrected to verify no reply events and unassigned conversation communication."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-expanded-final.log",
+      "log_sha256": "e75fc3c071c4f80bd47efcf32484b68aa7e1ac8ebd5f1345156544482af254f6",
+      "terminal_exit": 101,
+      "result": "Eleven cases passed; rollback test guessed storage-error instead of the existing storage-unavailable code. It now uses Error::storage().code."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-store-final.log",
+      "log_sha256": "6eb8dc1b54f069cc30bd2600e88aa5e363bd48bb98052013cd76f46b233f1cb5",
+      "terminal_exit": 101,
+      "result": "Full suite identified four stale migration fixture failures introduced by schema 15. Original field-preservation assertions were retained and the new NULL field is explicitly verified."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-wire-baseline.log",
+      "log_sha256": "c8e145517598e9432011994f0cceebf85885188ebc20f27cbd6ca77dc4b48cb9",
+      "terminal_exit": 101,
+      "result": "Public native QUIC task invocation plus real local worker/pinned Vapi SDK completed ordinary seed, but no task reply appeared within the ten-second inbox wait on the frozen baseline."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-wire-baseline-revised.log",
+      "log_sha256": "5cf4bbd0d0b49c82f8a5b95f517b3236e458e264d2b2a519af5d7ba894ca86c9",
+      "terminal_exit": 101,
+      "result": "Strengthened public integration confirmed all three provider jobs completed before inspecting actual Vapi SDK POST bodies. A Send-only grant incorrectly exported assistantOverrides/history on the frozen baseline; failure reproduced in 0.32 seconds. Fake HTTP provider only."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-main-wire.log",
+      "log_sha256": "6ef9dc0340f85d55a2e2686838003dc95fcbc8f091a43176584e4658c537e1ec",
+      "terminal_exit": 101,
+      "passed": 6,
+      "failed": 1,
+      "result": "Six ordinary-provider/connector/native Vapi regression cases passed. New task integration timed out on the ordinary seed native Send before any task assertion, under concurrent Clippy/Rustdoc qualification. Exact unchanged test is being rerun without the compiler workload; no deadline increased and no production workaround applied."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-main-wire-retry.log",
+      "log_sha256": "ab9e54771aa4b1a237173c6547eb955b4398b5d397284135715cb60898f379d5",
+      "terminal_exit": 101,
+      "result": "Unchanged standalone integration again timed out on the ordinary seed send; no task assertion was reached."
+    },
+    {
+      "log": ".local/gate-4-planning/provider-task-main-wire-diagnostic.log",
+      "log_sha256": "fe86274d8483b1b9811861dc151bec8da211b68a19c7453dddd24b821dd3a31e",
+      "terminal_exit": 101,
+      "result": "Exact compiled test sampled two seconds after fixture initialization; failure repeated before tasks. Stack sample identified Vapi client construction in reqwest macOS system proxy discovery / CoreFoundation directory scanning on the initiating runtime thread."
+    }
+  ],
+  "pending": [
+    "Complete verified Vapi origin lifecycle, protected installation and actual MCP/tool invocation",
+    "Implement and qualify task-authorized native Vapi voice context and post-call continuation; the current 501 guard is still an open gap",
+    "Complete the selected host installer/skill and actual exact-session host continuation",
+    "Complete all remaining numbered Gate 4 work and A4/T-A acceptance, including separate required live evidence; this component qualification is not gate closure"
+  ],
+  "integration_draft": {
+    "test": "crates/connect-server/tests/gate4_provider_tasks.rs",
+    "helper": "crates/connect-server/tests/support/provider_task_flow.rs",
+    "scope": "Native QUIC public SDK and protected HTTP task inbox; real provider worker and pinned Vapi SDK pointed at a local HTTP fixture; two tasks in one conversation; narrow versus history grant; exact reply-to binding and mutation replay",
+    "status": "Main public-client/worker component qualified",
+    "private_test_sha256": "3f928f5a628f044c7f33ed367904a2e2d6741a9005705b5143381e51d0fd9240",
+    "private_helper_sha256": "71ab20f269981f7c6160e0febd4005f52f6db5c4741bc68e3efba5b47728bbcb",
+    "promoted_test_sha256": "ed45cabf6096c29d193b5206e85124a69b4bd1e3efba04e34ab11b676777dc8e",
+    "promoted_helper_sha256": "71ab20f269981f7c6160e0febd4005f52f6db5c4741bc68e3efba5b47728bbcb"
+  },
+  "main_sources": {
+    "base": "f928fcf8ef47f89928be563567f2512dc275649a",
+    "recorded_at": "2026-10-10T21:28:57.964843+00:00",
+    "files": {
+      "crates/connect-store/src/provider_chat_context.rs": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852",
+      "crates/connect-store/src/providers.rs": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa",
+      "crates/connect-store/src/tasks/effects/mod.rs": "81b83aac026b7d5ca59a700e25a70ce7783faf09cab6389fa7830434dd962935",
+      "crates/connect-store/src/tasks/effects/provider.rs": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f",
+      "crates/connect-store/src/tasks/grants/mod.rs": "99e81e5b705a426eefeda055b4f83f7ea56619e69501fea73f3b25e5d3e78da9",
+      "crates/connect-store/src/tasks/mod.rs": "9c72664c4fd1c9f60f7fc4db07fd51c8d32916ae0f6b18b3f5d9be378a2946d6",
+      "crates/connect-store/src/tasks/tests/effect_provider_boundaries.rs": "973971f9ae2d5e0cef0870e8d1579c9709c08f31bacde0718526d39f06016d0d",
+      "crates/connect-store/src/tasks/tests/effect_providers.rs": "d8d91afd0e224b5b01e60c9e7927f3227a30a372be2ba9ad65037ded52343134",
+      "crates/connect-store/src/tasks/tests/mod.rs": "ba3d5ae7b724856679727df826aab050b926fdfdfb970ce4338e9404b307de0e",
+      "crates/connect-store/tests/task_migration.rs": "e98bafbbaf98f637fceb7afa49cf890cfb712741a72f39e13c8d5b8411b907ef",
+      "crates/connect-store/tests/voice.rs": "29175e072e86c214dd4508c21f1648ad6d644ecb9f115a31f5a70cb09a6263a7",
+      "crates/connect-server/tests/gate4_provider_tasks.rs": "ed45cabf6096c29d193b5206e85124a69b4bd1e3efba04e34ab11b676777dc8e",
+      "crates/connect-server/tests/support/provider_task_flow.rs": "71ab20f269981f7c6160e0febd4005f52f6db5c4741bc68e3efba5b47728bbcb"
+    }
+  },
+  "baseline_workspace_result": "docs/evidence/gate-4/authority-workspace-result.json",
+  "main_quality": [
+    {
+      "phase": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started_at": "2026-10-10T21:12:15.755906+00:00",
+      "terminal_exit": 0,
+      "log": ".local/gate-4-planning/provider-task-main-clippy.log",
+      "log_sha256": "8fa3b46c2029883db3c58e9fad65ff3a0fa86bef22c629ce17737c6b5bf88326"
+    },
+    {
+      "phase": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--no-deps"
+      ],
+      "started_at": "2026-10-10T21:19:43.564927+00:00",
+      "terminal_exit": 0,
+      "log": ".local/gate-4-planning/provider-task-main-rustdoc.log",
+      "log_sha256": "2766b3c0224a78908fb971b247acabe908656232a06ef0b857014535be5cca97"
+    },
+    {
+      "phase": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "started_at": "2026-10-10T21:21:02.679239+00:00",
+      "terminal_exit": 0,
+      "log": ".local/gate-4-planning/provider-task-main-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "main_store": {
+    "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-store --all-features --no-fail-fast",
+    "terminal_exit": 0,
+    "passed": 186,
+    "failed": 0,
+    "ignored": 0,
+    "harnesses": 16,
+    "log": ".local/gate-4-planning/provider-task-main-store.log",
+    "log_sha256": "d4dadaa9a4c321c537d24f87acdc1c299f29743f150df7562e325dfb6e852d50",
+    "source_files": {
+      "crates/connect-store/src/provider_chat_context.rs": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852",
+      "crates/connect-store/src/providers.rs": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa",
+      "crates/connect-store/src/tasks/effects/mod.rs": "81b83aac026b7d5ca59a700e25a70ce7783faf09cab6389fa7830434dd962935",
+      "crates/connect-store/src/tasks/effects/provider.rs": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f",
+      "crates/connect-store/src/tasks/grants/mod.rs": "99e81e5b705a426eefeda055b4f83f7ea56619e69501fea73f3b25e5d3e78da9",
+      "crates/connect-store/src/tasks/mod.rs": "9c72664c4fd1c9f60f7fc4db07fd51c8d32916ae0f6b18b3f5d9be378a2946d6",
+      "crates/connect-store/src/tasks/tests/effect_provider_boundaries.rs": "973971f9ae2d5e0cef0870e8d1579c9709c08f31bacde0718526d39f06016d0d",
+      "crates/connect-store/src/tasks/tests/effect_providers.rs": "d8d91afd0e224b5b01e60c9e7927f3227a30a372be2ba9ad65037ded52343134",
+      "crates/connect-store/src/tasks/tests/mod.rs": "ba3d5ae7b724856679727df826aab050b926fdfdfb970ce4338e9404b307de0e",
+      "crates/connect-store/tests/task_migration.rs": "e98bafbbaf98f637fceb7afa49cf890cfb712741a72f39e13c8d5b8411b907ef",
+      "crates/connect-store/tests/voice.rs": "29175e072e86c214dd4508c21f1648ad6d644ecb9f115a31f5a70cb09a6263a7"
+    }
+  },
+  "fixture_diagnostic": {
+    "sample": ".local/gate-4-planning/provider-task-wire-runtime-sample.txt",
+    "sample_sha256": "06a0aa67b22f20e37a418db7a7aa9031235810f7fbffb1534679df875f39d453",
+    "before_source_sha256": "e6e37aa3fe82573c1768b38732bc5487ca543bf3fa952be3e7149645af76eebd",
+    "finding": "Provider construction synchronously discovers macOS proxy settings after opening a bounded QUIC peer; the next seed send times out before task invocation. Setup now completes before peer creation. No deadline, production transport or task assertion changed.",
+    "status": "Corrected setup order qualified; test deadlines, assertions and production source unchanged"
+  },
+  "unchanged_baseline_source_files_verified": 543,
+  "main_final_quality": [
+    {
+      "phase": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "terminal_exit": 0,
+      "log": ".local/gate-4-planning/provider-task-main-final-clippy.log",
+      "log_sha256": "7b59f94d057e0b4238876ca434c220ac85a3af159916ae24c3d129ed6ad8e288"
+    },
+    {
+      "phase": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "terminal_exit": 0,
+      "log": ".local/gate-4-planning/provider-task-main-final-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "production_rustdoc": "Earlier strict main Rustdoc result remains applicable: production source did not change during the SDK fixture setup correction.",
+  "cargo_lock_sha256": "788005d237221b3608767fee2198544b31d2ff2ff55f66b52eb9826449d9fa36",
+  "sdk_versions": [
+    {
+      "name": "reqwest",
+      "version": "0.12.28",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "reqwest",
+      "version": "0.13.5",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "rvoip-uctp",
+      "version": "0.3.12"
+    },
+    {
+      "name": "rvoip-vapi",
+      "version": "0.3.12"
+    },
+    {
+      "name": "vapi",
+      "version": "0.1.0"
+    }
+  ],
+  "main_sdk_worker": {
+    "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_provider_tasks -- --nocapture",
+    "terminal_exit": 0,
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "elapsed_seconds": 24.23,
+    "log": ".local/gate-4-planning/provider-task-main-wire-qualified.log",
+    "log_sha256": "bcad0bbbe3d496f5c5242cf8c706b527bf021c28a534cd31acde1e3c3ce067aa",
+    "assertions": [
+      "Both task sends complete using the actual Vapi SDK and local HTTP fixture.",
+      "A Send/Inbox-only task grant has no assistantOverrides/context and no previousChatId.",
+      "A History-enabled task grant has the old conversation fact and conversation-journal provenance; no route-wide previousChatId.",
+      "Native QUIC wait and protected HTTP inbox return only the exact task/question reply.",
+      "Matching replay preserves the accepted message reference; exactly three provider jobs and three POSTs remain.",
+      "Send-only direct recall is forbidden; permitted recall and persistent conversation history retain the prior fact.",
+      "Worker, peers and server shut down through owned lifecycle interfaces."
+    ]
+  },
+  "main_regressions": {
+    "log": ".local/gate-4-planning/provider-task-main-wire.log",
+    "passed": 6,
+    "failed_task_fixture_retained": 1,
+    "cases": "Independent connector restart/commit-failure recovery, saturated native Vapi cancellation/shutdown, ordinary signed SMS/Vapi reply and HTTP/QUIC replay, uncertain provider shutdown without resend.",
+    "scope": "All six existing regression cases passed before the SDK fixture ordering correction; production source is identical."
+  }
+}

@@ -1,0 +1,240 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-10-12T11:25:34.284972+00:00",
+  "scope": "local offline ordinary agent access compile, strict affected-crate Clippy and Rustdoc; not final package/model/provider qualification",
+  "source_base_revision": "733d27acb08ddb56cc8fde4c950503092dfffd83",
+  "source_dirty_at_verification": true,
+  "build_profile": "all-features, locked; dev/test debug assertions retained, debug symbols and incremental caching disabled; RUSTDOCFLAGS=-D warnings",
+  "source_manifest": {
+    "file_count": 838,
+    "canonical_sha256": "9c10fe250d16473a1d4049c42f3806c1f7101e3642d9277efc0e21a6ec5d360d",
+    "changed_inputs_sha256": {
+      "Cargo.lock": "e0c482337cc588131420febd6538ede6a22e09022842d3233912cb83aebc95af",
+      "crates/connect-mcp/Cargo.toml": "0290e07aac0f17c932c5950fc843c62473529fd3e564f9d78a9914bca2a16107",
+      "crates/connect-mcp/README.md": "6a8f3aa97b61837e10176801f04e43178efb563532797890377e7275f88f25c0",
+      "crates/connect-mcp/src/arguments.rs": "61d96daeeebdd2d129e77cfa39c6b5c65e365d2233812be416510f89805d8de0",
+      "crates/connect-mcp/src/auth.rs": "9c5e945ce47ffbdea9e5acb8e09271e134124e87db3f8573299dd1f9d2adcbb9",
+      "crates/connect-mcp/src/execution.rs": "c14a2d55f9ae1441b231053337c8ccf5b3417938aefe83e98053e11ac0483369",
+      "crates/connect-mcp/src/handler.rs": "9a93b89a8b3fd3fb57855a0142076ebd6369c793b9ee032443b35282dab60a76",
+      "crates/connect-mcp/src/identity_auth.rs": "e751baf79324b83793c4aa768a2f4713aa6cef27759efb6a66091105f15b3da9",
+      "crates/connect-mcp/src/identity_catalog.rs": "008f9a7445fdc0c0544a172683d17b0291152112e244ab6bbe5014fb2a8e80d9",
+      "crates/connect-mcp/src/identity_commands.rs": "514cdf46bb1287c9793fbea7eef157bdae93413eefcf432f8824a11f34a99fdb",
+      "crates/connect-mcp/src/identity_schemas.rs": "547f11d2f334a78cffe0165429c6ab00c1fd19ffd20cd3232ab787dc0df864dc",
+      "crates/connect-mcp/src/lib.rs": "08140b45f773040de1e741a6d206ed5f1e945380f2e96b12926ce01cdb557acb",
+      "crates/connect-mcp/src/schemas.rs": "5c9de33f7d72e2fc0019d31cff68c03ca728117fd1375df3f91fc8f3a335c811",
+      "crates/connect-server/src/cli/agent_access.rs": "d96cb960214e963a351440cd3a9e1b340055760002833cc203c21af4e7a3f47b",
+      "crates/connect-server/src/cli/agent_access/arguments.rs": "9f413d522d7f0ec45b38eb9913be2c7171e383fa2975306ca7b4d24acf6b0757",
+      "crates/connect-server/src/cli/agent_access/codex.rs": "f2b2b8372eea85f9cd94a83d0afb46aae16e43e1ec2dff13449418a99f8ec44b",
+      "crates/connect-server/src/cli/agent_access/diagnostics.rs": "3a8e510eb7e08dc6cbf7f6e205cfb9408a8770cf60d37e9740a0ff28dbc5f7e0",
+      "crates/connect-server/src/cli/agent_access/host.rs": "0bc492b0c11b68827b0433c020ebcfd0f966d2872e478a272b7768b3b645f4dd",
+      "crates/connect-server/src/cli/agent_access/identity.rs": "7b9efd8a63361acfa4d3cee64f571015f6c1f3d64427d8ba9decc8d2a1d3a7e4",
+      "crates/connect-server/src/cli/agent_access/state.rs": "9fd45582fe29e86ee8325dae29d8e0a86fd3febfd444c7ae1eecf2aab01e4d97",
+      "crates/connect-server/src/cli/agent_access/tests.rs": "9a63f7f8f4ad7c4841ca745310b38c9bcfb0702337babb2fab8860aa32273957",
+      "crates/connect-server/src/cli/mod.rs": "44f631a4fc49bab21534de1eed095ea822e007d4b6579843390f271676f8c3d1",
+      "crates/connect-server/src/cli/task_access/codex.rs": "16cfac5a504f8ff06bf70e831a6b8d7d6c383e99084294af92e982cf80d8c0c9",
+      "crates/connect-server/src/cli/task_access/codex_host/diagnostics.rs": "c5c44f9c69e03b8882392d02254b250441408751773c5d4093ee91c74f9abbc7",
+      "crates/connect-server/src/cli/task_access/codex_host/mod.rs": "44e5e6a2f3601b56d35b817feeaafe4ab5abf00596eaf9c04857d09eecbea83b",
+      "crates/connect-server/src/cli/task_access/codex_host/process.rs": "3d467b035dc90c4ef8f94ed27f3443b1009838645979dac648ce34f92fe216bb",
+      "crates/connect-server/src/cli/task_access/codex_host/state.rs": "68ebbf120e972c53753b1e09fd29adc08c33b16c173cbe8b0a62faf84f48883b",
+      "crates/connect-server/src/cli/task_diagnostics.rs": "65ccd69c68e1703c8b01960b528246257cd857793fcc132a08c73f5bf7a9ce6e",
+      "crates/connect-server/src/main.rs": "b7ee9a70801518c4391d017f34171d2d3a3eb818edfacec1d7abd37baf4e0933",
+      "crates/connect-server/src/runtime.rs": "14f127949e05b60a40331a1d50e265b8801c7384f7ee39fad8103b1f16cf31ff",
+      "crates/connect-server/tests/gate4_agent_authority.rs": "2b4f072e32e2f1f63e495e2e9a795db609ed6dddc5a7e642ca0ca288f77d6483",
+      "crates/connect-server/tests/gate4_agent_communications.rs": "79aba9a014119a3ba123e92301e034a1acdc607585efc755fff6ae3c9febb9f5",
+      "crates/connect-server/tests/gate4_agent_dispatch.rs": "4a99cdb2f92ce201d1ae4a6230681aaf07bfaa001d23ed2bc72d86cc8f60f752",
+      "crates/connect-server/tests/gate4_agent_install.rs": "66e815f187e99d012d2038d8aa3713b15b5c1c8a337edb1293ea5a32ebf1192b",
+      "crates/connect-server/tests/gate4_agent_media.rs": "a0d9004b06efe62b9d8124a291eca0d4c6a9e23b3ad034cf03036e06201e2337",
+      "crates/connect-server/tests/gate4_agent_optional_tasks.rs": "297a5c5f0338080f958f94d45e76bd68b574af52227e4eefb47ae0581ee020b1",
+      "crates/connect-server/tests/gate4_agent_parity.rs": "bf4c86cb77f0aaa935d214135bdee6830152aedc6eeb1924980f5d561aa8fa2d",
+      "crates/connect-server/tests/support/agent_mcp_client.rs": "a7f1e8b28eff650acf0a85913e96e89bc1be0c4aa0043c79140ee69e189c20db",
+      "crates/connect-server/tests/support/agent_mcp_fixture.rs": "c2fc9c5bd03c52f7080f4470821a26ee4a5855b4c2531a36de7e6c5319a5ea60",
+      "crates/connect-server/tests/support/agent_sms_fixture.rs": "88a8788e19129af421fe23d7c61a9b8bcec34aa3157fdadade3a1266ce029983",
+      "crates/connect-service/src/identity_access.rs": "848ce94cbb1749f29f157144cfc7138234bbb352dbbffd5166bbcb525030798c",
+      "crates/connect-service/src/lib.rs": "05c1c6ddfbb5d41d026bc7b8000287a76e4bc752ff58e576fe9ddd5112f685b1",
+      "crates/connect-store/src/identity.rs": "67fadcb20f51f08080462e6311335154d9908bdb95788fae193a2d514f45c636",
+      "crates/connect-store/src/lib.rs": "86a0b23d18e1640a760390064491c95dfe4a103a7fe62bef666ad7529353e630",
+      "crates/connect-store/src/tasks/defaults.rs": "9e215489904ffdc3109a324e724661dfe24ad3e9252e5fe85d0d5f23284ae8e3",
+      "crates/connect-store/src/tasks/mod.rs": "e1e293fd02f32310e7da382b5d062a1a6dc7770c8b06a5999727eb66ff46e85b",
+      "crates/connect-store/src/tasks/owner.rs": "b7f224225e6ea6bb96c25cda1c909b16ae177d3514013f1a513639bd6ab6d6d4",
+      "examples/agent-presence/README.md": "b977ee45dc18d89d707ad9cdf3471f6e3b7d880caba2b27e178843bcbfd09928",
+      "skills/connect/SKILL.md": "dcddef382ceceff8cd10b924ca3a608914d5821adf5c4781742c31f190fd0deb",
+      "skills/connect/agents/openai.yaml": "61989897e14019ab24d04cdcec72eafe1bf50f072d78bb37f7dc11e198d1b5f9",
+      "skills/connect/references/json-cli.md": "77ee0ff398686bb2f5312c9b7c2602c4578f964eac2f6d9e61d98bc119f6f2ce"
+    }
+  },
+  "check": {
+    "path": ".local/gate-4-agent-access/20261012T111212.031821Z/result.json",
+    "sha256": "d530ae8ea16af42ab385c8c66be6c9cfad6505dcedb5e5c01251ec94c02bbfa1",
+    "source_stable": true,
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.19
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.781
+      },
+      {
+        "name": "check",
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "--workspace",
+          "--all-targets",
+          "--all-features"
+        ],
+        "timeout_seconds": 2400,
+        "log": "check.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 7.577
+      }
+    ]
+  },
+  "quality": {
+    "path": ".local/gate-4-agent-access/20261012T112302.650679Z-quality/result.json",
+    "sha256": "e4ce70f7f8e228b0ee6f30b71bd99f7f6dd364fefe4b8f7e2c513a38369de22b",
+    "source_stable": true,
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.187
+      },
+      {
+        "name": "clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "connect-store",
+          "-p",
+          "connect-service",
+          "-p",
+          "connect-mcp",
+          "-p",
+          "connect-server",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "timeout_seconds": 2400,
+        "log": "clippy.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 8.504
+      },
+      {
+        "name": "rustdoc",
+        "command": [
+          "cargo",
+          "doc",
+          "--locked",
+          "-p",
+          "connect-store",
+          "-p",
+          "connect-service",
+          "-p",
+          "connect-mcp",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--no-deps"
+        ],
+        "timeout_seconds": 2400,
+        "log": "rustdoc.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 4.006
+      }
+    ]
+  },
+  "retained_first_check": {
+    "path": ".local/gate-4-agent-access/20261012T110347.790610Z/result.json",
+    "sha256": "21fb6d1d4862de17d28ee1efc30619058059875c03198a6effc5ff9deb21ae2d",
+    "status": "failed",
+    "reason": "Service imported TaskCreateDefaults through private Store.tasks module; public reexport/import corrected before the passed check."
+  },
+  "source_delta_after_check": {
+    "crates/connect-server/tests/gate4_agent_authority.rs": {
+      "checked_sha256": "18659795858c3de74510eaef6d3b18cd37aeb4b35b6c860e840832090342c479",
+      "final_sha256": "2b4f072e32e2f1f63e495e2e9a795db609ed6dddc5a7e642ca0ca288f77d6483"
+    },
+    "crates/connect-server/tests/gate4_agent_optional_tasks.rs": {
+      "checked_sha256": "05102179a417b0753150883b714aba22dbe933b29b8b4be3ce3a6e3321cb9b1d",
+      "final_sha256": "297a5c5f0338080f958f94d45e76bd68b574af52227e4eefb47ae0581ee020b1"
+    }
+  },
+  "delta_note": "The later exact public SDK expiry and historical narrow result-shape assertions changed only new tests after the all-target check. Final affected-crate Clippy checked all targets on this source; authority agent behavior evidence records the final direct binaries.",
+  "logs": [
+    {
+      "path": ".local/gate-4-agent-access/20261012T111212.031821Z/dependencies.log",
+      "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "path": ".local/gate-4-agent-access/20261012T111212.031821Z/format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-4-agent-access/20261012T111212.031821Z/check.log",
+      "sha256": "75a563ebbf9ae55e994c690477fbf65a939f4b40538c3958dcd8c3c05ec480ac"
+    },
+    {
+      "path": ".local/gate-4-agent-access/20261012T112302.650679Z-quality/dependencies.log",
+      "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "path": ".local/gate-4-agent-access/20261012T112302.650679Z-quality/clippy.log",
+      "sha256": "ba28ebab457f8fdd4a8ffe550add7d4ccf1465e43a79d8252dd6b7eef63f5440"
+    },
+    {
+      "path": ".local/gate-4-agent-access/20261012T112302.650679Z-quality/rustdoc.log",
+      "sha256": "221458012f02eae4caead381eca0538398c95c74cc62fcf74b6c7daabad8e710"
+    }
+  ],
+  "boundaries": [
+    "The 20 normal-agent behavior results and five CLI cases are recorded separately.",
+    "Historical 7ed installed-package/model evidence is not runtime-equivalent to this materially new access path. Final integrated regression, package, recovery and actual-model qualification remain required.",
+    "No live provider account operations, deployment, security-setting changes or service restarts occurred in these phases."
+  ]
+}

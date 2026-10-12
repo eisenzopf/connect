@@ -1,0 +1,119 @@
+{
+  "audit_scope": "Read-only Gate 1 recheck and current development status; no deployment or code fixes",
+  "gate_1_candidate": "connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb",
+  "gate_1_tasks": {
+    "total": 53,
+    "done": 53,
+    "declared_artifact_paths": 121,
+    "missing_artifact_paths": [],
+    "invalid_dependencies": []
+  },
+  "gate_1_artifact_recheck": [
+    {
+      "artifact": "dist/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb-qualification.tar.gz",
+      "matches": true
+    },
+    {
+      "artifact": "dist/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb-source.tar.gz",
+      "matches": true
+    },
+    {
+      "artifact": "dist/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb.tar.gz",
+      "matches": true
+    },
+    {
+      "artifact": "dist/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/bin/connect",
+      "matches": true
+    },
+    {
+      "artifact": ".local/releases/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/bin/connect",
+      "matches": true
+    },
+    {
+      "artifact": "dist/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/bin/connect-example",
+      "matches": true
+    },
+    {
+      "artifact": ".local/releases/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb/bin/connect-example",
+      "matches": true
+    }
+  ],
+  "design_discrepancies": [
+    "Gate 1 product design names a live rvoip-core Orchestrator projection; candidate uses rvoip QUIC/coordinator application handler plus durable Connect service, without that projection.",
+    "Product-design resolve table mentions runtime availability; actual Gate 1 wire Identity returns stable ID, alias and declared messaging capabilities only."
+  ],
+  "website": "Live project pages audited; public copy alignment not yet deployed",
+  "gate_1_original_log_counts": {
+    "workspace": 37,
+    "upstream": 941,
+    "failed": 0,
+    "ignored": 0
+  },
+  "gate_1_source_suite_phases": 13,
+  "gate_1_package_phases": 9,
+  "reviewed_head": "f44c722",
+  "gate_1_conclusion": "All 53 numbered messaging items supported; later regression and current-package qualification gaps resolved. Broader availability remains B-001; pinned local patches accepted. Gate 2 outbound telephone voice verified, inbound answering and correlation verified; live SMS owner-deferred.",
+  "implementation_judgment": {
+    "orchestrator_projection": "Sound Gate 1 messaging choice explicitly recorded in frozen wire contract; not a lost media feature. Voice must still reuse rvoip orchestration/media.",
+    "runtime_availability": "Missing capability, retained as explicit open v0.1 requirement; delivery assignment and acceptance semantics still needed.",
+    "test_regression": "Resolved: schema assertion updated with actual legacy message/inbox preservation coverage; strict lint and full Gate 2 offline runner pass. New package/live provider qualification remains separate.",
+    "upstream": "PRs 262, 292 and 293 open; issue 113 open; no merge or next-release inclusion claimed"
+  },
+  "archive_content_recheck": {
+    "counts": {
+      "archived_source_files_compared_with_candidate_git": 134,
+      "runtime_manifest_files_verified": 685
+    },
+    "errors": []
+  },
+  "completion_audit": "../connect-gate-1-audit.html",
+  "decision_backlog": "../backlog.html#B-001",
+  "additional_combined_process_proof": {
+    "scope": "Additional Gate 1 audit proof using unchanged archived binaries and fresh isolated state",
+    "candidate": "263fe1592ceb5099985e58566ae3e3e35a34bc07",
+    "result": "passed",
+    "independent_native_examples": 2,
+    "authenticated_ws_observers": 1,
+    "conversations": 2,
+    "messages": 4,
+    "history": "Native QUIC CLI and WS observer return identical history",
+    "cleanup": "All audit processes stopped; temporary state removed",
+    "ws_port_released": true,
+    "observer_harness_sha256": "ad9265128c7fbb9935f520bf842e3d4fe1fcceeb357b621c3a8a5ae7638ee300",
+    "runner_sha256": "a35fa2067c88ed21f06c7f2d927d1aed99e060f1fbf71aa3a6449a30cebbab97",
+    "initial_attempt": "Communication and history checks passed; the first audit harness failed its final TCP rebind check without SO_REUSEADDR. The rerun used SO_REUSEADDR, then successfully bound and listened on the released port. No product change was made."
+  },
+  "repository_at_audit": {
+    "local_branch": "main",
+    "ahead_of_origin_main": 6,
+    "behind_origin_main": 0,
+    "uncommitted_work": true,
+    "fetched": true
+  },
+  "documentation_validation": {
+    "html_documents": 14,
+    "local_links_and_fragments": "passed",
+    "duplicate_ids": 0,
+    "gate_1_task_ids": 53,
+    "archived_evidence_unchanged": true
+  },
+  "workspace_at_initial_audit": {
+    "qualified": false,
+    "workspace_test_exit": 101,
+    "failure": "provider_state_is_included_in_backup_and_v2_migration_preserves_messages expects schema 3; current voice development uses schema 4",
+    "strict_clippy": "Three outstanding voice-development warnings; earlier run failed",
+    "gate_1_archive_unchanged": true
+  },
+  "current_workspace": {
+    "offline_suite": "passed",
+    "workspace_tests_and_doctests": 74,
+    "strict_clippy": "passed",
+    "migration_preservation": "passed",
+    "new_package_qualified": true,
+    "remediation_evidence": "gate-2/completion-qualification.json",
+    "gate_1_archive_unchanged": true,
+    "upstream_tests": 941,
+    "qualification_phases": 16,
+    "package_evidence": "gate-2/completion-package.json"
+  }
+}

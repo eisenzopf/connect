@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T04:35:09.356752+00:00",
+  "status": "actual installed runtime discovery component qualified; model workflow remains open",
+  "items": [
+    "G4-018",
+    "G4-021",
+    "G4-023"
+  ],
+  "source_base": "cf9845e26aeefebb7d049f77b39c48e943860b7e",
+  "source_sha256": {
+    "crates/connect-server/tests/gate4_codex_runtime.rs": "2d0d3effc62e1b011c596ff61fddde074ec51694796927c51b3956e45c8dc864",
+    "crates/connect-server/tests/support/codex_runtime.rs": "58240c30de05899622ac0091f9e6988f8345d079ec385390f570d95faacde771",
+    "crates/connect-server/tests/support/mcp_fixture.rs": "4d30f765d5592d9047fbab027d626e916dece07417ff5d0aa3da7fbeef975a01",
+    "crates/connect-server/src/cli/task_access/codex.rs": "63eec1b0cdb1c2e9de2dd009df23844cd233d17fa30020da9b56f580242d0e8a",
+    "skills/connect/SKILL.md": "56f2e9291e54af007ec5c1fe31698832df98298ea814ea83dbd152f67d58d5dd",
+    "skills/connect/agents/openai.yaml": "62a639ede28013f697da75fbe85fdaaa747e704d3188e241a30733ea0a5f7982",
+    "skills/connect/references/json-cli.md": "fb120e690291439259bc21fa50dd0c3707f0d30ed31ea56be1fead430b0ba07a",
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/listener.rs": "5183bafeceb8fa492ef0b385b89aed876e37e8a41437f180c18f7935db7c88ae",
+    "crates/connect-mcp/src/catalog.rs": "11e846ee563e5b656ff0496895c81d9bfc89ecbd5896d52b12227259d14150df",
+    "Cargo.lock": "e01d6633125f1c70e922a5cc241376ab2f33bb6f4e999183e7ed1b5534010e3f",
+    "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b"
+  },
+  "runtime": {
+    "version": "codex-cli 0.162.0-alpha.17.2",
+    "executable_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+    "interface": "documented app-server stdio JSONL in actual installed CLI",
+    "model_turns": 0
+  },
+  "qualification_scope": "Local macOS arm64, isolated exported Native task grant and real Connect/MCP. Fresh empty HOME/CODEX_HOME, no account secrets inherited; model provider points to unused loopback endpoint. No turn/start, inference, live provider, remote ingress or production state operation.",
+  "behavior_passes": 1,
+  "behavior_failures": 0,
+  "behavior_ignored": 0,
+  "checks": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-final.log",
+      "log_sha256": "8d6ea5f222a51dc9de39da3822411cf672e5c5a2ea24c929c6955ffceabc8934",
+      "command": "CONNECT_TEST_CODEX_BINARY=<installed Codex> CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_codex_runtime -- --ignored --nocapture",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+      "command": "bash scripts/prepare-dependencies.sh",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-clippy-qualified.log",
+      "log_sha256": "3187524fadea950081b85be2d87f93deaff7b7a316ac6b0746ee17f3483374c4",
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-server --all-features --test gate4_codex_runtime -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-format-qualified.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-docs-check.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410",
+      "command": "python3 .local/gate-4-planning/validate-docs.py",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-diff-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "proofs": [
+    "Actual skills/list discovers the enabled Connect skill at the canonical exported project path, with no skill discovery errors.",
+    "Actual thread-scoped mcpServerStatus/list returns exactly the configured Connect server and real task-status/wait schemas; undelegated cancellation is absent from the catalog.",
+    "Actual mcpServer/tool/call reads the originally bound task. After journal catch-up it returns an empty bounded wait page, unchanged cursor and pending metadata.",
+    "A direct undelegated cancellation is rejected; the full authoritative Store snapshot remains identical.",
+    "After stopping and reaping Codex, a fresh actual runtime uses the same installed grant to read the same Connect task. Its ephemeral Codex thread is distinct correlation, not new Connect authority.",
+    "Revocation of that original grant denies a subsequent call on the existing runtime connection with no Store mutation."
+  ],
+  "retained_attempts": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-initial.log",
+      "log_sha256": "66e80fa6e6ff3fdadd0bb6445d0eb94b85c69194a6ee31fec0fb0cc0675cde93",
+      "command": "Initial actual-runtime test",
+      "exit_code": 101,
+      "finding": "Skill discovery succeeded; a fixture compared macOS /var and /private/var aliases as literal paths. Corrected to compare the canonical installation path."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-canonical.log",
+      "log_sha256": "080e9e9ca6fae812ba275352ceb4133a15f775f6361e01f8810088586490f1dc",
+      "command": "Canonical path actual-runtime test",
+      "exit_code": 101,
+      "finding": "Actual tool discovery/status succeeded. The fixture looked for pending under structuredContent.meta instead of MCP _meta.connect and assumed the initial journal was empty. Corrected to catch up, retain its cursor, and assert the real empty page and pending metadata."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-runtime-pending.log",
+      "log_sha256": "653c21eba2b503b02acd70ab3ba3813946b8eb64c3f5c163b5fd52fd239751f5",
+      "command": "Corrected pending actual-runtime test",
+      "exit_code": 0,
+      "finding": "Passed; final fixture then tightened tool inventory assertions to structured server/tool keys instead of string matching and reran."
+    }
+  ],
+  "code_review": {
+    "production_changes": "None; two focused integration fixture files only. Public API Rustdoc remains qualified at unchanged cf9845e production source.",
+    "module_lines": {
+      "crates/connect-server/tests/gate4_codex_runtime.rs": 186,
+      "crates/connect-server/tests/support/codex_runtime.rs": 109
+    },
+    "bounds": "20-second response observation, 256KiB line/1MiB aggregate observation checks; unchanged production MCP ten-second startup/tool limits. Direct child owns kill-on-drop and is killed/reaped on successful stop. No model turn is started.",
+    "opt_in": "The ordinary Cargo suite explicitly ignores this external-runtime check. The qualified command uses --ignored and executes one test with zero ignored. Missing executable selection fails; it is never counted as passing.",
+    "warning": "Existing macOS debug linker __eh_frame warning retained in raw test logs; strict Rust Clippy passes."
+  },
+  "not_claimed": [
+    "Model receiving/following full skill instructions, model-selected tool use or actual agent workflow",
+    "Actual exec/resume model-session recovery, durable mutation intent before a model invocation or task follow-through",
+    "HostSession grant model qualification, two simultaneous actual model sessions or installed final candidate qualification",
+    "Whole G4-018/G4-021/G4-023, full journeys, A4/T-A or Gate 4 closure"
+  ],
+  "documentation_sources": [
+    "https://learn.chatgpt.com/docs/app-server"
+  ]
+}

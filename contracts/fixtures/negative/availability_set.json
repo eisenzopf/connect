@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "type": "connect.request",
+  "id": "env-negative-availability_set",
+  "ts": "2026-10-08T00:00:00Z",
+  "payload": {
+    "profile": "connect-control/1",
+    "op": "availability_set",
+    "request_id": "availability-set-1",
+    "state": "available",
+    "preferred_route": "native-quic",
+    "expires_at": 1791504000,
+    "claimed_actor": "identity-other"
+  }
+}

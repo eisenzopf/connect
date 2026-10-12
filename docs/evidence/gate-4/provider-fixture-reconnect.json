@@ -1,0 +1,86 @@
+{
+  "status": "passed",
+  "recorded_at": "2026-10-12T11:06:14.629716+00:00",
+  "scope": "local account-free provider-flow fixture correction",
+  "source_file": {
+    "path": "crates/connect-server/tests/provider_flow.rs",
+    "sha256": "fce3dbc16d7991863609b91902ec02a4da42e464407bed29fa3d3c27b8cca291"
+  },
+  "passed_report": {
+    "path": ".local/gate-4-final/provider-reconnect/20261012T105656Z/result.json",
+    "sha256": "fdc7a05878abcd35a961fea3e60aafb7633bcd672c9f82baf2e60848f2a15adf"
+  },
+  "retained_compile_attempt": {
+    "path": ".local/gate-4-final/provider-reconnect/20261012T105030Z/result.json",
+    "sha256": "cb0dc7578beffcbe9bb417d0eda5ff8b07d313d6d96ff4ce046db541c7b0fd40"
+  },
+  "failed_baseline": "offline-5d23d73-attempt-1.json",
+  "failure_location": "provider_flow.rs:364 initial send after independent fixture setup; no provider duplicate-dispatch assertion failed",
+  "change": "Close the idle fixture client during provider setup/drain; reconnect with the same current credential before send and inspection. No transport or service behavior changes.",
+  "checks": [
+    {
+      "name": "compile",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "provider_flow",
+        "--no-run"
+      ],
+      "timeout_seconds": 1200,
+      "log": "compile.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 260.869
+    },
+    {
+      "name": "provider-flow",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "provider_flow",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 180,
+      "log": "provider-flow.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 150.729,
+      "rust_tests": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    }
+  ],
+  "logs": [
+    {
+      "path": ".local/gate-4-final/provider-reconnect/20261012T105656Z/compile.log",
+      "sha256": "c122873074d57dd38038f79610866599cecc5011ba5ef987b39ebd7684b866be"
+    },
+    {
+      "path": ".local/gate-4-final/provider-reconnect/20261012T105656Z/provider-flow.log",
+      "sha256": "339aba114be5e41688bbfbcd5fbc8df196d94ef5e369eada8184120b09eb561b"
+    }
+  ],
+  "limits": [
+    "The initial targeted default-feature build exceeded its 300-second compilation budget before testing. Separate all-feature compilation and behavior phases subsequently passed; the failed attempt is retained.",
+    "The linker reported a large debug exception-frame section. No release-binary defect is inferred; release/package checks remain required.",
+    "Functional deadlines, current authorization and system security settings are unchanged.",
+    "Full normal-default regression/package/model qualification remains pending."
+  ]
+}

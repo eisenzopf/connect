@@ -1,0 +1,115 @@
+{
+  "item": "G4-010",
+  "status": "G4-010 qualified",
+  "source_base": "a89d9e8e47537cde701e4a979ff221f7b15b344a",
+  "recorded_at": "2026-10-10T23:17:01.586530+00:00",
+  "scope": "Local macOS arm64; real public QUIC SDK, protected grant exchange, owned worker/server restart and pinned Vapi SDK against a fake loopback remote service. No account activity or remote deployment.",
+  "source_files": {
+    "crates/connect-server/tests/gate4_task_uncertainty.rs": "fb0ae5355d1cf9caea4e551f3c04a29de54a16a9c7efd39c419e4f3ae31a653e"
+  },
+  "requirements": [
+    {
+      "requirement": "Task, step and logical mutation persist before dispatch with linked ordinary receipt and provider observation",
+      "tests": [
+        "tasks::tests::effects::matching_effect_survives_restore_and_distinct_tasks_namespace_wire_receipts",
+        "tasks::tests::effect_providers::queued_provider_effect_is_pending_and_only_recorded_completion_resolves_it",
+        "gate4_provider_tasks"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Failure before commit or after commit/before ACK retains one effect; failed writes roll back and preserve original intent",
+      "tests": [
+        "tasks::tests::effect_crashes::terminated_owner_and_grant_processes_preserve_effect_identity_before_and_after_commit",
+        "tasks::tests::effect_recovery::failure_after_ordinary_mutation_rolls_back_effect_receipt_message_and_state"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Competing handles produce one mutation; bounded revision-controlled claims renew/reclaim only safe work",
+      "tests": [
+        "tasks::tests::effect_recovery::competing_database_connections_commit_one_effect_and_one_message",
+        "tasks::tests::claims::two_competing_connections_cannot_both_claim_a_fresh_step",
+        "tasks::tests::claims::renew_and_reclaim_require_current_revision_and_replay_does_not_extend_lifetime",
+        "tasks::tests::claims::global_sixteen_step_limit_allows_renewal_but_rejects_more_active_leases",
+        "tasks::tests::claims::lease_expiry_cannot_reclaim_a_step_that_has_a_durable_effect"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Remote acceptance without known receipt remains uncertain after worker/server restart, with no second dispatch",
+      "tests": [
+        "tasks::tests::effect_providers::interrupted_provider_job_remains_uncertain_and_is_never_requeued_on_replay",
+        "gate4_task_uncertainty"
+      ],
+      "status": "qualified in recorded scope"
+    },
+    {
+      "requirement": "Current cancel/revocation cannot authorize matching accepted replay or later physical dispatch",
+      "tests": [
+        "tasks::tests::effects::revoked_or_expired_invocation_cannot_replay_an_accepted_effect",
+        "tasks::tests::effects::task_cancel_denies_even_matching_owner_replay_but_retains_effect_inspection",
+        "tasks::tests::effect_providers::task_grant_revocation_blocks_dispatch_even_while_account_authority_remains_valid",
+        "tasks::tests::effect_providers::cancellation_blocks_queued_dispatch_but_preserves_the_conversation_message"
+      ],
+      "status": "qualified in recorded scope"
+    }
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/task-uncertainty-wire.log",
+      "log_sha256": "e108226ecca5d6c0454c395436f8ff4aa54da220b804f0e890640846f5e85885",
+      "terminal_exit": 101,
+      "result": "Initial journey reached post-restart effect inspection after successful uncertainty/replay assertions; server correctly denied EffectGet to a Send-only grant. Corrected fixture retains the denial assertion and inspects using a separately authorized owner client. No production authority was widened."
+    }
+  ],
+  "pending": [],
+  "not_claimed": [
+    "Universal exactly-once remote delivery",
+    "Actual installed provider/model behavior",
+    "Application business-effect transactions or complete Gate 4 journeys"
+  ],
+  "checks": [
+    {
+      "log": ".local/gate-4-planning/reply-recovery-store.log",
+      "log_sha256": "f9d3bb38abd7e32352233c85039c3a07698e760b54c40d476831f15a25de8ddf",
+      "terminal_exit": 0,
+      "passed": 149,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/reply-recovery-wire.log",
+      "log_sha256": "eebc0ed648fc79ee944053d57e9795b0a934520ee818f7ecc9b5f11d45cf5cb7",
+      "terminal_exit": 0,
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-uncertainty-wire-corrected.log",
+      "log_sha256": "7556a9f5a9ad20488ced99ebed6d6e3749351573c057f6e9f7670917bf6c0491",
+      "terminal_exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-uncertainty-clippy-corrected.log",
+      "log_sha256": "953d3eafbac932fd92fa9bd895a9e89dda4ce6fa2ba615c9f2772c656e36f050",
+      "terminal_exit": 0
+    },
+    {
+      "log": ".local/gate-4-planning/task-uncertainty-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "terminal_exit": 0
+    }
+  ],
+  "total_behavior_passes": 155,
+  "closure": "Core effect intent, claims and uncertainty requirements qualified. Installed provider/host journeys, app business transactions and A4/T-A integrated qualification remain separate.",
+  "review": {
+    "new_test_lines": 182,
+    "production_changes": "None in this audit; Store owns receipts/effect/claim transactions, Connector owns HTTP delivery, Worker owns dispatch/recovery, public clients observe status and replay. Existing strict Store/Service/Server Clippy/Rustdoc qualification remains applicable to unchanged production modules.",
+    "conservative_outcome": "A local accepted Send receipt does not prove provider completion. Independent fake remote effect count remains one, while persisted job and task effect remain uncertain after restarting both worker and server. Send-only grant does not gain RequestStatus authority."
+  }
+}

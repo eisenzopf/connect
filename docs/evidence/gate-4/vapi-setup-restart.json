@@ -1,0 +1,315 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T17:26:03.592692+00:00",
+  "status": "Local Vapi task setup restart repair qualified; G4-019/G4-020 requalified; whole Gate 4 remains open",
+  "items": [
+    "G4-019",
+    "G4-020",
+    "G4-030",
+    "G4-031",
+    "G4-032",
+    "G4-033"
+  ],
+  "scope": "Local macOS arm64; actual Store/Service/Server/QUIC/MCP paths with loopback fake provider APIs; no live accounts, remote deployment or production database changes",
+  "source_base": "e72436415c3c72ec142b9b9f832e7ab096d87065",
+  "qualification_checkout_base": "dfda3b19669f648b91a12ac833ed97a09399ddaa",
+  "source": {
+    "files": 771,
+    "sha256": "2c2c2a8b5ac7eb2ea945c8e9aac94bb423e9ccef216cca2d19ba17eb623eef44",
+    "recipe": "SHA256 of compact sorted JSON path-to-SHA256 map for tracked and nonignored untracked regular files excluding docs/. Qualification used the exact recorded working sources, not a clean checkout claim. Every recorded file matches the primary checkout.",
+    "source_stable": true
+  },
+  "changed_rust_inputs": {
+    "crates/connect-server/tests/gate4_vapi_setup_restart.rs": "55e657a90b51efa892f9b4f214c53539f2d3b5aa3999a6a843e18e08dc8f8f97",
+    "crates/connect-store/migrations/016_vapi_session_setups.sql": "386ff3e61995caaf98224e5867742cc0acd229b4bc1632e00e8bbb871a50e2ee",
+    "crates/connect-store/src/tasks/media_setup_binding.rs": "605d63be3a95400a8e5723dde0a77522711b71da04599f7cc3d1188efe96d86f",
+    "crates/connect-store/src/tasks/tests/media_setup_binding.rs": "fa25c13ed1384acdc075118f553605e1d562088a2ebd83abc46f0aa658892cd8",
+    "crates/connect-server/src/vapi_bootstrap/media.rs": "717b2ae5667a4cecbfa966825c7743771138920e9344dda357ef6fc1c0a74711",
+    "crates/connect-server/src/vapi_media.rs": "93389eea406616900ef6017e44a29d02a1936c67c30cf0e9bb0247e63292ae04",
+    "crates/connect-service/src/tasks/provider_setup.rs": "6b989852f0bbea0c21df2166309ffad47fb2850ce13f969042847edf4bdfd2bc",
+    "crates/connect-store/src/lib.rs": "e0fc460f0a1aff92538d3e339d5970198e258e487ea146d266c677aa287262f1",
+    "crates/connect-store/src/recovery.rs": "d1e858e79c610aaef2eb6fecd79db73804166a147d91155205f451a9c5a161c9",
+    "crates/connect-store/src/tasks/media_setup.rs": "560c28c7992447bf866fc08e3124e33e323d4efc33d0c3a15bfa2cc8b8e5a633",
+    "crates/connect-store/src/tasks/mod.rs": "1a09f54c8acb406f4a7936f50d3eb1a6eea1991efc6dbd7d100929a86891b9cf",
+    "crates/connect-store/src/tasks/tests/effect_migration.rs": "89f21fc34c5827d7ad951ebf374ca1bb19d7402f830403eda701ca1b12e9535b",
+    "crates/connect-store/src/tasks/tests/media_migration.rs": "cf2201d1549be360bd84b7b5abfc26f396f0040126514447e2886ff2e29ac279",
+    "crates/connect-store/src/tasks/tests/media_setup.rs": "d31d77f17050513997bd5ea4a76baf455951b5863188df41509b93b88d054688",
+    "crates/connect-store/src/tasks/tests/mod.rs": "21337cb6e97d9b001c942b32c174afa9d3ce8ad4be277b66d44233bd3986f662",
+    "crates/connect-store/src/tasks/tests/native_media_migration.rs": "0a25882658131cb275a617f8c7ef6a4571f404c4676b477e092df675c1feca23",
+    "crates/connect-store/src/tasks/tests/sms_policy.rs": "eb451ca82182d912d311039033eb83edd4617420a97cd83741850004bba6f08a",
+    "crates/connect-store/tests/task_migration.rs": "efeb56d2fb9f882252b5feea0ba2bcfda86fd9604678203f62b025d8ea77a165",
+    "crates/connect-store/tests/voice.rs": "61b8b369ce2bb3ab11a11662e0508817b8f86fd23821f3359afb27dd8bbd2050"
+  },
+  "behavior": [
+    "The original e724364 Rust source reproduced a real defect: expire a protected task callback, restart the server with the same database and authenticated native task grant, reopen the old session, and an ordinary provider call was dispatched.",
+    "Schema 16 stores an immutable session-to-original-setup binding before process-local registration. The binding holds a credential reference and bounded grant definition; nonce uniqueness prevents one private invocation being installed on two sessions. No bearer, callback secret, private path or provider body is added to this table.",
+    "Admission revalidates current task/credential/caller/route and exact stored setup identity before the existing one-time physical dispatch. Competing registrations yield one winner; different-nonce replacement and cross-session nonce reuse fail without mutation. Storage failure rolls back and permits an exact known-unsent retry.",
+    "After expiry and actual server restart, native and owner media attachment cannot fall back or replace the original setup. The original private intent is unchanged. A new session on the same task/conversation attaches tools, retains the old context source and exchanges actual QUIC audio with the local fake Vapi bridge.",
+    "Voice-only task sessions without a configured tool setup retain their existing call/audio behavior. The full scoped-history and post-call-context regression passes, as do cancellation, concurrent calls, pending continuation, revocation and uncertain-call reconciliation.",
+    "Expired and ended setup entries are removed from memory after listener shutdown. The immutable Store binding remains. Shared 32-listener capacity, expiry, shutdown closure and zero provider calls during idle setup qualification pass.",
+    "Backup-gated migration preserves existing state and reserves older task-linked sessions with unknown setup identity; it never invents an old nonce. Those legs require a new session on the existing task/conversation. Matching snapshot digests cover new binding rows; rollback and original-schema backup preservation are tested."
+  ],
+  "verification": [
+    {
+      "name": "prepare",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 300,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.184,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-final/prepare.log",
+        "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+      }
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.602,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-final/format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-store",
+        "--all-features"
+      ],
+      "timeout_seconds": 600,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 43.028,
+      "rust_tests": {
+        "passed": 211,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-final/store.log",
+        "sha256": "d46064baa983df0e72c4b6df906337c6c12e94a4e2ddbf794ac982cf24e37737"
+      }
+    },
+    {
+      "name": "vapi-and-parity",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_vapi_admission_hook",
+        "--test",
+        "gate4_vapi_bootstrap",
+        "--test",
+        "gate4_vapi_bootstrap_denials",
+        "--test",
+        "gate4_vapi_bootstrap_preparation",
+        "--test",
+        "gate4_vapi_bootstrap_races",
+        "--test",
+        "gate4_vapi_bootstrap_recovery",
+        "--test",
+        "gate4_vapi_call_bootstrap",
+        "--test",
+        "gate4_vapi_call_isolation",
+        "--test",
+        "gate4_vapi_call_recovery",
+        "--test",
+        "gate4_vapi_mcp_binding",
+        "--test",
+        "gate4_vapi_mcp_lifecycle",
+        "--test",
+        "gate4_vapi_pending_continuation",
+        "--test",
+        "gate4_vapi_post_call",
+        "--test",
+        "gate4_vapi_recovery_revocation",
+        "--test",
+        "gate4_vapi_setup_capacity",
+        "--test",
+        "gate4_vapi_setup_denials",
+        "--test",
+        "gate4_vapi_setup_races",
+        "--test",
+        "gate4_vapi_setup_restart",
+        "--test",
+        "gate4_vapi_task_voice",
+        "--test",
+        "gate4_vapi_verified_setup",
+        "--test",
+        "gate4_vapi_voice_revocation",
+        "--test",
+        "gate3_parity",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 900,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 256.252,
+      "rust_tests": {
+        "passed": 32,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-final/vapi-and-parity.log",
+        "sha256": "08b2275407673261551160846b27b377bacee3f87f5b405c3d57ac56b9e12c30"
+      }
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 900,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 8.475,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-final/clippy.log",
+        "sha256": "38fd2ac8f1a691fd44148672420df52ef05e86aa2f42f51a0fbcd1e6f7519f76"
+      }
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 900,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 4.075,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-final/rustdoc.log",
+        "sha256": "7369be147e98f36ae25208794febd61cca64e5a573fde1499790db105288644c"
+      }
+    }
+  ],
+  "prior_proof": {
+    "source_match": {
+      "matched_tracked_rust_workspace_files": 431,
+      "root_revision": "e72436415c3c72ec142b9b9f832e7ab096d87065",
+      "qualification_revision": "dfda3b19669f648b91a12ac833ed97a09399ddaa",
+      "test_sha256": "bd351e55298e73b7bf6f53105d103ae137f1d5dc0b49b09e499decb44fb4acae"
+    },
+    "regression": {
+      "terminal_exit": 101,
+      "passed": 0,
+      "failed": 1,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-retirement-regression.log",
+        "sha256": "68f37070d024ee296d8d1613ff596374d62fd13ca7044837253af2cd0b96efee"
+      }
+    },
+    "initial_targeted_green": {
+      "terminal_exit": 0,
+      "store_passed": 209,
+      "server_passed": 8,
+      "logs": [
+        {
+          "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-store-2.log",
+          "sha256": "7462088cbbc488a91bbb46a67c8c2dc57438b48852fd5f1d9544242b82ddc7ca"
+        },
+        {
+          "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-server.log",
+          "sha256": "4fe751a86a752a7da998c662c0fbdcccee8d3edc79b17885312c1d6138029acc"
+        }
+      ]
+    }
+  },
+  "retained_attempts": [
+    {
+      "result": "Primary cold dependency build deliberately interrupted after equivalent-source isolated regression completed; no test pass claimed",
+      "terminal_exit": 130,
+      "log": {
+        "path": ".local/gate-4-planning/voice-retirement-regression.log",
+        "sha256": "57ab4169073528590a8c3f4a1edb2766a48139b4fa329e239efbed77212ac4ad"
+      }
+    },
+    {
+      "result": "First Store run failed a historical row-comparison fixture because it included the new empty table. The comparison still covers every original table and field; the new table is separately asserted empty for schema 10. Fixed and all Store checks rerun.",
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-store.log",
+        "sha256": "d7a66e5d0b2328b82c3efaeabd25421da848f036ced3e8bd9c711ed0121fbc95"
+      }
+    },
+    {
+      "result": "Interim full Vapi group failed voice-only task behavior because the guard was too broad. The final guard applies only to configured or legacy-reserved setups, retaining ordinary task voice. Original deadlines were retained.",
+      "report": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-qualified/result.json",
+        "sha256": "7f066b7aa1c0f0dd0b94cb19556bb0f2107c5a7f69fb66c67357be93b6c6c6ea"
+      },
+      "log": {
+        "path": ".local/gate-4-fresh-493d5c3/.local/gate-4-planning/voice-binding-qualified/vapi-and-parity.log",
+        "sha256": "84c7fbdef51942e32d54ac21a73ddb334757ed305e0931b319020bdfcc53bd5b"
+      }
+    },
+    {
+      "result": "Qualification driver preflight used a duplicated relative checkout path and exited before any phase; corrected working-directory path, not a test failure or pass."
+    }
+  ],
+  "review": {
+    "production_module_lines": {
+      "crates/connect-store/src/tasks/media_setup_binding.rs": 83,
+      "crates/connect-store/src/tasks/media_setup.rs": 145,
+      "crates/connect-service/src/tasks/provider_setup.rs": 73,
+      "crates/connect-server/src/vapi_bootstrap/media.rs": 139,
+      "crates/connect-server/src/vapi_media.rs": 240
+    },
+    "schema": 16,
+    "upstream_patches_changed": false,
+    "boundaries": "Store owns immutable binding/transactions/migration; Service moves Store work off async workers; Server owns private intent and listener/media lifetime. Existing provider creation stays with rvoip. Public Rustdoc and strict workspace lint pass."
+  },
+  "limitations": [
+    "The 10,000 retained-session bound is a source-level bound; repeated-retirement memory/churn measurement remains G4-030 work.",
+    "No real Vapi/Telnyx account, carrier, model inference or production data was exercised.",
+    "The full current-source offline runner, historical executable migration and installed candidate must be rerun for schema 16. Earlier schema-15 results remain historical.",
+    "Existing intermittent QUIC drain and debug CLI startup findings remain unresolved; passing targeted regressions do not establish their causes.",
+    "The Darwin debug linker reports oversized unwind-table warnings. Strict Clippy and Rustdoc pass; release-candidate linkage and qualification remain separate."
+  ]
+}

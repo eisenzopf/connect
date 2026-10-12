@@ -1,0 +1,247 @@
+{
+  "status": "Local voice-bootstrap composition component qualified; G4-019/G4-020 remain in progress",
+  "recorded_at": "2026-10-11T02:46:46.707410+00:00",
+  "source_base": "8c635baf458edb5fb3271d8a4910792ff161785f",
+  "source_files": {
+    "Cargo.lock": "e01d6633125f1c70e922a5cc241376ab2f33bb6f4e999183e7ed1b5534010e3f",
+    "crates/connect-mcp/src/listener.rs": "5183bafeceb8fa492ef0b385b89aed876e37e8a41437f180c18f7935db7c88ae",
+    "crates/connect-server/src/media_lifecycle.rs": "6b9f6a7133a4cc4f4564db68225097d9af5951b1d55df017106d4bf638dbfc66",
+    "crates/connect-server/src/runtime.rs": "233fdc760915ba3417586e8461c6be7948252e9e5c189a6f06ff6e143fff4b64",
+    "crates/connect-server/src/vapi_bootstrap/admission.rs": "f94b23f8baa13777ba1696a8c618ed82e55898047c9be1426549c5adb87d1ae1",
+    "crates/connect-server/src/vapi_bootstrap/call.rs": "8de88a75e616b686b973c58608c429aacf39a41943db19da9da188eeb6e9853f",
+    "crates/connect-server/src/vapi_bootstrap/creation.rs": "dc1eab858a3d1eadd8d455547b0c03648bb251575e7abc3eee574015704a29ff",
+    "crates/connect-server/src/vapi_bootstrap/dispatch.rs": "1a776f5b26323da49ec521465783fd06f3ef765d04394907a1052d67f1aa6788",
+    "crates/connect-server/src/vapi_bootstrap/media.rs": "ebbe5fcdfc0d580fb86647c13e8b4fd8527abd638f6dbbefa75256c1a08c24d9",
+    "crates/connect-server/src/vapi_bootstrap/mod.rs": "94231b4fb15728110d7a15e5d7db044461409b0d83a4c3bc3d08be00f250aebe",
+    "crates/connect-server/src/vapi_bootstrap/state.rs": "2155e0106cf126b92fb6023f75abfd64d19796923e0a67c212b11dba49a4b25d",
+    "crates/connect-server/src/vapi_media.rs": "086ed29b48b534f524990d2369038349c6e10233da7297dfad19eb8163be71d7",
+    "crates/connect-server/tests/gate3_support/mod.rs": "b06c6e295dcf5bfaa0befc886986233c23c03105bf225ecf320bc9b82771d07e",
+    "crates/connect-server/tests/gate4_mcp_auxiliary.rs": "7cadbc54a61a002ef78a4300c131d8256abf9e464e2e0ff6c5d15f25c6b4ddfe",
+    "crates/connect-server/tests/gate4_vapi_admission_hook.rs": "38148297e8fcacc64460777d04766e23b8a68117e772085e678e40eb42c2344e",
+    "crates/connect-server/tests/gate4_vapi_call_bootstrap.rs": "3ffc4b426439470f6d6d6cdf12c14d2a515ac62ca1853b7d3245d1b86bd2df10",
+    "crates/connect-server/tests/support/vapi_bootstrap.rs": "89ed0c1945769aa30f3b7fb9c32f2d2f25aaec02e9acbc20c0f39d702ed6eb32",
+    "crates/connect-server/tests/support/vapi_call_setup.rs": "b5cbd3694e9c18c7d55ddf691469dd2c52a9049818b0946331ab2826f0b05a8d",
+    "crates/connect-service/src/tasks/provider_setup.rs": "a00c8b81b24173713fcd9238348465e9721436f39f5a693b8d45da5ccb87239c",
+    "crates/connect-store/src/tasks/media_setup.rs": "e41447b082edfae68528c6c7bbe81aae61515dc3a29df2bf3c2b99bc061efff0",
+    "crates/connect-store/src/tasks/mod.rs": "80a808ff2f4039ccd15cfeaafb3546e3cd31c31f684c03a2fa0428b25e7ffcd5",
+    "crates/connect-store/src/tasks/tests/media_setup.rs": "dbb371db8b0f1c169e33f811180629c74509297135b229393c74924c6a1c3047",
+    "crates/connect-store/src/tasks/tests/mod.rs": "92379a2aaa1b32f496f1c656228c8e9ca30017a3f3dc8781ee9b787a36f6ef59",
+    "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+    "patches/rvoip/vapi-call-admission.patch": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa"
+  },
+  "scope": "Local macOS arm64; isolated databases and loopback provider API/MCP/native media. No actual model/provider behavior or remote deployment qualified.",
+  "items": [
+    "G4-019",
+    "G4-020"
+  ],
+  "completed_checks": [
+    {
+      "command": "cargo test --locked -p connect-store --all-features --lib",
+      "terminal_exit": 0,
+      "result": "156 passed; 0 failed; 0 ignored, including five new physical-call admission tests",
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-store-final.log",
+      "log_sha256": "87c4955d23643435fed118d122fe48129a084c3816565948032b2faef96c9004"
+    },
+    {
+      "command": "cargo clippy --locked -p connect-mcp -p connect-server --all-targets --all-features -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Passed on current auxiliary-listener source",
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-clippy-readiness-final.log",
+      "log_sha256": "9f3b1879dfa9f4c3e237b4a1567e3b17c6747c6bdf169c488ef05772cc5ef40a"
+    },
+    {
+      "command": "RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-store -p connect-service -p connect-mcp -p connect-server --no-deps",
+      "terminal_exit": 0,
+      "result": "Passed on current source",
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-rustdoc-readiness-final.log",
+      "log_sha256": "ebe6e1dec348819f71e0b44aa691360e1a800a1ce7905a97a15ea266fe00d9fc"
+    },
+    {
+      "command": "cargo test --locked -p connect-server --test gate4_mcp_auxiliary --test gate4_mcp_runtime",
+      "terminal_exit": 0,
+      "result": "4 passed; 0 failed; 0 ignored",
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-readiness-tests.log",
+      "log_sha256": "abafd5158412828a1a84c7ca4c3abc7f3d5570f715a9ca88ea8974d39c16ef5d"
+    },
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "terminal_exit": 0,
+      "result": "Passed; pinned sources and tracked patch digests verified",
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-prepare-final.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "terminal_exit": 0,
+      "result": "Passed",
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-format-final-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "cargo test --locked -p connect-server --test gate4_vapi_admission_hook",
+      "result": "1 test passed in the recorded combined batch before that batch was explicitly stopped; default creation and pre-POST denial qualified",
+      "qualification_scope": "The upstream hook source did not change during subsequent auxiliary-listener repair. Interrupted combined command is not reported as an overall pass.",
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-regressions.log",
+      "log_sha256": "3ac5688713478b430b35d6c94bf98f6334ba1b8440aecdb83c1bd60e823774f9"
+    }
+  ],
+  "implementation": [
+    "Protected owner-selected existing task and accepted-session provenance; separate lifecycle-owned task MCP endpoint.",
+    "Call options always include the opt-in rvoip final dispatch admission hook. Current task/caller/route/expiry and operation ceilings share one immediate transaction before a single physical-call admission.",
+    "rvoip owns call creation, bridging and paired termination; native grant history permission bounds context.",
+    "Auxiliary task endpoint teardown preserves primary MCP readiness; a listener-drain error does not skip durable media unbindings."
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-wire-patched.log",
+      "result": "Two wire cases failed before provider POST. The unsupported session kind was ignored by the journal CHECK constraint, so admission returned false. Corrected physical kind call with a namespaced provider-call resource key."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-store-initial.log",
+      "result": "Positive admission failed, and a fixture-held Store Mutex deadlocked the rollback test. Explicitly terminated the isolated test, released the fixture guard, and reran; all final Store units pass."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-wire-corrected.log",
+      "result": "Two preliminary real MCP/native QUIC voice cases passed. Subsequent always-guarded staging and auxiliary readiness changes require current final-source requalification."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-regressions.log",
+      "result": "Optional hook/default behavior case passed. Sequential batch explicitly stopped during the next binary to switch isolated tests to bounded parallel execution; stopped batch is not a pass."
+    },
+    {
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-rustdoc-final.log",
+      "result": "Superseded Rustdoc run failed E0599 while caller changes referenced the new auxiliary API against previously compiled MCP metadata. Fresh current-source Rustdoc is pending."
+    }
+  ],
+  "pending_checks": [],
+  "remaining_scope": [
+    "Turnkey protected operator installation.",
+    "Explicit resource-ID reconciliation and restart reattachment; possibly-sent creation is never automatically repeated.",
+    "Aggregate task-listener limits and diagnostics.",
+    "Actual skill/host/provider qualification and full Gate 4 journeys/acceptance."
+  ],
+  "completion_claim": "No whole G4-019/G4-020 item, T-A/A4 criterion or Gate 4 closure claimed.",
+  "integration_artifacts": [
+    {
+      "test": "gate4_vapi_voice_revocation",
+      "executable": "target/debug/deps/gate4_vapi_voice_revocation-abbef634a6beb2cf",
+      "binary_sha256": "8882ac775167778205e21b060f9aa024ef917529d6f4cc5bfad40e930a05c878",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate4_vapi_voice_revocation.log",
+      "log_sha256": "7fca4a5df33c340cf4f4dd749acb99321a7ec3ea9c00487081a9131676868722",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_task_voice",
+      "executable": "target/debug/deps/gate4_vapi_task_voice-7b8a5cf827e4ac09",
+      "binary_sha256": "7840b4c1ad67a864320a214d31d2b0634f641f028de883043bc334ae20e234d2",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate4_vapi_task_voice.log",
+      "log_sha256": "120b6c857ea7df1c34297c13bf4f03f34bc9d6bc82786bd0b21b7d95006e4585",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_call_bootstrap",
+      "executable": "target/debug/deps/gate4_vapi_call_bootstrap-12fcf298f7d52d02",
+      "binary_sha256": "6d8f1715317088d72b42997dbb91dc328c32b7d7eae285fdafc131ae970c5b9d",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate4_vapi_call_bootstrap.log",
+      "log_sha256": "94aaa17514928bef6cb60e4f748d29ac5175cdb8935fa2995a7425d6f0e3327a",
+      "passed": 2
+    },
+    {
+      "test": "gate4_vapi_bootstrap",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap-8b551be9e6e9963d",
+      "binary_sha256": "70e15a6f739be599990bb2a9cae0c8b596b5602bd13d86278d0bda6de8f8bcd8",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate4_vapi_bootstrap.log",
+      "log_sha256": "99bb204da5391c1eb9890267f5c2237725e0facefd08567c692a1aa2ec9875e2",
+      "passed": 2
+    },
+    {
+      "test": "gate4_vapi_bootstrap_denials",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap_denials-40885baa99c8da5f",
+      "binary_sha256": "9677fb5898b5f76d9b061992a066e2615b5fe91ad88388d29f1e813029c8fce8",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate4_vapi_bootstrap_denials.log",
+      "log_sha256": "cf84c8da20357950a9d39e704b0b517fe57f058f674c6743de3e6d91916016ae",
+      "passed": 3
+    },
+    {
+      "test": "gate4_vapi_bootstrap_preparation",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap_preparation-5386eb276c82dcfc",
+      "binary_sha256": "6b309f5190cb60a63d8bf6115b0e174bfbc2f41e998611b00f5fadb6bd5d8c8c",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate4_vapi_bootstrap_preparation.log",
+      "log_sha256": "72966441fd64bb2f543cd2332ea6cee9c2b43c2be0308f4e8cec8afee43b3e4d",
+      "passed": 1
+    },
+    {
+      "test": "gate4_vapi_bootstrap_races",
+      "executable": "target/debug/deps/gate4_vapi_bootstrap_races-702270b042fd1b89",
+      "binary_sha256": "86b1032c80843d054983a8f08bdf81730389d3d8f0df34ba322c8056c9b35966",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate4_vapi_bootstrap_races.log",
+      "log_sha256": "ce34e59fbe716cd330d12cc7d594901f3424792404f71d4a5e8978d63ed49e5b",
+      "passed": 2
+    },
+    {
+      "test": "gate3_vapi_media",
+      "executable": "target/debug/deps/gate3_vapi_media-cbd31213cb13372f",
+      "binary_sha256": "f9228d932af9869efb8ad6b27abd5ccdbccdc5a92af4ebc85bec78a813596d4a",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate3_vapi_media.log",
+      "log_sha256": "922f33a93f3ae64a8f96702328541e2d8e5514e64514883800b7c5dd920970ab",
+      "passed": 1
+    },
+    {
+      "test": "gate3_vapi_queue",
+      "executable": "target/debug/deps/gate3_vapi_queue-fa0a31e540c13fdd",
+      "binary_sha256": "4c3b1445ad70fbc5e63e87e90b631f61a5e834ea3ecfba65ee77276126d5dc09",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate3_vapi_queue.log",
+      "log_sha256": "e91a7b7030c19f71c9ab84e8a74c794063eb3fb3041c7089e68f7311cde27963",
+      "passed": 2
+    },
+    {
+      "test": "gate3_sip_media",
+      "executable": "target/debug/deps/gate3_sip_media-dd6049be5962d03b",
+      "binary_sha256": "f1e2c0cae8718313b9f097fcb9e97e95e9eb1406271f07c7a2c67a0505b5e4d6",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate3_sip_media.log",
+      "log_sha256": "fe12173040e7d3f5cea928d45cd0e2a33a36173baf107d9ef32ac2b7890a7f71",
+      "passed": 3
+    },
+    {
+      "test": "gate3_webrtc_media",
+      "executable": "target/debug/deps/gate3_webrtc_media-b50e182c1e8c83ff",
+      "binary_sha256": "81eaf708ff4dcb3a4e550c8a487b50e2397e9e83b509780234197764630996b6",
+      "exit_code": 0,
+      "log": ".local/gate-4-planning/vapi-call-bootstrap-qa-gate3_webrtc_media.log",
+      "log_sha256": "1211b6e3c2bae22b15b72d098e004b9591e8e47f982798c3fb5843ebeb15b756",
+      "passed": 1
+    }
+  ],
+  "integration_summary": "19 tests across 11 actual Cargo-built artifacts; 0 failures and 0 ignores. Bounded parallel isolated process execution.",
+  "verified_behavior": [
+    "Real first-call MCP discovery and useful recall/send run before paused call-creation receipt; identical tool replay creates one message tied to the original task.",
+    "Actual rvoip call bridge carries bidirectional native QUIC audio and records final transcript provenance in the same persistent conversation; voice ends without cancelling the task.",
+    "Task cancellation after provider dispatch but before receipt denies the first callback and context export, without redispatch or durable mutation from the denied callback.",
+    "Five Store cases cover one admission, revoked source, foreign task and widened scope, expired intent, changed route, cancellation, failed-write rollback, competing connections, restart and expiry during lock contention.",
+    "Two auxiliary MCP listeners drain while primary readiness and its actual socket remain available; existing primary lifecycle and occupied-port recovery checks pass.",
+    "Prior native Vapi, saturated audio/teardown, inbound/outbound SIP terminal cases and WebRTC audio regressions pass."
+  ],
+  "review": {
+    "crate_responsibilities": "Store owns current transactional admission; Service owns async access; Server owns protected composition/private intent/listener lifecycle; connector owns private provider proof; rvoip owns REST/media/paired termination.",
+    "new_module_lines": {
+      "crates/connect-server/src/vapi_bootstrap/call.rs": 83,
+      "crates/connect-server/src/vapi_bootstrap/dispatch.rs": 46,
+      "crates/connect-server/src/vapi_bootstrap/media.rs": 99,
+      "crates/connect-store/src/tasks/media_setup.rs": 131
+    },
+    "public_rustdoc": "Current strict affected Rustdoc passes. APIs are protected composition and cannot be selected through model tool schemas.",
+    "upstream_change": "Opt-in final-dispatch hook only; original call behavior is verified with no hook. Tracked patch/source-lock digest and prepared checkout verify reproducibly.",
+    "database": "Existing physical-call journal used with namespaced provider-call resource keys; no migration or production database change.",
+    "source_snapshot": "All 25 recorded inputs unchanged after final checks."
+  }
+}

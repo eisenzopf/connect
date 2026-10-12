@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T13:30:10.746899+00:00",
+  "status": "passed",
+  "scope": "Separately authorized actual Vapi text chat/model through the optional provider-bound scoped MCP mode on the installed current macOS arm64 candidate; no remote Connect deployment.",
+  "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "runtime_binary_sha256": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+  "runtime_manifest_sha256": "15485b312ad2b6b5a84c15fcb01c3db3fb4556c75e07cb827333e30d936c31ff",
+  "passed_installed_package_report_sha256": "e7f11d3a886cf8b811f02779b6defbab2ad6bac0a12942d2a3a92b826660083a",
+  "harness_sha256": {
+    "run-vapi-chat.py": "521a5787e802aa2acaa6a96e4070ffb9a9694337c9c2a9aaa6aa1ebf602ff81e",
+    "provider-request.py": "43fb03fce5507c365e3c8c36fd07d2e8336d76132524c383e51194543b455288",
+    "relay.py": "f22d992f9bf447d740574875d3697efed10f06e3aba59ff487c514921be9b607",
+    "readiness-probe.py": "8887158c3cdb43abb53a9816e02de6b3eb16ae267c5837924c5565945deda75f",
+    "dns-resolve.py": "e168c89616912853e55bdc3eaf781c3df9e2b0cb7aecf8403b4cedc56616723a"
+  },
+  "shared_helper_sha256": "b9676197859f8eaa5f07a52d59340b3f10ddd8a70f14381a1e9f50966280fb8b",
+  "installed_presence_prompt_sha256": "65e6afe1cd1cc630228de5e8f617e0705edfbafc6cbec705fdb9afa34391d3f4",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "actual_mcp": {
+    "protocol_versions": [
+      "2025-11-25"
+    ],
+    "discovered_tools": [
+      "connect_task_status",
+      "connect_recall",
+      "connect_task_wait",
+      "connect_effect_status",
+      "connect_send",
+      "connect_history",
+      "connect_context_view"
+    ],
+    "tool_calls": {
+      "passed": 3,
+      "failed": 0,
+      "names": [
+        "connect_task_status",
+        "connect_recall",
+        "connect_send"
+      ],
+      "errors": []
+    },
+    "all_initialize_responses_delivered_current_shared_instructions": true,
+    "raw_optional_scoped_results": [
+      "record",
+      "recall",
+      "tool"
+    ],
+    "native_identity_outcome_wrapper_not_assumed_for_scoped_mode": true
+  },
+  "observed_behavior": {
+    "actual_provider_chat_verified": true,
+    "model_prompt_omits_exact_seed_note_and_access_code": true,
+    "status_recall_send_order": true,
+    "raw_scoped_envelopes": true,
+    "source_id_cited": true,
+    "summary_retains_exact_facts": true,
+    "persisted_request_step_matched": true,
+    "one_native_visible_effect": true,
+    "native_history_exact_message": true,
+    "independent_effect_succeeded": true,
+    "independent_effect_exact_original_intent": true,
+    "independent_effect_exact_receipt": true,
+    "all_initialized_instructions_current": true,
+    "no_tool_errors": true,
+    "current_task_authenticated_meta": true
+  },
+  "correlation": {
+    "provider_session_and_bootstrap_nonce_independently_verified": true,
+    "each_actual_call_had_authorization_and_exact_session_chat_headers": true,
+    "original_logical_request_and_step_preserved": true,
+    "one_source_cited_useful_send": 1,
+    "one_public_native_visible_message_and_one_succeeded_effect": true
+  },
+  "operator_ingress_preparation": {
+    "dns_settle_budget_seconds": 180,
+    "observed_dns_settle_seconds": 80.05717683304101,
+    "dns_observations": 17,
+    "prior_invocation_exists": false,
+    "boundary": "Operator ingress preparation occurs before provider session/grant creation. This wait does not relax product task/tool/chat deadlines.",
+    "post_bootstrap_backend_ready_probe_count": 1,
+    "backend_401_independently_matched_public_probe_and_relay": true,
+    "ingress_probe_tool_count_contribution": 0
+  },
+  "unchanged_budgets_seconds": {
+    "overall": 650,
+    "cleanup": 180,
+    "provider_request": 40,
+    "provider_grant_lifetime": 290,
+    "post_bootstrap_ingress_readiness": 60
+  },
+  "cleanup": {
+    "new_task_cancelled_through_public_native_sdk": true,
+    "independently_verified_new_chat_delete_http_status": 200,
+    "independently_verified_new_session_delete_http_status": 200,
+    "independently_verified_new_assistant_delete_http_status": 200,
+    "all_owned_process_groups_stopped": true,
+    "failures": 0,
+    "unresolved_provider_acceptance": 0,
+    "original_assistant_canonical_hash_unchanged": true,
+    "original_server_and_tunnel_process_metadata_unchanged": true,
+    "no_sms_phone_trunk_routing_or_original_assistant_changes": true
+  },
+  "retained_failed_attempts": [
+    {
+      "attempt": "vapi-model-20261012T125328.208990Z",
+      "status": "failed",
+      "failure_label": "model-schema-errors-counted-failed-not-passes",
+      "meaning": "Actual chat accepted and independently read, but zero MCP calls; required model behavior failed. DNS cause for that attempt remains an inference.",
+      "result_sha256": "5dcffb82079e36898c3641bd21fedd789ad430fc78fa05c90b3e99fd2a71d454",
+      "cleanup_failures": 0,
+      "unresolved_acceptance": 0,
+      "original_resources_preserved": true
+    },
+    {
+      "attempt": "vapi-model-20261012T131107.082650Z",
+      "status": "failed",
+      "failure_label": "public-backend-readiness-probe-limit",
+      "meaning": "DNS-only readiness failure before any model Chat POST; twelve rapid resolver failures exhausted the cap.",
+      "result_sha256": "6bcae4c180bc6cfc8fe507860ff3d68fe9fc8c7759342141ee668035a233dd26",
+      "cleanup_failures": 0,
+      "unresolved_acceptance": 0,
+      "original_resources_preserved": true
+    },
+    {
+      "attempt": "vapi-model-20261012T131549.526034Z",
+      "status": "failed",
+      "failure_label": "public-backend-readiness-probe-limit",
+      "meaning": "DNS-only readiness failure before any model Chat POST; all twelve paced observations failed to resolve within the readiness window.",
+      "result_sha256": "5c113262558c81bf3a7e798a248727404c5c0dbac714de32ab5b0052ad58d743",
+      "cleanup_failures": 0,
+      "unresolved_acceptance": 0,
+      "original_resources_preserved": true
+    }
+  ],
+  "private_report_location": "managed final-review worktree: .local/gate4-agent-access/vapi-model-20261012T132339.128528Z/result.json",
+  "private_report_sha256": "d7c58058867d087f84ec219400c1644aa946b9b48f2f7a48e3f60a8e65b9dfd7",
+  "private_raw_review_sha256": "132a3caccef89ba9f9ba86f60e11bcd402099fd798a0bc9e22f58abe2fb7a899",
+  "private_evidence_sha256": {
+    "actual-model-chat-response.json": "fa2904179a2e6844a202eda076c226e3adcce3a352bd827d128241f1f89e1e55",
+    "actual-model-chat-verified-response.json": "f9b1ba6b518fbdb6af3113d23317785731f6cada0a4367248f32fc02512bcccb",
+    "model-turn-intent.json": "c5b6b706e87e0d2c733a6c8864bec6ee7e14fe272fc2f19f09c618979dc161e2",
+    "source-receipt.json": "7e8a57b2e768a8a1b7f76452793cf827e7e8d228236e5c1144691383d8d0099d",
+    "actual-tool-calls-private.json": "75c683a7b8bc759917f0a3367f8d92257faeb155a67018cec69c7292c4c1be7c",
+    "mcp-private.jsonl": "9ca171b3cf5ddd2366a051eeabcd11d4501824fdb26e545a8873b7c723ab3044",
+    "after-model-history.json": "23c56d627d5fb015f263c197a32133927a2b02358d6c460eb984d448fe572871",
+    "after-model-task-journal.json": "0fa63803e03804f4d22cba16fd9475e34aad7a222fe1b0bf9c85f8dc5968d9c1",
+    "after-model-effect.json": "5d49ead61fc1073aeea7f8d7fb97984c2d2e23406dedf33e2cab7e8f9494f15a",
+    "operator-ingress-dns.json": "3bfed218f3e9c61c3a50fa1104e7c441505cf838ca5f45f0212f00ab09261740",
+    "ingress-readiness.json": "3a0f9d1c4cef0aef18fe1aaf68704bfee51a203e0893e7198118ff11e03c1142",
+    "cleanup-task.json": "f9b830566d09303a17c4ae98d449711a3f39eecad7a9c84fe5324b6c8a20102e",
+    "cleanup-temporary-chat-response.json": "a353df5bc0ca5a2039f58d22fdbc8e9ef9e75e724cd68dae5cf41cc8c0c36df6",
+    "cleanup-temporary-session-response.json": "f1b6e46e416a6950a69e7a05da43061b3f725efadb324078e1888ae6ed226b65",
+    "cleanup-temporary-assistant-response.json": "7f0bcc1d8088afa7b347929ed1a0d8a07808df18f5cc13ef7680082761b5b9b3",
+    "original-assistant-before-response.json": "b766215b78623ebbd514481c10d2f261fbc4394c0800366230bce3cdce2c9a9b",
+    "original-assistant-after-response.json": "b766215b78623ebbd514481c10d2f261fbc4394c0800366230bce3cdce2c9a9b"
+  },
+  "all_private_result_recorded_file_digests_verified": true,
+  "evidence_boundary": [
+    "This fresh current-source proof qualifies actual Vapi text MCP discovery, current shared instructions/handler, source recall and one visible native effect in the optional provider-bound scoped mode.",
+    "The installed normal identity-key model journey is independently qualified elsewhere; this Vapi proof does not substitute for it.",
+    "Historical Vapi voice 596e9b7 and live SMS 9abf38f remain separate exact-source component evidence. This text run does not claim new physical voice/SMS execution or a common revision for all historical proof.",
+    "No tracked product/source changes, product deadline changes, provider routing changes, public release or remote deployment were made by this qualification."
+  ]
+}

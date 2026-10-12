@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T10:28:55.280937+00:00",
+  "status": "local admission and endpoint lifecycle qualified; full G4-030 remains in progress",
+  "items": [
+    "G4-030"
+  ],
+  "source_base": "e509edcfbe31da2c5ce00abc9469aa9e69adf2ee",
+  "source_fingerprint": {
+    "files": 703,
+    "sha256": "e99fdef57c7f0d4398fb233822cea604c7a615414018baf4a9383e648ce8fca2",
+    "recipe": "SHA256 of compact sorted JSON path-to-SHA256 map for git cached and nonignored untracked regular files excluding docs/. Generated upstream inputs are covered by source-lock and tracked patches."
+  },
+  "source_delta_sha256": {
+    "crates/connect-mcp/README.md": "96c63d47308f3568f4abc3cb5dc4c700d6cf09139fec233e78aa09ff4cbbd359",
+    "crates/connect-mcp/src/capacity.rs": "0e437ef551f2ea092ac10a3397658071551e37767fd4f2edad8b72c4915c79ae",
+    "crates/connect-mcp/src/capacity_tests.rs": "20f52131a4b575ee965a0c59e015c6032d565d835f933b98967d8d3b57846eaf",
+    "crates/connect-mcp/src/lib.rs": "1a02d8ea6e52e04775d5be0f0b1de313986bc734daabffed834cdd52670aa4e2",
+    "crates/connect-mcp/src/listener.rs": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
+    "crates/connect-server/src/media_lifecycle.rs": "5c1da91a036ae49d3a783040db3c7905fc00cc31fca57b5066e15e18fd5c8537",
+    "crates/connect-server/src/runtime.rs": "05b0b1d83a4ba40c09929c18a799fa735f4d5af87ec7489433ff19aba635c518",
+    "crates/connect-server/src/vapi_bootstrap/media.rs": "a1cc8b18e5dbbe9a4591a79a8e1b31f2e2799ed81b83602cc898b4c7c32c4269",
+    "crates/connect-server/src/vapi_media.rs": "15a68f830e62ec4884a4e016dd976c98b00adefb2a1f47fb25ec6d5ab5fccbb0",
+    "crates/connect-server/tests/gate4_mcp_capacity.rs": "4c70e0c9b30b3c3f8aee0fe4f8f8d662ecaf5236650a34f8fa1664128823611b",
+    "crates/connect-server/tests/gate4_vapi_call_bootstrap.rs": "0bd2cd38d249e5e832a5b08358186cdff746607f4812dbfcb4ba3e6cd0b93227",
+    "crates/connect-server/tests/gate4_vapi_setup_capacity.rs": "b89663cd2ebc599fdc3ce59a0b5ce83279079133736409df7955afd01526b744"
+  },
+  "behavior": [
+    "One RunningServer capacity pool covers primary and protected Vapi task endpoints: 32 simultaneous admissions and 32 starting/live listeners.",
+    "Excess listener admission fails before bind/setup intent; excess request admission returns 503 before authentication without queueing.",
+    "Owned accept futures retain listener permits through cancellation until exit. Failed binds and completed shutdown return permits.",
+    "Call end and original setup expiry close callback listeners. Private recovery intent and durable task/conversation state remain.",
+    "Closed setup markers prevent restaging or silently falling back to an ordinary call without original task tools.",
+    "MCP request/body/authentication/tool/drain budgets and task authorization are unchanged."
+  ],
+  "qualification": {
+    "status": "passed for the shared admission and endpoint lifecycle component",
+    "unique_targeted_passed": 16,
+    "failed_in_qualified_cases": 0,
+    "ignored_in_qualified_cases": 0,
+    "runs": [
+      {
+        "log": ".local/gate-4-planning/mcp-shared-unit.log",
+        "sha256": "2a589c1d9468ae4094f1308dea8488e3e88a9ebff5b491e67807b9a58d190e9f",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "exit_code": 0,
+        "command": "cargo test --locked -p connect-mcp --lib",
+        "source_scope": "MCP production and test code unchanged since unit run; README prose was updated before final server qualification."
+      },
+      {
+        "log": ".local/gate-4-planning/mcp-shared-server-final.log",
+        "sha256": "878e5cc986064af3f4f804c7da59b0cc5093d6e2ac493cd73338fa3748fd1a35",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "included_targets": [
+          "gate4_mcp_capacity",
+          "gate4_mcp_runtime",
+          "gate4_vapi_call_bootstrap",
+          "gate4_vapi_call_isolation",
+          "gate4_vapi_post_call"
+        ],
+        "source_scope": "These five passing binaries have unchanged production and fixture inputs. The full command exited 101 for the separate setup-capacity fixture, retained above. Its two cases are superseded by the final three-check run; that earlier overload pass is not counted twice."
+      },
+      {
+        "log": ".local/gate-4-planning/mcp-shared-server-qualified.log",
+        "sha256": "6de712997bb670ddf8df4822a4a82c7aa4d05683cfa2ccc9b0947a487d8f5173",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "exit_code": 0,
+        "command": "cargo test --locked -p connect-server --features test-support --test gate4_vapi_setup_capacity --test gate4_vapi_task_voice -- --test-threads=1"
+      }
+    ],
+    "quality": {
+      "clippy-qualified": {
+        "command": "cargo clippy --locked -p connect-mcp -p connect-server --all-targets --all-features -- -D warnings",
+        "exit_code": 0,
+        "log": ".local/gate-4-planning/mcp-shared-clippy-qualified.log",
+        "sha256": "0986e36a228570afe93bbf57b8ee908f4a5b275820982ea4b28fd4631deb5780"
+      },
+      "rustdoc-qualified": {
+        "command": "RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-mcp -p connect-server --all-features --no-deps",
+        "exit_code": 0,
+        "log": ".local/gate-4-planning/mcp-shared-rustdoc-qualified.log",
+        "sha256": "cc8f4a61b8cd171b044dbdb3cc89e713b7336f7ee4398a2c267cff827ecaac68"
+      },
+      "format-qualified": {
+        "command": "bash scripts/format.sh --check",
+        "exit_code": 0,
+        "log": ".local/gate-4-planning/mcp-shared-format-qualified.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/mcp-shared-server.log",
+      "exit_code": 101,
+      "passed": 5,
+      "failed": 1,
+      "finding": "Intermediate build removed the setup after call end and allowed the same session to be prepared again. Existing bootstrap regression rejected that behavior.",
+      "correction": "Retain closed setup metadata, deny options from a closed endpoint, and retain the duplicate-setup regression. Current final-source qualification is running.",
+      "sha256": "81ca4317a78b3f0ebddbd61e81d15a886a6b1d1b2952991fdc48263447a18ae1"
+    },
+    {
+      "log": ".local/gate-4-planning/mcp-shared-server-final.log",
+      "exit_code": 101,
+      "passed": 9,
+      "failed": 1,
+      "finding": "Current runtime passes shared admission, startup, voice callback, call isolation, post-call context and setup overload. The idle-expiry fixture passes closure, unchanged state and duplicate denial, then times out rereading the task on its existing native connection. The remaining task-voice binary was not run.",
+      "sha256": "878e5cc986064af3f4f804c7da59b0cc5093d6e2ac493cd73338fa3748fd1a35"
+    },
+    {
+      "log": ".local/gate-4-planning/mcp-shared-expiry-diagnosis.log",
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "finding": "The unchanged isolated expiry fixture passes in 20.37 seconds. Its original native reread timeout cause is not independently established. The fixture now reuses one provider client, built on a blocking worker before native connections open, instead of constructing a second client within its idle interval. No production code or deadline changed.",
+      "sha256": "11d1ccc4f9ade3035bc28cc8f1e978394738711e5113ccb850189662af22554b"
+    }
+  ],
+  "limits": [
+    "Local macOS arm64, account-free loopback provider fixtures only; no live accounts, public ingress, remote deployment or production data operations.",
+    "This is admission/lifecycle evidence, not whole G4-030 throughput, memory, retained-metadata or all frozen task-limit qualification.",
+    "Closed setup metadata remains until server shutdown. Its steady-state retention measurement remains open.",
+    "Independent embedders must share McpCapacity; RunningMcp start_local conveniences create independent pools.",
+    "Existing macOS debug compact-unwind linker warning retained in test build logs.",
+    "The earlier native task-reread timeout passed unchanged in isolation; its original cause was not independently established. The final fixture preserves that native assertion and all deadlines while reusing a provider client prepared before control connections."
+  ],
+  "review": [
+    "Shared capacity is owned by RunningServer and passed unchanged to both primary and protected voice endpoints; standalone embedding conveniences explicitly document independent pools.",
+    "RAII listener permits live inside the owned accept future, including abort-before-first-poll and cancelled shutdown; request permits remain in the existing bounded middleware.",
+    "Expiry scans use skipped interval ticks and parallel drain of active expired endpoints. Current task authority remains enforced on every invocation.",
+    "Closed setup records remain in the session map and reject options, preventing the interim removal/fallback regression. No durable task, conversation, intent or credential is deleted.",
+    "New capacity production module is 54 lines and tests are separate. Existing Vapi media module remains 228 lines; no new crate boundary or database access in MCP."
+  ],
+  "related_prior_evidence": [
+    "docs/evidence/gate-4/native-helper-errors.json",
+    "docs/evidence/gate-4/codex-process-cleanup.json"
+  ],
+  "acceptance_mapping": [
+    "A4-13"
+  ],
+  "platform": {
+    "system": "Darwin arm64",
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "1.97.1 (c980f4866 2026-06-30)"
+  }
+}

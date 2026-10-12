@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "gate": 3,
+  "status": "reopened-media-budget-audit",
+  "recorded_at": "2026-10-09T21:26:44.728558+00:00",
+  "scope": "Local macOS arm64 completion audit in progress. Prior installed/live candidate proofs are historical.",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a24631ad9d50",
+  "source_revision": "a24631ad9d503d296f7b068ba9d9c2b847e8e737",
+  "runtime_binary_sha256": "3e021759483970d0f0c32746ecf3d5eac2e81fba3812c1aeeab847fa3fc2c396",
+  "acceptance": [
+    {
+      "id": "A3-01",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "decisions/006-gate-3-contracts.html"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-02",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "decisions/006-gate-3-contracts.html"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-03",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/native-live.json",
+        "decisions/007-gate-3-media-profile.html",
+        "evidence/gate-3/native-final.json",
+        "evidence/gate-3/autonomous-native.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-04",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-05",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/pstn-live.json",
+        "evidence/gate-3/autonomous-pstn.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-06",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/browser-final.json",
+        "evidence/gate-3/autonomous-browser.json",
+        "evidence/gate-3/browser-owner.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-07",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-08",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-09",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-10",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/autonomous-continuity.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-11",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/baseline.json",
+        "evidence/gate-3/package.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-12",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/package.json"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    },
+    {
+      "id": "A3-13",
+      "status": "partial",
+      "evidence": [
+        "evidence/gate-3/baseline.json",
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/package.json",
+        "evidence/gate-3/live.json",
+        "evidence/gate-3/regression.json",
+        "evidence/gate-3/result.json",
+        "evidence/gate-3/acceptance.html"
+      ],
+      "prior_status": "passed",
+      "audit_note": "Earlier proofs are retained; changed queue profile qualification is pending."
+    }
+  ],
+  "required_passed": 0,
+  "required_failed": 0,
+  "required_skipped": 0,
+  "implementation": "../../connect-gate-3-implementation.html",
+  "offline_phases": 25,
+  "baseline_phases": 19,
+  "installed_checks": 10,
+  "sdk_tests": {
+    "typescript": 34,
+    "python": 14
+  },
+  "code_review": {
+    "reviewed": [
+      "Protocol/store/service/client/server ownership and the disposable rvoip projection.",
+      "Current authorization before mutation receipt replay; conflicting logical IDs; ambiguous inbound routing and revocation.",
+      "Observer cancellation, bounded teardown/draining, SDK input ownership and reliable terminal media events.",
+      "Artifact quotas, digest verification, consistent database/blob backup, migration and hard-kill replay.",
+      "Pinned upstream patches, source-lock digests, package inventory/licenses and public SDK examples."
+    ],
+    "quality_evidence": [
+      "local.json",
+      "regression.json",
+      "package.json",
+      "media-profile.json"
+    ],
+    "maintainability": "Central operation/CLI/type facades are larger than focused media modules; the largest production file is the 733-line atomic store dispatcher. That transaction boundary was reviewed explicitly. Further splitting is a maintainability choice, not a claim that every file is small or that community review has already accepted the code."
+  },
+  "known_limits": [
+    "Local macOS arm64 only. Chrome uses loopback host/host UDP ICE; telephone tests use the recorded Telnyx registration/NAT path and owned receivers. WAN/TURN, mobile devices, arbitrary carriers and audio hardware are not qualified.",
+    "Model context has a 32 KiB item budget. Older sources remain in authorized history with explicit omission counts; automatic summaries and pinned-fact retrieval are future decisions.",
+    "The three required spoken decisions were recalled exactly after restart. A supplemental written-code assertion returned courts harbor instead of Quartz Harbor, following a phonetic telephone transcript. The original draft and transcript remain separate sources.",
+    "The first inbound attempt after a long idle/sleep period failed before answer. Fresh registration and a later idle-period retest succeeded; the original cause remains unproven.",
+    "Live SMS remains deferred pending carrier approval. MCP/skill, another assistant, task resumption, video and the complete v0.1 release remain assigned to later gates."
+  ],
+  "preserved_failures": [
+    "Earlier provider chat input strategies rejected or ignored history; corrected prompt-variable path qualified.",
+    "Initial browser signaling race/cleanup and restricted route credential failures were fixed and retested.",
+    "Initial inbound before fresh registration and the earlier handset 603 rejection remain failures.",
+    "Early telephone receiver interruption and third-answer truncation are not three-turn passes; the tuned bounded receiver passed.",
+    "Two large provider HTTP reads failed before remote-end submission; explicit cleanup and a documented filtered read produced a passed installed-client remote-end test.",
+    "Concurrent Gate 2 debug init exceeded its deadline; isolated unchanged-source regression passed.",
+    "The supplemental exact written-code spelling assertion remains failed; all three required voice decisions passed.",
+    "The first documentation-bundle build collided with an existing directory before creating archives. A corrected clean revision built and passed all 10 installed checks."
+  ],
+  "evidence": {
+    "local": "local.json",
+    "live": "live.json",
+    "package": "package.json",
+    "regression": "regression.json",
+    "continuity": "autonomous-continuity.json",
+    "media_profile": "media-profile.json",
+    "distribution_equivalence": "distribution-equivalence.json",
+    "documentation": "document-review.json"
+  },
+  "no_remote_deployment": true,
+  "original_databases_preserved": true,
+  "review_before_community_publication": true,
+  "completed_tasks": 21,
+  "total_tasks": 35,
+  "primary_live_source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "completion_audit_gap": {
+    "finding": "Production Vapi/QUIC/media-graph queue defaults exceed the frozen 200 ms queued-audio budget; the pressure harness does not actually inject reordered RTP.",
+    "affected_tasks": [
+      "G3-016",
+      "G3-017",
+      "G3-018",
+      "G3-019",
+      "G3-020",
+      "G3-022",
+      "G3-028",
+      "G3-029",
+      "G3-030",
+      "G3-031",
+      "G3-032",
+      "G3-033",
+      "G3-034",
+      "G3-035"
+    ],
+    "disposition": "Fix configuration/necessary pinned interface patches and add actual fault/budget evidence. Preserve thresholds and prior successful evidence."
+  }
+}

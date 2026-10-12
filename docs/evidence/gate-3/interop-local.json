@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "gate": 3,
+  "scope": "Account-free SIP/WebRTC interoperability; local macOS arm64; no provider calls",
+  "recorded_at": "2026-10-09T21:31:14.799319+00:00",
+  "result": "passed",
+  "source_revision": "ecdb2b7235f4ec86b14679adc46d0718e3f719bf",
+  "aggregation": "Indexed subset of the recorded full qualification, not an additional test execution.",
+  "source_evidence": "local.json",
+  "steps": [
+    {
+      "name": "sip-duplex-media",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_sip_media"
+      ],
+      "log": "sip-duplex-media.log",
+      "exit_code": 0,
+      "seconds": 43.85,
+      "result": "passed"
+    },
+    {
+      "name": "sip-registration-lifecycle",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--lib",
+        "sip_registration"
+      ],
+      "log": "sip-registration-lifecycle.log",
+      "exit_code": 0,
+      "seconds": 0.53,
+      "result": "passed"
+    },
+    {
+      "name": "sip-codec-failures",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-sip",
+        "--test",
+        "adapter_renegotiate"
+      ],
+      "log": "sip-codec-failures.log",
+      "exit_code": 0,
+      "seconds": 1.15,
+      "result": "passed"
+    },
+    {
+      "name": "webrtc-duplex-media",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_webrtc_media"
+      ],
+      "log": "webrtc-duplex-media.log",
+      "exit_code": 0,
+      "seconds": 12.48,
+      "result": "passed"
+    },
+    {
+      "name": "webrtc-security",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_webrtc_security"
+      ],
+      "log": "webrtc-security.log",
+      "exit_code": 0,
+      "seconds": 11.11,
+      "result": "passed"
+    },
+    {
+      "name": "sip-webrtc-interop",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_sip_webrtc"
+      ],
+      "log": "sip-webrtc-interop.log",
+      "exit_code": 0,
+      "seconds": 13.8,
+      "result": "passed"
+    }
+  ]
+}

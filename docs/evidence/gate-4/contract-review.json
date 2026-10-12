@@ -1,0 +1,81 @@
+{
+  "scope": "M0 typed contract and design review only; runtime qualification remains open",
+  "updated": "2026-10-10",
+  "checks": {
+    "typed_contracts": {
+      "command": "cargo test --locked --workspace --all-features",
+      "result": "passed",
+      "integration_tests": 15,
+      "existing_unit_tests": 2,
+      "log": ".local/gate-4-planning/effects-workspace.log",
+      "sha256": "3be80012f1950d8fcdf7b10d921b3ffae9162f04682c431f667922e6a37181df"
+    },
+    "strict_clippy": {
+      "command": "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
+      "result": "passed",
+      "log": ".local/gate-4-planning/effects-final-clippy.log",
+      "sha256": "e45b1e8e321fc26952d11cc28d3c309b08bf267db60dfec533b27ba1ed1528b1"
+    },
+    "rustdoc": {
+      "command": "RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-protocol -p connect-store -p connect-service --no-deps",
+      "result": "passed",
+      "log": ".local/gate-4-planning/effects-final-rustdoc.log",
+      "sha256": "7ec404b4e62abed0a07c2389dfa395a1591dccdda4ef3cdd873f09b4057c571d"
+    }
+  },
+  "design_review": [
+    "All seven task states and six effect states exhaustively checked",
+    "Unknown ownership/binding/admin fields and wildcards rejected",
+    "Nested delegated mutations preserve one logical ID; nondelegatable admin denied",
+    "Grants and tool waits are explicitly bounded; provider correlation is never authority",
+    "Current-authorized replay and two-task isolation require store/service checks",
+    "Grant refresh remains protected composition; model cannot self-renew",
+    "Legacy source timestamps remain explicit instead of fabricated",
+    "Native Reply uses current sender send authority and a verified question reference; model cannot choose task owner. Runtime reply admission remains G4-009.",
+    "Explicit Send wait_for_reply defaults false; only its own attributed answer completes the wait.",
+    "Claim, ClaimGet and ReleaseClaim use owner scopes, bounded CAS leases and immutable replay expiry; narrow model grants cannot claim.",
+    "Known effect errors are additive optional fields; legacy effects without protected metadata cannot fabricate success."
+  ],
+  "runtime_check_mapping": {
+    "T-A1": "G4-008/009/029: two-task scope, reply, cursor and effect contrast",
+    "T-A2": "G4-008/012/019/029: current backing authority, grants, provider binding and replay",
+    "T-A3": "G4-009/010/015/029: transactional inbox/effect and app crash boundaries",
+    "T-A4": "G4-009/029: explicit assignment and duplicate/reordered replies",
+    "T-A5": "G4-011/029: bounded old-source recall and unavailable source/cursor denials",
+    "T-A6": "G4-027/034: actual voice end, restart and approved-channel continuation",
+    "T-A7": "G4-012/028/029/034: SMS reviewed eligibility and STOP/START replay",
+    "T-A8": "G4-017/023/029: bounded pending tool and actual host resume"
+  },
+  "review_limits": "Typed fixture checks do not prove actual MCP, provider or host behavior. Store/service checkpoint evidence is separate; full Gate 4 acceptance remains open.",
+  "contract_revision": 3,
+  "previous_checks": [
+    {
+      "contract_revision": 2,
+      "updated": "2026-10-09",
+      "checks": {
+        "typed_contracts": {
+          "command": "cargo test --locked -p connect-protocol",
+          "result": "passed",
+          "integration_tests": 12,
+          "existing_unit_tests": 2,
+          "log": ".local/gate-4-planning/protocol-tests.log",
+          "sha256": "bd7de45c794eb6b9142ae0ac946796947fbd12d01797601b5b6e5d28f357e5dd"
+        },
+        "strict_clippy": {
+          "command": "cargo clippy --locked -p connect-protocol --all-targets -- -D warnings",
+          "result": "passed",
+          "log": ".local/gate-4-planning/protocol-clippy.log",
+          "sha256": "f58cbb42f2755d44c9a345744a3a521e7e8d11042d5bc655694bf48e2396dd1b"
+        },
+        "rustdoc": {
+          "command": "RUSTDOCFLAGS=\"-D warnings\" cargo doc --locked -p connect-protocol --no-deps",
+          "result": "passed",
+          "log": ".local/gate-4-planning/protocol-doc.log",
+          "sha256": "73dfff38e6414570baca42b136363e843ab6b5c64e31ddb68391c6dea4476374"
+        }
+      }
+    }
+  ],
+  "source_fingerprint": "cda9bf63590d60590495fdf7c0c791314abe0c6439a623f34aaa002550cdbe40",
+  "checkpoint_evidence": "docs/evidence/gate-4/task-effects-foundation.json"
+}

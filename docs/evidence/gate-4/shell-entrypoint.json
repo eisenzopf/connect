@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "scope": "Shell syntax, argument/output equivalence and error forwarding; no qualification phases executed",
+  "script_sha256": "ebb6d3b44d4172246a1c8ec73fb5a7399a6405887a740a4a8ef1436596768c31",
+  "checks": [
+    {
+      "arguments": [
+        "--list"
+      ],
+      "phases": 41,
+      "identical": true
+    },
+    {
+      "arguments": [
+        "--source-only",
+        "--list"
+      ],
+      "phases": 38,
+      "identical": true
+    }
+  ],
+  "invalid_argument_exit_code": 2,
+  "schema": 1,
+  "source_base": "5ca27f8",
+  "python_runner_sha256": "2309b97558c2e9ab4b6551d8e2fa7da4cbbc6d774c1569c9e8e4e2cde27e20b6",
+  "boundary": "The new shell file delegates to the unchanged Python runner. Its syntax, complete/source-only phase listing equivalence from another working directory and invalid-option exit forwarding passed. The concurrent full run at d47be55 invokes Python directly and does not include this subsequently added shell file. No full-run pass is inferred."
+}

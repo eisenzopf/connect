@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T13:54:41.667324+00:00",
+  "items": [
+    "G4-025",
+    "G4-031"
+  ],
+  "source_revision": "2c9948f",
+  "status": "local overlapping-draft component qualified with actual runtime and clean owned-process teardown",
+  "scope": "local macOS arm64; installed Codex with scripted loopback Responses and empty account roots",
+  "runtime_qualification": ".local/gate-4-planning/draft-2c9948f/result.json",
+  "verification": [
+    {
+      "name": "Runner failure and required-host coverage checks",
+      "path": ".local/gate-4-planning/codex-draft-runner-tests.log",
+      "sha256": "65d0a441e1540dcd813896ca915090c36d6766ae101ed9aa47167d7112d11468",
+      "exit_code": 0,
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "name": "Pinned dependency preparation",
+      "path": ".local/gate-4-planning/codex-draft-prepare.log",
+      "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+      "exit_code": 0
+    },
+    {
+      "name": "Repository formatting",
+      "path": ".local/gate-4-planning/codex-draft-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    }
+  ],
+  "limits": [
+    "The corrected source passes its named draft test and strict Clippy as part of seven actual-runtime checks.",
+    "Scripted Responses are not model inference. Full G4-025 dependencies, provider/installed acceptance and remaining Gate 4 work stay open."
+  ],
+  "runtime_attempt": {
+    "status": "failed",
+    "result": ".local/gate-4-planning/draft-2c9948f/result.json",
+    "sha256": "38fed50353a23a19f4674ffa703f885dac3dc8fb5899ee2d5cbe5a2b8714c80e",
+    "steps": [
+      {
+        "name": "installed-host",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_codex_runtime",
+          "--test",
+          "gate4_codex_call_intent",
+          "--test",
+          "gate4_codex_reply_workflow",
+          "--test",
+          "gate4_codex_packaged_runtime",
+          "--test",
+          "gate4_codex_draft_journey",
+          "--",
+          "--ignored",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1800,
+        "log": "installed-host.log",
+        "status": "failed",
+        "error": "TimeoutError",
+        "detail": "Phase exceeded 1800 seconds",
+        "group_cleanup": "signalled",
+        "seconds": 1800.035
+      }
+    ],
+    "tests_executed": 0,
+    "strict_lint": "not run",
+    "next_action": "Wait for the already active build to finish, then qualify the same source with the unchanged phase budget; do not queue another competing build."
+  },
+  "active_repeat": {
+    "result": ".local/gate-4-planning/draft-2c9948f-repeat/result.json",
+    "status": "finished with seven passing behaviors but failed owned-process cleanup; retained in codex-owned-runtime.json",
+    "budget_seconds": 1800,
+    "started_after": "Prior standalone scoped Clippy completed successfully; original build-lock timeout is retained.",
+    "source_boundary": "Primary source revision 5770f92; non-document source remains the 2c9948f fixture set.",
+    "observation": "Cargo compiled all five host test artifacts in 1m28s and started gate4_codex_call_intent. No runtime pass claimed yet.",
+    "review_issue": "The new draft test imports a shared state helper it does not yet use; strict lint must be corrected and verified. Prefer asserting both saved host task bindings. The existing macOS debug linker warning is also retained."
+  },
+  "qualified_source_revision": "88aec46045aea8aef97ce1e2b88c89fcd56d7e39",
+  "qualification": "docs/evidence/gate-4/codex-owned-runtime.json"
+}

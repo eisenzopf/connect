@@ -1,0 +1,517 @@
+{
+  "schema": "connect.gate4.local-package/1",
+  "recorded_at": "2026-10-12T12:52:34.455370+00:00",
+  "status": "passed17 installed local checks; final model/provider/full regression evidence is separate",
+  "whole_gate_closure_claimed": false,
+  "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9",
+  "candidate_directory": "/Volumes/D2-2019/Developer/Connect/dist/connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9",
+  "persistent_runtime": "/Volumes/D2-2019/Developer/Connect/dist/connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9/connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9",
+  "source_manifest": {
+    "tracked_source_and_docs_files": 1152,
+    "canonical_sha256": "c3a75f8eaccd10bc8ea08af57e7470087436faefbc93e64c6b36b5169872f8fd",
+    "clean_at_start": true,
+    "unchanged_source_docs_and_HEAD_through_build_and_check": true
+  },
+  "binary_sha256": {
+    "connect": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+    "connect-example": "f69bbcd46ac23c3f9f91752fb5625a86183b1baea17fb97f21c868cf25f6d6d4"
+  },
+  "manifest_sha256": "15485b312ad2b6b5a84c15fcb01c3db3fb4556c75e07cb827333e30d936c31ff",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9-qualification.tar.gz": "4e8107ac0d1abd2c3017f827de855fff65ac7a03afc8e821d1714767f7a255db",
+    "connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9-source.tar.gz": "d6cea861ea0651241e7687d4de123cc36075462606e9199f952a17be606403fe",
+    "connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9.tar.gz": "3c094ccebf411a8f95f9a61ac9aa37160264439c833bc269959e6119013de09f"
+  },
+  "checksum_file_sha256": "e6b9dea8bb03cf41a139fbd1c9a6a80bf386458ff27df866cda352df04815fda",
+  "normal_agent_asset_sha256": {
+    "docs/AGENT_ACCESS.md": "f3a8808ec7e0b55a0ce085f508966abf6cd3410609ba9ace26ac1f9d66daf83e",
+    "skills/connect/SKILL.md": "513e86bc97e4030e10f2b9167836197db0f24f8141d47e609f81a46655d7d432",
+    "skills/connect/references/json-cli.md": "77ee0ff398686bb2f5312c9b7c2602c4578f964eac2f6d9e61d98bc119f6f2ce"
+  },
+  "cargo_target_selection": {
+    "target_directory": "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review",
+    "compiled_binary_sha256": {
+      "connect": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+      "connect-example": "f69bbcd46ac23c3f9f91752fb5625a86183b1baea17fb97f21c868cf25f6d6d4"
+    },
+    "packaged_binary_sha256": {
+      "connect": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+      "connect-example": "f69bbcd46ac23c3f9f91752fb5625a86183b1baea17fb97f21c868cf25f6d6d4"
+    },
+    "exact_match": true,
+    "verified_change": "scripts/package-local.py selects the same cargo metadata target_directory used by the explicit CARGO_TARGET_DIR build, instead of assuming the default root/target/release."
+  },
+  "runtime_manifest": {
+    "target": "aarch64-apple-darwin",
+    "version": "0.1.0-alpha.1",
+    "schema": 16,
+    "features": "default; no test-support",
+    "cargo_lock_sha256": "e0c482337cc588131420febd6538ede6a22e09022842d3233912cb83aebc95af",
+    "runtime_files": 1316,
+    "dependency_source_lock_sha256": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b"
+  },
+  "build_report": {
+    "path": ".local/gate-4-final/final-package/20261012T123404.056658Z-build/result.json",
+    "sha256": "87a7b84e59707968b70e723d34793c9ff7a178f4883c27bdbe8aea21172cb754",
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "timeout_seconds": 600,
+        "log": "dependencies.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.238
+      },
+      {
+        "name": "package",
+        "command": [
+          "bash",
+          "scripts/package-local.sh",
+          "--previous-binary",
+          "/Users/jonathaneisenzopf/.codex/worktrees/gate4-final-review/Connect/dist/connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0/qualification/connect-schema1"
+        ],
+        "timeout_seconds": 3600,
+        "log": "package.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 150.535
+      }
+    ],
+    "environment": {
+      "CARGO_TARGET_DIR": "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_INCREMENTAL": "0"
+    }
+  },
+  "check_report": {
+    "path": ".local/gate-4-final/final-package/20261012T123836.155327Z-check/result.json",
+    "sha256": "e456fdcb1ce95ecf1d7228d39bd6bf2ebb533c06eb92dd909186f141263e573f",
+    "steps": [
+      {
+        "name": "installed-package",
+        "command": [
+          "python3",
+          "scripts/check-package.py",
+          "/Volumes/D2-2019/Developer/Connect/dist/connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9",
+          "--codex-binary",
+          "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+        ],
+        "timeout_seconds": 10800,
+        "log": "installed-package.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 473.304
+      }
+    ],
+    "environment": {
+      "CARGO_TARGET_DIR": "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_INCREMENTAL": "0"
+    }
+  },
+  "private_report": ".local/package-checks/20261012T123836.384531Z/result.json",
+  "private_report_sha256": "e7f11d3a886cf8b811f02779b6defbab2ad6bac0a12942d2a3a92b826660083a",
+  "qualification_file_sha256": "e7f11d3a886cf8b811f02779b6defbab2ad6bac0a12942d2a3a92b826660083a",
+  "required_totals": {
+    "passed": 17,
+    "failed": 0,
+    "omitted": 0
+  },
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "first-launch-connect": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-example": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-schema1": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "installed-gate4-agent": {
+      "result": "passed",
+      "detail": "Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback"
+    },
+    "qualification-fixture-build": {
+      "result": "passed",
+      "detail": "Exact extracted source; owned compilation phase; test-only controls isolated from installed runtime binaries"
+    },
+    "first-launch-fault-connect": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-fault-connect-example": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "installation_startup": {
+    "connect": {
+      "name": "first-launch-connect",
+      "command": [
+        "/private/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9/bin/connect",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-connect.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.869
+    },
+    "example": {
+      "name": "first-launch-example",
+      "command": [
+        "/private/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9/bin/connect-example",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-example.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.351
+    },
+    "schema1": {
+      "name": "first-launch-schema1",
+      "command": [
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/qualification/connect-schema1",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-schema1.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.601
+    },
+    "fault-connect": {
+      "name": "first-launch-fault-connect",
+      "command": [
+        "/Volumes/D2-2019/Developer/Connect/.local/package-checks/20261012T123836.384531Z/qualification-fixtures/bin/connect",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-fault-connect.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.684
+    },
+    "fault-connect-example": {
+      "name": "first-launch-fault-connect-example",
+      "command": [
+        "/Volumes/D2-2019/Developer/Connect/.local/package-checks/20261012T123836.384531Z/qualification-fixtures/bin/connect-example",
+        "--version"
+      ],
+      "timeout_seconds": 180,
+      "log": "first-launch-fault-connect-example.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.592
+    }
+  },
+  "gate4_installed": {
+    "status": "passed",
+    "scope": "installed application/SDK/helper, scripted local Responses; no inference or live providers",
+    "runtime_root": "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9",
+    "fixture_root": "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-source",
+    "steps": [
+      {
+        "name": "agent-incoming-public",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-source/examples/agent-presence/tests",
+          "-p",
+          "test_public_intake.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-public.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.774,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "agent-incoming-host",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-source/examples/agent-presence/tests",
+          "-p",
+          "test_installed_incoming.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "agent-incoming-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.858,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "installed-vapi-host",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--test",
+          "gate4_vapi_host_chat",
+          "--test",
+          "gate4_vapi_host_voice",
+          "--test",
+          "gate4_vapi_host_webhook",
+          "--",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 2400,
+        "log": "installed-vapi-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 251.08,
+        "rust_tests": {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        }
+      }
+    ],
+    "codex_version": "codex-cli 0.162.0-alpha.17.2",
+    "vapi_runtime": {
+      "binary": "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9/bin/connect",
+      "scope": "local simulator; no cloud provider or model inference",
+      "checks": "chat restart/effect replay, scoped task owner with separate administrator, exact-resource recovery, rejection before dispatch, callback expiry with retained conversation, native voice with MCP, isolated signed-only SMS listener, ready/signal ordering and interrupted creation cleanup"
+    }
+  },
+  "fault_fixture_build": {
+    "status": "passed",
+    "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "scope": "extracted candidate source; test-only binaries, never runtime assets",
+    "phase": {
+      "name": "build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-review-loop",
+        "--features",
+        "connect-server/test-support,connect-review-loop/test-support",
+        "--bin",
+        "connect",
+        "--bin",
+        "connect-example"
+      ],
+      "timeout_seconds": 2400,
+      "log": "build.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 168.138
+    },
+    "binaries_sha256": {
+      "connect": "a2d99c484409a4b53e7397bfe8110c5e6563668a853818a5aaa6a4b2623de15f",
+      "connect-example": "06cdde77b89e5abce1abc6a63ff3f33ccb16639d5f223a531bc90acf7a4aba03"
+    }
+  },
+  "legacy_phases": [
+    {
+      "name": "check-examples.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-source/scripts/check-examples.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-examples.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 5.469
+    },
+    {
+      "name": "check-recovery.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-source/scripts/check-recovery.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-recovery.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 2.008
+    },
+    {
+      "name": "check-crash-replay.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-source/scripts/check-crash-replay.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-crash-replay.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 8.216
+    },
+    {
+      "name": "check-example-recovery.py",
+      "command": [
+        "python3",
+        "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-installed-tr9wrg_m/connect-source/scripts/check-example-recovery.py"
+      ],
+      "timeout_seconds": 600,
+      "log": "check-example-recovery.py.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 9.594
+    }
+  ],
+  "schema1_fixture": {
+    "path": "/Users/jonathaneisenzopf/.codex/worktrees/gate4-final-review/Connect/dist/connect-0.1.0-alpha.1-macos-arm64-7edb1b1487d0/qualification/connect-schema1",
+    "sha256": "f22ec499a9a6dcf0d899a942a6ccd768e0cffa0f88ff86502070cec82c67e225",
+    "manifest_sha256": "4f5290dc35e83a5fbbabafacdd7e0bc5fa124f05af010d2206054db17583cf9a"
+  },
+  "fresh_attempt_failures": [],
+  "logs_sha256": {
+    ".local/gate-4-final/final-package/20261012T123404.056658Z-build/dependencies.log": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+    ".local/gate-4-final/final-package/20261012T123404.056658Z-build/package.log": "c7c27a7c01356585bfbb20eb1c4d885027785f75826d23f9c3043a800a2bd947",
+    ".local/gate-4-final/final-package/20261012T123836.155327Z-check/installed-package.log": "4ac6116906e376f42562fcd558082b56153c794c5a8a1dcdbd3b69f29363ec52",
+    ".local/package-checks/20261012T123836.384531Z/check-crash-replay.py.log": "ca50796cb258c5057ec1db5f620160d1897ea4191d50d8eff101839571e58dc5",
+    ".local/package-checks/20261012T123836.384531Z/check-example-recovery.py.log": "f0af707f30bc69804ed1487dbe5ddfc4de98a584a846adb4dda31e9f95aad144",
+    ".local/package-checks/20261012T123836.384531Z/check-examples.py.log": "b05bd93e1d8df075b06b9817024cd122e09944d23aab9f862f8f8aa59e342b35",
+    ".local/package-checks/20261012T123836.384531Z/check-recovery.py.log": "db8f5ae31804851e352ea16a9e330c4cb8da541d1f107d69d9106a33bc1a9d89",
+    ".local/package-checks/20261012T123836.384531Z/first-launch-connect.log": "b9cb1a0e045585e9c90c70748a4691e01f6ca44eaf9a827d945df13d2e451e76",
+    ".local/package-checks/20261012T123836.384531Z/first-launch-example.log": "692ef9ae63222f7110c49dffeb89f4421fc3385251c077b9866c8533b1fb6e3d",
+    ".local/package-checks/20261012T123836.384531Z/first-launch-fault-connect-example.log": "692ef9ae63222f7110c49dffeb89f4421fc3385251c077b9866c8533b1fb6e3d",
+    ".local/package-checks/20261012T123836.384531Z/first-launch-fault-connect.log": "b9cb1a0e045585e9c90c70748a4691e01f6ca44eaf9a827d945df13d2e451e76",
+    ".local/package-checks/20261012T123836.384531Z/first-launch-schema1.log": "b9cb1a0e045585e9c90c70748a4691e01f6ca44eaf9a827d945df13d2e451e76",
+    ".local/package-checks/20261012T123836.384531Z/gate4-installed/agent-incoming-host.log": "c567d8bbdd453f04e908b2172c24b7ef278f405d7e824fcc5740f48b9b65165d",
+    ".local/package-checks/20261012T123836.384531Z/gate4-installed/agent-incoming-public.log": "e808e66825739cfc47205392e4f07268e5dea79c9403f2dbb78aff2a6466eb6e",
+    ".local/package-checks/20261012T123836.384531Z/gate4-installed/installed-vapi-host.log": "7896b78ec1bcd420d5d65b205ed2135a13d3c188ee7794e0ec813352e72f308f",
+    ".local/package-checks/20261012T123836.384531Z/installed-language-sdks.log": "75840678a168a74820c30ae417433ead8a2ef4f68337085608490cfb1bdd6e2d",
+    ".local/package-checks/20261012T123836.384531Z/qualification-fixtures/build.log": "6056e70b8db2ce66a6932112ffb736f36983c59f80532cd2bc04c30d98f106f8",
+    ".local/package-checks/20261012T123836.384531Z/sdk-source-build.log": "b7611caf7afe4e9151ffd820abc78c5a07ef18241ca6d7163603c5ded861b0ca"
+  },
+  "measurement_context": {
+    "build_interval": {
+      "started_at": "2026-10-12T12:34:04.188634+00:00",
+      "finished_at": "2026-10-12T12:36:35.452150+00:00",
+      "main_context": "Main Rust lint compilation/wait background; no measured phase overlap, confirmed by the authority agent phase-event journal.",
+      "measured_phase_overlap": false
+    },
+    "check_interval": {
+      "started_at": "2026-10-12T12:38:36.281498+00:00",
+      "finished_at": "2026-10-12T12:46:29.774598+00:00",
+      "main_context": "Main Rust lint compilation/wait background throughout; no Rustdoc/workspace/media/operating transition in the phase-event journal.",
+      "measured_phase_overlap": false
+    },
+    "compiler_scheduling": "Extracted Vapi/fault preparation retains explicit CARGO_BUILD_JOBS=3 in its source scripts; outer and SDK compiler inherits2. Application/compile phase deadlines unchanged.",
+    "quiet_environment_claimed": false,
+    "background_context_evidence": "background-work-dc73996.json"
+  },
+  "scope": "Local macOS arm64; unpublished candidate; disposable installed state; account-free scripted model/provider fixtures; no deployment or live provider account operations in these package phases",
+  "qualification_boundaries": [
+    "Fresh source/build/install qualification for dc73996 includes the normal MCP context default30 and the Cargo target-selection fix. The previous09b candidate, its17pass proof and the earlier7ed reports remain preserved at their own revisions.",
+    "The exact source archive was extracted and its native SDK, Vapi fixtures and separate fault-enabled binaries were rebuilt against pinned sources. Installed operations used the extracted normal runtime; abrupt-fault controls stayed separate.",
+    "The temporary extraction paths are retained in nested reports and were cleaned after success. The persistent package runtime, manifest and three immutable archives remain available for actual-model/provider qualification and review.",
+    "The12 installed Vapi fixture cases and two incoming-agent cases passed with zero skips. Scripted Codex control does not establish actual model inference or live provider reachability; those reports remain separate.",
+    "Current full41phase regression and final numbered acceptance require their own completed evidence. The package result alone does not attest whole-Gate4 completion.",
+    "A large __eh_frame linker warning occurred only for the separate unoptimized fault fixture. No release-binary defect is inferred; the normal optimized runtime passed all installed checks.",
+    "Startup was observed within existing budgets. Earlier macOS startup cause remains unproven; Gatekeeper/SIP remained enabled and no assessment-service restart occurred."
+  ]
+}

@@ -1,0 +1,350 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T02:27:54.712994+00:00",
+  "status": "Controlled interruption for a known actual-provider admission repair; original invocation remains incomplete",
+  "source_revision": "55659d6b8f6944ebdf4d074e77a328c37c0bcb6c",
+  "checks": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.186
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "log": "format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.745
+    },
+    {
+      "name": "typescript-install",
+      "command": [
+        "npm",
+        "ci",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-install.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.541
+    },
+    {
+      "name": "typescript-tests",
+      "command": [
+        "npm",
+        "test",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "log": "typescript-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.501
+    },
+    {
+      "name": "typescript-format",
+      "command": [
+        "npm",
+        "run",
+        "format:check",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 120,
+      "log": "typescript-format.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.657
+    },
+    {
+      "name": "typescript-distribution",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "sdk/typescript/dist"
+      ],
+      "timeout_seconds": 60,
+      "log": "typescript-distribution.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.077
+    },
+    {
+      "name": "python-sdk",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "timeout_seconds": 300,
+      "log": "python-sdk.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 3.825
+    },
+    {
+      "name": "agent-incoming-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "examples/agent-presence/tests",
+        "-p",
+        "test_incoming*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "agent-incoming-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.192,
+      "python_tests": {
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "runner-failure-tests.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 1.577
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_task_voice.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "voice-rehearsal-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.128,
+      "python_tests": {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_*chat*.py"
+      ],
+      "timeout_seconds": 120,
+      "log": "chat-rehearsal-unit.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 2.874,
+      "python_tests": {
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 2400,
+      "log": "lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 9.134
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 2400,
+      "log": "rustdoc.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 4.046
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 7200,
+      "log": "workspace.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 852.665,
+      "rust_tests": {
+        "passed": 541,
+        "failed": 0,
+        "ignored": 9
+      },
+      "ignored_follow_up": [
+        "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+        "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+        "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+        "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+        "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+        "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+        "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+        "retired_setups_reuse_capacity_through_the_full_session_limit",
+        "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
+      ]
+    },
+    {
+      "name": "media-pressure",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate3_media_pressure",
+        "--",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 1200,
+      "log": "media-pressure.log",
+      "status": "failed",
+      "error": "InterruptedError",
+      "detail": "Qualification was interrupted",
+      "group_cleanup": "signalled",
+      "seconds": 68.95
+    }
+  ],
+  "private_report_sha256": "912a368cf4c780b6950a55ec8fe968a0ee060d7cb354f8685e70bedadf3401ee",
+  "reason": "Once actual model recall failed despite successful discovery, qualification was stopped via SIGTERM on the exact owning runner before proceeding with unrelated load work.",
+  "not_run": [
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "limits": [
+    "The workspace completed 541 passed, zero failed and nine deliberate ignores requiring their explicit follow-up phases.",
+    "Media-pressure was interrupted, not observed to fail its behavior contract. Later phases were not executed in this invocation.",
+    "Strict workspace lint, Rustdoc and prior unit phases passed; current callback serialization still needs testing."
+  ]
+}

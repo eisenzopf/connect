@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T23:15:44.635600+00:00",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
+  "primary_evidence": [
+    "native-final.json",
+    "browser-final.json",
+    "autonomous-pstn.json",
+    "autonomous-continuity.json"
+  ],
+  "qualified_candidate": "Installed e457960 for every current primary and supplemental audio/hangup test.",
+  "assistant_template_sha256": "a76503c0d7b003d75746a11633399c6dbe62ce5b09a17fb0ef96c7e0d72540d9",
+  "decision": "../../decisions/008-autonomous-audio-qualification.md",
+  "skipped_required": [],
+  "private_results": ".local/gate-3-media-audit",
+  "preserved_failures": [
+    "Earlier prompt rejected live facts missing from the initial snapshot; fixed shipped template and all current four-route/restart checks pass.",
+    "Earlier bounded phone trials clipped, misrecognized or scheduled speech late; retained. Timed outbound controller avoids blocking provider metadata polls.",
+    "Inbound final metadata GET 500 recovered by later read; original failed controller receipt retained.",
+    "Browser provider-end first scenario path was unstaged and failed before session creation; staged fixture tested normal remote termination. Three-turn harness reports expected early end; independent terminal check passed."
+  ],
+  "operator_final_readback": {
+    "status": "passed",
+    "main_prompt_sha256": "a76503c0d7b003d75746a11633399c6dbe62ce5b09a17fb0ef96c7e0d72540d9",
+    "telnyx_original_route_restored": true,
+    "vapi_number_assignment_unchanged": true,
+    "owned_peer_settings_restored": true
+  }
+}

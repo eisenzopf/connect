@@ -1,0 +1,147 @@
+{
+  "status": "Native audio component and follow-up typed control denials qualified; whole-workspace regression, helper operating-limit review and full Gate 4 acceptance remain open",
+  "recorded_at": "2026-10-10T19:11:00.195322+00:00",
+  "items": [
+    "G4-007",
+    "G4-013"
+  ],
+  "source_base": "bb99ba7cc88817629130eb09a136a9a3b1b97365",
+  "source_checkpoint": "bfa0865bb4444adfb795872b70d96705fa9552cb",
+  "source_verification": {
+    "base_commit": "bb99ba7cc88817629130eb09a136a9a3b1b97365",
+    "files": {
+      "crates/connect-client/src/media.rs": "a9b703fcad26ede6f6c2010dbdb08db4df102816cc1cf0be14b0bc7304c2321c",
+      "crates/connect-server/src/runtime.rs": "e8e343bafc6170e6b34952a4ebca03772716077738c093407b240dcbdd23b00b",
+      "crates/connect-server/tests/gate4_native_media.rs": "d973cdbf2fc21257575e1405f65e137e0dfc92bd62e0cc9278aaffe8b02cda2f",
+      "crates/connect-server/tests/gate4_native_media_limits.rs": "6f65b4f60b8aa6e11a5a34dae9c896362d6cda6dfb4c4897ecb22ef4aca48ca4",
+      "crates/connect-server/tests/gate4_native_media_policy.rs": "18d1cc052ab0d74730e95fa4cf743ba6c9d2a2263acd9d6d9dc15ebc9a5ab760",
+      "crates/connect-server/tests/gate4_native_media_revocation.rs": "306d5722de86204a98bcc2411f7d5f3702a1ae9aac23a3130fbc66b478787724",
+      "crates/connect-server/tests/support/native_media.rs": "63309b2d00f968bb85084d7f580f7c7ebe74d2ff30a1e89fbe8a37b839702338",
+      "crates/connect-service/src/authentication.rs": "139f96b002672e08d462cd2e63c660a44f75be301d9f44253b4513a798b8cc15",
+      "crates/connect-service/src/lib.rs": "680a512672be3eb1bc047a8a9c26af8aa6c838d873dd22f8347cc7ce1f822725",
+      "crates/connect-service/src/native_media.rs": "3c515ffbecb6b922f5c5cbfb032a090d7f9c1f9b437544d1b22bdd5fd9750ba4",
+      "crates/connect-service/src/session_binding_tests.rs": "7509546cd52739c0e1bbc30bf588fbe9520f6c42038d1f7e1ce4084695e27b6e",
+      "crates/connect-service/src/session_bindings.rs": "9db2303c6d0f65b1b750a0dde2ef375aad7312312c36db55dc324fc189e39838",
+      "crates/connect-store/migrations/015_native_media_authority.sql": "91d930d182896b4f658c88c4bfc130cd0415045bd58d18fcb019b3a56ee33bb7",
+      "crates/connect-store/src/lib.rs": "87bff5f44a50f51715b2c2d52b3bcfb341f8f1b9d5322ff739df5869d6d0eb67",
+      "crates/connect-store/src/recovery.rs": "ce8ed4d27d8edd1cf2c2e0e20a962d5e074ba5b03abf6f0d4ab090fa20bef132",
+      "crates/connect-store/src/sessions.rs": "49563e175b4bbe780de73cc4f4b750854541ab325d9d4e92a484cd6e9e086e8d",
+      "crates/connect-store/src/tasks/grants/native.rs": "a3a2a30795b229b2e3853e882328ed301be5339787643fa8112cc5adf1b2ae87",
+      "crates/connect-store/src/tasks/grants/native_resources.rs": "c77d7b0085b1c3f10c202c419118904dd38eb4bd205ff377b27f4f66510c6ac9",
+      "crates/connect-store/src/tasks/tests/effect_migration.rs": "1dd4dae96b771a5e7d1e75edbff815cf58510c353c1f61e3dbda0c671f88b63d",
+      "crates/connect-store/src/tasks/tests/media_migration.rs": "8c08c9c243660823bb0bc2c18124ee01b562462e875022ae4c00d02681a9725e",
+      "crates/connect-store/src/tasks/tests/mod.rs": "4961ef1b4c7a57e22dec5ef380c6676dd0cedb96cb5ab83d1877654167f015da",
+      "crates/connect-store/src/tasks/tests/native_media_migration.rs": "d2e3b99293cdf2944cc5633f4dd52b7bcb42a4455350af37e531cfd04f96a379",
+      "crates/connect-store/src/tasks/tests/native_resource_boundaries.rs": "f7a13a8b8447dc6f3491dc0b5756610416eadc705ef9ddb8f85ee5e2a902eaba",
+      "crates/connect-store/src/tasks/tests/sms_policy.rs": "53ff584054eaceca04544e52add65b7a193cc31f4c5d774a7d5649a1a1220d6e",
+      "crates/connect-store/tests/voice.rs": "a0f8b15406b96cc3545be07264c25eb647d230778ea840e7934020fb732a4bce",
+      "dependencies/source-lock.json": "cda757ccc91da37fb6c6e7fea6c542d214f0717b117ac7df525f63fd923c439c",
+      "patches/rvoip/authenticated-envelope-guard.patch": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9"
+    },
+    "fingerprint": "4dc8dde7fe95a05e0f4d73634eaf991671ed9c68dc90452c4db1e265b50b999b"
+  },
+  "qualification": "Local macOS arm64, disposable stores and loopback-only transport. No live provider operation, public ingress or deployment.",
+  "behavior_implemented": [
+    "Dedicated native media scope with current grant/task/parent/membership and exact task-linked Session authority checked before each authenticated envelope.",
+    "Owner media scope compatibility; restricted audio-only PCMU offers, subscriptions and connection teardown retain stock UCTP peer ownership checks.",
+    "Schema 15 adds nullable grant provenance to connection observations; backup-gated migration, rollback and grant-retention cases pass.",
+    "Typed public client media denial; task-scoped Vapi routes explicitly unsupported pending bounded provider context in G4-020.",
+    "Actual task-grant audio passes in both directions for initiator and invited participant, with exact grant provenance in live connection observations.",
+    "A second physical peer cannot end or subscribe another peer connection even with the same grant; UCTP returns 404 unknown-connid, and the valid connection remains ready.",
+    "Detaching and reconnecting preserves the same task, Session and conversation. Revocation, cancellation, expiry and parent revocation close peers; an explicitly ended leg denies old Session attachment while the grant continues messaging in the same task/conversation."
+  ],
+  "verification": [
+    {
+      "log": ".local/gate-4-planning/native-media-components-second.log",
+      "log_sha256": "ce9b7f31a01b2c0d2011877c06f88155099e668793724408ef8c0a5e987dca03",
+      "terminal_exit": 0,
+      "result": "136 store/service tests passed; zero failures or ignored cases"
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-clippy.log",
+      "log_sha256": "f2a61142ec4c5944ae39a16a0a5a6dee3bd8eea23b55b181274ef3f064423dea",
+      "terminal_exit": 0,
+      "result": "Strict Clippy passed for client/store/service/server, all features and targets"
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-python.log",
+      "log_sha256": "aa2ef3fa3dc59fbd4e0a47e6441cbaa13d76c193fa2a53497c3ba01d17442049",
+      "terminal_exit": 0,
+      "result": "21 Python tests passed"
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-node.log",
+      "log_sha256": "f146007d02978e372462e7b5d3c9d7aa10f81c4e21e7c0ecd7b0241cf40b2d26",
+      "terminal_exit": 0,
+      "result": "147 TypeScript tests passed"
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-doc-links.log",
+      "log_sha256": "33b5c69e7b1118c9989c57d66d35be5bb3d955acf673f354e985c228fc220410",
+      "terminal_exit": 0,
+      "result": "HTML links, anchors and 36 stable task IDs passed"
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "terminal_exit": 0,
+      "result": "Workspace formatting passed"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --test gate4_native_media --test gate4_native_media_limits --test gate4_native_media_policy --test gate4_native_media_revocation",
+      "log": ".local/gate-4-planning/native-media-integration-corrected.log",
+      "log_sha256": "767d2a317d7019a12b389c448f3cfc88c6e82eea6098958690fab372f674b549",
+      "terminal_exit": 0,
+      "result": "5 actual QUIC tests passed across four binaries, including two participant roles, 21 envelope/physical-peer denial cases, five revoke/end causes and unsupported-route checks"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 RUSTDOCFLAGS='-D warnings' cargo doc --locked -p connect-client -p connect-store -p connect-service -p connect-server --all-features --no-deps",
+      "log": ".local/gate-4-planning/native-media-rustdoc.log",
+      "log_sha256": "47ea592419618661f15c574ca5c7d1477b370cf5ba01f8f9bd4f86beb982d134",
+      "terminal_exit": 0,
+      "result": "Strict Rustdoc passed"
+    }
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/native-media-first.log",
+      "result": "Initial actual wire test exposed the distinction between transport subject and durable owner identity. Guard corrected to use the authenticated wire subject."
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-final-integration.log",
+      "result": "Both participant roles and restricted route checks passed, but foreign physical-connection fixture expected 403. Stock UCTP conceals unknown connections with 404; assertion corrected. This failed suite is not counted as a pass."
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-startup.sample",
+      "result": "Sample during slow debug-binary startup showed dyld loader/debugger-notification frames before the test harness. Retained for operating-limit review; no deadline was relaxed."
+    },
+    {
+      "log": ".local/gate-4-planning/native-media-workspace.log",
+      "log_sha256": "a72dd912c4bc742f958d74ed2b7e14c152041b4dcb7fcd0d623c55a2ef6efd6b",
+      "terminal_exit": 101,
+      "completed_suites": 45,
+      "observed_results": {
+        "passed": 124,
+        "failed": 1,
+        "ignored": 1
+      },
+      "result": "The frozen bfa0865 workspace run stopped at gate4_native_grants: the envelope authorization guard rejects revoked authority with raw UCTP 403, while the native control client classified every wire Error as initial authentication failure. Correcting the SDK mapping preserves typed forbidden denial without bypassing the guard. No whole-workspace pass is claimed."
+    }
+  ],
+  "pending": [
+    "Rerun whole-workspace after the correction and characterize the retained helper deadline failures; native-control-envelope-errors.json records five passing QUIC corrections and an ordinary actual Python/TypeScript helper pass.",
+    "Full interface parity, bounded provider context, installed host, recovery/package/journey and full Gate 4 acceptance."
+  ],
+  "related_evidence": [
+    "native-task-resources.json",
+    "native-task-grants.json",
+    "task-media-authority.json",
+    "native-task-artifacts.json",
+    "native-control-envelope-errors.json"
+  ],
+  "limits": [
+    "Existing macOS debug linker __eh_frame warning remains visible.",
+    "141 store/service and actual QUIC component tests passed. The broader frozen-source run failed on typed native control denial; component passes do not imply whole-workspace or full Gate 4 qualification."
+  ],
+  "upstream_source_lock_sha256": "cda757ccc91da37fb6c6e7fea6c542d214f0717b117ac7df525f63fd923c439c"
+}

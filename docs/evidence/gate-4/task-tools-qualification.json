@@ -1,0 +1,454 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T01:09:55.398768+00:00",
+  "source_base": "136e168550ca18866c9d8412379ac81ce91646d8",
+  "status": "local task-tool qualification",
+  "item": "G4-017",
+  "contract_revision": 5,
+  "task_profile": "connect-task/1",
+  "database_schema": 15,
+  "scope": "Local macOS arm64; isolated loopback fixtures, no model/live provider or deployment operations.",
+  "source_sha256": {
+    "Cargo.lock": "c3eb1839594491e35a11b6bdfcf4b65d772ac7d7a36f1e1f16530ac9c14e110f",
+    "contracts/connect-task-v1.md": "6102a7efc67d698b1b61746761a79565779037ac222870808641cec4d859dd6c",
+    "crates/connect-mcp/README.md": "4e7fc05f9a2a40bc229c8147cc50154d837ae7e0d3436f2284fe006b34a4ba71",
+    "crates/connect-mcp/src/arguments.rs": "cdf760e00142049e73b6023f7318945adbccd3d7947878b6360118aec1427f7d",
+    "crates/connect-mcp/src/auth.rs": "9216321950a8e2fd492f116e4debb0459dbaf5096a880d75fad7a4c73d3f8c94",
+    "crates/connect-mcp/src/budget.rs": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+    "crates/connect-mcp/src/catalog.rs": "11e846ee563e5b656ff0496895c81d9bfc89ecbd5896d52b12227259d14150df",
+    "crates/connect-mcp/src/commands.rs": "fa0a4762cc89f3d93a28ac348cb12ce27b817c36579b86a9573e31a3ca8980e5",
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/lib.rs": "2cb7ac484e046122f5f80148c9a1455160a684dd99fa45075718acda3ef3e6b7",
+    "crates/connect-mcp/src/listener.rs": "f5e46b630524ca7220afbdcf1dcb391f43c7257b49d5269ce60b1b4918e7952f",
+    "crates/connect-mcp/src/schemas.rs": "e330e9172f52bec891a153f86a5dddcea871fab133802f00491ddeab74576fe2",
+    "crates/connect-mcp/src/vapi_auth.rs": "d310999324d2b423699471e4576b7995302604f230fc5a73a2a70944149b08de",
+    "crates/connect-protocol/src/discovery.rs": "c7fdba2aeace478f03a19dacac0a7d36950e699045a5ad6581abde64557c75ed",
+    "crates/connect-protocol/src/lib.rs": "b6a5162c865753bdbb4101cecd8761a96b649e3f7367791a3447bba6b45e16f5",
+    "crates/connect-protocol/src/media_profile.rs": "76f11be195ae22cb3b1e4fed25804af14e73ff2f6a8512664cafb024dd7efc54",
+    "crates/connect-protocol/src/readiness.rs": "22777bbb9b1d1afc3b6bdd18d94b22908f4a157bd9652fbbd3c832a78947a56c",
+    "crates/connect-protocol/src/tasks/access.rs": "9e0c1a963eb6d41add91f20bdc1c299fbf16862f0f5b144a70a0dd345ffe49e1",
+    "crates/connect-protocol/src/tasks/lifecycle.rs": "5c093c688c2db18224b42870da7cb4ac917c10ce79e7c1ed86762322b6e87c21",
+    "crates/connect-protocol/src/tasks/mod.rs": "f5787c790b8cfab544f2881adfe4ca58908680773e3a5c21ff8a3aea1b25c1e3",
+    "crates/connect-protocol/src/tasks/models.rs": "b8472a2ee2c86aa06f22723af402b87d6d4d45a9bd58ff94b378ffae389fd5c7",
+    "crates/connect-protocol/src/tasks/principal.rs": "15fd3964780deb097cbdb6ca8cce6410b9856e20a6e59a76594352a169a59548",
+    "crates/connect-protocol/src/tasks/request.rs": "1003b8de0de578dc95647b4b86b00017134af8db5912cb691d446eae7de95c61",
+    "crates/connect-protocol/src/tasks/validation.rs": "b8bb92a81e087ba602a30795bb1593cf1bfe71d7e13dc4501548b11a1ed28aa1",
+    "crates/connect-server/tests/gate4_mcp_recall.rs": "26406dd70bbefc07c9881621a45215dcaa0ecef78b54cf8819ffe03f21dab41a",
+    "crates/connect-server/tests/gate4_mcp_task_cancel.rs": "0ac9535af499389f13c374b37e257c063b45e27071c47c3995df49356b35e4be",
+    "crates/connect-service/src/tasks/access.rs": "aa3454d6c1c2ec67b61b485a5197d62aed68fedde1c70ea36b27e00b002ea796",
+    "crates/connect-service/src/tasks/provider_setup.rs": "95255cf6e4e68b10b3a5247785fda97931bbf7f8b658b6734063c3a4210238ef",
+    "crates/connect-service/src/tasks/tests.rs": "f947ea6d5e3c94bf2d1d938edb742b45092c61dc870c1f7bd9581a518cb842a4",
+    "crates/connect-store/src/tasks/authority.rs": "d6d98d0d46ad29db96852108c3c2590eaaf35177b2d11a32346b7b9145b439d0",
+    "crates/connect-store/src/tasks/budget.rs": "23df586233542f581007461d782b3c15ad62f97f6882747227857d2fb3d5a064",
+    "crates/connect-store/src/tasks/claims.rs": "ca5c4694076a46efbc7135e962e0f1350a306e34b23cf10053f03c8b8b60bcac",
+    "crates/connect-store/src/tasks/clock.rs": "70a5f21ec09cdc7ce1562d7bff83aa249c38c0cba98c22cc9905255ce80668ce",
+    "crates/connect-store/src/tasks/effects/dispatch.rs": "49a3283cd61ad1b0ce6b50a64ffb3ef6826525c6e9905a8c721f1b919ede00b8",
+    "crates/connect-store/src/tasks/effects/links.rs": "c4fdface0aefd293a3789a9d2cbf8efa51d8866f7721fca8ab33af691796ce45",
+    "crates/connect-store/src/tasks/effects/mod.rs": "81b83aac026b7d5ca59a700e25a70ce7783faf09cab6389fa7830434dd962935",
+    "crates/connect-store/src/tasks/effects/provider.rs": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f",
+    "crates/connect-store/src/tasks/effects/rows.rs": "f314c04889244f1fb84e62be29f57dfc7e87d9e0678058b027474bb7d2201508",
+    "crates/connect-store/src/tasks/effects/state.rs": "d36ccdd09dac3c706c2e5cb9aae610cbeca4538801926e34994d62ebd6d42328",
+    "crates/connect-store/src/tasks/grants/admission.rs": "129f807a1aea048bb40b7078916f4f87e4f58f0025bde5d5e629c78a6b2c3023",
+    "crates/connect-store/src/tasks/grants/authentication.rs": "55ccdbe6092c02dfea16a3984231667c4e402cebf9ca157a0581821ddd352536",
+    "crates/connect-store/src/tasks/grants/authority.rs": "7d9bde002afde04e9011b78c44da18c22dedb0e12a413a7bcb373bd3200b4fd9",
+    "crates/connect-store/src/tasks/grants/bindings.rs": "114527fe66e2791efd94aeed64618a938dd975f730163d65a0857bb7542a4628",
+    "crates/connect-store/src/tasks/grants/execution.rs": "cda5eea891ba6c76c420d91a730421ffea191b7ec14978a3c71c65c586a3d574",
+    "crates/connect-store/src/tasks/grants/issuance.rs": "7d9f4d5a3ae51823d764d381b1dbbae2dc528b80b9bdd7010ea6c00f60d36a64",
+    "crates/connect-store/src/tasks/grants/mod.rs": "3748b17a2c6387a352439a14a946bdeae87017f3b63875de1e2c35e489a20486",
+    "crates/connect-store/src/tasks/grants/native.rs": "a3a2a30795b229b2e3853e882328ed301be5339787643fa8112cc5adf1b2ae87",
+    "crates/connect-store/src/tasks/grants/native_resources.rs": "d42a526ca9d9f068f65cc6f68e16cc5ca001deb2da1615ebc2a98fd17fa102ac",
+    "crates/connect-store/src/tasks/grants/provider.rs": "fd605eacf65e1e335afaa6ebdebbbf39fffc086381b7274e424f437802b78e6d",
+    "crates/connect-store/src/tasks/grants/rows.rs": "cbbe40e71212c52c472fabe5cbea9930f2a9d40091cc1fdf85f912da233436a8",
+    "crates/connect-store/src/tasks/grants/secret.rs": "25bdf051e44bee51e6c220f69a9764a063416a18cbb857b6a140cc4cc593d417",
+    "crates/connect-store/src/tasks/inbox.rs": "39c1f625d539ce5e51a18e3637ece3f445c893e65696163976908123a9a77de8",
+    "crates/connect-store/src/tasks/lifecycle.rs": "c6ece0fd430cdc0d6bb6a3da8ee87b20ccfd4744b45d1226b20691385be3f597",
+    "crates/connect-store/src/tasks/media_context.rs": "cc7d1b9eb23f3fafec68ace9e7a9ac67b31966db39365990071a96249f1f8285",
+    "crates/connect-store/src/tasks/mod.rs": "fb2d625b5b11da5079d5a3e8a60cc8c17165bd3c1ec192f29538ff8e21a12f84",
+    "crates/connect-store/src/tasks/native_reply.rs": "7b3307beb27ab1c675612370ca1767edb60867ea0529b08d842ffbc17d67d13c",
+    "crates/connect-store/src/tasks/owner.rs": "e492cc487ddb3d599b46d73a294e31333cbb889ee248da11988b5507d8dcd50b",
+    "crates/connect-store/src/tasks/recall.rs": "73d4e78874aaf0b8d1d38325e53419a65f8f6c08a21193c17141eaefbf54af8d",
+    "crates/connect-store/src/tasks/recall/projection.rs": "965e986694af98d0f3d18906fce19ea1305fbc955170e4b464f9f5c2d855cea9",
+    "crates/connect-store/src/tasks/replies.rs": "f0d527a13dc09f2ab79a8c2e97717036990cbddada46cd0aeb929745a3a42812",
+    "crates/connect-store/src/tasks/sms.rs": "302ae5675c016b985cad2c3818d99f9a299544205f4527e0385b04421deb1a24",
+    "crates/connect-store/src/tasks/storage.rs": "f26a3bdfdcacfceb7bb38d19d7e6c5a85c56511224ce6aa75427c912657f4380",
+    "crates/connect-store/src/tasks/tests/authority.rs": "9368d2bd1c17d258a1fec79a5269c22e48853a6c834a4bf935515abedbb1684b",
+    "crates/connect-store/src/tasks/tests/cancellation_budget.rs": "9c6cd71b05463eb5d62d8b4cfea34a771d2c1024f6d398357a6bca7fa07f38dd",
+    "crates/connect-store/src/tasks/tests/claims.rs": "03ce1b1f3594a95fde850072e7174b12f21215c62fc366b3689390800353fd4c",
+    "crates/connect-store/src/tasks/tests/delegated_cancel.rs": "7f3aace7852ec327b38fea85e75b71a0e906f1d15914386eb345d4d01b436c8b",
+    "crates/connect-store/src/tasks/tests/effect_crashes.rs": "279a6a23e4070ce855c6cef316f3bc4078569f98b4a0500ffcde991cdac8829a",
+    "crates/connect-store/src/tasks/tests/effect_helpers.rs": "b56e3c8a4ff589256e82c0c7dc11a4a16beb7b1cbe17783029b7cf24ccbe7c03",
+    "crates/connect-store/src/tasks/tests/effect_migration.rs": "1dd4dae96b771a5e7d1e75edbff815cf58510c353c1f61e3dbda0c671f88b63d",
+    "crates/connect-store/src/tasks/tests/effect_provider_boundaries.rs": "973971f9ae2d5e0cef0870e8d1579c9709c08f31bacde0718526d39f06016d0d",
+    "crates/connect-store/src/tasks/tests/effect_providers.rs": "d8d91afd0e224b5b01e60c9e7927f3227a30a372be2ba9ad65037ded52343134",
+    "crates/connect-store/src/tasks/tests/effect_questions.rs": "d320bfe123cf272d5b72328c197deec1acb93e3ca3d71ede6e967c2f7fb15871",
+    "crates/connect-store/src/tasks/tests/effect_recovery.rs": "d0d76c7b2802fcf0f9a0451e6783170347d140401517640e8d7dc57dfd5e37b5",
+    "crates/connect-store/src/tasks/tests/effects.rs": "04bcff5e8fc400a3ad94795f51c8da6b599e6253b3d251ce0d0454c20bc60712",
+    "crates/connect-store/src/tasks/tests/fixture.rs": "49f505697d4d0d863846964cf247f1637a101ffc185dd654c3ce688a47c9c847",
+    "crates/connect-store/src/tasks/tests/grant_boundaries.rs": "27be14abe59e06535ec7210896d3c47cb1234e622b595bc20586fbffa8d1d5ee",
+    "crates/connect-store/src/tasks/tests/grant_operations.rs": "14bacb686e67d34b2b6ce0a8eb395b2325c4f643b238eb96c7524cdb7d17cc4b",
+    "crates/connect-store/src/tasks/tests/grants.rs": "997bf09628e2145c1ea9c8cb0285c1e9282fde655a993222754f8df17131a1bc",
+    "crates/connect-store/src/tasks/tests/lifecycle.rs": "ee367236b7de78ceb138123958c731fc3cd693c446dc1cd4b1c36ddd93249927",
+    "crates/connect-store/src/tasks/tests/local_access.rs": "8616db15a1293d9ff77adf0fd859fcba78c33a1ae314f632b04b7575ab8715f6",
+    "crates/connect-store/src/tasks/tests/lock_expiry.rs": "be9ed04f77a4d93482ec455062d7fb924e3a42a00abaebfa3ad47268ecfc5d04",
+    "crates/connect-store/src/tasks/tests/media_authority.rs": "28fff8de9c9e7ef7538b30c528e75a818cac577c6c7dfbf9e38a2bd7b0f70171",
+    "crates/connect-store/src/tasks/tests/media_context.rs": "6213a95d470a0546b85b9cf0e5f5afd9874e8141b628579204733be36a6a869e",
+    "crates/connect-store/src/tasks/tests/media_fixture.rs": "af8c0773cbfac8e3b8f2be844f1bbc4c22aceb8eb30da117f7d05d58f2a7b7f8",
+    "crates/connect-store/src/tasks/tests/media_migration.rs": "8c08c9c243660823bb0bc2c18124ee01b562462e875022ae4c00d02681a9725e",
+    "crates/connect-store/src/tasks/tests/media_recovery.rs": "70d9d2d43de8c1a42e635da0569470e19b9aef6fc4d62a08b5f701829f002caf",
+    "crates/connect-store/src/tasks/tests/mod.rs": "5a73832745719b0b64e794acc367c451d8e2485dd869652a524d02730cb0d8cd",
+    "crates/connect-store/src/tasks/tests/native_media_migration.rs": "d2e3b99293cdf2944cc5633f4dd52b7bcb42a4455350af37e531cfd04f96a379",
+    "crates/connect-store/src/tasks/tests/native_reply.rs": "07e86a8f295948df15ffc1bc028713ed24e9aa202be40f43ef71a83894c61b54",
+    "crates/connect-store/src/tasks/tests/native_resource_boundaries.rs": "9ee79510cbbffd286316f1fff88244abbfd6aaa537729a1a3e697907ba4c550e",
+    "crates/connect-store/src/tasks/tests/native_resource_fixture.rs": "00223d4f19c9c2029169d79cdf89bce3a1d2ae66bebf9d5df41b2c47cfb85af9",
+    "crates/connect-store/src/tasks/tests/native_resources.rs": "73b5ed21ec7050a5d865b621d38f5db8fe86a7866e5cc5597da1cb74a3bdaac0",
+    "crates/connect-store/src/tasks/tests/provider_setup.rs": "1c755ea35c4ec608a13fa998ddc00ea328c07d3b8d9aff3addb956c346465a87",
+    "crates/connect-store/src/tasks/tests/recall.rs": "9d6cf68d098b87531f59e5a84e705237583150bb3a17e0745f3ca3678d116e4f",
+    "crates/connect-store/src/tasks/tests/recall_authority.rs": "41e1374355470809b5ce05b125e11b21fd98f5f995ff1a64bc2b81089eb18beb",
+    "crates/connect-store/src/tasks/tests/recall_helpers.rs": "73f08f69c6a8011dc4858ce2e49bb7a01dfc20900ea4a5eff30c36ce9df3a2df",
+    "crates/connect-store/src/tasks/tests/recall_sources.rs": "e60288b9a05e477cf6a0305bb6c0c6e865cdc25050fe90e7faece66d5b86cfe6",
+    "crates/connect-store/src/tasks/tests/replies.rs": "f205fcab8f9bf02a675afe9a9369ddeb374c93ffde6acbf9e58213d9e3ce9572",
+    "crates/connect-store/src/tasks/tests/reply_races.rs": "e57fd656e4bb0e11e19dbd161c841e2cbc67f437e1f36a249ccd892cb0b9aafd",
+    "crates/connect-store/src/tasks/tests/sms_fixture.rs": "2dd6d13c0d54cc00e79e192f42f446a842f6f0bc8f747cffa30038d571682e11",
+    "crates/connect-store/src/tasks/tests/sms_policy.rs": "53ff584054eaceca04544e52add65b7a193cc31f4c5d774a7d5649a1a1220d6e",
+    "crates/connect-store/src/tasks/tests/transactions.rs": "3a785a7665e733b9a8b29613097254f0390ac687495baae7d1d55adeb02745da",
+    "dependencies/source-lock.json": "cda757ccc91da37fb6c6e7fea6c542d214f0717b117ac7df525f63fd923c439c",
+    "docs/TASK_ACCESS.md": "880d913964f4443dcbb674a6b3c01a5c15d9ce054e39b0350d054b6a50885718",
+    "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+    "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+    "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+    "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+    "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+    "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+    "sdk/python/connect_sdk/protocol.py": "63002d7d3ffd1d6149525376953dbf0de98041dcd7c37a026bc1b9f917f1a8f2",
+    "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+    "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+    "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+    "sdk/tests/task_results.json": "b79b121d5eb5fbd503470c8217c4732c2b5a0ac1b8a374e7a695b3d1e5bf94b7",
+    "sdk/typescript/dist/task_protocol.js": "759efff4f10a4f20bff546af3916e8c1dd448f2909e3c55a7cb2ebbc223e86e1",
+    "sdk/typescript/dist/tasks.d.ts": "fd378880edc15d68f2abd32d5b3d681e3ee21cf79a235814dfe072bf280e6b76",
+    "sdk/typescript/src/browser.ts": "774547883632ab047552507e5e3971ac01a56dc3b8f64d1b9becd70164f99c25",
+    "sdk/typescript/src/browser_http.ts": "6ac654d1c84ced1eccb0f915179febcb283f71f92cfa3ec74ff3d5dfb750420c",
+    "sdk/typescript/src/browser_voice.ts": "d6558b8013eb20f1e92c9b4140ebb92452b93171c390a86707db5b884ac32f6f",
+    "sdk/typescript/src/browser_voice_stats.ts": "410a8a6de1f73cfa83a804652c2369769e9337caa4abe9f1a78be12bbeef165c",
+    "sdk/typescript/src/errors.ts": "7f6121c802ee45623b3713b1d06ba66ac89a6af8305c6d0a7c1e69c88fed3319",
+    "sdk/typescript/src/http.ts": "7e1c842e9837fe39c04895d8766de672cbf33deb8a4de092b87d0b1054b91b45",
+    "sdk/typescript/src/index.ts": "87a79bacb3377fe96ca1029574f763297f12bc419be154362f2c5f6601b0be9e",
+    "sdk/typescript/src/native.ts": "3d9239704548df688d67f62c41c8152a9c1522d52fcfe654fc5f56443e0577ce",
+    "sdk/typescript/src/native_audio.ts": "da90eaeccffd5c9e322566ec0681bdf2a97b36f7c85b626afa6cf2b3917eb984",
+    "sdk/typescript/src/operations.ts": "8418cc7f27caaa847cf2162874f34a8a1dc213d185d402ee958c91264216f601",
+    "sdk/typescript/src/protocol.ts": "20d3b2cbc3d987b7c190f5a4172dba8c68cf983e6abf96aa9e72c1b5324f6b91",
+    "sdk/typescript/src/task_operations.ts": "44510197f246bce83fbb97d5fbdd45a8c7b4b67d8c738365c846822961c6c185",
+    "sdk/typescript/src/task_protocol.ts": "a886b7d2409218f707356fc0363784f29d7b6af87dab8cacfa56dabd1e643d82",
+    "sdk/typescript/src/tasks.ts": "5df93759b511a53b16fe26f2db850a631934618cbd6af45963391a983ccd0d45",
+    "sdk/typescript/src/types.ts": "6ee7829613c113eba2c8610c86d6fd83ed08fc995d70ba04d74f01b31799b624",
+    "sdk/typescript/src/validation.ts": "ab9301e407e27996a697a341f3a1a246255285fd21c11cdfbbc46cfd6f9a5ced",
+    "skills/connect/SKILL.md": "56f2e9291e54af007ec5c1fe31698832df98298ea814ea83dbd152f67d58d5dd"
+  },
+  "current_source_additions_sha256": {
+    "crates/connect-server/src/cli/task_access.rs": "edc7f6c10dd302bc893584a26f1a01c4faeead0d1ca93963d20fb3d910edecb6",
+    "crates/connect-server/src/cli/task_access/arguments.rs": "2b996ad466d339472f82aa69b2399b28447d4d7287c65d832fa283b0425b7d22",
+    "crates/connect-server/src/cli/task_access/codex.rs": "8021c21dc900b22477d6a3ea2d712e711c89efa37beefb1f555e9cbe88bb1987",
+    "crates/connect-server/tests/gate4_codex_export.rs": "fbd4999079005d72a947f29f6c084db1eac5024fe905e3595a124ca07e35a516",
+    "crates/connect-server/tests/support/mcp_client.rs": "ed45444d6c499050f8ed26b532d576b21d1c25cfc3c15e00074458b6df9fc329",
+    "crates/connect-server/tests/gate4_mcp_tools.rs": "970902c9e5d0feafa9beae626207b94c865f756dd7b67014d22be66223a430e8",
+    "skills/connect/SKILL.md": "56f2e9291e54af007ec5c1fe31698832df98298ea814ea83dbd152f67d58d5dd",
+    "skills/connect/agents/openai.yaml": "62a639ede28013f697da75fbe85fdaaa747e704d3188e241a30733ea0a5f7982",
+    "skills/connect/references/json-cli.md": "fb120e690291439259bc21fa50dd0c3707f0d30ed31ea56be1fead430b0ba07a",
+    "Cargo.lock": "c3eb1839594491e35a11b6bdfcf4b65d772ac7d7a36f1e1f16530ac9c14e110f",
+    "dependencies/source-lock.json": "cda757ccc91da37fb6c6e7fea6c542d214f0717b117ac7df525f63fd923c439c"
+  },
+  "source_boundary": "Core frozen manifest still matches except TASK_ACCESS.md, subsequently extended only with Codex setup documentation. Current export/catalog additions have separate exact digests. Repeated harnesses are not summed as distinct checks.",
+  "checks": [
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-core-final.log",
+      "log_sha256": "5fb6de962af41d499e30d9d1e5ff9b2c1d0760353b5c05d6ef1d353bbdfbe1b2",
+      "exit_code": 0,
+      "rust_harness_results": [
+        {
+          "status": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 151,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "scope": "All protocol units (3), task contract fixtures (16), Store library units (151); not all Store integration harnesses"
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-python.log",
+      "log_sha256": "314cd9240c7d5e08b18d7e30ca2bcf8764ff414181eae1d0a7e2d00902d5f43b",
+      "exit_code": 0,
+      "rust_harness_results": [],
+      "passed": 21
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-node.log",
+      "log_sha256": "b2bc768c7231fb11335b8bf8466228c72aa0dc7dfb2b93fd5fb3f54ba9b10a59",
+      "exit_code": 0,
+      "rust_harness_results": [],
+      "passed": 149
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-ts-build.log",
+      "log_sha256": "200a547318160554de6472ac3ebc1ab4a301d1a37be1584f3de764ab2c5e1344",
+      "exit_code": 0,
+      "rust_harness_results": []
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-wire-corrected.log",
+      "log_sha256": "158f86d917181ef6b75ac9ad09d1a65ff6aca0f5d5595b728a48772ee0dcf0ca",
+      "exit_code": 101,
+      "rust_harness_results": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "FAILED",
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "scope": "Five native/MCP harnesses passed (11 tests); shared SDK/CLI matrix then failed its unchanged 20-second process deadline"
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-matrix-isolated.log",
+      "log_sha256": "3a2dc9f5382bb6c84e5cb4ff0a499f97efbb4d18ed6e6294d964020c4710a7e7",
+      "exit_code": 0,
+      "rust_harness_results": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "scope": "Same seven lanes, 32 steps per lane; original deadlines unchanged; cause of earlier timeout is not established"
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-tools-contract-final.log",
+      "log_sha256": "f8ab01744d16a83467d02a36d18f0718b3e7278f68889840a4419d642a8a61d0",
+      "exit_code": 0,
+      "rust_harness_results": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "scope": "ACK recovery, slow admission/pending, late-body uncertainty, communication parity, artifact expiry/reconnect"
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-tools-catalog-wire-current.log",
+      "log_sha256": "a2beb8f9e71849d0defa596c8ba43ecf748bf4a8005d256ba09b88adf9338ad1",
+      "exit_code": 0,
+      "rust_harness_results": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "scope": "Current 28 schemas, 23 communication-operation parity and three delegated-cancellation tests"
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-tools-catalog-clippy-current.log",
+      "log_sha256": "32d47f791eadf1ea833d9f8c84fbfea5cab1f438e113e93be05bd5b908e1c2ac",
+      "exit_code": 0,
+      "rust_harness_results": []
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-export-clippy.log",
+      "log_sha256": "3d850879eccc0d2cd0295c4b7df1323a9d2f3de2b49da39eb45051f585c010e7",
+      "exit_code": 0,
+      "rust_harness_results": [],
+      "scope": "All server targets/features including current CLI changes"
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-rustdoc-final.log",
+      "log_sha256": "159c68542ce3be7b840a3a3b8e2ae3a2eda5b2f304bfe41d8494244f8aa8df06",
+      "exit_code": 0,
+      "rust_harness_results": []
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-protocol-rustdoc-current.log",
+      "log_sha256": "13bff34aa3faabb4358db79afb61b4f4d8d52837eca483c032c25cabf743e09d",
+      "exit_code": 0,
+      "rust_harness_results": []
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-export-rustdoc.log",
+      "log_sha256": "84f0c71dd1848451f542f65e8eafdfc4a708066e13ac2e241d60ae5d8a7eddaa",
+      "exit_code": 0,
+      "rust_harness_results": []
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-tools-format-current.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0,
+      "rust_harness_results": []
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-skill-validation.log",
+      "log_sha256": "db349825903d66adffea3ecf1bd8e1803043e8a71cf1a051235dabc5371f5bb0",
+      "exit_code": 0,
+      "rust_harness_results": []
+    }
+  ],
+  "retained_initial_failures": [
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-rollback-baseline.log",
+      "log_sha256": "3b6696fa6ad7cd0ec7c6e1ee66542e43c507b5cf91722b59e3eaf9d72dc94c65",
+      "exit_code": 101,
+      "rust_harness_results": [
+        {
+          "status": "FAILED",
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "finding": "Injected receipt-capacity failure reproduced a partial cancellation commit. Fixed by propagating delegated-cancel failure before transaction commit."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-core.log",
+      "log_sha256": "636a5bb7a26c3ae688f1e3f85f6dcacf604ea1d1544b95c8a470e4a823609f0f",
+      "exit_code": 101,
+      "rust_harness_results": [
+        {
+          "status": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "status": "FAILED",
+          "passed": 150,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "finding": "Same pre-fix cancellation rollback regression; 150 Store units passed and one failed."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/task-cancel-wire-final.log",
+      "log_sha256": "f5cb7c58fffda79f9d037ec81edc9692d11f86a41a6850e0d718913ecbf3e2a8",
+      "exit_code": 101,
+      "rust_harness_results": [
+        {
+          "status": "FAILED",
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "finding": "New recall test incorrectly used an owner without task_recall scope. Corrected with a separate sibling History Native grant; production authority was not widened. Exact pre-correction fixture source was not frozen; current source and original failure log are retained."
+    }
+  ],
+  "proofs": [
+    "TaskCancel is an explicit additive operation in both immutable task ceiling and invocation grant. It never supplies owner/credential/conversation/task selectors to model arguments. Cancellation invalidates only the bound task grants, leaving sibling task and conversation usable.",
+    "Grant revalidation precedes mutation/receipt lookup. Cancellation state, grant revocation, prepared-effect cancellation, journal entry and canonical control receipt commit atomically. Failed receipt writes roll back all changes; current authorized owner can inspect an accepted receipt after grant invalidation.",
+    "A real independent MCP client exercises every one of 28 schemas. Invalid selectors/shapes and oversized artifact requests fail without mutation; supported operations have native parity and current authorization.",
+    "180-message real MCP recall retrieves an older source omitted from initial bounded context. Pages retain message ID, actor, provenance and state, remain bounded, and deny a sibling task cursor without changing the store.",
+    "Abandoned accepted ACK recovers its original receipt and one message. Slow admission and maximum wait return bounded pending handles; late decoded requests return uncertainty retaining task and original mutation IDs. Expired artifact bytes stay inaccessible after replay and reconnect while source references remain retained."
+  ],
+  "unresolved": [
+    {
+      "finding": "SDK/CLI matrix hit its existing 20-second subprocess timeout in one broader run; same-source isolated retry passed.",
+      "cause": "Not established; no timeout or assertion was weakened.",
+      "follow_up": [
+        "G4-031",
+        "G4-033"
+      ]
+    }
+  ],
+  "not_claimed": [
+    "Actual Codex skill/model loading or installed-host session continuation",
+    "Vapi creation/bootstrap and live tool calls",
+    "Whole T-A5/T-A8 or any A4 acceptance closure",
+    "All workspace/integration tests, load qualification or package qualification"
+  ]
+}

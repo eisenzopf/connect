@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T23:27:43.826249+00:00",
+  "status": "G4-018, G4-021 and G4-023 individually verified; whole gate remains open",
+  "source_revision": "59b551990c0053ad32d5359a3b29fbaa0ee78790",
+  "source_reconciliation": {
+    "qualified_offline_revision": "d47be557dd495cbcbc18ffc1a264cf85e023f851",
+    "changed_runtime_test_skill_inputs": [
+      "crates/connect-server/tests/gate4_codex_call_intent.rs",
+      "skills/connect/SKILL.md"
+    ],
+    "conclusion": "At individual host closure, production crates, public SDKs, examples and dependency locks matched the 41-phase passed source. The corrected skill also passed all seven current installed-runtime checks with no leaked owned process groups. Subsequent diagnostics changes require their own qualification and do not change host launch or tool behavior."
+  },
+  "source_sha256": {
+    "skills/connect/SKILL.md": "71befeeaf5d33558af4d9d28cf05e94059e6f1b61350a45ad2d67157cd4c6db1",
+    "skills/connect/agents/openai.yaml": "62a639ede28013f697da75fbe85fdaaa747e704d3188e241a30733ea0a5f7982",
+    "skills/connect/references/json-cli.md": "fb120e690291439259bc21fa50dd0c3707f0d30ed31ea56be1fead430b0ba07a",
+    "crates/connect-server/src/cli/task_access/export.rs": "950ad6167d5fdf54c8daae542178769d824f8adff154f0aa7eb17a4ddef883ab",
+    "crates/connect-server/src/cli/task_access/arguments.rs": "6170cc7caee12243b191aa189e94453b56a5e6bb690e199c19ef38be76473b9e",
+    "crates/connect-server/src/cli/task_access/transport.rs": "96845628e351af50bf5dd694ebce99b8fff4a4b759daf5dc7b145caf73a63773",
+    "crates/connect-server/src/cli/task_access/codex.rs": "63eec1b0cdb1c2e9de2dd009df23844cd233d17fa30020da9b56f580242d0e8a",
+    "crates/connect-server/src/cli/task_access/codex_host/renewal.rs": "f382e70061a3674bae2fbe96871f16e06e50b9e7315353ab2159ad852eb65491",
+    "crates/connect-server/src/cli/task_access/codex_host/diagnostics_tests.rs": "e50a9cd2496ac6e7c3869423da738ffd95dbadcd1a0f70d3505af0f1dad7f9ae",
+    "crates/connect-server/src/cli/task_access/codex_host/diagnostics.rs": "86991aa8aa1e07050fc45b4bef7a2edeca06d2c69c2131217a969554be8376a1",
+    "crates/connect-server/src/cli/task_access/codex_host/mod.rs": "7e9fa58cd5948542e9f0b4139d0d8dbf192b0178cb94ea4c727954b91e873c96",
+    "crates/connect-server/src/cli/task_access/codex_host/group_status.rs": "819b414e59a754f1b7b7ace56d70c4c9a007f8e6a1048f21889e1dcd8c8b3ad3",
+    "crates/connect-server/src/cli/task_access/codex_host/state.rs": "bb2c7ad58a3f5c4cc2d9a8b820ac99f1353bbdaab94fdcd3120ab7de89c49c65",
+    "crates/connect-server/src/cli/task_access/codex_host/install.rs": "20851d83d8a9623ee35f43548d39c4b2503e1b719abd9fbcdb35f33172a60368",
+    "crates/connect-server/src/cli/task_access/codex_host/process.rs": "7c8e1d4b401d23871cc23a62c4ac5fbe33922cd9f1a94386385ad73d1ed3796c",
+    "crates/connect-server/src/cli/task_access/codex_host/child.rs": "97424741b330b034e9ee6d282e100ebac056bb312d00ac94cddedc6ca0c21993"
+  },
+  "requirements": {
+    "G4-018": {
+      "install_and_skill": "Manifest-verified 59b5519 release exports a fresh protected skill/MCP installation; actual gpt-6.1-sol discovers tools, uploads bytes, asks, waits and resumes without transport glue.",
+      "fallback_and_negative_controls": "Bundled Native JSON CLI reference unchanged since passing export/MCP checks; actual runtime tests cover missing undelegated tool, current revocation and preserved pending cursor. Server remains authority.",
+      "evidence": [
+        "real-model-draft-journey.json",
+        "codex-workflow-export.json",
+        "codex-owned-runtime.json",
+        "offline-d47be55-attempt-1.json"
+      ]
+    },
+    "G4-021": {
+      "concurrency_restart_recovery": "Two independent real-model tasks share one conversation; exact original session resumes after server restart and grant renewal; one answered task follows up, the other stays waiting. Paused-admission fixtures cover durable intent ordering and replay; scripted runtime fixtures retain pending cursor and deny current revocation.",
+      "credential_isolation": "Generated installation has only the narrow task bearer. Operator/provider credentials are absent from model environment and delivered skill/config; global Codex configuration and model account remain outside exports.",
+      "evidence": [
+        "real-model-draft-journey.json",
+        "codex-call-intent.json",
+        "codex-owned-runtime.json",
+        "codex-grant-renewal.json",
+        "host-concurrency.json"
+      ]
+    },
+    "G4-023": {
+      "repeatable_install_and_resume": "Documented task-access export/run/renew commands used from a fresh private profile with the manifest-verified release and installed Codex CLI 0.162.0-alpha.17.2. Resumed same retained session with no prompt-file or reconstructed context.",
+      "cold_warm": "Real-model end-to-end cold/warm turns A 75.428/37.569s, B 68.883/36.813s. Separate 16-host loopback profile captures setup/resources; these are not QUIC latency or general performance claims.",
+      "limits": "Qualified local macOS arm64 and the recorded CLI version. Continuation requires explicit run-codex; automatic wake, other hosts and remote deployment are not qualified.",
+      "evidence": [
+        "real-model-draft-journey.json",
+        "host-concurrency.json",
+        "codex-owned-runtime.json"
+      ]
+    }
+  },
+  "installed_component_report": {
+    "path": ".local/package-checks/20261011T224550.486732Z/gate4-installed/result.json",
+    "sha256": "6487d9702f00c08834e9235aebfbe7b1b3154f748843834f01be70341616089d",
+    "scope": "Terminal passed installed-host component. Parent package invocation later failed compiling a separate legacy crash fixture; no whole-package pass is claimed."
+  },
+  "retained_failures": [
+    "real-model-first-attempt.json",
+    "package-59b5519-attempt-1.json",
+    "codex-owned-runtime.json"
+  ],
+  "remaining": "Diagnostics/app completion and the independent Vapi/SMS, integrated authority, current-source package/recovery and final review requirements retain their own statuses.",
+  "current_runtime_check": {
+    "path": ".local/gate-4-review/skill-runtime-20261011T230905.622127Z/result.json",
+    "status": "passed",
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "leftover_group_members": [],
+    "sha256": "a998df11e7405766dd5459b2a2666721f5c7f48ff1413377ab85e32508829002"
+  }
+}

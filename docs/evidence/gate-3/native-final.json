@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-09T23:15:44.635600+00:00",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e457960137a3",
+  "transport": "native UCTP/QUIC -> Connect -> Vapi WebSocket",
+  "three_turns": {
+    "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+    "dirty": false,
+    "transport": "native UCTP/QUIC -> Connect -> Vapi WebSocket",
+    "result": "captured",
+    "remote_end_observed": false,
+    "received_frames": 1998,
+    "received_seconds": 39.96,
+    "errors": [],
+    "turn_start_seconds": [
+      2.255765290989075,
+      15.334348875010619,
+      29.13525337498868
+    ],
+    "independent_answers": [
+      "The anchor rehearsal draft states that the rehearsal code is Forest Lake, and the preferred",
+      "rehearsal day is Thursday.",
+      "I've noted that the anchor native decision is pine tree, and we'll remember this in the",
+      "conversation.",
+      "If you need me to repeat or use it, just the anchor native decision is pine tree."
+    ],
+    "audio_sha256": "efb33850180cd1fc8bef6e420908f8fbd35bc22977e29b9e3da3e2fb4fad3a7b"
+  },
+  "interruption": {
+    "independent_answers": [
+      "Once upon a time, on a rugged coastline, there lived a dedicated...",
+      "The anchor interruption decision is ice cream.",
+      "The anchor interruption decision is ice cream."
+    ],
+    "audio_sha256": "8b98b71c5f501ed11ec251113e8ba7658ad6b2f1757a7b1140188d1af53fa7a3",
+    "turn_start_seconds": [
+      2.360935292002978,
+      12.780995500012068,
+      29.81545900000492
+    ],
+    "behavior": "Story prefix interrupted by actual spoken instruction; Ice Cream acknowledged and recalled."
+  },
+  "provider_end": {
+    "remote_end_observed": true,
+    "session_state": "ended",
+    "reason": "automated-rehearsal-complete",
+    "helper_returncode": 0,
+    "result": "passed"
+  },
+  "private_receipts": [
+    ".local/gate-3-media-audit/anchor-native-three-turns",
+    ".local/gate-3-media-audit/anchor-native-interruption",
+    ".local/gate-3-media-audit/anchor-native-provider-end"
+  ],
+  "source_provenance": "Later dirty flag records documentation progress only; runtime and SDK bytes match clean e457960.",
+  "redaction": "Private stream identifiers omitted."
+}

@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T14:17:23.133875+00:00",
+  "items": [
+    "G4-027",
+    "G4-028"
+  ],
+  "status": "local signed SMS task callback component qualified; complete cross-channel and live acceptance remain open",
+  "source_revision": "c69d7e675dc546ae94ee88d402d3938a149a4096",
+  "source_inputs_sha256": {
+    "crates/connect-server/tests/gate4_sms_callback_journey.rs": "433218621e871a586cd445795a2263e7e968b84474b00cd76a76ee02591f93c3",
+    "crates/connect-server/tests/support/signed_sms.rs": "e4ffe4702cb0b962c7a630323899554c2b8145edff74e5a28ac6ee72e3f51624",
+    "crates/connect-server/tests/support/task_sms.rs": "8a943b748d4c4c5867779cf47636be9062d5d923aeb79b4337a120cd8edd141a",
+    "crates/connect-server/tests/support/native_tasks.rs": "b3d2fb6da01f2634db743b1b3990d84d50dbd11024d15610a5c65e2e1aad7f4a",
+    "crates/connect-server/tests/gate4_sms_tasks.rs": "46b8bed093c74ecbae3f069220e6cae7235bcc72b4ee7863179d89e4f7445f84",
+    "crates/connect-server/tests/gate4_vapi_post_call.rs": "637166122c5ce8fe4a4d600dc899bec040f2a6b3243a9a67c77e9281d2948043"
+  },
+  "checks": {
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0,
+    "command": "cargo test --locked -p connect-server --all-features --test gate4_sms_callback_journey --test gate4_sms_tasks --test gate4_vapi_post_call",
+    "evidence": {
+      "path": ".local/gate-4-planning/sms-callback-3.log",
+      "sha256": "fb717f1368aba662be73366055dbae7212938860ca6e4cd621564658b12f9748"
+    }
+  },
+  "quality": {
+    "clippy": {
+      "exit_code": 0,
+      "command": "cargo clippy --locked -p connect-server --all-features --test gate4_sms_callback_journey --test gate4_sms_tasks --test gate4_vapi_post_call -- -D warnings",
+      "evidence": {
+        "path": ".local/gate-4-planning/sms-callback-clippy.log",
+        "sha256": "3aaaf86e274c356ff05deed3130309055978f140adc6381a0074bf3cddd2e674"
+      }
+    },
+    "format": {
+      "exit_code": 0,
+      "command": "bash scripts/format.sh --check",
+      "evidence": {
+        "path": ".local/gate-4-planning/sms-callback-format-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "review": "No production authority or transport changes. Signed callbacks enter the owned server public HTTP interface; task grants and operations use public APIs. Store access is limited to trusted fixture enrollment and snapshot assertions. The callback helper is separate from the focused journey; no new public crate API is exposed."
+  },
+  "behavior": [
+    "Tampered callback is unauthorized and leaves Store unchanged. Valid duplicate STOP cancels queued dispatch with opted-out; HELP and STOP generate no assistant reply or provider-owned keyword acknowledgement.",
+    "START after server restart allows a new logical send while the original cancelled effect returns provider-failed. Replayed old STOP does not supersede newer START.",
+    "Exactly one loopback Telnyx API send occurs. Signed delivery and duplicate delivery retain one delivered job; delivery alone does not answer the waiting task.",
+    "Duplicate incoming SMS creates one unassigned reply in the existing conversation. Explicit owner assignment binds the actual question to one task; phone number and sender do not guess the task.",
+    "After a second owned-server restart, assignment replay retains one binding and source-backed recall returns the actual answer; sibling task is unchanged.",
+    "Task cancellation denies accepted-send replay with forbidden even after START. The original cancelled send stays cancelled.",
+    "Existing reviewed-purpose/route/lease/STOP dispatch failures and Vapi voice-decision-to-chat continuation also pass. These are separate checks, not a combined voice-to-SMS proof."
+  ],
+  "retained_attempts": [
+    {
+      "status": "failed-compilation",
+      "exit_code": 101,
+      "detail": "Initial fixture tried to import the private transport module. Corrected to the existing public runtime HTTP facade with a fixture-only signing key; no visibility widened.",
+      "evidence": {
+        "path": ".local/gate-4-planning/sms-callback-1.log",
+        "sha256": "09d1a580be831b5fa5f288fbb323cbb0c5559e3f5a38336cdf2e4b777d54031a"
+      }
+    },
+    {
+      "status": "passed",
+      "passed": 1,
+      "detail": "Initial behavior pass before tightening rejection assertions to exact application codes.",
+      "evidence": {
+        "path": ".local/gate-4-planning/sms-callback-2.log",
+        "sha256": "7e34e8bc7eea9eb7e0cf8ba1686e1cc780411ebe08ec63b192e9a6142fda2774"
+      }
+    }
+  ],
+  "limits": [
+    "Synthetic loopback Telnyx/Vapi peers and reviewed enrollment fixtures only; no carrier, account, model inference, public ingress, remote deployment or production database used.",
+    "Owned-server restarts reconstruct runtime/listeners over the retained database; this check does not attest a separate OS-process crash or installed release.",
+    "Combined post-voice SMS, unavailable-source/contrast scenarios, adversarial integrated acceptance and separately authorized live journey remain open.",
+    "The existing macOS debug linker __eh_frame warning remains in test logs. Strict affected Clippy passed.",
+    "The latest full offline run failed separate host-fixture startup checks; these three passing components do not replace whole-run qualification."
+  ]
+}

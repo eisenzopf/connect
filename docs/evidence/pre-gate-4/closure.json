@@ -1,0 +1,171 @@
+{
+  "date": "2026-10-09",
+  "scope": "Pre-Gate 4 immediate repairs and consent-aware SMS; local macOS arm64 offline verification plus separately identified live setup",
+  "base_revision": "a20de339fa7038576a116600ae5f582ee8388279",
+  "dirty_source": true,
+  "immediate_repairs": {
+    "R01": "Authorized capability and browser-binding discovery; native/HTTP SDK parity",
+    "R02": "Newest-first delivery pages, omission counts, authenticated cursors, restart and VACUUM ordering",
+    "R03": "Actual reference UI continuation, receipt visibility, voice preflight and stable mutation IDs across reload",
+    "R04": "Current status, transferred gate IDs, deployment limits and historical qualification distinguished"
+  },
+  "offline": {
+    "gate3": {
+      "result": "passed",
+      "phases": 27,
+      "steps": [
+        {
+          "name": "dependencies",
+          "result": "passed"
+        },
+        {
+          "name": "format",
+          "result": "passed"
+        },
+        {
+          "name": "lint",
+          "result": "passed"
+        },
+        {
+          "name": "contract-fixtures",
+          "result": "passed"
+        },
+        {
+          "name": "durable-model",
+          "result": "passed"
+        },
+        {
+          "name": "native-media-parity",
+          "result": "passed"
+        },
+        {
+          "name": "native-media-faults",
+          "result": "passed"
+        },
+        {
+          "name": "native-sdk-media-helper",
+          "result": "passed"
+        },
+        {
+          "name": "media-pressure-smoke",
+          "result": "passed"
+        },
+        {
+          "name": "vapi-duplex-media",
+          "result": "passed"
+        },
+        {
+          "name": "vapi-observer-lifecycle",
+          "result": "passed"
+        },
+        {
+          "name": "provider-chat-context",
+          "result": "passed"
+        },
+        {
+          "name": "provider-chat-flow",
+          "result": "passed"
+        },
+        {
+          "name": "vapi-adapter-failures",
+          "result": "passed"
+        },
+        {
+          "name": "transport-queue-budgets",
+          "result": "passed"
+        },
+        {
+          "name": "sip-duplex-media",
+          "result": "passed"
+        },
+        {
+          "name": "sip-registration-lifecycle",
+          "result": "passed"
+        },
+        {
+          "name": "sip-codec-failures",
+          "result": "passed"
+        },
+        {
+          "name": "webrtc-duplex-media",
+          "result": "passed"
+        },
+        {
+          "name": "webrtc-security",
+          "result": "passed"
+        },
+        {
+          "name": "sip-webrtc-interop",
+          "result": "passed"
+        },
+        {
+          "name": "artifact-recovery",
+          "result": "passed"
+        },
+        {
+          "name": "artifact-lifecycle",
+          "result": "passed"
+        },
+        {
+          "name": "transport-authority",
+          "result": "passed"
+        },
+        {
+          "name": "language-sdk-facade",
+          "result": "passed"
+        },
+        {
+          "name": "typescript-sdk",
+          "result": "passed"
+        },
+        {
+          "name": "python-sdk",
+          "result": "passed"
+        }
+      ],
+      "note": "Broad run precedes two narrow final fixes: Telnyx retry metadata deduplication and first-attempt UI rejection recovery. Both received targeted follow-up tests."
+    },
+    "targeted_followup": {
+      "strict_workspace_clippy": "passed",
+      "server_sms_authority_tests": 2,
+      "server_provider_flow_tests": 2,
+      "javascript_typescript_tests": 38,
+      "python_tests": 14,
+      "rustdoc_warnings_denied": "passed",
+      "store_tests_including_schema9_backup_migration": "passed",
+      "rudeless_postgresql_integration_tests": 2,
+      "real_chromium": "passed: message 101, lost ACK/reload/replay exactly once, voice rejection before microphone, no page errors"
+    }
+  },
+  "live": {
+    "campaign_and_number": "Approved; all carrier mappings ADDED; exact approved HELP/STOP/START response text verified",
+    "recipient_form": "Original affirmative enrollment reviewed via admin session + CSRF; installation/conversation/sender-bound 24-hour grant synchronized.",
+    "rudeless_deployment": "Succeeded; backend only, PostgreSQL container preserved, original consent fingerprint unchanged. Off-host backup restored in disposable local PostgreSQL.",
+    "connect_migration": "Schema 9 to 10 with verified backup; existing identities, credentials, conversations, messages and routes unchanged before SMS route addition.",
+    "sms_delivery": "Passed: initial HTTP SDK send, five handset/Vapi conversation turns, native UCTP/QUIC recall of prior SMS context, and fresh post-START SDK delivery with signed callback.",
+    "callback_boundary": "Qualified release uses its built-in webhook-only listener; custom proxy removed. Public application API returns 404; unsigned webhook returns 401.",
+    "voice_route": "Original Telnyx voice connection read back unchanged after SMS configuration.",
+    "build": {
+      "id": "98a7515f-2b8a-4c2b-ab5d-cd789db94948",
+      "result": "SUCCESS",
+      "image_digest": "sha256:d15372b99b2ca71da6b1a5351efe7900e624b21295b7151b2fe020e79b8f8126"
+    },
+    "sms_controls": "Passed: real HELP/STOP/START callbacks, no keyword assistant prompts, native SDK send cancelled as opted-out before provider submission, same-ID replay preserved, subsequent START allowed a new delivered message while the old cancelled request remained cancelled.",
+    "sms_evidence": "sms-live.json"
+  },
+  "not_claimed": [
+    "fresh live voice/media qualification",
+    "independent contributor installation",
+    "Gate 4 implementation",
+    "full v0.1 or community release"
+  ],
+  "private_evidence": "Raw logs, credentials, handset details, database snapshots and provider identifiers remain ignored under .local; original audit reproductions are historical at a20de33.",
+  "source_manifest": "source-files.json",
+  "unresolved": [],
+  "repair_source_revision": "e80e81010228",
+  "rudeless_source_revision": "608404e",
+  "installed_package": "package.json",
+  "dirty_source_note": "The broad offline run used the then-uncommitted repair tree. The final installed candidate is pinned by repair_source_revision and package.json; subsequent changes are documentation only.",
+  "entry_followup": "entry-closure.json",
+  "entry_followup_note": "R05\u2013R07 entry implementation/qualification and R08 decisions now closed; future task runtime/media connector kit remain explicitly planned, not missing passes."
+}

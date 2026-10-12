@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T21:24:52.957809+00:00",
+  "source_revision": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
+  "status": "remaining 15 phases passed on unchanged source; original full invocation remains failed",
+  "scope": "Local macOS arm64 offline fixtures. This frozen revision predates the newer rehearsal drivers.",
+  "report": {
+    "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/result.json",
+    "sha256": "ff471fcece07c943817da67a4547b5e89fc3e5c603da7d8505d19524bfb4dd22"
+  },
+  "steps": [
+    {
+      "name": "mcp-operating-load",
+      "status": "passed",
+      "seconds": 31.07,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/mcp-operating-load.log",
+        "sha256": "497e67e2d258fe014da696ce132f2adba579f00e0b2a03225aa26f5409bc5c47"
+      }
+    },
+    {
+      "name": "grant-lifecycle-load",
+      "status": "passed",
+      "seconds": 13.192,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/grant-lifecycle-load.log",
+        "sha256": "40380d32c12ce27f52d9f5e9c222831a8590604ee721dfbadc7aaeee4bd42dfc"
+      }
+    },
+    {
+      "name": "task-artifact-retention",
+      "status": "passed",
+      "seconds": 45.491,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/task-artifact-retention.log",
+        "sha256": "8ca4685cea5445539841eddf65c669aff253673ec1def56dd8dcabd50e7ce3f1"
+      }
+    },
+    {
+      "name": "voice-setup-retirement",
+      "status": "passed",
+      "seconds": 1570.949,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/voice-setup-retirement.log",
+        "sha256": "59e307c0c521c80e9afba14f1c30678a54984c6d6a728a4fd3f5c2879ea283d0"
+      }
+    },
+    {
+      "name": "schema-six-build",
+      "status": "passed",
+      "seconds": 0.12,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/schema-six-build.log",
+        "sha256": "ae73a9ee5be2117a9227a61d926d1c794f15a513facfb2b95116b9af0055717c"
+      }
+    },
+    {
+      "name": "schema-ten-build",
+      "status": "passed",
+      "seconds": 0.255,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/schema-ten-build.log",
+        "sha256": "c7de16a831d6a19d539b04a82d40ec1ba84f66d5561df88df4ae0b08dd473dba"
+      }
+    },
+    {
+      "name": "historical-task-recovery",
+      "status": "passed",
+      "seconds": 7.652,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/historical-task-recovery.log",
+        "sha256": "32af4c03d5b24bb074f0e66d4f2af8aca5089cc63c43586e04475c1c0a3f7801"
+      }
+    },
+    {
+      "name": "dispatch",
+      "status": "passed",
+      "seconds": 7.422,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/dispatch.log",
+        "sha256": "7e8216d61b49ec6ec3a2703dfcdfd281b3e74a498a8f0094d5ebe8fbc13f4636"
+      }
+    },
+    {
+      "name": "identity",
+      "status": "passed",
+      "seconds": 4.081,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/identity.log",
+        "sha256": "8ebe90ed548426864a57ac66a6acdaa1412ff7f536bfc0049f3078f890c6a742"
+      }
+    },
+    {
+      "name": "typescript-probe",
+      "status": "passed",
+      "seconds": 1.244,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/typescript-probe.log",
+        "sha256": "3cec2cefa70682cf133f7328863fbd12af1d9014d8557341da0986e1deab7f28"
+      }
+    },
+    {
+      "name": "crash-replay",
+      "status": "passed",
+      "seconds": 10.199,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/crash-replay.log",
+        "sha256": "d753f41b0b9a5e7080f510cf5420eb7f1b1d29cd480786acf630980cfe95debb"
+      }
+    },
+    {
+      "name": "examples",
+      "status": "passed",
+      "seconds": 9.402,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/examples.log",
+        "sha256": "95b79de251c66d46fac3ff14586b3c524893c2a51074f2004470a20db65ed964"
+      }
+    },
+    {
+      "name": "example-recovery",
+      "status": "passed",
+      "seconds": 13.786,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/example-recovery.log",
+        "sha256": "0ae134b618acdc7ffd59f89d7ff6fba2134787e81c01c910170d0c276422a7c5"
+      }
+    },
+    {
+      "name": "current-recovery",
+      "status": "passed",
+      "seconds": 1.706,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/current-recovery.log",
+        "sha256": "522f640f6614259445cc99ccacb14d8fea6e0b80173a45a4721b0716f3a674bf"
+      }
+    },
+    {
+      "name": "datagram-example",
+      "status": "passed",
+      "seconds": 1.11,
+      "leftover_group_members": [],
+      "log": {
+        "path": ".local/gate-4-checks/remaining-20261011T205142.091947Z/datagram-example.log",
+        "sha256": "e5370b4c9c2a23644a19ad821c94913f0aed8463b858974ca63ff01353001fd8"
+      }
+    }
+  ],
+  "common_source_coverage": "23 phases passed in the original invocation, the failed reference-runner phase passed a separate unchanged diagnostic, and all 15 remaining phases passed. All 39 named phase requirements have passing observations at frozen 32f4fad; the initial startup failure remains an unresolved review finding, not a full-run pass.",
+  "original_failure": "docs/evidence/gate-4/offline-32f4fad-attempt-1.json",
+  "installed_runner_profile": {
+    "status": "passed",
+    "report": {
+      "path": ".local/runner-capacity/20261011T212049.621400Z/result.json",
+      "sha256": "9e26fcc82123c15e1df74d4d5e3ac7f230c866a021ef0ed9b27c934571206af2"
+    },
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-32f4fadeaf45",
+    "binary_sha256": "6a34f2ef7bbcb41bad5a52d108db5c8c26583a7ef36f509ff3ee26907056394f",
+    "example_sha256": "ca157985278878b94de15e93c730127134c7a8dccb3155279ebe6aa366e45818",
+    "phases": [
+      {
+        "name": "sixteen-workers-and-seventeenth-denial",
+        "status": "passed",
+        "seconds": 0.55
+      },
+      {
+        "name": "released-slot-original-intent-and-sixteen-replies",
+        "status": "passed",
+        "seconds": 0.275
+      },
+      {
+        "name": "sixteen-workers-after-server-and-app-restart",
+        "status": "passed",
+        "seconds": 0.214
+      }
+    ],
+    "boundary": "Explicit installed server/native helper/example binary; source Python SDK files were hash-verified against the package manifest before invocation. The 15-second question window was unchanged. All 16 workers, overflow denial, released-slot recovery, replies and restart passed. This does not explain the earlier debug startup failure."
+  },
+  "remaining": [
+    "Initial reference-runner/debug CLI startup causes remain unresolved.",
+    "New rehearsal source needs its own qualification and final candidate refresh.",
+    "Actual provider/model acceptance remains separate and unrun."
+  ]
+}

@@ -1,0 +1,268 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T10:51:25.493989+00:00",
+  "status": "local full-size task admission profile qualified; G4-030 remains in progress",
+  "items": [
+    "G4-030"
+  ],
+  "source_base": "0bc7d7362e90062afc8f85a48657fbb8c7f37a6f",
+  "source_inputs_sha256": {
+    "scripts/check-task-capacity.py": "792709b5568195af0a341a138a8f7b24ececb2357da25807e47f627b975baae0",
+    "scripts/lib/task_capacity.py": "ee42e7531a1cd535ff062e77de9203063417a58b17a94b969ec2b269e7ddc99e",
+    "scripts/lib/profile_metrics.py": "92ddc2f8294ff88f9063f601256d224e215a38ecc7f09d53a2a6971782bd91a7",
+    "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+    "scripts/lib/task_inbox_profile.py": "6cdbe53252a7c779ffd1ca2e71a408bd518b4afee76fcbbe077f273aeb2fb12e",
+    "Cargo.lock": "fb8fe2b98c6aebfe0f56d071905c715e890370a3e7c096b9ca0680f9830a9e73",
+    "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+    "sdk/python/connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+    "sdk/python/connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95",
+    "sdk/python/connect_sdk/protocol.py": "e0deab0cb9989a302973c5aaf44252d295a537f0e5bcfc4cbcd6c7aeecd495c3",
+    "sdk/python/connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+    "sdk/python/connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+    "sdk/python/connect_sdk/operations.py": "074d42cbe3542ac85861d15397eb940e2cfb818ce50a19b6773c8a17fd30efd8",
+    "sdk/python/connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+    "sdk/python/connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+    "sdk/python/connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+    "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "sdk/python/connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a"
+  },
+  "binary_sha256": "7228fce95f887f8b62c649bed3ddcf6b151f7c6b149193c253158a4491082106",
+  "binary_build": "cargo build --locked -p connect-server --bin connect; default debug features, no test-support",
+  "runtime_source": "Rust/runtime sources unchanged from source_base; delta contains profile and process-log helpers only.",
+  "scope": "local macOS arm64; separate server and native SDK helper; no live providers",
+  "budget_seconds": 900,
+  "command": "python3 scripts/check-task-capacity.py",
+  "exit_code": 0,
+  "result": {
+    "path": ".local/task-capacity/20261011T104915.768911Z/result.json",
+    "sha256": "f831b151a4951a236aad1d6585cf1df83e85f2a5c8e219d9419b883f48d6f876"
+  },
+  "log": {
+    "path": ".local/gate-4-planning/task-capacity-final.log",
+    "sha256": "b167263b40befab7341566f30c9f7ff16196ffaad3b2e46e4a902417c5d65aad"
+  },
+  "limits": {
+    "active_tasks": 1024,
+    "retained_tasks": 10000,
+    "step_leases": 16,
+    "unconsumed_replies": 1000,
+    "task_page": 100,
+    "task_wait_ms": 10000
+  },
+  "elapsed_seconds": 54.717,
+  "phases": [
+    {
+      "name": "active-1024-and-overflow",
+      "status": "passed",
+      "seconds": 1.261,
+      "exchanges": 1026,
+      "server_sampled_peak_rss_bytes": 44974080,
+      "database_apparent_bytes": 6188776,
+      "latency_ms": {
+        "p50": 1.178,
+        "p95": 1.401,
+        "maximum": 6.614
+      }
+    },
+    {
+      "name": "sixteen-step-leases-and-release",
+      "status": "passed",
+      "seconds": 0.025,
+      "exchanges": 19,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 6188776,
+      "latency_ms": {
+        "p50": 1.321,
+        "p95": 1.465,
+        "maximum": 1.602
+      }
+    },
+    {
+      "name": "inbox-1000-pages-and-maximum-wait",
+      "status": "passed",
+      "seconds": 12.55,
+      "exchanges": 1057,
+      "server_sampled_peak_rss_bytes": 50626560,
+      "database_apparent_bytes": 8872088,
+      "latency_ms": {
+        "p50": 1.743,
+        "p95": 8.996,
+        "maximum": 10008.656
+      }
+    },
+    {
+      "name": "retained-10000-and-cancellation",
+      "status": "passed",
+      "seconds": 40.086,
+      "exchanges": 18979,
+      "server_sampled_peak_rss_bytes": 51576832,
+      "database_apparent_bytes": 34336920,
+      "latency_ms": {
+        "p50": 1.45,
+        "p95": 3.513,
+        "maximum": 45.033
+      }
+    },
+    {
+      "name": "restart-at-retained-capacity",
+      "status": "passed",
+      "seconds": 0.238,
+      "exchanges": 4,
+      "server_sampled_peak_rss_bytes": 35487744,
+      "database_apparent_bytes": 30113792,
+      "latency_ms": {
+        "p50": 0.645,
+        "p95": 0.695,
+        "maximum": 3.021
+      }
+    }
+  ],
+  "observations": {
+    "accepted_tasks": 10000,
+    "active_ceiling": 1024,
+    "excess_active_denied": true,
+    "matching_create_replay": true,
+    "concurrent_step_ceiling": 16,
+    "excess_step_denied": true,
+    "released_slot_reused": true,
+    "unconsumed_reply_ceiling": 1000,
+    "excess_reply_denied_without_event": true,
+    "consumed_slot_reused": true,
+    "inbox_page_max_events": 90,
+    "inbox_page_peak_projection_bytes": 32535,
+    "native_wait_seconds": 10.009,
+    "native_wait_requested_ms": 10000,
+    "retained_ceiling": 10000,
+    "excess_retained_denied": true,
+    "cancellation_at_capacity": true,
+    "restart_preserved_samples": true,
+    "retained_limit_survives_restart": true
+  },
+  "server_rss": {
+    "samples": 107,
+    "sampled_peak_bytes": 51576832,
+    "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+  },
+  "database_bytes": {
+    "state.sqlite3": 30113792,
+    "state.sqlite3.lock": 0
+  },
+  "interpretation": [
+    "A single full-size serial scenario creates actual records through Python SDK, persistent Rust helper and native UCTP/QUIC against an owned separate server; no preseeded SQL rows.",
+    "Latency includes SDK/helper/loopback/server/store work; not QUIC network latency, a throughput SLO or provider performance. The inbox phase includes an intentional 10-second wait.",
+    "Sixteen simultaneous leases are qualified, not sixteen independent concurrent host processes.",
+    "Server RSS is sampled every 0.5 seconds, excludes helpers/driver and can miss short peaks. No-sample phases report null. Database bytes are apparent bytes including WAL where present.",
+    "The 100-item page ceiling is also constrained by the 32 KiB projection; maximum observed event count may be smaller. The profile checks bounds, journal exhaustion and no missing/duplicated reply events.",
+    "No hard memory/throughput SLO is inferred from this one local debug run. Native task wait is distinct from Vapi/MCP response budgets."
+  ],
+  "failure_cleanup": {
+    "status": "passed",
+    "fault": "SIGALRM deliberately injected before the 900s deadline",
+    "profile_exit_code": 1,
+    "error": {
+      "type": "ConnectError",
+      "detail": "Helper failed or deadline expired; preserve logical request ID",
+      "code": "transport-uncertain",
+      "cause_type": "TimeoutError"
+    },
+    "original_pending_reply_retained": true,
+    "owned_children_reaped": 3,
+    "result": ".local/task-capacity/20261011T104858.125740Z/result.json",
+    "failed_phase": "inbox-1000-pages-and-maximum-wait",
+    "elapsed_seconds": 2.918,
+    "injection_driver": {
+      "path": ".local/gate-4-planning/check-profile-interruption.py",
+      "sha256": "19c5204d304ade2bcc27182944bcb7481a2ce9517bd78e68ae0849a3f0953118"
+    },
+    "log": {
+      "path": ".local/gate-4-planning/task-capacity-interruption.log",
+      "sha256": "1831b7521cb3ace7268f51ab4c5e7fcca1af1d66416a6a5374522b9793333d0d"
+    },
+    "note": "Injected SIGALRM early during SDK reply I/O. This exercises deadline unwind, not elapsed 900-second endurance. Native SDK correctly reports transport-uncertain caused by TimeoutError; original mutation input remains private and is not retried."
+  },
+  "retained_attempts": [
+    {
+      "result": {
+        "path": ".local/task-capacity/20261011T103927.285890Z/result.json",
+        "sha256": "ea9900a3fbb667c630589f4560adbeef527c208392bb2e126fef77796068791b"
+      },
+      "outcome": "Expected missing-binary failure, exit 1, before server startup."
+    },
+    {
+      "result": {
+        "path": ".local/task-capacity/20261011T103935.805734Z/result.json",
+        "sha256": "1eb300845e7a256ba98935aae1a1fac51ed755eb7d538bd8116c557ed3f77f92"
+      },
+      "outcome": "Initial four-phase task-only profile passed; superseded by expanded inbox profile."
+    },
+    {
+      "result": {
+        "path": ".local/task-capacity/20261011T104500.273816Z/result.json",
+        "sha256": "9da21e0da44e852fadd79caceafab0f0217c936abfc11373b3556c7c7abdd2b8"
+      },
+      "outcome": "Expanded five-phase profile passed; later strengthened empty-wait lower bound and error metadata."
+    },
+    {
+      "result": {
+        "path": ".local/task-capacity/20261011T104748.658488Z/result.json",
+        "sha256": "3ec6cc2cd267c98e045681947b8a9699aa10d7cdb37cb6f15f4193675af1bd17"
+      },
+      "log": {
+        "path": ".local/gate-4-planning/task-capacity-qualified.log",
+        "sha256": "f9a15164c73be7a3119b8f961de6a6c43238af7d1a892b82000366e45ff1798f"
+      },
+      "outcome": "Five-phase profile with stronger wait assertion passed; only failure-report metadata changed afterward."
+    },
+    {
+      "result": {
+        "path": ".local/task-capacity/20261011T104817.764205Z/result.json",
+        "sha256": "326fa05c122d6a0b92ffbc319e15bb13a0394193a462032690253f6c978381b5"
+      },
+      "outcome": "Expected interrupted profile failed and owned children were reaped. Initial diagnostic driver incorrectly expected raw TimeoutError; SDK wraps it as transport-uncertain. Driver assertion failed, corrected without changing runtime or deadlines."
+    }
+  ],
+  "quality": {
+    "prepare": {
+      "path": ".local/gate-4-planning/task-capacity-prepare.log",
+      "sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    "build": {
+      "path": ".local/gate-4-planning/task-capacity-build.log",
+      "sha256": "091aa2d5f00bc63a778f6cbf69e25c16e815866161cff1b5e198757c5d4232e6"
+    },
+    "python_compile": {
+      "command": "python3 -m py_compile scripts/check-task-capacity.py scripts/lib/profile_metrics.py scripts/lib/task_capacity.py scripts/lib/task_inbox_profile.py scripts/lib/local_process.py",
+      "exit_code": 0
+    },
+    "format": {
+      "path": ".local/gate-4-planning/task-capacity-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0
+    },
+    "review": [
+      "New Python modules are 99\u2013139 lines, separating scenario, measurement and process responsibilities.",
+      "Logical IDs and immutable inputs are retained on uncertainty. Known capacity rejections may reuse the original input; uncertain effects are never blindly retried.",
+      "Private run directory uses restrictive umask; public evidence omits credentials and generated conversation/task IDs.",
+      "No Rust, SDK runtime, upstream dependency, database schema or authorization changes in this slice. Prior strict Rust lint/Rustdoc qualification remains historical at the same runtime sources."
+    ]
+  },
+  "remaining": [
+    "MCP payload/deadline profile",
+    "grant expiry lifecycle",
+    "sixteen simultaneous runner processes",
+    "throughput SLO",
+    "whole G4-030 qualification",
+    "age-based retention and retained voice-setup metadata",
+    "whole installed-host/integrated journeys",
+    "Gate 4 acceptance closure"
+  ],
+  "warnings": [
+    "Existing macOS debug compact-unwind linker warning retained in build log. Native helper shutdown emits rvoip read-error class=io warnings; all final phases, normal exits and cleanup assertions pass. No warning is reclassified as behavior evidence."
+  ],
+  "related_prior_evidence": [
+    "docs/evidence/gate-4/mcp-shared-capacity.json",
+    "docs/evidence/gate-4/native-helper-errors.json"
+  ],
+  "guide": "docs/TASK_OPERATING_PROFILE.md"
+}

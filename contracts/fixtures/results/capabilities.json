@@ -1,0 +1,41 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "result-capabilities",
+  "in_reply_to": "env-capabilities",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "capabilities",
+        "data": {
+          "identity_id": "identity-2",
+          "conversation_id": "conversation-1",
+          "routes": [
+            {
+              "id": "native-audio",
+              "transport": "uctp-quic",
+              "media": [
+                "audio"
+              ],
+              "operations": [
+                "session_invite"
+              ],
+              "readiness": "configured"
+            }
+          ],
+          "availability": null,
+          "limits": {
+            "message_bytes": 16384,
+            "artifact_bytes": 16777216,
+            "artifact_chunk_bytes": 32768,
+            "page_size": 100,
+            "audio_frame_ms": 20,
+            "audio_codec": "PCMU/8000"
+          }
+        }
+      }
+    }
+  },
+  "ts": "2026-10-08T00:00:00Z"
+}

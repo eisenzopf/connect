@@ -1,0 +1,33 @@
+[package]
+name = "connect-service"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+test-support = ["connect-store/test-support"]
+
+[dependencies]
+connect-protocol.workspace = true
+connect-store.workspace = true
+rvoip-core.workspace = true
+rvoip-uctp.workspace = true
+rvoip-auth-core.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+sha2.workspace = true
+hex.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

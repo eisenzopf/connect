@@ -1,0 +1,291 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T15:53:26.958520+00:00",
+  "status": "passed current-source local code-quality and executable recovery phases",
+  "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "checkout_root": "/Users/jonathaneisenzopf/.codex/worktrees/gate4-clean-qualification/Connect",
+  "private_report": {
+    "path": ".local/gate-4-checks/20261012T140701.094207Z/result.json",
+    "sha256": "24d12fa2ee4a985fd1dba02514c04d2aa10c8bbdb79482ae3c0c5de91f90750f"
+  },
+  "clean_fresh_checkout": true,
+  "all_839_frozen_source_hashes_stable": true,
+  "quality_phases": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "status": "passed",
+      "seconds": 0.771,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 2400,
+      "status": "passed",
+      "seconds": 132.856,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/lint.log",
+      "log_sha256": "183bc2e3156a9a54fc837a63dc7d531ac3cab4891483e8b312e79e8451726d14"
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 2400,
+      "status": "passed",
+      "seconds": 128.443,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/rustdoc.log",
+      "log_sha256": "ae2d7903bc3b0d587ca79c98fe637456a281cab46632beaaab54673d97dcc3fc"
+    },
+    {
+      "name": "typescript-tests",
+      "command": [
+        "npm",
+        "test",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300,
+      "status": "passed",
+      "seconds": 3.79,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/typescript-tests.log",
+      "log_sha256": "ca1db7c44802e9e1a112a1be109ffb0b10cd1d898b388f8662fefd56770436e0"
+    },
+    {
+      "name": "typescript-format",
+      "command": [
+        "npm",
+        "run",
+        "format:check",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 120,
+      "status": "passed",
+      "seconds": 0.583,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/typescript-format.log",
+      "log_sha256": "f17c3858caccd03c85616cc718a6d37a742c110df9a4249585573d6d52256f57"
+    },
+    {
+      "name": "typescript-distribution",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "sdk/typescript/dist"
+      ],
+      "timeout_seconds": 60,
+      "status": "passed",
+      "seconds": 0.069,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/typescript-distribution.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python-sdk",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "timeout_seconds": 300,
+      "status": "passed",
+      "seconds": 3.54,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/python-sdk.log",
+      "log_sha256": "c1927f91bef386d5b837db5f5132673c36a251da16f1339ad0361cbd2acd1a3c"
+    }
+  ],
+  "recovery_phases": [
+    {
+      "name": "schema-six-build",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/build-recovery-baseline.py",
+        "--schema",
+        "6"
+      ],
+      "timeout_seconds": 7500,
+      "status": "passed",
+      "seconds": 0.129,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/schema-six-build.log",
+      "log_sha256": "9981ae211c54dc467a9dedb71307ac07a63439366c6ef7888153aa2b60bdc702"
+    },
+    {
+      "name": "schema-ten-build",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/build-recovery-baseline.py",
+        "--schema",
+        "10"
+      ],
+      "timeout_seconds": 7500,
+      "status": "passed",
+      "seconds": 0.255,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/schema-ten-build.log",
+      "log_sha256": "d2042d1b2929366cf5dbc34a2af2e87f1af50febb5a4ae5de9059c84324896da"
+    },
+    {
+      "name": "historical-task-recovery",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-gate4-recovery.py",
+        "--previous-binary",
+        ".local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect"
+      ],
+      "timeout_seconds": 660,
+      "status": "passed",
+      "seconds": 8.106,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/historical-task-recovery.log",
+      "log_sha256": "19478b9f627cbdf501956f9eb6ce2517636b515f334dbaad89482c51976cd0f3"
+    },
+    {
+      "name": "dispatch",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-dispatch.py"
+      ],
+      "timeout_seconds": 600,
+      "status": "passed",
+      "seconds": 12.609,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/dispatch.log",
+      "log_sha256": "a9accddf7ea0d8bc2919510bd1eda6d55ad53f7f4d302a437b8e99631205cbb5"
+    },
+    {
+      "name": "identity",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-identity.py"
+      ],
+      "timeout_seconds": 600,
+      "status": "passed",
+      "seconds": 8.352,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/identity.log",
+      "log_sha256": "95c81938fa9319fbe71e1293a58886052a75e17a0f8bf8d8feaca54db98882db"
+    },
+    {
+      "name": "crash-replay",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-crash-replay.py"
+      ],
+      "timeout_seconds": 600,
+      "status": "passed",
+      "seconds": 28.065,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/crash-replay.log",
+      "log_sha256": "29dc4282a9c1b63312be606a1850d058b22529a74f23bdd86f62aed18bc8e105"
+    },
+    {
+      "name": "examples",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-examples.py"
+      ],
+      "timeout_seconds": 600,
+      "status": "passed",
+      "seconds": 14.192,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/examples.log",
+      "log_sha256": "cb168997537c45a12ad4a19ebac4da23a8e43137bc2c17e3aea9327b0717d6f2"
+    },
+    {
+      "name": "example-recovery",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-example-recovery.py"
+      ],
+      "timeout_seconds": 600,
+      "status": "passed",
+      "seconds": 39.183,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/example-recovery.log",
+      "log_sha256": "9bcfe96af1b906325ca108d724f9f1b5cf89998f195cbe1a2dfe2c2ea73bef2a"
+    },
+    {
+      "name": "current-recovery",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-recovery.py",
+        "--current-only"
+      ],
+      "timeout_seconds": 660,
+      "status": "passed",
+      "seconds": 1.572,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "private_log": ".local/gate-4-checks/20261012T140701.094207Z/current-recovery.log",
+      "log_sha256": "522f640f6614259445cc99ccacb14d8fea6e0b80173a45a4721b0716f3a674bf"
+    }
+  ],
+  "authoritative_complete_report": "docs/evidence/gate-4/offline-dc73996.json",
+  "authority_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+  "operating_evidence": "docs/evidence/gate-4/final-operating-reconciliation.json",
+  "historical_baseline_preparation": "Verified independent cached schema-six/schema-ten executables and matching pinned source/tree/binary digests. The unchanged builder validated those manifests; these final phase timings are not new cold-build measurements. Independent extracted-source rebuild/package proof remains separately recorded in package-dc73996.json.",
+  "linker_advisory": {
+    "observed": "macOS ld reports __eh_frame greater than its 16 MiB compact-unwind encoding limit during all-feature debug linking.",
+    "source": "workspace.log",
+    "log_sha256": "2b326b984be3f8f8321c33198050a4b808f2fed31509788b4b01b31d25f1cb37",
+    "boundary": "Nonfatal linker advisory is preserved separately from passed strict Rust Clippy/Rustdoc and installed normal package qualification. No release/runtime performance defect or security cause is inferred, and no flags were relaxed."
+  },
+  "scope_limits": [
+    "Local macOS arm64 only. No remote deployment, physical handset traffic, provider account operation or remote CI execution is included.",
+    "Phase commands and budgets match the delivered frozen runner. No error/recovery check or declared authority limit was silently omitted or weakened.",
+    "This verifies executed current-source checks; it is not a claim that source contains no possible defect. Independent community source review and actual installed/model/provider evidence are linked separately.",
+    "The root-authorized README status-only update after qualification is documentation composition, not a newly tested runtime revision; final-source-composition.json records that distinction.",
+    "Original disk-full, startup/cache, observer and intentionally interrupted attempts remain in source-labelled evidence."
+  ]
+}

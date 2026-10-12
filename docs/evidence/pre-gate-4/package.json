@@ -1,0 +1,57 @@
+{
+  "result": "passed",
+  "scope": "local macOS arm64; no remote deployment",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e80e81010228",
+  "source_revision": "e80e810102285b9d3f1efb69f68c45360de7d3bc",
+  "schema": 10,
+  "binary_sha256": "4998ed6ff2e3ce750855bf1edb6962c0ab856571c03d83d9dde59bff89d00469",
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-e80e81010228-qualification.tar.gz": "e712e5b857d54c0b3e28d47bd0e6880b3e05cb0f6c8570dd27538beda52c85d7",
+    "connect-0.1.0-alpha.1-macos-arm64-e80e81010228-source.tar.gz": "458f6b7206a096128b6cc9eca3b1f62b5acd3e62c737bd3f4000ebdde9496b21",
+    "connect-0.1.0-alpha.1-macos-arm64-e80e81010228.tar.gz": "1ae7d4a0e18f7e42680c29153dec393f1e726c1f1a608a738e1ef952618289c6"
+  },
+  "live_provider_calls": false,
+  "note": "Fresh extracted archives, native SDK source build, installed Python/TypeScript/native clients, recovery and abrupt-failure replay. Historical schema-1 binary is separately bundled with provenance."
+}

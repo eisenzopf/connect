@@ -1,0 +1,1333 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T15:48:52.832681+00:00",
+  "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "checkout_root": "/Users/jonathaneisenzopf/.codex/worktrees/gate4-clean-qualification/Connect",
+  "checkout_kind": "fresh managed detached checkout at final runtime source",
+  "full_runner_status": "passed",
+  "source_stable_current": true,
+  "private_report": ".local/gate-4-checks/20261012T140701.094207Z/result.json",
+  "private_report_sha256": "24d12fa2ee4a985fd1dba02514c04d2aa10c8bbdb79482ae3c0c5de91f90750f",
+  "source_manifest_sha256": "ee01cc40a9d75f5273ec2b942f4f3d26f124fc74d7ac4c834721c44ba2dfc24d",
+  "source_manifest_files": 839,
+  "dirty_at_start": false,
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.7.0",
+    "npm": "12.0.2",
+    "codex": "codex-cli 0.162.0-alpha.17.2",
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+  },
+  "completed_phases": 41,
+  "passed_phases": 41,
+  "required_phases": [
+    "dependencies",
+    "format",
+    "typescript-install",
+    "typescript-tests",
+    "typescript-format",
+    "typescript-distribution",
+    "python-sdk",
+    "agent-incoming-unit",
+    "runner-failure-tests",
+    "voice-rehearsal-unit",
+    "chat-rehearsal-unit",
+    "lint",
+    "rustdoc",
+    "workspace",
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "not_run": [],
+  "failed_phase_observations": [],
+  "final_gate_closure_claimed": false,
+  "installed_package_or_model_equivalence_claimed": false,
+  "retained_prior_failed_attempts": [
+    {
+      "source_revision": "09b77a3f8219b6ea37acad1ad4473f9de836c564",
+      "private_report": ".local/gate-4-checks/20261012T113720.255918Z/result.json",
+      "private_report_sha256": "2bdb081393de9d653e9cbecce5d34c4a866235fc167231f9a39c9041d117852f",
+      "source_manifest_sha256": "d1f54728a5498dac2c7c39bad433a6fb619485f43014651ee77ab9c8ba4b3368",
+      "source_manifest_files": 838,
+      "dirty_at_start": false,
+      "full_runner_status": "failed",
+      "completed_phases": 14,
+      "passed_phases": 13,
+      "failed_phase_observations": [
+        {
+          "phase": "workspace",
+          "seconds": 1105.604,
+          "exit_code": 101,
+          "private_log": ".local/gate-4-checks/20261012T113720.255918Z/workspace.log",
+          "log_sha256": "33b19a05f84251ae61575ce0aa1ec42f134734a13584fafac7d2175e711b18ea",
+          "leftover_group_members": [],
+          "observed_failure": "Workspace linking/stripping could not write output: No space left on device.",
+          "rust_test_execution_started": false
+        }
+      ],
+      "not_run": [
+        "media-pressure",
+        "installed-host",
+        "upstream-regression",
+        "upstream-vapi",
+        "upstream-queues",
+        "upstream-codec",
+        "current-binaries",
+        "host-capacity",
+        "agent-incoming-public",
+        "agent-incoming-host",
+        "native-task-capacity",
+        "reference-runner-capacity",
+        "mcp-operating-load",
+        "grant-lifecycle-load",
+        "task-artifact-retention",
+        "voice-setup-retirement",
+        "schema-six-build",
+        "schema-ten-build",
+        "historical-task-recovery",
+        "dispatch",
+        "identity",
+        "typescript-probe",
+        "crash-replay",
+        "examples",
+        "example-recovery",
+        "current-recovery",
+        "datagram-example"
+      ]
+    },
+    {
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+      "private_report": ".local/gate-4-checks/20261012T123226.520925Z/result.json",
+      "private_report_sha256": "413d0252bb47ba645ff6b06f2a7b6047010b3740151fe4fc4b57851a809fa119",
+      "source_manifest_sha256": "ee01cc40a9d75f5273ec2b942f4f3d26f124fc74d7ac4c834721c44ba2dfc24d",
+      "source_manifest_files": 839,
+      "dirty_at_start": false,
+      "full_runner_status": "failed",
+      "completed_phases": 14,
+      "passed_phases": 13,
+      "failed_phase_observations": [
+        {
+          "name": "workspace",
+          "status": "failed",
+          "seconds": 251.669,
+          "timeout_seconds": 7200,
+          "error": "InterruptedError",
+          "detail": "Qualification was interrupted",
+          "group_cleanup": "signalled"
+        }
+      ],
+      "not_run": [
+        "media-pressure",
+        "installed-host",
+        "upstream-regression",
+        "upstream-vapi",
+        "upstream-queues",
+        "upstream-codec",
+        "current-binaries",
+        "host-capacity",
+        "agent-incoming-public",
+        "agent-incoming-host",
+        "native-task-capacity",
+        "reference-runner-capacity",
+        "mcp-operating-load",
+        "grant-lifecycle-load",
+        "task-artifact-retention",
+        "voice-setup-retirement",
+        "schema-six-build",
+        "schema-ten-build",
+        "historical-task-recovery",
+        "dispatch",
+        "identity",
+        "typescript-probe",
+        "crash-replay",
+        "examples",
+        "example-recovery",
+        "current-recovery",
+        "datagram-example"
+      ],
+      "reason": "Root authorized cache isolation after a successful9.246s alternate-target strict lint. The original lint passed1679.39s and Rustdoc passed69.604s; actual workspace compilation was interrupted. No failed test assertion is inferred."
+    },
+    {
+      "private_report": ".local/gate-4-checks/20261012T130838.274702Z/result.json",
+      "report_sha256": "6ee489049697c1e750f73d7c877b786080e2b85338d65e10795fe905a8874c31",
+      "source_revision": "9546c6ca7e3bfaa22518dfdc4f32384f24c7d612",
+      "runtime_source_boundary": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+      "status": "failed",
+      "failed_phase": "upstream-vapi",
+      "passed_phases": 17,
+      "reason": "Owner-authorized stop after upstream passed to begin a literal fresh-checkout full run; next phase had started and records InterruptedError at 0.052 seconds. No pass or code/deadline/security change is inferred."
+    }
+  ],
+  "build_cache_remedy": {
+    "status": "passed",
+    "private_report": "main checkout: .local/gate-4-final/parallel/authority/cache-remedy-20261012.json",
+    "private_report_sha256": "05344b2546404d5968ab0ce67023f2fffd44ad84e069a2d997c378b43a033400",
+    "paths": [
+      {
+        "allocated_bytes_before": 96999006208,
+        "status": "removed",
+        "exists_after": false,
+        "path": "main checkout: target/upstream"
+      },
+      {
+        "allocated_bytes_before": 6770503680,
+        "status": "removed",
+        "exists_after": false,
+        "path": "main checkout: target/debug/incremental"
+      }
+    ],
+    "available_bytes_before": 2141249536,
+    "available_bytes_after": 102162104320,
+    "observed_available_bytes_increase": 100020854784,
+    "original_server_preserved": true,
+    "scope": "Only two authorized reproducible ignored cache trees; source, dependencies, private state, packages, databases and security settings preserved. Allocated tree sizes and observed free-space change differ because of hardlinks and other filesystem activity."
+  },
+  "generated_cache_isolation": {
+    "status": "passed",
+    "private_report": "main checkout: .local/gate-4-final/parallel/authority/cache-isolation-dc73996.json",
+    "private_report_sha256": "6660768c130fa77eedb43f813615f630770dfd0a7813e050bcad30b3b3c17012",
+    "original_full_report": ".local/gate-4-checks/20261012T123226.520925Z/result.json",
+    "original_failed_phase": {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 7200,
+      "log": "workspace.log",
+      "status": "failed",
+      "error": "InterruptedError",
+      "detail": "Qualification was interrupted",
+      "group_cleanup": "signalled",
+      "seconds": 251.669
+    },
+    "retained_old_cache": "main checkout: .local/build-cache-retained/debug-dc73996-stalled",
+    "debug_symlink": "gate4-final-review/debug",
+    "resolved_debug_path": "main checkout: target/gate4-final-review/debug",
+    "same_directory_inode_preserved": true,
+    "original_server_preserved": true,
+    "security_and_deadlines_unchanged": true,
+    "alternate_strict_lint": {
+      "status": "passed",
+      "private_report": "main checkout: .local/gate-4-final/parallel/authority/lint-trial-20261012T125447.327395Z/result.json",
+      "private_report_sha256": "728148bcd7d6d77a3710376f1d80b9d93f2bda336793330a755e949a4e2cfb0f",
+      "source_inputs_match": true,
+      "source_stable": true,
+      "steps": [
+        {
+          "name": "dependencies",
+          "command": [
+            "bash",
+            "scripts/prepare-dependencies.sh"
+          ],
+          "timeout_seconds": 600,
+          "log": "dependencies.log",
+          "status": "passed",
+          "exit_code": 0,
+          "leftover_group_members": [],
+          "group_cleanup": "signalled",
+          "seconds": 0.248
+        },
+        {
+          "name": "lint",
+          "command": [
+            "cargo",
+            "clippy",
+            "--locked",
+            "--workspace",
+            "--all-targets",
+            "--all-features",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "timeout_seconds": 2400,
+          "log": "lint.log",
+          "status": "passed",
+          "exit_code": 0,
+          "leftover_group_members": [],
+          "group_cleanup": "signalled",
+          "seconds": 9.246
+        }
+      ],
+      "log_sha256": {
+        "dependencies.log": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+        "lint.log": "5dd9154c8bd1bbc4ab170f6c4b376fa29b8d919a757bdd906eb6baad2f6038a3"
+      }
+    }
+  },
+  "runtime_source_boundary": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "fresh_checkout": {
+    "clean_at_start": true,
+    "expected_source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "recorded_source_matches": true,
+    "runtime_inputs_match_preflight": true,
+    "source_files": 839,
+    "source_manifest_hash_encoding": "UTF-8 json.dumps(mapping, sort_keys=True), default separators; all 839 individual file digests compared directly",
+    "private_preflight": "main checkout: .local/gate-4-final/parallel/authority/fresh-checkout-preflight-dc73996.json",
+    "private_preflight_sha256": "2f3a1ec4bbc40eec887abec17225efdde7f27ddafc1cd983ef3d585539777935",
+    "private_preparation": ".local/gate-4-preparation/20261012T140411.284155Z/result.json",
+    "private_preparation_sha256": "1a881883bf667dba88f78cf731496babf1e4616c9ea5121160b3dd4d816323de",
+    "reused_generated_cache_only": "/Volumes/D2-2019/Developer/Connect/target",
+    "application_state_or_credentials_copied": false,
+    "literal_full_run_passed": true
+  },
+  "item": "G4-030",
+  "operating_ready": true,
+  "profile_results": {
+    "host-capacity": {
+      "status": "passed",
+      "private_report": ".local/host-capacity/20261012T151437.849379Z/result.json",
+      "report_sha256": "e004c958e5944d8fd9225f382ea9384ec1a73c11508332231fe15e2c37d16a4e",
+      "log_sha256": "a6291047787df70d6470c86280fe47cbe0fd8d8e2cac34d482fe98128786ef29",
+      "source_inputs_match": true,
+      "private_process_and_resource_identifiers_redacted": true,
+      "observed": {
+        "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+        "binary_sha256": "9302d2de0139c49e0441aae16e4fb5487a76d201183f752679b3255c49b9bb46",
+        "limits": {
+          "simultaneous_hosts_tested": 16,
+          "host_turn_seconds": 120
+        },
+        "budget_seconds": 480,
+        "elapsed_seconds": 16.557,
+        "server_rss": {
+          "samples": 18,
+          "sampled_peak_bytes": 60260352,
+          "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+        },
+        "database_bytes": {
+          "state.sqlite3": 626688,
+          "state.sqlite3.lock": 0
+        },
+        "phases": [
+          {
+            "name": "cold-sixteen-hosts",
+            "status": "passed",
+            "seconds": 5.481,
+            "exchanges": 16,
+            "server_sampled_peak_rss_bytes": 60260352,
+            "database_apparent_bytes": 4866056,
+            "latency_ms": {
+              "p50": 4544.744,
+              "p95": 4936.609,
+              "maximum": 4984.477
+            }
+          },
+          {
+            "name": "warm-sixteen-exact-resumes-after-server-restart",
+            "status": "passed",
+            "seconds": 3.482,
+            "exchanges": 16,
+            "server_sampled_peak_rss_bytes": 52297728,
+            "database_apparent_bytes": 659456,
+            "latency_ms": {
+              "p50": 2610.294,
+              "p95": 3067.82,
+              "maximum": 3297.026
+            }
+          }
+        ]
+      }
+    },
+    "native-task-capacity": {
+      "status": "passed",
+      "private_report": ".local/task-capacity/20261012T151458.189706Z/result.json",
+      "report_sha256": "71ae82d40ea62c4db828bc7fb1b8baf9e5b426daea9e03b96868e131b0daee5e",
+      "log_sha256": "4e11a12057c40162257ccb33224b7181cc1582bdf4f78ec48f82fb0f66a35d8a",
+      "source_inputs_match": true,
+      "private_process_and_resource_identifiers_redacted": true,
+      "observed": {
+        "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+        "binary_sha256": "9302d2de0139c49e0441aae16e4fb5487a76d201183f752679b3255c49b9bb46",
+        "limits": {
+          "active_tasks": 1024,
+          "retained_tasks": 10000,
+          "step_leases": 16,
+          "unconsumed_replies": 1000,
+          "task_page": 100,
+          "task_wait_ms": 10000
+        },
+        "budget_seconds": 900,
+        "elapsed_seconds": 43.038,
+        "server_rss": {
+          "samples": 85,
+          "sampled_peak_bytes": 48070656,
+          "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+        },
+        "database_bytes": {
+          "state.sqlite3": 30105600,
+          "state.sqlite3.lock": 0
+        },
+        "phases": [
+          {
+            "name": "active-1024-and-overflow",
+            "status": "passed",
+            "seconds": 0.848,
+            "exchanges": 1026,
+            "server_sampled_peak_rss_bytes": 42713088,
+            "database_apparent_bytes": 6209304,
+            "latency_ms": {
+              "p50": 0.811,
+              "p95": 0.974,
+              "maximum": 1.747
+            }
+          },
+          {
+            "name": "sixteen-step-leases-and-release",
+            "status": "passed",
+            "seconds": 0.018,
+            "exchanges": 19,
+            "server_sampled_peak_rss_bytes": null,
+            "database_apparent_bytes": 6209304,
+            "latency_ms": {
+              "p50": 0.964,
+              "p95": 1.028,
+              "maximum": 1.038
+            }
+          },
+          {
+            "name": "inbox-1000-pages-and-maximum-wait",
+            "status": "passed",
+            "seconds": 11.873,
+            "exchanges": 1057,
+            "server_sampled_peak_rss_bytes": 47595520,
+            "database_apparent_bytes": 8884328,
+            "latency_ms": {
+              "p50": 1.297,
+              "p95": 2.668,
+              "maximum": 10004.624
+            }
+          },
+          {
+            "name": "retained-10000-and-cancellation",
+            "status": "passed",
+            "seconds": 29.623,
+            "exchanges": 18979,
+            "server_sampled_peak_rss_bytes": 48070656,
+            "database_apparent_bytes": 34312296,
+            "latency_ms": {
+              "p50": 1.155,
+              "p95": 3.413,
+              "maximum": 9.262
+            }
+          },
+          {
+            "name": "restart-at-retained-capacity",
+            "status": "passed",
+            "seconds": 0.225,
+            "exchanges": 4,
+            "server_sampled_peak_rss_bytes": 34881536,
+            "database_apparent_bytes": 30105600,
+            "latency_ms": {
+              "p50": 0.561,
+              "p95": 0.586,
+              "maximum": 2.996
+            }
+          }
+        ]
+      }
+    },
+    "reference-runner-capacity": {
+      "status": "passed",
+      "private_report": ".local/runner-capacity/20261012T151541.401008Z/result.json",
+      "report_sha256": "40006d1f9dd67a26fd16f97331e543330682be507fe52e57fcb5bc08d7bde0a4",
+      "log_sha256": "ca35cf105d7b204142bee790f39935822886afb888779f91c8d8363bfe659939",
+      "source_inputs_match": true,
+      "private_process_and_resource_identifiers_redacted": true,
+      "observed": {
+        "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+        "binary_sha256": "9302d2de0139c49e0441aae16e4fb5487a76d201183f752679b3255c49b9bb46",
+        "limits": {
+          "simultaneous_workers_tested": 16,
+          "step_lease_ceiling": 16,
+          "step_lease_seconds": 30
+        },
+        "budget_seconds": 240,
+        "elapsed_seconds": 3.367,
+        "server_rss": {
+          "samples": 7,
+          "sampled_peak_bytes": 71811072,
+          "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+        },
+        "database_bytes": {
+          "state.sqlite3": 802816,
+          "state.sqlite3.lock": 0
+        },
+        "phases": [
+          {
+            "name": "sixteen-workers-and-seventeenth-denial",
+            "status": "passed",
+            "seconds": 0.818,
+            "exchanges": 1,
+            "server_sampled_peak_rss_bytes": 48807936,
+            "database_apparent_bytes": 4833048,
+            "latency_ms": {
+              "p50": 593.164,
+              "p95": 593.164,
+              "maximum": 593.164
+            }
+          },
+          {
+            "name": "released-slot-original-intent-and-sixteen-replies",
+            "status": "passed",
+            "seconds": 0.439,
+            "exchanges": 0,
+            "server_sampled_peak_rss_bytes": 70991872,
+            "database_apparent_bytes": 4996888
+          },
+          {
+            "name": "sixteen-workers-after-server-and-app-restart",
+            "status": "passed",
+            "seconds": 0.528,
+            "exchanges": 0,
+            "server_sampled_peak_rss_bytes": 65568768,
+            "database_apparent_bytes": 1074624
+          }
+        ]
+      }
+    },
+    "mcp-operating-load": {
+      "status": "passed",
+      "private_report": ".local/mcp-load/20261012T151544.948914Z/result.json",
+      "report_sha256": "2e1048085ac6249b15d86532eb15c0e1a6145a67eeb740bc112910ef81694394",
+      "log_sha256": "ad6ed2c6ca51d70f999fdd481c77e6ec327c64ff296f979d2576243ffbec6dad",
+      "source_inputs_match": true,
+      "private_process_and_resource_identifiers_redacted": true,
+      "observed": {
+        "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+        "binary_sha256": "9302d2de0139c49e0441aae16e4fb5487a76d201183f752679b3255c49b9bb46",
+        "limits": {
+          "request_body_bytes": 524288,
+          "request_admissions": 32,
+          "http_deadline_seconds": 10,
+          "tool_projection_bytes": 32768
+        },
+        "budget_seconds": 180,
+        "elapsed_seconds": 30.955,
+        "server_rss": {
+          "samples": 60,
+          "sampled_peak_bytes": 181977088,
+          "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+        },
+        "database_bytes": {
+          "state.sqlite3": 774144,
+          "state.sqlite3.lock": 0
+        },
+        "phases": [
+          {
+            "name": "maximum-framing-and-overflow-bursts",
+            "status": "passed",
+            "seconds": 0.084,
+            "exchanges": 160,
+            "server_sampled_peak_rss_bytes": null,
+            "database_apparent_bytes": 2238288,
+            "latency_ms": {
+              "p50": 13.478,
+              "p95": 20.974,
+              "maximum": 21.768
+            }
+          },
+          {
+            "name": "saturated-near-limit-body-deadline-1",
+            "status": "passed",
+            "seconds": 10.013,
+            "exchanges": 32,
+            "server_sampled_peak_rss_bytes": 162299904,
+            "database_apparent_bytes": 2238288,
+            "latency_ms": {
+              "p50": 10004.877,
+              "p95": 10005.108,
+              "maximum": 10005.234
+            }
+          },
+          {
+            "name": "saturated-near-limit-body-deadline-2",
+            "status": "passed",
+            "seconds": 10.016,
+            "exchanges": 32,
+            "server_sampled_peak_rss_bytes": 167919616,
+            "database_apparent_bytes": 2238288,
+            "latency_ms": {
+              "p50": 10002.623,
+              "p95": 10003.431,
+              "maximum": 10004.246
+            }
+          },
+          {
+            "name": "thirty-two-maximum-waits-and-cursor-recovery",
+            "status": "passed",
+            "seconds": 9.274,
+            "exchanges": 32,
+            "server_sampled_peak_rss_bytes": 171409408,
+            "database_apparent_bytes": 2238288,
+            "latency_ms": {
+              "p50": 9266.082,
+              "p95": 9268.724,
+              "maximum": 9269.421
+            }
+          },
+          {
+            "name": "bounded-tool-history-under-bursts",
+            "status": "passed",
+            "seconds": 0.906,
+            "exchanges": 352,
+            "server_sampled_peak_rss_bytes": 181977088,
+            "database_apparent_bytes": 2238288,
+            "latency_ms": {
+              "p50": 44.999,
+              "p95": 79.776,
+              "maximum": 84.137
+            }
+          }
+        ]
+      }
+    },
+    "grant-lifecycle-load": {
+      "status": "passed",
+      "private_report": ".local/grant-lifecycle/20261012T151616.085925Z/result.json",
+      "report_sha256": "d5ce46dff55787c7f651e958ae5d29b1511d24708eda7a5b0a119f71924a8b82",
+      "log_sha256": "7f5d26ee355068ad3af05848ec7360b48ce1c484a076c05cb83c00996c0f05af",
+      "source_inputs_match": true,
+      "private_process_and_resource_identifiers_redacted": true,
+      "observed": {
+        "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+        "binary_sha256": "9302d2de0139c49e0441aae16e4fb5487a76d201183f752679b3255c49b9bb46",
+        "budget_seconds": 180,
+        "elapsed_seconds": 13.235,
+        "server_rss": {
+          "samples": 26,
+          "sampled_peak_bytes": 80904192,
+          "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+        },
+        "database_bytes": {
+          "state.sqlite3": 778240,
+          "state.sqlite3.lock": 0
+        },
+        "phases": [
+          {
+            "name": "original-effects-and-continuous-load-through-expiry",
+            "status": "passed",
+            "seconds": 10.897,
+            "exchanges": 4704,
+            "server_sampled_peak_rss_bytes": 80691200,
+            "database_apparent_bytes": 4816736,
+            "latency_ms": {
+              "p50": 13.232,
+              "p95": 15.474,
+              "maximum": 53.627
+            }
+          },
+          {
+            "name": "explicit-renewal-and-original-receipt-replay",
+            "status": "passed",
+            "seconds": 0.656,
+            "exchanges": 96,
+            "server_sampled_peak_rss_bytes": 80904192,
+            "database_apparent_bytes": 4816736,
+            "latency_ms": {
+              "p50": 3.287,
+              "p95": 22.819,
+              "maximum": 24.34
+            }
+          },
+          {
+            "name": "autonomous-own-task-cancel-and-sibling-isolation",
+            "status": "passed",
+            "seconds": 0.043,
+            "exchanges": 64,
+            "server_sampled_peak_rss_bytes": null,
+            "database_apparent_bytes": 4984672,
+            "latency_ms": {
+              "p50": 12.224,
+              "p95": 23.778,
+              "maximum": 25.126
+            }
+          },
+          {
+            "name": "restart-preserves-expiry-cancellation-and-original-effects",
+            "status": "passed",
+            "seconds": 0.246,
+            "exchanges": 96,
+            "server_sampled_peak_rss_bytes": 35979264,
+            "database_apparent_bytes": 778240,
+            "latency_ms": {
+              "p50": 3.251,
+              "p95": 13.42,
+              "maximum": 14.683
+            }
+          }
+        ]
+      }
+    },
+    "task-artifact-retention": {
+      "status": "passed",
+      "private_report": ".local/retention-load/20261012T151629.484079Z/result.json",
+      "report_sha256": "168c83ad4cc9cc0b01ed72321e3dcb59a961f78d1d9588b2725c943a88310125",
+      "log_sha256": "4a3c30ac9fd278040e712c11606a2378f5684d88805cafb9cd1046c70b1a0e03",
+      "source_inputs_match": true,
+      "private_process_and_resource_identifiers_redacted": true,
+      "observed": {
+        "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+        "binary_sha256": "9302d2de0139c49e0441aae16e4fb5487a76d201183f752679b3255c49b9bb46",
+        "budget_seconds": 180,
+        "elapsed_seconds": 45.484,
+        "server_rss": {
+          "samples": 90,
+          "sampled_peak_bytes": 109658112,
+          "note": "Owned server PID only, sampled every 0.5s; not an exact kernel high-water mark."
+        },
+        "database_bytes": {
+          "state.sqlite3": 6213632,
+          "state.sqlite3.lock": 0
+        },
+        "phases": [
+          {
+            "name": "thirty-two-expiring-files-and-bounded-chunks",
+            "status": "passed",
+            "seconds": 1.095,
+            "exchanges": 160,
+            "server_sampled_peak_rss_bytes": 86016000,
+            "database_apparent_bytes": 10494152,
+            "latency_ms": {
+              "p50": 74.782,
+              "p95": 305.659,
+              "maximum": 331.858
+            }
+          },
+          {
+            "name": "artifact-expiry-denies-cached-bytes-and-retains-provenance",
+            "status": "passed",
+            "seconds": 10.416,
+            "exchanges": 3552,
+            "server_sampled_peak_rss_bytes": 109658112,
+            "database_apparent_bytes": 10494152,
+            "latency_ms": {
+              "p50": 24.637,
+              "p95": 29.602,
+              "maximum": 37.555
+            }
+          },
+          {
+            "name": "restart-cleans-expired-bytes-but-preserves-sources",
+            "status": "passed",
+            "seconds": 0.218,
+            "exchanges": 64,
+            "server_sampled_peak_rss_bytes": 37486592,
+            "database_apparent_bytes": 6246400,
+            "latency_ms": {
+              "p50": 21.928,
+              "p95": 27.397,
+              "maximum": 30.004
+            }
+          },
+          {
+            "name": "task-expiry-under-load-denies-further-tools",
+            "status": "passed",
+            "seconds": 31.731,
+            "exchanges": 13312,
+            "server_sampled_peak_rss_bytes": 90898432,
+            "database_apparent_bytes": 6246400,
+            "latency_ms": {
+              "p50": 13.94,
+              "p95": 16.189,
+              "maximum": 20.655
+            }
+          },
+          {
+            "name": "restart-preserves-expired-task-records-and-conversations",
+            "status": "passed",
+            "seconds": 0.604,
+            "exchanges": 0,
+            "server_sampled_peak_rss_bytes": 48611328,
+            "database_apparent_bytes": 6213632
+          }
+        ]
+      }
+    },
+    "voice-setup-retirement": {
+      "status": "passed",
+      "private_report": ".local/voice-retirement/20261012T151715.103234Z/result.json",
+      "report_sha256": "f76aab712823a66532c155f2fa8e0cc659d79e06d64d78671b3a042b89d154b5",
+      "log_sha256": "8bb1888e9ee9e55bc46d63d93305857f3bed0f8b9ebc3a33ad71839a3460dd3e",
+      "source_inputs_match": true,
+      "private_process_and_resource_identifiers_redacted": true,
+      "observed": {
+        "source_stable": true,
+        "test_budget_seconds": 2700,
+        "phase_budget_seconds": 3300,
+        "measurements": {
+          "retired_setups": 10000,
+          "batches": 313,
+          "point_samples": 628,
+          "whole_process_sampled_peak_rss_bytes": 62881792,
+          "initial_process_rss_bytes": 46415872,
+          "final_retired_process_rss_bytes": 61784064,
+          "restarted_process_rss_bytes": 62881792,
+          "database_apparent_peak_bytes": 97690232,
+          "retained_binding_digest": "4980fc08875a78749b0a0f6893ea4d2707e8978aa0404c4d4ddbfba398a0f998",
+          "memory_scope": "Whole isolated Rust test process: server, clients and local API fixture. Point samples at batch boundaries; excludes Cargo/compiler and can miss transient peaks."
+        },
+        "phases": [
+          {
+            "name": "retirement",
+            "timeout_seconds": 3300,
+            "status": "passed",
+            "exit_code": 0,
+            "leftover_group_members": [],
+            "group_cleanup": "signalled",
+            "seconds": 1763.167
+          }
+        ]
+      }
+    }
+  },
+  "ignored_workspace_followups": [
+    {
+      "test": "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+      "workspace_reason": "Gate 3 qualification profile runs one and four sessions for 60 seconds each",
+      "phase": "media-pressure",
+      "phase_status": "passed",
+      "selected_log": ".local/gate-4-checks/20261012T140701.094207Z/media-pressure.log",
+      "log_sha256": "a9dd315f9563ed05b3e649683e1454ce947172ea443cfbec72df5d90ca2d67d1",
+      "observations": [
+        {
+          "name": "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+          "target": "gate3_media_pressure-a42f5d85e16bbb4d",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "test": "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+      "workspace_reason": "requires explicitly selected installed Codex; scripted peer executes no inference",
+      "phase": "installed-host",
+      "phase_status": "passed",
+      "selected_log": ".local/gate-4-checks/20261012T140701.094207Z/installed-host.log",
+      "log_sha256": "2507d0b4305db725d024c0573e3889a7545686bf5784a34763f823e505560ba7",
+      "observations": [
+        {
+          "name": "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+          "target": "gate4_codex_call_intent-48d1a08cb8b57364",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "test": "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+      "workspace_reason": "requires explicitly selected installed Codex; scripted peer executes no inference",
+      "phase": "installed-host",
+      "phase_status": "passed",
+      "selected_log": ".local/gate-4-checks/20261012T140701.094207Z/installed-host.log",
+      "log_sha256": "2507d0b4305db725d024c0573e3889a7545686bf5784a34763f823e505560ba7",
+      "observations": [
+        {
+          "name": "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+          "target": "gate4_codex_call_intent-48d1a08cb8b57364",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "test": "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+      "workspace_reason": "requires explicitly selected installed Codex; scripted peer executes no inference",
+      "phase": "installed-host",
+      "phase_status": "passed",
+      "selected_log": ".local/gate-4-checks/20261012T140701.094207Z/installed-host.log",
+      "log_sha256": "2507d0b4305db725d024c0573e3889a7545686bf5784a34763f823e505560ba7",
+      "observations": [
+        {
+          "name": "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+          "target": "gate4_codex_call_intent-48d1a08cb8b57364",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "test": "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+      "workspace_reason": "requires installed Codex; deterministic local Responses, no model inference",
+      "phase": "installed-host",
+      "phase_status": "passed",
+      "selected_log": ".local/gate-4-checks/20261012T140701.094207Z/installed-host.log",
+      "log_sha256": "2507d0b4305db725d024c0573e3889a7545686bf5784a34763f823e505560ba7",
+      "observations": [
+        {
+          "name": "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+          "target": "gate4_codex_draft_journey-adcc0dd9227eaece",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "test": "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+      "workspace_reason": "requires selected installed Codex; packaged launcher uses scripted loopback Responses without inference",
+      "phase": "installed-host",
+      "phase_status": "passed",
+      "selected_log": ".local/gate-4-checks/20261012T140701.094207Z/installed-host.log",
+      "log_sha256": "2507d0b4305db725d024c0573e3889a7545686bf5784a34763f823e505560ba7",
+      "observations": [
+        {
+          "name": "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+          "target": "gate4_codex_packaged_runtime-b445f09975a5ba63",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "test": "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up",
+      "workspace_reason": "requires selected installed Codex; scripted loopback peer executes no inference",
+      "phase": "installed-host",
+      "phase_status": "passed",
+      "selected_log": ".local/gate-4-checks/20261012T140701.094207Z/installed-host.log",
+      "log_sha256": "2507d0b4305db725d024c0573e3889a7545686bf5784a34763f823e505560ba7",
+      "observations": [
+        {
+          "name": "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up",
+          "target": "gate4_codex_reply_workflow-8ed23a9964672b0e",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "test": "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+      "workspace_reason": "requires explicitly selected installed Codex; no model turn is executed",
+      "phase": "installed-host",
+      "phase_status": "passed",
+      "selected_log": ".local/gate-4-checks/20261012T140701.094207Z/installed-host.log",
+      "log_sha256": "2507d0b4305db725d024c0573e3889a7545686bf5784a34763f823e505560ba7",
+      "observations": [
+        {
+          "name": "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+          "target": "gate4_codex_runtime-9c2481748e86e3f3",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "test": "retired_setups_reuse_capacity_through_the_full_session_limit",
+      "workspace_reason": "Full real-clock retirement profile; scripts/check-voice-retirement.py owns its private report and deadline",
+      "phase": "voice-setup-retirement",
+      "phase_status": "passed",
+      "selected_log": ".local/voice-retirement/20261012T151715.103234Z/retirement.log",
+      "log_sha256": "35beb8ff5150609a7cd0368523f33dbe44450fc50d14bdb0c19a50409eb6a474",
+      "observations": [
+        {
+          "name": "retired_setups_reuse_capacity_through_the_full_session_limit",
+          "target": "gate4_vapi_retirement_load-ecc6af5cc00dbf84",
+          "result": "ok",
+          "detail": "multiline fixture output"
+        }
+      ],
+      "qualified": true
+    }
+  ],
+  "frozen_optional_task_constants": {
+    "MAX_TOOL_WAIT_MS": "10_000",
+    "TASK_CONTEXT_BYTES": "32 * 1024",
+    "MAX_SCOPE_ITEMS": "32",
+    "MAX_TASK_ID_BYTES": "128",
+    "MAX_TASK_TTL_SECONDS": "86_400",
+    "MAX_GRANT_TTL_SECONDS": "300",
+    "MAX_ACTIVE_TASKS": "1_024",
+    "MAX_RETAINED_TASKS": "10_000",
+    "MAX_TASK_INBOX_EVENTS": "1_000",
+    "MAX_RUNNING_TASKS": "16",
+    "TASK_CLAIM_SECONDS": "30"
+  },
+  "frozen_constants_match": true,
+  "shared_mcp_runtime_bounds_match": true,
+  "operating_source_fingerprints": {
+    "crates/connect-protocol/src/tasks/mod.rs": {
+      "sha256": "f5787c790b8cfab544f2881adfe4ca58908680773e3a5c21ff8a3aea1b25c1e3",
+      "matches_frozen_source": true
+    },
+    "crates/connect-store/src/tasks/budget.rs": {
+      "sha256": "23df586233542f581007461d782b3c15ad62f97f6882747227857d2fb3d5a064",
+      "matches_frozen_source": true
+    },
+    "crates/connect-store/src/tasks/claims.rs": {
+      "sha256": "ca5c4694076a46efbc7135e962e0f1350a306e34b23cf10053f03c8b8b60bcac",
+      "matches_frozen_source": true
+    },
+    "crates/connect-store/src/tasks/defaults.rs": {
+      "sha256": "9e215489904ffdc3109a324e724661dfe24ad3e9252e5fe85d0d5f23284ae8e3",
+      "matches_frozen_source": true
+    },
+    "crates/connect-mcp/src/capacity.rs": {
+      "sha256": "0e437ef551f2ea092ac10a3397658071551e37767fd4f2edad8b72c4915c79ae",
+      "matches_frozen_source": true
+    },
+    "crates/connect-mcp/src/listener.rs": {
+      "sha256": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
+      "matches_frozen_source": true
+    },
+    "crates/connect-mcp/src/auth.rs": {
+      "sha256": "9c5e945ce47ffbdea9e5acb8e09271e134124e87db3f8573299dd1f9d2adcbb9",
+      "matches_frozen_source": true
+    },
+    "crates/connect-mcp/src/budget.rs": {
+      "sha256": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+      "matches_frozen_source": true
+    },
+    "scripts/lib/gate4_phases.py": {
+      "sha256": "4869fba890e2d24e302eee6bcf6c107635020dff35496ffeda21976354b7f189",
+      "matches_frozen_source": true
+    },
+    "scripts/check-task-capacity.py": {
+      "sha256": "792709b5568195af0a341a138a8f7b24ececb2357da25807e47f627b975baae0",
+      "matches_frozen_source": true
+    },
+    "scripts/check-host-capacity.py": {
+      "sha256": "f816b0bd29e2ce4e5460049129f0f648a760825f44bfb612fda138952c05cff6",
+      "matches_frozen_source": true
+    },
+    "scripts/check-runner-capacity.py": {
+      "sha256": "dc531efc80a21015d2f1fe7817692e94157d8294975fb08d0f0f9023c3a8e89b",
+      "matches_frozen_source": true
+    },
+    "scripts/check-mcp-load.py": {
+      "sha256": "4538680dd52d9d868597abc8d23a98c032da196dbafe9b9c1e7002388d72f070",
+      "matches_frozen_source": true
+    },
+    "scripts/check-grant-lifecycle.py": {
+      "sha256": "52826f29035f4b55a2fd3ad957e89fcf20d04156b9c60fbd6624b9bada9c0609",
+      "matches_frozen_source": true
+    },
+    "scripts/check-retention-load.py": {
+      "sha256": "a78c9c4fabdd1ead06aba2712d6e533cae28b9ea2c9e2e5f842bca287040f0f3",
+      "matches_frozen_source": true
+    },
+    "scripts/check-voice-retirement.py": {
+      "sha256": "796d53c9cf74b68c0b0d96945225c2dff63a336da0167c3d77de91634806026b",
+      "matches_frozen_source": true
+    }
+  },
+  "limit_admission_checks": [
+    {
+      "test": "expiry_boundaries_and_overflow_fail_admission",
+      "source": "crates/connect-protocol/tests/task_contract.rs",
+      "source_sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "expiry_boundaries_and_overflow_fail_admission",
+          "target": "task_contract-d4c68693151d070b",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "wait_and_pagination_bounds_are_explicit",
+      "source": "crates/connect-protocol/tests/task_contract.rs",
+      "source_sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "wait_and_pagination_bounds_are_explicit",
+          "target": "task_contract-d4c68693151d070b",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "empty_duplicate_and_excessive_scopes_cannot_delegate",
+      "source": "crates/connect-protocol/tests/task_contract.rs",
+      "source_sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "empty_duplicate_and_excessive_scopes_cannot_delegate",
+          "target": "task_contract-d4c68693151d070b",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "trusted_grant_shapes_do_not_invent_provider_authority",
+      "source": "crates/connect-protocol/tests/task_contract.rs",
+      "source_sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "trusted_grant_shapes_do_not_invent_provider_authority",
+          "target": "task_contract-d4c68693151d070b",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "creation_does_not_mint_recipient_operation_origin_or_lifetime_authority",
+      "source": "crates/connect-store/src/tasks/tests/authority.rs",
+      "source_sha256": "9368d2bd1c17d258a1fec79a5269c22e48853a6c834a4bf935515abedbb1684b",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "tasks::tests::authority::creation_does_not_mint_recipient_operation_origin_or_lifetime_authority",
+          "target": "connect_store-349f055c6df8f20f",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "task_and_issuer_expiry_are_independent_upper_bounds",
+      "source": "crates/connect-store/src/tasks/tests/grant_boundaries.rs",
+      "source_sha256": "27be14abe59e06535ec7210896d3c47cb1234e622b595bc20586fbffa8d1d5ee",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "tasks::tests::grant_boundaries::task_and_issuer_expiry_are_independent_upper_bounds",
+          "target": "connect_store-349f055c6df8f20f",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "renew_and_reclaim_require_current_revision_and_replay_does_not_extend_lifetime",
+      "source": "crates/connect-store/src/tasks/tests/claims.rs",
+      "source_sha256": "03ce1b1f3594a95fde850072e7174b12f21215c62fc366b3689390800353fd4c",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "tasks::tests::claims::renew_and_reclaim_require_current_revision_and_replay_does_not_extend_lifetime",
+          "target": "connect_store-349f055c6df8f20f",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "global_sixteen_step_limit_allows_renewal_but_rejects_more_active_leases",
+      "source": "crates/connect-store/src/tasks/tests/claims.rs",
+      "source_sha256": "03ce1b1f3594a95fde850072e7174b12f21215c62fc366b3689390800353fd4c",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "tasks::tests::claims::global_sixteen_step_limit_allows_renewal_but_rejects_more_active_leases",
+          "target": "connect_store-349f055c6df8f20f",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "lease_expiry_cannot_reclaim_a_step_that_has_a_durable_effect",
+      "source": "crates/connect-store/src/tasks/tests/claims.rs",
+      "source_sha256": "03ce1b1f3594a95fde850072e7174b12f21215c62fc366b3689390800353fd4c",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "tasks::tests::claims::lease_expiry_cannot_reclaim_a_step_that_has_a_durable_effect",
+          "target": "connect_store-349f055c6df8f20f",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "explicit_cancel_affects_only_the_bound_task_and_revokes_its_own_connection",
+      "source": "crates/connect-server/tests/gate4_mcp_task_cancel.rs",
+      "source_sha256": "0ac9535af499389f13c374b37e257c063b45e27071c47c3995df49356b35e4be",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "explicit_cancel_affects_only_the_bound_task_and_revokes_its_own_connection",
+          "target": "gate4_mcp_task_cancel-509691062d412097",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "primary_and_task_endpoints_share_thirty_two_admissions_and_recover_after_shutdown",
+      "source": "crates/connect-server/tests/gate4_mcp_capacity.rs",
+      "source_sha256": "4c70e0c9b30b3c3f8aee0fe4f8f8d662ecaf5236650a34f8fa1664128823611b",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "primary_and_task_endpoints_share_thirty_two_admissions_and_recover_after_shutdown",
+          "target": "gate4_mcp_capacity-c5fa3e2ef6158446",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "server_rejects_excess_setups_before_private_intent_and_releases_all_on_shutdown",
+      "source": "crates/connect-server/tests/gate4_vapi_setup_capacity.rs",
+      "source_sha256": "b89663cd2ebc599fdc3ce59a0b5ce83279079133736409df7955afd01526b744",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "server_rejects_excess_setups_before_private_intent_and_releases_all_on_shutdown",
+          "target": "gate4_vapi_setup_capacity-1d93b9ac6e45584c",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    },
+    {
+      "test": "expired_idle_setup_closes_endpoint_but_preserves_task_and_recovery_intent",
+      "source": "crates/connect-server/tests/gate4_vapi_setup_capacity.rs",
+      "source_sha256": "b89663cd2ebc599fdc3ce59a0b5ce83279079133736409df7955afd01526b744",
+      "declared_function_verified": true,
+      "matches_frozen_source": true,
+      "workspace_observations": [
+        {
+          "name": "expired_idle_setup_closes_endpoint_but_preserves_task_and_recovery_intent",
+          "target": "gate4_vapi_setup_capacity-1d93b9ac6e45584c",
+          "result": "ok",
+          "detail": ""
+        }
+      ],
+      "installed_host_observations": [],
+      "observed_passing": true,
+      "qualified_execution": true
+    }
+  ],
+  "schemas": {
+    "store_schema": 16,
+    "application_profile": "connect-control/1",
+    "task_profile": "connect-task/1",
+    "ordinary_mcp_mode": "identity; native Outcome with optional Outcome::Task",
+    "regular_host_installation": "connect-codex-agent-install/1",
+    "regular_host_state": "connect-codex-agent-host/1"
+  },
+  "background_work_observations": {
+    "schema": 1,
+    "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "checkout_root": "/Users/jonathaneisenzopf/.codex/worktrees/gate4-clean-qualification/Connect",
+    "observations": [],
+    "startup_context": {
+      "all_prior_owned_compilers_and_package_workloads_exited": true,
+      "ignored_generated_cache_only_reused": true,
+      "source_stable_and_clean": true,
+      "fresh_checkout_preflight_report": ".local/gate-4-final/parallel/authority/fresh-checkout-preflight-dc73996.json"
+    },
+    "limits": "Known background model/provider or compiler overlap will be recorded when supplied. No blanket quiet-machine claim. Sampled server process scopes exclude compiler, driver and host workloads except explicit whole-retirement-process observations.",
+    "fresh_report": ".local/gate-4-checks/20261012T140701.094207Z/result.json"
+  },
+  "authority_evidence": "docs/evidence/gate-4/authority-workspace-dc73996.json",
+  "conditions": [
+    "Current source and actual execution only; no prior 7ed package equality is used.",
+    "Sampled server RSS excludes drivers, compilers and host children except explicit whole-retirement-process observations. Any background package build is recorded separately; these observations are not throughput or carrier SLOs.",
+    "Normal identity access is reusable; the unchanged short task/grant lifetimes apply only to optional work tracking/narrow delegation.",
+    "Actual model, installed-package and live carrier evidence are independent; this report does not claim them."
+  ],
+  "independent_retirement_snapshot": {
+    "status": "passed",
+    "scope": "Independent read-only verification of the isolated qualification snapshot; no application database write",
+    "private_snapshot": ".local/voice-retirement/20261012T151715.103234Z/retained.sqlite3",
+    "snapshot_sha256": "1921d674f268cdba4c47bbef3a75cb44c129b2c37878939941807aaec10f8b55",
+    "bindings": 10000,
+    "distinct_sessions": 10000,
+    "distinct_nonces": 10000,
+    "unknown_bindings": 0,
+    "retained_binding_digest": "4980fc08875a78749b0a0f6893ea4d2707e8978aa0404c4d4ddbfba398a0f998",
+    "matches_retired_and_restarted_digest": true,
+    "private_provider_fixture_request_count_asserted_zero_by_passed_source_linked_test": true,
+    "private_raw_identifiers_not_published": true
+  }
+}

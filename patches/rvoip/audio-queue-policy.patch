@@ -1,0 +1,216 @@
+--- a/crates/foundation/rvoip-core/src/config.rs
++++ b/crates/foundation/rvoip-core/src/config.rs
+@@ -22,6 +22,10 @@
+ #[derive(Clone)]
+ pub struct Config {
+     pub max_concurrent_setups: usize,
++    /// Optional per-stage audio queue ceiling in negotiated frames.
++    /// Applications with a real-time profile should set this together with
++    /// their adapter queue limits; None preserves the upstream defaults.
++    pub audio_queue_capacity: Option<std::num::NonZeroUsize>,
+     /// Maximum number of distinct direct-media subscriber Connections
+     /// admitted by this Orchestrator across every UCTP ingress substrate.
+     ///
+@@ -70,6 +74,7 @@
+             .unwrap_or(1);
+         Self {
+             max_concurrent_setups: 256 * cpus,
++            audio_queue_capacity: None,
+             max_direct_subscribers: 1_000,
+             conversation_store: Arc::new(MemoryConversationStore::new()),
+             vcon_store: Arc::new(MemoryVconStore::new()),
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -11741,10 +11741,14 @@
+         media_plan: DirectionalMediaBridgePlan,
+         replacement_context: Option<&ReplacementPreparationContext>,
+     ) -> Result<(Option<MediaGraphHandle>, Option<MediaGraphHandle>)> {
+-        let bridge_policy = directional_bridge_media_graph_policy(
++        let mut bridge_policy = directional_bridge_media_graph_policy(
+             self.connection_transport(&a)?,
+             self.connection_transport(&b)?,
+         );
++        if let Some(capacity) = self.config.audio_queue_capacity {
++            bridge_policy.sink_queue_frames = capacity.get();
++            bridge_policy.pre_sink_buffer_frames = capacity.get();
++        }
+         let mut sources = Vec::with_capacity(2);
+         if media_plan.a_to_b() {
+             sources.push(DirectionalGraphSource {
+@@ -11943,7 +11947,12 @@
+             .pop()
+             .expect("one connection lifecycle was captured");
+         let source = stream.try_frames_in()?;
+-        let graph = start_media_graph(source, codec, MediaGraphPolicy::default())?;
++        let mut policy = MediaGraphPolicy::default();
++        if let Some(capacity) = self.config.audio_queue_capacity {
++            policy.sink_queue_frames = capacity.get();
++            policy.pre_sink_buffer_frames = capacity.get();
++        }
++        let graph = start_media_graph(source, codec, policy)?;
+         self.media_graphs
+             .insert(connection_id.clone(), graph.clone());
+         if let Err(error) = self.supervise_media_activity(
+--- a/crates/uctp/rvoip-quic/src/media_stream.rs
++++ b/crates/uctp/rvoip-quic/src/media_stream.rs
+@@ -30,7 +30,23 @@
+ use tokio_util::sync::CancellationToken;
+ use tracing::{debug, trace_span, warn};
+ 
+-const FRAME_CAP: usize = 1024;
++/// Local media queue options; this does not change UCTP wire framing.
++#[derive(Clone)]
++pub struct QuicMediaQueueConfig {
++    /// Maximum frames retained by each input/output channel.
++    pub capacity: std::num::NonZeroUsize,
++    /// Owning peer or stream cancellation token.
++    pub cancellation: CancellationToken,
++}
++
++impl Default for QuicMediaQueueConfig {
++    fn default() -> Self {
++        Self {
++            capacity: std::num::NonZeroUsize::MIN.saturating_add(1023),
++            cancellation: CancellationToken::new(),
++        }
++    }
++}
+ 
+ pub struct QuicDatagramMediaStream {
+     id: StreamId,
+@@ -85,9 +101,36 @@
+         conn: quinn::Connection,
+         peer_cancel: CancellationToken,
+     ) -> Arc<Self> {
+-        let (in_tx, in_rx) = mpsc::channel::<MediaFrame>(FRAME_CAP);
+-        let (out_tx, mut out_rx) = mpsc::channel::<MediaFrame>(FRAME_CAP);
+-        let (peer_out_tx, mut peer_out_rx) = mpsc::channel::<PeerMediaFrame>(FRAME_CAP);
++        Self::start_with_queue_config(
++            id,
++            kind,
++            codec,
++            direction,
++            stream_local_id,
++            conn,
++            QuicMediaQueueConfig {
++                cancellation: peer_cancel,
++                ..Default::default()
++            },
++        )
++    }
++
++    /// Construct a stream with an explicit bounded local frame queue.
++    /// Existing constructors retain their original capacity for compatibility.
++    pub fn start_with_queue_config(
++        id: StreamId,
++        kind: StreamKind,
++        codec: CodecInfo,
++        direction: Direction,
++        stream_local_id: u16,
++        conn: quinn::Connection,
++        config: QuicMediaQueueConfig,
++    ) -> Arc<Self> {
++        let frame_cap = config.capacity.get();
++        let peer_cancel = config.cancellation;
++        let (in_tx, in_rx) = mpsc::channel::<MediaFrame>(frame_cap);
++        let (out_tx, mut out_rx) = mpsc::channel::<MediaFrame>(frame_cap);
++        let (peer_out_tx, mut peer_out_rx) = mpsc::channel::<PeerMediaFrame>(frame_cap);
+ 
+         let stream_cancel = peer_cancel.child_token();
+         let pump_cancel = stream_cancel.clone();
+--- a/crates/uctp/rvoip-quic/src/lib.rs
++++ b/crates/uctp/rvoip-quic/src/lib.rs
+@@ -18,7 +18,7 @@
+ pub use errors::{Result, UctpQuicError};
+ pub use media_stream::{
+     spawn_datagram_reader, spawn_datagram_reader_with_cancel, spawn_datagram_reader_with_observer,
+-    QuicDatagramMediaStream,
++    QuicDatagramMediaStream, QuicMediaQueueConfig,
+ };
+ pub use rvoip_core::adapter::{AdapterEvent, ConnectionAdapter};
+ pub use server::UctpQuicServer;
+--- a/crates/uctp/rvoip-quic/src/adapter.rs
++++ b/crates/uctp/rvoip-quic/src/adapter.rs
+@@ -75,6 +75,8 @@
+     /// Child of the owning peer's media token. Session/route teardown cancels
+     /// it before removing stream registries so concurrent allocations fail.
+     pub route_cancel: CancellationToken,
++    /// Application-selected audio queue ceiling; other stream kinds keep their default.
++    pub audio_queue_capacity: Option<std::num::NonZeroUsize>,
+     /// Authoritative peer coordinator. Local terminal commands retire its
+     /// Session state immediately instead of waiting for a peer acknowledgement.
+     pub coordinator: Arc<rvoip_uctp::state::UctpCoordinator>,
+@@ -130,7 +132,10 @@
+ }
+ 
+ impl UctpQuicConfig {
+-    pub fn with_application_handler(mut self, handler: Arc<dyn rvoip_uctp::application::ApplicationHandler>) -> Self {
++    pub fn with_application_handler(
++        mut self,
++        handler: Arc<dyn rvoip_uctp::application::ApplicationHandler>,
++    ) -> Self {
+         self.application_handler = Some(handler);
+         self
+     }
+@@ -598,14 +603,23 @@
+         // server packs MediaFrames from the publisher and sends them on
+         // this stream to the subscriber. Direction::Outbound makes the
+         // outbound pump the active path.
+-        let stream = crate::media_stream::QuicDatagramMediaStream::start_with_cancel(
++        let stream = crate::media_stream::QuicDatagramMediaStream::start_with_queue_config(
+             stream_id.clone(),
+             kind,
+             codec.clone(),
+             rvoip_core::connection::Direction::Outbound,
+             local_id.get(),
+             route.conn.clone(),
+-            reservation.cancellation_token(),
++            crate::media_stream::QuicMediaQueueConfig {
++                capacity: if kind == rvoip_core::stream::StreamKind::Audio {
++                    route
++                        .audio_queue_capacity
++                        .unwrap_or(crate::media_stream::QuicMediaQueueConfig::default().capacity)
++                } else {
++                    crate::media_stream::QuicMediaQueueConfig::default().capacity
++                },
++                cancellation: reservation.cancellation_token(),
++            },
+         );
+         if route.route_cancel.is_cancelled() {
+             let _ = stream.close().await;
+--- a/crates/uctp/rvoip-quic/src/server.rs
++++ b/crates/uctp/rvoip-quic/src/server.rs
+@@ -267,14 +267,23 @@
+             ));
+         };
+         let stream_id = StreamId::from_string(stream.strm_id);
+-        let concrete = QuicDatagramMediaStream::start_with_cancel(
++        let concrete = QuicDatagramMediaStream::start_with_queue_config(
+             stream_id.clone(),
+             stream_kind(&stream.kind)?,
+             CodecInfo::from_name_with_defaults(codec_name),
+             stream_direction(&stream.direction)?,
+             reservation.local_id().get(),
+             conn.clone(),
+-            reservation.cancellation_token(),
++            crate::media_stream::QuicMediaQueueConfig {
++                capacity: if stream.kind == "audio" {
++                    route
++                        .audio_queue_capacity
++                        .unwrap_or(crate::media_stream::QuicMediaQueueConfig::default().capacity)
++                } else {
++                    crate::media_stream::QuicMediaQueueConfig::default().capacity
++                },
++                cancellation: reservation.cancellation_token(),
++            },
+         );
+         plans.push((reservation, stream_id, concrete));
+     }
+@@ -714,6 +723,7 @@
+                                 conn: conn_for_translator.clone(),
+                                 media_router: Arc::clone(&media_router),
+                                 route_cancel,
++                                audio_queue_capacity: conversation_orchestrator.as_ref().and_then(|value| value.config.audio_queue_capacity),
+                                 coordinator: Arc::clone(&coord_for_translator),
+                             },
+                         );

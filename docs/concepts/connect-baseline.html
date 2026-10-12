@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Connect: a proposed open communications server and connector ecosystem from Rudeless. The vision, audiences, product, and path to participation.">
+<meta name="color-scheme" content="light">
+<title>Connect — Communications superpowers for every app and agent</title>
+<style>
+:root{--ink:#182c36;--muted:#53676d;--paper:#f8f8f2;--white:#fff;--line:#d9e2db;--green:#c8f080;--purple:#6050b8;--lavender:#eae5fb;--pale:#edf3ea;--radius:22px}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-underline-offset:4px}a:hover{color:var(--purple)}a:focus-visible,summary:focus-visible{outline:3px solid var(--purple);outline-offset:5px}h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.12;letter-spacing:-.045em}h1{font-size:clamp(48px,6.4vw,82px);font-weight:750;max-width:850px}h2{font-size:clamp(32px,4.1vw,49px);max-width:830px}h3{font-size:23px;letter-spacing:-.025em}p{color:var(--muted)}main,.shell{max-width:1160px;margin:auto;padding-inline:36px}section{padding:76px 0;border-bottom:1px solid var(--line)}.eyebrow{font-size:12px;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:var(--purple);margin-bottom:18px}.section-head{display:flex;gap:30px;justify-content:space-between;align-items:flex-start;margin-bottom:30px}.section-number{font:13px ui-monospace,monospace;color:var(--muted);padding-top:10px;white-space:nowrap}.intro{font-size:20px;margin-top:18px;max-width:760px}.grid{display:grid;gap:18px}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.three{grid-template-columns:repeat(3,minmax(0,1fr))}.card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:28px}.card p{margin-top:12px}.label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:750;color:var(--muted);display:block;margin-bottom:12px}.tag{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);padding:5px 11px;border-radius:100px;font-size:11px;font-weight:650;letter-spacing:.025em}.dot{width:6px;height:6px;border-radius:50%;background:var(--purple);display:inline-block}.button{display:inline-flex;align-items:center;justify-content:center;gap:16px;padding:13px 20px;border-radius:10px;background:var(--ink);color:#fff;text-decoration:none;font-size:14px;font-weight:650}.button:hover{background:var(--purple);color:#fff}.button.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}.small{font-size:13px}.note{font-size:14px;margin-top:22px;max-width:840px}.accent{color:var(--purple)}
+header{border-bottom:1px solid var(--line)}.topbar{display:flex;justify-content:space-between;gap:20px;align-items:center;min-height:86px}.brand{display:flex;gap:12px;align-items:center;text-decoration:none;font-weight:750;font-size:23px;letter-spacing:-.04em}.brand-mark{width:31px;height:31px;border-radius:10px;background:var(--ink);position:relative;flex:none}.brand-mark:before,.brand-mark:after{content:"";position:absolute;width:12px;height:6px;border:2px solid var(--green);border-radius:5px;transform:rotate(-38deg);left:5px;top:9px}.brand-mark:after{left:12px;top:16px}.brand small{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.06em;margin-left:9px}.topnav{display:flex;align-items:center;gap:24px;font-size:13px}.topnav a{text-decoration:none}.hero{padding:78px 0 55px}.hero .tag{margin-bottom:24px}.hero h1 span{color:var(--purple)}.hero .lead{font-size:22px;max-width:740px;margin-top:26px;line-height:1.5}.hero-bottom{margin-top:44px;display:flex;flex-wrap:wrap;gap:12px 26px;font-size:13px;color:var(--muted)}.hero-bottom b{color:var(--ink)}.promise{background:var(--ink);color:var(--white);border-radius:var(--radius);padding:32px 36px;margin-bottom:0;display:flex;align-items:center;gap:32px;justify-content:space-between}.promise p{color:#d2dfd9;max-width:530px}.promise strong{display:block;font-size:24px;letter-spacing:-.03em;line-height:1.3;max-width:410px}.promise .tag{border-color:#5c746f;color:var(--green);margin-top:14px}
+.mission{padding-top:38px}.mission .card{background:transparent}.mission h3{font-size:28px}.mission p{font-size:19px;color:var(--ink)}.mission .highlight{background:var(--lavender);border-color:var(--lavender)}
+.runtime{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:34px}.runtime-top{text-align:center;background:var(--ink);color:#fff;border-radius:13px;padding:20px}.runtime-top strong{font-size:23px;letter-spacing:-.025em}.runtime-top p{color:#c8d7d7;font-size:14px;margin-top:5px}.routes{display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:0 24px}.route-link{display:flex;flex-direction:column;align-items:center;padding:16px 0;font-size:12px;color:var(--muted);gap:7px}.route-link:after{content:"↓";font-size:22px;color:var(--purple);line-height:1}.route{border:1px solid var(--line);border-radius:14px;padding:24px;background:var(--paper);text-align:center}.route.connect{background:var(--lavender);border-color:#d2c8ed}.route h3{font-size:29px}.route p{font-size:15px;margin-top:8px}.engine{margin-top:20px;padding:10px;border-radius:8px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:650}.runtime-join{text-align:center;color:var(--muted);font-size:13px;padding:22px 0 14px}.services{display:flex;justify-content:center;flex-wrap:wrap;gap:9px}.services span{font-size:12px;font-weight:650;background:var(--pale);padding:9px 13px;border-radius:8px}.services .future{background:transparent;border:1px dashed #aebdb6}.runtime-caption{text-align:center;font-size:12px;margin-top:20px;color:var(--muted)}
+.audience{display:grid;grid-template-columns:220px 1fr 1fr;gap:24px;padding:25px 0;border-top:1px solid var(--line);align-items:start}.audience h3{font-size:22px;line-height:1.2}.audience p{font-size:16px}.audience .need{color:var(--ink);font-weight:600}.audience:last-child{padding-bottom:0}.capability .icon{font:17px ui-monospace,monospace;display:grid;place-items:center;width:39px;height:39px;background:var(--lavender);border-radius:11px;margin-bottom:20px;color:var(--purple)}.capability h3{font-size:22px}.capability p{font-size:15px}.story{margin-top:26px;background:var(--pale);padding:28px;border-radius:var(--radius)}.story-title{font-weight:700;font-size:17px;margin-bottom:18px}.story-flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.story-flow span{background:white;border:1px solid var(--line);padding:9px 14px;border-radius:8px;font-size:13px}.story-flow i{font-style:normal;color:var(--purple)}.story p{font-size:13px;margin-top:16px}.fit{background:var(--ink);border-radius:var(--radius);padding:34px;color:#fff;display:grid;grid-template-columns:1fr 1fr;gap:32px}.fit h3{color:var(--green)}.fit p{color:#d2dfd9;font-size:17px;margin-top:12px}.fit-note{font-size:18px;margin-top:22px;max-width:850px;color:var(--ink)}
+.steps{counter-reset:step}.step{position:relative;padding-top:26px;border-top:2px solid var(--line)}.step:before{counter-increment:step;content:"0" counter(step);display:block;color:var(--purple);font:14px ui-monospace,monospace;margin-bottom:18px}.step p{font-size:15px;margin-top:12px}.step ul{margin:16px 0 0;padding:0;list-style:none}.step li{padding:7px 0;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}.start-panel{margin-top:30px;padding:24px 28px;background:var(--lavender);border-radius:14px;display:flex;justify-content:space-between;gap:24px;align-items:center}.start-panel strong{font-size:18px}.start-panel p{font-size:14px;margin-top:5px}.start-panel .button{flex:none}.principles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 36px;margin-top:28px}.principle{border-top:1px solid var(--line);padding:19px 0}.principle strong{font-size:16px}.principle p{font-size:14px;margin-top:5px}.ecosystem{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin-top:30px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.ecosystem div{padding:25px;border-right:1px solid var(--line)}.ecosystem div:last-child{border:0}.ecosystem strong{font-size:17px}.ecosystem p{font-size:14px;margin-top:7px}.status-card{position:relative}.status-card .tag{margin-bottom:20px}.status-card p{font-size:15px}.status-card.current .tag{background:var(--green);border-color:var(--green)}.status-card.next{background:var(--lavender);border-color:var(--lavender)}.registry-preview{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.registry-preview span{font:11px ui-monospace,monospace;padding:5px 8px;background:white;border:1px solid var(--line);border-radius:5px}.closing{background:var(--ink);color:white;padding:46px;border-radius:var(--radius);margin-top:30px}.closing h2{max-width:730px}.closing p{color:#d2dfd9;margin-top:18px;font-size:19px;max-width:720px}.closing .button{background:var(--green);color:var(--ink)}.closing .button.secondary{background:transparent;border-color:#657a79;color:white}.closing .small{font-size:13px;margin-top:22px}.sources{padding:35px 0;border:0}.sources details{font-size:13px;color:var(--muted)}.sources summary{cursor:pointer;font-weight:650;color:var(--ink)}.sources ul{padding-left:20px;max-width:920px}.sources li{margin:10px 0}.footer{display:flex;justify-content:space-between;gap:20px;padding:25px 0 35px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+@media(max-width:800px){main,.shell{padding-inline:24px}.topnav{gap:16px}.topnav a:nth-child(2){display:none}.three{grid-template-columns:1fr}.audience{grid-template-columns:180px 1fr}.audience .offer{grid-column:2}.routes{padding:0;gap:16px}.promise{align-items:flex-start;flex-direction:column;gap:15px}.ecosystem{grid-template-columns:1fr}.ecosystem div{border-right:0;border-bottom:1px solid var(--line)}.start-panel{align-items:flex-start;flex-direction:column}.brand small{display:none}.section-number{display:none}.fit{gap:25px}.three .card{padding:26px}}
+@media(max-width:540px){body{font-size:16px}main,.shell{padding-inline:20px}.topbar{min-height:74px}.topnav{font-size:12px;gap:14px}.topnav a:first-child{display:none}.hero{padding-top:45px}.hero .lead{font-size:19px}.hero-bottom{gap:9px 18px}.promise{padding:26px}.two,.routes,.fit,.principles{grid-template-columns:1fr}.routes{gap:0}.runtime{padding:20px}.route-link{padding:13px 0}.runtime-top strong{font-size:20px}.runtime-caption{line-height:1.6}.audience{grid-template-columns:1fr;gap:12px}.audience .offer{grid-column:auto}.audience h3{font-size:23px}.audience .offer{font-size:14px}.intro{font-size:18px}section{padding-block:52px}.card{padding:25px}.mission{padding-top:28px}.closing{padding:29px}.closing p{font-size:17px}.footer{flex-direction:column;gap:8px}.story{padding:23px}.story-flow{gap:8px}.fit{padding:27px}.actions .button{font-size:13px}.sources{padding-top:26px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:#fff;font-size:11pt}.topnav,.actions,.sources{display:none}main,.shell{max-width:none;padding-inline:0}.hero{padding-top:25px}h1{font-size:42pt}h2{font-size:25pt}section{padding-block:28px}.card,.runtime,.fit,.closing,.story,.audience{break-inside:avoid}.promise,.fit,.closing{background:#eef0eb;color:#182c36}.promise p,.fit p,.closing p{color:#34494f}.fit h3{color:#182c36}.hero-bottom{margin-top:20px}.footer{padding-bottom:0}}
+</style>
+</head>
+<body>
+<header><div class="shell topbar">
+<a class="brand" href="#top" aria-label="Connect home"><span class="brand-mark" aria-hidden="true"></span>Connect <small>BY RUDELESS</small></a>
+<nav class="topnav" aria-label="Document navigation"><a href="#idea">The idea</a><a href="#audiences">Who it’s for</a><a href="#start">Get started</a><a href="#contribute">Get involved ↗</a></nav>
+</div></header>
+<main id="top">
+<section class="hero" aria-labelledby="hero-title">
+<div class="tag"><span class="dot" aria-hidden="true"></span>Project vision · October 2026 · Working name</div>
+<h1 id="hero-title">Communications<br><span>superpowers.</span><br>For every app and agent.</h1>
+<p class="lead">An open communications server that brings people, AI agents, and services together through one interface.</p>
+<div class="actions"><a class="button" href="#idea">Meet Connect <span aria-hidden="true">↓</span></a><a class="button secondary" href="#contribute">Bring your next connection <span aria-hidden="true">↗</span></a></div>
+<div class="hero-bottom"><span><b>Embed</b> with Rvoip.</span><span><b>Run</b> with Connect.</span><span><b>Build</b> through UCTP.</span></div>
+</section>
+
+<section id="idea" class="mission" aria-labelledby="idea-title">
+<div class="promise"><div><strong id="idea-title">One app. Or one server.<br>No separate gateway stack to assemble.</strong><span class="tag">The product promise</span></div><p>Rvoip puts communications inside your application. Connect packages that engine as a server other applications can use.</p></div>
+<div class="grid two" style="margin-top:20px">
+<article class="card"><span class="label">Our vision</span><h3>Conversations without silos.</h3><p>People and agents communicate across services and devices, with continuity and control.</p></article>
+<article class="card highlight"><span class="label">Our mission</span><h3>Make communication easy to build.</h3><p>Give developers and operators an open engine, a shared interface, and reusable connectors.</p></article>
+</div>
+<p class="note">Connect is a proposed new Rudeless project. Rvoip and the Parley demonstration provide its starting foundation; the packaged server and connector registry are the next step.</p>
+</section>
+
+<section id="architecture" aria-labelledby="architecture-title">
+<div class="section-head"><div><div class="eyebrow">How it fits together</div><h2 id="architecture-title">Same engine.<br>Two ways to use it.</h2></div><span class="section-number">01 / THE PRODUCT</span></div>
+<div class="runtime" role="group" aria-label="Proposed architecture: applications embed Rvoip directly or connect to the Connect server through UCTP. Both use Rvoip to reach supported networks and services.">
+<div class="runtime-top"><strong>Your app, bot, or personal assistant</strong><p>You build the experience. Choose how to add communications.</p></div>
+<div class="routes">
+<div><div class="route-link">Use the library API</div><div class="route"><span class="label">Inside your application</span><h3>Rvoip</h3><p>One application.<br>Communications built in.</p><div class="engine">Shared Rvoip communications engine</div></div></div>
+<div><div class="route-link">Use an SDK over UCTP</div><div class="route connect"><span class="label">Run your own server · proposed</span><h3>Connect</h3><p>One service endpoint.<br>Your choice of applications.</p><div class="engine">Powered by the same Rvoip engine</div></div></div>
+</div>
+<div class="runtime-join">↓ &nbsp; Adapters and connectors reach the services you choose &nbsp; ↓</div>
+<div class="services"><span>SIP / telephone</span><span>WebRTC / browser</span><span>Vapi / voice AI</span><span class="future">SMS / messaging</span><span class="future">Slack</span><span class="future">WhatsApp</span><span class="future">RCS</span></div>
+<p class="runtime-caption">Dashed services need connector productization or qualification. Slack, WhatsApp, and RCS are proposed integrations.</p>
+</div>
+<p class="note">Protocol adaptation and media conversion happen inside the supported runtime. External networks, provider accounts, and deployment requirements still apply.</p>
+</section>
+
+<section id="audiences" aria-labelledby="audiences-title">
+<div class="section-head"><div><div class="eyebrow">Who it’s for</div><h2 id="audiences-title">One foundation.<br>Different reasons to build.</h2></div><span class="section-number">02 / THE AUDIENCES</span></div>
+<div class="audience"><h3>App developers</h3><p class="need">Add communication without becoming a telecom engineer.</p><p class="offer">SDKs, examples, and one conversation model for web, mobile, and voice apps.</p></div>
+<div class="audience"><h3>Agent builders</h3><p class="need">You build the assistant. Give it the ability to reach people.</p><p class="offer">Calling, messaging, human handoff, and observable outcomes through a shared interface.</p></div>
+<div class="audience"><h3>Carriers</h3><p class="need">Make your network easy for the next generation of apps to use.</p><p class="offer">A UCTP service front end for your network, creating paths to new customers and traffic.</p></div>
+<div class="audience"><h3>Service providers</h3><p class="need">Offer communications services on infrastructure you control.</p><p class="offer">A server you can operate, integrate, package, and support for customers.</p></div>
+<div class="audience"><h3>Cloud platforms</h3><p class="need">Bring communications and agent workloads to your platform.</p><p class="offer">A reference deployment and integration points for compute, identity, storage, and media.</p></div>
+</section>
+
+<section id="capabilities" aria-labelledby="capabilities-title">
+<div class="section-head"><div><div class="eyebrow">What it does</div><h2 id="capabilities-title">Build the conversation.<br>Connect the pieces.</h2><p class="intro">The product should make these capabilities easy to compose.</p></div><span class="section-number">03 / THE EXPERIENCE</span></div>
+<div class="grid three">
+<article class="card capability"><div class="icon" aria-hidden="true">↔</div><h3>Reach people.</h3><p>Call or message through their connected services.</p></article>
+<article class="card capability"><div class="icon" aria-hidden="true">+</div><h3>Bring in help.</h3><p>Add a human or agent to an ongoing interaction.</p></article>
+<article class="card capability"><div class="icon" aria-hidden="true">⇄</div><h3>Move devices.</h3><p>Change the speaking connection while retaining the conversation.</p></article>
+<article class="card capability"><div class="icon" aria-hidden="true">∞</div><h3>Keep continuity.</h3><p>Link participants, calls, messages, and permitted context.</p></article>
+<article class="card capability"><div class="icon" aria-hidden="true">◎</div><h3>See what happened.</h3><p>Follow requests, replies, delivery states, and media events.</p></article>
+<article class="card capability"><div class="icon" aria-hidden="true">↗</div><h3>Add a service.</h3><p>Extend what applications can do through a reusable connector.</p></article>
+</div>
+<div class="story"><div class="story-title">One example: an assistant helps you change travel plans.</div><div class="story-flow" aria-label="Task to booker call to organizer call to browser join to phone move to final messages"><span>Your task</span><i aria-hidden="true">→</i><span>Booker call</span><i aria-hidden="true">→</i><span>Organizer call</span><i aria-hidden="true">→</i><span>Browser join</span><i aria-hidden="true">→</i><span>Phone move</span><i aria-hidden="true">→</i><span>Final messages</span></div><p>One Conversation ID connects the story. Parley demonstrates the voice sequence; live SMS qualification is pending.</p></div>
+</section>
+
+<section id="value" aria-labelledby="value-title">
+<div class="section-head"><div><div class="eyebrow">What makes it different</div><h2 id="value-title">Communications you can compose.<br>Infrastructure you can control.</h2></div><span class="section-number">04 / THE VALUE</span></div>
+<div class="fit"><div><h3>CPaaS connects you to services.</h3><p>Providers supply network access, numbers, messaging, voice, and managed capabilities.</p></div><div><h3>Connect helps you bring them together.</h3><p>An open runtime combines supported services inside a conversation your application controls.</p></div></div>
+<p class="fit-note">Use a carrier for telephone access, Vapi for voice AI, and a browser for human participation—all through the same communications model.</p>
+<div class="principles">
+<div class="principle"><strong>Fewer pieces to operate.</strong><p>Built-in communications machinery reduces the gateway stack you assemble.</p></div>
+<div class="principle"><strong>Choose where it runs.</strong><p>Embed the library, operate Connect, or use a compatible hosted service.</p></div>
+<div class="principle"><strong>Choose the services behind it.</strong><p>Compose providers through shared operations and declared capabilities.</p></div>
+<div class="principle"><strong>Keep the conversation together.</strong><p>Change channels or devices without rebuilding its identity in every integration.</p></div>
+</div>
+<p class="note">CPaaS platforms also offer orchestration. Connect’s proposed distinction is the combination of an embeddable engine, independent operation, an open interface, and community connectors.</p>
+</section>
+
+<section id="start" aria-labelledby="start-title">
+<div class="section-head"><div><div class="eyebrow">How to use it</div><h2 id="start-title">From first run<br>to first real connection.</h2><p class="intro">The first-release experience we are building toward.</p></div><span class="section-number">05 / GET STARTED</span></div>
+<div class="grid three steps">
+<article class="step"><h3>Run the sandbox.</h3><p>Start a packaged server and open its console.</p><ul><li>No provider account for the local demo.</li><li>Try messages and browser audio.</li><li>Inspect a complete conversation.</li></ul></article>
+<article class="step"><h3>Connect your services.</h3><p>Choose connectors and configure your accounts.</p><ul><li>See supported capabilities.</li><li>Check credentials and service readiness.</li><li>Follow guided live-service setup.</li></ul></article>
+<article class="step"><h3>Build your experience.</h3><p>Connect an app or agent through the SDK.</p><ul><li>Address participants through UCTP.</li><li>Observe actual communication outcomes.</li><li>Combine services as your app grows.</li></ul></article>
+</div>
+<div class="start-panel"><div><strong>Want to explore the foundation today?</strong><p>Start with Rvoip’s library examples or the existing Parley conference kit.</p></div><a class="button" href="https://github.com/eisenzopf/rvoip#five-minute-start" target="_blank" rel="noopener noreferrer">Try Rvoip <span aria-hidden="true">↗</span></a></div>
+<p class="note">A Connect installer, container release, and hosted service are proposed deliverables. The existing kit is a source snapshot, not the finished Connect distribution.</p>
+</section>
+
+<section id="ecosystem" aria-labelledby="ecosystem-title">
+<div class="section-head"><div><div class="eyebrow">The ecosystem</div><h2 id="ecosystem-title">Connect once.<br>Make it useful to more builders.</h2></div><span class="section-number">06 / SHARED FOUNDATIONS</span></div>
+<div class="grid two">
+<article class="card"><span class="label">The shared contract</span><h3>UCTP</h3><p>A common interface for conversations, participants, messages, sessions, and their outcomes.</p><p>Capabilities explain what each service supports.</p></article>
+<article class="card highlight"><span class="label">The proposed catalog</span><h3>Connector registry</h3><p>Find, install, test, and contribute integrations.</p><p>Every listing names its maintainer, capabilities, setup, and compatibility.</p><div class="registry-preview" aria-label="Proposed registry information"><span>Version</span><span>Capabilities</span><span>Maintainer</span><span>Test results</span></div></article>
+</div>
+<p class="note">Start with a useful registry. Add marketplace features when commercial connectors and support offerings emerge.</p>
+<div class="ecosystem">
+<div><strong>VoIP 3.0 is the vision.</strong><p>People, agents, and networks share a communications model.</p></div>
+<div><strong>Parley shows the experience.</strong><p>A reference application demonstrates the pieces working together.</p></div>
+<div><strong>Thelve is a complete product.</strong><p>A contact center for human and AI workers can use the same foundation.</p></div>
+</div>
+</section>
+
+<section id="roadmap" aria-labelledby="roadmap-title">
+<div class="section-head"><div><div class="eyebrow">Where we start</div><h2 id="roadmap-title">A working foundation.<br>A clear next step.</h2></div><span class="section-number">07 / THE PATH</span></div>
+<div class="grid three">
+<article class="card status-card current"><span class="tag">Today · foundation</span><h3>Rvoip + Parley</h3><p>A communications library, an experimental UCTP profile, and a working human/AI voice demonstration.</p><p>Component maturity varies; live messaging qualification is pending.</p></article>
+<article class="card status-card next"><span class="tag">Next · product</span><h3>Connect preview</h3><p>Package the server, remove demo-specific assumptions, and ship a console, SDK, and connector starter.</p><p>Make one complete local example easy to run.</p></article>
+<article class="card status-card"><span class="tag">Then · ecosystem</span><h3>Independent adoption</h3><p>Outside developers build apps. Contributors add connectors. Providers operate their own servers.</p><p>Prove one app works across compatible deployments.</p></article>
+</div>
+<div class="principles">
+<div class="principle"><strong>Open by design.</strong><p>Publish the contract, compatibility rules, and contribution process.</p></div>
+<div class="principle"><strong>Useful without AI.</strong><p>Human applications and agents use the same foundation.</p></div>
+<div class="principle"><strong>Explicit about capabilities.</strong><p>One interface does not make every channel support every feature.</p></div>
+<div class="principle"><strong>Context with boundaries.</strong><p>Share communication history only with its intended, authorized participants.</p></div>
+</div>
+<p class="note">The current conference control path uses WebSocket. QUIC is a transport direction, not a requirement to get started or a claim about that demo.</p>
+</section>
+
+<section id="contribute" aria-labelledby="contribute-title">
+<div class="section-head"><div><div class="eyebrow">Get involved</div><h2 id="contribute-title">Bring a service.<br>Bring an app. Bring a use case.</h2></div><span class="section-number">08 / BUILD WITH US</span></div>
+<div class="grid three">
+<article class="card"><span class="label">Connector contributors</span><h3>Connect your system.</h3><p>Start with one useful operation, a runnable example, and honest capability limits.</p><p>Help shape the connector SDK and test harness.</p></article>
+<article class="card"><span class="label">Developers</span><h3>Build something real.</h3><p>Bring a bot, mobile app, voice application, or workflow that needs to reach people.</p><p>Show us where the shared interface helps—and where it falls short.</p></article>
+<article class="card"><span class="label">Operators & providers</span><h3>Become a design partner.</h3><p>Bring your network or service to a small, concrete pilot.</p><p>Help define what an independently operated Connect server must provide.</p></article>
+</div>
+<div class="closing"><div class="eyebrow" style="color:var(--green)">An invitation from Rudeless</div><h2>The next connection<br>could be yours.</h2><p>Help make communications superpowers available to every developer, app, and agent.</p><div class="actions"><a class="button" href="https://github.com/eisenzopf/rvoip" target="_blank" rel="noopener noreferrer">Explore Rvoip <span aria-hidden="true">↗</span></a><a class="button secondary" href="https://conference.rudeless.ai/kit/" target="_blank" rel="noopener noreferrer">Explore the demo kit <span aria-hidden="true">↗</span></a><a class="button secondary" href="https://github.com/eisenzopf/rvoip/issues" target="_blank" rel="noopener noreferrer">Discuss the foundation <span aria-hidden="true">↗</span></a></div><p class="small">Connect’s dedicated repository, contributor home, and registry are next to launch. These links lead to the existing foundation.</p></div>
+</section>
+
+<section class="sources" aria-label="Sources and document scope"><details><summary>Sources & scope</summary><ul>
+<li>This is a starting product vision, not a release announcement. Connect is a working name. Proposed services, packaging, and compatibility need implementation and verification.</li>
+<li><a href="https://github.com/eisenzopf/rvoip">Rvoip overview</a> · <a href="https://github.com/eisenzopf/rvoip/blob/main/docs/voip-3-conversation-model.md">VoIP 3.0 conversation model</a> · <a href="https://github.com/eisenzopf/rvoip/tree/main/crates/foundation/rvoip-core">Rvoip core</a></li>
+<li><a href="https://conference.rudeless.ai/kit/">Parley conference kit</a> — current examples, experimental profile, and contribution material.</li>
+<li><a href="https://www.twilio.com/docs/conversations">Twilio Conversations</a> — existing CPaaS conversation capabilities. <a href="https://docs.vapi.ai/calls/websocket-transport">Vapi WebSocket transport</a> — voice-AI integration.</li>
+<li>Provider names describe integration possibilities or existing demo components; they do not imply partnerships or endorsements.</li>
+</ul></details></section>
+<footer class="footer"><span><strong>Connect</strong> · A Rudeless project vision</span><span>VoIP 3.0 → Rvoip → UCTP → Connect → Ecosystem</span><a href="#top">Back to top ↑</a></footer>
+</main>
+</body>
+</html>

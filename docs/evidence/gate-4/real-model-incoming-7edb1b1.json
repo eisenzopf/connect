@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-12T08:40:13.811507+00:00",
+  "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+  "binary_sha256": "8784157abc325d7ec8b23a1347f2f072a96c66d9e3823898360e555fd8159f03",
+  "scope": "Actual selected model through the installed Connect server, native SDK, supplied incoming-contact example, skill and Codex host assets. Local communication; no phone provider operation.",
+  "observed_behavior": {
+    "independent_human_contact_into_assistant": true,
+    "source_backed_task_created": true,
+    "prior_window_code_and_source_not_repeated_in_request": true,
+    "one_useful_reply": true,
+    "server_exit_code": 0,
+    "model_example_exit_code": 0,
+    "fixture_model": false
+  },
+  "correlation": {
+    "conversation_id": "772fa42b-a7ef-4aa1-b716-bc0aa7fbd9b5",
+    "source_id": "f3f5f2f7-bc8a-4687-a8fa-da6cac8ac6aa",
+    "reply_id": "7747a759-1a43-4a86-9828-7ec5600d9497"
+  },
+  "continuation": "First incoming turn. The separate overlapping draft/reply test qualifies exact-session continuation after restart.",
+  "private_evidence_sha256": {
+    "intent.json": "2e4ec3acfb1800fffd48cc704ce586faf23f825ee0dc2d7a683c6f89e1cb31b6",
+    "seed-receipt.json": "0c1854421253f3b5220c253d997b66b7f5f6a7dc528db27e996b0f7ff33c72f6",
+    "contact-receipt.json": "1e3b60e31bf0c9bf972e51996de5737df740354bf11f10c32af6c228a8629680",
+    "model-command-result.json": "81868a6e94ffc0178bf833deb1c9013d9fab4ee95ddb876a5e8ec4f1d26376d2",
+    "history-after-model.json": "1600c18586b06b683f571ebff542e6747e895d2cf249b92c1853cf4a2447a1dd",
+    "result.json": "d148b358d10b3ae07fb4eab5a7a03987dbae6860f167b654ae062518867683a4",
+    "server-exit.json": "81868a6e94ffc0178bf833deb1c9013d9fab4ee95ddb876a5e8ec4f1d26376d2",
+    "model-example.log": "d2b637867a6f358e999d9849e2f19c50764cae4bcf040ad4915a274bb943f875"
+  },
+  "harness_sha256": "b138e6e8c0a0935fbac1ca7f4be2f032025a0a0929a4e237e7964346cb0cb9d2",
+  "host_version": "codex-cli 0.162.0-alpha.17.2",
+  "limits": [
+    "One successful actual-model incoming-contact journey does not establish a statistical reliability rate.",
+    "Local macOS arm64 only."
+  ]
+}

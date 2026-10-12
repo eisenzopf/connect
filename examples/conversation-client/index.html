@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Connect conversation test client</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="mark">↔</span>
+        <div>
+          <p>Connect · local test implementation</p>
+          <h1>One conversation, every channel.</h1>
+        </div>
+      </header>
+      <section class="card setup">
+        <h2>Local connection</h2>
+        <label
+          >HTTP API <input id="http" value="http://127.0.0.1:3018"
+        /></label>
+        <label
+          >WebRTC signaling <input id="webrtc" readonly placeholder="Read from the server before joining"
+        /></label>
+        <label
+          >Credential <input id="credential" type="password" autocomplete="off"
+        /></label>
+        <label>Your identity ID <input id="identity" /></label>
+        <label>Other identity ID <input id="participant" /></label>
+        <label>Conversation ID <input id="conversation" /></label>
+        <div class="actions">
+          <button id="connect">Connect</button
+          ><button id="create">Create conversation</button
+          ><button id="refresh">Refresh timeline</button>
+        </div>
+        <p class="hint">
+          The credential stays in this tab's memory. It is never placed in a URL
+          or browser storage.
+        </p>
+      </section>
+      <section class="card status">
+        <strong id="state">Disconnected</strong
+        ><span id="detail">Enter a local credential to begin.</span>
+      </section>
+      <section class="grid">
+        <article class="card timeline">
+          <div class="section-title">
+            <h2>Conversation</h2>
+            <span id="watermark"></span>
+          </div>
+          <ol id="messages"></ol><button id="more-history">Load next history page</button>
+          <p id="pending"></p><button id="retry">Retry saved action</button>
+          <details><summary>Context and delivery outcomes</summary><p id="context-state"></p><ol id="context-events"></ol><ol id="deliveries"></ol><button id="more-deliveries">Older delivery receipts</button></details>
+          <form id="message-form">
+            <textarea
+              id="message"
+              required
+              placeholder="Write a message in this conversation"
+            ></textarea
+            ><button>Send message</button>
+          </form>
+        </article>
+        <aside>
+          <section class="card">
+            <h2>Availability</h2>
+            <div class="actions">
+              <button data-availability="available">Available</button
+              ><button data-availability="unavailable">Unavailable</button>
+            </div>
+            <p id="availability">Unknown</p>
+          </section>
+          <section class="card">
+            <h2>File</h2>
+            <input id="file" type="file" /><button id="upload">
+              Upload to conversation
+            </button>
+            <p id="file-state">No file selected.</p>
+          </section>
+          <section class="card">
+            <h2>Session control</h2>
+            <label>Session ID <input id="session" /></label>
+            <div class="actions">
+              <button id="invite">Invite audio</button
+              ><button id="accept">Accept</button><button id="end">End</button>
+            </div>
+          </section>
+          <section class="card">
+            <h2>Browser voice</h2><p id="voice-binding">The server binding is checked before microphone access.</p>
+            <p>
+              Authenticated WebRTC audio enters the configured conversation
+              route and reaches the assistant through Connect.
+            </p>
+            <div class="actions">
+              <button id="join">Join voice</button
+              ><button id="hangup" disabled>Hang up</button>
+            </div>
+            <audio id="remote" controls></audio>
+            <button id="voice-diagnostics">Inspect voice path</button>
+            <pre id="voice-proof" aria-live="polite"></pre>
+          </section>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

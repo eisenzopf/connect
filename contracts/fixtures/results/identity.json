@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "type": "connect.result",
+  "id": "env_fixture-result",
+  "in_reply_to": "env_fixture-request",
+  "payload": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "kind": "identity",
+        "data": {
+          "id": "agent-1",
+          "alias": "agent",
+          "capabilities": [
+            "message",
+            "voice"
+          ]
+        }
+      }
+    }
+  },
+  "ts": "2026-10-07T00:00:00Z"
+}

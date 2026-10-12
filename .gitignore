@@ -1,0 +1,11 @@
+/target/
+/.deps/
+/.local/
+/dist/
+.DS_Store
+*.log
+
+__pycache__/
+*.py[cod]
+node_modules/
+*.egg-info/

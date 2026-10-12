@@ -1,0 +1,339 @@
+{
+  "schema": 1,
+  "status": "all 41 frozen-source offline phases passed; not whole Gate 4 acceptance",
+  "recorded_at": "2026-10-11T22:40:54.304622+00:00",
+  "source_revision": "d47be557dd495cbcbc18ffc1a264cf85e023f851",
+  "source_dirty": false,
+  "scope": "local macOS arm64; offline fixtures, no live providers or deployment",
+  "worktree": "/Users/jonathaneisenzopf/.codex/worktrees/agent-presence-inbox/Connect",
+  "private_report": ".local/gate-4-checks/20261011T215833.697523Z/result.json",
+  "required_phases": 41,
+  "active_phase_at_snapshot": null,
+  "passed_phases_at_snapshot": [
+    "dependencies",
+    "format",
+    "typescript-install",
+    "typescript-tests",
+    "typescript-format",
+    "typescript-distribution",
+    "python-sdk",
+    "agent-incoming-unit",
+    "runner-failure-tests",
+    "voice-rehearsal-unit",
+    "chat-rehearsal-unit",
+    "lint",
+    "rustdoc",
+    "workspace",
+    "media-pressure",
+    "installed-host",
+    "upstream-regression",
+    "upstream-vapi",
+    "upstream-queues",
+    "upstream-codec",
+    "current-binaries",
+    "host-capacity",
+    "agent-incoming-public",
+    "agent-incoming-host",
+    "native-task-capacity",
+    "reference-runner-capacity",
+    "mcp-operating-load",
+    "grant-lifecycle-load",
+    "task-artifact-retention",
+    "voice-setup-retirement",
+    "schema-six-build",
+    "schema-ten-build",
+    "historical-task-recovery",
+    "dispatch",
+    "identity",
+    "typescript-probe",
+    "crash-replay",
+    "examples",
+    "example-recovery",
+    "current-recovery",
+    "datagram-example"
+  ],
+  "changes_since_retained_failed_run": [
+    "Positive real MCP session controls test",
+    "Retention verifier distinguishes timestamped authority denials at expiry; production code and limits unchanged"
+  ],
+  "retained_failed_run": "docs/evidence/gate-4/offline-9235d79-attempt-1.json",
+  "focused_correction": "docs/evidence/gate-4/retention-expiry-boundary.json",
+  "boundary": "Whole Gate 4 still requires the remaining offline phases, installed candidate and separate live evidence.",
+  "private_report_sha256": "2511ec2a2b66bb51269e9ea79964ec5c4d229f2e1955ae54648b27a0836bc4be",
+  "finished_at": "2026-10-11T22:39:40.302021+00:00",
+  "phase_results": [
+    {
+      "name": "dependencies",
+      "status": "passed",
+      "seconds": 0.135
+    },
+    {
+      "name": "format",
+      "status": "passed",
+      "seconds": 0.709
+    },
+    {
+      "name": "typescript-install",
+      "status": "passed",
+      "seconds": 0.619
+    },
+    {
+      "name": "typescript-tests",
+      "status": "passed",
+      "seconds": 3.522
+    },
+    {
+      "name": "typescript-format",
+      "status": "passed",
+      "seconds": 0.587
+    },
+    {
+      "name": "typescript-distribution",
+      "status": "passed",
+      "seconds": 0.075
+    },
+    {
+      "name": "python-sdk",
+      "status": "passed",
+      "seconds": 3.463
+    },
+    {
+      "name": "agent-incoming-unit",
+      "status": "passed",
+      "seconds": 0.194,
+      "python_tests": {
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "runner-failure-tests",
+      "status": "passed",
+      "seconds": 1.515
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "status": "passed",
+      "seconds": 0.136,
+      "python_tests": {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "status": "passed",
+      "seconds": 2.9,
+      "python_tests": {
+        "passed": 16,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "lint",
+      "status": "passed",
+      "seconds": 1.51
+    },
+    {
+      "name": "rustdoc",
+      "status": "passed",
+      "seconds": 3.033
+    },
+    {
+      "name": "workspace",
+      "status": "passed",
+      "seconds": 498.902,
+      "rust_tests": {
+        "passed": 539,
+        "failed": 0,
+        "ignored": 9
+      }
+    },
+    {
+      "name": "media-pressure",
+      "status": "passed",
+      "seconds": 121.523,
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "installed-host",
+      "status": "passed",
+      "seconds": 14.66,
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "upstream-regression",
+      "status": "passed",
+      "seconds": 31.738,
+      "rust_tests": {
+        "passed": 942,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "upstream-vapi",
+      "status": "passed",
+      "seconds": 4.48,
+      "rust_tests": {
+        "passed": 20,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "upstream-queues",
+      "status": "passed",
+      "seconds": 0.477,
+      "rust_tests": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "upstream-codec",
+      "status": "passed",
+      "seconds": 0.466,
+      "rust_tests": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "current-binaries",
+      "status": "passed",
+      "seconds": 0.297
+    },
+    {
+      "name": "host-capacity",
+      "status": "passed",
+      "seconds": 15.532
+    },
+    {
+      "name": "agent-incoming-public",
+      "status": "passed",
+      "seconds": 0.882,
+      "python_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "agent-incoming-host",
+      "status": "passed",
+      "seconds": 2.71,
+      "python_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "native-task-capacity",
+      "status": "passed",
+      "seconds": 43.758
+    },
+    {
+      "name": "reference-runner-capacity",
+      "status": "passed",
+      "seconds": 3.34
+    },
+    {
+      "name": "mcp-operating-load",
+      "status": "passed",
+      "seconds": 31.047
+    },
+    {
+      "name": "grant-lifecycle-load",
+      "status": "passed",
+      "seconds": 13.497
+    },
+    {
+      "name": "task-artifact-retention",
+      "status": "passed",
+      "seconds": 45.461
+    },
+    {
+      "name": "voice-setup-retirement",
+      "status": "passed",
+      "seconds": 1570.625
+    },
+    {
+      "name": "schema-six-build",
+      "status": "passed",
+      "seconds": 0.123
+    },
+    {
+      "name": "schema-ten-build",
+      "status": "passed",
+      "seconds": 0.233
+    },
+    {
+      "name": "historical-task-recovery",
+      "status": "passed",
+      "seconds": 5.308
+    },
+    {
+      "name": "dispatch",
+      "status": "passed",
+      "seconds": 1.287
+    },
+    {
+      "name": "identity",
+      "status": "passed",
+      "seconds": 3.844
+    },
+    {
+      "name": "typescript-probe",
+      "status": "passed",
+      "seconds": 1.375
+    },
+    {
+      "name": "crash-replay",
+      "status": "passed",
+      "seconds": 9.953
+    },
+    {
+      "name": "examples",
+      "status": "passed",
+      "seconds": 9.141
+    },
+    {
+      "name": "example-recovery",
+      "status": "passed",
+      "seconds": 13.605
+    },
+    {
+      "name": "current-recovery",
+      "status": "passed",
+      "seconds": 1.655
+    },
+    {
+      "name": "datagram-example",
+      "status": "passed",
+      "seconds": 0.783
+    }
+  ],
+  "primary_source_reconciliation": {
+    "reviewed_inputs": 805,
+    "changed_inputs": [
+      "skills/connect/SKILL.md"
+    ],
+    "boundary": "Only the Connect skill changed after the frozen run to address actual-model behavior. The corrected skill and final installed candidate require separate qualification; no pass is inferred for them."
+  },
+  "leftover_owned_process_groups": false
+}

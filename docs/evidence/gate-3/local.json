@@ -1,0 +1,466 @@
+{
+  "scope": "Gate 3 offline; local macOS arm64; no provider calls, account changes, or remote deployment",
+  "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "dirty": false,
+  "started_at": "2026-10-09T22:52:19.065037+00:00",
+  "steps": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "log": "dependencies.log",
+      "exit_code": 0,
+      "seconds": 0.15,
+      "result": "passed"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "log": "format.log",
+      "exit_code": 0,
+      "seconds": 0.26,
+      "result": "passed"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "lint.log",
+      "exit_code": 0,
+      "seconds": 15.14,
+      "result": "passed"
+    },
+    {
+      "name": "contract-fixtures",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "contract_fixtures"
+      ],
+      "log": "contract-fixtures.log",
+      "exit_code": 0,
+      "seconds": 14.12,
+      "result": "passed"
+    },
+    {
+      "name": "durable-model",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-store"
+      ],
+      "log": "durable-model.log",
+      "exit_code": 0,
+      "seconds": 4.31,
+      "result": "passed"
+    },
+    {
+      "name": "native-media-parity",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_parity"
+      ],
+      "log": "native-media-parity.log",
+      "exit_code": 0,
+      "seconds": 12.28,
+      "result": "passed"
+    },
+    {
+      "name": "native-media-faults",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_media_faults",
+        "--test",
+        "gate3_media_authorization"
+      ],
+      "log": "native-media-faults.log",
+      "exit_code": 0,
+      "seconds": 20.05,
+      "result": "passed"
+    },
+    {
+      "name": "native-sdk-media-helper",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_sdk_media_helper"
+      ],
+      "log": "native-sdk-media-helper.log",
+      "exit_code": 0,
+      "seconds": 14.42,
+      "result": "passed"
+    },
+    {
+      "name": "media-pressure-smoke",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_media_pressure",
+        "--",
+        "--include-ignored",
+        "--nocapture"
+      ],
+      "log": "media-pressure-smoke.log",
+      "exit_code": 0,
+      "seconds": 129.23,
+      "result": "passed"
+    },
+    {
+      "name": "vapi-duplex-media",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_vapi_media",
+        "--test",
+        "gate3_vapi_queue",
+        "--",
+        "--nocapture"
+      ],
+      "log": "vapi-duplex-media.log",
+      "exit_code": 0,
+      "seconds": 29.82,
+      "result": "passed"
+    },
+    {
+      "name": "vapi-observer-lifecycle",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--lib",
+        "vapi_observer"
+      ],
+      "log": "vapi-observer-lifecycle.log",
+      "exit_code": 0,
+      "seconds": 6.04,
+      "result": "passed"
+    },
+    {
+      "name": "provider-chat-context",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-connectors",
+        "--lib",
+        "--test",
+        "adapters"
+      ],
+      "log": "provider-chat-context.log",
+      "exit_code": 0,
+      "seconds": 5.33,
+      "result": "passed"
+    },
+    {
+      "name": "provider-chat-flow",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "provider_flow"
+      ],
+      "log": "provider-chat-flow.log",
+      "exit_code": 0,
+      "seconds": 12.62,
+      "result": "passed"
+    },
+    {
+      "name": "vapi-adapter-failures",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-vapi",
+        "--test",
+        "mock_transport"
+      ],
+      "log": "vapi-adapter-failures.log",
+      "exit_code": 0,
+      "seconds": 8.02,
+      "result": "passed"
+    },
+    {
+      "name": "transport-queue-budgets",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-sip",
+        "-p",
+        "rvoip-webrtc",
+        "--lib",
+        "queue_budget_tests"
+      ],
+      "log": "transport-queue-budgets.log",
+      "exit_code": 0,
+      "seconds": 4.98,
+      "result": "passed"
+    },
+    {
+      "name": "sip-duplex-media",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_sip_media"
+      ],
+      "log": "sip-duplex-media.log",
+      "exit_code": 0,
+      "seconds": 51.37,
+      "result": "passed"
+    },
+    {
+      "name": "sip-registration-lifecycle",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--lib",
+        "sip_registration"
+      ],
+      "log": "sip-registration-lifecycle.log",
+      "exit_code": 0,
+      "seconds": 0.38,
+      "result": "passed"
+    },
+    {
+      "name": "sip-codec-failures",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-sip",
+        "--test",
+        "adapter_renegotiate"
+      ],
+      "log": "sip-codec-failures.log",
+      "exit_code": 0,
+      "seconds": 22.57,
+      "result": "passed"
+    },
+    {
+      "name": "webrtc-duplex-media",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_webrtc_media"
+      ],
+      "log": "webrtc-duplex-media.log",
+      "exit_code": 0,
+      "seconds": 20.27,
+      "result": "passed"
+    },
+    {
+      "name": "webrtc-security",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_webrtc_security"
+      ],
+      "log": "webrtc-security.log",
+      "exit_code": 0,
+      "seconds": 9.93,
+      "result": "passed"
+    },
+    {
+      "name": "sip-webrtc-interop",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate3_sip_webrtc"
+      ],
+      "log": "sip-webrtc-interop.log",
+      "exit_code": 0,
+      "seconds": 13.96,
+      "result": "passed"
+    },
+    {
+      "name": "artifact-recovery",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "artifact_recovery"
+      ],
+      "log": "artifact-recovery.log",
+      "exit_code": 0,
+      "seconds": 3.92,
+      "result": "passed"
+    },
+    {
+      "name": "artifact-lifecycle",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-store",
+        "--test",
+        "gate3_artifact_lifecycle"
+      ],
+      "log": "artifact-lifecycle.log",
+      "exit_code": 0,
+      "seconds": 1.34,
+      "result": "passed"
+    },
+    {
+      "name": "transport-authority",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "transport_parity"
+      ],
+      "log": "transport-authority.log",
+      "exit_code": 0,
+      "seconds": 12.62,
+      "result": "passed"
+    },
+    {
+      "name": "language-sdk-facade",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--test",
+        "language_sdks"
+      ],
+      "log": "language-sdk-facade.log",
+      "exit_code": 0,
+      "seconds": 18.65,
+      "result": "passed"
+    },
+    {
+      "name": "typescript-sdk",
+      "command": [
+        "npm",
+        "test",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "log": "typescript-sdk.log",
+      "exit_code": 0,
+      "seconds": 2.59,
+      "result": "passed"
+    },
+    {
+      "name": "python-sdk",
+      "command": [
+        "env",
+        "PYTHONPATH=sdk/python",
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "log": "python-sdk.log",
+      "exit_code": 0,
+      "seconds": 2.9,
+      "result": "passed"
+    }
+  ],
+  "result": "passed",
+  "source_fingerprint_sha256": "1237fb9d7e5bac1d1c8584f7d4c8a109b853bf27bec3ebaf9b66f4aa9b8d2163",
+  "live_qualification": "not run; separately invoked and required for provider-route closure",
+  "inputs": {
+    "Cargo.toml": "430c6b9652a5d1f3485c5f643f4308f8d415f5c05dc532d7b15f5d991fdfb157",
+    "Cargo.lock": "0cc9e165c69ec203b43d66f3c37ef0f8e71cee7eac559c757c9b13ca6eaebd33",
+    "contracts/connect-control-v1.md": "6c0b7af058f4ed666a30a338f605a5f902b31f4c19658c02db8683f51381464d",
+    "dependencies/source-lock.json": "e1809e299073bb937a9e7113503ea32464e3aa887f8afa052006daaa8d39989f"
+  },
+  "source_stable": true,
+  "finished_at": "2026-10-09T22:59:36.403436+00:00",
+  "private_result": ".local/gate-3-checks/20261009T225219.040327Z/result.json"
+}

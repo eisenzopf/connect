@@ -1,0 +1,850 @@
+diff --git a/crates/extensions/rvoip-vapi/src/adapter.rs b/crates/extensions/rvoip-vapi/src/adapter.rs
+index 970b122..991c996 100644
+--- a/crates/extensions/rvoip-vapi/src/adapter.rs
++++ b/crates/extensions/rvoip-vapi/src/adapter.rs
+@@ -958,6 +958,59 @@ impl WriterFault {
+     }
+ }
+ 
++/// Classify transport failures without formatting provider bodies, URLs or
++/// underlying error messages, which can contain credentials.
++fn websocket_write_error_class(error: &tokio_tungstenite::tungstenite::Error) -> &'static str {
++    use std::io::ErrorKind;
++    use tokio_tungstenite::tungstenite::Error;
++    match error {
++        Error::ConnectionClosed | Error::AlreadyClosed => "closed",
++        Error::Io(error) => match error.kind() {
++            ErrorKind::ConnectionReset => "connection-reset",
++            ErrorKind::ConnectionAborted => "connection-aborted",
++            ErrorKind::BrokenPipe => "broken-pipe",
++            ErrorKind::TimedOut => "io-timeout",
++            ErrorKind::WouldBlock => "would-block",
++            _ => "io",
++        },
++        Error::Protocol(_) => "protocol",
++        Error::Capacity(_) => "capacity",
++        Error::Tls(_) => "tls",
++        _ => "other",
++    }
++}
++
++#[cfg(test)]
++mod writer_diagnostics_tests {
++    use super::websocket_write_error_class;
++    use std::io::{Error as IoError, ErrorKind};
++    use tokio_tungstenite::tungstenite::{error::ProtocolError, Error};
++
++    #[test]
++    fn write_errors_are_distinguishable_without_exposing_underlying_details() {
++        for (kind, expected) in [
++            (ErrorKind::ConnectionReset, "connection-reset"),
++            (ErrorKind::BrokenPipe, "broken-pipe"),
++            (ErrorKind::TimedOut, "io-timeout"),
++            (ErrorKind::Other, "io"),
++        ] {
++            let error = Error::Io(IoError::new(kind, "private-provider-url-and-credential"));
++            assert_eq!(websocket_write_error_class(&error), expected);
++        }
++        assert_eq!(websocket_write_error_class(&Error::AlreadyClosed), "closed");
++        assert_eq!(
++            websocket_write_error_class(&Error::ConnectionClosed),
++            "closed"
++        );
++        assert_eq!(
++            websocket_write_error_class(&Error::Protocol(
++                ProtocolError::ResetWithoutClosingHandshake
++            )),
++            "protocol"
++        );
++    }
++}
++
+ /// Owns the socket's sink half so a slow write cannot park the session loop.
+ ///
+ /// FreeSWITCH's media model rests on the media thread never blocking on a
+@@ -977,6 +1030,12 @@ async fn run_socket_writer(
+ ) -> futures::stream::SplitSink<VapiSocket, WebSocketMessage> {
+     use futures::SinkExt;
+     let mut consecutive_media_timeouts: u32 = 0;
++    let started = tokio::time::Instant::now();
++    let mut last_report = started;
++    let mut attempted_media_messages = 0u64;
++    let mut attempted_media_bytes = 0u64;
++    let mut completed_media_messages = 0u64;
++    let mut largest_media_message_bytes = 0usize;
+     loop {
+         // M3: control and media used to share one channel, so an uplink stall
+         // backed Pings, Pongs and commands up behind a media queue that drains
+@@ -1013,15 +1072,31 @@ async fn run_socket_writer(
+             WriteRequest::Media(message) => (message, config.media_write_timeout, true),
+             WriteRequest::Control(message) => (message, config.websocket_io_timeout, false),
+         };
++        let message_bytes = message.len();
++        if is_media {
++            attempted_media_messages = attempted_media_messages.saturating_add(1);
++            attempted_media_bytes = attempted_media_bytes.saturating_add(message_bytes as u64);
++            largest_media_message_bytes = largest_media_message_bytes.max(message_bytes);
++        }
+         let sent = tokio::time::timeout(deadline, sink.send(message)).await;
+         drop(delivery_guard);
+         match sent {
+             Ok(Ok(())) => {
+                 if is_media {
+                     consecutive_media_timeouts = 0;
++                    completed_media_messages = completed_media_messages.saturating_add(1);
+                 }
+             }
+-            Ok(Err(_)) => {
++            Ok(Err(error)) => {
++                tracing::warn!(
++                    connection_id = %route.connection_id,
++                    write_kind = if is_media { "media" } else { "control" },
++                    error_class = websocket_write_error_class(&error),
++                    consecutive_media_timeouts,
++                    message_bytes,
++                    completed_media_messages,
++                    "Vapi WebSocket write failed"
++                );
+                 let _ = faults
+                     .send(if is_media {
+                         WriterFault::Failed
+@@ -1033,6 +1108,14 @@ async fn run_socket_writer(
+             }
+             Err(_) => {
+                 if !is_media {
++                    tracing::warn!(
++                        connection_id = %route.connection_id,
++                        timeout_ms = deadline.as_millis() as u64,
++                        consecutive_media_timeouts,
++                        message_bytes,
++                        completed_media_messages,
++                        "Vapi WebSocket control write exceeded its deadline"
++                    );
+                     let _ = faults.send(WriterFault::ControlFailed).await;
+                     break;
+                 }
+@@ -1043,7 +1126,16 @@ async fn run_socket_writer(
+                 metrics::counter!("rvoip_vapi_media_write_timeouts_total").increment(1);
+                 if consecutive_media_timeouts == 1 {
+                     tracing::warn!(
++                        connection_id = %route.connection_id,
+                         timeout_ms = config.media_write_timeout.as_millis() as u64,
++                        elapsed_ms = started.elapsed().as_millis() as u64,
++                        message_bytes,
++                        attempted_media_messages,
++                        attempted_media_bytes,
++                        completed_media_messages,
++                        largest_media_message_bytes,
++                        media_queue_messages = media.len(),
++                        control_queue_messages = control.len(),
+                         "a Vapi audio write exceeded its deadline; dropping the frame"
+                     );
+                 }
+@@ -1053,6 +1145,21 @@ async fn run_socket_writer(
+                 }
+             }
+         }
++        if last_report.elapsed() >= std::time::Duration::from_secs(5) {
++            last_report = tokio::time::Instant::now();
++            tracing::debug!(
++                connection_id = %route.connection_id,
++                elapsed_ms = started.elapsed().as_millis() as u64,
++                attempted_media_messages,
++                attempted_media_bytes,
++                completed_media_messages,
++                largest_media_message_bytes,
++                consecutive_media_timeouts,
++                media_queue_messages = media.len(),
++                control_queue_messages = control.len(),
++                "Vapi socket writer progress"
++            );
++        }
+     }
+     sink
+ }
+@@ -1395,6 +1502,11 @@ async fn run_websocket_session(
+                             }
+                             stale = stale.saturating_add(route.stream.request_flush());
+                             if let Some(orchestrator) = orchestrator.and_then(Weak::upgrade) {
++                                let flush_started = tokio::time::Instant::now();
++                                tracing::debug!(
++                                    connection_id = %route.connection_id,
++                                    "Vapi barge-in graph flush started"
++                                );
+                                 match orchestrator.flush_media_graph(&route.connection_id).await {
+                                     Some(graph_stale) => {
+                                         stale = stale.saturating_add(graph_stale);
+@@ -1405,6 +1517,11 @@ async fn run_websocket_session(
+                                         );
+                                     }
+                                 }
++                                tracing::debug!(
++                                    connection_id = %route.connection_id,
++                                    elapsed_ms = flush_started.elapsed().as_millis() as u64,
++                                    "Vapi barge-in graph flush finished"
++                                );
+                             }
+                             if stale > 0 {
+                                 let stale = stale as u64;
+diff --git a/crates/media/rtp-core/src/session/mod.rs b/crates/media/rtp-core/src/session/mod.rs
+index be27ef8..f23606f 100644
+--- a/crates/media/rtp-core/src/session/mod.rs
++++ b/crates/media/rtp-core/src/session/mod.rs
+@@ -861,6 +861,7 @@ impl RtpSession {
+             // Set the remote RTP address on the UDP transport
+             if let Some(t) = transport.as_any().downcast_ref::<UdpRtpTransport>() {
+                 t.set_remote_rtp_addr(addr).await;
++                t.set_remote_rtcp_addr(addr).await;
+             }
+         }
+ 
+@@ -1218,16 +1219,17 @@ impl RtpSession {
+             }
+         });
+ 
+-        // Start RTCP sending task if we have a remote address and report generator
+-        if let (Some(remote_addr), Some(mut rtcp_generator)) =
+-            (self.config.remote_addr, self.rtcp_generator.take())
+-        {
++        // Outbound offer/answer sessions start before their SDP peer is known.
++        // Keep one report task alive and resolve the current destination at each
++        // tick; taking the generator only when a peer existed stranded late SDP.
++        if let Some(mut rtcp_generator) = self.rtcp_generator.take() {
+             let transport = self.transport.clone();
+             let ssrc = self.ssrc;
+             let event_tx = self.event_tx.clone();
+             let stats = self.stats.clone();
+             let sender_octets = self.sender_octets.clone();
+             let report_streams = self.streams.clone();
++            let report_sender = self.packet_sender.clone();
+             let active_state = Arc::new(tokio::sync::Mutex::new(true));
+             let _active_state_clone = active_state.clone();
+             let bandwidth = self.bandwidth_bps;
+@@ -1253,6 +1255,18 @@ impl RtpSession {
+                         break;
+                     }
+ 
++                    let remote_addr =
++                        if let Some(udp) = transport.as_any().downcast_ref::<UdpRtpTransport>() {
++                            udp.remote_rtcp_addr()
++                                .await
++                                .or_else(|| *report_sender.remote_addr.read())
++                        } else {
++                            *report_sender.remote_addr.read()
++                        };
++                    let Some(remote_addr) = remote_addr else {
++                        continue; // SDP has not supplied a peer yet.
++                    };
++
+                     // Update RTP statistics before sending the report
+                     let (sender_packet_count, sender_octet_count) =
+                         sender_report_totals(&stats, &sender_octets);
+@@ -1441,6 +1455,7 @@ impl RtpSession {
+         self.packet_sender.set_remote_addr(addr);
+         if let Some(t) = self.transport.as_any().downcast_ref::<UdpRtpTransport>() {
+             t.set_remote_rtp_addr(addr).await;
++            t.set_remote_rtcp_addr(addr).await;
+         }
+     }
+ 
+@@ -1974,6 +1989,51 @@ impl RtpSessionSender {
+ mod tests {
+     use super::*;
+ 
++    #[tokio::test]
++    async fn periodic_rtcp_follows_late_sdp_peer_changes_and_stops_on_close() {
++        let first = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let second = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let mut session = RtpSession::new(RtpSessionConfig {
++            local_addr: "127.0.0.1:0".parse().unwrap(),
++            remote_addr: None,
++            ..RtpSessionConfig::default()
++        })
++        .await
++        .unwrap();
++        let mut bytes = [0u8; 2048];
++        assert!(
++            tokio::time::timeout(Duration::from_millis(1100), first.recv_from(&mut bytes))
++                .await
++                .is_err()
++        );
++        session.set_remote_addr(first.local_addr().unwrap()).await;
++        let (n, _) = tokio::time::timeout(Duration::from_secs(4), first.recv_from(&mut bytes))
++            .await
++            .unwrap()
++            .unwrap();
++        let report = crate::packet::rtcp::RtcpCompoundPacket::parse(&bytes[..n]).unwrap();
++        assert_eq!(report.get_sr().unwrap().ssrc, session.ssrc);
++        session.set_remote_addr(second.local_addr().unwrap()).await;
++        let (n, _) = tokio::time::timeout(Duration::from_secs(4), second.recv_from(&mut bytes))
++            .await
++            .unwrap()
++            .unwrap();
++        let report = crate::packet::rtcp::RtcpCompoundPacket::parse(&bytes[..n]).unwrap();
++        assert_eq!(report.get_sr().unwrap().ssrc, session.ssrc);
++        session.close().await.unwrap();
++        // Drain the synchronous compound BYE, then require the report task to stop.
++        let (n, _) = tokio::time::timeout(Duration::from_secs(1), second.recv_from(&mut bytes))
++            .await
++            .unwrap()
++            .unwrap();
++        assert_compound_bye(&bytes[..n], session.ssrc, "Session closed");
++        assert!(
++            tokio::time::timeout(Duration::from_millis(1600), second.recv_from(&mut bytes))
++                .await
++                .is_err()
++        );
++    }
++
+     async fn next_packet_event(events: &mut broadcast::Receiver<RtpSessionEvent>) -> RtpPacket {
+         tokio::time::timeout(Duration::from_secs(1), async {
+             loop {
+diff --git a/crates/sip/rvoip-sip/src/adapters/media_adapter.rs b/crates/sip/rvoip-sip/src/adapters/media_adapter.rs
+index 98f2d85..5570485 100644
+--- a/crates/sip/rvoip-sip/src/adapters/media_adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapters/media_adapter.rs
+@@ -149,6 +149,25 @@ fn direction_attribute(direction: crate::types::MediaDirection) -> &'static str
+     }
+ }
+ 
++fn audio_rtcp_mux(session: &SdpSession) -> bool {
++    session
++        .media_descriptions
++        .iter()
++        .find(|m| m.media == "audio")
++        .is_some_and(|m| {
++            m.generic_attributes
++                .iter()
++                .any(|a| matches!(a, ParsedAttribute::RtcpMux))
++        })
++}
++
++fn validate_rtcp_mux(session: &SdpSession, required: bool) -> SrtpDetailedResult<()> {
++    if required && !audio_rtcp_mux(session) {
++        return Err(bounded_sdp_failure("rtcp-mux", "required").into());
++    }
++    Ok(())
++}
++
+ fn audio_direction(session: &SdpSession) -> Option<rvoip_sip_core::MediaDirection> {
+     session
+         .media_descriptions
+@@ -1338,6 +1357,7 @@ pub struct MediaAdapter {
+     /// answer with `RTP/SAVP` when peer offers SRTP. When `false`,
+     /// the adapter behaves like the pre-2B baseline (plain RTP/AVP).
+     offer_srtp: bool,
++    rtcp_mux_required: bool,
+     /// ICE posture, from [`Config::ice`](crate::api::unified::Config::ice).
+     ice_policy: crate::adapters::ice_adapter::SipIcePolicy,
+     /// One ICE runtime (agent + pump task) per media session.
+@@ -1537,6 +1557,7 @@ impl MediaAdapter {
+             media_port_end: port_end,
+             media_mode: MediaMode::Enabled,
+             offer_srtp: false,
++            rtcp_mux_required: false,
+             ice_policy: crate::adapters::ice_adapter::SipIcePolicy::Disabled,
+             ice: Arc::new(crate::adapters::ice_adapter::IceRuntimes::default()),
+             srtp_required: false,
+@@ -2198,6 +2219,10 @@ impl MediaAdapter {
+             .unwrap_or_default()
+     }
+ 
++    pub(crate) fn set_rtcp_mux_required(&mut self, required: bool) {
++        self.rtcp_mux_required = required;
++    }
++
+     /// Process SDP answer and negotiate (for UAC)
+     pub async fn negotiate_sdp_as_uac(
+         &self,
+@@ -2290,12 +2315,14 @@ impl MediaAdapter {
+         let (remote_ip, remote_port) = self.parse_sdp_connection(remote_sdp)?;
+         let parsed_answer = SdpSession::from_str(remote_sdp)
+             .map_err(|_| bounded_sdp_failure("remote-answer", "syntax"))?;
++        validate_rtcp_mux(&parsed_answer, self.rtcp_mux_required)?;
+         let parsed_offer = exact_initial_uac_offer(session)
+             .ok_or_else(|| bounded_sdp_failure("remote-answer", "missing-local-offer"))
+             .and_then(|offer| {
+                 SdpSession::from_str(offer)
+                     .map_err(|_| bounded_sdp_failure("remote-answer", "invalid-local-offer"))
+             })?;
++        validate_rtcp_mux(&parsed_offer, self.rtcp_mux_required)?;
+         let (payload_type, negotiated_codec, clock_rate, channels) =
+             validate_uac_audio_answer(&parsed_offer, &parsed_answer, self.g729_annex_b)?;
+         let answer_direction = audio_direction(&parsed_answer);
+@@ -2530,6 +2557,7 @@ impl MediaAdapter {
+     pub(crate) fn validate_inbound_sdp_offer(&self, remote_sdp: &str) -> SrtpDetailedResult<()> {
+         let parsed_offer = SdpSession::from_str(remote_sdp)
+             .map_err(|_| bounded_sdp_failure("remote-offer", "syntax"))?;
++        validate_rtcp_mux(&parsed_offer, self.rtcp_mux_required)?;
+         self.parse_sdp_connection(remote_sdp)?;
+ 
+         let offered_crypto = Self::extract_audio_crypto(&parsed_offer);
+@@ -2629,6 +2657,7 @@ impl MediaAdapter {
+         // and SDES handling.
+         let parsed_offer = SdpSession::from_str(remote_sdp)
+             .map_err(|_| bounded_sdp_failure("remote-offer", "syntax"))?;
++        validate_rtcp_mux(&parsed_offer, self.rtcp_mux_required)?;
+         let (remote_ip, remote_port) = self.parse_sdp_connection(remote_sdp)?;
+         // ICE (RFC 8839): honor the peer's offer when policy allows. A
+         // detected mismatch means a middlebox rewrote the SDP after the
+@@ -2943,6 +2972,10 @@ impl MediaAdapter {
+         let mut media_builder = sdp_builder
+             .media_audio(advertised_port, answer_transport)
+             .formats(&formats_str);
++        // The controller has one socket; agree to multiplexing when offered.
++        if audio_rtcp_mux(&parsed_offer) {
++            media_builder = media_builder.rtcp_mux();
++        }
+         #[cfg(feature = "dtls-srtp")]
+         if let Some((_, _, role)) = &dtls_answer_attrs {
+             media_builder = media_builder.setup(role.as_str());
+@@ -4502,6 +4535,11 @@ impl MediaAdapter {
+         let mut media_builder = sdp_builder
+             .media_audio(port, transport)
+             .formats(&formats_ref);
++        if self.rtcp_mux_required {
++            media_builder = media_builder
++                .rtcp_mux()
++                .attribute("rtcp-mux-only", None::<String>);
++        }
+         if dtls_offer_attrs.is_some() {
+             media_builder = media_builder.setup(self.dtls_setup_role.as_str());
+         }
+@@ -5400,6 +5438,11 @@ impl MediaAdapter {
+             .time("0", "0")
+             .media_audio(port, transport)
+             .formats(&formats_ref);
++        if self.rtcp_mux_required {
++            media_builder = media_builder
++                .rtcp_mux()
++                .attribute("rtcp-mux-only", None::<String>);
++        }
+         for (pt, pt_str) in format_pts.iter().zip(format_strings.iter()) {
+             if let Some(rtpmap) = rtpmap_for_pt(*pt) {
+                 media_builder = media_builder.rtpmap(pt_str.as_str(), rtpmap);
+@@ -5602,6 +5645,7 @@ impl Clone for MediaAdapter {
+             media_port_end: self.media_port_end,
+             media_mode: self.media_mode,
+             offer_srtp: self.offer_srtp,
++            rtcp_mux_required: self.rtcp_mux_required,
+             ice_policy: self.ice_policy,
+             ice: Arc::clone(&self.ice),
+             srtp_required: self.srtp_required,
+@@ -6234,6 +6278,58 @@ mod sdp_format_tests {
+         }
+     }
+ 
++    #[tokio::test]
++    async fn required_rtcp_mux_negotiates_and_refuses_separate_port_peers() {
++        use crate::state_table::types::Role;
++        use rvoip_media_core::relay::controller::MediaSessionController;
++        let mut adapter = MediaAdapter::new(
++            Arc::new(MediaSessionController::new()),
++            Arc::new(SessionStore::new()),
++            "127.0.0.1".parse().unwrap(),
++            16000,
++            16100,
++        );
++        adapter.set_media_mode(MediaMode::SignalingOnly { sdp_rtp_port: 9 });
++        let mut uac = SessionState::new(SessionId("rtcp-mux-uac".into()), Role::UAC);
++        let legacy = adapter
++            .generate_local_sdp_offer_lane_owned(&mut uac, crate::types::MediaDirection::SendRecv)
++            .await
++            .unwrap();
++        assert!(!audio_rtcp_mux(&legacy.parse().unwrap()));
++        adapter.set_rtcp_mux_required(true);
++        let offer = adapter
++            .generate_local_sdp_offer_lane_owned(&mut uac, crate::types::MediaDirection::SendRecv)
++            .await
++            .unwrap();
++        assert!(audio_rtcp_mux(&offer.parse().unwrap()));
++        assert!(offer.contains("a=rtcp-mux-only\r\n"));
++        uac.local_sdp = Some(offer.clone());
++        let separate = build_answer("peer", "127.0.0.1", 18000);
++        assert!(adapter
++            .negotiate_sdp_as_uac_lane_owned(&mut uac, &separate)
++            .await
++            .is_err());
++        assert!(adapter.staged_media_negotiations.is_empty());
++        assert_eq!(uac.local_sdp.as_deref(), Some(offer.as_str()));
++        let mut uas = SessionState::new(SessionId("rtcp-mux-uas".into()), Role::UAS);
++        assert!(adapter
++            .negotiate_sdp_as_uas_lane_owned(&mut uas, &separate)
++            .await
++            .is_err());
++        // A compatible peer echoes mux even when its own default is permissive.
++        adapter.set_rtcp_mux_required(false);
++        let (answer, _) = adapter
++            .negotiate_sdp_as_uas_lane_owned(&mut uas, &offer)
++            .await
++            .unwrap();
++        assert!(audio_rtcp_mux(&answer.parse().unwrap()));
++        adapter.set_rtcp_mux_required(true);
++        adapter
++            .negotiate_sdp_as_uac_lane_owned(&mut uac, &answer)
++            .await
++            .unwrap();
++    }
++
+     #[tokio::test]
+     async fn malformed_sdes_answer_preserves_offer_state_for_valid_retry() {
+         use crate::state_table::types::Role;
+diff --git a/crates/sip/rvoip-sip/src/api/unified.rs b/crates/sip/rvoip-sip/src/api/unified.rs
+index 786763b..ee40279 100644
+--- a/crates/sip/rvoip-sip/src/api/unified.rs
++++ b/crates/sip/rvoip-sip/src/api/unified.rs
+@@ -2232,6 +2232,10 @@ pub struct Config {
+     /// See [`Config::srtp_required`] for the strict-mode variant.
+     pub offer_srtp: bool,
+ 
++    /// Require SDP negotiation of RTP/RTCP multiplexing for the single media socket.
++    /// Peers declining it fail negotiation instead of silently losing RTCP.
++    pub rtcp_mux_required: bool,
++
+     /// Select how SRTP keys are established when [`Config::offer_srtp`] is
+     /// enabled. SDES remains the compatibility default. DTLS-SRTP requires
+     /// the `dtls-srtp` Cargo feature and full media mode; configuration fails
+@@ -3011,6 +3015,7 @@ impl Config {
+             #[cfg(feature = "dev-insecure-tls")]
+             tls_insecure_skip_verify: false,
+             offer_srtp: false,
++            rtcp_mux_required: false,
+             srtp_keying: SrtpKeyingMode::Sdes,
+             dtls_setup_role: DtlsSetupRole::Actpass,
+             srtp_required: false,
+@@ -3132,6 +3137,7 @@ impl Config {
+             #[cfg(feature = "dev-insecure-tls")]
+             tls_insecure_skip_verify: false,
+             offer_srtp: false,
++            rtcp_mux_required: false,
+             srtp_keying: SrtpKeyingMode::Sdes,
+             dtls_setup_role: DtlsSetupRole::Actpass,
+             srtp_required: false,
+@@ -8932,6 +8938,7 @@ impl UnifiedCoordinator {
+             config.media_port_end,
+         );
+         media_adapter_inner.set_media_mode(config.media_mode);
++        media_adapter_inner.set_rtcp_mux_required(config.rtcp_mux_required);
+         media_adapter_inner.set_ice_policy(config.ice);
+         // Apply RFC 4568 SDES-SRTP policy from Config (Step 2B.1).
+         media_adapter_inner.set_srtp_policy(
+diff --git a/crates/uctp/rvoip-uctp/src/application.rs b/crates/uctp/rvoip-uctp/src/application.rs
+new file mode 100644
+index 0000000..6839d6b
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/application.rs
+@@ -0,0 +1,59 @@
++//! Opt-in application command profiles over the shared UCTP envelope.
++//!
++//! Authentication, signature checks and transport limits remain coordinator
++//! responsibilities. The handler authorizes Conversation membership and owns
++//! durable operation idempotency. Profiles never replace legacy media dispatch.
++
++use async_trait::async_trait;
++use rvoip_core::AuthenticatedPrincipal;
++use tokio::sync::mpsc;
++use tokio_util::sync::CancellationToken;
++
++use crate::envelope::UctpEnvelope;
++
++pub struct ApplicationContext {
++    pub principal: AuthenticatedPrincipal,
++    /// A bounded peer output channel. Do not block media on observer output.
++    pub outbound: mpsc::Sender<UctpEnvelope>,
++    /// Cancel observer work when this physical peer closes.
++    pub closed: CancellationToken,
++}
++
++#[derive(Debug)]
++pub struct ApplicationError {
++    pub code: u16,
++    pub reason: String,
++}
++
++impl ApplicationError {
++    pub fn new(code: u16, reason: impl Into<String>) -> Self {
++        Self { code, reason: reason.into() }
++    }
++}
++
++#[async_trait]
++pub trait ApplicationHandler: Send + Sync {
++    /// Explicit opt-in in `payload.profile`, advertised in auth.challenge.
++    fn profile(&self) -> &'static str;
++
++    fn required_scope(&self) -> &'static str { "uctp:conversation-control" }
++
++    /// Authorize the principal's access to every referenced object before
++    /// executing a typed protocol command. Persist idempotency before effects.
++    async fn handle(
++        &self,
++        context: ApplicationContext,
++        request: UctpEnvelope,
++    ) -> Result<UctpEnvelope, ApplicationError>;
++
++    /// Replays may only retrieve an existing outcome, never repeat effects.
++    /// Called after all auth/signature checks, when the replay cache recognizes
++    /// the envelope. Implementations must compare the stored command content.
++    async fn replay(
++        &self,
++        _context: ApplicationContext,
++        _request: UctpEnvelope,
++    ) -> Result<UctpEnvelope, ApplicationError> {
++        Err(ApplicationError::new(409, "duplicate-request"))
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/lib.rs b/crates/uctp/rvoip-uctp/src/lib.rs
+index c3ad848..94e9223 100644
+--- a/crates/uctp/rvoip-uctp/src/lib.rs
++++ b/crates/uctp/rvoip-uctp/src/lib.rs
+@@ -53,3 +53,5 @@ pub use crate::state::{
+     UctpSessionState, ENVELOPE_CHANNEL_CAP, SIGNALING_SEND_TIMEOUT,
+ };
+ pub use crate::types::MessageType;
++
++pub mod application;
+diff --git a/crates/uctp/rvoip-uctp/src/state/coordinator.rs b/crates/uctp/rvoip-uctp/src/state/coordinator.rs
+index 0c708ce..37595b7 100644
+--- a/crates/uctp/rvoip-uctp/src/state/coordinator.rs
++++ b/crates/uctp/rvoip-uctp/src/state/coordinator.rs
+@@ -324,6 +324,7 @@ pub struct UctpCoordinator {
+     /// substrate event pump. It is installed before ingress starts so Session
+     /// authorization occurs in the coordinator before state/event commit.
+     resource_bindings: OnceLock<Arc<PeerResourceBindings>>,
++    application_handler: OnceLock<Arc<dyn crate::application::ApplicationHandler>>,
+     /// QUIC/WebTransport set this before accepting traffic so negotiated
+     /// Streams are bound by the adapter's peer-scoped media router before any
+     /// `stream.opened` envelope is emitted. Other substrates use the
+@@ -526,6 +527,7 @@ impl UctpCoordinator {
+             pending: Arc::new(Pending::new()),
+             subscription_handler,
+             resource_bindings: OnceLock::new(),
++            application_handler: OnceLock::new(),
+             external_media_binding: AtomicBool::new(false),
+             next_stream_local_id: Mutex::new(1),
+             announced_stream_local_ids: Mutex::new(HashMap::new()),
+@@ -622,6 +624,7 @@ impl UctpCoordinator {
+             pending: Arc::new(Pending::new()),
+             subscription_handler,
+             resource_bindings: OnceLock::new(),
++            application_handler: OnceLock::new(),
+             external_media_binding: AtomicBool::new(false),
+             next_stream_local_id: Mutex::new(1),
+             announced_stream_local_ids: Mutex::new(HashMap::new()),
+@@ -720,6 +723,7 @@ impl UctpCoordinator {
+             pending: Arc::new(Pending::new()),
+             subscription_handler,
+             resource_bindings: OnceLock::new(),
++            application_handler: OnceLock::new(),
+             external_media_binding: AtomicBool::new(false),
+             next_stream_local_id: Mutex::new(1),
+             announced_stream_local_ids: Mutex::new(HashMap::new()),
+@@ -746,6 +750,11 @@ impl UctpCoordinator {
+         coord
+     }
+ 
++    /// Install before connecting the substrate ingress pump.
++    pub fn set_application_handler(&self, handler: Arc<dyn crate::application::ApplicationHandler>) {
++        let _ = self.application_handler.set(handler);
++    }
++
+     fn spawn_driver(self: &Arc<Self>, in_rx: mpsc::Receiver<UctpEnvelope>) {
+         let driver = Arc::clone(self);
+         let driver_task = tokio::spawn(async move {
+@@ -1161,6 +1170,46 @@ impl UctpCoordinator {
+                 Err(_) => Ok(()), // waiter timed out between check and delivery
+             };
+         }
++        // Explicit profile commands share the wire/auth gates but retain their
++        // complete application context, including recipients and request IDs.
++        if let Some(profile) = env.payload.get("profile").and_then(|v| v.as_str()) {
++            if !self.require_authenticated(&env).await?
++                || !self.require_resource_authorization(&env).await? {
++                return Ok(());
++            }
++            let Some(handler) = self.application_handler.get().filter(|h| h.profile() == profile) else {
++                return self.emit_error(env.id, 501, "capability", "unsupported-application-profile").await;
++            };
++            let Some(principal) = self.authenticated_principal() else { return Ok(()); };
++            if !principal.has_scope(handler.required_scope()) {
++                return self.emit_error(env.id, 403, "auth", "insufficient-scope").await;
++            }
++            let context = crate::application::ApplicationContext {
++                principal,
++                outbound: self.out_tx.clone(),
++                closed: self.cancel.child_token(),
++            };
++            let request_id = env.id.clone();
++            let cid = env.cid.clone();
++            let sid = env.sid.clone();
++            let connid = env.connid.clone();
++            let result = if self.record_replay_id(&env, false) {
++                handler.handle(context, env).await
++            } else {
++                handler.replay(context, env).await
++            };
++            let mut reply = match result {
++                Ok(reply) => reply,
++                Err(error) => UctpEnvelope::new(MessageType::Error, serde_json::json!({
++                    "code": error.code, "category": "application", "reason": error.reason
++                })),
++            };
++            reply.in_reply_to = Some(request_id);
++            if reply.cid.is_none() { reply.cid = cid; }
++            if reply.sid.is_none() { reply.sid = sid; }
++            if reply.connid.is_none() { reply.connid = connid; }
++            return self.send_out(reply).await;
++        }
+         match env.msg_type.clone() {
+             // Auth envelopes are the one class that runs pre-auth — the
+             // four-envelope handshake from CONVERSATION_PROTOCOL.md §5.1
+@@ -1884,7 +1933,13 @@ impl UctpCoordinator {
+         let challenge = payloads::auth::AuthChallenge {
+             nonce: EnvelopeId::new().to_string(),
+             accepted_methods: vec!["bearer".into()],
+-            server_capabilities: serde_json::to_value(crate::UCTP_COMPATIBILITY)?,
++            server_capabilities: {
++                let mut caps = serde_json::to_value(crate::UCTP_COMPATIBILITY)?;
++                if let Some(handler) = self.application_handler.get() {
++                    caps["application_profiles"] = serde_json::json!([handler.profile()]);
++                }
++                caps
++            },
+         };
+         let reply = UctpEnvelope::new(MessageType::AuthChallenge, serde_json::to_value(challenge)?)
+             .with_in_reply_to(env.id);
+diff --git a/crates/uctp/rvoip-websocket/src/adapter.rs b/crates/uctp/rvoip-websocket/src/adapter.rs
+index 3c5a3e9..4986267 100644
+--- a/crates/uctp/rvoip-websocket/src/adapter.rs
++++ b/crates/uctp/rvoip-websocket/src/adapter.rs
+@@ -75,6 +75,7 @@ pub(crate) struct Route {
+     /// Exact peer-selected Conversation ID from the authenticated invite.
+     pub cid: Option<String>,
+     pub sid: String,
++    pub medium: String,
+     pub binding: rvoip_uctp::adapter_helpers::AuthenticatedConnectionBinding,
+     pub out_tx: mpsc::Sender<UctpEnvelope>,
+     /// Gap plan §4.2 v1 punch list — see rvoip-quic Route doc.
+@@ -108,6 +109,7 @@ pub struct UctpWsConfig {
+     /// Optional identity-match hook run before `conversation.create` is
+     /// fulfilled. Returning `Some(cid)` forces `open_conversation_with_id`.
+     pub conversation_create_hook: Option<Arc<dyn ConversationCreateHook>>,
++    pub application_handler: Option<Arc<dyn rvoip_uctp::application::ApplicationHandler>>,
+     /// Optional `rustls::ServerConfig` for TLS-terminating WSS. When
+     /// `Some`, the accept loop wraps each `TcpStream` in
+     /// `tokio_rustls::TlsAcceptor::accept(...)` before running the
+@@ -128,11 +130,17 @@ impl UctpWsConfig {
+             sig9421: None,
+             orchestrator: None,
+             conversation_create_hook: None,
++            application_handler: None,
+             #[cfg(feature = "wss")]
+             tls: None,
+         }
+     }
+ 
++    pub fn with_application_handler(mut self, handler: Arc<dyn rvoip_uctp::application::ApplicationHandler>) -> Self {
++        self.application_handler = Some(handler);
++        self
++    }
++
+     pub fn with_outbound_url(mut self, url: Url) -> Self {
+         self.client_url = Some(url);
+         self
+@@ -221,6 +229,7 @@ impl UctpWsAdapter {
+             config.sig9421,
+             config.orchestrator,
+             config.conversation_create_hook,
++            config.application_handler,
+             #[cfg(feature = "wss")]
+             config.tls,
+         );
+@@ -242,6 +251,19 @@ impl UctpWsAdapter {
+         self.local_addr
+     }
+ 
++    /// Peer-selected routing context, only for its authenticated owner.
++    /// These IDs are hints, not authorization: the host must authorize the
++    /// principal against its Conversation before admitting this connection.
++    pub fn inbound_context(
++        &self,
++        connection_id: &ConnectionId,
++        principal: &rvoip_auth_core::AuthenticatedPrincipal,
++    ) -> Option<(Option<String>, String, String)> {
++        let route = self.routes.get(connection_id)?;
++        route.binding.is_owned_by(principal)
++            .then(|| (route.cid.clone(), route.sid.clone(), route.medium.clone()))
++    }
++
+     fn route(&self, conn: &ConnectionId) -> Option<Route> {
+         self.routes.get(conn).map(|r| r.clone())
+     }
+diff --git a/crates/uctp/rvoip-websocket/src/server.rs b/crates/uctp/rvoip-websocket/src/server.rs
+index 0685df8..94def52 100644
+--- a/crates/uctp/rvoip-websocket/src/server.rs
++++ b/crates/uctp/rvoip-websocket/src/server.rs
+@@ -39,6 +39,7 @@ impl UctpWsServer {
+         sig9421: Option<rvoip_uctp::state::Sig9421Config>,
+         orchestrator: Option<Arc<rvoip_core::Orchestrator>>,
+         conversation_create_hook: Option<Arc<dyn crate::adapter::ConversationCreateHook>>,
++        application_handler: Option<Arc<dyn rvoip_uctp::application::ApplicationHandler>>,
+         #[cfg(feature = "wss")] tls: Option<Arc<rustls::ServerConfig>>,
+     ) -> Arc<Self> {
+         #[cfg(feature = "wss")]
+@@ -77,6 +78,7 @@ impl UctpWsServer {
+                 let sig9421 = sig9421.clone();
+                 let orchestrator = orchestrator.clone();
+                 let conversation_create_hook = conversation_create_hook.clone();
++                let application_handler = application_handler.clone();
+                 #[cfg(feature = "wss")]
+                 let tls_acceptor = tls_acceptor.clone();
+                 tokio::spawn(async move {
+@@ -132,6 +134,7 @@ impl UctpWsServer {
+                                 sig9421.clone(),
+                                 orchestrator.clone(),
+                                 conversation_create_hook.clone(),
++                                application_handler.clone(),
+                             )
+                             .await;
+                             info!(%peer_addr, "rvoip-websocket: peer disconnected (wss)");
+@@ -172,6 +175,7 @@ impl UctpWsServer {
+                         sig9421,
+                         orchestrator,
+                         conversation_create_hook,
++                        application_handler,
+                     )
+                     .await;
+                     info!(%peer_addr, "rvoip-websocket: peer disconnected");
+@@ -220,6 +224,7 @@ async fn spawn_peer_session<S>(
+     sig9421: Option<rvoip_uctp::state::Sig9421Config>,
+     orchestrator: Option<Arc<rvoip_core::Orchestrator>>,
+     conversation_create_hook: Option<Arc<dyn crate::adapter::ConversationCreateHook>>,
++        application_handler: Option<Arc<dyn rvoip_uctp::application::ApplicationHandler>>,
+ ) where
+     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+ {
+@@ -271,6 +276,7 @@ async fn spawn_peer_session<S>(
+     // Gap plan §4.2 v1 punch list — capture the coordinator's
+     // `Pending` correlator so per-Route adapter code can await
+     // typed responses.
++    if let Some(handler) = application_handler { coord.set_application_handler(handler); }
+     let pending = coord.pending();
+     let auth_guard =
+         rvoip_uctp::state::spawn_auth_lifecycle_guard(Arc::clone(&coord), authentication_deadline);
+@@ -474,7 +480,7 @@ async fn spawn_peer_session<S>(
+                             detail: "bearer".into(),
+                         })
+                     }
+-                    UctpSessionEvent::InboundInvite { cid, sid, from, .. } => {
++                    UctpSessionEvent::InboundInvite { cid, sid, from, medium, .. } => {
+                         let Some(principal) = coord_for_translator.authenticated_principal() else {
+                             warn!(sid = ?CorrelationIdDiagnostic::new(sid.as_str()), "authenticated invite missing retained principal; refusing route");
+                             continue;
+@@ -507,6 +513,7 @@ async fn spawn_peer_session<S>(
+                         let route = Route {
+                             cid,
+                             sid: sid.to_string(),
++                            medium,
+                             binding:
+                                 rvoip_uctp::adapter_helpers::AuthenticatedConnectionBinding::new(
+                                     &principal,

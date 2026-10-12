@@ -1,0 +1,17 @@
+{
+  "result": "Per-call model.tools diagnostic loaded actual MCP catalog; production repair and requalification still required",
+  "scope": "Actual Vapi diagnostic with a temporary local REST gateway that deliberately changed the per-call override placement; this is not a pass of the unmodified installed candidate",
+  "source_revision": "641e8ab187ed65cef642369462df3143f5964f63",
+  "actual_call_id": "01a12e42-0c5c-7bb1-a59d-6ee2fdb12438",
+  "original_task_id": "52f909c1-351e-42df-b90f-8671137e8fe1",
+  "observations": [
+    "Unmodified tools:append voice override exposes connectTools itself to the model; no tools/list occurs even with successful private verification and MCP initialize.",
+    "With the same MCP entry placed under a preserved saved-assistant model.tools, Vapi fetches tools/list during call setup before returning the call receipt.",
+    "The queued call resource already exists, carries the nonce and passes existing strict private API verification. No weakened lifecycle or authority check is needed."
+  ],
+  "official_configuration_reference": "https://docs.vapi.ai/tools/mcp",
+  "private_call_capture_sha256": "c0e2a812557c381d639b5ea05d8bf0a5b59582e185b7f745adb527e76f53a1c0",
+  "diagnostic_gateway_sha256": "26adb3cea7d8872bb469be9bb84c4f40e9874f238753589aae705acb97bbf07d",
+  "gateway_trace_sha256": "71f5d9e6810ac68a372a4ead438ea4bc105c067fa94dc5973527e92d35aec18a",
+  "recorded_at": "2026-10-12T04:00:57.586419+00:00"
+}

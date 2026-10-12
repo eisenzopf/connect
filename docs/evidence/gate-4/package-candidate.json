@@ -1,0 +1,160 @@
+{
+  "schema": 2,
+  "recorded_at": "2026-10-11T20:10:26.106113+00:00",
+  "item": "G4-033",
+  "status": "installed local candidate qualified; full current-source run and whole-gate acceptance remain open",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-32f4fadeaf45",
+  "source_revision": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
+  "target": "aarch64-apple-darwin",
+  "schema_version": 16,
+  "features": "default; no test-support",
+  "qualification_profile": "gate4-local",
+  "result": {
+    "path": ".local/package-checks/20261011T195952.196230Z/result.json",
+    "sha256": "a006ffd155d0cd0ac9cc76c753c960bab7d63de424c397b491c5c4c308fdb933"
+  },
+  "supervised_result": {
+    "path": ".local/gate-4-package/qualification-20261011T195952Z/result.json",
+    "sha256": "aefb714615bf61689a4600088c67ce66bb7fec17ea4526a8de7abc887da7b7e5"
+  },
+  "source_stable": true,
+  "candidate_directory": "dist/connect-0.1.0-alpha.1-macos-arm64-32f4fadeaf45",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-32f4fadeaf45-qualification.tar.gz": "e6d736c2d9c30d94e7f3d4282ce4ccb24249d0e20c1f3f8ea9cb27ba842d0263",
+    "connect-0.1.0-alpha.1-macos-arm64-32f4fadeaf45-source.tar.gz": "aa97920f1bb5c7dff09a9069e0f90192d1cbc0ce965cb121669c12269862db2d",
+    "connect-0.1.0-alpha.1-macos-arm64-32f4fadeaf45.tar.gz": "785985aac5d0beaab846ec0ec9dbf1450a8375dc6a5533f6e9238d12cbc7e374"
+  },
+  "binary_sha256": {
+    "connect": "6a34f2ef7bbcb41bad5a52d108db5c8c26583a7ef36f509ff3ee26907056394f",
+    "connect-example": "ca157985278878b94de15e93c730127134c7a8dccb3155279ebe6aa366e45818"
+  },
+  "build_log": {
+    "path": ".local/gate-4-package/build-32f4fad.log",
+    "sha256": "c465da9908aa24e075ed8e755ac436965a37c2946a055107aaa200e2e49bc37f"
+  },
+  "commands": [
+    "bash scripts/package-local.sh --previous-binary /Volumes/D2-2019/Developer/Connect/.local/milestones/m1/connect",
+    "python3 scripts/check-package.py dist/connect-0.1.0-alpha.1-macos-arm64-32f4fadeaf45 --codex-binary /Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+  ],
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "installed-gate4-agent": {
+      "result": "passed",
+      "detail": "Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "gate4_installed": {
+    "status": "passed",
+    "codex_version": "codex-cli 0.162.0-alpha.17.2",
+    "steps": [
+      {
+        "name": "agent-incoming-public",
+        "status": "passed",
+        "seconds": 0.835,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log": {
+          "path": ".local/package-checks/20261011T195952.196230Z/gate4-installed/agent-incoming-public.log",
+          "sha256": "70189c4390ac09f6f72093c12cd8b7bb532f8b2f2d29e7120e48f612fec9a5ff"
+        },
+        "leftover_group_members": []
+      },
+      {
+        "name": "agent-incoming-host",
+        "status": "passed",
+        "seconds": 2.532,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log": {
+          "path": ".local/package-checks/20261011T195952.196230Z/gate4-installed/agent-incoming-host.log",
+          "sha256": "0dbc482d5b7504970ff63f6f265b132e702bd323d7ccb1000196380f393c62d0"
+        },
+        "leftover_group_members": []
+      },
+      {
+        "name": "installed-vapi-host",
+        "status": "passed",
+        "seconds": 259.073,
+        "rust_tests": {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log": {
+          "path": ".local/package-checks/20261011T195952.196230Z/gate4-installed/installed-vapi-host.log",
+          "sha256": "45c88195457f64e154b43caf9062d7dd361308dce011d0a0f23c1cf7d0e832f7"
+        },
+        "leftover_group_members": []
+      }
+    ],
+    "vapi_checks": {
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "composition": "Seven independent CLI journeys and two process-ownership controls; source-matched fixture seeding, extracted release executes host/MCP/media/recovery commands."
+    }
+  },
+  "review": [
+    "Clean source produced three archives whose checksums and complete runtime inventory match. Default-feature release binaries contain no test-only fault controls; mutable/private state is excluded.",
+    "Installed native/Python/TypeScript SDK behavior, browser import, init preservation, restart, private state and safe hashed diagnostics pass outside the source checkout.",
+    "Actual Codex process with scripted loopback Responses uses the extracted application/SDK/helper; contact recovery, continuation, replay and cancellation pass. No inference is claimed.",
+    "Vapi chat restart preserves nonce, secret, expiry and effect receipt without another POST. Unknown acceptance requires exact-resource reconciliation; invalid authority/URL creates no intent or provider request. Callback expiry preserves conversation access.",
+    "Installed Vapi voice performs native QUIC duplex PCMU and real MCP recall; existing voice legs cannot be recreated. Ready/shutdown ordering and interruption during creation drain owned processes while retaining unknown intent.",
+    "All three server and three application abrupt-failure boundaries preserve logical mutation identities and one visible effect. Historical upgrade/restore uses the separately archived executable.",
+    "The new production modules separate manifest validation, endpoint configuration, protected composition and shutdown. New standalone production modules are 26\u2013137 lines; existing transport and media ownership are reused.",
+    "The known debug fixture linker warning about compact unwind size is retained. The old isolated debug CLI startup timeout has no established cause; this successful installed run does not claim to explain it."
+  ],
+  "scope": "Local macOS arm64; unpublished release, loopback provider simulators and scripted Responses. No real provider account, model inference, public ingress, production database mutation or deployment.",
+  "historical_evidence": "docs/evidence/gate-4/package-b4f5fde.json",
+  "remaining": [
+    "Full offline suite on the merged source is running separately at 32f4fad; the complete 3a272c9 baseline predates the new callback/operator entry points.",
+    "Actual Vapi/cloud and selected-model product acceptance, complete requirement reconciliation and prerequisite closure remain open.",
+    "The separate historical debug CLI startup cause remains unresolved; earlier failures are retained."
+  ],
+  "documentation_followup": "A subsequent documentation audit corrected stale schema-15/qualification status in the source README, release/recovery and task-access guides. Packaged runtime behavior remains qualified at 32f4fad; refresh final distribution documentation before owner handoff."
+}

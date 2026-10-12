@@ -1,0 +1,45 @@
+{
+  "recorded_at": "2026-10-11T01:09:55.398768+00:00",
+  "source_base": "136e168550ca18866c9d8412379ac81ce91646d8",
+  "item": "G4-017",
+  "status": "G4-017 qualified within local interface scope",
+  "qualification_record": "task-tools-qualification.json",
+  "dependencies": [
+    "task-recall-audit.json",
+    "task-dispatch-audit.json",
+    "language-task-parity-audit.json",
+    "mcp-transport-audit.json"
+  ],
+  "requirements": [
+    {
+      "requirement": "Complete supported task-aware tools, exact task binding, authorized artifacts and session controls",
+      "proof": "28 actual advertised schemas, 23 communication handlers plus discovery/status/wait/recall/cancel; current independent MCP and native checks pass.",
+      "status": "qualified locally"
+    },
+    {
+      "requirement": "Forged parameters, oversized artifacts, retention, denial and repeated invocation match public SDK behavior",
+      "proof": "Current catalog negative tests, bounded sourced pagination, seven-lane matrix, current revocation, artifact expiry/reconnect and unchanged old communication semantics.",
+      "status": "qualified locally"
+    },
+    {
+      "requirement": "T-A5/T-A8 tool components: bounded wait and recovery of accepted work after disconnect",
+      "proof": "Source/authority-preserving recall; abandoned ACK one-effect recovery; total ten-second budget includes slow admission; late decoded mutation returns uncertainty with original identifiers. Host persistence and complete acceptance remain separate.",
+      "status": "qualified locally"
+    }
+  ],
+  "review": {
+    "boundaries": "Policy and transactions stay in Store; MCP injects authenticated task and delegates through the existing service; SDKs share the additive permission shape.",
+    "new_modules": {
+      "crates/connect-store/src/tasks/tests/delegated_cancel.rs": 110,
+      "crates/connect-server/tests/gate4_mcp_task_cancel.rs": 246,
+      "crates/connect-server/tests/gate4_mcp_recall.rs": 167
+    },
+    "compatibility": "No schema, upstream source, dependency or existing digest change. Older strict clients reject unknown task_cancel rather than amplify authority. History/message permissions do not imply cancellation."
+  },
+  "not_claimed": [
+    "Actual Codex skill/model loading or installed-host session continuation",
+    "Vapi creation/bootstrap and live tool calls",
+    "Whole T-A5/T-A8 or any A4 acceptance closure",
+    "All workspace/integration tests, load qualification or package qualification"
+  ]
+}

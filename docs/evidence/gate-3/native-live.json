@@ -1,0 +1,36 @@
+{
+  "gate": 3,
+  "evidence": "native-uctp-to-vapi-live-media",
+  "recorded_at": "2026-10-08T21:45:23-07:00",
+  "source_revision": "bf2abc839a104237f7cab9ce9cd34c936b0ae878",
+  "dirty": true,
+  "transport_path": "synthesized local speech -> native UCTP/QUIC PCMU -> Connect -> Vapi duplex WebSocket -> Connect -> native UCTP/QUIC PCMU",
+  "provider": "Vapi production API and saved test assistant",
+  "result": "media-and-context-passed-human-audibility-review-pending",
+  "observations": {
+    "turns_sent": 3,
+    "received_frames": 1545,
+    "received_seconds": 30.9,
+    "received_audio_rms": 1567.7,
+    "received_audio_peak": 28028,
+    "received_audio_active_fraction": 0.1285,
+    "helper_exit": 0,
+    "context_delivery": "delivered",
+    "barge_in_frames_dropped": 6,
+    "transcript_evidence": [
+      "The release word to remember is cobalt 7.",
+      "Yes. We are speaking through Connect.",
+      "Goodbye. If you need anything else, feel free to ask."
+    ]
+  },
+  "regressions_found_and_fixed": [
+    "A cancellable stdin read could lose a partial helper frame when inbound provider audio won the select race.",
+    "Vapi supplies no utterance ID, so distinct final transcripts previously shared one source reference and appeared as corrections."
+  ],
+  "private_evidence": [
+    ".local/gate-3-live/native-vapi-capture.json",
+    ".local/gate-3-live/native-vapi-context.json",
+    ".local/gate-3-live/audio/vapi-response.wav"
+  ],
+  "remaining": "The owner must listen to the captured WAV or repeat with a microphone/speaker before G3-017 is marked done. This evidence makes no PSTN or browser claim."
+}

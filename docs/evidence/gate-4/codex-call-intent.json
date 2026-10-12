@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T05:10:32.577594+00:00",
+  "status": "actual-runtime interruption component qualified; full model/host items remain open",
+  "items": [
+    "G4-018",
+    "G4-021",
+    "G4-023"
+  ],
+  "source_base": "6444e79e05d8396d28e19e6e06822b20b508ad63",
+  "source_sha256": {
+    "Cargo.lock": "e01d6633125f1c70e922a5cc241376ab2f33bb6f4e999183e7ed1b5534010e3f",
+    "crates/connect-mcp/src/arguments.rs": "cdf760e00142049e73b6023f7318945adbccd3d7947878b6360118aec1427f7d",
+    "crates/connect-mcp/src/auth.rs": "9216321950a8e2fd492f116e4debb0459dbaf5096a880d75fad7a4c73d3f8c94",
+    "crates/connect-mcp/src/budget.rs": "214eb5c5547d215bb664c28aa0cd8c62373719e847a90c5656dc187f983b05ed",
+    "crates/connect-mcp/src/catalog.rs": "11e846ee563e5b656ff0496895c81d9bfc89ecbd5896d52b12227259d14150df",
+    "crates/connect-mcp/src/commands.rs": "fa0a4762cc89f3d93a28ac348cb12ce27b817c36579b86a9573e31a3ca8980e5",
+    "crates/connect-mcp/src/handler.rs": "786fbb51e3a4e9c2866ea0705abe4a6dd7c963388baa8442af3090ff7626640d",
+    "crates/connect-mcp/src/lib.rs": "2cb7ac484e046122f5f80148c9a1455160a684dd99fa45075718acda3ef3e6b7",
+    "crates/connect-mcp/src/listener.rs": "5183bafeceb8fa492ef0b385b89aed876e37e8a41437f180c18f7935db7c88ae",
+    "crates/connect-mcp/src/schemas.rs": "e330e9172f52bec891a153f86a5dddcea871fab133802f00491ddeab74576fe2",
+    "crates/connect-mcp/src/vapi_auth.rs": "d310999324d2b423699471e4576b7995302604f230fc5a73a2a70944149b08de",
+    "crates/connect-server/src/cli/task_access/codex.rs": "63eec1b0cdb1c2e9de2dd009df23844cd233d17fa30020da9b56f580242d0e8a",
+    "crates/connect-server/src/cli/task_access/codex_host/install.rs": "a317e38d4e2e2ab723b93621fadf924eb369b1db11473d2b590f0565c0850c78",
+    "crates/connect-server/src/cli/task_access/codex_host/mod.rs": "f0115b140861b6c978adf2763bb1595420b84f8fdc0900e3af0b5a09350adf35",
+    "crates/connect-server/src/cli/task_access/codex_host/process.rs": "e3365b82f8c74eaa8a3d1a2b5c81b43dbffd8d4b7547ee7d288fa7817ec5ed58",
+    "crates/connect-server/src/cli/task_access/codex_host/state.rs": "e9c69f5d2a72e022ae83759f92cfd08afe18524a74c2cc3eef79c38a878e966b",
+    "crates/connect-server/tests/gate4_codex_call_intent.rs": "221ce897546e1ff71c6f883b3f81fea730bc7ca9567212877f09a8f5719155a7",
+    "crates/connect-server/tests/support/codex_call_barrier.rs": "77bed424cfae48d4268673604726ed4b96c7832137e53f2e6d34be9e1c9efc48",
+    "crates/connect-server/tests/support/codex_exec.rs": "a7ae44b6fa1fb2bd0732a1b733292a160a72457ed32ad5a95774b425577f794b",
+    "crates/connect-server/tests/support/codex_install.rs": "ebe5bd67482e312d3d74de8814c23438f1822896bf3f4d1fea61e795d07a893e",
+    "crates/connect-server/tests/support/codex_intent.rs": "b2c0cc853bfbe21c4b0ebb39f18b49e0d541ddf78c7a04fc220b2e85d53fbebc",
+    "crates/connect-server/tests/support/codex_responses.rs": "e8e8643dc65fdfff7bdbd9755474a5c859cdb7bb30243f2f6c18cf41457d46da",
+    "crates/connect-server/tests/support/mcp_fixture.rs": "4d30f765d5592d9047fbab027d626e916dece07417ff5d0aa3da7fbeef975a01",
+    "dependencies/source-lock.json": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+    "skills/connect/SKILL.md": "56f2e9291e54af007ec5c1fe31698832df98298ea814ea83dbd152f67d58d5dd",
+    "skills/connect/agents/openai.yaml": "62a639ede28013f697da75fbe85fdaaa747e704d3188e241a30733ea0a5f7982",
+    "skills/connect/references/json-cli.md": "fb120e690291439259bc21fa50dd0c3707f0d30ed31ea56be1fead430b0ba07a"
+  },
+  "runtime": {
+    "version": "codex-cli 0.162.0-alpha.17.2",
+    "executable_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+    "interface": "actual exec and exact exec resume, current code-mode custom-tool interface",
+    "inference_operations": 0,
+    "model_alias_observed": "gpt-6.1-sol; scripted Responses peer only"
+  },
+  "scope": "Local macOS arm64; actual installed Codex, actual MCP/rmcp and native public Connect clients. Protected owner composition issues a HostSession subset grant to the same pre-existing task/conversation. Fresh private account/config roots and scripted loopback Responses peer; no account credentials, real inference, live provider, remote ingress/deployment or production state operation.",
+  "behavior_passes": 3,
+  "behavior_failures": 0,
+  "behavior_ignored": 0,
+  "checks": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-qualified.log",
+      "log_sha256": "bd106cee3271c36f408a979904aa1ca68b6d8fe8084d58c318b403d2ef547b80",
+      "command": "CONNECT_TEST_CODEX_BINARY=<installed Codex> CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_codex_call_intent -- --ignored --nocapture",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-prepare.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455",
+      "command": "bash scripts/prepare-dependencies.sh",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-clippy-qualified.log",
+      "log_sha256": "4fc0ab880d4345fc77f191b00c0ca446f18fcbf6452f64b9275dfd135603e0de",
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-server --all-features --test gate4_codex_call_intent -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-format-qualified.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "bash scripts/format.sh --check",
+      "exit_code": 0
+    }
+  ],
+  "proofs": [
+    "Current code-mode custom-tool program is read from canonical Codex rollout bytes while authenticated MCP admission is paused and the entire Connect Store snapshot is still unchanged. It contains the original request_id, step_id, body and wait_for_reply=true before the nested send can dispatch.",
+    "The actual initial request context includes the full Connect skill instruction about durably retaining intent. Code mode discovers one installed Connect send method from ALL_TOOLS and awaits the real nested MCP call; there is no handwritten communication transport.",
+    "After real acceptance, the public peer sees one original draft and the public owner sees the task Waiting. Codex is killed before the next scripted response, then actual exec resume reopens the exact saved UUID. The peer produces a replay from the original program in actual resumed input, not a replacement prompt or its initial in-memory argument object. One accepted effect/message remains; the full post-acceptance Store snapshot is unchanged.",
+    "An interruption before dispatch kills/reaps the actual child and drains the paused MCP listener with an unchanged Store. A replacement listener on the same endpoint and exact-session resume recover the original on-disk program and create one question/message, without replacing the task or conversation.",
+    "Revocation after intent persistence but before dispatch denies the original invocation under current authority with no mutation beyond the explicit revocation. A fresh exact-session attempt fails required MCP startup before another scripted request; the authoritative Store remains unchanged.",
+    "Across all final cases, model-request traffic contains neither the protected HostSession bearer nor the backing owner credential. Model accounts and live provider keys are not inherited."
+  ],
+  "retained_attempts": [
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-initial.log",
+      "log_sha256": "ca4b53843d2340bd38ed41cd8d8e858ec0d20776f05c88743281c412537f24b9",
+      "command": "Initial actual-runtime experiment",
+      "exit_code": 101,
+      "finding": "The fixture expected top-level direct tool schemas. The installed version instead exposes code-mode tools through additional_tools input items; no communication effect was dispatched."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-request-diagnostic.log",
+      "log_sha256": "d57e82bba4a2a155cb9a65e3f81d1e7dacac3a2185a68050885bd9ca30c19219",
+      "command": "Actual request-shape diagnostic",
+      "exit_code": 101,
+      "finding": "Same fixture mismatch retained; captured request confirmed code-mode exec and full skill injection. Raw request stays private."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-code-mode.log",
+      "log_sha256": "eda1d6f9783173cfe0f9ec06c52645e1f763fed11c8f9fb28508750e5a3c4797",
+      "command": "Corrected code-mode prototype",
+      "exit_code": 0,
+      "finding": "One Native prototype passed. Not counted in final HostSession total."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-boundaries.log",
+      "log_sha256": "00e9297228a5ed5eb7f1f494d44ecb45b793d234a3051e3bc9c8f98f0b5a9379",
+      "command": "Three Native boundary prototypes",
+      "exit_code": 0,
+      "finding": "Three development checks passed; fixture setup was subsequently extracted and changed to protected HostSession composition."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-final.log",
+      "log_sha256": "98debb2ce2b80e908f2481a237d9dc78f8370e73e2abd00a825fc676c0e63045",
+      "command": "Extracted setup boundary checks",
+      "exit_code": 0,
+      "finding": "Three development checks passed; not counted twice."
+    },
+    {
+      "raw_log": ".local/gate-4-planning/codex-intent-host-session.log",
+      "log_sha256": "fba730b86958b4804702bbf8d2ff57b20561fe6511eb02a9c6e95d201815e2e6",
+      "command": "HostSession boundary checks",
+      "exit_code": 0,
+      "finding": "Three passed; final source then added explicit unanswered-question waiting and public-owner Waiting evidence."
+    }
+  ],
+  "code_review": {
+    "production_changes": "None. Reuse the actual runtime/tool SDK and existing Connect ledger; no added transport gateway or parallel task store. Public API Rustdoc remains qualified at unchanged cf9845e production source.",
+    "module_lines": {
+      "crates/connect-server/tests/gate4_codex_call_intent.rs": 165,
+      "crates/connect-server/tests/support/codex_call_barrier.rs": 46,
+      "crates/connect-server/tests/support/codex_exec.rs": 150,
+      "crates/connect-server/tests/support/codex_install.rs": 30,
+      "crates/connect-server/tests/support/codex_intent.rs": 143,
+      "crates/connect-server/tests/support/codex_responses.rs": 150
+    },
+    "structure": "Test assertions are separated from trusted export/composition, controlled admission, scripted Responses and subprocess/rollout inspection. Each new Rust file is at most 165 lines.",
+    "budgets": "15-second fixture observations and 20-second process completion; unchanged production ten-second MCP limits. Final three cases execute in 1.28 seconds after build. This is behavior evidence, not stable-load qualification.",
+    "opt_in": "Default Cargo runs explicitly ignore this installed-runtime dependency. The recorded command uses --ignored and executes all three with zero ignored. Missing selected executable fails.",
+    "warning": "Existing macOS debug linker unwind warning is retained; strict Rust Clippy passes."
+  },
+  "upstream_source_review": {
+    "revision": "cc7ba33601286a751477832b01de7b6f8de0dd9c",
+    "files": {
+      "codex-rs/core/src/session/turn.rs": "61bdcbc862681633b039e677f2b48069d6988c89bd78e11057d746ba0c0ba885",
+      "codex-rs/core/src/session/session.rs": "2c5ca54978a29b43451be1ccafd84d6ec2f1a1f634ebb1f724195c984d29f4b3",
+      "codex-rs/core/src/tools/parallel.rs": "be06530c709b09c414df6ec4c8c6f26f117c319d144c8d52289327b3c71a6bb6",
+      "codex-rs/rollout/src/recorder.rs": "42a973710d6eb7e6731b3774cdf30dba89f56fd7685cdeac2857825c08b83612",
+      "codex-rs/core/src/stream_events_utils.rs": "3316d151e21ddacb0f4fb976045b67245296b4e798b168c532dfb69a588eb139",
+      "codex-rs/core/src/session/retained_context.rs": "d859a6f9a3acbf4b6ca11825ce96d1fdc08a48ab80c8aec5179d7ecb506bbe6c",
+      "codex-rs/core/src/session/turn_input.rs": "7b65ae93a704c07e67ce251dd18934e68d5326575a51b05745fe8490ae4fcb93",
+      "codex-rs/core/src/session/mod.rs": "93e19636a14c46584bfabe64883e2e5ff8aee3b2a73967596f48b45fb45065fc",
+      "codex-rs/thread-store/src/local/live_writer.rs": "68d2a59ac134e2d85e9c1393e8ee958091d11c1cd37606cba5f88fe176d55560",
+      "codex-rs/core/tests/common/responses.rs": "505a826f569e614ab005cb0eee5b4c3351c7a3886d2184c4bd586a2bf27ba49c"
+    },
+    "finding": "The current upstream source records tool items before queuing execution and its local thread writer waits for a flush. Persistence errors can be logged without preventing tool queuing. This guided the experiment; it is not an assertion that main matches the installed desktop binary.",
+    "sources": [
+      "https://github.com/openai/codex/blob/cc7ba33601286a751477832b01de7b6f8de0dd9c/codex-rs/core/src/stream_events_utils.rs",
+      "https://github.com/openai/codex/blob/cc7ba33601286a751477832b01de7b6f8de0dd9c/codex-rs/thread-store/src/local/live_writer.rs"
+    ]
+  },
+  "not_claimed": [
+    "Real-model reasoning, skill instruction following or useful agent follow-through",
+    "Whole G4-018/G4-021/G4-023, complete journeys, installed final candidate or A4/T-A/Gate 4 closure",
+    "Production packaged-launcher model use; this actual-runtime fixture supplies its scripted provider and controlled admission endpoint directly",
+    "Storage-write failure preventing upstream execution, host power-loss durability, entire child-process-tree termination or automatic grant renewal/wake",
+    "Two simultaneous actual model tasks on one shared server, live Vapi/SMS/PSTN or inference-provider compatibility"
+  ],
+  "documentation_sources": [
+    "https://learn.chatgpt.com/docs/enterprise/gateway-compatibility",
+    "https://learn.chatgpt.com/docs/config-file/config-sample"
+  ]
+}

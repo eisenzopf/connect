@@ -1,0 +1,107 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -5193,6 +5193,103 @@ impl Orchestrator {
+         Ok(id)
+     }
+ 
++    /// Materialize a disposable runtime projection for an application-owned
++    /// persistent Conversation and Session. The caller remains authoritative
++    /// for durable lifecycle and authorization; this method only supplies the
++    /// exact IDs required by cross-transport orchestration and media adapters.
++    /// Repeating the same projection is idempotent, while conflicting reuse
++    /// of either ID fails closed.
++    pub fn project_external_session(
++        &self,
++        conversation_id: ConversationId,
++        session_id: SessionId,
++        tenant_id: TenantId,
++        medium: SessionMedium,
++        participants: impl IntoIterator<Item = ParticipantId>,
++    ) -> Result<()> {
++        let now = Utc::now();
++        let conversation = if let Some(existing) = self
++            .conversations
++            .get(&conversation_id)
++            .map(|entry| Arc::clone(entry.value()))
++        {
++            let current = existing.read().expect("conversation lock poisoned");
++            if current.tenant_id != tenant_id || current.state != ConversationState::Open {
++                return Err(RvoipError::InvalidState(
++                    "project_external_session: conversation conflicts",
++                ));
++            }
++            drop(current);
++            existing
++        } else {
++            let projected = Arc::new(RwLock::new(Conversation {
++                id: conversation_id.clone(),
++                tenant_id: tenant_id.clone(),
++                state: ConversationState::Open,
++                policy: ConversationPolicy::Persistent,
++                participants: Vec::new(),
++                sessions: Vec::new(),
++                messages: Vec::new(),
++                opened_at: now,
++                closed_at: None,
++                last_activity_at: now,
++                metadata: HashMap::from([("authority".into(), "external".into())]),
++            }));
++            self.conversations
++                .insert(conversation_id.clone(), Arc::clone(&projected));
++            self.conversations_by_tenant
++                .entry(tenant_id)
++                .or_default()
++                .insert(conversation_id.clone());
++            self.emit(Event::ConversationOpened {
++                conversation_id: conversation_id.clone(),
++                at: now,
++            });
++            projected
++        };
++
++        let participants = participants.into_iter().collect::<HashSet<_>>();
++        if let Some(existing) = self
++            .sessions
++            .get(&session_id)
++            .map(|entry| Arc::clone(entry.value()))
++        {
++            let current = existing.read().expect("session lock poisoned");
++            if current.conversation_id != conversation_id || current.medium != medium {
++                return Err(RvoipError::InvalidState(
++                    "project_external_session: session conflicts",
++                ));
++            }
++        } else {
++            self.sessions.insert(
++                session_id.clone(),
++                Arc::new(RwLock::new(Session {
++                    id: session_id.clone(),
++                    conversation_id: conversation_id.clone(),
++                    state: SessionState::Initiating,
++                    medium,
++                    participants,
++                    connections: HashMap::new(),
++                    negotiated_capabilities: CapabilityIntersection::default(),
++                    started_at: now,
++                    ended_at: None,
++                    end_reason: None,
++                })),
++            );
++            self.emit(Event::SessionStarted {
++                conversation_id: conversation_id.clone(),
++                session_id: session_id.clone(),
++                at: now,
++            });
++        }
++        let mut current = conversation.write().expect("conversation lock poisoned");
++        if !current.sessions.contains(&session_id) {
++            current.sessions.push(session_id);
++            current.last_activity_at = now;
++        }
++        Ok(())
++    }
++
+     /// Snapshot of live Conversation ids. Used by UCTP `conversation.list`.
+     pub fn live_conversation_ids(&self) -> Vec<ConversationId> {
+         self.conversations.iter().map(|e| e.key().clone()).collect()

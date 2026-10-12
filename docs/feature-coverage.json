@@ -1,0 +1,603 @@
+{
+  "scope": "Required v0.1 capabilities; no feature removed by an implementation decision",
+  "rules": [
+    "A replacement design must preserve capabilities and prove them.",
+    "An upstream PR is a dependency proposal, not delivered Connect functionality.",
+    "Open gate assignment is a planning gap, not permission to omit the feature."
+  ],
+  "features": [
+    {
+      "id": "F-01",
+      "required_capability": "Durable identity, discovery, two-way messaging and offline recovery",
+      "delivery_gate": 1,
+      "status": "local acceptance passed",
+      "required_evidence": "A1\u2013A11; G1-001\u2013053",
+      "v0_1_required": true,
+      "milestones": [
+        "gate-1"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#conversation",
+        "connect-first-ten-minutes.html#apps"
+      ],
+      "gate_3_criteria": [
+        "A3-01"
+      ]
+    },
+    {
+      "id": "F-02",
+      "required_capability": "Queryable runtime availability, distinct from identity and declared capabilities",
+      "delivery_gate": 3,
+      "status": "Gate 3 qualifies expiring available/unavailable/unknown state and one bounded preferred route. Multi-endpoint registry, schedules and fallback remain backlog decisions.",
+      "required_evidence": "Define freshness, offline versus unknown and authorized discovery/update in G3-A; demonstrate runtime availability in G3-E. Broader preferences remain a B-001 scope decision.",
+      "v0_1_required": true,
+      "decision": "B-001: retain original availability requirement; decide scope and gate separately for broader endpoint/preferences proposal",
+      "milestones": [
+        "G3-A",
+        "G3-E"
+      ],
+      "sources": [
+        "connect-first-ten-minutes.html#presence",
+        "backlog.html#B-001"
+      ],
+      "gate_3_criteria": [
+        "A3-09"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ]
+    },
+    {
+      "id": "F-03",
+      "required_capability": "Rust SDK and local CLI",
+      "delivery_gate": 1,
+      "status": "local acceptance passed",
+      "required_evidence": "Installed candidate and independent SDK examples",
+      "v0_1_required": true,
+      "milestones": [
+        "gate-1",
+        "G4-B",
+        "G5-E"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#experience"
+      ],
+      "gate_3_criteria": [
+        "A3-08",
+        "A3-12"
+      ],
+      "gate_4_criteria": [
+        "A4-08"
+      ],
+      "gate_4_progress": "Rust native SDK/CLI, optional task client, full current regression and extracted installed macOS arm64 candidate are qualified; broader release packaging remains Gate 5.",
+      "component_evidence": [
+        "evidence/gate-4/native-public-interface-audit.json",
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ]
+    },
+    {
+      "id": "F-04",
+      "required_capability": "Python, TypeScript and HTTP/JSON options",
+      "delivery_gate": 2,
+      "status": "Packaged Python/TypeScript native QUIC and HTTP clients qualified; live Vapi chat and call status verified",
+      "required_evidence": "Persistent Rust QUIC helper is explicit; HTTP is separate",
+      "v0_1_required": true,
+      "milestones": [
+        "gate-2",
+        "G3-D",
+        "G4-B",
+        "G5-D"
+      ],
+      "sources": [
+        "connect-first-ten-minutes.html#sdk"
+      ],
+      "gate_3_criteria": [
+        "A3-08",
+        "A3-12"
+      ],
+      "gate_4_criteria": [
+        "A4-08"
+      ],
+      "gate_4_progress": "Python/TypeScript native Rust-helper clients, HTTP and JSON CLI task/ordinary operation parity and installed source rebuilds pass. The Rust helper is explicit; HTTP/WebSocket facades are not labelled native QUIC.",
+      "component_evidence": [
+        "evidence/gate-4/language-task-parity-audit.json",
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ]
+    },
+    {
+      "id": "F-05",
+      "required_capability": "Vapi multi-turn assistant chat",
+      "delivery_gate": 2,
+      "status": "live chat demonstrated",
+      "required_evidence": "Configured conversation/chat-ID mapping",
+      "v0_1_required": true,
+      "milestones": [
+        "gate-2",
+        "G3-E"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#scope"
+      ]
+    },
+    {
+      "id": "F-06",
+      "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
+      "delivery_gate": "2 local and live qualified",
+      "status": "Reviewed enrollment and signed callbacks are enforced. Historical actual handset HELP/STOP/START proves suppression, queued cancellation, blocked replay and START without revival. Current local Gate 4 eligibility/dispatch tests and integrated acceptance pass; provider proof retains its actual source.",
+      "required_evidence": "Approval/number readiness, consented handset and signed live callback",
+      "v0_1_required": true,
+      "milestones": [
+        "G2-SMS",
+        "G4-C",
+        "G5-D"
+      ],
+      "sources": [
+        "connect-first-ten-minutes.html#start",
+        "connect-v0.1-contract.html#proof"
+      ],
+      "evidence": "evidence/pre-gate-4/sms-live.json",
+      "gate_4_criteria": [
+        "A4-06",
+        "A4-12"
+      ],
+      "gate_4_progress": "Task-aware SMS eligibility and suppression are qualified locally at the current source; retained live reviewed handset proof remains9abf38f, with actual continuity at596e9b7.",
+      "component_evidence": [
+        "evidence/gate-4/task-dispatch-audit.json",
+        "evidence/gate-4/sms-callback-journey.json",
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/sms-0737-rehearsal.json",
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ]
+    },
+    {
+      "id": "F-07",
+      "required_capability": "Native UCTP/QUIC datagram audio bridged to Vapi WebSocket voice",
+      "delivery_gate": 3,
+      "status": "Gate 3 qualifies native UCTP/QUIC duplex Vapi voice, independent received-audio confirmation, spoken interruption and local/provider hangup.",
+      "required_evidence": "Bidirectional audio, format, interruptions, end and provider disconnect",
+      "v0_1_required": true,
+      "milestones": [
+        "G3-B"
+      ],
+      "sources": [
+        "connect-technical-readiness.html#experiments",
+        "connect-first-ten-minutes.html#wire"
+      ],
+      "gate_3_criteria": [
+        "A3-03"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ]
+    },
+    {
+      "id": "F-08",
+      "required_capability": "Native SIP, Telnyx inbound/outbound PSTN and browser WebRTC",
+      "delivery_gate": "2 provider telephone / 3 native SIP and WebRTC",
+      "status": "Gate 3 qualifies local SIP/native/browser duplex interop and Connect-carried inbound/outbound Telnyx telephone voice on the recorded topology. Direct Gate 2 provider voice remains distinct.",
+      "required_evidence": "Gate 2 provider telephone calls in both directions; Gate 3 separately qualifies native SIP/WebRTC media.",
+      "v0_1_required": true,
+      "milestones": [
+        "gate-2",
+        "G3-C"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#scope",
+        "connect-technical-readiness.html#map"
+      ],
+      "gate_3_criteria": [
+        "A3-04",
+        "A3-05",
+        "A3-06"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ]
+    },
+    {
+      "id": "F-09",
+      "required_capability": "Vapi invokes authorized Connect MCP tools in chat and voice",
+      "delivery_gate": 4,
+      "status": "Protected Vapi chat/voice scoped MCP composition, independent task/resource binding and source-backed continuation are qualified. Fresh dc73996 text invokes3 successful tools with no errors; retained596e9b7 Connect-carried UCTP/QUIC voice and chat/SMS keep their exact source.",
+      "required_evidence": "Tool/result/conversation correlation on both paths",
+      "v0_1_required": true,
+      "milestones": [
+        "G4-B",
+        "G4-C"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#scope",
+        "connect-first-ten-minutes.html#agents"
+      ],
+      "gate_4_criteria": [
+        "A4-09",
+        "A4-12"
+      ],
+      "component_evidence": [
+        "evidence/gate-4/vapi-setup-restart.json",
+        "evidence/gate-4/vapi-continuation-audit.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ],
+      "gate_4_progress": "Fresh current shared-handler Vapi chat and historical actual Connect-carried voice satisfy both required paths within the explicit source-composition boundary."
+    },
+    {
+      "id": "F-10",
+      "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
+      "delivery_gate": 4,
+      "status": "Codex CLI is the selected additional host. Current dc73996 normal-key MCP/skill installation, actual-model artifacts/reply/restart and independent incoming contact pass; one key serves two authorized conversations with no task grant renewal. Optional scoped installation and its historical proofs remain supported.",
+      "required_evidence": "Human reply reaches originating task; documented installation and resumption",
+      "v0_1_required": true,
+      "milestones": [
+        "G4-A",
+        "G4-B",
+        "G4-C"
+      ],
+      "sources": [
+        "connect-first-ten-minutes.html#agents"
+      ],
+      "gate_4_criteria": [
+        "A4-07",
+        "A4-08",
+        "A4-10"
+      ],
+      "component_evidence": [
+        "evidence/gate-4/host-selection.json",
+        "evidence/gate-4/codex-owned-runtime.json",
+        "evidence/gate-4/agent-incoming-example.json",
+        "evidence/gate-4/host-concurrency.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/reply-reference-repair.json",
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ],
+      "gate_4_progress": "Explicit exact saved-session resume is qualified; normal grants are regular communication credentials. A separate always-running scheduler or automatic model wake is not claimed."
+    },
+    {
+      "id": "F-11",
+      "required_capability": "Files and video with a named interoperability profile",
+      "delivery_gate": "3 basic files / 5 video and final artifact qualification",
+      "status": "Gate 3 qualifies authorized artifacts, digest-verified reliable transfer and backup/restore. Video remains Gate 5.",
+      "required_evidence": "Distinct clients; limits, permissions, codecs/topology and recovery",
+      "v0_1_required": true,
+      "milestones": [
+        "G3-D",
+        "G5-A",
+        "G5-D"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#conversation",
+        "connect-technical-readiness.html#map"
+      ],
+      "gate_3_criteria": [
+        "A3-07",
+        "A3-08"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ]
+    },
+    {
+      "id": "F-12",
+      "required_capability": "Human reference/test client",
+      "delivery_gate": "3 minimal messages/files/audio test client / 5 complete reference client",
+      "status": "Gate 3 public SDK test client supports messages, artifacts, availability and authenticated browser voice; Chrome audio independently decoded and owner confirmed. Complete reference experience remains Gate 5.",
+      "required_evidence": "Runnable demonstration of SDK rather than new product priority",
+      "v0_1_required": true,
+      "milestones": [
+        "G3-D",
+        "G3-E",
+        "G5-A",
+        "G5-D"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#boundaries",
+        "connect-first-ten-minutes.html#sdk"
+      ],
+      "gate_3_criteria": [
+        "A3-06",
+        "A3-12"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ]
+    },
+    {
+      "id": "F-13",
+      "required_capability": "Contributor connector kit, template and shared contract checks",
+      "delivery_gate": 5,
+      "status": "Storage-independent API, immutable composition descriptors and an independent context-bearing connector fixture are delivered. Full manifests, templates, media connector kit and contributor conformance remain Gate 5.",
+      "required_evidence": "New connector without editing core; catalog and capability compatibility",
+      "v0_1_required": true,
+      "milestones": [
+        "G5-B",
+        "G5-E"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#scope",
+        "connect-technical-readiness.html#map"
+      ],
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
+    },
+    {
+      "id": "F-14",
+      "required_capability": "Downloadable v0.1, supported SDK packaging and release qualification",
+      "delivery_gate": 5,
+      "status": "not released",
+      "required_evidence": "Independent installation, source/dependency identity, compatibility and recovery",
+      "v0_1_required": true,
+      "milestones": [
+        "G5-C",
+        "G5-D",
+        "G5-E"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#proof"
+      ],
+      "gate_3_criteria": [
+        "A3-13"
+      ],
+      "gate_4_criteria": [
+        "A4-14"
+      ]
+    },
+    {
+      "id": "F-15",
+      "required_capability": "Cross-channel conversation continuity and explicit assistant context transfer",
+      "delivery_gate": "3 continuity / 4 task continuation",
+      "status": "Conversation-level continuity and bounded source recall are qualified. Historical actual voice decisions and post-restart chat/SMS plus current normal agent and scoped Vapi text preserve sources, artifacts, task/effect attribution and explicit incomplete transcript state.",
+      "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; preserve verified live HELP/STOP/START enforcement in task-driven dispatch.",
+      "v0_1_required": true,
+      "milestones": [
+        "G3-A",
+        "G3-E",
+        "G4-C"
+      ],
+      "sources": [
+        "connect-first-ten-minutes.html#start",
+        "connect-v0.1-contract.html#scope"
+      ],
+      "gate_3_criteria": [
+        "A3-01",
+        "A3-10",
+        "A3-11"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ],
+      "gate_4_criteria": [
+        "A4-01",
+        "A4-03",
+        "A4-05",
+        "A4-10",
+        "A4-12"
+      ],
+      "gate_4_progress": "Same authorized conversation context is shared across permitted channels and optional owned tasks; session ends do not create a new conversation. New conversation boundaries remain explicit developer choice.",
+      "component_evidence": [
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/vapi-continuation-audit.json",
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ]
+    },
+    {
+      "id": "F-16",
+      "required_capability": "Route-aware capabilities and session invitations",
+      "delivery_gate": "See milestone assignments",
+      "status": "Gate 3 qualifies authenticated session invitations, terminal replay, availability and explicit media bindings. Broader video/tools remain later work.",
+      "required_evidence": "Resolve permitted routes/limits; explicit unsupported operation; invite/accept/reject/end with authority and observable state.",
+      "v0_1_required": true,
+      "milestones": [
+        "G3-A",
+        "G3-C",
+        "G3-E",
+        "G5-A"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#experience"
+      ],
+      "gate_3_criteria": [
+        "A3-02",
+        "A3-09",
+        "A3-12"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ]
+    },
+    {
+      "id": "F-17",
+      "required_capability": "Independent UCTP implementation and protocol conformance",
+      "delivery_gate": "See milestone assignments",
+      "status": "Wire contract and fixtures exist; independent implementation remains unqualified.",
+      "required_evidence": "Versioned profile and fixtures allow an independently written client to negotiate, authenticate, exchange requests/events and reject incompatible operations.",
+      "v0_1_required": true,
+      "milestones": [
+        "G3-A",
+        "G5-B",
+        "G5-D"
+      ],
+      "sources": [
+        "connect-first-ten-minutes.html#wire"
+      ]
+    },
+    {
+      "id": "F-18",
+      "required_capability": "Account/resource setup, protected secrets and verified contacts",
+      "delivery_gate": "See milestone assignments",
+      "status": "Provisioning/readback and authenticated component readiness are implemented, including SIP registration lease/refresh observations. Complete setup, secret-store and contact-verification experience remains planned.",
+      "required_evidence": "Select resources, preview changes, resume interrupted setup, verify contact ownership and report separate inbound/outbound readiness. Qualify the selected ingress/secret-store approach.",
+      "v0_1_required": true,
+      "milestones": [
+        "gate-2",
+        "G3-A",
+        "G5-C"
+      ],
+      "sources": [
+        "connect-first-ten-minutes.html#start"
+      ],
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
+    },
+    {
+      "id": "F-19",
+      "required_capability": "Measured operating envelope and failure/recovery behavior",
+      "delivery_gate": "See milestone assignments",
+      "status": "Gate 3 load/media/recovery evidence is retained. Pre-Gate 4 adds prompt worker-failure supervision, SIP lease loss/recovery, public schema-6 reproduction and full offline CI lane. Full platform/release envelope remains Gate 5.",
+      "required_evidence": "Document and test retention, file size, concurrency, loss/latency, cancellation, restart, uncertain effects and diagnostics for advertised paths.",
+      "v0_1_required": true,
+      "milestones": [
+        "gate-1",
+        "gate-2",
+        "G3-B",
+        "G3-C",
+        "G5-D"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#proof"
+      ],
+      "gate_3_criteria": [
+        "A3-11",
+        "A3-13"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ],
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json",
+      "gate_4_criteria": [
+        "A4-04",
+        "A4-13",
+        "A4-14"
+      ],
+      "gate_4_progress": "All required current operating/recovery profiles and installed checks pass with sampled local limits, including retained10000-setup evidence and its current counterpart. Full cross-platform/provider release envelope remains Gate 5.",
+      "component_evidence": [
+        "evidence/gate-4/task-operating-profile.json",
+        "evidence/gate-4/host-concurrency.json",
+        "evidence/gate-4/runner-concurrency.json",
+        "evidence/gate-4/mcp-operating-load.json",
+        "evidence/gate-4/grant-lifecycle-load.json",
+        "evidence/gate-4/artifact-retention-load.json",
+        "evidence/gate-4/voice-retirement-load.json",
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ]
+    },
+    {
+      "id": "F-20",
+      "required_capability": "Scoped authority across files, media, tools and app actions",
+      "delivery_gate": "See milestone assignments",
+      "status": "Current regular non-admin identity credentials enforce configured operations, membership, expiry, revocation and reviewed SMS rules. Optional task/grant mode preserves mapped T-A1\u2013T-A8 authority checks; configured agents act without per-action approval prompts.",
+      "required_evidence": "Enforce current authorization and revocation on all added operations. Prevent cross-task/context leakage, spoofed caller authority and unauthorized file access; no per-action permission console.",
+      "v0_1_required": true,
+      "milestones": [
+        "gate-1",
+        "gate-2",
+        "G3-A",
+        "G3-C",
+        "G3-D",
+        "G4-B",
+        "G4-C",
+        "G5-D"
+      ],
+      "sources": [
+        "connect-v0.1-contract.html#proof"
+      ],
+      "gate_3_criteria": [
+        "A3-02",
+        "A3-07",
+        "A3-11"
+      ],
+      "evidence": [
+        "evidence/gate-3/acceptance.html"
+      ],
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json",
+      "gate_4_criteria": [
+        "A4-01",
+        "A4-02",
+        "A4-03",
+        "A4-05",
+        "A4-06",
+        "A4-13"
+      ],
+      "gate_4_progress": "Current authority matrix and normal-key owner/replay/expiry tests pass; narrow grants remain optional and independently qualified. Tasks track work rather than requiring a new communication credential each time.",
+      "component_evidence": [
+        "evidence/gate-4/task-authority-audit.json",
+        "evidence/gate-4/reply-inbox-recovery.json",
+        "evidence/gate-4/task-dispatch-audit.json",
+        "evidence/gate-4/authority-matrix.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ]
+    },
+    {
+      "id": "F-21",
+      "required_capability": "Two complete first-run journeys",
+      "delivery_gate": "See milestone assignments",
+      "status": "The selected agent and independent SDK app initiate and answer incoming work, preserving artifacts, source attribution and one logical effect across restart. Current normal model and installed app pass; historical actual voice/chat/SMS retain their source.",
+      "required_evidence": "A new developer completes both give-an-agent-presence and make-an-app-reachable, including independently initiated communication, artifact/reply handling and restart. Measure setup usability.",
+      "v0_1_required": true,
+      "milestones": [
+        "G3-E",
+        "G4-C",
+        "G5-C",
+        "G5-D"
+      ],
+      "sources": [
+        "connect-first-ten-minutes.html#evidence"
+      ],
+      "gate_4_criteria": [
+        "A4-04",
+        "A4-10",
+        "A4-11",
+        "A4-14"
+      ],
+      "gate_4_progress": "Gate 4 follow-through is complete locally within declared host/provider boundaries. Complete fresh-user first-run UX and measured ten-minute promise remain Gate 5 scope.",
+      "component_evidence": [
+        "evidence/gate-4/agent-incoming-example.json",
+        "evidence/gate-4/codex-draft-journey.json",
+        "evidence/gate-4/connected-app-artifacts.json",
+        "evidence/gate-4/real-model-draft-7edb1b1.json",
+        "evidence/gate-4/real-model-incoming-7edb1b1.json",
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ]
+    }
+  ],
+  "upstream": {
+    "application_profiles": "https://github.com/eisenzopf/rvoip/pull/262",
+    "native_quic_hook": "https://github.com/eisenzopf/rvoip/pull/292",
+    "owned_ws_lifecycle": "https://github.com/eisenzopf/rvoip/pull/293",
+    "managed_high_level_facade": "https://github.com/eisenzopf/rvoip/issues/113",
+    "status": "All checked items open; next release adoption not guaranteed"
+  },
+  "decision_backlog": "backlog.html#B-001",
+  "roadmap": "connect-roadmap.html#coverage",
+  "assignment_status": "Gates 1\u20134 retain qualified local/source-specific evidence. Gate 4 is complete under 36 implementation items and 14 required criteria, including the normal identity-key default and optional scoped tasks. Gate 5 full v0.1 remains planned.",
+  "gate_3_acceptance": "gate-3-acceptance.json",
+  "gate_4_acceptance": "gate-4-acceptance.json"
+}

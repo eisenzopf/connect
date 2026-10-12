@@ -1,0 +1,62 @@
+{
+  "format": 1,
+  "sources": {
+    "rvoip": {
+      "url": "https://github.com/eisenzopf/rvoip.git",
+      "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+      "license": "MIT"
+    },
+    "parley": {
+      "url": "https://github.com/eisenzopf/parley.git",
+      "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+      "license": "MIT"
+    }
+  },
+  "patches": [
+    {
+      "path": "patches/rvoip/parley-conference.patch",
+      "sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+      "source": "Parley pinned revision"
+    },
+    {
+      "path": "patches/rvoip/connect-quic-application.patch",
+      "sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+      "source": "Connect native application-handler plumbing; opt-in only"
+    },
+    {
+      "path": "patches/rvoip/connect-session-context.patch",
+      "sha256": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+      "source": "Expose canonical Session context on authenticated inbound connection events"
+    },
+    {
+      "path": "patches/rvoip/external-session-projection.patch",
+      "sha256": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+      "source": "Project application-owned conversations and sessions into rvoip orchestration"
+    },
+    {
+      "path": "patches/rvoip/sip-terminal-media-race.patch",
+      "sha256": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+      "source": "Let exact SIP terminal signaling win a normal remote-hangup media closure race"
+    },
+    {
+      "path": "patches/rvoip/audio-queue-policy.patch",
+      "sha256": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+      "source": "Expose opt-in audio queue ceilings through core orchestration and raw QUIC stream construction; preserve upstream defaults."
+    },
+    {
+      "path": "patches/rvoip/transport-audio-queues.patch",
+      "sha256": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+      "source": "Opt-in SIP and WebRTC frame queue caps with construction tests; preserve existing 64-frame defaults."
+    },
+    {
+      "path": "patches/rvoip/authenticated-envelope-guard.patch",
+      "sha256": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+      "source": "Opt-in authenticated envelope policy on SessionBindingResolver, before correlation/application/resource mutation; default preserves existing resolver behavior."
+    },
+    {
+      "path": "patches/rvoip/vapi-call-admission.patch",
+      "sha256": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+      "source": "Opt-in host-owned Vapi call admission after request preparation and immediately before REST send; default unchanged. Connect uses current atomic task/session admission; no duplicate possibly-sent creation."
+    }
+  ]
+}

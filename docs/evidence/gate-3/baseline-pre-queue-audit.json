@@ -1,0 +1,33 @@
+{
+  "gate": 3,
+  "evidence": "qualified-foundation-baseline",
+  "recorded_at": "2026-10-08T18:20:54-07:00",
+  "source_revision": "bf2abc839a104237f7cab9ce9cd34c936b0ae878",
+  "dirty": true,
+  "scope": "Local macOS arm64 regression baseline; no remote deployment or live provider calls.",
+  "command": "bash scripts/check-local.sh",
+  "private_result": ".local/checks/20261009T011758.673031Z/result.json",
+  "result": "passed",
+  "passed_phases": [
+    "dependencies",
+    "format",
+    "lint",
+    "typescript-sdk-install",
+    "typescript-sdk-build",
+    "typescript-sdk-format",
+    "typescript-sdk-failures",
+    "python-sdk-failures",
+    "workspace",
+    "connector-example",
+    "upstream",
+    "dispatch",
+    "typescript-probe",
+    "datagram-probe",
+    "identity-process",
+    "recovery-process",
+    "crash-replay",
+    "examples",
+    "example-recovery"
+  ],
+  "qualification_boundary": "This proves the existing Gate 1/2 foundation still passes with the Gate 3 working tree. It is not a clean-source release or live-provider qualification."
+}

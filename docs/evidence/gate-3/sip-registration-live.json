@@ -1,0 +1,30 @@
+{
+  "gate": 3,
+  "evidence": "telnyx-credential-trunk-registration",
+  "recorded_at": "2026-10-09T06:39:04.532504+00:00",
+  "source_revision": "dc48bbfdfe3e61bffbdb6654bd66395cf326115c",
+  "dirty": true,
+  "source_files_sha256": {
+    "crates/connect-server/src/sip_registration.rs": "7c012b6284166b41e50bc37ee799286ba2aba651f62578535eb52fc33de8b9ba",
+    "crates/connect-server/src/media_transports.rs": "45575cf379b49724d23cfdfa7da43c4981d2ab311e84cc6339117efa7a5df7c6",
+    "crates/connect-server/src/config.rs": "df97fbe892bfbf1e3a97f855a58957b6d2cc5efe65a0696ba556d4f85d712dfe",
+    "dependencies/source-lock.json": "a25960032882be651ecaef4d9d528fe81368cea6efd37f2955d9b26e931360b5"
+  },
+  "provider_registration_status": "Registered",
+  "transport": "UDP",
+  "observations": [
+    "rvoip registration completed after the carrier authentication challenge",
+    "Carrier registration-status API independently reports Registered",
+    "Owned test number route was temporarily changed and provider readback verified",
+    "Timed restoration watchdog protects the saved direct Vapi route"
+  ],
+  "result": "registration-passed-live-audio-pending",
+  "remaining": [
+    "Human inbound and outbound audio through Connect",
+    "Live phone context use, repeated-call continuity and interruption"
+  ],
+  "private_evidence": [
+    ".local/gate-3-live/registration-status-private.json",
+    ".local/gate-3-live/active-test-route.json"
+  ]
+}

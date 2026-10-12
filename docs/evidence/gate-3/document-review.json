@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "result": "passed",
+  "html_files": 21,
+  "local_links_checked": 1196,
+  "broken": [],
+  "tasks": 35,
+  "done": 35,
+  "scope": "Active docs synchronized; historical Gate 1/2 review labeled separately. Stable IDs, JSON, dependency graph and links checked.",
+  "canonical_report": "acceptance.html"
+}

@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T13:54:41.667324+00:00",
+  "items": [
+    "G4-018",
+    "G4-021",
+    "G4-023",
+    "G4-025",
+    "G4-031"
+  ],
+  "status": "local actual-runtime component qualified; whole host and gate acceptance remain open",
+  "source_revision": "88aec46045aea8aef97ce1e2b88c89fcd56d7e39",
+  "source_stable": true,
+  "source_input_count": 738,
+  "runtime": "codex-cli 0.162.0-alpha.17.2",
+  "private_result": ".local/gate-4-planning/host-owned-88aec46/result.json",
+  "result_sha256": "f6884c1d78bf866a39aafcf84f5395e3beca0a59362843fa954d735ae9fb8e3e",
+  "checks": [
+    {
+      "name": "installed-host",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_codex_runtime",
+        "--test",
+        "gate4_codex_call_intent",
+        "--test",
+        "gate4_codex_reply_workflow",
+        "--test",
+        "gate4_codex_packaged_runtime",
+        "--test",
+        "gate4_codex_draft_journey",
+        "--",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 1800,
+      "log": "installed-host.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 242.244,
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "strict-host-lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_codex_runtime",
+        "--test",
+        "gate4_codex_call_intent",
+        "--test",
+        "gate4_codex_reply_workflow",
+        "--test",
+        "gate4_codex_packaged_runtime",
+        "--test",
+        "gate4_codex_draft_journey",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 1800,
+      "log": "strict-host-lint.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 56.031
+    }
+  ],
+  "retained_failed_runtime_run": {
+    "result": ".local/gate-4-planning/draft-2c9948f-repeat/result.json",
+    "result_sha256": "44f2f12107d178330af6d8d87101948a5aec499c21702c51ad64c1b928f9508c",
+    "step": {
+      "name": "installed-host",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_codex_runtime",
+        "--test",
+        "gate4_codex_call_intent",
+        "--test",
+        "gate4_codex_reply_workflow",
+        "--test",
+        "gate4_codex_packaged_runtime",
+        "--test",
+        "gate4_codex_draft_journey",
+        "--",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 1800,
+      "log": "installed-host.log",
+      "status": "failed",
+      "exit_code": 0,
+      "leftover_group_members": [
+        44166,
+        44168,
+        44175,
+        44187,
+        44190,
+        44198
+      ],
+      "error": "LeakedProcessGroup",
+      "group_cleanup": "signalled",
+      "seconds": 347.918,
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "finding": "All seven behavior tests passed but six live inherited-group members remained. The runner killed its owned group and failed qualification. It did not capture executable identities for those PIDs."
+  },
+  "correction": [
+    "Direct exec/app-server fixtures previously killed or reaped only the direct child. They now reuse the packaged launcher process owner without widening production APIs.",
+    "Each fixture uses a separate owned group; normal completion and forced interruption stop that group before reaping its leader. A bounded read-only postcondition rejects live workers after cleanup. No signals are sent after reaping.",
+    "The draft journey now also checks both saved task IDs, resolving its unused shared-helper warning."
+  ],
+  "behavior": [
+    "Actual installed discovery and three call-intent/interruption/current-revocation checks execute.",
+    "Exact session reply continuation after server restart retains original cursor and source; replay adds no effect.",
+    "The packaged launcher renews a protected HostSession grant and continues the original session without exposing parent credentials.",
+    "Two overlapping draft tasks share one conversation. Actual artifact bytes and digests survive restart; only the explicitly answered task follows up; the other remains waiting.",
+    "All seven runtime checks and strict Clippy pass under a source-stable supervisor, with no leftover inherited-group members."
+  ],
+  "limits": [
+    "Scripted Responses perform no inference. Actual-model, cold/warm installed-release and live provider acceptance remain open.",
+    "No production Rust source or upstream dependency changed for the fixture correction. Existing macOS debug linker warnings are retained in the test log.",
+    "The earlier full offline run used d04cf4c, passed workspace/media phases and failed the old host fixtures on leftover processes. A current-source 33-phase run is still required."
+  ]
+}

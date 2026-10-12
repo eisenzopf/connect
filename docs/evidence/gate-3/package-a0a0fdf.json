@@ -1,0 +1,62 @@
+{
+  "gate": 3,
+  "evidence": "installed-local-candidate",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a0a0fdf01023",
+  "source_revision": "a0a0fdf010231e3cfec58afb9d6badb6d5ad202c",
+  "scope": "local macOS arm64; no remote deployment",
+  "command": "python3 scripts/check-package.py dist/connect-0.1.0-alpha.1-macos-arm64-a0a0fdf01023",
+  "result": "passed",
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-a0a0fdf01023-qualification.tar.gz": "fe08fbcefa6a7c808827ab20eff4fd94d5302c3c9961ae0b67802a5f2b287cc2",
+    "connect-0.1.0-alpha.1-macos-arm64-a0a0fdf01023-source.tar.gz": "5f1aeab5837fb5bf1cb39a7e6827aba04750a86eb4661e4b71c4180329caa67f",
+    "connect-0.1.0-alpha.1-macos-arm64-a0a0fdf01023.tar.gz": "6df20c79b40e38f267d8c3ddc7d2f2618e5c14e5c1d3dee039993b334179ead7"
+  },
+  "open": [
+    "Human native/browser audibility and interruption.",
+    "Connect-carried inbound/outbound Telnyx SIP/PSTN audio.",
+    "Final Gate 3 live review and acceptance."
+  ],
+  "gate_status": "in-progress"
+}

@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T23:36:13.017043+00:00",
+  "status": "G4-024 diagnostics and G4-026 connected-app requirements verified individually; whole Gate 4 remains open",
+  "items": [
+    "G4-024",
+    "G4-026"
+  ],
+  "qualification": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "timeout_seconds": 120,
+        "log": "format.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.669,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "diagnostic-renewal",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--test",
+          "gate4_codex_diagnostics",
+          "--test",
+          "gate4_codex_renewal",
+          "--test",
+          "gate4_task_diagnostics",
+          "--test",
+          "gate4_mcp_runtime",
+          "--",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1800,
+        "log": "diagnostic-renewal.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 227.37,
+        "rust_tests": {
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log_sha256": "d02a6c90f6075514d8d87082426433affe65c8d8f41b7109f94734d2b53d19a4"
+      },
+      {
+        "name": "metadata-race",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--lib",
+          "concurrent_state_change_never_combines_session_metadata_or_retains_probe_lock",
+          "--",
+          "--test-threads=1"
+        ],
+        "timeout_seconds": 1200,
+        "log": "metadata-race.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 63.08,
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log_sha256": "7eb60e256aa13f40cabf306af6f6aa1a780bf479bd41cd75bd8a435ca39736dc"
+      },
+      {
+        "name": "strict-lint",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--lib",
+          "--test",
+          "gate4_codex_diagnostics",
+          "--test",
+          "gate4_codex_renewal",
+          "--test",
+          "gate4_codex_call_intent",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "timeout_seconds": 1800,
+        "log": "strict-lint.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 33.655,
+        "log_sha256": "65170a49b1ed53db99e5e6c008df0627a872c0cb1c07310650f1eee6866682bf"
+      },
+      {
+        "name": "rustdoc",
+        "command": [
+          "cargo",
+          "doc",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--all-features",
+          "--no-deps"
+        ],
+        "timeout_seconds": 1200,
+        "log": "rustdoc.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 37.155,
+        "log_sha256": "468b3321159f20e0de7317fba98218de478bd1bd259635443f31b13d265b0365"
+      }
+    ]
+  },
+  "source_revision": "59b551990c0053ad32d5359a3b29fbaa0ee78790",
+  "source_dirty": true,
+  "source_sha256": {
+    "crates/connect-server/src/cli/task_access/codex_host/diagnostics.rs": "fa6b75b129086239c54e7129fd19ccd084897351a47452e5393136fa1cfbdba9",
+    "crates/connect-server/tests/gate4_codex_renewal.rs": "58096cfcf4acab8b71a4472a5f091ab3fa8386e906f31a2174b9656b9615179e",
+    "crates/connect-server/tests/gate4_codex_diagnostics.rs": "276a7dd55cca907577328dfbfe94a69e32546b24254b04e9a27b37353cbd1a9b",
+    "crates/connect-server/tests/gate4_task_diagnostics.rs": "4b57c0f7e6e3c9999da61de203c2fd3cae6d548b4f9b4179ae2e95747a832ac7",
+    "docs/TASK_DIAGNOSTICS.md": "67412764937b04bee9f0161bd278381f506d35f86a203073cac475a333c81b16"
+  },
+  "diagnostic_finding": "Read-only installed real-model task inspection correctly rejected its expired selected grant but called it invalid metadata. Changed local inspection to validate historical metadata without authorizing a host turn and report grant-expired/unavailable; production launcher and remote authorization remain unchanged. Real expiry/renewal, binding/asset failures, revoked credentials, lost notifications and metadata race pass.",
+  "G4-024": {
+    "requirements": "Task/journal/source diagnostics, current authorization recheck, actionable local host/runner state, crash/drain/stale/lost-wake recovery; public interfaces only; no claim that readiness means delivery.",
+    "evidence": [
+      "worker-execution-readiness.json",
+      "offline-d47be55-attempt-1.json",
+      "host-item-closure.json"
+    ],
+    "current_checks": "14 independent-process diagnosis/renewal/MCP checks plus one metadata race check; strict Clippy, Rustdoc and format passed."
+  },
+  "G4-026": {
+    "requirements": "Both directions through independent public SDK processes; restart before ACK, duplicate submissions/replies yield one business ticket/effect, denial yields none, pending/unavailable input visible.",
+    "evidence": [
+      "connected-app-artifacts.json",
+      "offline-d47be55-attempt-1.json"
+    ],
+    "exact_source_reconciliation": "All connected-app production code and public SDK code match d47be55. The complete 41-phase run includes 11 connected-app/artifact/MCP journeys and task recovery/uncertainty/diagnostics tests, all passed. Host-local expired-grant projection does not change the app or its transport/recovery path.",
+    "tests": [
+      "consumed_reply_ack_crash_resumes_one_review_and_response",
+      "intake_ack_and_local_transaction_crashes_recover_original_ticket",
+      "two_way_business_policy_binding_and_semantic_duplicates",
+      "upload_ack_loss_recovers_one_file_and_question",
+      "incoming_artifact_bytes_duplicates_conflicts_and_unavailable_sources",
+      "revoked_app_credential_cannot_replay_consumed_reply_into_business_effect",
+      "business_result_is_source_backed_through_sdk_and_grant_bound_mcp"
+    ]
+  },
+  "limits": [
+    "Historical startup failures remain retained; their original transient cause is not established.",
+    "A failed package invocation remains under G4-033. Closing these items does not assert a whole-package, integrated live or whole-gate pass.",
+    "The new package fixture-build harness awaits end-to-end candidate qualification."
+  ]
+}

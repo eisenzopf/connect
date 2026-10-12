@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-11T14:53:08.375145+00:00",
+  "items": [
+    "G4-033"
+  ],
+  "status": "development runtime layout qualified; full release candidate and gate acceptance remain open",
+  "preflight": {
+    "scope": "development-binary layout component; not a release archive or installed-candidate qualification",
+    "runtime": "/var/folders/jl/rcfwkrk10lx9vf6xgbj3nwm80000gn/T/connect-gate4-layout-fp0w6lbr",
+    "binary_sha256": "e43538551a5662e175eccd0316ebdf4f7d876b401b8a91fd3df5450ad425d315",
+    "checks": [
+      {
+        "name": "source-sdk-rejected",
+        "status": "passed-negative-control",
+        "child_exit_code": 1,
+        "expected_error": "connect_sdk loaded outside the selected runtime",
+        "log": ".local/gate-4-planning/source-sdk-rejected.log",
+        "log_sha256": "0ba28cdd5fa874c2d7a4153aac03eb0e6b3f6be928cdb7dd32541907f23d3cfe"
+      },
+      {
+        "name": "source-helper-rejected",
+        "status": "passed-negative-control",
+        "child_exit_code": 1,
+        "expected_error": "Native helper does not belong to the selected runtime",
+        "log": ".local/gate-4-planning/source-helper-rejected.log",
+        "log_sha256": "75e15027663678755b186f8db7ef629e1548f39321c6bd84182b97fb81da783d"
+      },
+      {
+        "name": "standalone-example-help",
+        "status": "passed",
+        "exit_code": 0
+      },
+      {
+        "name": "package-help",
+        "status": "passed",
+        "expected_exit_code": 0,
+        "log": ".local/gate-4-planning/package-help.log",
+        "log_sha256": "6f3e45ca1af1ed59f596c128425e5c3967b0f50e3154a4862bc8e03036c20426"
+      },
+      {
+        "name": "package-missing-host",
+        "status": "passed",
+        "expected_exit_code": 2,
+        "log": ".local/gate-4-planning/package-missing-host.log",
+        "log_sha256": "0d6c8be3e4bc7ac3e05224080f9d9ffca452ad61a45b1e2aeae7952a0483b589"
+      }
+    ]
+  },
+  "source_inputs_sha256": {
+    "scripts/package-local.py": "0367fd51d0ec069f3eec35ca919255e2e00f748161ff0c212f678b403b991588",
+    "scripts/check-package.py": "89578eb3eab4caea8bbcbc2134f253958764e5d12dc2f8187405c274f15b1d21",
+    "scripts/lib/package_gate4.py": "19ef1cf08fb3a4c49141cf05ab265100c06776a302f8c0195129b921012d764a",
+    "examples/agent-presence/tests/installation_paths.py": "50c828240d6d2183927b26d4b6ac614d3c53002e6af3cbaf336896a8b6b142a7",
+    "examples/agent-presence/tests/test_public_intake.py": "c36248fbd946a1e5c73e921b41800ab7ce32106e75d48717bd846abb13b7fc6f",
+    "examples/agent-presence/tests/test_installed_incoming.py": "6622c5978c4c7e70369b3cf17a796bee653a0312040466b3019808bd156fe2d6"
+  },
+  "verification": [
+    "Python compilation passed for the new package helper, package scripts and installation-path guard.",
+    "A staged application outside the checkout loads its help entry point with the staged SDK.",
+    "An actual unittest invocation with the checkout SDK fails before starting a server. An invocation with the checkout executable also fails before starting a server. These expected failures qualify rejection, not runtime behavior.",
+    "Two public native/actual installed-Codex checks pass against the staged runtime outside the checkout, with no leftover process-group members. The development executable is not a release candidate; qualification source hashes are retained in the private result."
+  ],
+  "remaining": [
+    "Build and qualify a clean release candidate with the complete package checker, extracted source archive, task/host assets and upgrade checks.",
+    "Complete whole G4-033 code/operating review and prerequisite qualification."
+  ],
+  "scope": "No release build, installed-release attestation, inference, live provider, remote deployment or production database change in this preflight.",
+  "runtime_qualification": {
+    "result": ".local/gate-4-planning/package-layout-behavior/qualification.json",
+    "result_sha256": "6550c32b24748c8b0c7a9114f6c125b465fdfccb84fefcd71a2140775b34ebb0",
+    "source_stable": true,
+    "codex_version": "codex-cli 0.162.0-alpha.17.2",
+    "steps": [
+      {
+        "name": "agent-incoming-public",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/Volumes/D2-2019/Developer/Connect/examples/agent-presence/tests",
+          "-p",
+          "test_public_intake.py"
+        ],
+        "timeout_seconds": 120,
+        "log": "agent-incoming-public.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.706,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "agent-incoming-host",
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "/Volumes/D2-2019/Developer/Connect/examples/agent-presence/tests",
+          "-p",
+          "test_installed_incoming.py"
+        ],
+        "timeout_seconds": 240,
+        "log": "agent-incoming-host.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.391,
+        "python_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      }
+    ],
+    "scope": "development-binary layout only; no release qualification"
+  },
+  "source_hash_scope": "Hashes describe the recorded development-layout preflight. Subsequent parent-checker review moved binary selection before helper imports and added explicit installed-path assertions; the complete parent checker still requires installed-candidate execution.",
+  "review_findings": [
+    {
+      "finding": "Importing package_gate4 also imports local_process, whose default binary is cached at module load. Selecting installed paths later could retain the checkout helper.",
+      "change": "Set all installed binary paths before either helper import; assert both legacy helper paths belong to the extracted runtime.",
+      "qualification": "Full parent checker pending; existing two layout checks qualify the dedicated Gate 4 helper only."
+    }
+  ]
+}

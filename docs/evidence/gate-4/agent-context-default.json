@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-12T12:30:07.695953+00:00",
+  "scope": "two local ordinary/scoped MCP integration behaviors; no actual model inference, live provider operations, deployment or security changes",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "source_revision": "6652c4db014352402865fa7f1ff1eda337f6d352",
+  "source_composition": "recorded revision plus the four listed frozen source/skill/test files; commit follows without source content changes",
+  "changed_inputs": {
+    "crates/connect-mcp/src/identity_commands.rs": "e89aef89d35865d99349042fda347cb63bbeca57aff08dfd0ec1e1e9de1d2523",
+    "crates/connect-mcp/src/identity_schemas.rs": "056d441233b7abcbc012f633760ae1e68471c14afc64708c96550f05be9fc80a",
+    "crates/connect-server/tests/gate4_agent_context.rs": "8ddac9ccdcbf9b374bead3e78b3b432ee1cc1e6c2b5d2551f90f3e931686cc3d",
+    "skills/connect/SKILL.md": "513e86bc97e4030e10f2b9167836197db0f24f8141d47e609f81a46655d7d432"
+  },
+  "source_input_manifest_sha256": "4390c5cc7a09111d25dc16e89a5d34cc24ce9afca4d77753796da02e06df9ca4",
+  "source_stable": true,
+  "test_binary_sha256": "f00ea7d2add617476ac18ec3329a83d0e6a9a09bb81c9e653ced5bca116eca9e",
+  "build_profile": {
+    "dev_debug": 0,
+    "test_debug": 0,
+    "incremental": false,
+    "jobs": 2,
+    "target": "target/gate4-final-review"
+  },
+  "tests": {
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0
+  },
+  "named_cases": [
+    {
+      "name": "ordinary_context_omitted_limit_matches_bounded_thirty_and_rejects_invalid_limits",
+      "status": "ok"
+    },
+    {
+      "name": "scoped_context_still_requires_its_limit_and_logical_step",
+      "status": "ok"
+    }
+  ],
+  "phases": [
+    {
+      "name": "prepare-dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.246,
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "name": "compile-context",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate4_agent_context",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "timeout_seconds": 2400,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 25.764,
+      "log_sha256": "dc8b4c0d2fe885c37d45a7dec307834898ca19cd85ce7f0ee751adea2a8f0f1e"
+    },
+    {
+      "name": "context-behavior",
+      "command": [
+        "target/gate4-final-review/debug/deps/gate4_agent_context-8a368c7b786a71fe",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 240,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 2.269,
+      "log_sha256": "3d5b25b0f430a21753bfdb1d89b0712a739ab87e3a78709f111a482823ec383d",
+      "rust_tests": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "format-check",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.767,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "private_report": {
+    "path": ".local/gate4-context-default-checks/20261012T122836.839268Z/result.json",
+    "sha256": "bd46ed157832e440eb353331dc2e33233ee569d14ffeb99b9620bff27c11331a"
+  },
+  "verification": [
+    "Ordinary tool discovery exposes an optional integer limit defaulting to 30; history pagination still requires its limit.",
+    "An independently seeded 35-message conversation returns the same 30 attributed context items and 5 omissions with omitted MCP limit, explicit MCP limit 30, and explicit native limit 30.",
+    "Explicit limits 1 and 100 retain their behavior. Explicit 0, 101, negative, null and string limits return MCP argument rejection.",
+    "The native wire Operation still requires limit; no native protocol default was added.",
+    "Scoped MCP discovery still requires limit, request_id and step_id. Omitted limit rejects before dispatch; explicit 30 retains the original raw TaskOutcome envelope."
+  ],
+  "retained_model_attempt": {
+    "path": "docs/evidence/gate-4/real-model-agent-09b77a3-attempt-1.json",
+    "sha256": "61a978894f412baa6c4862b014297d000d868750defba1ec77bdff9c3798e711",
+    "status": "failed",
+    "note": "The original actual model attempt omitted limit twice and recovered. Those tool errors remain a failed strict proof; this local change does not qualify a fresh model run."
+  },
+  "limits": [
+    "This checkpoint executes only the two named integration cases and formatting; the full offline runner, installed package and actual model/provider proofs are separate qualifications.",
+    "The bounded 30-item convenience applies only to ordinary identity MCP. Scoped grants, mutation authority, membership and delivery rules remain unchanged.",
+    "Raw logs and private runtime state are retained under ignored .local; public evidence contains hashes and non-secret command metadata only."
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "status": "Native task-grant artifact component qualified; G4-013/G4-014 and full Gate 4 remain open",
+  "recorded_at": "2026-10-10T19:22:27.883157+00:00",
+  "items": [
+    "G4-013",
+    "G4-014"
+  ],
+  "source_base": "db1b0c24aebd16133f962feaa6f9a5936ace897c",
+  "source_checkpoint": "a729dfdc153119dbce718aa81d0b4f688cec6d96",
+  "source_verification": {
+    "base_commit": "db1b0c24aebd16133f962feaa6f9a5936ace897c",
+    "files": {
+      "crates/connect-server/tests/gate4_native_artifacts.rs": "ee527e429ebf34604f37ef3e281f9e794eee5827fb3c690ad17e4cd1d2512232",
+      "crates/connect-server/tests/support/native_artifacts.rs": "9364e7c1cc9b1c9b6af54e38965782bed38c97760ba8ee21a38dba97a1e47272"
+    },
+    "fingerprint": "5efa4e020ed1418e366280e7b7a462fdeec441598d05308302781ea32e013c97"
+  },
+  "qualification": "Local macOS arm64, disposable stores and loopback-only actual public SDK/QUIC traffic",
+  "behavior": [
+    "Binary upload uses bounded base64 chunks in the reliable Connect UCTP application profile. No new runtime transfer implementation was needed.",
+    "Reconnecting with the same Native grant and replaying the original logical chunk returns its original result without appending bytes twice. A second chunk and SHA-256 finalization preserve the exact 4096-byte content.",
+    "An ArtifactGet-only Native grant retrieves two bounded chunks but cannot delete, access another conversation or bypass the task facade through a primitive operation. Denied attempts do not change the store snapshot.",
+    "Reusing a successful read request after artifact deletion rechecks current resource state and returns forbidden rather than cached bytes.",
+    "Revocation rejects upload continuation on the existing physical peer and subsequent Native authentication. Accepted partial bytes remain available to explicitly authorized owner operations and finish with the original digest."
+  ],
+  "verification": [
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo test --locked -p connect-server --all-features --test gate4_native_artifacts",
+      "terminal_exit": 0,
+      "result": "2 actual native SDK/QUIC artifact tests passed; zero failed or ignored",
+      "log": ".local/gate-4-planning/native-artifact-final.log",
+      "log_sha256": "0ffde6b7049234831aec1dc7963907f4c37456634716f00bad6e1e2d8547c2c1"
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 cargo clippy --locked -p connect-server --all-features --test gate4_native_artifacts -- -D warnings",
+      "terminal_exit": 0,
+      "result": "Strict Clippy passed for new integration fixture",
+      "log": ".local/gate-4-planning/native-artifact-clippy.log",
+      "log_sha256": "3a91e7233c38b29c06382e8bc1c6b2843be557c1fd5b26ab1183a2fde4194011"
+    },
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "terminal_exit": 0,
+      "result": "Pinned source and patch digest verification passed",
+      "log": ".local/gate-4-planning/native-artifact-dependencies.log",
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    }
+  ],
+  "retained_attempts": [
+    {
+      "log": ".local/gate-4-planning/native-artifact-first.log",
+      "result": "Initial two-case suite passed before the live-peer post-revocation snapshot check was added. Final qualification reran the expanded unchanged source; preliminary suite is not substituted for it."
+    }
+  ],
+  "related_evidence": [
+    "native-task-media.json",
+    "native-task-grants.json"
+  ],
+  "limits": [
+    "Two focused tests; not an installed package, language parity, raw file-stream, provider or full Gate 4 attestation.",
+    "The broader Rust workspace run belongs to the frozen bfa0865 production checkpoint and does not include these subsequently added tests. Its result remains pending.",
+    "No production runtime change, database migration, account operation, public ingress or remote deployment. Existing macOS debug-linker warning retained."
+  ],
+  "remaining": [
+    "Complete public-interface lifecycle/reply/recall/cancel/error matrix and G4-013 dependencies.",
+    "Bounded provider context, installed host, integrated recovery/operating limits/packaging and full acceptance."
+  ]
+}

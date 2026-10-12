@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "gate": 3,
+  "status": "review-assembled",
+  "recorded_at": "2026-10-09T23:24:10.855783+00:00",
+  "scope": "Qualified local macOS arm64; unpublished owner review candidate, not full v0.1.",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-a91a75abba7d",
+  "source_revision": "a91a75abba7da1955551dcd469bfcd7f08f1c939",
+  "runtime_binary_sha256": "aea69cde9b04abf91b3818634ceac75e5a0617a6babadcd36ebfd5b23db1e176",
+  "acceptance": [
+    {
+      "id": "A3-01",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ]
+    },
+    {
+      "id": "A3-02",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ]
+    },
+    {
+      "id": "A3-03",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/native-final.json",
+        "evidence/gate-3/queue-audit.json",
+        "evidence/gate-3/media-profile.json"
+      ]
+    },
+    {
+      "id": "A3-04",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ]
+    },
+    {
+      "id": "A3-05",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/autonomous-pstn.json"
+      ]
+    },
+    {
+      "id": "A3-06",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/browser-final.json",
+        "evidence/gate-3/browser-owner.json"
+      ]
+    },
+    {
+      "id": "A3-07",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ]
+    },
+    {
+      "id": "A3-08",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ]
+    },
+    {
+      "id": "A3-09",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json"
+      ]
+    },
+    {
+      "id": "A3-10",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/autonomous-continuity.json"
+      ]
+    },
+    {
+      "id": "A3-11",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/package.json",
+        "evidence/gate-3/queue-audit.json",
+        "evidence/gate-3/regression.json",
+        "evidence/gate-3/schema-six-installed.json"
+      ]
+    },
+    {
+      "id": "A3-12",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/package.json"
+      ]
+    },
+    {
+      "id": "A3-13",
+      "status": "passed",
+      "evidence": [
+        "evidence/gate-3/local.json",
+        "evidence/gate-3/package.json",
+        "evidence/gate-3/live.json",
+        "evidence/gate-3/regression.json",
+        "evidence/gate-3/result.json",
+        "evidence/gate-3/acceptance.html",
+        "evidence/gate-3/schema-six-installed.json"
+      ]
+    }
+  ],
+  "required_passed": 13,
+  "required_failed": 0,
+  "required_skipped": 0,
+  "implementation": "../../connect-gate-3-implementation.html",
+  "offline_phases": 27,
+  "baseline_phases": 19,
+  "installed_checks": 10,
+  "sdk_tests": {
+    "typescript": 34,
+    "python": 14
+  },
+  "code_review": {
+    "reviewed": [
+      "Protocol/store/service/client/server ownership and the disposable rvoip projection.",
+      "Current authorization before mutation receipt replay; conflicting logical IDs; ambiguous inbound routing and revocation.",
+      "Observer cancellation, bounded teardown/draining, SDK input ownership and reliable terminal media events.",
+      "Artifact quotas, digest verification, consistent database/blob backup, migration and hard-kill replay.",
+      "Pinned upstream patches, source-lock digests, package inventory/licenses and public SDK examples.",
+      "Shared explicit media ceilings, physical-close cancellation, actual RTP reorder and allocated SIP/WebRTC queue tests.",
+      "Live-dialogue/prior-snapshot prompt separation and stable-source qualification/package guards."
+    ],
+    "quality_evidence": [
+      "local.json",
+      "regression.json",
+      "package.json"
+    ],
+    "maintainability": "Central operation/CLI/type facades are larger than focused media modules; the largest production file is the 733-line atomic store dispatcher. That transaction boundary was reviewed explicitly. Further splitting is a maintainability choice, not a claim that every file is small or that community review has already accepted the code."
+  },
+  "known_limits": [
+    "Local macOS arm64 and recorded topology only: Chrome host/host UDP ICE, native PCMU/QUIC and Telnyx registration/NAT. WAN/TURN, mobile, arbitrary carriers and physical audio hardware are not qualified.",
+    "Each configured local audio channel holds at most ten 20 ms frames (200 ms). Multiple stages and provider/model/network/playout latency are separate; overloaded realtime queues deliberately drop frames.",
+    "Newest model-visible context items have a 32 KiB budget with explicit omissions; the original authorized journal remains. Automatic summaries, pinned facts and perfect ASR/model recall are future work.",
+    "Current native, browser, inbound and outbound voice decisions and both draft facts were recalled after restart. Earlier phonetic/conflicting-source failures are retained.",
+    "A long-idle inbound reachability failure remains unexplained; fresh registration and subsequent tests passed.",
+    "Live SMS remains deferred pending approval. MCP/skill, another assistant, task resumption, video and full v0.1 remain later gates."
+  ],
+  "preserved_failures": [
+    "Earlier provider chat input strategies rejected or ignored history; corrected prompt-variable path qualified.",
+    "Initial browser signaling race/cleanup and restricted route credential failures were fixed and retested.",
+    "Initial inbound before fresh registration and the earlier handset 603 rejection remain failures.",
+    "Early telephone receiver interruption and third-answer truncation are not three-turn passes; the tuned bounded receiver passed.",
+    "Two large provider HTTP reads failed before remote-end submission; explicit cleanup and a documented filtered read produced a passed installed-client remote-end test.",
+    "Concurrent Gate 2 debug init exceeded its deadline; isolated unchanged-source regression passed.",
+    "The supplemental exact written-code spelling assertion remains failed; all three required voice decisions passed.",
+    "Earlier prompt rejected live facts missing from the initial snapshot; fixed shipped template and all current four-route/restart checks pass.",
+    "Earlier bounded phone trials clipped, misrecognized or scheduled speech late; retained. Timed outbound controller avoids blocking provider metadata polls.",
+    "Inbound final metadata GET 500 recovered by later read; original failed controller receipt retained.",
+    "Browser provider-end first scenario path was unstaged and failed before session creation; staged fixture tested normal remote termination. Three-turn harness reports expected early end; independent terminal check passed."
+  ],
+  "evidence": {
+    "local": "local.json",
+    "live": "live.json",
+    "package": "package.json",
+    "regression": "regression.json",
+    "continuity": "autonomous-continuity.json",
+    "queue_audit": "queue-audit.json",
+    "media_profile": "media-profile.json",
+    "schema_six": "schema-six-installed.json",
+    "code_review": "code-review.json",
+    "distribution_equivalence": "distribution-equivalence.json"
+  },
+  "no_remote_deployment": true,
+  "original_databases_preserved": true,
+  "review_before_community_publication": true,
+  "completed_tasks": 35,
+  "total_tasks": 35,
+  "primary_live_source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "offline_qualified_source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+  "offline_source_stable": true,
+  "documentation_distribution": "distribution-equivalence.json",
+  "completion_audit_resolution": {
+    "status": "closed",
+    "finding": "Live adapter defaults exceeded the selected queue budget; original pressure harness did not actually inject reordered RTP.",
+    "fix": "Shared ten-frame capacities across core/QUIC/Vapi/SIP/WebRTC, source-locked opt-in interfaces preserving upstream defaults, actual queue/fault tests and current candidate retests.",
+    "additional_finding": "Prior-snapshot prompt rejected newly spoken facts; shipped template now recognizes live dialogue and preserves conflicting source attribution.",
+    "qualified_source": "e457960137a375d2ea1e9067a063065f815d29a0"
+  }
+}

@@ -1,0 +1,412 @@
+{
+  "scope": "Gate 1 local macOS arm64 qualification only",
+  "result": "passed",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb",
+  "candidate_source_revision": "263fe1592ceb5099985e58566ae3e3e35a34bc07",
+  "full_suite_source_revision": "02b568524ae8cd51827095788654b9f5666bb9ce",
+  "source_difference": "Only scripts/check-package.py changed after the full suite: it clears inherited RUST_LOG for default-log checks and strips terminal color. The complete package qualification then passed with that harness.",
+  "environment": {
+    "os": "26.6.2",
+    "target": "aarch64-apple-darwin",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "dependencies": {
+    "format": 1,
+    "sources": {
+      "rvoip": {
+        "url": "https://github.com/eisenzopf/rvoip.git",
+        "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+        "license": "MIT"
+      },
+      "parley": {
+        "url": "https://github.com/eisenzopf/parley.git",
+        "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+        "license": "MIT"
+      }
+    },
+    "patches": [
+      {
+        "path": "patches/rvoip/parley-conference.patch",
+        "sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+        "source": "Parley pinned revision"
+      },
+      {
+        "path": "patches/rvoip/connect-quic-application.patch",
+        "sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+        "source": "Connect native application-handler plumbing; opt-in only"
+      }
+    ]
+  },
+  "cargo_lock_sha256": "774482bc89ca9d278c6a7e544794a072bbd23d1b94723df68b3f30eb31694e46",
+  "archive_sha256": {
+    "connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb-qualification.tar.gz": "730ebcbdee5cdde6856a8b6cf09b3d5df8a426faf261e204ec6bc71e79232a9c",
+    "connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb-source.tar.gz": "653a79ed429dec235dfeb55435f41538d92b79d216e61acb1c21a70c533682bb",
+    "connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb.tar.gz": "ebeef357a3fbb05ce00e064c65b5cc7f56a88070360950c21d6f3607821087e4"
+  },
+  "binary_sha256": {
+    "bin/connect": "9e6e59d994ff60af250082dc973fd0aa392ac193d4fa04147e2225c1b3413a45",
+    "bin/connect-example": "a02cffcc5cc915970cfdf5324cba96bc07d8b123ddf5d27d1e7644b0f39a9cea"
+  },
+  "test_counts": {
+    "workspace": {
+      "passed": 37,
+      "failed": 0,
+      "ignored": 0
+    },
+    "upstream": {
+      "passed": 941,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "commands": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "log": "dependencies.log",
+      "exit_code": 0,
+      "seconds": 0.14,
+      "result": "passed"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "log": "format.log",
+      "exit_code": 0,
+      "seconds": 0.14,
+      "result": "passed"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "lint.log",
+      "exit_code": 0,
+      "seconds": 1.95,
+      "result": "passed"
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "log": "workspace.log",
+      "exit_code": 0,
+      "seconds": 14.8,
+      "result": "passed"
+    },
+    {
+      "name": "upstream",
+      "command": [
+        "bash",
+        "scripts/check-baseline.sh"
+      ],
+      "log": "upstream.log",
+      "exit_code": 0,
+      "seconds": 60.04,
+      "result": "passed"
+    },
+    {
+      "name": "dispatch",
+      "command": [
+        "python3",
+        "scripts/check-dispatch.py"
+      ],
+      "log": "dispatch.log",
+      "exit_code": 0,
+      "seconds": 1.79,
+      "result": "passed"
+    },
+    {
+      "name": "typescript-probe",
+      "command": [
+        "python3",
+        "scripts/check-typescript.py"
+      ],
+      "log": "typescript-probe.log",
+      "exit_code": 0,
+      "seconds": 1.31,
+      "result": "passed"
+    },
+    {
+      "name": "datagram-probe",
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--example",
+        "quic_audio"
+      ],
+      "log": "datagram-probe.log",
+      "exit_code": 0,
+      "seconds": 0.95,
+      "result": "passed"
+    },
+    {
+      "name": "identity-process",
+      "command": [
+        "python3",
+        "scripts/check-identity.py"
+      ],
+      "log": "identity-process.log",
+      "exit_code": 0,
+      "seconds": 8.64,
+      "result": "passed"
+    },
+    {
+      "name": "recovery-process",
+      "command": [
+        "python3",
+        "scripts/check-recovery.py"
+      ],
+      "log": "recovery-process.log",
+      "exit_code": 0,
+      "seconds": 4.43,
+      "result": "passed"
+    },
+    {
+      "name": "crash-replay",
+      "command": [
+        "python3",
+        "scripts/check-crash-replay.py"
+      ],
+      "log": "crash-replay.log",
+      "exit_code": 0,
+      "seconds": 10.2,
+      "result": "passed"
+    },
+    {
+      "name": "examples",
+      "command": [
+        "python3",
+        "scripts/check-examples.py"
+      ],
+      "log": "examples.log",
+      "exit_code": 0,
+      "seconds": 8.44,
+      "result": "passed"
+    },
+    {
+      "name": "example-recovery",
+      "command": [
+        "python3",
+        "scripts/check-example-recovery.py"
+      ],
+      "log": "example-recovery.log",
+      "exit_code": 0,
+      "seconds": 12.61,
+      "result": "passed"
+    }
+  ],
+  "package_command": [
+    "python3",
+    "scripts/check-package.py",
+    "dist/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb"
+  ],
+  "package_checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "acceptance": {
+    "A1": {
+      "requirement": "Fresh local install, safe initialization and persistence",
+      "evidence": [
+        "installed-walkthrough",
+        "restart-shutdown",
+        "identity-process",
+        "local_identity",
+        "maintenance"
+      ],
+      "result": "passed"
+    },
+    "A2": {
+      "requirement": "Both app and agent initiate conversations, receive and reply",
+      "evidence": [
+        "check-examples.py",
+        "installed-walkthrough",
+        "retained offline walkthrough"
+      ],
+      "result": "passed"
+    },
+    "A3": {
+      "requirement": "Real UCTP/QUIC with explicit TLS trust",
+      "evidence": [
+        "dispatch",
+        "local_identity",
+        "maintenance",
+        "installed-walkthrough"
+      ],
+      "result": "passed"
+    },
+    "A4": {
+      "requirement": "Shared QUIC/WS semantics, fixtures and cross-transport replay",
+      "evidence": [
+        "transport_parity: 4 passing cases",
+        "transport_pressure: 4 passing cases"
+      ],
+      "result": "passed"
+    },
+    "A5": {
+      "requirement": "Uncertain acknowledgment, logical replay, changed-input conflict",
+      "evidence": [
+        "check-crash-replay.py: before-commit/after-commit/before-ack",
+        "conversations",
+        "sdk_facade"
+      ],
+      "result": "passed"
+    },
+    "A6": {
+      "requirement": "Offline catch-up, pagination and app-owned action deduplication",
+      "evidence": [
+        "check-examples.py",
+        "check-example-recovery.py",
+        "native_messaging",
+        "transport_pressure",
+        "retained offline walkthrough"
+      ],
+      "result": "passed"
+    },
+    "A7": {
+      "requirement": "Current authority, scope, spoofing/cursor denial and revocation",
+      "evidence": [
+        "transport_parity",
+        "transport_pressure",
+        "local_identity",
+        "bounds",
+        "check-recovery.py"
+      ],
+      "result": "passed"
+    },
+    "A8": {
+      "requirement": "Bounded queues/capacity; slow observer recovers journal pages",
+      "evidence": [
+        "transport_pressure",
+        "bounds",
+        "conversations",
+        "recovery receipt capacity"
+      ],
+      "result": "passed"
+    },
+    "A9": {
+      "requirement": "SQLite failure atomicity, consistent backup/restore, schema compatibility",
+      "evidence": [
+        "conversations SQLite FULL",
+        "recovery",
+        "check-recovery.py",
+        "retained backup/restore"
+      ],
+      "result": "passed"
+    },
+    "A10": {
+      "requirement": "Close, cancel/deadline, bounded shutdown and safe diagnostics",
+      "evidence": [
+        "sdk_facade",
+        "transport_pressure shutdown regression",
+        "identity-process",
+        "installed-walkthrough logs",
+        "restart-shutdown"
+      ],
+      "result": "passed"
+    },
+    "A11": {
+      "requirement": "Fresh documented package journey and usable native SDK source",
+      "evidence": [
+        "sdk-source-build",
+        "check-examples.py",
+        "installed-walkthrough",
+        "retained walkthrough",
+        "connect-client compiling doctest"
+      ],
+      "result": "passed"
+    }
+  },
+  "retained_walkthrough": {
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb",
+    "release": ".local/releases/connect-0.1.0-alpha.1-macos-arm64-263fe1592ceb",
+    "state": ".local/state/gate1-review-263fe1592ceb",
+    "backup": ".local/backups/gate1-review-263fe1592ceb",
+    "restored": ".local/restore-test/gate1-review-263fe1592ceb",
+    "result": "passed",
+    "checks": [
+      "checksums",
+      "versioned install",
+      "fresh init",
+      "health",
+      "diagnostics",
+      "two-way demo",
+      "offline recovery",
+      "restart without repeated effect",
+      "consistent backup",
+      "alternate-port restore",
+      "retained history and receipts",
+      "graceful shutdown"
+    ],
+    "listeners": "none retained"
+  },
+  "typescript": "Native-helper experiment passed; no production TypeScript native SDK shipped at Gate 1.",
+  "media": "Bidirectional synthetic PCMU datagram/control experiment passed; not full voice/video qualification.",
+  "limits": [
+    "Loopback and macOS arm64 only; WAN and production capacity unqualified.",
+    "Rust SDK uses explicit reconnect and caller-owned durable command IDs/cursors.",
+    "WebSocket listener is optional loopback UCTP application parity, not a browser media SDK.",
+    "Agent sample is deterministic; external business effects require application idempotency.",
+    "History/journal/receipt/storage caps are finite; no retention compaction is claimed.",
+    "Schema-1 drill uses an actual archived milestone binary, not a published release or reproducible historical source build.",
+    "Vapi, Telnyx, SIP/PSTN/SMS, WebRTC media, files/video, MCP, skill and another assistant remain later v0.1 gates."
+  ],
+  "deployment": "No remote deployment, publication, provider accounts or live calls/messages."
+}

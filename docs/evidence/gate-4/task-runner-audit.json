@@ -1,0 +1,63 @@
+{
+  "recorded_at": "2026-10-11T00:23:08.960238+00:00",
+  "source_base": "8c38ac178ee683f80cebf9b7365015a90f6ee0e2",
+  "item": "G4-015",
+  "status": "G4-015 qualified",
+  "qualification_record": "task-runner-uncertainty.json",
+  "dependencies": [
+    "reply-inbox-recovery.json",
+    "task-effect-recovery-audit.json",
+    "task-dispatch-audit.json",
+    "language-task-parity-audit.json"
+  ],
+  "requirements": [
+    {
+      "requirement": "Persist explicit task binding, original commands, bounded claims and inbox cursor using only public SDK communication",
+      "tests": [
+        "changed_binding_concurrent_process_and_unrelated_database_are_rejected",
+        "competing_worker_and_unassigned_message_cannot_repeat_or_select_the_business_action",
+        "every_crash_boundary_restarts_original_intents_and_records_one_business_action"
+      ],
+      "proof": "Explicit task/owner/conversation authenticated by protected controller plus separate narrow Native grant; app SQLite, exclusive writer lock, retained IDs and server bounded step claims",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "App-local business action, handled events, follow-up outbox and checkpoint have a defined transaction/consume reconciliation boundary",
+      "tests": [
+        "page_cannot_advance_business_or_checkpoint_without_its_consume_receipt",
+        "reopening_duplicates_do_not_repeat_business_or_regress_cursor",
+        "consume_reconciliation_keeps_rejected_history_and_never_rebases_unknown_acceptance",
+        "a_known_stale_consume_cas_reconciles_with_a_new_preserved_control_intent"
+      ],
+      "proof": "Successful exact server consume receipt gates app action. App WAL/FULL transaction atomically commits action/outbox/event/cursor; failed known CAS retains rejected intent and prepares at most three authorized attempts; unknown acceptance keeps original input",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "T-A3/T-A8 runner component: actual crash, disconnect, lost notification and external uncertainty recover without duplicated work",
+      "tests": [
+        "every_crash_boundary_restarts_original_intents_and_records_one_business_action",
+        "a_running_worker_recovers_server_restart_and_catches_up_an_explicit_reply",
+        "app_and_server_restarts_retain_actual_provider_uncertainty_without_redispatch"
+      ],
+      "proof": "Six abrupt app boundaries with owned server/app restarts; running app automatically reconnects and reads journal; separate one-remote-acceptance/lost-ACK case saves true uncertainty and does not act or resend. Whole T-A acceptance still requires later host/journey proofs",
+      "status": "qualified in the recorded local scope"
+    },
+    {
+      "requirement": "Graceful drain, supervised future and current cancel/revoke/configuration failures retain state without broad communication fallback",
+      "tests": [
+        "the_public_runner_future_can_be_supervised_on_a_tokio_worker",
+        "current_revocation_denies_restarting_a_saved_workflow_without_owner_fallback",
+        "cancelling_a_running_task_stops_the_runner_without_a_follow_up",
+        "a_controller_token_cannot_be_used_as_the_invocation_configuration"
+      ],
+      "proof": "CancellationToken/Ctrl-C cancels waits and retains intents; Send future is spawn-compatible; current cancellation and revocation stop the process. Explicit protected replacement/restart can recover valid retained state; owner cannot be substituted as invocation config",
+      "status": "qualified in the recorded local scope"
+    }
+  ],
+  "not_claimed": [
+    "Actual installed Codex or Vapi model/host qualification",
+    "Small human task view and later integrated diagnostics/journeys",
+    "Full A4-04/A4-10/A4-11/A4-13, T-A3/T-A8 or Gate 4 closure",
+    "External exactly-once effects or safety of cloned independently active app stores"
+  ]
+}

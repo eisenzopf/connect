@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-09T21:13:51.341166+00:00",
+  "status": "passed",
+  "source_revision": "e007de77ecd194c78c67fc11dc204899c0dfcff2",
+  "runtime": "installed optimized local candidate",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-e007de77ecd1",
+  "decision": "decisions/008-autonomous-audio-qualification.md",
+  "routes": [
+    {
+      "direction": "inbound",
+      "status": "passed",
+      "transport": "owned telephone endpoint -> Telnyx registered SIP/RTP -> Connect -> Vapi WebSocket",
+      "receiver_audio_evidence": "Remote telephone peer received transcript, independently attributed from Connect transcripts; three complete exchanges reviewed.",
+      "observed_prior_context": "Falcon Moon / Monday",
+      "spoken_decision": "Golden Harbor",
+      "decision_repeated_after_followup": true,
+      "external_binding_states": [
+        "ended"
+      ],
+      "vapi_context_state": "delivered",
+      "context_watermark": 892,
+      "distinct_sip_and_vapi_connections": true,
+      "same_durable_session_and_conversation": true,
+      "session_binding_sha256": "1eafcc9c1d5c039c038705d4ff5d50851754ce9a0c4d25bd034f4f41e01b95fc",
+      "terminal_reason": "assistant-ended-call",
+      "provider_terminal_reason": "assistant-ended-call",
+      "restoration_verified": true,
+      "private_receipts": ".local/gate-3-live/automated/candidate-inbound-phone",
+      "receiver_call_sha256": "6bfcabb16be4cef7da71ff8cb22e63cff0b211d3444942d4fd1cb113ea560970"
+    },
+    {
+      "direction": "outbound",
+      "status": "passed",
+      "transport": "public native SDK -> Connect SIP/RTP -> Telnyx E.164 origination -> separate Vapi-managed telephone receiver; Connect Vapi WebSocket supplies assistant audio",
+      "receiver_audio_evidence": "Remote telephone peer received transcript, independently attributed from Connect transcripts; three complete exchanges reviewed.",
+      "observed_prior_context": "Quartz Harbor / Friday",
+      "spoken_decision": "Cobalt Island",
+      "decision_repeated_after_followup": true,
+      "external_binding_states": [
+        "ended"
+      ],
+      "vapi_context_state": "delivered",
+      "context_watermark": 1104,
+      "distinct_sip_and_vapi_connections": true,
+      "same_durable_session_and_conversation": true,
+      "session_binding_sha256": "dbce327d35f39a12e78ffbea814f18bb0ede3005694d5c1f1b3f99d85eab370d",
+      "terminal_reason": "sip-connection-ended",
+      "provider_terminal_reason": "exceeded-max-duration",
+      "restoration_verified": true,
+      "private_receipts": ".local/gate-3-live/automated/candidate-outbound-draft-precise",
+      "receiver_call_sha256": "11fecac16e6cab1948c206c0f6e9dda4a2f84f7b987de7a4b04a2ab9357f8bc8"
+    }
+  ],
+  "scope": [
+    "Inbound uses owned Telnyx E.164 origination and registration into Connect; outbound additionally reaches a separate Vapi-managed E.164 receiver outside the owned Telnyx account. The backing carrier of that receiver is not asserted.",
+    "The earlier authorized handset destination received a carrier 603 rejection; this does not prove every carrier/destination or that handset now works.",
+    "UDP SIP, PCMU RTP and the recorded local NAT mapping; no arbitrary NAT, SRTP, WAN WebRTC, TURN or remote deployment qualification."
+  ],
+  "preserved_unsuccessful_trials": [
+    "Initial inbound route before fresh registration: 480 SUBSCRIBER_ABSENT / 503 NORMAL_TEMPORARY_FAILURE, not answered. Fresh registration and a later idle-period retry succeeded. The long-sleep failure cause remains unproven.",
+    "First off-account receiver trial clipped the third answer; a second receiver also spoke during response pauses. Neither is a three-turn pass.",
+    "The successful receiver uses documented two-second speaking/endpointing delays and a bounded 60-second maximum.",
+    "An ordinary code/day question answered the earlier active rehearsal facts; the explicit draft question correctly returned the distinct draft facts. No false claim that every conflicting fact is automatically superseded."
+  ],
+  "operator_restoration": "Saved Telnyx number route and original Vapi assistant assignment are restored and read back after each relevant trial; independent watchdogs guard interrupted rehearsals."
+}

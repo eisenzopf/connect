@@ -1,0 +1,97 @@
+{
+  "updated": "2026-10-09",
+  "scope": "Research evidence; not host/runtime qualification",
+  "candidates": [
+    {
+      "id": "codex-cli",
+      "product": "OpenAI Codex CLI",
+      "version_observed": "0.162.0-alpha.17.2",
+      "primary_sources": [
+        "https://learn.chatgpt.com/docs/extend/mcp?surface=cli",
+        "https://learn.chatgpt.com/docs/non-interactive-mode"
+      ],
+      "interfaces": "Streamable HTTP with bearer_token_env_var; local exec and explicit session-ID resume",
+      "continuation": "Packaged worker can request a bounded turn on the saved session ID; explicit resume remains documented user option. No native incoming Connect wake claimed.",
+      "credential_isolation": "Task-specific MCP bearer secret in protected environment; isolated profile/config; keep model account authentication separate.",
+      "task_binding": "Persist Connect task/cid \u2194 exact Codex session ID in host-owned adapter state. Avoid --last across tasks.",
+      "install": "Installed CLI observed with version/help only; actual tools/skill installation and model/tool journey are not yet qualified.",
+      "license": "Open-source CLI; verify exact distributed CLI provenance in qualification. No CLI source extraction planned.",
+      "disposition": "Selected direction subject to G4-006 selection record and G4-023 actual qualification"
+    },
+    {
+      "id": "openclaw",
+      "product": "OpenClaw",
+      "version_observed": null,
+      "docs_version": "Docs sidebar identifies v2026.9.9; not installed/tested locally",
+      "primary_sources": [
+        "https://docs.openclaw.ai/tools/mcp",
+        "https://docs.openclaw.ai/tools/acp-agents/sessions"
+      ],
+      "interfaces": "Documented built-in MCP configuration/probe and durable session relay",
+      "continuation": "Session APIs/ACP are a promising route; actual channel-to-task wake binding still needs a tested gateway.",
+      "credential_isolation": "Documented secret mechanisms for sensitive headers; configure narrow Connect grant.",
+      "task_binding": "Requires gateway-session/task mapping and a packaged adapter, not matching human sender alone.",
+      "install": "Additional gateway/model setup required; no install attempted.",
+      "license": "Repository license/version must be verified before extraction. No extraction planned.",
+      "disposition": "Viable future candidate; not selected or supported"
+    },
+    {
+      "id": "meta-muse",
+      "product": "Meta Muse personal agent",
+      "version_observed": null,
+      "primary_sources": [
+        "https://ai.meta.com/muse/"
+      ],
+      "interfaces": "Official product page identifies personal agent/connectors; no developer contract for third-party MCP or task-specific inbound continuation established in reviewed sources.",
+      "continuation": "Unresolved for custom Connect communication; background work alone is insufficient evidence.",
+      "credential_isolation": "Unresolved for custom connector/task grant.",
+      "task_binding": "Unresolved.",
+      "install": "Consumer product identified; no account/UI install attempted.",
+      "license": "Proprietary product; no source extraction.",
+      "disposition": "Research only; do not substitute Muse Code for the named personal agent"
+    },
+    {
+      "id": "grok-bot",
+      "product": "Grok Bot",
+      "version_observed": null,
+      "primary_sources": [
+        "https://docs.x.ai/grok-bot/overview",
+        "https://docs.x.ai/grok-bot/skills-routines-and-automations",
+        "https://docs.x.ai/grok/connectors"
+      ],
+      "interfaces": "Official Bot docs describe persistent cloud computer and skills/routines. Grok custom-MCP docs exist, but a Bot-specific automated external reply/resume interface is not established by these pages.",
+      "continuation": "Bot skills/routines are documented; Connect task-specific programmatic wake remains unresolved.",
+      "credential_isolation": "Custom Grok MCP auth documented; Bot-specific task binding needs verification.",
+      "task_binding": "Unresolved; do not treat Grok API/Grok Build as Grok Bot.",
+      "install": "Requires owned account/cloud runtime; no change attempted.",
+      "license": "Proprietary host; no source extraction.",
+      "disposition": "Research only; not selected or supported"
+    },
+    {
+      "id": "muse-code",
+      "product": "Meta Muse Code (distinct additional candidate)",
+      "version_observed": null,
+      "primary_sources": [
+        "https://dev.meta.ai/docs/muse-code/extending"
+      ],
+      "interfaces": "Documented MCP transports, skill installation and headless execution.",
+      "continuation": "Needs exact durable session-resume qualification; not inferred from headless exec.",
+      "credential_isolation": "Environment interpolation in MCP configuration documented.",
+      "task_binding": "Requires packaged task/session mapping.",
+      "install": "Not installed or tested.",
+      "license": "No source extraction planned.",
+      "disposition": "Research only; distinct from Meta Muse personal agent"
+    }
+  ],
+  "vapi": {
+    "primary_source": "https://docs.vapi.ai/tools/mcp",
+    "verified_documentation": "Native MCP in chat and voice, Streamable HTTP, configured headers and call/chat correlation headers. Per-invocation MCP sessions require durable task binding outside transport.",
+    "authority": "Authenticate configured provider credential and resolve already verified server-side call/chat/task binding; header alone never grants authority.",
+    "qualification": "Actual endpoint and live chat/voice tool invocation remain G4-019\u2013022/034."
+  },
+  "limitations": [
+    "Research identifies interfaces, not installed host behavior.",
+    "Account-free offline tests cannot prove actual model-host/provider invocation.",
+    "Consumer-host custom connector and wake gaps are explicit unresolved observations."
+  ]
+}

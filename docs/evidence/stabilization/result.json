@@ -1,0 +1,402 @@
+{
+  "result": "passed",
+  "recorded_at": "2026-10-08T20:51:21.544364+00:00",
+  "scope": "Unpublished macOS arm64 developer alpha; Gate 1 local messaging and Gate 2 provider chat/telephone control",
+  "source_revision": "99e96851447bcfd6eb41c6a03f09b8c5f05a697c",
+  "schema": 6,
+  "database_changes": "None; existing installations and provider resources untouched",
+  "qualification": {
+    "phases": 20,
+    "workspace_tests_and_doctests": 77,
+    "upstream_tests": 941,
+    "typescript_fault_tests": 14,
+    "python_fault_tests": 8,
+    "installed_package_checks": 10,
+    "steps": [
+      {
+        "name": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.13,
+        "result": "passed"
+      },
+      {
+        "name": "format",
+        "exit_code": 0,
+        "seconds": 0.15,
+        "result": "passed"
+      },
+      {
+        "name": "lint",
+        "exit_code": 0,
+        "seconds": 0.39,
+        "result": "passed"
+      },
+      {
+        "name": "typescript-sdk-install",
+        "exit_code": 0,
+        "seconds": 0.65,
+        "result": "passed"
+      },
+      {
+        "name": "typescript-sdk-build",
+        "exit_code": 0,
+        "seconds": 0.89,
+        "result": "passed"
+      },
+      {
+        "name": "typescript-sdk-format",
+        "exit_code": 0,
+        "seconds": 0.38,
+        "result": "passed"
+      },
+      {
+        "name": "typescript-sdk-failures",
+        "exit_code": 0,
+        "seconds": 1.73,
+        "result": "passed"
+      },
+      {
+        "name": "python-sdk-failures",
+        "exit_code": 0,
+        "seconds": 2.02,
+        "result": "passed"
+      },
+      {
+        "name": "workspace",
+        "exit_code": 0,
+        "seconds": 13.19,
+        "result": "passed"
+      },
+      {
+        "name": "connector-example",
+        "exit_code": 0,
+        "seconds": 0.37,
+        "result": "passed"
+      },
+      {
+        "name": "upstream",
+        "exit_code": 0,
+        "seconds": 48.91,
+        "result": "passed"
+      },
+      {
+        "name": "dispatch",
+        "exit_code": 0,
+        "seconds": 1.86,
+        "result": "passed"
+      },
+      {
+        "name": "typescript-probe",
+        "exit_code": 0,
+        "seconds": 1.31,
+        "result": "passed"
+      },
+      {
+        "name": "datagram-probe",
+        "exit_code": 0,
+        "seconds": 1.0,
+        "result": "passed"
+      },
+      {
+        "name": "identity-process",
+        "exit_code": 0,
+        "seconds": 3.55,
+        "result": "passed"
+      },
+      {
+        "name": "recovery-process",
+        "exit_code": 0,
+        "seconds": 5.1,
+        "result": "passed"
+      },
+      {
+        "name": "crash-replay",
+        "exit_code": 0,
+        "seconds": 7.94,
+        "result": "passed"
+      },
+      {
+        "name": "examples",
+        "exit_code": 0,
+        "seconds": 9.17,
+        "result": "passed"
+      },
+      {
+        "name": "example-recovery",
+        "exit_code": 0,
+        "seconds": 13.32,
+        "result": "passed"
+      },
+      {
+        "name": "package",
+        "exit_code": 0,
+        "seconds": 45.2,
+        "result": "passed"
+      }
+    ]
+  },
+  "source_inputs": {
+    "crates/connect-client/Cargo.toml": "ad80b00c7bad85e0ab52ca5635961ba0963d9664ea39dd230320b8dddd7bbca9",
+    "crates/connect-client/src/client.rs": "fc8b01ed6ae123b835c7c4fe8fadc5a05f0362780436a939dcf55c3ec83d9d38",
+    "crates/connect-client/src/config.rs": "a53788e8d3522a5d2dcf01eba10890a87c82bb000d94069b5081862760482739",
+    "crates/connect-client/src/error.rs": "ec65443f0f0ff2f76b9834d468eb104979e7bc33f64e0599c193608541b7b1ab",
+    "crates/connect-client/src/lib.rs": "0f568006fba33be485e2467e3e59b2e92059336525053a04f2c309f0f9f857f3",
+    "crates/connect-client/src/operations.rs": "826684ef604fabd1d74311117046db3f5a282f9cbdeffb68484538692512529b",
+    "crates/connect-connector-api/Cargo.toml": "33b81516f3f1cdeb4d75b55cbca7833e6ff089daaa07edc2cf04ae16892dece8",
+    "crates/connect-connector-api/examples/echo.rs": "a5920585b660d1f1459bd7756b602f4faa4815d273ee5d74591c719d5fadf18d",
+    "crates/connect-connector-api/src/lib.rs": "8d29c06b8c7dcc859adb19fb4a7f5261466af03f92d1c97bf01af3ecb38632ce",
+    "crates/connect-connectors/Cargo.toml": "1ba4194f9cb88e9d23e26375a797e67069ab5b84d0da35468f7d6f4239adfa71",
+    "crates/connect-connectors/src/lib.rs": "b8419f59588b7a709e71c10c1e8305ebb588a4f93fc449aa5a8c2ffdbd9b6146",
+    "crates/connect-connectors/src/numbers.rs": "b01249d2f95850c8297ffe92b3a349537804795e995077169316eca9b8e09ad6",
+    "crates/connect-connectors/src/setup.rs": "51641b31e2b41a8a02d96aa3f558bb23fe7add1f0805bb8f82aa08b8d29a6910",
+    "crates/connect-connectors/src/voice.rs": "b40520fe86b37fc997b575f46117c36241f9fd6ced608b25146c6d5cde2ca6d2",
+    "crates/connect-connectors/src/voice_native_setup.rs": "d8bd8641ef6aa7346e3cee848729481331e30c41f2619bb07f4adc07c75189a1",
+    "crates/connect-connectors/src/voice_setup.rs": "856f4ff65bc6901f344cc24d3bf5b25cfe2b692f484dca57258e0b9a6301216a",
+    "crates/connect-connectors/tests/adapters.rs": "3b1aa711c3b90a5bc079ef55144ff3f02af7cddc9cc1d6406753ce358a259c96",
+    "crates/connect-connectors/tests/crypto_init.rs": "7475bd2f620c54b0a623a4fba4e1d6034d16861a615060834313cd087d60309c",
+    "crates/connect-connectors/tests/numbers.rs": "50e5f75132e328e995047854737ec0de91502af6173e8fd71c7bbd736c4769cc",
+    "crates/connect-connectors/tests/setup.rs": "a687d0f12da8324f74e33378a25384bd941206723632b30009d5e2b9449e8703",
+    "crates/connect-protocol/Cargo.toml": "e1543448c593f33b6966233a430a8aab6ab61e157226c3b1de7318b3733026a2",
+    "crates/connect-protocol/src/lib.rs": "840071aac1cf32d09882e177e34bba5fdd2a555a1c391eed661301405b725c05",
+    "crates/connect-server/Cargo.toml": "bff2e382aa6fed42fbb1c46f4a06b9c31b28a210e151e4a7f09b1119ec4f9355",
+    "crates/connect-server/examples/quic_audio.rs": "138ba867a3ffd5ea193d165272be29e50b36994a1288acd35eba76536551f0ec",
+    "crates/connect-server/examples/quic_dispatch.rs": "cc6004007927683d1b64c8aaf239cc8cef09901e54fdc9a677ded731fb2a11de",
+    "crates/connect-server/src/cli/credentials.rs": "bec920e714f4978cca942781c03b5fdbbae9231c22446cb19f94521b6919cd38",
+    "crates/connect-server/src/cli/demo.rs": "fee8fb661de42268c4264ab1de98c8456dafc2b5a202e496c9a5b5306231bc20",
+    "crates/connect-server/src/cli/init.rs": "16993e3147ae8602fbb9aa578b0022ba2d536087a2aace0a2aa9add9f7c85dfa",
+    "crates/connect-server/src/cli/mod.rs": "4549bc984d08f7254f165e7a0a352130545187a9e9c0e9d26fd38612bf74b1b9",
+    "crates/connect-server/src/cli/presence.rs": "0c0540e9a4242516d066ea9dbaa5a32829709273f8811ca546b906ffe97ec4c8",
+    "crates/connect-server/src/cli/recovery.rs": "69034c825e93a3bcdb6ee5f09f4d52cb70950eeb05f7234428a2dd7538b7b844",
+    "crates/connect-server/src/cli/stdio.rs": "7afa85a6d384e5dbe4fc52228dbfe453d3bf6be23a23ed05b3a2cb9ea8083bef",
+    "crates/connect-server/src/config.rs": "f77b37be5e75a54ef9f11435242b751caa27ff3db248929dab0f2df2e777f396",
+    "crates/connect-server/src/installation.rs": "1462c4d9c1cc490d07964a24edae5d6898dbe0a4a2df8f926b2e9d0b3bbfe9ee",
+    "crates/connect-server/src/lib.rs": "1b4f5cb8b33a14629b48150cfbef314293df142be183ec59a4729dfd802012d2",
+    "crates/connect-server/src/main.rs": "30e39154468671c63ebe2c6459e9cf2c4e31c506450d19bc636f4bc28dd56285",
+    "crates/connect-server/src/providers.rs": "dec05a8138586973aa6fa27df49163649bf6241455e686dbf528b515e57dbc7b",
+    "crates/connect-server/src/runtime.rs": "8a7b2bad6b2fc7b96524ba5f36d61ebd74cd5dd228a0a40a6351a5a2a2aea0f6",
+    "crates/connect-server/src/tls.rs": "892bf69c972b2c6ff670dd067c2f8711e5423c701e7a1b257d13a5acd86187e1",
+    "crates/connect-server/src/transports/http.rs": "703d671850514207944acf92f7c563a96a1fca3084bf1a69cf093b9f2bdf6182",
+    "crates/connect-server/src/transports/mod.rs": "2303ae47a3bc0f29174ff2e0155a4520466a7bbb9d4f683b1fc3086319169d42",
+    "crates/connect-server/src/transports/websocket.rs": "9d2999a7f7a790112bc6d2a8ac9cc3e78c6d9e2d16e30d2b2e49702c56ed8dfd",
+    "crates/connect-server/src/voice.rs": "e87380af6a667eea2e8d75a7bf2c4d5572983a6092f6a2b797f2dd336e59d8a2",
+    "crates/connect-server/src/worker.rs": "a69986dd2ee8cb5486f216aa50f51b6bb2e704f59f42261d6e878dfe5789ba81",
+    "crates/connect-server/tests/contract_fixtures.rs": "3711722f391417bd2168f7e646fb4474fb21050cd56ac6a41d95849b4f23fb0c",
+    "crates/connect-server/tests/language_sdks.rs": "a98d1a05ed5baeed2cbde6cd9c73fa35a289f845c515480bd903dd1dbaa12b75",
+    "crates/connect-server/tests/local_identity.rs": "8f850ad45daed51b9fe22b0c6b2bbf2cab7c344a8f4b1b5d819c6760a89f50c1",
+    "crates/connect-server/tests/maintenance.rs": "c638288727602a9b742b0d6fb97255fe0ae6eb8df0a442032ef45ce5009458f0",
+    "crates/connect-server/tests/native_messaging.rs": "cde1fb61d7462599dce9da728a1451cf01cf354c122059093c944bb459d3c7cc",
+    "crates/connect-server/tests/provider_flow.rs": "2aeaaef76b1854901595e372c6732879300f23a66ad83644d2d70ccb40e5717a",
+    "crates/connect-server/tests/sdk_facade.rs": "d1cc77492ceb4a64b537311de28646945c88864c6f3896efaf0f4e95589f9e7e",
+    "crates/connect-server/tests/support/mod.rs": "4c5c82075bce96717fc8666527839901859a0fc59d3e5cde645c85459724459f",
+    "crates/connect-server/tests/transport_parity.rs": "ce6b6f72820ce932de059bae1c9b218fd074ae4861680725f2cc63233aee6e80",
+    "crates/connect-server/tests/transport_pressure.rs": "d32af95b879839e414058ff4a0add11ac371d6400af2456b3b51a16accf56846",
+    "crates/connect-server/tests/voice_flow.rs": "48c83cf3ab8fee4a9cc18f1a504bda424c46a13ef677c00531ff5990d389fce1",
+    "crates/connect-service/Cargo.toml": "66b5b040dad6a51e645909743b2614ce697589f14e4861e1480abe91b313b4fc",
+    "crates/connect-service/src/lib.rs": "31b1547f8e81f50a5911ab5db251a6ad69b474cd43e86387b3359d255eb2c29f",
+    "crates/connect-store/Cargo.toml": "6b9ef39edc2e02be29ece4f71f8fe637a1580098df3f929b9485f8cf31fc88d4",
+    "crates/connect-store/migrations/001_identity.sql": "bd11f8ec5b0d82fa650709e6764c9b2f01e1bcf60e227c34b44f197d15143648",
+    "crates/connect-store/migrations/002_conversations.sql": "eca5b3ed85e145141c5208a99120f1f2f0b2998966fe8b1150777df0733047f2",
+    "crates/connect-store/migrations/003_providers.sql": "58801db0adadec9d847538b9b87176175112c871fbfa84207cdea1ccea949015",
+    "crates/connect-store/migrations/004_voice.sql": "ee787fd276f12b699b8ddb78637e34d639d6ccea6453e5e84d15c05e16364381",
+    "crates/connect-store/migrations/005_inbound_voice.sql": "4e101174fbbdd2519e7379b19c818a6c601b1207de66e6b307a1b252d370dccb",
+    "crates/connect-store/migrations/006_voice_recovery.sql": "b62f46801576589d779130e6cbaf558b3e7a3e64bfb614f0147aed0186b57415",
+    "crates/connect-store/src/conversations.rs": "d2fa2bdf87ac2af620a79debd4ba82cb81f8fdd9efcf6f79063e1b4b85279231",
+    "crates/connect-store/src/cursor.rs": "8e7fc2f0b8e58f29a28fef5f0276d32e2c672998a55a29ca7579eb3bd50575fd",
+    "crates/connect-store/src/identity.rs": "00fd81724cb241ec830622bf5d28324508671b7865dfa8c487019a1af54654f2",
+    "crates/connect-store/src/lib.rs": "f4b72008605ccc5ee0f0a75d475f88f7c5ea46c66fa876b3edea134a64132b45",
+    "crates/connect-store/src/providers.rs": "1009b7e45412b7524d9a8ee8dde4743c325bc9abfe6c641c2e5f6f4efc23848d",
+    "crates/connect-store/src/recovery.rs": "59d6089aa6c107d293b35212b225fc8f88ebe601771af6b1690a47d73b33237d",
+    "crates/connect-store/src/voice.rs": "1880344695c12de9af5afc8dbb3879795d83c12a1fd003eed990815707ba1544",
+    "crates/connect-store/tests/bounds.rs": "070c534de1c146fd034c419656d907c0f1f921f345c5dd1b4b82411ad2e9cde6",
+    "crates/connect-store/tests/conversations.rs": "89afa00216bbf3fa5d8654edcdd34e0ef8c3e21ea0714b50d275415829e58f32",
+    "crates/connect-store/tests/identity.rs": "534006956e38b7449bae205900702643129d40598a30d45c4659feeb93b134dc",
+    "crates/connect-store/tests/providers.rs": "c2f4ba249668003c17edd01faa938a86d9790c3482208c26c943392f5d512db1",
+    "crates/connect-store/tests/recovery.rs": "aba816b58de61005764a8f373368c61760694a7301b1660c815566bcb8e8d98d",
+    "crates/connect-store/tests/voice.rs": "7f31a11827bd12bb1d48eea0f6127e877a5a1cca3f8314d442ff39e6b02e36aa",
+    "examples/agent-presence/README.md": "b5d3ec8c549d6b0b1fd1cf6999b29f12933403c3df388b00cf754ee408fc05b5",
+    "examples/agent-presence/chat.mjs": "7f590687f87a67170c0b89311c888ae3f3d85e3e8f7835203681749e12dbcff3",
+    "examples/agent-presence/chat.py": "8010982cdc16174ae1f60f4483e66595bf45847698d26b5b344410a0225e658c",
+    "examples/agent-presence/voice.md": "744a9c1647837a139e86ef70d11ae5c3ee99a45a931f26ef5604d9d3b2dfd382",
+    "examples/agent-presence/voice.mjs": "1506205c5b998e60a959830f176943c71ccb10263f2e8f78b59b8a99515db3c5",
+    "examples/agent-presence/voice.py": "9d687ce3450795e444740d320be6826fc41898e0ae319410559fe43007e53292",
+    "examples/review-loop/Cargo.toml": "47ddba13323a584735e44b97d36084efd9d634e813fca3d04f242c951c8a4d03",
+    "examples/review-loop/README.md": "94257baba3d796ee58a313ca7c8c6dfbffe424cca79e58fd655f14286767874b",
+    "examples/review-loop/src/lib.rs": "b7f0a2987ee08d02fdef47b7e1ce4e6484e9b81a975d04e30dd83f7eaaa66e38",
+    "examples/review-loop/src/main.rs": "c3c0fce4ec6dd920a2a2257a19ebbc4e1ae5709c49e8ae811b7bd191e599d6ae",
+    "examples/review-loop/src/store.rs": "0d13f28da78485b8279cdf385d21ccf31bfad0178b425650860f0442e11fc306",
+    "examples/review-loop/src/worker.rs": "a890b61e627d5535857a700265df4c822ab1e581266a8d564069ce421a888c38",
+    "scripts/check-baseline.sh": "8c804afb453cddedf8000889954a1b87e2cd9cf7ff6d5e726410359244bc0d59",
+    "scripts/check-crash-replay.py": "5677eb569edbba648a0786bc09b5af6992712ad21f67464a6964c2bb4c33a3b3",
+    "scripts/check-dispatch.py": "dacddec47ca0f2c75c0b4f0aee5ef98c40eafd3ccbee592794f5130877ef5230",
+    "scripts/check-example-recovery.py": "cc8fb03e030b347d49c5e4fad12dcdee772dc3f8a555f15ec9e7ae1725b93319",
+    "scripts/check-examples.py": "e5e8e6a1e24f30196d0c9148ef759c4ea3de58f4b8bb9db2ad9e5252e2cc787e",
+    "scripts/check-gate-2.sh": "e82f7430f6cffbc8c66dd3b055948b37ce85f0edcc101abf44412484332a3d82",
+    "scripts/check-identity.py": "e12849e0c0b0d28f786d19e139dc9b93a8fc2bfe0449600f0d89876b97efd582",
+    "scripts/check-local.py": "0ca4d16a7fffab2471b9172c222651e1dac769c733a0b87406c41d0fcda19a0f",
+    "scripts/check-local.sh": "026da3833a321e0dd4555e30dec1dadbe8dff4d2eb7f7d81263656ce5f6730c2",
+    "scripts/check-package.py": "967e076d711a3087b3bf3a409ae18f34a279e9e479033cb1dc02b6853b1b94ff",
+    "scripts/check-parley.py": "96653941ff436d649b285155944fdd6634c54201d0737dc81203ab6dcc93fd1f",
+    "scripts/check-recovery.py": "7601fe82fd2eb256402b15d75a1faaad87d8a4aa14569cb2e1559d9e93743d05",
+    "scripts/check-typescript.py": "1c01634ad766c13023fe26eb780f41eca7f9e1fe07fec957cb60fdc8466e74d3",
+    "scripts/format.sh": "042a2bd1d4e9777eaa98d50b55f62267849871b38817ad7fffcc56bd5cd3626f",
+    "scripts/lib/examples.py": "98e7284a6686c9ebbe8eca6a266e063d5358e4e980aa820e2c553300a8de4d5d",
+    "scripts/lib/local_process.py": "2313d246d3831b10bc3836437331c9a3948ac74a01f93d1e6860802081241739",
+    "scripts/package-local.py": "f5d59ce0cf488561e8f96c8bb26d60ea4399a6560936250a603d6ab0bd8f63fc",
+    "scripts/package-local.sh": "5f270a1d9583dd1445a3231443cce8f861a424cf41ab07d5aa12eab71aee8185",
+    "scripts/prepare-dependencies.py": "7df044be7510b3610b0c861425c5c6397e1b6fe2c29d7a94e04dfa973f0d3c78",
+    "scripts/prepare-dependencies.sh": "2667b4e62170a784963c2350f5f2c8752cd4e510e7824fdb3b4891c46a77f837",
+    "scripts/update-plan.py": "84bdd3b015bc6a07d17b327c4a41d7eb0276950ffc29c67d95db1544b3780417",
+    "patches/rvoip/connect-quic-application.patch": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+    "patches/rvoip/parley-conference.patch": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+    "dependencies/source-lock.json": "9acd76de94d62b8b69137e1b6e7310728728594df8a788d18ffc7f3f4c7b17a8",
+    "sdk/README.md": "bf6d5b1740edd48da4dfeacc52f46d7cea6227723beea81f3a2c61fb1ee55212",
+    "sdk/python/connect_sdk/__init__.py": "893899934bd3ed45f8c9301fe14bb06fe36439ee4038b02a24ca6a0024fb562f",
+    "sdk/python/connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "sdk/python/connect_sdk/http.py": "8cc5a4f6d8b8af1adddb866298a406fb6a45c2ef6455da4445363acf520d8c0e",
+    "sdk/python/connect_sdk/native.py": "0638c6d1eaef6c930dc42a9adf861c780a24356d08df77611c097e2e43904a59",
+    "sdk/python/connect_sdk/operations.py": "8aae2539d01a9ed60e7cffc7006189beaebbaa9c09c98b3e0a8500952c101c70",
+    "sdk/python/connect_sdk/protocol.py": "41ff1892003076a6bc30b83f3fa2ef28b96937ae209bf7dd1288717a92ad9ac4",
+    "sdk/python/pyproject.toml": "950c3119dfd3d8cfc37278a2bda67b6af26067791c93e4dd19c0190bf89fbfa0",
+    "sdk/tests/clients.test.mjs": "fe6f84004f8aa531d65acdf5be24e7802ff5cf582840a773960e5218c0d66dc0",
+    "sdk/tests/helper_fixture.py": "fb5d420919d039585829159bd424446d044593fe342c2547816252211689d3f9",
+    "sdk/tests/python_probe.py": "da63276d51b643b691ee9b1629a0d1316b08cd3a4baeccb7507779df7ad762ca",
+    "sdk/tests/test_clients.py": "36be55058e88e1b90c1fd18ae16ac1294c4e90f584cd4c9976fb3084c4ac1c81",
+    "sdk/tests/typescript_probe.mjs": "b6af8f2b572af8e788e6870ef99e3eaefff5ebf25d85a461b9dfcfa6fa3ee647",
+    "sdk/typescript/package-lock.json": "8e52b1bb5db8298622ff17cf4bcdb28e77e75884e8939eb569441c6819a18d99",
+    "sdk/typescript/package.json": "4576e8e7217b700c7f8ca3c7a9165e9f163910385d9b8c2adc3007de2931a6ac",
+    "sdk/typescript/src/errors.ts": "7f6121c802ee45623b3713b1d06ba66ac89a6af8305c6d0a7c1e69c88fed3319",
+    "sdk/typescript/src/http.ts": "161d2fc8749576a2871cf5780799aef3170f9c8e25c996195465aa687e386bea",
+    "sdk/typescript/src/index.ts": "35f3d59a32bb78398b9bc4e6fe84022d30838928d75607c4b6dbefa045895ca2",
+    "sdk/typescript/src/native.ts": "773543d6e8138aac88053bbbc8fd570b9010152674cc90d219e5c78372033c81",
+    "sdk/typescript/src/operations.ts": "05668dbf96139146b02846085b4d1bc262dea77b254fd86a9769e187b0cf62c3",
+    "sdk/typescript/src/protocol.ts": "8c55b3d6e8ea520b97fb03fc57881aeb4b03cfdbe97f3bfe4c3ecd016d6d9848",
+    "sdk/typescript/src/types.ts": "e6c83076f0135170963d1c36cdc82d1d0a1d4d98baeb39e62abb4be8e68858a9",
+    "sdk/typescript/tsconfig.json": "c747b6cc73c72063b636f1db4c636c61287cc77f7425ee13331ac571bce4d1f3",
+    "contracts/connect-control-v1.md": "0558ddebea27926c6421a6449ce22a2ea12368f23f1541669606ce79355333a2",
+    "contracts/fixtures/call_end.json": "43e196293c5904e7428c5a6a36c66ddaf6118ed13e0d95a8afa92b0d0e08fdfa",
+    "contracts/fixtures/call_start.json": "42a59e0ff94fe5cc5cdfe2b7037e7ae9e54d1e01a9e91278ba6371b3145fe037",
+    "contracts/fixtures/call_status.json": "5e28e65708fedbb2f3084f970caf8fa74462bbd1daebb96dfb3a1cd7db5ea13f",
+    "contracts/fixtures/close.json": "7f22e606585cd0db281fe7d7ab9da09f81e82822903d24b9d4fff1e32d02513f",
+    "contracts/fixtures/create.json": "f6f4008dbc618542243e65aadc6eb55d4f22d63913e088822c7229a0f1417e3f",
+    "contracts/fixtures/health.json": "0a7c15c0c7bfa7b8d073aa80a1a8b3585bee9ccefea5fa30222cf87168372539",
+    "contracts/fixtures/history.json": "0d7f02293a0965ba7fb6381bc83d469ea12b2a54377699edf2d72f26db630a32",
+    "contracts/fixtures/inbox.json": "7e8fafcfcfd4a04fc2d038bc1094dd4a33fd03e0b47020f69bf2dcc17222398f",
+    "contracts/fixtures/negative/call_end.json": "86d3328846915d31a4830154d5868842b6d8de6ccaf2f8330bbf99bed83b8271",
+    "contracts/fixtures/negative/call_start.json": "8e1e8237291756ded090a5df263ac8a7c10e320dde5d8cdb30eb82fcaad821b4",
+    "contracts/fixtures/negative/call_status.json": "3190ec83a51324f57b07685262865a40c584af63fc1fef7f55f58624ef341605",
+    "contracts/fixtures/negative/close.json": "2ca0f536e7aa0e6488cc3c54de920fa48d29d47a8869092f8987b286daee5852",
+    "contracts/fixtures/negative/create.json": "a74ef4f4d227ed6bc934c611afb717b59123f5a7c8632a21454aadcd021383a7",
+    "contracts/fixtures/negative/health.json": "01ae7836f9378660c820f105858b89ee9669560fc195db892e2399e0676aecec",
+    "contracts/fixtures/negative/history.json": "b14590a4fbd73c159ef6eaac5ea5ee11cdd7ae1d782a806cfba940253d48e9b9",
+    "contracts/fixtures/negative/inbox.json": "69c9ef84a0497ddc6ffbbd9da3e840212e1b879582597acb5a02d500eabfe20e",
+    "contracts/fixtures/negative/provider_status.json": "739f9a3d43cafde7554c0d406f2b4d2ca7b270ea8367741af55ede3561d7c4ee",
+    "contracts/fixtures/negative/request_status.json": "f9fda9501d545d7d5bbc11575f800946879303d53214cdbc9af9db6fb6482a42",
+    "contracts/fixtures/negative/resolve.json": "7f03e3b0afc50c463079411baa771770be5ad0d2dca45f090bcd9db8de3ad5f8",
+    "contracts/fixtures/negative/send.json": "0973b49f1d1024ee4d1ca3f4c8bb3507c4d5824f64cacd55446b67a0bf21075b",
+    "contracts/fixtures/provider_status.json": "075d9eff56d2635b115edafa73b30eaa5aed571215b6ecfa8cc8b85008ec6dce",
+    "contracts/fixtures/rejections.json": "37ecd76f9d514bd5dae4663cc41dad3c6cc462c0864b0c994afacebd72fbf016",
+    "contracts/fixtures/request_status.json": "2a086d42308858b16d1735975b96d2c098e05174750e335021ef0f99f1a768b3",
+    "contracts/fixtures/resolve.json": "392cbf79c8df2bfb41ee4de37bd5f797478667416afe3f51cbf9e5b8fba74134",
+    "contracts/fixtures/results/accepted.json": "31c593826f02bb7c81c5ffab403a91424d51fec977d90cfbf94826e7291f518b",
+    "contracts/fixtures/results/call.json": "54308611937c0925beeb7fb2baafdf138972da87dcfc16f2a59cd8bcfb483330",
+    "contracts/fixtures/results/conflict.json": "5d9fdda2635269153252672fd15121ec9ba6953720d64e315fbf4682211706a0",
+    "contracts/fixtures/results/conversation.json": "de3c25392d1f1a1331d27c439e31512cbfec115402ba89f1462f4e1c6d31b2bb",
+    "contracts/fixtures/results/health.json": "95d12217431539bb38082e45e719085cedd9eb3926968659ec23b7c37a644c09",
+    "contracts/fixtures/results/history.json": "88787a6b1f11e88945e0aa8f2fa3a25dce8c3817970027453221dd72e965ac29",
+    "contracts/fixtures/results/identity.json": "788b7c41dbb5b6dc4fd894695a035883a0e8a71eecfbc07cdf4d3f15767d9d2c",
+    "contracts/fixtures/results/inbound-call-event.json": "99bb72395dcb3bec74f69c368101d5839f4676610548ee6909e81a703624d32d",
+    "contracts/fixtures/results/inbox.json": "78ed54699eaa82450242657dbe8e4df918508048c13f3353d34f9248e05b4d3b",
+    "contracts/fixtures/results/provider_status.json": "e6c5ef69edb21bbfeea4bf42ef251a098d95518040183d6e037eebc0f7931ba1",
+    "contracts/fixtures/results/request-status.json": "33252d1a961870fdf787d20d2c85e0458c84a65cc6ead2167a4ef80782560d4a",
+    "contracts/fixtures/send.json": "a46a4c94921d38b89841fdf8a866f330a7d05b04954baf84c285cac8ef160127",
+    ".github/workflows/local-checks.yml": "4d6b5ad34ad9d67fa3425b33fb05ac1e71d8d03b583e5a4af8dff069db95d6a5",
+    "Cargo.toml": "3e7ad0b689ed76ebfd047c00ac27058e6a0d0e6dc59b81887149b71fb9b87bd3",
+    "Cargo.lock": "fe70d224e2bfd2208bfbe26ea4a1d39830bd5b764e772f22e05f3620cb3fcf81",
+    "rust-toolchain.toml": "559f488c181e0e9e77cf17c29de663977f036ec7ff2e2060585714bf53c52d62"
+  },
+  "private_report_sha256": "3b610bcd3fa983e57a1be233b61761994365b4600c9c56b162cd769e912e2da1",
+  "package": {
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117",
+    "source_revision": "85cfc4acf117e5439722cea425cb6f212565c7ce",
+    "result": "passed",
+    "archives": {
+      "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117-qualification.tar.gz": "c83145a887660520351ad927779398ab806bdf71ed418da23aa4a565b310d3f6",
+      "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117-source.tar.gz": "b492fed641c1b87f4babe7319d0e86cc4b17991743ed2403b54f3d5cf41840c7",
+      "connect-0.1.0-alpha.1-macos-arm64-85cfc4acf117.tar.gz": "ac878250f10c2b3600d075ae0d0341d04882c0fd09dd7b96789bc2526b1d5275"
+    },
+    "checks": {
+      "archive-checksums": {
+        "result": "passed",
+        "detail": "All three archives match SHA256SUMS"
+      },
+      "inventory": {
+        "result": "passed",
+        "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+      },
+      "sdk-source-build": {
+        "result": "passed",
+        "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+      },
+      "installed-walkthrough": {
+        "result": "passed",
+        "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+      },
+      "restart-shutdown": {
+        "result": "passed",
+        "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+      },
+      "installed-language-sdks": {
+        "result": "passed",
+        "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior"
+      },
+      "check-examples.py": {
+        "result": "passed",
+        "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+      },
+      "check-recovery.py": {
+        "result": "passed",
+        "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+      },
+      "check-crash-replay.py": {
+        "result": "passed",
+        "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+      },
+      "check-example-recovery.py": {
+        "result": "passed",
+        "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+      }
+    },
+    "relationship_to_full_run": "Documentation-only revision; all implementation, contract, SDK and CI input hashes match the full 20-phase run."
+  },
+  "review": {
+    "type": "Code self-review; not an independent security audit",
+    "resolved": [
+      "Partial-response Python deadlines and helper reaping",
+      "Worker returned errors, panics, stalled siblings and cancellation cleanup",
+      "Modular validated Python and typed TypeScript SDKs",
+      "Storage-independent connector interface and compiled example",
+      "Complete twelve-operation wire contract and cross-language result fixtures",
+      "CI/contributor documentation and aligned live evidence"
+    ],
+    "no_additional_blocking_findings": true,
+    "ci": "Workflow configured; hosted run not performed before push",
+    "current_schema_ci_recovery_mode": "Separately passed with archived-binary exclusion explicit",
+    "connector_normal_dependencies": "async-trait only; no database/server dependency",
+    "visual_preview": "HTML structure and local links checked; browser file preview unavailable",
+    "credential_hygiene": {
+      "tracked_files": 261,
+      "available_provider_keys_compared": 2,
+      "matches": 0,
+      "package_private_state_inventory": "passed"
+    }
+  },
+  "live_evidence": "../gate-2/completion-live.json",
+  "live_retest_this_pass": false,
+  "limits": [
+    "Live SMS deferred pending approval",
+    "Direct handset\u2013Telnyx\u2013Vapi audio qualified; Connect-carried SIP/WebSocket media bridge not implemented",
+    "Native QUIC assistant media and browser WebRTC remain Gate 3",
+    "Dynamic presence remains B-001",
+    "No remote deployment, package publication, hosted CI result or independent audit claimed"
+  ]
+}
