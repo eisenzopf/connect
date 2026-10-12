@@ -69,10 +69,13 @@
       "gate_4_criteria": [
         "A4-08"
       ],
-      "gate_4_progress": "Native task client/CLI components and final installed package checks pass. Current full baseline regression remains in progress.",
+      "gate_4_progress": "Rust native SDK/CLI, optional task client, full current regression and extracted installed macOS arm64 candidate are qualified; broader release packaging remains Gate 5.",
       "component_evidence": [
         "evidence/gate-4/native-public-interface-audit.json",
-        "evidence/gate-4/package-7edb1b1.json"
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ]
     },
     {
@@ -98,10 +101,13 @@
       "gate_4_criteria": [
         "A4-08"
       ],
-      "gate_4_progress": "Task parity across native Python/TypeScript helpers, HTTP and JSON CLI is qualified, including final installed SDK checks. Current full baseline regression remains in progress.",
+      "gate_4_progress": "Python/TypeScript native Rust-helper clients, HTTP and JSON CLI task/ordinary operation parity and installed source rebuilds pass. The Rust helper is explicit; HTTP/WebSocket facades are not labelled native QUIC.",
       "component_evidence": [
         "evidence/gate-4/language-task-parity-audit.json",
-        "evidence/gate-4/package-7edb1b1.json"
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ]
     },
     {
@@ -123,7 +129,7 @@
       "id": "F-06",
       "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
       "delivery_gate": "2 local and live qualified",
-      "status": "Reviewed enrollment and signed callbacks are enforced. Gate 4 live task/SMS proof includes HELP, STOP cancellation of queued intent, blocked new send and replay, START without revival, and one new eligible delivered message. Final integrated candidate acceptance remains in progress.",
+      "status": "Reviewed enrollment and signed callbacks are enforced. Historical actual handset HELP/STOP/START proves suppression, queued cancellation, blocked replay and START without revival. Current local Gate 4 eligibility/dispatch tests and integrated acceptance pass; provider proof retains its actual source.",
       "required_evidence": "Approval/number readiness, consented handset and signed live callback",
       "v0_1_required": true,
       "milestones": [
@@ -140,13 +146,16 @@
         "A4-06",
         "A4-12"
       ],
-      "gate_4_progress": "Task-aware eligibility, signed callbacks and actual authorized handset HELP/STOP/START checks pass; new eligible delivery never revives cancelled intent.",
+      "gate_4_progress": "Task-aware SMS eligibility and suppression are qualified locally at the current source; retained live reviewed handset proof remains9abf38f, with actual continuity at596e9b7.",
       "component_evidence": [
         "evidence/gate-4/task-dispatch-audit.json",
         "evidence/gate-4/sms-callback-journey.json",
         "evidence/gate-4/voice-sms-continuity.json",
         "evidence/gate-4/sms-0737-rehearsal.json",
-        "evidence/gate-4/live-voice-continuity.json"
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ]
     },
     {
@@ -198,7 +207,7 @@
       "id": "F-09",
       "required_capability": "Vapi invokes authorized Connect MCP tools in chat and voice",
       "delivery_gate": 4,
-      "status": "Protected Vapi chat/voice MCP composition, independently verified task binding, source recall and restart continuation are implemented and demonstrated with the actual provider/model. Normal installed 596e9b7 carries native UCTP/QUIC voice through Connect; a later chat sends one sourced SMS on the same task and conversation.",
+      "status": "Protected Vapi chat/voice scoped MCP composition, independent task/resource binding and source-backed continuation are qualified. Fresh dc73996 text invokes3 successful tools with no errors; retained596e9b7 Connect-carried UCTP/QUIC voice and chat/SMS keep their exact source.",
       "required_evidence": "Tool/result/conversation correlation on both paths",
       "v0_1_required": true,
       "milestones": [
@@ -215,14 +224,19 @@
       ],
       "component_evidence": [
         "evidence/gate-4/vapi-setup-restart.json",
-        "evidence/gate-4/vapi-continuation-audit.json"
-      ]
+        "evidence/gate-4/vapi-continuation-audit.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
+      ],
+      "gate_4_progress": "Fresh current shared-handler Vapi chat and historical actual Connect-carried voice satisfy both required paths within the explicit source-composition boundary."
     },
     {
       "id": "F-10",
       "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
       "delivery_gate": 4,
-      "status": "Codex CLI is the selected additional host. Supplied MCP/skill installation, protected renewal, exact-session resume and actual-model draft/artifact and incoming-contact journeys pass on final installed 7edb1b1. All 17 installed checks pass; full baseline and final acceptance reconciliation remain open.",
+      "status": "Codex CLI is the selected additional host. Current dc73996 normal-key MCP/skill installation, actual-model artifacts/reply/restart and independent incoming contact pass; one key serves two authorized conversations with no task grant renewal. Optional scoped installation and its historical proofs remain supported.",
       "required_evidence": "Human reply reaches originating task; documented installation and resumption",
       "v0_1_required": true,
       "milestones": [
@@ -246,9 +260,13 @@
         "evidence/gate-4/real-model-draft-7edb1b1.json",
         "evidence/gate-4/real-model-incoming-7edb1b1.json",
         "evidence/gate-4/reply-reference-repair.json",
-        "evidence/gate-4/package-7edb1b1.json"
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ],
-      "gate_4_progress": "Actual-model draft/reply/restart and incoming-contact journeys pass on the installed candidate. Explicit session resume, current narrow grants and returned journal reply IDs are documented."
+      "gate_4_progress": "Explicit exact saved-session resume is qualified; normal grants are regular communication credentials. A separate always-running scheduler or automatic model wake is not claimed."
     },
     {
       "id": "F-11",
@@ -342,7 +360,7 @@
       "id": "F-15",
       "required_capability": "Cross-channel conversation continuity and explicit assistant context transfer",
       "delivery_gate": "3 continuity / 4 task continuation",
-      "status": "Gate 3 retained context remains qualified. Gate 4 adds task-correlated bounded source recall and actual voice-to-message decision continuity after restart, including explicit incomplete transcript reporting. Final integrated acceptance remains in progress.",
+      "status": "Conversation-level continuity and bounded source recall are qualified. Historical actual voice decisions and post-restart chat/SMS plus current normal agent and scoped Vapi text preserve sources, artifacts, task/effect attribution and explicit incomplete transcript state.",
       "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; preserve verified live HELP/STOP/START enforcement in task-driven dispatch.",
       "v0_1_required": true,
       "milestones": [
@@ -369,11 +387,16 @@
         "A4-10",
         "A4-12"
       ],
-      "gate_4_progress": "Actual UCTP/QUIC voice through Connect, Vapi MCP recall, retained sourced decisions and post-restart chat/SMS pass on the original task and conversation. Final source and full-suite reconciliation remain open.",
+      "gate_4_progress": "Same authorized conversation context is shared across permitted channels and optional owned tasks; session ends do not create a new conversation. New conversation boundaries remain explicit developer choice.",
       "component_evidence": [
         "evidence/gate-4/voice-sms-continuity.json",
         "evidence/gate-4/vapi-continuation-audit.json",
-        "evidence/gate-4/live-voice-continuity.json"
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ]
     },
     {
@@ -464,7 +487,7 @@
         "A4-13",
         "A4-14"
       ],
-      "gate_4_progress": "Operating profiles retain their recorded evidence, including 10,000 voice setups. Final installed package passes; the corrected complete baseline rerun and current profile reconciliation remain in progress.",
+      "gate_4_progress": "All required current operating/recovery profiles and installed checks pass with sampled local limits, including retained10000-setup evidence and its current counterpart. Full cross-platform/provider release envelope remains Gate 5.",
       "component_evidence": [
         "evidence/gate-4/task-operating-profile.json",
         "evidence/gate-4/host-concurrency.json",
@@ -473,14 +496,17 @@
         "evidence/gate-4/grant-lifecycle-load.json",
         "evidence/gate-4/artifact-retention-load.json",
         "evidence/gate-4/voice-retirement-load.json",
-        "evidence/gate-4/package-7edb1b1.json"
+        "evidence/gate-4/package-7edb1b1.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ]
     },
     {
       "id": "F-20",
       "required_capability": "Scoped authority across files, media, tools and app actions",
       "delivery_gate": "See milestone assignments",
-      "status": "Gate 4 implements the frozen task/invocation/reply/recall authority decisions and mapped T-A1\u2013T-A8 behavior checks. Actual model/provider journeys now have evidence; final current-source regression and package reconciliation remain in progress.",
+      "status": "Current regular non-admin identity credentials enforce configured operations, membership, expiry, revocation and reviewed SMS rules. Optional task/grant mode preserves mapped T-A1\u2013T-A8 authority checks; configured agents act without per-action approval prompts.",
       "required_evidence": "Enforce current authorization and revocation on all added operations. Prevent cross-task/context leakage, spoofed caller authority and unauthorized file access; no per-action permission console.",
       "v0_1_required": true,
       "milestones": [
@@ -513,19 +539,23 @@
         "A4-06",
         "A4-13"
       ],
-      "gate_4_progress": "Task authority, reply isolation, current replay checks and autonomous configured cancellation have local component proof. T-A1\u2013T-A8 integrated reconciliation remains open.",
+      "gate_4_progress": "Current authority matrix and normal-key owner/replay/expiry tests pass; narrow grants remain optional and independently qualified. Tasks track work rather than requiring a new communication credential each time.",
       "component_evidence": [
         "evidence/gate-4/task-authority-audit.json",
         "evidence/gate-4/reply-inbox-recovery.json",
         "evidence/gate-4/task-dispatch-audit.json",
-        "evidence/gate-4/authority-matrix.json"
+        "evidence/gate-4/authority-matrix.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ]
     },
     {
       "id": "F-21",
       "required_capability": "Two complete first-run journeys",
       "delivery_gate": "See milestone assignments",
-      "status": "Independent public-SDK app and selected assistant both initiate work and answer incoming contact, preserving artifacts and effect identity across restart. Actual voice/chat/SMS follow-through is evidenced. Final candidate review remains in progress.",
+      "status": "The selected agent and independent SDK app initiate and answer incoming work, preserving artifacts, source attribution and one logical effect across restart. Current normal model and installed app pass; historical actual voice/chat/SMS retain their source.",
       "required_evidence": "A new developer completes both give-an-agent-presence and make-an-app-reachable, including independently initiated communication, artifact/reply handling and restart. Measure setup usability.",
       "v0_1_required": true,
       "milestones": [
@@ -543,14 +573,18 @@
         "A4-11",
         "A4-14"
       ],
-      "gate_4_progress": "Both directions have actual-model and independent app evidence, including artifacts and replay-safe effects. Final gate reconciliation remains open; complete first-run usability is Gate 5 scope.",
+      "gate_4_progress": "Gate 4 follow-through is complete locally within declared host/provider boundaries. Complete fresh-user first-run UX and measured ten-minute promise remain Gate 5 scope.",
       "component_evidence": [
         "evidence/gate-4/agent-incoming-example.json",
         "evidence/gate-4/codex-draft-journey.json",
         "evidence/gate-4/connected-app-artifacts.json",
         "evidence/gate-4/real-model-draft-7edb1b1.json",
         "evidence/gate-4/real-model-incoming-7edb1b1.json",
-        "evidence/gate-4/live-voice-continuity.json"
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ]
     }
   ],
@@ -563,7 +597,7 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "Gates 1\u20133 retain recorded qualification. Pre-Gate 4 repairs and live SMS conversation, recall and HELP/STOP/START are closed within recorded limits. Gate 4 implementation is in progress under its 36-item plan and 14 acceptance criteria; component evidence does not close whole-gate acceptance. Gate 5 full v0.1 remains planned.",
+  "assignment_status": "Gates 1\u20134 retain qualified local/source-specific evidence. Gate 4 is complete under 36 implementation items and 14 required criteria, including the normal identity-key default and optional scoped tasks. Gate 5 full v0.1 remains planned.",
   "gate_3_acceptance": "gate-3-acceptance.json",
   "gate_4_acceptance": "gate-4-acceptance.json"
 }

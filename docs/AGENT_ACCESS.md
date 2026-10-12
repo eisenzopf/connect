@@ -14,10 +14,11 @@ artifacts and questions, then resumes the exact host session after server
 restart to handle a tracked reply and an independent incoming contact. The
 immutable first/resume transcripts contain 30 successful tool calls and zero
 failed calls. A separate public-SDK observer was corrected without new inference
-or answer injection; its original failed reports remain failed. Full current
-regression and whole-Gate 4 acceptance remain in progress in the
-[numbered plan](connect-gate-4-implementation.html). Earlier scoped/provider
-reports retain their own source and scope.
+or answer injection; its original failed reports remain failed. The
+[Gate 4 review](evidence/gate-4/acceptance.html) records completed local
+qualification and the [numbered plan](connect-gate-4-implementation.html)
+links each requirement to its evidence. Earlier scoped/provider reports retain
+their own source and scope. Complete v0.1 and publication remain in the roadmap.
 
 ## Set up the identity once
 

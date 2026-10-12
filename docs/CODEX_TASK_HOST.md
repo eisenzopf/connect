@@ -23,8 +23,10 @@ new inference or answer injection; failed observer reports remain failed.
 The archived [scoped draft journey](evidence/gate-4/real-model-draft-7edb1b1.json)
 and [scoped incoming-contact journey](evidence/gate-4/real-model-incoming-7edb1b1.json)
 retain their earlier `7edb1b1` source. The
-[implementation plan](connect-gate-4-implementation.html) tracks the current
-full regression and whole-Gate 4 acceptance, which remain in progress.
+[Gate 4 review](evidence/gate-4/acceptance.html) records the completed local
+qualification. The [implementation plan](connect-gate-4-implementation.html)
+links the current host, package, regression and model evidence without replacing
+those archived reports. Complete v0.1 and publication remain later roadmap work.
 
 ## Optional narrow-task installation
 

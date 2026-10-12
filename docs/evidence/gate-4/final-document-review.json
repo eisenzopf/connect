@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T16:02:11.700040+00:00",
+  "status": "passed documentation/closure consistency verification",
+  "implementation_items": 36,
+  "acceptance_criteria": 14,
+  "required_feature_commitments_preserved": 21,
+  "approved_acceptance_requirements_unchanged": true,
+  "rich_html_pages": 28,
+  "relative_links_anchors_checked": 2008,
+  "inline_javascript_syntax_checks": 6,
+  "runtime_source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+  "unchanged_non_README_inputs": 838,
+  "current_source_and_documentation_difference": "README and docs status/review updates only",
+  "evidence_reference_rule": "Every done item has owner, existing evidence and completed dependencies; stable IDs preserved",
+  "visual_preview": "not performed; local file navigation policy blocked earlier browser preview",
+  "publication_scope": "unpublished local macOS arm64 alpha for owner review; Gate 5 remains planned"
+}

@@ -11,8 +11,10 @@ credential](AGENT_ACCESS.md) across authorized conversations, with optional task
 tracking. [Scoped task installation](TASK_ACCESS.md) remains available for a
 narrow delegation. The [dc73996 candidate](evidence/gate-4/package-dc73996.json)
 passes all 17 required installed checks, with no failures or omissions. Earlier
-package reports retain their recorded scoped-mode sources. Current full
-regression and whole-Gate 4 acceptance remain in progress.
+package reports retain their recorded scoped-mode sources. The
+[Gate 4 review](evidence/gate-4/acceptance.html) records completed local
+qualification and the evidence limits for owner review. This remains an
+unpublished review candidate.
 
 ## Verify and install
 
@@ -89,12 +91,24 @@ failures. It retains the optional provider-bound mode. Historical
 [scoped Codex draft/reply](evidence/gate-4/real-model-draft-7edb1b1.json) and
 [incoming-contact](evidence/gate-4/real-model-incoming-7edb1b1.json) reports remain
 archived at `7edb1b1`; they do not substitute for the new regular-key proof. The
-[implementation plan](connect-gate-4-implementation.html#G4-033) tracks the
-still-running full regression and whole-Gate 4 acceptance review.
+[implementation plan](connect-gate-4-implementation.html#G4-033) and
+[Gate 4 review](evidence/gate-4/acceptance.html) link the completed local
+qualification: 41 required source-stable offline phases, 17 installed checks,
+and separately recorded actual model/provider behavior. The complete run starts
+from a fresh clean `dc73996` checkout with independent pinned dependency sources
+and 839 unchanged runtime/test inputs. Verified generated build caches and
+historical baseline artifacts are reused without sharing application state.
+The earlier `9546c6` documentation-only dirty run remains a retained partial
+attempt; it does not stand in for this fresh complete run. Historical live
+voice/SMS reports retain their own recorded versions.
 
 Archive documents reflect the source checkpoint at packaging time. Later
 progress and review documents live in the repository; they do not change the
 archives or their recorded hashes. This candidate remains unpublished.
+The [full product roadmap](connect-roadmap.html) keeps video, the complete
+connector kit, independent protocol conformance, first-run/resource setup,
+the complete human reference client, broader platform qualification and
+owner-reviewed v0.1 publication in Gate 5.
 
 The runtime carries [task contracts](../contracts/connect-task-v1.md),
 [protected grant setup](TASK_ACCESS.md), the [workflow skill](../skills/connect/SKILL.md)
@@ -192,8 +206,10 @@ durable Vapi task-session setup bindings. Older task-linked legs receive an
 unknown-intent marker and must continue with a new voice leg on the same task
 and conversation. This preserves their history without guessing lost setup
 credentials. The [schema-16 dc73996 candidate](evidence/gate-4/package-dc73996.json)
-passes installed walkthrough, Vapi host, SDK and recovery checks. Whole Gate 4
-acceptance remains open. Check the installed manifest for its exact source and
+passes installed walkthrough, Vapi host, SDK and recovery checks. The
+[Gate 4 review](evidence/gate-4/acceptance.html) links the completed historical
+executable recovery and current backup/restore qualification. Check the installed
+manifest for its exact source and
 schema; older Gate 3 archives use schema 10. A live Session becomes
 interrupted across restart; Connect preserves durable intent and never claims a
 socket or media pump survived. Roll back by restoring the matching pre-upgrade

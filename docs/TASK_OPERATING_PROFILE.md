@@ -22,9 +22,10 @@ retains its original measured source and workload.
 
 The [dc73996 package](evidence/gate-4/package-dc73996.json) passes all 17 installed
 checks. The [normal-agent actual-model proof](evidence/gate-4/real-model-agent-dc73996.json)
-qualifies the reusable-key experience separately from scripted profiles. Current
-full regression and whole-Gate 4 acceptance remain in progress; those passes do
-not relabel an earlier failed run or qualify every operating phase automatically.
+qualifies the reusable-key experience separately from scripted profiles. The
+[Gate 4 review](evidence/gate-4/acceptance.html) records completed local
+qualification, including the required operating phases. Earlier failed runs
+remain failed; each component report retains its original measured source.
 
 ## Run the profile
 
@@ -103,7 +104,9 @@ The relevant implementation is [setup binding](../crates/connect-store/src/tasks
 The [restart repair audit](evidence/gate-4/vapi-setup-restart.json) qualifies
 migration, rollback, exact-intent admission, concurrent registration, restart
 denial and same-task continuation: 211 Store and 32 Vapi/parity checks pass, with
-strict workspace lint and Rustdoc. Repeated retirement is now qualified by the profile below; full current-source and whole-item qualification remain open.
+strict workspace lint and Rustdoc. Repeated retirement is qualified by the
+profile below; completed current-source qualification is recorded separately in
+the [Gate 4 review](evidence/gate-4/acceptance.html).
 
 The full retirement profile is now available as a separately bounded check:
 
@@ -144,8 +147,9 @@ reset as an immediate failure. The final observer waits for declared expiry,
 treats reset as pending and requires refusal before recording retirement,
 within the unchanged deadline. Two Rust observer controls, 41 Python verifier
 checks, dependency preparation, formatting and strict workspace Clippy pass.
-This component result does not complete the full runner, installed candidate,
-provider/model acceptance or G4-030's prerequisite items.
+This component result alone does not establish full-runner, installed-candidate
+or provider/model acceptance. The current qualification below links those
+separate evidence layers.
 
 ## Sixteen concurrent assistant hosts
 
@@ -380,8 +384,8 @@ retention phase during CLI initialization at the existing 15-second deadline.
 A read-only startup diagnostic and the unchanged profile then passed; neither
 binary nor timeout changed. The initial failure remains recorded and its cause
 is unresolved. The older full-run and installed-package results predate this
-production change, so current full regression and package qualification remain
-required.
+production change and remain historical. Current full regression and package
+qualification are recorded separately below.
 
 ## Current qualification and operation
 
@@ -432,7 +436,15 @@ The [fresh Vapi text proof](evidence/gate-4/actual-vapi-chat-dc73996.json) verif
 current shared MCP instructions/handlers and source-backed model work in the
 optional provider-bound mode. The earlier `7edb1b1` package/model reports remain
 archived scoped-mode evidence; historical live voice/SMS retains its own source.
-The current complete offline runner and whole-Gate 4 acceptance remain in progress.
+The [Gate 4 review](evidence/gate-4/acceptance.html) records all 41 required
+offline phases from a fresh clean `dc73996` checkout, plus the separately
+qualified package/model/provider evidence. All 839 recorded inputs stayed
+unchanged throughout that clean run. The final README status and guide updates
+are documentation; the other 838 recorded inputs still match the frozen source.
+Independent pinned dependency preparation and reuse of verified generated
+Cargo/baseline caches are recorded. The prior `9546c6` partial run
+preserves its documentation-only `dirty=true` provenance and actual interruption;
+its unfinished phases are not counted as passes.
 
 A fresh macOS executable can pause before application initialization. The
 [startup diagnosis](evidence/gate-4/candidate-startup-diagnosis.json) records

@@ -1,143 +1,547 @@
 {
   "schema": 1,
-  "recorded_at": "2026-10-12T09:26:20.357594+00:00",
-  "status": "source composition reviewed; current regression and final integration pending",
-  "scope": "Read-only Git/tree, artifact digest and recorded behavior review; local macOS arm64 only.",
+  "recorded_at": "2026-10-12T15:54:29.459476+00:00",
+  "status": "completed current-source package, model, provider-component and clean fresh offline reconciliation",
+  "whole_gate_closure_claimed": false,
+  "scope": "Local macOS arm64 source/evidence composition; no remote Connect deployment or public release.",
   "revisions": {
-    "sms_rehearsal": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
-    "live_voice_chat": "596e9b7c83d087db89dc49f92df5137638798ede",
-    "current_offline_baseline": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
-    "installed_candidate": "7edb1b1487d0aef765f89792b4244a0d0418e4ea"
+    "frozen_runtime_and_package": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "fresh_complete_offline_source": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "historical_voice_chat": "596e9b7c83d087db89dc49f92df5137638798ede",
+    "historical_signed_sms": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+    "reviewed_repository_documentation_parent": "65e7fb9d43650f5dad04ec83ab668853a0232ed8"
   },
-  "evidence": {
-    "sms": "docs/evidence/gate-4/sms-0737-rehearsal.json",
-    "voice_chat": "docs/evidence/gate-4/live-voice-continuity.json",
-    "codex_draft": "docs/evidence/gate-4/real-model-draft-7edb1b1.json",
-    "codex_incoming": "docs/evidence/gate-4/real-model-incoming-7edb1b1.json",
-    "installed_package": "docs/evidence/gate-4/package-7edb1b1.json",
-    "historical_fresh_checkout": "docs/evidence/gate-4/offline-3a272c9.json"
+  "previous_checkpoint": {
+    "planned_archive": "docs/evidence/gate-4/final-source-composition-before-identity.json",
+    "original_current_path": "docs/evidence/gate-4/final-source-composition.json",
+    "sha256": "fa808e8d0dd3aa04bf91eabd8c94c80a8f4a7a5259526023e43606f7b854ba72",
+    "boundary": "Literal copy of the prior 5d/7ed scoped-mode review; its pending results and decision010 amendment remain unchanged, not promoted into final default-mode proof."
   },
-  "runtime_deltas": {
-    "sms_to_voice": {
-      "files": [
-        "crates/connect-server/src/vapi_bootstrap/call.rs",
-        "crates/connect-server/src/vapi_bootstrap/call_failure.rs",
-        "crates/connect-server/src/vapi_bootstrap/mod.rs",
-        "crates/connect-server/src/vapi_media.rs"
-      ],
-      "review": "Voice setup failures acquire closed CallStage diagnostics and media logging. Existing validation, authorization rechecks, five-second lookup timeout, intent staging and dispatch remain unchanged. SMS, consent, suppression and task Store/Service code are identical."
+  "current_runtime_qualification": {
+    "package_evidence": "docs/evidence/gate-4/package-dc73996.json",
+    "package_evidence_sha256": "21741c5aa465c0e46098bbfa716e87da44439b36f98753eecadc7f225549fc32",
+    "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "binary_sha256": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+    "runtime_manifest_sha256": "15485b312ad2b6b5a84c15fcb01c3db3fb4556c75e07cb827333e30d936c31ff",
+    "private_installed_report_sha256": "e7f11d3a886cf8b811f02779b6defbab2ad6bac0a12942d2a3a92b826660083a",
+    "required_installed_checks": {
+      "passed": 17,
+      "failed": 0,
+      "omitted": 0
     },
-    "voice_to_current_baseline": {
-      "files": [],
-      "review": "No production Rust changes. The independent chat-rehearsal fixture closes an idle owner and reconnects through ConnectClient before task cancellation; documentation/evidence also changed."
+    "source_archive_sha256": "d6cea861ea0651241e7687d4de123cc36075462606e9199f952a17be606403fe",
+    "actual_normal_agent": {
+      "evidence": "docs/evidence/gate-4/real-model-agent-dc73996.json",
+      "evidence_sha256": "f49a0ea62222772b9a32dac757684fb778b08ee6e61dc2fd6223633a6cdf4a18",
+      "actual_model_tool_calls_passed": 30,
+      "actual_model_tool_calls_failed": 0,
+      "one_regular_key_two_authorized_conversations": true,
+      "exact_session_resume_after_restart": true,
+      "original_model_transcripts_reused_by_corrected_independent_observer": true,
+      "observer_new_inference_runs": 0,
+      "observer_new_answer_or_source_injection": false,
+      "original_failed_observers_remain_failed": true,
+      "reply_to_boundary": "Authorizes/correlates a tracked follow-up without implicit inbox consumption. Explicit consume_reply remains a separate native command."
     },
-    "current_baseline_to_package": {
-      "files": [
-        "crates/connect-mcp/src/schemas.rs"
-      ],
-      "review": "Only connect_send.reply_to input description changes. Validation, command generation, dispatch, current authority, Store and protocol behavior are unchanged. The package branch predates the main chat-fixture reconnect, which the final union preserves.",
-      "non_runtime_changes": [
-        "A real-server MCP reply reference regression rejects message, source and outer task event IDs without creating effects, then proves exact replay with the correct received journal event ID.",
-        "Shipped skill and contract describe the distinct reply and citation ID classes.",
-        "Installation checker measures initial --version within 180 seconds under owned-process supervision; existing application and protocol budgets remain unchanged.",
-        "Local release guide documents initial launch; root will correct causal security wording in comments/documentation without changing executable code."
-      ]
+    "actual_current_vapi_text": {
+      "evidence": "docs/evidence/gate-4/actual-vapi-chat-dc73996.json",
+      "evidence_sha256": "fa4152cea3ee238508bd2afabb4edb1572b01cc10c02f1bc02bd087ba102f469",
+      "tool_calls_passed": 3,
+      "tool_calls_failed": 0,
+      "discovered_tools": 7,
+      "mode": "Optional verified provider-bound scoped MCP; not the regular identity mode.",
+      "source_recall_and_one_visible_native_effect": true,
+      "temporary_verified_resources_removed_originals_preserved": true,
+      "operator_dns_preparation_before_invocation_seconds": 80.05717683304101,
+      "product_task_tool_grant_deadlines_changed": false,
+      "three_failed_prior_qualification_attempts_remain_failed": true
     }
   },
-  "subsystem_git_tree_fingerprints": {
-    "store_service_protocol_client_connector_sources": {
-      "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
-        "files": 111,
-        "git_blob_map_sha256": "fc5ba59802a50efc2858e7ce82c668ad0f3dc491208509fbd122e8a63c64c16e"
+  "literal_fresh_checkout_offline": {
+    "status": "passed",
+    "qualification_complete": true,
+    "checkout": "managed gate4-clean-qualification worktree",
+    "private_report": ".local/gate-4-checks/20261012T140701.094207Z/result.json",
+    "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "clean_detached_git_at_start": true,
+    "source_input_files": 839,
+    "canonical_recorded_input_sha256": "4390c5cc7a09111d25dc16e89a5d34cc24ce9afca4d77753796da02e06df9ca4",
+    "required_phases": 41,
+    "source_stable_at_completion": true,
+    "preparation_report": ".local/gate-4-preparation/20261012T140411.284155Z/result.json",
+    "preparation_report_sha256": "1a881883bf667dba88f78cf731496babf1e4616c9ea5121160b3dd4d816323de",
+    "dependency_preparation": "Fresh independent --no-local clones at pinned revisions; all9 patches and25 modified-file digests verified; no generated source symlinks.",
+    "reused_generated_assets": "Only ignored Cargo target cache is symlinked; historical schema6/10 executable and provenance manifests are verified independent copies. No application state/credentials copied.",
+    "not_executed_phases_not_counted_as_passes": true,
+    "private_report_sha256": "24d12fa2ee4a985fd1dba02514c04d2aa10c8bbdb79482ae3c0c5de91f90750f",
+    "checkout_root": "/Users/jonathaneisenzopf/.codex/worktrees/gate4-clean-qualification/Connect",
+    "started_at": "2026-10-12T14:07:01.094437+00:00",
+    "finished_at": "2026-10-12T15:48:34.352285+00:00",
+    "passed_phases": 41,
+    "failed_phases": 0,
+    "omitted_phases": 0,
+    "public_reports": {
+      "docs/evidence/gate-4/offline-dc73996.json": {
+        "sha256": "d941a62b139a922e02e3e08667a683cddf36583912444643997f949f884f6448",
+        "status": "passed"
       },
-      "596e9b7c83d087db89dc49f92df5137638798ede": {
-        "files": 111,
-        "git_blob_map_sha256": "fc5ba59802a50efc2858e7ce82c668ad0f3dc491208509fbd122e8a63c64c16e"
+      "docs/evidence/gate-4/authority-workspace-dc73996.json": {
+        "sha256": "12458e280d03d11a6d046d1d7383641ff380a72e69f9d74a71fade0531d176f9",
+        "status": null
       },
-      "5d23d73a4191c9224dad5a8ff5620bcc432f14ab": {
-        "files": 111,
-        "git_blob_map_sha256": "fc5ba59802a50efc2858e7ce82c668ad0f3dc491208509fbd122e8a63c64c16e"
+      "docs/evidence/gate-4/operating-workspace-dc73996.json": {
+        "sha256": "2f470e206f78e49734f5ed7fc96c68e980c69041f34b9177e989b5f4ec207872",
+        "status": null
       },
-      "7edb1b1487d0aef765f89792b4244a0d0418e4ea": {
-        "files": 111,
-        "git_blob_map_sha256": "fc5ba59802a50efc2858e7ce82c668ad0f3dc491208509fbd122e8a63c64c16e"
-      }
-    },
-    "sdk_sources": {
-      "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
-        "files": 65,
-        "git_blob_map_sha256": "6d5e72d8bfd8735b20734f26a8fe86d353fa1f0a4999b97888b83a59c12b015e"
-      },
-      "596e9b7c83d087db89dc49f92df5137638798ede": {
-        "files": 65,
-        "git_blob_map_sha256": "6d5e72d8bfd8735b20734f26a8fe86d353fa1f0a4999b97888b83a59c12b015e"
-      },
-      "5d23d73a4191c9224dad5a8ff5620bcc432f14ab": {
-        "files": 65,
-        "git_blob_map_sha256": "6d5e72d8bfd8735b20734f26a8fe86d353fa1f0a4999b97888b83a59c12b015e"
-      },
-      "7edb1b1487d0aef765f89792b4244a0d0418e4ea": {
-        "files": 65,
-        "git_blob_map_sha256": "6d5e72d8bfd8735b20734f26a8fe86d353fa1f0a4999b97888b83a59c12b015e"
-      }
-    },
-    "upstream_inputs": {
-      "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
-        "files": 11,
-        "git_blob_map_sha256": "269b577dd49982c7f140b04b3bdceb20aea55db98a9416f5b9fd37c2951f1bea"
-      },
-      "596e9b7c83d087db89dc49f92df5137638798ede": {
-        "files": 11,
-        "git_blob_map_sha256": "269b577dd49982c7f140b04b3bdceb20aea55db98a9416f5b9fd37c2951f1bea"
-      },
-      "5d23d73a4191c9224dad5a8ff5620bcc432f14ab": {
-        "files": 11,
-        "git_blob_map_sha256": "269b577dd49982c7f140b04b3bdceb20aea55db98a9416f5b9fd37c2951f1bea"
-      },
-      "7edb1b1487d0aef765f89792b4244a0d0418e4ea": {
-        "files": 11,
-        "git_blob_map_sha256": "269b577dd49982c7f140b04b3bdceb20aea55db98a9416f5b9fd37c2951f1bea"
+      "docs/evidence/gate-4/final-operating-reconciliation.json": {
+        "sha256": "4a09e2bd0d48013641d7fba0173d0be81d82eaa010b0c45c9da172e42c2fcaad",
+        "status": "passed current-source operating qualification in the clean complete dc73996 runner"
       }
     }
   },
-  "candidate_changed_source_sha256": {
-    "crates/connect-mcp/src/schemas.rs": "0ffe4878640a4e3dba18d29dce65874e27b3eb37c2d54be9fe6579db534ca4b9",
-    "scripts/check-package.py": "b88b43d2b690d3d4c442886f51cd4eb9521fa31b38a27c602766a02c11c7b023",
-    "crates/connect-server/tests/gate4_mcp_reply_reference.rs": "19ddef21a505286e872301b78562f3fb74041dc5aa7355792bc0282c2e1eb1c6",
-    "skills/connect/SKILL.md": "ccdbfe9162a5f6145026da01cb48317454b98fb6b5d468e11a9c5435eb337f77",
-    "contracts/connect-task-v1.md": "7eba70da25b02fd23b0b9d57343c3b990dce0d60defa256f9de23d9a88dc4b67"
-  },
-  "baseline_chat_fixture_sha256": {
-    "crates/connect-server/tests/gate4_task_chat_rehearsal.rs": "7fbade8b5a033f3705ff706ff3e82667f6cbe118ccb5de2918793bcf932eec39"
-  },
-  "current_offline_observation": {
-    "private_report": ".local/gate-4-checks/20261012T090156.434214Z/result.json",
-    "private_report_sha256_at_observation": "b4f95591bb0a95561696a90290db0cec5e5e1b64fe89ef920ed618e0a59f7f0f",
-    "source_revision": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
-    "dirty_at_start": false,
-    "status": "running",
-    "active_phase": "workspace",
-    "passed_phases": 13,
-    "required_phases": 41
-  },
-  "reproducibility_contract": {
-    "requirement": "G4-031: Run from a fresh checkout with prepared dependencies; every required offline phase passes.",
-    "observed_layers": [
-      "Historical 3a272c9 complete fresh-checkout offline qualification, 39 phases.",
-      "Clean 5d23d73 baseline runner, 41 phases with source fingerprint checks before and after each phase; final result pending at this observation.",
-      "Independent extracted 7ed archive: prepared pinned dependencies, native SDK compilation, exact-source fault compilation, normal installed runtime and all 17 package checks.",
-      "Reviewed later metadata, skill, fixture and installation-harness changes; narrow integrated checks remain root-owned."
+  "repository_documentation_delta": {
+    "definition": "Final owner-review metadata/guide changes and the root README.md status-only update remain separate from immutable dc runtime and archive hashes.",
+    "allowed_non_docs_delta": [
+      "README.md"
     ],
-    "interpretation": "Compositional reproducibility evidence. It does not establish a newly cloned final directory running all 41 phases or a literal common-source pass of every historical/provider/model proof."
+    "recorded_non_readme_input_files": 838,
+    "canonical_838_input_sha256": "5787d640641e7d3bdb54d350118c0d69e720fd3560408e05fce4af4c81f83992",
+    "frozen_readme_checkpoint_sha256": "7eff2883d5d601f118fb6c370e5a71e04ed2604049418604f7ce3ca7de6fddec",
+    "archive_documents_keep_build_checkpoint": true,
+    "unexpected_other_recorded_source_delta_blocks_application": true,
+    "readme_status_only_delta_verified": true,
+    "current_readme_sha256": "56369f7bc91f171d327fd6d931ffb8253812224ecccee1647b55a1ea15c002b1",
+    "reviewed_repository_documentation_parent": "65e7fb9d43650f5dad04ec83ab668853a0232ed8",
+    "all838_other_recorded_inputs_match_frozen_runtime": true,
+    "verification_recorded_at": "2026-10-12T15:54:29.459476+00:00",
+    "final_documentation_commit_recorded_separately": "The final owner-review commit is recorded by the root acceptance/result; it does not change the frozen runtime source or package hashes.",
+    "root_readme_is_not_compiled_binary_input": true
   },
-  "boundaries": [
-    "The current full offline runner executes clean baseline 5d23d73, not the final 7ed package revision.",
-    "The baseline 5d checkout is clean and fingerprinted; this report does not claim that its directory was newly cloned.",
-    "Historical offline-3a272c9 is literal fresh-checkout proof; the final archive is independently reconstructed and compiled. No single revision executed every evidence report.",
-    "Source compatibility is justified by reviewed narrow differences, not by substituting one binary hash for another.",
-    "The final integrated tree will combine 5d sources, the 7ed narrow repair, and later documentation/comment wording. The root reviewer must record that integration and its narrow checks.",
-    "Package archives retain their original document checkpoint and recorded hashes. Later review and progress documents remain separate.",
-    "No macOS security settings or assessment-service restart were needed for this review or the later passing package installation; earlier startup causes remain unproven."
+  "historical_provider_component_reconciliation": {
+    "voice_evidence": "docs/evidence/gate-4/live-voice-continuity.json",
+    "sms_evidence": "docs/evidence/gate-4/sms-0737-rehearsal.json",
+    "byte_equal_path_groups": {
+      "common_wire_sdk_connectors_and_pinned_upstream": {
+        "byte_equal": true,
+        "revisions": {
+          "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
+            "files": 142,
+            "canonical_git_blob_map_sha256": "5c7319ba366a2600c6e2b4ada7e0ec10c765ed06e6a0a41962af484bd54635a4"
+          },
+          "596e9b7c83d087db89dc49f92df5137638798ede": {
+            "files": 142,
+            "canonical_git_blob_map_sha256": "5c7319ba366a2600c6e2b4ada7e0ec10c765ed06e6a0a41962af484bd54635a4"
+          },
+          "dc739966ddd9a38ec5d19f54217b293ece51b4e4": {
+            "files": 142,
+            "canonical_git_blob_map_sha256": "5c7319ba366a2600c6e2b4ada7e0ec10c765ed06e6a0a41962af484bd54635a4"
+          }
+        },
+        "paths": [
+          "crates/connect-client/Cargo.toml",
+          "crates/connect-client/src/client.rs",
+          "crates/connect-client/src/config.rs",
+          "crates/connect-client/src/discovery.rs",
+          "crates/connect-client/src/error.rs",
+          "crates/connect-client/src/lib.rs",
+          "crates/connect-client/src/media.rs",
+          "crates/connect-client/src/media_end.rs",
+          "crates/connect-client/src/operations.rs",
+          "crates/connect-client/src/task_diagnostics/mod.rs",
+          "crates/connect-client/src/task_diagnostics/models.rs",
+          "crates/connect-client/src/task_diagnostics/projection.rs",
+          "crates/connect-client/src/task_diagnostics/readiness.rs",
+          "crates/connect-client/src/task_diagnostics/readiness_tests.rs",
+          "crates/connect-client/src/task_diagnostics/tests.rs",
+          "crates/connect-client/src/task_operations.rs",
+          "crates/connect-connector-api/Cargo.toml",
+          "crates/connect-connector-api/examples/echo.rs",
+          "crates/connect-connector-api/src/descriptor.rs",
+          "crates/connect-connector-api/src/lib.rs",
+          "crates/connect-connectors/Cargo.toml",
+          "crates/connect-connectors/prompts/assistant.txt",
+          "crates/connect-connectors/src/chat_context.rs",
+          "crates/connect-connectors/src/lib.rs",
+          "crates/connect-connectors/src/numbers.rs",
+          "crates/connect-connectors/src/setup.rs",
+          "crates/connect-connectors/src/vapi_endpoint.rs",
+          "crates/connect-connectors/src/vapi_origin.rs",
+          "crates/connect-connectors/src/voice.rs",
+          "crates/connect-connectors/src/voice_native_setup.rs",
+          "crates/connect-connectors/src/voice_setup.rs",
+          "crates/connect-connectors/tests/adapters.rs",
+          "crates/connect-connectors/tests/crypto_init.rs",
+          "crates/connect-connectors/tests/numbers.rs",
+          "crates/connect-connectors/tests/setup.rs",
+          "crates/connect-connectors/tests/vapi_origin.rs",
+          "crates/connect-protocol/Cargo.toml",
+          "crates/connect-protocol/src/discovery.rs",
+          "crates/connect-protocol/src/lib.rs",
+          "crates/connect-protocol/src/media_profile.rs",
+          "crates/connect-protocol/src/readiness.rs",
+          "crates/connect-protocol/src/readiness_tests.rs",
+          "crates/connect-protocol/src/tasks/access.rs",
+          "crates/connect-protocol/src/tasks/lifecycle.rs",
+          "crates/connect-protocol/src/tasks/mod.rs",
+          "crates/connect-protocol/src/tasks/models.rs",
+          "crates/connect-protocol/src/tasks/principal.rs",
+          "crates/connect-protocol/src/tasks/request.rs",
+          "crates/connect-protocol/src/tasks/validation.rs",
+          "crates/connect-protocol/tests/task_contract.rs",
+          "dependencies/source-lock.json",
+          "patches/rvoip/audio-queue-policy.patch",
+          "patches/rvoip/authenticated-envelope-guard.patch",
+          "patches/rvoip/connect-quic-application.patch",
+          "patches/rvoip/connect-session-context.patch",
+          "patches/rvoip/external-session-projection.patch",
+          "patches/rvoip/parley-conference.patch",
+          "patches/rvoip/sip-terminal-media-race.patch",
+          "patches/rvoip/transport-audio-queues.patch",
+          "patches/rvoip/vapi-call-admission.patch",
+          "sdk/python/connect_sdk/__init__.py",
+          "sdk/python/connect_sdk/_validation.py",
+          "sdk/python/connect_sdk/errors.py",
+          "sdk/python/connect_sdk/http.py",
+          "sdk/python/connect_sdk/native.py",
+          "sdk/python/connect_sdk/native_audio.py",
+          "sdk/python/connect_sdk/operations.py",
+          "sdk/python/connect_sdk/protocol.py",
+          "sdk/python/connect_sdk/py.typed",
+          "sdk/python/connect_sdk/task_operations.py",
+          "sdk/python/connect_sdk/task_protocol.py",
+          "sdk/python/connect_sdk/task_types.py",
+          "sdk/python/pyproject.toml",
+          "sdk/tests/browser_voice.test.mjs",
+          "sdk/tests/clients.test.mjs",
+          "sdk/tests/helper_auth_probe.mjs",
+          "sdk/tests/helper_auth_probe.py",
+          "sdk/tests/helper_fixture.py",
+          "sdk/tests/native_grant_probe.mjs",
+          "sdk/tests/native_grant_probe.py",
+          "sdk/tests/python_probe.py",
+          "sdk/tests/reference_client.test.mjs",
+          "sdk/tests/task_matrix.json",
+          "sdk/tests/task_matrix_probe.mjs",
+          "sdk/tests/task_matrix_probe.py",
+          "sdk/tests/task_results.json",
+          "sdk/tests/tasks.test.mjs",
+          "sdk/tests/test_clients.py",
+          "sdk/tests/test_microphone_codec.py",
+          "sdk/tests/test_tasks.py",
+          "sdk/tests/typescript_probe.mjs",
+          "sdk/typescript/dist/browser.d.ts",
+          "sdk/typescript/dist/browser.js",
+          "sdk/typescript/dist/browser_http.d.ts",
+          "sdk/typescript/dist/browser_http.js",
+          "sdk/typescript/dist/browser_voice.d.ts",
+          "sdk/typescript/dist/browser_voice.js",
+          "sdk/typescript/dist/browser_voice_stats.d.ts",
+          "sdk/typescript/dist/browser_voice_stats.js",
+          "sdk/typescript/dist/errors.d.ts",
+          "sdk/typescript/dist/errors.js",
+          "sdk/typescript/dist/http.d.ts",
+          "sdk/typescript/dist/http.js",
+          "sdk/typescript/dist/index.d.ts",
+          "sdk/typescript/dist/index.js",
+          "sdk/typescript/dist/native.d.ts",
+          "sdk/typescript/dist/native.js",
+          "sdk/typescript/dist/native_audio.d.ts",
+          "sdk/typescript/dist/native_audio.js",
+          "sdk/typescript/dist/operations.d.ts",
+          "sdk/typescript/dist/operations.js",
+          "sdk/typescript/dist/protocol.d.ts",
+          "sdk/typescript/dist/protocol.js",
+          "sdk/typescript/dist/task_operations.d.ts",
+          "sdk/typescript/dist/task_operations.js",
+          "sdk/typescript/dist/task_protocol.d.ts",
+          "sdk/typescript/dist/task_protocol.js",
+          "sdk/typescript/dist/tasks.d.ts",
+          "sdk/typescript/dist/tasks.js",
+          "sdk/typescript/dist/types.d.ts",
+          "sdk/typescript/dist/types.js",
+          "sdk/typescript/dist/validation.d.ts",
+          "sdk/typescript/dist/validation.js",
+          "sdk/typescript/package-lock.json",
+          "sdk/typescript/package.json",
+          "sdk/typescript/src/browser.ts",
+          "sdk/typescript/src/browser_http.ts",
+          "sdk/typescript/src/browser_voice.ts",
+          "sdk/typescript/src/browser_voice_stats.ts",
+          "sdk/typescript/src/errors.ts",
+          "sdk/typescript/src/http.ts",
+          "sdk/typescript/src/index.ts",
+          "sdk/typescript/src/native.ts",
+          "sdk/typescript/src/native_audio.ts",
+          "sdk/typescript/src/operations.ts",
+          "sdk/typescript/src/protocol.ts",
+          "sdk/typescript/src/task_operations.ts",
+          "sdk/typescript/src/task_protocol.ts",
+          "sdk/typescript/src/tasks.ts",
+          "sdk/typescript/src/types.ts",
+          "sdk/typescript/src/validation.ts",
+          "sdk/typescript/tsconfig.json"
+        ]
+      },
+      "voice_bootstrap_media_and_server_paths": {
+        "byte_equal": true,
+        "revisions": {
+          "596e9b7c83d087db89dc49f92df5137638798ede": {
+            "files": 41,
+            "canonical_git_blob_map_sha256": "0dcadc06a3ce5fa5f7de8fef253c76748a3afaf7942557c6a52e8b04a19dd7a6"
+          },
+          "dc739966ddd9a38ec5d19f54217b293ece51b4e4": {
+            "files": 41,
+            "canonical_git_blob_map_sha256": "0dcadc06a3ce5fa5f7de8fef253c76748a3afaf7942557c6a52e8b04a19dd7a6"
+          }
+        },
+        "paths": [
+          "crates/connect-server/src/config.rs",
+          "crates/connect-server/src/installation.rs",
+          "crates/connect-server/src/lib.rs",
+          "crates/connect-server/src/media_ingress.rs",
+          "crates/connect-server/src/media_lifecycle.rs",
+          "crates/connect-server/src/media_profile.rs",
+          "crates/connect-server/src/media_transports.rs",
+          "crates/connect-server/src/providers.rs",
+          "crates/connect-server/src/registration_monitor.rs",
+          "crates/connect-server/src/registration_monitor/tests.rs",
+          "crates/connect-server/src/sip_outbound.rs",
+          "crates/connect-server/src/sip_outbound/activation.rs",
+          "crates/connect-server/src/sip_outbound/tests.rs",
+          "crates/connect-server/src/sip_registration.rs",
+          "crates/connect-server/src/sms_authority.rs",
+          "crates/connect-server/src/startup.rs",
+          "crates/connect-server/src/tls.rs",
+          "crates/connect-server/src/transports/artifact_http.rs",
+          "crates/connect-server/src/transports/http.rs",
+          "crates/connect-server/src/transports/mod.rs",
+          "crates/connect-server/src/transports/task_access.rs",
+          "crates/connect-server/src/transports/telnyx_http.rs",
+          "crates/connect-server/src/transports/websocket.rs",
+          "crates/connect-server/src/vapi_bootstrap/admission.rs",
+          "crates/connect-server/src/vapi_bootstrap/binding.rs",
+          "crates/connect-server/src/vapi_bootstrap/call.rs",
+          "crates/connect-server/src/vapi_bootstrap/call_failure.rs",
+          "crates/connect-server/src/vapi_bootstrap/creation.rs",
+          "crates/connect-server/src/vapi_bootstrap/dispatch.rs",
+          "crates/connect-server/src/vapi_bootstrap/media.rs",
+          "crates/connect-server/src/vapi_bootstrap/mod.rs",
+          "crates/connect-server/src/vapi_bootstrap/prepared.rs",
+          "crates/connect-server/src/vapi_bootstrap/recovery.rs",
+          "crates/connect-server/src/vapi_bootstrap/state.rs",
+          "crates/connect-server/src/vapi_bootstrap/voice_model.rs",
+          "crates/connect-server/src/vapi_media.rs",
+          "crates/connect-server/src/vapi_observer.rs",
+          "crates/connect-server/src/vapi_observer_tests.rs",
+          "crates/connect-server/src/vapi_task_setup.rs",
+          "crates/connect-server/src/voice.rs",
+          "crates/connect-server/src/worker.rs"
+        ]
+      },
+      "sms_delivery_policy_and_existing_store_paths": {
+        "byte_equal": true,
+        "revisions": {
+          "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
+            "files": 89,
+            "canonical_git_blob_map_sha256": "8df785bba5a70ee07f5fd6cef59345b2b0c593e4177d50d5e560c3c1ac1bd9cb"
+          },
+          "596e9b7c83d087db89dc49f92df5137638798ede": {
+            "files": 89,
+            "canonical_git_blob_map_sha256": "8df785bba5a70ee07f5fd6cef59345b2b0c593e4177d50d5e560c3c1ac1bd9cb"
+          },
+          "dc739966ddd9a38ec5d19f54217b293ece51b4e4": {
+            "files": 89,
+            "canonical_git_blob_map_sha256": "8df785bba5a70ee07f5fd6cef59345b2b0c593e4177d50d5e560c3c1ac1bd9cb"
+          }
+        },
+        "paths": [
+          "crates/connect-server/src/config.rs",
+          "crates/connect-server/src/installation.rs",
+          "crates/connect-server/src/lib.rs",
+          "crates/connect-server/src/media_ingress.rs",
+          "crates/connect-server/src/media_lifecycle.rs",
+          "crates/connect-server/src/media_profile.rs",
+          "crates/connect-server/src/media_transports.rs",
+          "crates/connect-server/src/providers.rs",
+          "crates/connect-server/src/registration_monitor.rs",
+          "crates/connect-server/src/registration_monitor/tests.rs",
+          "crates/connect-server/src/sip_outbound.rs",
+          "crates/connect-server/src/sip_outbound/activation.rs",
+          "crates/connect-server/src/sip_outbound/tests.rs",
+          "crates/connect-server/src/sip_registration.rs",
+          "crates/connect-server/src/sms_authority.rs",
+          "crates/connect-server/src/startup.rs",
+          "crates/connect-server/src/tls.rs",
+          "crates/connect-server/src/transports/artifact_http.rs",
+          "crates/connect-server/src/transports/http.rs",
+          "crates/connect-server/src/transports/mod.rs",
+          "crates/connect-server/src/transports/task_access.rs",
+          "crates/connect-server/src/transports/telnyx_http.rs",
+          "crates/connect-server/src/transports/websocket.rs",
+          "crates/connect-server/src/vapi_observer.rs",
+          "crates/connect-server/src/vapi_observer_tests.rs",
+          "crates/connect-server/src/vapi_task_setup.rs",
+          "crates/connect-server/src/voice.rs",
+          "crates/connect-server/src/worker.rs",
+          "crates/connect-store/src/artifacts.rs",
+          "crates/connect-store/src/artifacts/read.rs",
+          "crates/connect-store/src/artifacts/read/tests.rs",
+          "crates/connect-store/src/availability.rs",
+          "crates/connect-store/src/connector_registry.rs",
+          "crates/connect-store/src/context.rs",
+          "crates/connect-store/src/conversation_queries.rs",
+          "crates/connect-store/src/conversations.rs",
+          "crates/connect-store/src/cursor.rs",
+          "crates/connect-store/src/discovery.rs",
+          "crates/connect-store/src/media_end.rs",
+          "crates/connect-store/src/operations/mod.rs",
+          "crates/connect-store/src/operations/mutations.rs",
+          "crates/connect-store/src/operations/reads.rs",
+          "crates/connect-store/src/operations/receipts.rs",
+          "crates/connect-store/src/operations/resources.rs",
+          "crates/connect-store/src/provider_chat_context.rs",
+          "crates/connect-store/src/provider_context.rs",
+          "crates/connect-store/src/providers.rs",
+          "crates/connect-store/src/recovery.rs",
+          "crates/connect-store/src/session_routes.rs",
+          "crates/connect-store/src/sessions.rs",
+          "crates/connect-store/src/sip_legs.rs",
+          "crates/connect-store/src/sip_legs/dispatch.rs",
+          "crates/connect-store/src/sms_eligibility.rs",
+          "crates/connect-store/src/tasks/authority.rs",
+          "crates/connect-store/src/tasks/budget.rs",
+          "crates/connect-store/src/tasks/claims.rs",
+          "crates/connect-store/src/tasks/clock.rs",
+          "crates/connect-store/src/tasks/effects/dispatch.rs",
+          "crates/connect-store/src/tasks/effects/links.rs",
+          "crates/connect-store/src/tasks/effects/mod.rs",
+          "crates/connect-store/src/tasks/effects/provider.rs",
+          "crates/connect-store/src/tasks/effects/rows.rs",
+          "crates/connect-store/src/tasks/effects/state.rs",
+          "crates/connect-store/src/tasks/grants/admission.rs",
+          "crates/connect-store/src/tasks/grants/authentication.rs",
+          "crates/connect-store/src/tasks/grants/authority.rs",
+          "crates/connect-store/src/tasks/grants/bindings.rs",
+          "crates/connect-store/src/tasks/grants/execution.rs",
+          "crates/connect-store/src/tasks/grants/issuance.rs",
+          "crates/connect-store/src/tasks/grants/mod.rs",
+          "crates/connect-store/src/tasks/grants/native.rs",
+          "crates/connect-store/src/tasks/grants/native_resources.rs",
+          "crates/connect-store/src/tasks/grants/provider.rs",
+          "crates/connect-store/src/tasks/grants/rows.rs",
+          "crates/connect-store/src/tasks/grants/secret.rs",
+          "crates/connect-store/src/tasks/inbox.rs",
+          "crates/connect-store/src/tasks/lifecycle.rs",
+          "crates/connect-store/src/tasks/media_context.rs",
+          "crates/connect-store/src/tasks/media_setup.rs",
+          "crates/connect-store/src/tasks/media_setup_binding.rs",
+          "crates/connect-store/src/tasks/native_reply.rs",
+          "crates/connect-store/src/tasks/recall.rs",
+          "crates/connect-store/src/tasks/recall/projection.rs",
+          "crates/connect-store/src/tasks/replies.rs",
+          "crates/connect-store/src/tasks/sms.rs",
+          "crates/connect-store/src/tasks/storage.rs",
+          "crates/connect-store/src/voice.rs",
+          "crates/connect-store/src/voice/dispatch.rs",
+          "crates/connect-store/src/voice/jobs.rs"
+        ]
+      },
+      "existing_service_dispatch_and_media_paths": {
+        "byte_equal": true,
+        "revisions": {
+          "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
+            "files": 11,
+            "canonical_git_blob_map_sha256": "b43e277a042f9fb6fa6433f687dbced3cbef69378715875667a41b6d0fb044a2"
+          },
+          "596e9b7c83d087db89dc49f92df5137638798ede": {
+            "files": 11,
+            "canonical_git_blob_map_sha256": "b43e277a042f9fb6fa6433f687dbced3cbef69378715875667a41b6d0fb044a2"
+          },
+          "dc739966ddd9a38ec5d19f54217b293ece51b4e4": {
+            "files": 11,
+            "canonical_git_blob_map_sha256": "b43e277a042f9fb6fa6433f687dbced3cbef69378715875667a41b6d0fb044a2"
+          }
+        },
+        "paths": [
+          "crates/connect-service/src/authenticated_operations.rs",
+          "crates/connect-service/src/authentication.rs",
+          "crates/connect-service/src/native_media.rs",
+          "crates/connect-service/src/readiness.rs",
+          "crates/connect-service/src/readiness_tests.rs",
+          "crates/connect-service/src/session_binding_tests.rs",
+          "crates/connect-service/src/session_bindings.rs",
+          "crates/connect-service/src/tasks.rs",
+          "crates/connect-service/src/tasks/access.rs",
+          "crates/connect-service/src/tasks/provider_setup.rs",
+          "crates/connect-service/src/tasks/tests.rs"
+        ]
+      }
+    },
+    "source_limit": "Actual carrier voice/SMS executed at their stated historical revisions. No new dc physical voice/SMS execution or one-common-revision historical proof is claimed.",
+    "changed_shared_mcp_requalification": "Fresh actual Vapi text on the installed dc binary proves current shared instructions/scoped result handling;12 installed Vapi voice/chat/owner/recovery/webhook fixtures independently pass.",
+    "sms_to_voice_delta": "Four Vapi stage/error-log files add diagnostics; SMS delivery/consent/suppression, protocol and SDK paths remain identical.",
+    "reviewed_material_current_delta": [
+      "crates/connect-mcp/src/arguments.rs",
+      "crates/connect-mcp/src/auth.rs",
+      "crates/connect-mcp/src/execution.rs",
+      "crates/connect-mcp/src/handler.rs",
+      "crates/connect-mcp/src/identity_auth.rs",
+      "crates/connect-mcp/src/identity_catalog.rs",
+      "crates/connect-mcp/src/identity_commands.rs",
+      "crates/connect-mcp/src/identity_schemas.rs",
+      "crates/connect-mcp/src/lib.rs",
+      "crates/connect-mcp/src/schemas.rs",
+      "crates/connect-server/src/cli/agent_access.rs",
+      "crates/connect-server/src/cli/agent_access/arguments.rs",
+      "crates/connect-server/src/cli/agent_access/codex.rs",
+      "crates/connect-server/src/cli/agent_access/diagnostics.rs",
+      "crates/connect-server/src/cli/agent_access/host.rs",
+      "crates/connect-server/src/cli/agent_access/identity.rs",
+      "crates/connect-server/src/cli/agent_access/state.rs",
+      "crates/connect-server/src/cli/agent_access/tests.rs",
+      "crates/connect-server/src/cli/mod.rs",
+      "crates/connect-server/src/cli/task_access/codex.rs",
+      "crates/connect-server/src/cli/task_access/codex_host/diagnostics.rs",
+      "crates/connect-server/src/cli/task_access/codex_host/mod.rs",
+      "crates/connect-server/src/cli/task_access/codex_host/process.rs",
+      "crates/connect-server/src/cli/task_access/codex_host/state.rs",
+      "crates/connect-server/src/cli/task_diagnostics.rs",
+      "crates/connect-server/src/main.rs",
+      "crates/connect-server/src/runtime.rs",
+      "crates/connect-service/src/identity_access.rs",
+      "crates/connect-service/src/lib.rs",
+      "crates/connect-store/src/identity.rs",
+      "crates/connect-store/src/lib.rs",
+      "crates/connect-store/src/tasks/defaults.rs",
+      "crates/connect-store/src/tasks/mod.rs",
+      "crates/connect-store/src/tasks/owner.rs"
+    ],
+    "ordinary_default_review": "Reusable current non-admin identity credential, unforgeable service identity handle, public operations across conversations, optional owned-task defaults and protected installer/host composition. Scope/current credential, membership, replay, queued SMS eligibility and revocation remain enforced.",
+    "preserved_narrow_review": "Existing provider authenticator/bootstrap, exact resource correlation, narrow grant validation and existing dispatch remain source-qualified. Owner command refactor clones the same request under the same serialized current-admission transaction; additive defaults do not change legacy requests.",
+    "review_evidence": [
+      "docs/evidence/gate-4/agent-access-source-review.json",
+      "docs/evidence/gate-4/agent-access-quality.json",
+      "docs/evidence/gate-4/agent-default-authority.json",
+      "docs/evidence/gate-4/agent-access-cli.json",
+      "docs/evidence/gate-4/agent-context-default.json"
+    ]
+  },
+  "known_build_observations": [
+    {
+      "scope": "All-feature debug fixtures and separate unoptimized fault fixtures",
+      "observation": "macOS ld reports __eh_frame exceeding its16MiB compact-unwind limit. It is a linker advisory, not a Rust/Clippy warning.",
+      "evidence_boundary": "Strict Clippy/Rustdoc, the optimized17-check package and all41 clean fresh offline phases passed under their recorded profiles. No release performance/unwind defect is inferred, and no flags/source/deadlines are changed."
+    }
   ],
-  "access_default_amendment": "This review preceded decision010. It remains a scoped-mode/source checkpoint; it does not qualify the normal identity-key default or establish final closure."
+  "boundaries": [
+    "Earlier5d/09b failed runs and954 docs-only dirty partial/interrupted run retain actual statuses; unrun phases are not promoted.",
+    "The default installation uses one normal identity credential; optional task/provider grants are not silently widened or made mandatory.",
+    "Continuation is explicit exact-session resume or a running configured worker; server readiness alone is not automatic model wake.",
+    "Root README status and final repository guides are documentation; the actual shipped runtime and archive hashes remain dc73996.",
+    "Fresh source checkout/dependencies are independent; verified generated caches/baselines are disclosed rather than described as cold compilation.",
+    "All platform/host/media/provider observations retain stated limits. Gate5 video, full connector kit, independent wire conformance, first-run/reference-client/platform and publication commitments remain intact.",
+    "Earlier executable startup causes remain unproven. Gatekeeper/SIP are unchanged; no assessment-service restart or security-policy modification occurred.",
+    "No community publication, remote deployment, new phone/SMS routing or provider-account operations occur in this source review."
+  ],
+  "whole_gate_acceptance": "The owner-review acceptance and numbered implementation status are maintained separately; this report qualifies source composition and its exact evidence boundaries."
 }

@@ -1,5 +1,5 @@
 {
-  "status": "review-reconciled; final current-source qualification remains open",
+  "status": "resolved for current local alpha qualification; diagnostic limits retained",
   "recorded_at": "2026-10-12T09:14:34.063600+00:00",
   "quic_parity": {
     "status": "fixture scheduling defect corrected; historical failures retained",
@@ -108,5 +108,17 @@
       "docs/evidence/gate-4/package-7edb1b1.json"
     ],
     "detail": "Freshly extracted 7edb1b1 reached --version in 36.943 seconds under the explicit installation-startup phase. Original application deadlines remain unchanged. Gatekeeper and SIP remain enabled; no assessment-service restart occurred. A passing launch does not establish the cause of earlier timeouts."
+  },
+  "previous_status_before_final_qualification": "review-reconciled; final current-source qualification remains open",
+  "final_qualification": {
+    "source": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "fresh_offline_phases_passed": 41,
+    "installed_checks_passed": 17,
+    "actual_normal_agent_calls": 30,
+    "actual_vapi_text_calls": 3,
+    "required_blocking_findings": [],
+    "evidence": "final-quality-review.json",
+    "earlier_failures_remain_unchanged": true,
+    "earlier_startup_cause": "unestablished; no security-policy change or service restart occurred"
   }
 }

@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T09:26:20.357594+00:00",
+  "status": "source composition reviewed; current regression and final integration pending",
+  "scope": "Read-only Git/tree, artifact digest and recorded behavior review; local macOS arm64 only.",
+  "revisions": {
+    "sms_rehearsal": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+    "live_voice_chat": "596e9b7c83d087db89dc49f92df5137638798ede",
+    "current_offline_baseline": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
+    "installed_candidate": "7edb1b1487d0aef765f89792b4244a0d0418e4ea"
+  },
+  "evidence": {
+    "sms": "docs/evidence/gate-4/sms-0737-rehearsal.json",
+    "voice_chat": "docs/evidence/gate-4/live-voice-continuity.json",
+    "codex_draft": "docs/evidence/gate-4/real-model-draft-7edb1b1.json",
+    "codex_incoming": "docs/evidence/gate-4/real-model-incoming-7edb1b1.json",
+    "installed_package": "docs/evidence/gate-4/package-7edb1b1.json",
+    "historical_fresh_checkout": "docs/evidence/gate-4/offline-3a272c9.json"
+  },
+  "runtime_deltas": {
+    "sms_to_voice": {
+      "files": [
+        "crates/connect-server/src/vapi_bootstrap/call.rs",
+        "crates/connect-server/src/vapi_bootstrap/call_failure.rs",
+        "crates/connect-server/src/vapi_bootstrap/mod.rs",
+        "crates/connect-server/src/vapi_media.rs"
+      ],
+      "review": "Voice setup failures acquire closed CallStage diagnostics and media logging. Existing validation, authorization rechecks, five-second lookup timeout, intent staging and dispatch remain unchanged. SMS, consent, suppression and task Store/Service code are identical."
+    },
+    "voice_to_current_baseline": {
+      "files": [],
+      "review": "No production Rust changes. The independent chat-rehearsal fixture closes an idle owner and reconnects through ConnectClient before task cancellation; documentation/evidence also changed."
+    },
+    "current_baseline_to_package": {
+      "files": [
+        "crates/connect-mcp/src/schemas.rs"
+      ],
+      "review": "Only connect_send.reply_to input description changes. Validation, command generation, dispatch, current authority, Store and protocol behavior are unchanged. The package branch predates the main chat-fixture reconnect, which the final union preserves.",
+      "non_runtime_changes": [
+        "A real-server MCP reply reference regression rejects message, source and outer task event IDs without creating effects, then proves exact replay with the correct received journal event ID.",
+        "Shipped skill and contract describe the distinct reply and citation ID classes.",
+        "Installation checker measures initial --version within 180 seconds under owned-process supervision; existing application and protocol budgets remain unchanged.",
+        "Local release guide documents initial launch; root will correct causal security wording in comments/documentation without changing executable code."
+      ]
+    }
+  },
+  "subsystem_git_tree_fingerprints": {
+    "store_service_protocol_client_connector_sources": {
+      "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
+        "files": 111,
+        "git_blob_map_sha256": "fc5ba59802a50efc2858e7ce82c668ad0f3dc491208509fbd122e8a63c64c16e"
+      },
+      "596e9b7c83d087db89dc49f92df5137638798ede": {
+        "files": 111,
+        "git_blob_map_sha256": "fc5ba59802a50efc2858e7ce82c668ad0f3dc491208509fbd122e8a63c64c16e"
+      },
+      "5d23d73a4191c9224dad5a8ff5620bcc432f14ab": {
+        "files": 111,
+        "git_blob_map_sha256": "fc5ba59802a50efc2858e7ce82c668ad0f3dc491208509fbd122e8a63c64c16e"
+      },
+      "7edb1b1487d0aef765f89792b4244a0d0418e4ea": {
+        "files": 111,
+        "git_blob_map_sha256": "fc5ba59802a50efc2858e7ce82c668ad0f3dc491208509fbd122e8a63c64c16e"
+      }
+    },
+    "sdk_sources": {
+      "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
+        "files": 65,
+        "git_blob_map_sha256": "6d5e72d8bfd8735b20734f26a8fe86d353fa1f0a4999b97888b83a59c12b015e"
+      },
+      "596e9b7c83d087db89dc49f92df5137638798ede": {
+        "files": 65,
+        "git_blob_map_sha256": "6d5e72d8bfd8735b20734f26a8fe86d353fa1f0a4999b97888b83a59c12b015e"
+      },
+      "5d23d73a4191c9224dad5a8ff5620bcc432f14ab": {
+        "files": 65,
+        "git_blob_map_sha256": "6d5e72d8bfd8735b20734f26a8fe86d353fa1f0a4999b97888b83a59c12b015e"
+      },
+      "7edb1b1487d0aef765f89792b4244a0d0418e4ea": {
+        "files": 65,
+        "git_blob_map_sha256": "6d5e72d8bfd8735b20734f26a8fe86d353fa1f0a4999b97888b83a59c12b015e"
+      }
+    },
+    "upstream_inputs": {
+      "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed": {
+        "files": 11,
+        "git_blob_map_sha256": "269b577dd49982c7f140b04b3bdceb20aea55db98a9416f5b9fd37c2951f1bea"
+      },
+      "596e9b7c83d087db89dc49f92df5137638798ede": {
+        "files": 11,
+        "git_blob_map_sha256": "269b577dd49982c7f140b04b3bdceb20aea55db98a9416f5b9fd37c2951f1bea"
+      },
+      "5d23d73a4191c9224dad5a8ff5620bcc432f14ab": {
+        "files": 11,
+        "git_blob_map_sha256": "269b577dd49982c7f140b04b3bdceb20aea55db98a9416f5b9fd37c2951f1bea"
+      },
+      "7edb1b1487d0aef765f89792b4244a0d0418e4ea": {
+        "files": 11,
+        "git_blob_map_sha256": "269b577dd49982c7f140b04b3bdceb20aea55db98a9416f5b9fd37c2951f1bea"
+      }
+    }
+  },
+  "candidate_changed_source_sha256": {
+    "crates/connect-mcp/src/schemas.rs": "0ffe4878640a4e3dba18d29dce65874e27b3eb37c2d54be9fe6579db534ca4b9",
+    "scripts/check-package.py": "b88b43d2b690d3d4c442886f51cd4eb9521fa31b38a27c602766a02c11c7b023",
+    "crates/connect-server/tests/gate4_mcp_reply_reference.rs": "19ddef21a505286e872301b78562f3fb74041dc5aa7355792bc0282c2e1eb1c6",
+    "skills/connect/SKILL.md": "ccdbfe9162a5f6145026da01cb48317454b98fb6b5d468e11a9c5435eb337f77",
+    "contracts/connect-task-v1.md": "7eba70da25b02fd23b0b9d57343c3b990dce0d60defa256f9de23d9a88dc4b67"
+  },
+  "baseline_chat_fixture_sha256": {
+    "crates/connect-server/tests/gate4_task_chat_rehearsal.rs": "7fbade8b5a033f3705ff706ff3e82667f6cbe118ccb5de2918793bcf932eec39"
+  },
+  "current_offline_observation": {
+    "private_report": ".local/gate-4-checks/20261012T090156.434214Z/result.json",
+    "private_report_sha256_at_observation": "b4f95591bb0a95561696a90290db0cec5e5e1b64fe89ef920ed618e0a59f7f0f",
+    "source_revision": "5d23d73a4191c9224dad5a8ff5620bcc432f14ab",
+    "dirty_at_start": false,
+    "status": "running",
+    "active_phase": "workspace",
+    "passed_phases": 13,
+    "required_phases": 41
+  },
+  "reproducibility_contract": {
+    "requirement": "G4-031: Run from a fresh checkout with prepared dependencies; every required offline phase passes.",
+    "observed_layers": [
+      "Historical 3a272c9 complete fresh-checkout offline qualification, 39 phases.",
+      "Clean 5d23d73 baseline runner, 41 phases with source fingerprint checks before and after each phase; final result pending at this observation.",
+      "Independent extracted 7ed archive: prepared pinned dependencies, native SDK compilation, exact-source fault compilation, normal installed runtime and all 17 package checks.",
+      "Reviewed later metadata, skill, fixture and installation-harness changes; narrow integrated checks remain root-owned."
+    ],
+    "interpretation": "Compositional reproducibility evidence. It does not establish a newly cloned final directory running all 41 phases or a literal common-source pass of every historical/provider/model proof."
+  },
+  "boundaries": [
+    "The current full offline runner executes clean baseline 5d23d73, not the final 7ed package revision.",
+    "The baseline 5d checkout is clean and fingerprinted; this report does not claim that its directory was newly cloned.",
+    "Historical offline-3a272c9 is literal fresh-checkout proof; the final archive is independently reconstructed and compiled. No single revision executed every evidence report.",
+    "Source compatibility is justified by reviewed narrow differences, not by substituting one binary hash for another.",
+    "The final integrated tree will combine 5d sources, the 7ed narrow repair, and later documentation/comment wording. The root reviewer must record that integration and its narrow checks.",
+    "Package archives retain their original document checkpoint and recorded hashes. Later review and progress documents remain separate.",
+    "No macOS security settings or assessment-service restart were needed for this review or the later passing package installation; earlier startup causes remain unproven."
+  ],
+  "access_default_amendment": "This review preceded decision010. It remains a scoped-mode/source checkpoint; it does not qualify the normal identity-key default or establish final closure."
+}

@@ -1,8 +1,8 @@
 {
-  "revision": 6,
+  "revision": 7,
   "updated": "2026-10-12",
-  "status": "in-progress",
-  "scope": "Gate 4 agent/app follow-through with one normal revocable communication identity as the default local installation and optional scoped tasks/grants. The final installed normal-key model and fresh Vapi text journeys pass; retained voice/SMS results remain source-specific. Complete account-free regression and final reconciliation are in progress.",
+  "status": "passed",
+  "scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
   "product_plan": "connect-gate-4-plan.html",
   "implementation": "connect-gate-4-implementation.html",
   "entry_contract": "connect-task-authority.html",
@@ -71,19 +71,19 @@
       "proof": "Task identity, owner, conversation, scope, expiry and lifecycle survive restart; ending a session does not end a task or its conversation. Existing history and receipts survive migration.",
       "evidence_class": "local",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/task-persistence.json",
         "evidence/gate-4/historical-recovery.json",
         "evidence/gate-4/vapi-setup-restart.json",
         "evidence/gate-4/package-candidate.json",
-        "evidence/gate-4/package-dc73996.json"
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-02",
@@ -117,7 +117,7 @@
       "proof": "Scoped invocation grants for two tasks with the same participants cannot share authority. Forged cid/header/call binding, expired grant and revoked actor fail on first execution and replay. Ordinary identity mode supports multiple authorized conversations and owned tasks without a per-task grant; current key revocation/expiry, foreign access and replay denials pass. Narrow cross-task isolation remains required only for scoped invocation grants.",
       "evidence_class": "local",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/task-authority-audit.json",
         "evidence/gate-4/task-dispatch-audit.json",
@@ -126,13 +126,13 @@
         "evidence/gate-4/agent-default-authority.json",
         "evidence/gate-4/agent-context-default.json",
         "evidence/gate-4/real-model-agent-dc73996.json",
-        "evidence/gate-4/actual-vapi-chat-dc73996.json"
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-03",
@@ -166,17 +166,19 @@
       "proof": "Bound replies reach only the intended task; duplicates and reordering preserve history. Unbound/ambiguous messages remain inspectable and unassigned until authorized explicit assignment.",
       "evidence_class": "local",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/reply-inbox-recovery.json",
         "evidence/gate-4/worker-execution-readiness.json",
-        "evidence/gate-4/voice-sms-continuity.json"
+        "evidence/gate-4/voice-sms-continuity.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/authority-matrix.json",
+        "evidence/gate-4/real-model-agent-dc73996.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-04",
@@ -211,7 +213,7 @@
       "proof": "Commit inbox/transition before ACK; crashes and competing workers cannot repeat a committed application effect. Unknown provider outcomes reconcile or remain uncertain without blind retry.",
       "evidence_class": "local",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/task-effect-recovery-audit.json",
         "evidence/gate-4/task-runner-audit.json",
@@ -224,13 +226,14 @@
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/agent-default-authority.json",
         "evidence/gate-4/agent-context-default.json",
-        "evidence/gate-4/real-model-agent-dc73996.json"
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/authority-matrix.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-05",
@@ -263,7 +266,7 @@
       "proof": "Retrieve an authorized old fact outside the initial 32 KiB projection, with source/provenance/cursor. No other-conversation leakage; retention and revoked access remain explicit.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/task-recall-audit.json",
         "evidence/gate-4/vapi-continuation-audit.json",
@@ -273,13 +276,15 @@
         "evidence/gate-4/agent-default-authority.json",
         "evidence/gate-4/agent-context-default.json",
         "evidence/gate-4/real-model-agent-dc73996.json",
-        "evidence/gate-4/actual-vapi-chat-dc73996.json"
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/authority-matrix.json",
+        "evidence/gate-4/final-operating-reconciliation.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-06",
@@ -310,19 +315,19 @@
       "proof": "Approved, reviewed enrollment gates task sends at dispatch. HELP/STOP/START follow the published program; STOP blocks queued sends and replay. START does not resurrect cancelled work.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/task-dispatch-audit.json",
         "evidence/gate-4/sms-callback-journey.json",
         "evidence/gate-4/voice-sms-continuity.json",
         "evidence/gate-4/sms-0737-rehearsal.json",
-        "evidence/gate-4/live-voice-continuity.json"
+        "evidence/gate-4/live-voice-continuity.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-07",
@@ -356,7 +361,7 @@
       "proof": "Exact product/version, installation, authority and continuation mode are evidenced. One host beyond Vapi installs with supplied assets and continues the original task; no handwritten glue or context reconstruction. The delivered normal installation uses one non-admin identity key across conversations, preserves exact sessions and needs no per-task grant renewal.",
       "evidence_class": "host",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/host-selection.json",
         "evidence/gate-4/codex-owned-runtime.json",
@@ -370,13 +375,14 @@
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/agent-default-authority.json",
         "evidence/gate-4/agent-context-default.json",
-        "evidence/gate-4/real-model-agent-dc73996.json"
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/final-operating-reconciliation.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-08",
@@ -408,7 +414,7 @@
       "proof": "Real MCP lifecycle/discovery/tool calls and installed skill cover resolve, message, artifacts, history, event wait, task controls and supported sessions. SDK/HTTP/CLI operations enforce the same authority, IDs, receipts and errors. Ordinary MCP tools delegate the existing service operations; optional task tools and scoped mode retain their documented semantics.",
       "evidence_class": "local",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/native-public-interface-audit.json",
         "evidence/gate-4/language-task-parity-audit.json",
@@ -420,13 +426,13 @@
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/agent-default-authority.json",
         "evidence/gate-4/agent-context-default.json",
-        "evidence/gate-4/real-model-agent-dc73996.json"
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-09",
@@ -458,19 +464,19 @@
       "proof": "Real Vapi chat and Connect-carried voice invoke the actual Connect MCP path with verified task/call/chat/result binding. Label any provider callback adapter; provider-only webhook or working audio alone is insufficient.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/vapi-setup-restart.json",
         "evidence/gate-4/vapi-continuation-audit.json",
         "evidence/gate-4/package-candidate.json",
         "evidence/gate-4/live-voice-continuity.json",
-        "evidence/gate-4/actual-vapi-chat-dc73996.json"
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-10",
@@ -504,7 +510,7 @@
       "proof": "Selected assistant shares a draft, asks a human, receives the bound reply after restart and performs one visible follow-up on the original task. Independently initiated communication into the assistant works too. Repeat the installed actual-model journey with the normal identity-key default across two conversations, preserving optional tracked work and independent incoming contact.",
       "evidence_class": "host-and-local",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/codex-draft-journey.json",
         "evidence/gate-4/agent-incoming-example.json",
@@ -517,13 +523,14 @@
         "evidence/gate-4/reply-reference-repair.json",
         "evidence/gate-4/agent-default-authority.json",
         "evidence/gate-4/agent-context-default.json",
-        "evidence/gate-4/real-model-agent-dc73996.json"
+        "evidence/gate-4/real-model-agent-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/final-operating-reconciliation.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-11",
@@ -551,19 +558,20 @@
       "proof": "An independent public-SDK app initiates a review and answers another participant\u2019s independent request. Artifact access, reply correlation, restart, denials and one observable business effect pass.",
       "evidence_class": "local",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/connected-app.json",
         "evidence/gate-4/connected-app-artifacts.json",
         "evidence/gate-4/worker-execution-readiness.json",
         "evidence/gate-4/package-candidate.json",
-        "evidence/gate-4/package-dc73996.json"
+        "evidence/gate-4/package-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/final-operating-reconciliation.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-12",
@@ -595,20 +603,20 @@
       "proof": "Use an actual prior fact in voice, retain the sourced decision, end the session, restart and continue the same task through another approved channel, including the reviewed SMS lane. Contrast tasks/conversations cannot leak.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/voice-sms-continuity.json",
         "evidence/gate-4/vapi-continuation-audit.json",
         "evidence/gate-4/sms-callback-journey.json",
         "evidence/gate-4/live-voice-continuity.json",
         "evidence/gate-4/sms-0737-rehearsal.json",
-        "evidence/gate-4/actual-vapi-chat-dc73996.json"
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-13",
@@ -644,7 +652,7 @@
       "proof": "Vapi tool wait is at most ten seconds; pending returns a task handle. Disconnection recovers via journal/status; readiness and task diagnostics distinguish waiting/uncertain/failed from completed effects. Frozen resource limits pass. Retained owner inspection works after revoking the agent key without restoring continuation authority. Ordinary key expiry is distinguished from optional grant expiry.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/worker-execution-readiness.json",
         "evidence/gate-4/mcp-operating-load.json",
@@ -656,13 +664,15 @@
         "evidence/gate-4/agent-default-authority.json",
         "evidence/gate-4/agent-context-default.json",
         "evidence/gate-4/real-model-agent-dc73996.json",
-        "evidence/gate-4/actual-vapi-chat-dc73996.json"
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/authority-matrix.json",
+        "evidence/gate-4/final-operating-reconciliation.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     },
     {
       "id": "A4-14",
@@ -694,7 +704,7 @@
       "proof": "All required offline, installed, host and bounded live checks pass at identified source/package versions. Upgrade/restore/rollback preserve data, code quality review is resolved, docs agree and platform/host limits are published for owner review. The normal-key default is qualified in a fresh package and actual-model journey after decision 010.",
       "evidence_class": "local-and-live",
       "required": true,
-      "status": "in-progress",
+      "status": "passed",
       "evidence": [
         "evidence/gate-4/offline-runner.json",
         "evidence/gate-4/historical-recovery.json",
@@ -704,13 +714,18 @@
         "evidence/gate-4/agent-default-authority.json",
         "evidence/gate-4/agent-context-default.json",
         "evidence/gate-4/real-model-agent-dc73996.json",
-        "evidence/gate-4/actual-vapi-chat-dc73996.json"
+        "evidence/gate-4/actual-vapi-chat-dc73996.json",
+        "evidence/gate-4/offline-dc73996.json",
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/authority-matrix.json",
+        "evidence/gate-4/final-operating-reconciliation.json",
+        "evidence/gate-4/final-quality-review.json",
+        "evidence/gate-4/code-recovery-dc73996.json",
+        "evidence/gate-4/final-document-review.json"
       ],
-      "evidence_scope": "Component and live evidence retains its actual source revision; final gate acceptance awaits the remaining qualification and review items.",
-      "remaining": "The current normal installation and actual model/provider journeys are qualified. Complete regression, operating/recovery profiles and final source/evidence synchronization remain required before gate closure.",
-      "not_run_prerequisites": [
-        "Final current-source regression and installed-candidate reconciliation"
-      ]
+      "evidence_scope": "Fresh clean dc73996 completes all 41 required offline phases; the same frozen source passes 17 installed checks, the actual normal agent journey and fresh scoped Vapi text. Historical voice/SMS proofs retain their source boundaries with reviewed unchanged-path reconciliation. Local macOS arm64; explicit exact-session host resume; unpublished owner-review candidate.",
+      "remaining": "",
+      "not_run_prerequisites": []
     }
   ],
   "closure_rule": "All required A4-01\u2013A4-14 and T-A1\u2013T-A8 pass with source-linked evidence, including separately invoked bounded live qualification. A blocked, skipped or deferred required check prevents closure.",
@@ -726,8 +741,8 @@
     "installed_scoped_candidate": "7edb1b1 all 17 installed checks passed; evidence/gate-4/package-7edb1b1.json. This precedes the access-default correction.",
     "actual_model_scoped_mode": "7edb1b1 actual draft/reply/restart and independent incoming-contact journeys passed; source-specific limits are preserved.",
     "provider_and_sms": "Actual Vapi voice/Connect-carried continuity at596e9b7 and reviewed SMS suppression at9abf38f remain retained source-specific evidence. Changed sharedMCP behavior passes fresh actual dc73996 Vapi chat with3 successful calls/0errors and verified source/effect/cleanup.",
-    "normal_identity_default": "Decision 010 implemented. Frozen dc73996 installed package passes17/17; actual normal model uses one key across two conversations,30 successful MCP calls/0errors with verified original effects and restart replay. Full41 regression and final evidence synchronization remain in progress.",
+    "normal_identity_default": "Decision 010 is implemented and qualified: one regular revocable key across authorized conversations, optional tracked tasks, 17/17 installed checks and 30 successful actual MCP calls with zero tool errors. Current revocation, privacy, replay and SMS suppression apply.",
     "installed_normal_candidate": "dc73996 all17 installed checks passed; evidence/gate-4/package-dc73996.json. Its source and SDK rebuilds are outside the checkout.",
-    "current_regression": "Full41 at9546c6 documentation checkpoint has the same839 runtime/test inputs as frozen dc73996. Workspace578/0, media-pressure1/0 and installed-host7/0 pass; later phases remain in progress. dirty=true is documentation-only, not a clean-checkout assertion."
+    "current_regression": "Fresh clean dc73996 complete account-free runner passes 41/41 with 839 stable inputs. Generated build caches do not constitute application state. The earlier dirty=true development-directory partial run remains separately preserved."
   }
 }

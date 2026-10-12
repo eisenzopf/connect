@@ -15,16 +15,29 @@ track work, replies, waits and effects. Narrow task grants remain an optional
 mode. The [Codex host](docs/CODEX_TASK_HOST.md) preserves its exact session with
 explicit resume. Vapi retains verified call/chat bindings.
 
-The new default passes 25 focused behavior checks plus strict Clippy, Rustdoc
-and formatting. Earlier [installed scoped-mode](docs/evidence/gate-4/package-7edb1b1.json),
-[actual-model](docs/evidence/gate-4/real-model-draft-7edb1b1.json),
-[Vapi voice/chat](docs/evidence/gate-4/live-voice-continuity.json) and
-[reviewed SMS](docs/evidence/gate-4/sms-0737-rehearsal.json) proofs retain their
-recorded source versions and limits. The [numbered plan](docs/connect-gate-4-implementation.html#tracking)
-tracks the remaining integrated regression, fresh package and actual-model
-qualification. The development schema is 16; upgrades preserve existing state
-and require a matching verified backup. The complete v0.1 roadmap and community
-publication remain separate from this local candidate.
+Gate 4 is complete for local macOS arm64 owner review: all 36 implementation
+items and 14 required criteria have source-linked evidence. The [frozen local
+`0.1.0-alpha.1` package](docs/LOCAL_RELEASE.md) passes 17 installed checks outside
+the checkout. A fresh clean checkout of the same source passes all 41 required
+offline phases, including strict Clippy, Rustdoc, SDK, upstream, operating and
+recovery checks.
+
+The [actual normal agent](docs/evidence/gate-4/real-model-agent-dc73996.json)
+uses one key across two conversations, preserves draft bytes, resumes its exact
+session after restart and answers independent incoming contact. Its 30 MCP
+calls succeed without task-grant renewal. [Fresh Vapi text](docs/evidence/gate-4/actual-vapi-chat-dc73996.json)
+invokes three successful source-backed tools. Earlier [Connect-carried
+voice/chat](docs/evidence/gate-4/live-voice-continuity.json) and [reviewed SMS](docs/evidence/gate-4/sms-0737-rehearsal.json)
+proofs retain their exact source versions and limits; the [source reconciliation](docs/evidence/gate-4/final-source-composition.json)
+links unchanged provider paths and current shared-MCP checks. Failed attempts
+remain recorded.
+
+Review the [completed checklist](docs/connect-gate-4-implementation.html#tracking)
+and [qualification report](docs/evidence/gate-4/acceptance.html). The development
+schema is 16; upgrades preserve existing state and require a matching verified
+backup. This alpha is unpublished. Full v0.1 video, complete connector kit,
+independent protocol conformance, first-run/reference experience, broader
+platforms and community publication remain Gate 5 work.
 
 See [the documentation and delivery index](docs/index.html), [the Gate 2 product/delivery plan](docs/connect-gate-2-plan.html), [the alignment audit](docs/documentation-alignment.html), [the qualification result](docs/evidence/gate-1/result.json) and [local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below describe the complete product we intend to build.
 

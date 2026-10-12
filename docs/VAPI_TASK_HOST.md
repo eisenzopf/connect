@@ -20,9 +20,11 @@ resources were removed and original resources stayed unchanged.
 
 Historical [live voice/chat/SMS evidence](evidence/gate-4/live-voice-continuity.json)
 retains its separately recorded source and channel scope. The fresh text proof
-does not claim another physical call or SMS test. Full current regression and
-whole-Gate 4 acceptance remain in progress in the
-[implementation plan](connect-gate-4-implementation.html).
+does not claim another physical call or SMS test. The
+[Gate 4 review](evidence/gate-4/acceptance.html) records completed local
+qualification and the [implementation plan](connect-gate-4-implementation.html)
+links current text/installed checks to unchanged-path historical voice/SMS proof.
+No common-source live call/SMS replay is claimed.
 
 ## Preparation
 
