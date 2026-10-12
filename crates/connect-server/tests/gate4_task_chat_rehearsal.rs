@@ -11,6 +11,7 @@ mod owned_runtime;
 #[path = "support/vapi_host_tools.rs"]
 mod tools;
 use connect_client::tasks::*;
+use connect_client::ConnectClient;
 use connect_connectors::{vapi_origin::OriginKind, Vapi};
 use connect_server::{
     cli::init::private_write,
@@ -231,6 +232,10 @@ async fn journey(lose_receipt: bool) {
         task: &task.id,
         api: &base,
     };
+    // The independent driver may outlast QUIC's idle lifetime. Its later
+    // cancellation is a new owner action, using the retained task and a fresh
+    // authenticated connection rather than relying on an idle fixture client.
+    h.owner.close().await;
     let output = directory.join("capture");
     assert_eq!(driver.run("capture", &output, "first").await, !lose_receipt);
     let original: Value =
@@ -263,6 +268,8 @@ async fn journey(lose_receipt: bool) {
         1
     );
     assert_eq!(api.count(), 1);
+    h.owner = ConnectClient::open(h.owner_config.clone()).await.unwrap();
+    h.owner.negotiate_task(&task.id).await.unwrap();
     h.owner
         .task(TaskCommand::Cancel {
             request_id: "cancel-driver-task".into(),
