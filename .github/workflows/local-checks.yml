@@ -38,6 +38,12 @@ jobs:
         run: python3 scripts/build-recovery-baseline.py
       - name: Qualify schema-6 upgrade and rollback from actual executables
         run: python3 scripts/check-schema-six.py --previous-binary .local/recovery-baselines/8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5/connect
+      - name: Print Rust diagnostics after failure
+        if: failure()
+        run: |
+          for log in .local/checks/*/lint.log; do
+            if test -f "$log"; then tail -n 200 "$log"; fi
+          done
 
   gate-4-source:
     runs-on: macos-15
@@ -57,3 +63,9 @@ jobs:
         # Explicit partial qualification. Full local offline runs also select
         # an installed Codex binary and execute the scripted host checks.
         run: python3 scripts/check-gate-4.py --source-only
+      - name: Print Rust diagnostics after failure
+        if: failure()
+        run: |
+          for log in .local/gate-4-checks/*/lint.log; do
+            if test -f "$log"; then tail -n 200 "$log"; fi
+          done
