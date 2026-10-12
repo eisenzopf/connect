@@ -202,26 +202,78 @@ class FailureEvidence(unittest.TestCase):
 
 
 class BaselineCache(unittest.TestCase):
+    def sealed(self, output):
+        (output / "target/debug").mkdir(parents=True)
+        (output / "target/debug/cache").write_bytes(b"generated")
+        binary = output / "connect"; binary.write_bytes(b"sealed executable")
+        digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+        (output / "manifest.json").write_text(json.dumps({"source_revision": output.name, "binary_sha256": digest}))
+        return digest
+
     def test_only_sealed_baseline_cache_is_retired_and_inputs_survive(self):
         with tempfile.TemporaryDirectory(dir=ROOT / ".local") as tmp:
-            output = pathlib.Path(tmp) / "recovery-baselines" / ("a" * 40)
-            (output / "target/debug").mkdir(parents=True)
-            (output / "target/debug/cache").write_bytes(b"generated")
-            binary = output / "connect"; binary.write_bytes(b"sealed executable")
-            digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+            root = pathlib.Path(tmp).resolve()
+            output = root / ".local/recovery-baselines" / ("a" * 40)
+            digest = self.sealed(output)
+            binary = output / "connect"
             manifest = output / "manifest.json"
-            manifest.write_text(json.dumps({"source_revision": output.name, "binary_sha256": digest}))
             saved = manifest.read_bytes()
             binary.write_bytes(b"changed")
-            with self.assertRaises(ValueError):
+            with patch("lib.ci_cache.ROOT", root), self.assertRaises(ValueError):
                 retire_baseline_cache(output, output.name)
             self.assertTrue((output / "target/debug/cache").exists())
             binary.write_bytes(b"sealed executable")
-            result = retire_baseline_cache(output, output.name)
+            with patch("lib.ci_cache.ROOT", root):
+                result = retire_baseline_cache(output, output.name)
             self.assertTrue(result["cache_removed"])
             self.assertFalse((output / "target").exists())
             self.assertEqual(manifest.read_bytes(), saved)
             self.assertEqual(hashlib.sha256(binary.read_bytes()).hexdigest(), digest)
+
+    def test_output_directory_symlink_cannot_retire_foreign_cache(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / ".local") as tmp:
+            root = pathlib.Path(tmp).resolve(); revision = "a" * 40
+            foreign = root / "foreign" / revision; self.sealed(foreign)
+            parent = root / ".local/recovery-baselines"; parent.mkdir(parents=True)
+            output = parent / revision; output.symlink_to(foreign, target_is_directory=True)
+            with patch("lib.ci_cache.ROOT", root), patch("lib.ci_cache.shutil.rmtree") as remove:
+                with self.assertRaises(ValueError):
+                    retire_baseline_cache(output, revision)
+                remove.assert_not_called()
+            self.assertEqual((foreign / "target/debug/cache").read_bytes(), b"generated")
+
+    def test_parent_directory_symlink_cannot_retire_foreign_cache(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / ".local") as tmp:
+            root = pathlib.Path(tmp).resolve(); revision = "a" * 40
+            foreign = root / "foreign"; self.sealed(foreign / revision)
+            (root / ".local").mkdir()
+            (root / ".local/recovery-baselines").symlink_to(foreign, target_is_directory=True)
+            with patch("lib.ci_cache.ROOT", root), patch("lib.ci_cache.shutil.rmtree") as remove:
+                with self.assertRaises(ValueError):
+                    retire_baseline_cache(root / ".local/recovery-baselines" / revision, revision)
+                remove.assert_not_called()
+            self.assertEqual((foreign / revision / "target/debug/cache").read_bytes(), b"generated")
+
+    def test_intermediate_directory_symlink_is_denied_by_resolved_owner_validation(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / ".local") as tmp:
+            root = pathlib.Path(tmp).resolve(); revision = "a" * 40
+            foreign = root / "foreign"; self.sealed(foreign / "recovery-baselines" / revision)
+            (root / ".local").symlink_to(foreign, target_is_directory=True)
+            with patch("lib.ci_cache.ROOT", root), patch("lib.ci_cache.shutil.rmtree") as remove:
+                with self.assertRaises(ValueError):
+                    retire_baseline_cache(root / ".local/recovery-baselines" / revision, revision)
+                remove.assert_not_called()
+            self.assertEqual((foreign / "recovery-baselines" / revision / "target/debug/cache").read_bytes(), b"generated")
+
+    def test_matching_basename_outside_builder_owner_is_not_authority(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / ".local") as tmp:
+            root = pathlib.Path(tmp).resolve(); revision = "a" * 40
+            foreign = root / "foreign/recovery-baselines" / revision; self.sealed(foreign)
+            with patch("lib.ci_cache.ROOT", root), patch("lib.ci_cache.shutil.rmtree") as remove:
+                with self.assertRaises(ValueError):
+                    retire_baseline_cache(foreign, revision)
+                remove.assert_not_called()
+            self.assertEqual((foreign / "target/debug/cache").read_bytes(), b"generated")
 
 
 class PackageSelectors(unittest.TestCase):
