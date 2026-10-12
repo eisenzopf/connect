@@ -19,6 +19,11 @@ pub(crate) fn command(
     match spec.kind {
         Kind::Inspect => Err(invalid()), // Execution returns only a current service projection.
         Kind::Operation(operation) => {
+            if operation == "context_view" {
+                arguments
+                    .entry("limit")
+                    .or_insert_with(|| json!(crate::identity_schemas::DEFAULT_CONTEXT_LIMIT));
+            }
             arguments.insert("op".into(), json!(operation));
             serde_json::from_value(Value::Object(arguments))
                 .map(Command::Operation)

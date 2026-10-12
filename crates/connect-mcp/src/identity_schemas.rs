@@ -2,6 +2,8 @@
 use crate::{catalog::Spec, schemas};
 use serde_json::{json, Map, Value};
 
+pub(crate) const DEFAULT_CONTEXT_LIMIT: u32 = 30;
+
 pub(crate) fn existing(spec: &Spec, mutation: bool) -> Map<String, Value> {
     let mut schema = schemas::input(spec);
     let removed = if mutation {
@@ -18,6 +20,15 @@ pub(crate) fn existing(spec: &Spec, mutation: bool) -> Map<String, Value> {
             .as_array_mut()
             .expect("closed schema required")
             .retain(|value| value.as_str() != Some(*name));
+    }
+    if spec.name == "connect_context_view" {
+        schema["required"]
+            .as_array_mut()
+            .expect("closed schema required")
+            .retain(|value| value.as_str() != Some("limit"));
+        schema["properties"]["limit"]["default"] = json!(DEFAULT_CONTEXT_LIMIT);
+        schema["properties"]["limit"]["description"] =
+            json!("Maximum recent context items; defaults to 30 when omitted.");
     }
     if spec.name != "connect_resolve" {
         let required = spec.name != "connect_capabilities";
