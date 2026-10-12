@@ -1,16 +1,25 @@
 # Connect MCP adapter
 
-Gate 4 implementation is in progress. This crate composes the official Rust MCP
-SDK with Connect's task service. It does not open the database or expose grant
-issuance as a model tool.
+This crate composes the official Rust MCP SDK with Connect's communication
+service. The default local endpoint accepts one regular, revocable agent
+credential across that identity's authorized conversations. Tasks optionally
+track work within those conversations; they do not require issuing or renewing
+an invocation grant. The adapter does not open the database or expose credential
+or grant issuance as a model tool.
 
-The current transport is opt-in loopback Streamable HTTP at `/mcp`. Trusted
-composition registers an invocation binding, issues a narrow opaque task grant
-and exports that secret to protected host configuration. Each HTTP request
-presents the grant as its bearer token; the admission adapter verifies current
-authority before interpreting model arguments. The handler derives its task
-from the private authenticated principal rather than an input task/owner ID.
-Bearer plaintext is removed before the MCP SDK receives HTTP context.
+The transport is opt-in loopback Streamable HTTP at `/mcp`. `LocalAuth` verifies
+the bearer against current identity authority before interpreting arguments.
+Ordinary tools take explicit conversation IDs and persistent mutation request
+IDs. Optional tracking tools select an owned task explicitly. Discovery exposes
+only currently permitted communication operations, without administrator
+controls or provider secrets. Bearer plaintext is removed before the MCP SDK
+receives HTTP context. See [regular agent installation](../../docs/AGENT_ACCESS.md).
+
+For an optional narrow installation, trusted composition registers an invocation
+binding, issues an opaque task grant and exports that secret to protected host
+configuration. The authenticated principal supplies its fixed task and binding;
+model arguments cannot select another task. `LocalAuth` also admits these local
+grants with their existing narrow schemas and authority limits.
 
 `FixedBindingAuth` supports an explicitly configured native or host-session
 binding. `LocalGrantAuth` supports multiple independently registered native/host
@@ -53,7 +62,7 @@ The pinned SDK is `rmcp = 3.5.1`. Connect limits negotiated protocols to the kno
 legacy versions through `2025-11-25`; newer optional facilities are not
 advertised. MCP task facilities do not replace Connect's durable task identity.
 Stateless requests retain no MCP transport session as application authority.
-Every discovery and operation revalidates current task grants.
+Every discovery and operation revalidates current identity or invocation authority.
 
 Requests are bounded to 512 KiB, including streamed bodies. Host validation is
 restricted to the actual loopback listener authority and localhost port. Present
@@ -84,12 +93,23 @@ The binding must already be registered and each request must present a current
 grant for that exact binding. Configuration neither registers an origin nor
 issues a grant. The server prints the actual endpoint URI and owns its shutdown
 alongside the native QUIC listener. Provider origins cannot use this fixed
-native/host configuration. Omitting `[mcp.binding]` selects `LocalGrantAuth`,
-allowing independent protected local task installations to share the listener.
-Each request still needs its own exact currently authorized grant; the URI and
-configuration cannot select a task or mint authority.
+native/host configuration. Omitting `[mcp.binding]` selects `LocalAuth`, allowing
+regular agent credentials and optional independent local task installations to
+share the listener. The URI and configuration never mint authority. A regular
+credential retains its named operation and recipient limits plus conversation
+membership; a task grant retains its exact registered binding.
 
-Discovery projects the tool catalog from current grant operations: status,
+Regular discovery includes identity inspection, conversation creation/history,
+inbox, context, messaging, file and supported media tools. Optional owned-task
+tools provide creation, state, recall, waits, tracked sends and cancellation.
+Normal results retain the native `Outcome` envelope, including
+`{"kind":"task","data":TaskOutcome}` for task operations. A regular send uses
+the native message contract; a tracked question uses `connect_task_send` with
+`task_id`, `request_id` and `step_id`. `connect_reply` refers to the original
+question message ID. A tracked send's reply reference instead names a received
+journal event. Current schemas describe these distinct references.
+
+Narrow discovery projects the tool catalog from current grant operations: status,
 source recall, journal wait, effect status, recipient discovery, messaging,
 artifact chunks and supported session/call/SIP operations. A tool's presence
 does not imply a configured or reachable provider route. Communication tools
@@ -115,7 +135,7 @@ authoritative inbox page remains the normal pending result with its cursor.
 The adapter never invents a page after a timed-out read. Request cancellation
 stops the waiter, not a store transaction that may already have committed.
 
-Native grant authentication, protected CLI issuance/export and independent MCP
+Optional native grant authentication, protected CLI issuance/export and independent MCP
 transport are locally qualified in the numbered plan. Protected host installation,
 provider creation/bootstrap, installed hosts and complete Gate 4 acceptance remain open.
 `connect_task_cancel` is visible only when the developer explicitly includes

@@ -181,7 +181,7 @@ impl RunningServer {
                     service.clone(),
                     binding.clone(),
                 )?),
-                None => Arc::new(connect_mcp::LocalGrantAuth::new(service.clone())),
+                None => Arc::new(connect_mcp::LocalAuth::new(service.clone())),
             };
             Some(
                 mcp_capacity

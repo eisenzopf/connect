@@ -6,7 +6,7 @@ use connect_protocol::tasks::{InvocationKind, TaskAccessCommand, TASK_ACCESS_PRO
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, net::SocketAddr, path::Path};
 
-const SKILL: &[(&str, &str)] = &[
+pub(crate) const SKILL: &[(&str, &str)] = &[
     (
         "SKILL.md",
         include_str!("../../../../../skills/connect/SKILL.md"),
@@ -25,6 +25,28 @@ const SKILL: &[(&str, &str)] = &[
 /// This config changes no task/grant authority and no other MCP server policy.
 pub(super) fn configuration(uri: &str) -> String {
     format!("mcp_servers.connect_task={{url=\"{uri}\",bearer_token_env_var=\"CONNECT_TASK_GRANT\",default_tools_approval_mode=\"approve\",required=true,startup_timeout_sec=10,tool_timeout_sec=10}}")
+}
+
+/// Regular agent credentials use a distinct connection and installation mode.
+pub(crate) fn agent_configuration(uri: &str) -> String {
+    format!("mcp_servers.connect_agent={{url=\"{uri}\",bearer_token_env_var=\"CONNECT_AGENT_CREDENTIAL\",default_tools_approval_mode=\"approve\",required=true,startup_timeout_sec=10,tool_timeout_sec=10}}")
+}
+
+/// Install the same reviewed skill assets for either explicit access mode.
+pub(crate) fn write_skill(output: &Path) -> Result<BTreeMap<String, String>> {
+    let skill_root = output.join(".agents/skills/connect");
+    std::fs::create_dir_all(&skill_root)?;
+    let mut digests = BTreeMap::new();
+    for (name, content) in SKILL {
+        let path = skill_root.join(name);
+        std::fs::create_dir_all(path.parent().context("Skill asset parent is missing")?)?;
+        private_write(&path, content.as_bytes())?;
+        digests.insert(
+            (*name).to_owned(),
+            hex::encode(Sha256::digest(content.as_bytes())),
+        );
+    }
+    Ok(digests)
 }
 
 /// Match an intact earlier export without rewriting its manifest or intent.
@@ -69,15 +91,7 @@ pub fn export(grant_file: &Path, address: SocketAddr, output: &Path) -> Result<(
         &output.join("task-grant.json"),
         &serde_json::to_vec_pretty(&file)?,
     )?;
-    let skill_root = output.join(".agents/skills/connect");
-    std::fs::create_dir_all(&skill_root)?;
-    let mut digests = BTreeMap::new();
-    for (name, content) in SKILL {
-        let path = skill_root.join(name);
-        std::fs::create_dir_all(path.parent().context("Skill asset parent is missing")?)?;
-        private_write(&path, content.as_bytes())?;
-        digests.insert(*name, hex::encode(Sha256::digest(content.as_bytes())));
-    }
+    let digests = write_skill(output)?;
     let uri = format!("http://{address}/mcp");
     let config = configuration(&uri);
     private_write(&output.join("mcp-override.txt"), config.as_bytes())?;

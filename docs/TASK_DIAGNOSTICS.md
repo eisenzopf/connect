@@ -1,5 +1,11 @@
 # Task diagnostics
 
+[Regular agent installations](AGENT_ACCESS.md) use the same public task view.
+A separate current credential for the same owner identity can inspect retained
+work after model-key revocation; an administrator has no membership bypass.
+Regular host sampling reports that installation's saved session/run state, not
+per-task model progress. Optional narrow installations retain their own binding.
+
 The native public SDK and `connect task-diagnostics` sample the existing task
 interfaces. They add no transport, task store or administrative authority.
 

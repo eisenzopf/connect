@@ -6,7 +6,7 @@ pub mod diagnostics;
 #[cfg(target_os = "macos")]
 mod group_status;
 mod install;
-mod process;
+pub(crate) mod process;
 mod renewal;
 mod state;
 use anyhow::{Context, Result};
@@ -35,7 +35,7 @@ pub async fn run(
     run_locked(&directory, binary, prompt, deadline, installation).await
 }
 
-fn lock(directory: &Path) -> Result<std::fs::File> {
+pub(crate) fn lock(directory: &Path) -> Result<std::fs::File> {
     super::require_private(directory)?;
     let lock_path = directory.join("host.lock");
     if !lock_path.try_exists()? {
@@ -117,6 +117,7 @@ async fn run_locked(
         directory,
         binary,
         &installation.config,
+        "CONNECT_TASK_GRANT",
         grant.expose_secret(),
         &mut state,
         deadline,

@@ -90,6 +90,14 @@ derived from the question, never borrowed as authority. An accepted question can
 have a succeeded communication effect while its tool result stays pending until
 the specific attributed answer exists. Other replies cannot satisfy that wait.
 
+`Invoke.reply_to` is the **received conversation journal event ID**, not the
+message ID, source ID, outer task-event ID or original question ID. MCP exposes
+it in `connect_task_wait` at `data.events[*].data.data.event_id` for a `reply`
+event. `TaskRecord.initiating_event_id` supplies the corresponding reference for
+an independently initiated task. The native `TaskCommand::Reply.reply_to`
+instead identifies the question message being answered; these fields belong to
+different operations and are not interchangeable.
+
 Effects retain the original logical request ID. The store derives a separate
 wire receipt ID from task, step and logical ID so two tasks cannot alias an
 account-level receipt. The operation receipt, local mutation, effect intent,

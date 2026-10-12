@@ -11,6 +11,7 @@ pub enum HostState {
     Unconfigured,
     InvalidInstallation,
     GrantExpired,
+    CredentialExpired,
     BindingMismatch,
     InvalidState,
     LockUnavailable,
@@ -40,9 +41,10 @@ impl HostObservation {
             HostState::NotStarted => W::NotStarted,
             HostState::TurnActive => W::OwnershipObserved,
             HostState::TurnComplete => W::ExplicitResumeRequired,
-            HostState::Interrupted | HostState::MissingSession | HostState::GrantExpired => {
-                W::RecoveryRequired
-            }
+            HostState::Interrupted
+            | HostState::MissingSession
+            | HostState::GrantExpired
+            | HostState::CredentialExpired => W::RecoveryRequired,
             HostState::ChangedDuringSample => W::ChangedDuringSample,
             HostState::InvalidInstallation
             | HostState::BindingMismatch
@@ -51,7 +53,7 @@ impl HostObservation {
         };
         condition.component("codex-host")
     }
-    fn empty(state: HostState) -> Self {
+    pub(crate) fn empty(state: HostState) -> Self {
         Self {
             state,
             session_id: None,
@@ -149,7 +151,7 @@ fn inspect_with_lock_probe(
 
 // Release the probe immediately; diagnostics must not hold a startup lock while
 // reading state. WouldBlock observes ownership at this instant, never a PID.
-fn lock(path: &Path) -> anyhow::Result<bool> {
+pub(crate) fn lock(path: &Path) -> anyhow::Result<bool> {
     super::super::require_private(path)?;
     super::super::read_bounded(path)?;
     let file = File::open(path)?;

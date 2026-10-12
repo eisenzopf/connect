@@ -6,6 +6,12 @@ facade, and the human conversation test client for
 macOS arm64. It is unpublished and performs no remote deployment. Provider-live
 evidence is recorded separately from the package qualification.
 
+The default local agent installation uses [one regular revocable identity
+credential](AGENT_ACCESS.md) across authorized conversations, with optional task
+tracking. [Scoped task installation](TASK_ACCESS.md) remains available for a
+narrow delegation. Earlier package reports qualify their recorded scoped-mode
+sources; the current normal-key candidate is undergoing separate qualification.
+
 ## Verify and install
 
 Verify all three archives in the candidate directory:
@@ -17,6 +23,14 @@ shasum -a 256 -c SHA256SUMS
 Extract the runtime archive into a new `releases/` directory. Keep state outside
 the extracted release. Use the absolute path of `bin/connect` below; no PATH,
 daemon, DNS, tunnel, or existing installation change is required.
+
+Earlier local checks observed a pause before a new executable started; its
+cause was not established. Package qualification records the first `--version` launch
+separately with a 180-second installation budget and owned-process cleanup.
+It then repeats the version command under the ordinary 15-second CLI budget;
+service, MCP and media deadlines are unchanged. A first-launch timeout fails
+qualification and remains recorded. Do not disable system security or retry a
+communication with a new logical ID to work around installation startup.
 
 ## Start a private local installation
 

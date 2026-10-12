@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-12T11:32:02.739598+00:00",
+  "scope": "five regular agent CLI unit behaviors and read-only formatting; local macOS arm64 offline; scripted process JSONL, no actual model inference or live providers",
+  "source_revision": "733d27acb08ddb56cc8fde4c950503092dfffd83",
+  "source_composition": "recorded revision plus the exact frozen working source input manifest; cohesive commit follows without source content changes",
+  "source_input_manifest_sha256": "9c10fe250d16473a1d4049c42f3806c1f7101e3642d9277efc0e21a6ec5d360d",
+  "source_stable": true,
+  "test_binary_sha256": "d9938b0c5537e81cf6f83f53878dcaab479e105d41322415fe94e8dbaace38eb",
+  "tests": {
+    "passed": 5,
+    "failed": 0,
+    "ignored": 0
+  },
+  "named_cases": [
+    {
+      "name": "cli::agent_access::tests::changed_credential_assets_or_access_mode_cannot_resume_an_existing_installation",
+      "status": "ok"
+    },
+    {
+      "name": "cli::agent_access::tests::export_rejects_admin_revoked_and_mismatched_authority_before_creating_output",
+      "status": "ok"
+    },
+    {
+      "name": "cli::agent_access::tests::identity_setup_replays_original_receipt_and_denies_conflict_or_non_admin",
+      "status": "ok"
+    },
+    {
+      "name": "cli::agent_access::tests::regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret",
+      "status": "ok"
+    },
+    {
+      "name": "cli::agent_access::tests::regular_host_resumes_exact_session_and_redacts_its_key_without_grant_refresh",
+      "status": "ok"
+    }
+  ],
+  "phases": [
+    {
+      "name": "cli-agent-access-unit",
+      "command": [
+        "target/debug/deps/connect_server-987ff7dc9410623c",
+        "cli::agent_access::tests::",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 240,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.64,
+      "log_sha256": "95762bc083593fd851fdd8f529fedecc077e503d721ad612455cbe9569bd0d6e"
+    },
+    {
+      "name": "format-read-only",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "timeout_seconds": 120,
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.773,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "compile_dependencies": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "log": "dependencies.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 0.134,
+      "log_sha256": "00144c077bb8a2f6a66a3c3d0426f8f1382dfffae2480dce54857131d5b4f455"
+    },
+    {
+      "name": "cli-unit-compile",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--lib",
+        "--all-features",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "timeout_seconds": 2400,
+      "log": "cli-unit-compile.log",
+      "status": "passed",
+      "exit_code": 0,
+      "leftover_group_members": [],
+      "group_cleanup": "signalled",
+      "seconds": 9.353,
+      "log_sha256": "239f22103bf6caf9a97902c6bccb30e79b6a88fac4a493d991ce9cc7202b847f"
+    }
+  ],
+  "private_report": {
+    "path": ".local/gate-4-agent-access/20261012T112857.891304Z-cli-unit-reconciled/result.json",
+    "sha256": "53f0ed4d7a74dcd706cc017c169fb25258f453c1ea2deebf4d3503309ffe1289"
+  },
+  "historical_wrapper_failure": {
+    "path": ".local/gate-4-agent-access/20261012T112701.330433Z-cli-unit/result.json",
+    "sha256": "4e71a8fc85cfbd8dac42c270e839c9e71a0132d9315543d3b9cd5b01e7e679e7",
+    "actual_tests": {
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    "cause": "--nocapture interleaved non-secret CLI JSON between case name and ok; named-case report parser assertion failed. Product test phase passed 5/0/0.",
+    "retained": true,
+    "actual_test_log_sha256": "4d76567e4415315ce1a0cf14c68d2a9251f5274aa22f8f616082f9458e3da7c1"
+  },
+  "verification": [
+    "Regular export retains the selected non-admin key, leaves database state unchanged, produces no task-grant/renewal files and cannot overwrite an existing installation.",
+    "Admin, revoked, identity-mismatched and optional narrow-grant configurations are rejected before output creation.",
+    "Changed installed credentials/MCP assets/access mode cannot resume an existing intent.",
+    "Owner-only identity provisioning replays its exact creation receipt and denies changed intent, unrelated existing alias and non-admin actor.",
+    "The shared bounded process runner resumes the exact saved regular session, redacts its communication key, excludes provider environment and performs no grant refresh; owner-bound metadata diagnostics are sampled."
+  ],
+  "limits": [
+    "This evidence qualifies delivered CLI unit behavior, including the scripted process boundary; it is not actual Codex inference or installed-package qualification.",
+    "The retained initial wrapper failure was a named-case parser assertion after all five product tests passed; the same unchanged binary was rerun with standard captured output. No product source correction occurred.",
+    "No provider key, raw log, bearer value, private database, phone/SMS operation, remote deployment or security change is included."
+  ]
+}

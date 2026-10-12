@@ -1,18 +1,24 @@
 # Codex task host
 
-Connect gives an installed Codex CLI a persistent communication task through
-MCP, a supplied skill and a packaged host adapter. The developer configures the
-permitted operations and recipients once. The assistant then uses those tools
-without per-action approval prompts.
+The default agent setup uses [one regular communication credential](AGENT_ACCESS.md),
+one MCP URL and the supplied skill across authorized conversations. It needs no
+per-task issuance or five-minute renewal. Task IDs optionally track work.
+Regular-agent installation is being qualified separately; it reuses the bounded
+launcher and exact-session continuation.
+
+The task-grant installation below remains the optional narrow mode. Existing
+exports retain their authority, saved intent and original evidence; they are
+never broadened during recovery. Both modes avoid per-action approval prompts.
 
 The tested host is `codex-cli 0.162.0-alpha.17.2` on local macOS arm64. The
-[actual-model draft journey](evidence/gate-4/real-model-draft-7edb1b1.json) and
-[current incoming-contact journey](evidence/gate-4/real-model-incoming-7edb1b1.json)
+[actual-model scoped draft journey](evidence/gate-4/real-model-draft-7edb1b1.json)
+and [scoped incoming-contact journey](evidence/gate-4/real-model-incoming-7edb1b1.json)
 record useful model behavior separately from scripted runtime tests. Each report
-identifies its tested source; the [implementation plan](connect-gate-4-implementation.html)
-tracks final candidate qualification.
+identifies its tested source. The [implementation plan](connect-gate-4-implementation.html)
+tracks final normal-key candidate and actual-model qualification.
 
-## Install and start
+
+## Optional narrow-task installation
 
 1. Install the local Connect candidate and initialize isolated state. Keep state
    outside the release directory. See [local release](LOCAL_RELEASE.md).
