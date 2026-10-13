@@ -48,19 +48,48 @@ class Endpoint:
         finally:
             connection.close()
 
-    def stalled(self, body):
-        connection = http.client.HTTPConnection(self.address, timeout=12)
+    def stalled(self, body, *, admission_deadline):
+        """Hold an admitted body, rather than assuming a TCP flush admitted it.
+
+        Hyper sends 100 Continue when the authenticated handler polls the body,
+        after its admission permit is held. Consume only that interim header:
+        HTTPConnection.getresponse() would skip it and wait for the final 504.
+        """
+        remaining = admission_deadline - time.monotonic()
+        assert remaining > 0, 'MCP admission confirmation exceeded two seconds'
+        connection = http.client.HTTPConnection(self.address, timeout=remaining)
         try:
             connection.putrequest('POST', '/mcp')
             for name, value in self.headers().items():
                 connection.putheader(name, value)
             connection.putheader('Content-Length', str(len(body)))
+            connection.putheader('Expect', '100-continue')
             started = time.monotonic()
-            connection.endheaders(body[:-1])
+            connection.endheaders()
+            admitted_body(connection, admission_deadline)
+            connection.send(body[:-1])
             return connection, started
         except BaseException:
             connection.close()
             raise
+
+
+def admitted_body(connection, deadline):
+    """Require the bounded interim response before sending a held body."""
+    header = bytearray()
+    while not header.endswith(b'\r\n\r\n'):
+        assert len(header) < 4096, 'Oversized MCP admission response'
+        remaining = deadline - time.monotonic()
+        assert remaining > 0, 'MCP admission confirmation exceeded two seconds'
+        connection.sock.settimeout(remaining)
+        byte = connection.sock.recv(1)
+        assert byte, 'MCP connection closed before admission confirmation'
+        header.extend(byte)
+    status_line = bytes(header).split(b'\r\n', 1)[0].split(b' ', 2)
+    assert len(status_line) >= 2 and status_line[:2] == [b'HTTP/1.1', b'100'], (
+        'Stalled MCP request was not admitted', status_line[1:2])
+    connection.timeout = 12
+    connection.sock.settimeout(12)
 
 
 def burst(call, report):

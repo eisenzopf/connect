@@ -27,11 +27,12 @@ def slow_bodies(endpoint, maximum, task, report):
         sockets = []
         with report.phase(f'saturated-near-limit-body-deadline-{wave + 1}'):
             try:
+                deadline = time.monotonic() + 2
                 for _ in range(ADMISSIONS):
-                    sockets.append(endpoint.stalled(maximum))
+                    sockets.append(endpoint.stalled(maximum, admission_deadline=deadline))
+                assert time.monotonic() < deadline, 'Never saturated all 32 admission slots'
                 # Every stalled body is one byte short. A separate rejected
                 # request proves all admission permits are actually occupied.
-                deadline = time.monotonic() + 2
                 while True:
                     response = endpoint.request(status)
                     if response[0] == 503:
@@ -52,6 +53,8 @@ def slow_bodies(endpoint, maximum, task, report):
                 assert success(endpoint.request(status))['structuredContent']['data']['id'] == task['id']
                 report.checkpoint(**{f'stalled_wave_{wave + 1}': {
                     'admitted': ADMISSIONS, 'held_body_bytes_each': BODY_BYTES - 1,
+                    'admission_confirmations': ADMISSIONS,
+                    'admission_confirmation': '100-continue before each incomplete body',
                     'excess_status': 503, 'timeouts': len(durations), 'deadline_status': 504,
                     'recovered_status': 200}})
             finally:
