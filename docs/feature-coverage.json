@@ -655,5 +655,12 @@
   "assignment_status": "All 21 required commitments retain their delivery assignments and recorded evidence. Gate 4 owner-review repairs are locally qualified; Gate 5 remains required/planned, including video, full connector/conformance, first-run/reference and release.",
   "gate_3_acceptance": "gate-3-acceptance.json",
   "gate_4_acceptance": "gate-4-acceptance.json",
-  "current_gate_4_review": "connect-gate-4-implementation.html#tracking"
+  "current_gate_4_review": "connect-gate-4-implementation.html#tracking",
+  "gate_5_acceptance": {
+    "status": "proposed-not-qualified",
+    "plan": "connect-gate-5-plan.html",
+    "map": "gate-5-acceptance.json",
+    "implementation": "connect-gate-5-implementation.html",
+    "note": "All F-01\u2013F-21 commitments remain required; proposed acceptance does not change delivery or qualification status."
+  }
 }

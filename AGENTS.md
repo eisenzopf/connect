@@ -5,6 +5,9 @@
   `docs/connect-gate-3-implementation.html`; their product plans define scope.
   Gate 4 approved plans are `docs/connect-gate-4-plan.html` and
   `docs/connect-gate-4-implementation.html`; the owner authorized implementation.
+  Gate 5 plans are `docs/connect-gate-5-plan.html` and
+  `docs/connect-gate-5-implementation.html`; the owner authorized implementation
+  and parallel agents on October 13, 2026. Publication remains a separate action.
   Preserve stable IDs and update progress with real verification evidence.
 - Keep protocol, store, service, client and server responsibilities in their
   workspace crates. Examples communicate through the public client interface.

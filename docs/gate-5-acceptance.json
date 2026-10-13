@@ -1,0 +1,457 @@
+{
+  "gate": 5,
+  "title": "Downloadable v0.1",
+  "revision": 2,
+  "updated": "2026-10-13",
+  "status": "draft-for-owner-review",
+  "plan": "connect-gate-5-plan.html",
+  "implementation": "connect-gate-5-implementation.html",
+  "scope": "Product acceptance proposal. No implementation, provider operations, public ingress, deployment or publication authorized. Local macOS arm64 qualification baseline.",
+  "acceptance": [
+    {
+      "id": "A5-01",
+      "title": "A usable first run",
+      "milestone": "G5-C",
+      "features": [
+        "F-03",
+        "F-04",
+        "F-18",
+        "F-21"
+      ],
+      "status": "proposed",
+      "proof": "A developer outside the author\u2019s checkout installs the candidate, starts a persistent local server, resolves two identities, exchanges a message and file in both directions, and reconnects without lost history. No provider account or private bootstrap file is required.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-027",
+        "G5-029",
+        "G5-032",
+        "G5-034",
+        "G5-035",
+        "G5-037",
+        "G5-044",
+        "G5-045",
+        "G5-046",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-02",
+      "title": "Give an agent presence",
+      "milestone": "G5-D",
+      "features": [
+        "F-10",
+        "F-15",
+        "F-20",
+        "F-21"
+      ],
+      "status": "proposed",
+      "proof": "Install the supplied MCP configuration and skill into the qualified Codex host using one ordinary revocable identity. Share a draft, receive the human\u2019s reply, consume it explicitly, and continue the exact saved session after restart. Also answer independently initiated contact. Report the actual resume mode; do not imply automatic model wake.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-034",
+        "G5-038",
+        "G5-045",
+        "G5-046",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-03",
+      "title": "Make an app reachable",
+      "milestone": "G5-D",
+      "features": [
+        "F-01",
+        "F-03",
+        "F-04",
+        "F-21"
+      ],
+      "status": "proposed",
+      "proof": "The separate review app uses only public interfaces to ask for a decision and answer an incoming request. The developer installs it without editing Connect internals. Restart both processes; recover the inbox and preserve one logical business effect and reply.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-034",
+        "G5-037",
+        "G5-045",
+        "G5-046",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-04",
+      "title": "Two-party video on named paths",
+      "milestone": "G5-A",
+      "features": [
+        "F-07",
+        "F-08",
+        "F-11",
+        "F-12",
+        "F-16"
+      ],
+      "status": "proposed",
+      "proof": "On the approved profile, distinct clients exchange decoded moving video and duplex audio through Connect: browser\u2194browser, native QUIC\u2194browser, and native QUIC\u2194native QUIC. Prove negotiation, invitation rejection, access, camera mute, peer loss and teardown. Audio and video remain separate streams in the same Session and Conversation. Unsupported routes reject video explicitly.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-001",
+        "G5-003",
+        "G5-004",
+        "G5-005",
+        "G5-007",
+        "G5-008",
+        "G5-009",
+        "G5-010",
+        "G5-011",
+        "G5-012",
+        "G5-013",
+        "G5-014",
+        "G5-015",
+        "G5-016",
+        "G5-035",
+        "G5-042",
+        "G5-045",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-05",
+      "title": "A reference client developers can learn from",
+      "milestone": "G5-D",
+      "features": [
+        "F-02",
+        "F-11",
+        "F-12",
+        "F-16"
+      ],
+      "status": "proposed",
+      "proof": "A person can select a permitted contact, inspect available routes, exchange messages/files, accept or reject voice/video, mute camera or microphone, and see delivery and recovery state. The reference client uses public SDK/API behavior, has keyboard-accessible controls, and works at narrow and desktop widths without exposing provider credentials.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-013",
+        "G5-014",
+        "G5-035",
+        "G5-039",
+        "G5-045",
+        "G5-046",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-06",
+      "title": "A contributor adds a connector",
+      "milestone": "G5-B",
+      "features": [
+        "F-13",
+        "F-20"
+      ],
+      "status": "proposed",
+      "proof": "A contributor following the shipped guide implements an independently owned fixture connector with a capability/configuration manifest and passes the common harness. Cover messages/context and a bounded voice lifecycle fixture. Explicit composition registration is allowed; core conversation, authorization and routing logic are not edited.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-017",
+        "G5-018",
+        "G5-019",
+        "G5-020",
+        "G5-022",
+        "G5-023",
+        "G5-047",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-07",
+      "title": "Provider lifecycle remains explicit",
+      "milestone": "G5-B",
+      "features": [
+        "F-05",
+        "F-06",
+        "F-07",
+        "F-08",
+        "F-09",
+        "F-13"
+      ],
+      "status": "proposed",
+      "proof": "The extension contract represents readiness, external identifiers, verified callbacks, accepted/delivered/failed/uncertain results, start/end and reconciliation without provider-name branches in core logic. Qualify reordered/duplicate events, uncertain creation, restart and cleanup. Map Vapi/Telnyx to the contract; do not force SMS into a call abstraction.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-003",
+        "G5-005",
+        "G5-017",
+        "G5-018",
+        "G5-019",
+        "G5-020",
+        "G5-021",
+        "G5-022",
+        "G5-023",
+        "G5-033",
+        "G5-040",
+        "G5-043",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-08",
+      "title": "An independent UCTP client interoperates",
+      "milestone": "G5-B",
+      "features": [
+        "F-17"
+      ],
+      "status": "proposed",
+      "proof": "A separately written client using a different protocol implementation reads the published profile, negotiates and authenticates over real QUIC, resolves an identity, exchanges permitted requests/events, resumes its cursor and replays one mutation safely. It must not invoke Connect\u2019s Rust helper/client or rvoip\u2019s UCTP implementation. Include incompatible-version, malformed-envelope and unauthorized-operation cases; use shared vectors, not shared parser code.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-001",
+        "G5-003",
+        "G5-024",
+        "G5-025",
+        "G5-026",
+        "G5-045",
+        "G5-047",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-09",
+      "title": "One honest interface matrix",
+      "milestone": "G5-D",
+      "features": [
+        "F-03",
+        "F-04",
+        "F-07",
+        "F-09",
+        "F-10",
+        "F-16",
+        "F-17"
+      ],
+      "status": "proposed",
+      "proof": "Publish and execute the operation/transport matrix for Rust, Python, TypeScript, HTTP/JSON, CLI and MCP. Equivalent operations preserve authority, IDs, errors and replay semantics. Explicitly label the Python/TypeScript native helper and browser WebRTC path. Tools control sessions; they do not carry media frames. Unsupported combinations remain visible.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-003",
+        "G5-007",
+        "G5-011",
+        "G5-012",
+        "G5-017",
+        "G5-021",
+        "G5-024",
+        "G5-025",
+        "G5-026",
+        "G5-036",
+        "G5-038",
+        "G5-042",
+        "G5-043",
+        "G5-044",
+        "G5-047",
+        "G5-048",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-10",
+      "title": "Setup is recoverable and understandable",
+      "milestone": "G5-C",
+      "features": [
+        "F-18",
+        "F-19",
+        "F-20"
+      ],
+      "status": "proposed",
+      "proof": "Choose existing resources or preview proposed changes, keep secrets out of clients/logs, and resume interrupted setup without duplicate purchases or resource creation. Qualify locked/missing secret storage, rejected credentials, uncertain provider results and separate inbound/outbound readiness using local fixtures. Contact ownership and SMS enrollment are separate states; neither a saved number nor a valid API key establishes consent.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-001",
+        "G5-027",
+        "G5-028",
+        "G5-029",
+        "G5-030",
+        "G5-031",
+        "G5-032",
+        "G5-033",
+        "G5-034",
+        "G5-040",
+        "G5-046",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-11",
+      "title": "One conversation survives channel changes",
+      "milestone": "G5-D",
+      "features": [
+        "F-01",
+        "F-11",
+        "F-15",
+        "F-16",
+        "F-21"
+      ],
+      "status": "proposed",
+      "proof": "Messages and an artifact establish context; voice/video sessions reuse that Conversation; an attributable outcome supports a later message after restart. Retain source references, omissions and incomplete-transcript state. A bounded leg ending does not close the Conversation. Only explicit developer intent creates a new Conversation; ambiguous inbound binding cannot silently split or merge it.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-003",
+        "G5-008",
+        "G5-009",
+        "G5-013",
+        "G5-015",
+        "G5-035",
+        "G5-037",
+        "G5-038",
+        "G5-039",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-12",
+      "title": "Revocation, SMS rules and data recovery hold",
+      "milestone": "G5-D",
+      "features": [
+        "F-06",
+        "F-11",
+        "F-19",
+        "F-20"
+      ],
+      "status": "proposed",
+      "proof": "Recheck current authority on replay, queued dispatch and active resource use. Verify denied cross-conversation access, artifact integrity/retention, HELP/STOP/START, cancellation that START cannot revive, and provider uncertainty. Upgrade a populated previous schema, restore a verified backup and exercise rollback/refusal without deleting the database or replaying live media.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-002",
+        "G5-003",
+        "G5-008",
+        "G5-015",
+        "G5-018",
+        "G5-021",
+        "G5-028",
+        "G5-029",
+        "G5-031",
+        "G5-033",
+        "G5-037",
+        "G5-039",
+        "G5-040",
+        "G5-041",
+        "G5-042",
+        "G5-045",
+        "G5-048",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-13",
+      "title": "Measured operating and usability limits",
+      "milestone": "G5-D",
+      "features": [
+        "F-02",
+        "F-14",
+        "F-19",
+        "F-21"
+      ],
+      "status": "proposed",
+      "proof": "Publish versions, network/media profiles, concurrency, queue/size/retention limits and measured startup/setup times with reproducible procedures. Meet the approved video profile and retain audio/recovery bounds. Run fresh-user walkthroughs and bounded loss/load/interrupt tests; distinguish forwarding latency from end-to-end provider/model delay and measured values from targets.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-001",
+        "G5-004",
+        "G5-006",
+        "G5-009",
+        "G5-010",
+        "G5-012",
+        "G5-015",
+        "G5-016",
+        "G5-020",
+        "G5-032",
+        "G5-042",
+        "G5-046",
+        "G5-047",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-14",
+      "title": "Current release evidence is complete",
+      "milestone": "G5-D",
+      "features": [
+        "F-05",
+        "F-06",
+        "F-07",
+        "F-08",
+        "F-09",
+        "F-14",
+        "F-19"
+      ],
+      "status": "proposed",
+      "proof": "Run the full candidate source and installed-package suites, required ignored cases and agent/app journeys at identified revisions. Keep offline, actual-model and historical provider evidence separate. Review every changed provider path against its previous live proof; changed unqualified behavior blocks its release claim until separate qualification is authorized and recorded. Retain failures and unresolved checks.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-002",
+        "G5-006",
+        "G5-014",
+        "G5-021",
+        "G5-022",
+        "G5-026",
+        "G5-036",
+        "G5-038",
+        "G5-040",
+        "G5-041",
+        "G5-042",
+        "G5-043",
+        "G5-045",
+        "G5-048",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-15",
+      "title": "A reproducible package and contribution surface",
+      "milestone": "G5-E",
+      "features": [
+        "F-03",
+        "F-04",
+        "F-10",
+        "F-13",
+        "F-14",
+        "F-17"
+      ],
+      "status": "proposed",
+      "proof": "A clean machine can install the versioned server, SDKs/helper, examples, MCP/skill and reference client from the documented distribution. Publish hashes, dependency/patch provenance, license notices, protocol/profile versioning, release notes and migration instructions. Required source and qualification inputs are publicly reproducible; a private historical executable or owner-review supplement cannot be an unexplained prerequisite.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-001",
+        "G5-002",
+        "G5-005",
+        "G5-006",
+        "G5-011",
+        "G5-019",
+        "G5-022",
+        "G5-023",
+        "G5-024",
+        "G5-025",
+        "G5-027",
+        "G5-028",
+        "G5-030",
+        "G5-034",
+        "G5-036",
+        "G5-041",
+        "G5-044",
+        "G5-045",
+        "G5-047",
+        "G5-048",
+        "G5-049"
+      ]
+    },
+    {
+      "id": "A5-16",
+      "title": "Owner review precedes publication",
+      "milestone": "G5-E",
+      "features": [
+        "F-14",
+        "F-21"
+      ],
+      "status": "proposed",
+      "proof": "All A5 criteria and F-01\u2013F-21 commitments have current evidence or an explicitly reviewed source-composition record, with no unresolved release blockers. The owner reviews the candidate and exact compatibility claims. Only a separate publication instruction permits uploading release artifacts or updating the public project claims. Gate 5 stays release-ready, not released, until publication is verified.",
+      "evidence": [],
+      "implementation_items": [
+        "G5-001",
+        "G5-043",
+        "G5-047",
+        "G5-050"
+      ]
+    }
+  ]
+}

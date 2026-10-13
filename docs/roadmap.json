@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-12",
+  "updated": "2026-10-13",
   "product": "Connect",
   "identity": "Communication for people, apps, and agents",
   "priority": "Server and SDK first",
@@ -239,7 +239,7 @@
       "name": "Downloadable v0.1",
       "outcome": "Video, connector/protocol conformance, first-run setup, measured end-to-end acceptance and published v0.1.",
       "status": "planned",
-      "plan": null,
+      "plan": "connect-gate-5-plan.html",
       "milestones": [
         {
           "id": "G5-A",
@@ -306,7 +306,9 @@
           "status": "planned"
         }
       ],
-      "implementation": null
+      "implementation": "connect-gate-5-implementation.html",
+      "acceptance": "gate-5-acceptance.json",
+      "planning_status": "product-and-numbered-implementation-plans-for-review"
     }
   ],
   "source_of_truth": {
@@ -320,14 +322,14 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 5 detailed product and numbered implementation plans remain to be written; no required v0.1 feature is removed by Gate 4 closure."
+    "Gate 5 product and 50-item implementation plans are drafted for review. Finalize D5-01\u2013D5-05 and the technical decision records in G5-001 before dependent implementation. No Gate 5 implementation or publication is complete."
   ],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
-  "revision": 10,
+  "revision": 12,
   "document": "connect-roadmap.html",
-  "planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits; Gate 4 owner-review repairs are closed. Gate 5 remains planned; no release/deployment authorization.",
+  "planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits; Gate 5 product and numbered implementation plans are ready for review. All 50 Gate 5 items remain not started; full v0.1 remains unreleased.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
   "parallel_lanes": [
     {

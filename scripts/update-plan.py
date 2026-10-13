@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 STATES={'not-started','in-progress','blocked','done','deferred'}
 parser=argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--gate',choices=['1','2','3','4'],default='1')
+parser.add_argument('--gate',choices=['1','2','3','4','5'],default='1')
 parser.add_argument('--item',required=True)
 parser.add_argument('--status',choices=sorted(STATES),required=True)
 parser.add_argument('--owner',default='')
@@ -21,7 +21,7 @@ task=by_id[args.item];task.update(status=args.status,owner=args.owner,evidence=a
 for item in data['tasks']:
  if item['status'] not in STATES: parser.error('Invalid status')
  if any(dep not in by_id for dep in item['depends']): parser.error('Unknown dependency')
- if args.gate == '4' and item['status']=='done' and not item['owner'].strip():
+ if args.gate in ('4', '5') and item['status']=='done' and not item['owner'].strip():
   parser.error('Done requires an owner: '+item['id'])
  if item['status']=='done' and (not item['evidence'].strip() or any(by_id[dep]['status']!='done' for dep in item['depends'])):
   parser.error('Done requires evidence and completed dependencies: '+item['id'])
