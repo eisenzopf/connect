@@ -44,12 +44,6 @@ jobs:
       - name: Verify generated TypeScript distribution
         run: git diff --exit-code -- sdk/typescript/dist
 
-      - name: Gate 3 offline media and recovery lane (no provider accounts)
-        run: python3 scripts/check-gate-3.py
-      - name: Build public schema-6 recovery baseline
-        run: python3 scripts/build-recovery-baseline.py --retire-build-cache
-      - name: Qualify schema-6 upgrade and rollback from actual executables
-        run: python3 scripts/check-schema-six.py --previous-binary .local/recovery-baselines/8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5/connect
       - name: Retain actual phase and disk diagnostics
         if: always()
         run: python3 scripts/ci-diagnostics.py collect
@@ -58,6 +52,64 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-arm64-source-diagnostics-${{ github.run_attempt }}
+          path: .local/ci-diagnostics/upload/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
+
+  gate-3-recovery:
+    # The complete default-feature source lane remains in macos-arm64.
+    # Recovery gets its own unchanged 90-minute job budget after the observed
+    # combined lane exhausted that budget following an 85-minute source pass.
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Verify host and pinned Rust toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          rustup show
+      - name: Install native Opus build dependency
+        run: |
+          brew install opus pkgconf
+          pkg-config --modversion opus
+          test -f "$(brew --prefix opus)/lib/libopus.a"
+      - name: Reserve diagnostic headroom and record host storage
+        run: python3 scripts/ci-diagnostics.py prepare
+      - name: Prepare pinned and TypeScript dependencies
+        run: |
+          bash scripts/prepare-dependencies.sh
+          npm ci --prefix sdk/typescript
+      - name: Gate 3 offline media and recovery lane (no provider accounts)
+        run: python3 scripts/check-gate-3.py
+      - name: Build public schema-6 recovery baseline
+        run: python3 scripts/build-recovery-baseline.py --retire-build-cache
+      - name: Qualify schema-6 upgrade and rollback from actual executables
+        run: python3 scripts/check-schema-six.py --previous-binary .local/recovery-baselines/8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5/connect
+      - name: Verify generated TypeScript distribution
+        run: git diff --exit-code -- sdk/typescript/dist
+      - name: Retain actual phase and disk diagnostics
+        if: always()
+        run: python3 scripts/ci-diagnostics.py collect
+      - name: Upload source-only diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-3-recovery-source-diagnostics-${{ github.run_attempt }}
           path: .local/ci-diagnostics/upload/
           include-hidden-files: true
           retention-days: 7
