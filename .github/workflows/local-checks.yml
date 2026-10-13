@@ -94,6 +94,12 @@ jobs:
         run: |
           bash scripts/prepare-dependencies.sh
           npm ci --prefix sdk/typescript
+      - name: Compile Gate 3 contract fixtures without running tests
+        # This independent job starts without the linked artifacts previously
+        # inherited from source qualification. Keep cold compilation outside
+        # the existing 600-second contract-fixture execution budget.
+        timeout-minutes: 30
+        run: cargo test --locked -p connect-server --test contract_fixtures --no-run
       - name: Gate 3 offline media and recovery lane (no provider accounts)
         run: python3 scripts/check-gate-3.py
       - name: Build public schema-6 recovery baseline
