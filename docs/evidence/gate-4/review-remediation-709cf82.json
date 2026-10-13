@@ -1,0 +1,466 @@
+{
+  "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+  "recorded_at": "2026-10-13T04:31:12.578567+00:00",
+  "scope": "Local macOS arm64 owner-review candidate; no publication, remote deployment or new live communication-provider/carrier operations.",
+  "status": "technical-verification-passed",
+  "evidence": [
+    "docs/evidence/gate-4/offline-709cf82.json",
+    "docs/evidence/gate-4/package-709cf82.json",
+    "docs/evidence/gate-4/real-model-agent-709cf82.json",
+    "docs/evidence/gate-4/qualification-controls-d64f1b9.json"
+  ],
+  "ci": {
+    "run": 38334742398,
+    "url": "https://github.com/eisenzopf/connect/actions/runs/38334742398",
+    "source_revision": "d64f1b944368f5c763d7872272e983dd7c10fede",
+    "configuration_revision": "d64f1b944368f5c763d7872272e983dd7c10fede",
+    "qualification_revision": "d64f1b944368f5c763d7872272e983dd7c10fede",
+    "workflow_split_revision": "cfb99aead32338e30a6e2a525574937d328cc252",
+    "fixture_revision": "7bdd5341db558f062102df54487b8c2ad77573ff",
+    "runtime_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "gate-3-recovery",
+        "conclusion": "success"
+      },
+      {
+        "name": "macos-arm64",
+        "conclusion": "success"
+      },
+      {
+        "name": "gate-4-source",
+        "conclusion": "success"
+      }
+    ],
+    "source_composition": {
+      "runtime_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+      "qualification_revision": "d64f1b944368f5c763d7872272e983dd7c10fede",
+      "fixture_qualification_revision": "7bdd5341db558f062102df54487b8c2ad77573ff",
+      "prebuild_workflow_review": {
+        "review_sha256": "2daa7d190d531d1b947c188dc47b98d5c101a879003119eaf3f1ceadafb019bf",
+        "before_revision": "7bdd5341db558f062102df54487b8c2ad77573ff",
+        "after_revision": "d64f1b944368f5c763d7872272e983dd7c10fede",
+        "workflow_sha256": "e0e612087428660f57d521d556900ca36a5bcd86d40de8d0ea5fc5f1fc7fad40",
+        "checks_passed": 17,
+        "step": "Compile Gate 3 contract fixtures without running tests",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--test",
+          "contract_fixtures",
+          "--no-run"
+        ],
+        "compile_budget_seconds": 1800,
+        "behavior_phase_seconds": 600,
+        "job_budget_minutes": 90,
+        "tests_claimed_by_compile_prerequisite": false
+      },
+      "ci_configuration_revision": "d64f1b944368f5c763d7872272e983dd7c10fede",
+      "workflow_revision": "cfb99aead32338e30a6e2a525574937d328cc252",
+      "allowed_changed_paths": [
+        ".github/workflows/local-checks.yml",
+        "scripts/lib/mcp_load_http.py",
+        "scripts/lib/mcp_load_profile.py",
+        "scripts/tests/test_qualification_mcp_load.py"
+      ],
+      "reviewed_path_digests": {
+        ".github/workflows/local-checks.yml": {
+          "frozen_sha256": "e5b2488e1270aa2ed3a161fa8104cb2c20d4e7f2a2d4b90d860bd71a196ecc71",
+          "qualified_sha256": "e0e612087428660f57d521d556900ca36a5bcd86d40de8d0ea5fc5f1fc7fad40",
+          "frozen_blob": "ad2579181346ddcf12eebed62f2d73d583c8252d",
+          "qualified_blob": "59d9c0f61030e7ddf1ce7c6a11158c00822ae889"
+        },
+        "scripts/lib/mcp_load_http.py": {
+          "frozen_sha256": "a40440e2b860bc6cbec66c0b0ef246ce61b832c1a69ff3fd12970e73ee3b1cde",
+          "qualified_sha256": "56cb3ede076be61d0606e3957381be2acfd49309bc5f36c3fc5a37a855658a00",
+          "frozen_blob": "af228441e2d8524baf00d10ef546a65b2e46dc54",
+          "qualified_blob": "3a920692758d2397796d452029187314d226764d"
+        },
+        "scripts/lib/mcp_load_profile.py": {
+          "frozen_sha256": "b4b653ac76599236bff114ea4961772ac83bf6a46f69e41a7f53a95db54e72bf",
+          "qualified_sha256": "d1d0b1f94f81db447cdc7951f188784b1a095c6972efc07e7458d24537746196",
+          "frozen_blob": "47b958da876e6800bb030efc5fcca15849c25f2d",
+          "qualified_blob": "c931f6053646b29ce39776f8096e519f5a9ca501"
+        },
+        "scripts/tests/test_qualification_mcp_load.py": {
+          "frozen_sha256": "f4e71336b230ff1afe1ad57134d7d9ed8ad8e0dcf9e051e923f0aaa8a1df22f4",
+          "qualified_sha256": "481b5861c282f9d83b28cb38d157265982bd5a5b5a15dfeb2f1b604ed8a03f0d",
+          "frozen_blob": "ca043c7ad19f9bc4ce17ce03e4992052f9fe17ae",
+          "qualified_blob": "8f6c094aa041867b641c6955f40a88647f643c5e"
+        }
+      },
+      "qualification_diff_sha256": "7681c3774f2b4c4a7f65e0b8714d72018176ab4fe502991139d75b9f7f82ba8f",
+      "ci_tree": "a8ec949b54c9deb2ae36569e936bb76a3592de50",
+      "unchanged_other_source_inputs": 856,
+      "workflow_structural_review_sha256": "eb464ca194389e27a6459606419715c68b574db0ebbf223a923ff5b1ddbdb5b5",
+      "required_jobs": [
+        "macos-arm64",
+        "gate-3-recovery",
+        "gate-4-source"
+      ],
+      "archive_boundary": "Immutable 709 source/package archives retain the pre-fix qualification controls and checkpoint docs. The final checkout and a separate checksummed owner-review source/docs supplement carry corrected controls and guidance; no updated standalone community release is claimed.",
+      "ci_run": 38334742398,
+      "ci_url": "https://github.com/eisenzopf/connect/actions/runs/38334742398",
+      "hosted_ci_status": "passed",
+      "prior_gate3_cold_compile_failure": {
+        "run": 38332502128,
+        "branch_source_revision": "7bdd5341db558f062102df54487b8c2ad77573ff",
+        "executed_source_revision": "00569634c7f1557bc13d57133a7590e89ec3d30b",
+        "job": "gate-3-recovery",
+        "result": "failed",
+        "phase": "contract-fixtures",
+        "seconds": 600.06,
+        "phase_deadline_seconds": 600,
+        "exit_code": -15,
+        "tests_started": false,
+        "later_phases_not_run": 24,
+        "observation_sha256": "96452de376fcd53cc3b72ba94670b709a19dc66c4cbb9f8957b3f7e68df9bd54",
+        "review_sha256": "46f4563eb7b974bf47fc02d951f7cd045013ca7a579e499df4d86c168205cd2d",
+        "boundary": "The existing phase expired during cold compilation; no test executable or assertion was observed. It remains a failed qualification attempt. The separate bounded no-run prerequisite is not test acceptance; final original tests and all followups require executed successful CI receipts."
+      },
+      "prior_ci_budget_interruption": {
+        "run": 38321205976,
+        "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+        "job": "macos-arm64",
+        "job_result": "cancelled",
+        "source_qualification_result": "passed",
+        "source_qualification_seconds": 5150.0,
+        "generated_typescript_result": "passed",
+        "gate3_result": "cancelled",
+        "schema6_result": "not-run",
+        "job_budget_minutes": 90,
+        "receipt_sha256": "f7a89ae0df03627f0a2bf7551ccf2983a916e555784affd2c5c756cad2bfff72",
+        "budget_annotation_sha256": "8f07c0fd79e79e878833b7f15a0e8bc593882dd32b1125a937dc25b38a0ac580",
+        "boundary": "The default source job passed source and TypeScript checks, then exhausted its budget during Gate 3; schema 6 did not run. This cancellation is distinct from the same run\u2019s Gate 4 admission-load failure."
+      },
+      "prior_ci_mcp_load_failure": {
+        "run": 38321205976,
+        "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+        "job": "gate-4-source",
+        "result": "failed",
+        "phase": "mcp-operating-load",
+        "phase_seconds": 3.122,
+        "assertion": "Never saturated all 32 admission slots",
+        "report_sha256": "53e6bf5350be08528cdbbaf6001e21cf72aae66dde1e8915ff8ebd8075c68bb4",
+        "log_sha256": "2d3b2fa34e9e54c5a421bbb982c05f333319e8c46e245ba444295cc3b37bf97e",
+        "cause_review_sha256": "f2055f47e496d57b6d91d8c01eafaf60f6d626c347a124352d7fb88a609573bf",
+        "cause": {
+          "classification": "Demonstrated qualification-fixture admission synchronization race",
+          "mechanism": "Original stalled() sent bytes without confirming server admission. A complete status probe can acquire the last permit ahead of the queued32nd body; that body gets503 and31 remain held. Later probes complete200, so the original two-second saturation assertion fails.",
+          "controlled_observation": "Exact old709 fixture+unchanged709 executable under50ms queued last header and100ms probe split produces31awaiting+1early503+probe200 and the original assertion/exit1 in2.392s. The same transport scheduling with the new barrier completes both32held/probe503 waves and the whole profile in30.142s.",
+          "original_ci_limit": "Retained hosted logs lack child per-socket/status/server data. The controlled experiment demonstrates the code race and matching failure signature; it does not recover the deleted runner exact socket history or rewrite its failure."
+        },
+        "qualification_impact": {
+          "scope": "Qualification-only workflow+HTTP load fixture/verifier changes; no runtime source change",
+          "changed_paths": [
+            ".github/workflows/local-checks.yml",
+            "scripts/lib/mcp_load_http.py",
+            "scripts/lib/mcp_load_profile.py",
+            "scripts/tests/test_qualification_mcp_load.py"
+          ],
+          "all_other_frozen_inputs": {
+            "count": 856,
+            "sha256_matching": true,
+            "reference_sha256": "f1b073f23ddf2bcfa358b7c279a9bfb141f05773075d294affb9ce0ad744e46c"
+          },
+          "preserved_runtime_proofs": "The fresh clean 42-phase, 17-check package and 32-call actual-model proofs retain runtime revision 709cf82. The strengthened fixture and focused profiles are qualified at 7bdd534; the final hosted run is qualified at d64f1b9. No report is relabeled.",
+          "admission_barrier": "Locked Hyper1.12 incoming body channel waits for body consumer poll before emitting100Continue. MCP middleware holds a shared admission permit and verifies authority before calling the body consumer. Reader consumes only the bounded interim header, preserving final response; no credential-specific data is exposed.",
+          "unchanged_limits": {
+            "admissions": 32,
+            "body_bytes": 524288,
+            "held_body_bytes_each": 524287,
+            "shared_setup_seconds": 2,
+            "body_timeout_status": 504,
+            "measured_body_elapsed_seconds": [
+              9.5,
+              11
+            ],
+            "recovery_status": 200,
+            "http_deadline_seconds": 10,
+            "profile_seconds": 180,
+            "parent_phase_seconds": 240
+          },
+          "setup_deadline_note": "The shared two-second confirmation/probe bound starts before opening the32bodies; the old probe-only two-second bound began after sending them. It is stricter, not relaxed.",
+          "fixture_qualification_revision": "7bdd5341db558f062102df54487b8c2ad77573ff",
+          "current_ci_configuration_revision": "d64f1b944368f5c763d7872272e983dd7c10fede",
+          "current_hosted_boundary": "All 3 original test lanes and the separately bounded compile prerequisite must pass at the final CI head with observed identical checkout trees. The original causal review remains fixture-source evidence at 7bdd."
+        },
+        "qualification_revision": "7bdd5341db558f062102df54487b8c2ad77573ff",
+        "current_ci_configuration_revision": "d64f1b944368f5c763d7872272e983dd7c10fede",
+        "fixture_inputs": {
+          "scripts/lib/mcp_load_http.py": "56cb3ede076be61d0606e3957381be2acfd49309bc5f36c3fc5a37a855658a00",
+          "scripts/lib/mcp_load_profile.py": "d1d0b1f94f81db447cdc7951f188784b1a095c6972efc07e7458d24537746196",
+          "scripts/tests/test_qualification_mcp_load.py": "481b5861c282f9d83b28cb38d157265982bd5a5b5a15dfeb2f1b604ed8a03f0d"
+        },
+        "verification": {
+          "normal_complete_profiles": 2,
+          "controlled_complete_fixed_profiles": 1,
+          "expected_old_failure_profiles": 2,
+          "verifier_tests_each": 11,
+          "new_verifier_tests": 6,
+          "required_profile_phases_each": 5,
+          "required_skips": 0,
+          "normal_profile_seconds": [
+            30.014,
+            29.941
+          ],
+          "controlled_fixed_seconds": 30.142,
+          "all_normal_owned_groups_empty": true
+        },
+        "strengthened_load_components": {
+          "normal_complete_profiles": [
+            {
+              "wrapper_report_sha256": "eaf65efa0894360ef52ae4c09172d71d017981cb01457c6c3e0e142d6b880b56",
+              "report_sha256": "2894101831292710e4a7141f366befcf0c281cbfc1de0a558c50e9e741d9ecf2",
+              "recorded_source_revision": "cfb99aead32338e30a6e2a525574937d328cc252",
+              "executed_fixture_sha256": {
+                "scripts/lib/mcp_load_http.py": "56cb3ede076be61d0606e3957381be2acfd49309bc5f36c3fc5a37a855658a00",
+                "scripts/lib/mcp_load_profile.py": "d1d0b1f94f81db447cdc7951f188784b1a095c6972efc07e7458d24537746196"
+              },
+              "binary_sha256": "a196ea3e650ea00a5fd874acc8884b1d626eb83375ed79fdef6134beee83f377",
+              "phases_passed": 5,
+              "elapsed_seconds": 30.014,
+              "observations": {
+                "maximum_jsonrpc_body_bytes": 524288,
+                "accepted_maximum_bodies": 96,
+                "oversized_content_length_denied": 32,
+                "oversized_chunked_denied": 32,
+                "stalled_wave_1": {
+                  "admitted": 32,
+                  "held_body_bytes_each": 524287,
+                  "admission_confirmations": 32,
+                  "admission_confirmation": "100-continue before each incomplete body",
+                  "excess_status": 503,
+                  "timeouts": 32,
+                  "deadline_status": 504,
+                  "recovered_status": 200
+                },
+                "stalled_wave_2": {
+                  "admitted": 32,
+                  "held_body_bytes_each": 524287,
+                  "admission_confirmations": 32,
+                  "admission_confirmation": "100-continue before each incomplete body",
+                  "excess_status": 503,
+                  "timeouts": 32,
+                  "deadline_status": 504,
+                  "recovered_status": 200
+                },
+                "maximum_waits": 32,
+                "returned_pending_cursors": 32,
+                "original_cursor_reusable": true,
+                "recall_sources_found": 32,
+                "recall_pages": 11,
+                "largest_structured_projection_bytes": 25337,
+                "recall_burst_width": 32,
+                "no_message_effects_from_load": true
+              }
+            },
+            {
+              "wrapper_report_sha256": "9d242b6654e000d0c90450dc2ba49d51eab44c041256fc82fc68ee95bb2cb08f",
+              "report_sha256": "59dc9e165e457d57310f703a0ada19c3e6b89e26451cb0af357c76af31eb3a65",
+              "recorded_source_revision": "7bdd5341db558f062102df54487b8c2ad77573ff",
+              "executed_fixture_sha256": {
+                "scripts/lib/mcp_load_http.py": "56cb3ede076be61d0606e3957381be2acfd49309bc5f36c3fc5a37a855658a00",
+                "scripts/lib/mcp_load_profile.py": "d1d0b1f94f81db447cdc7951f188784b1a095c6972efc07e7458d24537746196"
+              },
+              "binary_sha256": "a196ea3e650ea00a5fd874acc8884b1d626eb83375ed79fdef6134beee83f377",
+              "phases_passed": 5,
+              "elapsed_seconds": 29.941,
+              "observations": {
+                "maximum_jsonrpc_body_bytes": 524288,
+                "accepted_maximum_bodies": 96,
+                "oversized_content_length_denied": 32,
+                "oversized_chunked_denied": 32,
+                "stalled_wave_1": {
+                  "admitted": 32,
+                  "held_body_bytes_each": 524287,
+                  "admission_confirmations": 32,
+                  "admission_confirmation": "100-continue before each incomplete body",
+                  "excess_status": 503,
+                  "timeouts": 32,
+                  "deadline_status": 504,
+                  "recovered_status": 200
+                },
+                "stalled_wave_2": {
+                  "admitted": 32,
+                  "held_body_bytes_each": 524287,
+                  "admission_confirmations": 32,
+                  "admission_confirmation": "100-continue before each incomplete body",
+                  "excess_status": 503,
+                  "timeouts": 32,
+                  "deadline_status": 504,
+                  "recovered_status": 200
+                },
+                "maximum_waits": 32,
+                "returned_pending_cursors": 32,
+                "original_cursor_reusable": true,
+                "recall_sources_found": 32,
+                "recall_pages": 11,
+                "largest_structured_projection_bytes": 25337,
+                "recall_burst_width": 32,
+                "no_message_effects_from_load": true
+              }
+            }
+          ],
+          "controlled_complete_profile": {
+            "report_sha256": "01071e16f37c4ce2a89aac86e2cb2141a2d9ab4bfd4ad2ae725cdf2f232ca577",
+            "recorded_source_revision": "7bdd5341db558f062102df54487b8c2ad77573ff",
+            "executed_fixture_sha256": {
+              "scripts/lib/mcp_load_http.py": "56cb3ede076be61d0606e3957381be2acfd49309bc5f36c3fc5a37a855658a00",
+              "scripts/lib/mcp_load_profile.py": "d1d0b1f94f81db447cdc7951f188784b1a095c6972efc07e7458d24537746196"
+            },
+            "binary_sha256": "a196ea3e650ea00a5fd874acc8884b1d626eb83375ed79fdef6134beee83f377",
+            "phases_passed": 5,
+            "elapsed_seconds": 30.124,
+            "observations": {
+              "maximum_jsonrpc_body_bytes": 524288,
+              "accepted_maximum_bodies": 96,
+              "oversized_content_length_denied": 32,
+              "oversized_chunked_denied": 32,
+              "stalled_wave_1": {
+                "admitted": 32,
+                "held_body_bytes_each": 524287,
+                "admission_confirmations": 32,
+                "admission_confirmation": "100-continue before each incomplete body",
+                "excess_status": 503,
+                "timeouts": 32,
+                "deadline_status": 504,
+                "recovered_status": 200
+              },
+              "stalled_wave_2": {
+                "admitted": 32,
+                "held_body_bytes_each": 524287,
+                "admission_confirmations": 32,
+                "admission_confirmation": "100-continue before each incomplete body",
+                "excess_status": 503,
+                "timeouts": 32,
+                "deadline_status": 504,
+                "recovered_status": 200
+              },
+              "maximum_waits": 32,
+              "returned_pending_cursors": 32,
+              "original_cursor_reusable": true,
+              "recall_sources_found": 32,
+              "recall_pages": 11,
+              "largest_structured_projection_bytes": 25337,
+              "recall_burst_width": 32,
+              "no_message_effects_from_load": true
+            }
+          },
+          "controlled_before_after_report_sha256": "641a74b339ba2564dfa3acd2f8d60f8c2f843989ec3d3a24e9758c9fd3ccdf57",
+          "expected_old_failure_retained": true,
+          "verifier_tests_each": 11,
+          "new_verifier_tests": 6,
+          "component_recorded_source_revisions": [
+            "7bdd5341db558f062102df54487b8c2ad77573ff",
+            "cfb99aead32338e30a6e2a525574937d328cc252"
+          ],
+          "component_source_boundary": "Each report retains its recorded HEAD: the first normal profile ran before commit at cfb with fixture hashes identical to 7bdd; later normal and controlled profiles record 7bdd. The binary remains sealed at 709. Reviewed input composition and final CI receipts are separate. Original hosted socket counts are unavailable; controlled ordering demonstrates a matching race, without reconstructing the remote trace."
+        },
+        "boundary": "The historical MCP admission-load failure remains failed. Its independent causal review, not a later green run alone, authorizes final source composition."
+      },
+      "actual_checkouts": [
+        {
+          "job": "macos-arm64",
+          "executed_source_revision": "343fcb2bbb38769adbf753bc53caf78a90b15c2d",
+          "executed_tree": "a8ec949b54c9deb2ae36569e936bb76a3592de50",
+          "source_report_sha256": "4130817b9473d9e354e63feb973d23e155e7aa0c40f3269a57ee3283266d24b1",
+          "artifact_summary_sha256": "df10743128e8ccc908e0294e6924af5a5a943fde6b2a93a77bb401dc5e7495f4",
+          "original_report_sha256": "bcc260ed489eb9d8da3504afdc00e60e1f487e9f4684f0460b47b3347adcb994",
+          "pull_request_merge_checkout": true
+        },
+        {
+          "job": "gate-3-recovery",
+          "executed_source_revision": "343fcb2bbb38769adbf753bc53caf78a90b15c2d",
+          "executed_tree": "a8ec949b54c9deb2ae36569e936bb76a3592de50",
+          "source_report_sha256": "aaeee6114f79944d049fc4dc3dd7e74b92a77f8084e40e859f7ccdaeeb54b91c",
+          "artifact_summary_sha256": "2e149693dd43caf98096bd7ef7d9c7834d1638f2a87e7e568b46336454c197c9",
+          "original_report_sha256": "014ec9f45a3ec22f07cc76046c7088f07f6b7536eb3fde7a1c74d858f47a452b",
+          "pull_request_merge_checkout": true
+        },
+        {
+          "job": "gate-4-source",
+          "executed_source_revision": "343fcb2bbb38769adbf753bc53caf78a90b15c2d",
+          "executed_tree": "a8ec949b54c9deb2ae36569e936bb76a3592de50",
+          "source_report_sha256": "0a4cb311bc22cb9df3ed44d2f83d9f0bd0531756e212144027ef6b59bccfa313",
+          "artifact_summary_sha256": "2d5f35811495b97850c663a59c8a96e1563e985a9e0ab0b6cb5a4be95ee8abf9",
+          "original_report_sha256": "d2b213316bfefe600969b19d23f57b7d86467f0d87afeae58660b4b458343641",
+          "pull_request_merge_checkout": true
+        }
+      ],
+      "checkout_receipts_sha256": "b8a8b0a02cda3738b3c5be7b97cf9c58b4e3fbcf2d02877de255e0131505b495",
+      "boundary": "Frozen runtime 709 proofs and archives are unchanged; admission fixtures are qualified at 7bdd and final CI configuration is d64. Exactly the reviewed workflow and three fixture paths differ. PR merge checkout is admitted only for an identical tree. The bounded no-run compile prerequisite claims no tests; original behavioral and job budgets remain unchanged. Hosted source coverage is separate from actual installed host/model acceptance."
+    }
+  },
+  "fixes": [
+    "Current authorized owners can inspect retained task diagnostics after original key revocation; continuation stays denied.",
+    "Ordinary MCP exposes explicit idempotent/CAS reply consumption, retaining history while releasing bounded capacity.",
+    "Hosted workspace checks retain feature coverage while retiring successful test executables; failure diagnostics survive and redact credentials.",
+    "Contributor and package prerequisites, commands, historical-source instructions and explicit host selection are corrected.",
+    "Public actual-model runner and runbook replace private-only reproducibility; installed two-conversation restart/consume journey passes.",
+    "Current guidance describes normal revocable identity access, optional scoped grants and explicit consumption; final tracking closes separately after document validation."
+  ],
+  "additional_review_fixes": [
+    "Hosted default source and Gate 3 / schema 6 recovery checks run in separate jobs with unchanged commands and child budgets; all three required jobs pass at the separate qualification revision.",
+    "Qualification HTTP probes require 100 Continue admission before filling stalled bodies; original capacity/body/deadline/rejection/recovery assertions and reviewed fixture proofs remain source-linked.",
+    "A separate bounded no-run compilation prerequisite prepares the cold Gate 3 fixture executable before the original 600-second behavior lane; it claims no tests and preserves the 90-minute job budget.",
+    "CI cache deletion rejects symlinked/foreign ownership.",
+    "Structured diagnostic redaction preserves nested/prefixed credential masking.",
+    "SIP local cancellation callbacks defer to cleanup receipts; deterministic ordering and both feature-mode real SIP regressions pass."
+  ],
+  "provider_composition": {
+    "prior_source": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "compared_path_groups": {
+      "common_wire_sdk_connectors_and_pinned_upstream": {
+        "files": 142,
+        "unchanged_from_frozen_provider_reconciliation": true,
+        "changed_paths": []
+      },
+      "voice_bootstrap_media_and_server_paths": {
+        "files": 41,
+        "unchanged_from_frozen_provider_reconciliation": false,
+        "changed_paths": [
+          "crates/connect-server/src/media_lifecycle.rs",
+          "crates/connect-server/src/sip_outbound/tests.rs"
+        ]
+      },
+      "sms_delivery_policy_and_existing_store_paths": {
+        "files": 89,
+        "unchanged_from_frozen_provider_reconciliation": false,
+        "changed_paths": [
+          "crates/connect-server/src/media_lifecycle.rs",
+          "crates/connect-server/src/sip_outbound/tests.rs",
+          "crates/connect-store/src/sip_legs.rs"
+        ]
+      },
+      "existing_service_dispatch_and_media_paths": {
+        "files": 11,
+        "unchanged_from_frozen_provider_reconciliation": true,
+        "changed_paths": []
+      }
+    },
+    "reviewed_sip_delta": "media_lifecycle retains EndReason; typed store termination defers local Cancelled while cleanup is pending/uncertain. No signaling, upstream, provider API, schema, or deadline change.",
+    "sip_review_sha256": "1983fb72ea5a185d5c32ceb44c5e9598b3db9a76323009563a819dbf663c0b6a",
+    "sip_focused_report_sha256": "ba6eeb5c2cd6c701b0c7c583e6853ca0224b329c54689f4c19bb30ae92cc399c",
+    "boundary": "Historical live Vapi/voice/SMS retain original revisions; fresh installed provider simulators and unchanged-path review are composition evidence, not new carrier tests."
+  },
+  "prior_attempts": {
+    "c58cd5c": "Local run and CI intentionally stopped for cache ownership repair.",
+    "9aeb309": "Local run and CI intentionally stopped for structured credential redaction repair.",
+    "4826abd_passed_components": "The installed package passed 17 checks and the actual model passed 33 calls with no errors at 4826; these were superseded by the SIP runtime repair and independently repeated on 709.",
+    "4826abd_hosted_ci": "Both jobs failed SIP cancelled-state polling; adequate disk and retained logs exposed a real callback/cleanup classification race. New revision fixes it without relaxed deadlines.",
+    "4826abd_fresh_full": "Intentionally stopped for the confirmed SIP production correction; not promoted into final proof.",
+    "4826abd_working_repository": "Interrupted to meet the fresh-checkout qualification requirement.",
+    "4826abd_fresh_preparation": "Initial run interrupted for an untracked generated-cache symlink; local ignore metadata corrected before passing fresh run.",
+    "709cf824_original_default_source_job": "Run 38321205976 macos-arm64 source qualification passed in 85 min 50 s, and generated TypeScript verification passed. The combined 90-minute job exhausted its budget during Gate 3 and was cancelled; schema 6 steps were skipped. This interruption is separate from the same run\u2019s Gate 4 load failure.",
+    "709cf824_original_gate4_source_job": "Run 38321205976 gate-4-source failed mcp-operating-load after 3.122 s: \u201cNever saturated all 32 admission slots.\u201d This test failure remains failed. Controlled reproduction against the unchanged 709 runtime and independent causal review qualify the corrected fixture; causal and repeated installed-load proofs retain their source metadata.",
+    "cfb99ae_workflow_only_run": "Run 38329604226 on the initial split workflow is superseded by fixture strengthening at 7bdd; its original outcome is not promoted to final evidence.",
+    "7bdd534_gate3_cold_compile": "Run 38332502128 Gate 3 contract-fixtures expired during cold compilation after 600.06 s, before test execution. Twenty-four later Gate 3 phases and schema 6 did not run. The failure remains failed; reviewed workflow preparation at d64 adds a bounded no-run compile step without changing original behavior or job deadlines. Other job outcomes retain their original source and are not inferred."
+  },
+  "archive_boundary": "Immutable 709 source/package archives retain the pre-fix qualification fixtures, workflow and checkpoint docs. The final checkout and a separate checksummed owner-review source/docs supplement supply corrected controls and final guidance; no updated standalone community release is claimed.",
+  "remaining_boundary": "Final document and supplement synchronization is tracked separately. Gate 5, community publication and remote deployment remain outside this repair."
+}

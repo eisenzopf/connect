@@ -95,8 +95,10 @@ authentication. SDK/MCP communication itself does not require Codex. See
 [the host guide](CODEX_TASK_HOST.md) and [agent setup](AGENT_ACCESS.md).
 The explicit `--bounded-workspace` storage mode retains every host phase and
 records its selection in the result. Omit it to use Cargo's original aggregate
-workspace command. It is available in the current source; the frozen `dc73996`
-runner predates this option and must use its original commands.
+workspace command. The current `709cf82` candidate records the bounded mode
+in its 42-phase qualification. The historical `dc73996` 41-phase runner predates
+this option and must use its original commands; its result is not a qualification
+of newer main.
 
 After committing a clean candidate source, packaging requires a separately
 retained schema-1 milestone executable and its adjacent provenance manifest.

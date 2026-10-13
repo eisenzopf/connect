@@ -16,9 +16,8 @@ immutable first/resume transcripts contain 30 successful tool calls and zero
 failed calls. A separate public-SDK observer was corrected without new inference
 or answer injection; its original failed reports remain failed. The
 [Gate 4 review](evidence/gate-4/acceptance.html) records that completed baseline.
-Owner-review repairs are now open in the
-[numbered plan](connect-gate-4-implementation.html); those earlier results do not
-qualify changed behavior. The public
+Owner-review repairs are now qualified at 709cf82 in the
+[numbered plan](connect-gate-4-implementation.html); earlier results retain their own source; current repaired-source proof is linked below. The public
 [agent journey runbook](AGENT_JOURNEY_QUALIFICATION.md) describes how to repeat
 the actual-model exchange with a selected host and installed candidate.
 Earlier scoped/provider reports retain
@@ -164,7 +163,7 @@ and releases bounded inbox capacity. Optional narrow task-grant catalogs do not
 expose this owner operation or gain broader authority.
 
 The owner-review repair adds this normal-MCP parity path; its current-source
-qualification remains open in [G4-017](connect-gate-4-implementation.html#G4-017).
+qualification passes at 709cf82 in [G4-017](connect-gate-4-implementation.html#G4-017).
 
 ## Revoke the agent connection
 
@@ -205,8 +204,12 @@ Current same-owner authority can read/cancel retained tasks and inspect effects
 without reviving the revoked model credential or its old grants. Owner-review
 repairs extend the retained inspection path to its journal and source pages after
 the original backing credential is revoked, expires or the task becomes
-terminal; [G4-024](connect-gate-4-implementation.html#G4-024) tracks verification.
+terminal; [G4-024](connect-gate-4-implementation.html#G4-024) records its current qualification.
 The inspection credential must itself be current and authorized. Continuation
 under the original revoked connection remains denied. Host diagnostics report saved session/run
 state for the agent installation; one session may handle several tracked tasks,
 so host-turn completion does not prove that a particular task or effect completed.
+
+Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+
+[offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)

@@ -1,0 +1,88 @@
+{
+  "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+  "recorded_at": "2026-10-13T04:31:12.578567+00:00",
+  "scope": "Local macOS arm64 owner-review candidate; no publication, remote deployment or new live communication-provider/carrier operations.",
+  "status": "passed",
+  "passed_checks": 17,
+  "failed_checks": 0,
+  "omitted_checks": 0,
+  "checks": {
+    "archive-checksums": {
+      "result": "passed",
+      "detail": "All three archives match SHA256SUMS"
+    },
+    "inventory": {
+      "result": "passed",
+      "detail": "Runtime hashes; clean full SDK source; separate historical binary; no mutable state, keys or fault binaries"
+    },
+    "sdk-source-build": {
+      "result": "passed",
+      "detail": "Public native SDK compiles from the extracted source archive and freshly prepared pinned dependencies"
+    },
+    "first-launch-connect": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-example": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-schema1": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "installed-walkthrough": {
+      "result": "passed",
+      "detail": "Fresh init preservation; version; ready QUIC health; separate app/agent; bounded demo; protected files; safe hashed operation logs"
+    },
+    "restart-shutdown": {
+      "result": "passed",
+      "detail": "Installed restart preserves receipts and example effects; SIGTERM drain releases loopback port"
+    },
+    "installed-language-sdks": {
+      "result": "passed",
+      "detail": "Packaged Python/TypeScript clients and installed native helper share authenticated QUIC/HTTP receipts, history and rejection behavior; browser facade imports independently"
+    },
+    "installed-gate4-agent": {
+      "result": "passed",
+      "detail": "Packaged Python SDK and incoming app use the installed binary, protected MCP grants and actual Codex; source-bound reply, restart/replay and cancellation with no checkout runtime fallback"
+    },
+    "qualification-fixture-build": {
+      "result": "passed",
+      "detail": "Exact extracted source; owned compilation phase; test-only controls isolated from installed runtime binaries"
+    },
+    "first-launch-fault-connect": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "first-launch-fault-connect-example": {
+      "result": "passed",
+      "detail": "First launch within 180 seconds under unchanged macOS security policy, with owned-process cleanup; application deadlines remain unchanged"
+    },
+    "check-examples.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-crash-replay.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    },
+    "check-example-recovery.py": {
+      "result": "passed",
+      "detail": "Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults"
+    }
+  },
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-709cf824295c-qualification.tar.gz": "c56fb9b2ca76010f00a198bcb82fd38ad53cdb876300ec7e948e51b340a0aac7",
+    "connect-0.1.0-alpha.1-macos-arm64-709cf824295c-source.tar.gz": "e2c969f3e7105ebce0994d3073b4788b6215c01b483533cb0d5b3c369f3b3b19",
+    "connect-0.1.0-alpha.1-macos-arm64-709cf824295c.tar.gz": "c1cd12917531f24c1cac06af1e3e7d845197da1c8409ef5c028d93d1945487a7"
+  },
+  "manifest_sha256": "f7bfeeb9c063e9579f6c83e7dbb4a02ba1e6bce9e7b4cce234a0ebef7b4633d0",
+  "binary_sha256": "a196ea3e650ea00a5fd874acc8884b1d626eb83375ed79fdef6134beee83f377",
+  "report_sha256": "cc7f036fb1ff603baa523fe42f7beb041ec8786811c8a810ebae8f89442974f2",
+  "profile": "gate4-local"
+}

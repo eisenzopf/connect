@@ -51,7 +51,7 @@
       "id": "F-03",
       "required_capability": "Rust SDK and local CLI",
       "delivery_gate": 1,
-      "status": "Recorded pre-review capability: local acceptance passed Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: local acceptance passed Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Installed candidate and independent SDK examples",
       "v0_1_required": true,
       "milestones": [
@@ -69,21 +69,26 @@
       "gate_4_criteria": [
         "A4-08"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: Rust native SDK/CLI, optional task client, full current regression and extracted installed macOS arm64 candidate are qualified; broader release packaging remains Gate 5. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
+      "gate_4_progress": "Historical Gate 4 evidence: Rust native SDK/CLI, optional task client, full current regression and extracted installed macOS arm64 candidate are qualified; broader release packaging remains Gate 5. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
       "component_evidence": [
         "evidence/gate-4/native-public-interface-audit.json",
         "evidence/gate-4/package-7edb1b1.json",
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-04",
       "required_capability": "Python, TypeScript and HTTP/JSON options",
       "delivery_gate": 2,
-      "status": "Recorded pre-review capability: Packaged Python/TypeScript native QUIC and HTTP clients qualified; live Vapi chat and call status verified Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: Packaged Python/TypeScript native QUIC and HTTP clients qualified; live Vapi chat and call status verified Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Persistent Rust QUIC helper is explicit; HTTP is separate",
       "v0_1_required": true,
       "milestones": [
@@ -102,15 +107,20 @@
       "gate_4_criteria": [
         "A4-08"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: Python/TypeScript native Rust-helper clients, HTTP and JSON CLI task/ordinary operation parity and installed source rebuilds pass. The Rust helper is explicit; HTTP/WebSocket facades are not labelled native QUIC. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
+      "gate_4_progress": "Historical Gate 4 evidence: Python/TypeScript native Rust-helper clients, HTTP and JSON CLI task/ordinary operation parity and installed source rebuilds pass. The Rust helper is explicit; HTTP/WebSocket facades are not labelled native QUIC. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
       "component_evidence": [
         "evidence/gate-4/language-task-parity-audit.json",
         "evidence/gate-4/package-7edb1b1.json",
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-05",
@@ -131,7 +141,7 @@
       "id": "F-06",
       "required_capability": "Telnyx two-way programmable SMS and signed delivery callbacks",
       "delivery_gate": "2 local and live qualified",
-      "status": "Recorded pre-review capability: Reviewed enrollment and signed callbacks are enforced. Historical actual handset HELP/STOP/START proves suppression, queued cancellation, blocked replay and START without revival. Current local Gate 4 eligibility/dispatch tests and integrated acceptance pass; provider proof retains its actual source. Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: Reviewed enrollment and signed callbacks are enforced. Historical actual handset HELP/STOP/START proves suppression, queued cancellation, blocked replay and START without revival. Current local Gate 4 eligibility/dispatch tests and integrated acceptance pass; provider proof retains its actual source. Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Approval/number readiness, consented handset and signed live callback",
       "v0_1_required": true,
       "milestones": [
@@ -148,7 +158,7 @@
         "A4-06",
         "A4-12"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: Task-aware SMS eligibility and suppression are qualified locally at the current source; retained live reviewed handset proof remains9abf38f, with actual continuity at596e9b7. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
+      "gate_4_progress": "Historical Gate 4 evidence: Task-aware SMS eligibility and suppression are qualified locally at the current source; retained live reviewed handset proof remains9abf38f, with actual continuity at596e9b7. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
       "component_evidence": [
         "evidence/gate-4/task-dispatch-audit.json",
         "evidence/gate-4/sms-callback-journey.json",
@@ -157,9 +167,14 @@
         "evidence/gate-4/live-voice-continuity.json",
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-07",
@@ -210,7 +225,7 @@
       "id": "F-09",
       "required_capability": "Vapi invokes authorized Connect MCP tools in chat and voice",
       "delivery_gate": 4,
-      "status": "Recorded pre-review capability: Protected Vapi chat/voice scoped MCP composition, independent task/resource binding and source-backed continuation are qualified. Fresh dc73996 text invokes3 successful tools with no errors; retained596e9b7 Connect-carried UCTP/QUIC voice and chat/SMS keep their exact source. Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: Protected Vapi chat/voice scoped MCP composition, independent task/resource binding and source-backed continuation are qualified. Fresh dc73996 text invokes3 successful tools with no errors; retained596e9b7 Connect-carried UCTP/QUIC voice and chat/SMS keep their exact source. Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Tool/result/conversation correlation on both paths",
       "v0_1_required": true,
       "milestones": [
@@ -231,16 +246,21 @@
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/actual-vapi-chat-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: Fresh current shared-handler Vapi chat and historical actual Connect-carried voice satisfy both required paths within the explicit source-composition boundary. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_progress": "Historical Gate 4 evidence: Fresh current shared-handler Vapi chat and historical actual Connect-carried voice satisfy both required paths within the explicit source-composition boundary. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-10",
       "required_capability": "Installable MCP tools, agent skill and one researched additional assistant",
       "delivery_gate": 4,
-      "status": "Recorded pre-review capability: Codex CLI is the selected additional host. Current dc73996 normal-key MCP/skill installation, actual-model artifacts/reply/restart and independent incoming contact pass; one key serves two authorized conversations with no task grant renewal. Optional scoped installation and its historical proofs remain supported. Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: Codex CLI is the selected additional host. Current dc73996 normal-key MCP/skill installation, actual-model artifacts/reply/restart and independent incoming contact pass; one key serves two authorized conversations with no task grant renewal. Optional scoped installation and its historical proofs remain supported. Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Human reply reaches originating task; documented installation and resumption",
       "v0_1_required": true,
       "milestones": [
@@ -268,10 +288,15 @@
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/real-model-agent-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: Explicit exact saved-session resume is qualified; normal grants are regular communication credentials. A separate always-running scheduler or automatic model wake is not claimed. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_progress": "Historical Gate 4 evidence: Explicit exact saved-session resume is qualified; normal grants are regular communication credentials. A separate always-running scheduler or automatic model wake is not claimed. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-11",
@@ -360,13 +385,13 @@
       "gate_4_criteria": [
         "A4-14"
       ],
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-15",
       "required_capability": "Cross-channel conversation continuity and explicit assistant context transfer",
       "delivery_gate": "3 continuity / 4 task continuation",
-      "status": "Recorded pre-review capability: Conversation-level continuity and bounded source recall are qualified. Historical actual voice decisions and post-restart chat/SMS plus current normal agent and scoped Vapi text preserve sources, artifacts, task/effect attribution and explicit incomplete transcript state. Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: Conversation-level continuity and bounded source recall are qualified. Historical actual voice decisions and post-restart chat/SMS plus current normal agent and scoped Vapi text preserve sources, artifacts, task/effect attribution and explicit incomplete transcript state. Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Share a draft and a meaningful fact in native messaging/chat; start a voice Session in that Conversation; prove the assistant can use that prior context; record the voice decision and end the Session; restart Connect and resume with a follow-up Message that uses the decision. Verify one conversation timeline, session/provider bindings, no duplicate effects and no context leakage to another conversation. Reject ambiguous context binding and do not silently contact another route after a timeout. The approved SMS path now carries real conversation turns and native SDK recall; preserve verified live HELP/STOP/START enforcement in task-driven dispatch.",
       "v0_1_required": true,
       "milestones": [
@@ -393,7 +418,7 @@
         "A4-10",
         "A4-12"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: Same authorized conversation context is shared across permitted channels and optional owned tasks; session ends do not create a new conversation. New conversation boundaries remain explicit developer choice. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
+      "gate_4_progress": "Historical Gate 4 evidence: Same authorized conversation context is shared across permitted channels and optional owned tasks; session ends do not create a new conversation. New conversation boundaries remain explicit developer choice. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
       "component_evidence": [
         "evidence/gate-4/voice-sms-continuity.json",
         "evidence/gate-4/vapi-continuation-audit.json",
@@ -402,9 +427,14 @@
         "evidence/gate-4/real-model-agent-dc73996.json",
         "evidence/gate-4/actual-vapi-chat-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-16",
@@ -468,7 +498,7 @@
       "id": "F-19",
       "required_capability": "Measured operating envelope and failure/recovery behavior",
       "delivery_gate": "See milestone assignments",
-      "status": "Recorded pre-review capability: Gate 3 load/media/recovery evidence is retained. Pre-Gate 4 adds prompt worker-failure supervision, SIP lease loss/recovery, public schema-6 reproduction and full offline CI lane. Full platform/release envelope remains Gate 5. Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: Gate 3 load/media/recovery evidence is retained. Pre-Gate 4 adds prompt worker-failure supervision, SIP lease loss/recovery, public schema-6 reproduction and full offline CI lane. Full platform/release envelope remains Gate 5. Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Document and test retention, file size, concurrency, loss/latency, cancellation, restart, uncertain effects and diagnostics for advertised paths.",
       "v0_1_required": true,
       "milestones": [
@@ -494,7 +524,7 @@
         "A4-13",
         "A4-14"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: All required current operating/recovery profiles and installed checks pass with sampled local limits, including retained10000-setup evidence and its current counterpart. Full cross-platform/provider release envelope remains Gate 5. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
+      "gate_4_progress": "Historical Gate 4 evidence: All required current operating/recovery profiles and installed checks pass with sampled local limits, including retained10000-setup evidence and its current counterpart. Full cross-platform/provider release envelope remains Gate 5. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
       "component_evidence": [
         "evidence/gate-4/task-operating-profile.json",
         "evidence/gate-4/host-concurrency.json",
@@ -506,15 +536,20 @@
         "evidence/gate-4/package-7edb1b1.json",
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-20",
       "required_capability": "Scoped authority across files, media, tools and app actions",
       "delivery_gate": "See milestone assignments",
-      "status": "Recorded pre-review capability: Current regular non-admin identity credentials enforce configured operations, membership, expiry, revocation and reviewed SMS rules. Optional task/grant mode preserves mapped T-A1\u2013T-A8 authority checks; configured agents act without per-action approval prompts. Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: Current regular non-admin identity credentials enforce configured operations, membership, expiry, revocation and reviewed SMS rules. Optional task/grant mode preserves mapped T-A1\u2013T-A8 authority checks; configured agents act without per-action approval prompts. Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Enforce current authorization and revocation on all added operations. Prevent cross-task/context leakage, spoofed caller authority and unauthorized file access; no per-action permission console.",
       "v0_1_required": true,
       "milestones": [
@@ -547,7 +582,7 @@
         "A4-06",
         "A4-13"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: Current authority matrix and normal-key owner/replay/expiry tests pass; narrow grants remain optional and independently qualified. Tasks track work rather than requiring a new communication credential each time. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
+      "gate_4_progress": "Historical Gate 4 evidence: Current authority matrix and normal-key owner/replay/expiry tests pass; narrow grants remain optional and independently qualified. Tasks track work rather than requiring a new communication credential each time. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
       "component_evidence": [
         "evidence/gate-4/task-authority-audit.json",
         "evidence/gate-4/reply-inbox-recovery.json",
@@ -556,15 +591,20 @@
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/real-model-agent-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     },
     {
       "id": "F-21",
       "required_capability": "Two complete first-run journeys",
       "delivery_gate": "See milestone assignments",
-      "status": "Recorded pre-review capability: The selected agent and independent SDK app initiate and answer incoming work, preserving artifacts, source attribution and one logical effect across restart. Current normal model and installed app pass; historical actual voice/chat/SMS retain their source. Current Gate 4 repair qualification is pending.",
+      "status": "Recorded pre-review capability: The selected agent and independent SDK app initiate and answer incoming work, preserving artifacts, source attribution and one logical effect across restart. Current normal model and installed app pass; historical actual voice/chat/SMS retain their source. Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "A new developer completes both give-an-agent-presence and make-an-app-reachable, including independently initiated communication, artifact/reply handling and restart. Measure setup usability.",
       "v0_1_required": true,
       "milestones": [
@@ -582,7 +622,7 @@
         "A4-11",
         "A4-14"
       ],
-      "gate_4_progress": "Historical Gate 4 evidence: Gate 4 follow-through is complete locally within declared host/provider boundaries. Complete fresh-user first-run UX and measured ten-minute promise remain Gate 5 scope. Requalify the changed prerequisite path under the current numbered plan; previous evidence is not rewritten.",
+      "gate_4_progress": "Historical Gate 4 evidence: Gate 4 follow-through is complete locally within declared host/provider boundaries. Complete fresh-user first-run UX and measured ten-minute promise remain Gate 5 scope. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
       "component_evidence": [
         "evidence/gate-4/agent-incoming-example.json",
         "evidence/gate-4/codex-draft-journey.json",
@@ -593,9 +633,14 @@
         "evidence/gate-4/package-dc73996.json",
         "evidence/gate-4/real-model-agent-dc73996.json",
         "evidence/gate-4/offline-dc73996.json",
-        "evidence/gate-4/final-source-composition.json"
+        "evidence/gate-4/final-source-composition.json",
+        "evidence/gate-4/offline-709cf82.json",
+        "evidence/gate-4/package-709cf82.json",
+        "evidence/gate-4/real-model-agent-709cf82.json",
+        "evidence/gate-4/review-remediation-709cf82.json",
+        "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "in-progress; recorded earlier evidence is not a pass for changed owner-review source"
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
     }
   ],
   "upstream": {
@@ -607,7 +652,7 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "Every required F-01\u2013F-21 commitment retains its gate assignment and recorded evidence. Gates 1\u20133 and the pre-review Gate 4 baseline stay attributed; current Gate 4 repairs and dependent acceptance requalification are in progress. Gate 5 video, complete contributor/conformance kit, first-run/reference experience and release remain required and planned.",
+  "assignment_status": "All 21 required commitments retain their delivery assignments and recorded evidence. Gate 4 owner-review repairs are locally qualified; Gate 5 remains required/planned, including video, full connector/conformance, first-run/reference and release.",
   "gate_3_acceptance": "gate-3-acceptance.json",
   "gate_4_acceptance": "gate-4-acceptance.json",
   "current_gate_4_review": "connect-gate-4-implementation.html#tracking"

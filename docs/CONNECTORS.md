@@ -102,9 +102,8 @@ qualifies that earlier lookup component. Protected first-invocation composition
 is implemented in [Vapi task bootstrap](VAPI_TASK_BOOTSTRAP.md). Historical
 [voice continuity](evidence/gate-4/live-voice-continuity.json) and fresh
 [dc73996 scoped text/tool use](evidence/gate-4/actual-vapi-chat-dc73996.json)
-retain their actual source and topology. Current owner-review repairs and their
-requalification are tracked in the [numbered plan](connect-gate-4-implementation.html);
-this lookup checkpoint alone does not pass them.
+retain their actual source and topology. Current owner-review repairs are qualified at 709cf82 in the [numbered plan](connect-gate-4-implementation.html).
+The lookup checkpoint remains historical component evidence; the current full review is linked below.
 
 ### Register and issue for an existing verified resource
 
@@ -123,7 +122,12 @@ still rechecks current grant/task/parent authority before interpreting provider
 correlation headers. Provider origins remain excluded from the public local
 task-access exchange. Neither model arguments nor headers can invoke setup.
 
-The [setup evidence](evidence/gate-4/vapi-task-setup.json) records qualification
-progress. This API does not create provider resources, handle uncertain creation,
+The [setup evidence](evidence/gate-4/vapi-task-setup.json) retains its historical component qualification.
+This existing-resource API does not create provider resources, handle uncertain creation,
 install tool configuration on an assistant, or solve first-invocation bootstrap.
-Those lifecycle steps and main runtime integration remain G4-019 work.
+Those lifecycle steps and main runtime integration are delivered separately through
+[Vapi task bootstrap](VAPI_TASK_BOOTSTRAP.md); the current full review is linked below.
+
+Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+
+[offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)

@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "recorded_at": "2026-10-12",
+  "status_note": "Gate 4 is complete: 36 implementation items and 14 required criteria are qualified. The unpublished macOS arm64 0.1.0-alpha.1 server/SDK package is ready for owner review.",
+  "offline_phases_passed": 41,
+  "installed_checks_passed": 17,
+  "candidate": {
+    "Frozen runtime source": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+    "Installed candidate": "connect-0.1.0-alpha.1-macos-arm64-dc739966ddd9; 17/17 checks passed",
+    "Server SHA-256": "1524dbc5385152414c2c9f680582253ef79dab462fc2bd7ff4494f93ffbe31a9",
+    "Runtime manifest SHA-256": "15485b312ad2b6b5a84c15fcb01c3db3fb4556c75e07cb827333e30d936c31ff",
+    "Platform": "local macOS arm64",
+    "Selected host": "Codex CLI 0.162.0-alpha.17.2; one ordinary revocable key, optional tasks, explicit exact-session resume",
+    "Actual normal model": "30 successful MCP calls / 0 tool errors across two conversations; verified original model turns with corrected independent observer; original failures retained",
+    "Actual Vapi text": "3 successful tools / 0 errors; one independently sourced message/effect and verified cleanup",
+    "Fresh regression": "clean detached dc73996; all 41 phases passed; 578 workspace tests / 0 failures, all 9 explicit follow-ups executed",
+    "Current documentation": "Final README and guides are documentation-only deltas; all 838 other recorded inputs match the frozen source",
+    "Archive documents": "Immutable package documents retain their packaging checkpoint. A separate checksummed owner-review supplement contains final documents; runtime/archive hashes are unchanged."
+  },
+  "quality_review": [
+    "Protocol, store, service, client, server and MCP retain separate responsibilities. Examples communicate through the public client and own only their application state. New agent-access modules are focused; larger existing public type modules are explicitly listed in the review.",
+    "Fresh clean-source strict whole-workspace/all-target/all-feature Clippy, Rustdoc, repository formatting and SDK checks pass. Independent review found no actionable production defect. The final package passes 17 installed checks, including exact Cargo-target binary equality, independent source SDK/fault builds, host fixtures and recovery.",
+    "All 97 mapped authority/context cases pass: 75 legacy, 20 ordinary identity-access and 2 bounded-context cases. Current revocation, expiry, foreign selectors, explicit reply assignment, failure ordering, queued dispatch, SMS suppression and uncertain effect replay are qualified.",
+    "All seven operating profiles pass, including 1,024 active tasks, 10,000 retained tasks, sixteen hosts/runners and the complete 10,000-session / 313-batch retirement profile. Measurements are sampled local resource/admission evidence.",
+    "All nine executable upgrade/recovery phases pass. Matching snapshots preserve populated data and original receipts; incompatible older binaries refuse new schema, migration and interrupted snapshot failures are recoverable, and restored replay rechecks current authority without resending unknown acceptance. Original user databases are preserved."
+  ],
+  "limits": [
+    "Qualification is local macOS arm64. This is an unpublished alpha for owner review; complete v0.1 product and platform/release qualification remain Gate 5.",
+    "Codex continuation uses explicit resume of the exact saved session. An always-running model scheduler and automatic model wake are not supplied by this adapter.",
+    "One normal communication credential has a configurable lifetime (30-day default). Tasks are optional tracking; narrow invocation grants keep their five-minute ceiling. Current revocation and conversation privacy apply to both modes.",
+    "Operating profiles measure bounded local admission and sampled memory, not provider latency, exact memory peaks, long-idle carrier reachability or universal model reliability.",
+    "Actual normal-agent and fresh Vapi text use the frozen dc73996 installed runtime. Actual Connect-carried voice/chat/SMS at 596e9b7 and handset HELP/STOP/START at 9abf38f keep their source-specific proof; unchanged paths and current shared-MCP deltas are explicitly reconciled. These are not newly repeated physical carrier tests on dc73996.",
+    "The normal-agent observer reconciliation validates immutable original model turns and original effects/replay. Correcting the observer does not rewrite the failed original invocation or claim implicit reply consumption.",
+    "A missing Vapi end report leaves context completeness explicitly incomplete; retained source messages/decisions can still support a later channel.",
+    "Earlier startup/cache/link/observer/DNS and provider fixture failures remain preserved. No security setting or application deadline was changed; the causal explanation of older executable stalls is unestablished.",
+    "HTML links/IDs, stable task/feature mappings and inline JavaScript syntax are validated. Browser visual preview is recorded as unperformed after local file navigation was blocked; no alternate-serving workaround was used."
+  ],
+  "gate_5_handoff": [
+    "Video remains required in the product vision and belongs to the next gate.",
+    "Deliver the full connector kit, contributor templates and conformance checks; retain the independent implementation requirement.",
+    "Complete first-run configuration, protected secret handling, contact ownership verification and the reference human-facing experience.",
+    "Design the supported platform/release envelope and community distribution after owner review."
+  ],
+  "implementation_items_done": 36,
+  "implementation_items_total": 36,
+  "offline_status": "All 41 required phases passed from a fresh clean detached dc73996 checkout, with 839 stable inputs, independently prepared dependencies, exact unchanged budgets and empty owned-process groups. Nine deliberately ignored workspace checks ran in their explicit follow-up phases.",
+  "agent_access_default": {
+    "mode": "ordinary revocable non-admin identity credential",
+    "tasks": "optional work/reply/effect tracking",
+    "narrow_grants": "optional scoped/provider mode",
+    "tracking_and_revocation": "authoritative journal plus current credential/conversation checks at invocation, replay and queued dispatch",
+    "actual_model_qualified": true
+  },
+  "evidence": [
+    "offline-dc73996.json",
+    "package-dc73996.json",
+    "authority-workspace-dc73996.json",
+    "final-operating-reconciliation.json",
+    "final-quality-review.json",
+    "code-recovery-dc73996.json",
+    "final-source-composition.json",
+    "real-model-agent-dc73996.json",
+    "actual-vapi-chat-dc73996.json",
+    "live-voice-continuity.json",
+    "sms-0737-rehearsal.json",
+    "final-document-review.json"
+  ],
+  "remaining_required_checks": [],
+  "failed_attempts_relabelled": false,
+  "public_copy": "Rudeless project copy remains a reviewable proposal; no new website or Connect deployment is performed for this gate."
+}

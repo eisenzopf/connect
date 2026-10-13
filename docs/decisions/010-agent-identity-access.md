@@ -1,8 +1,7 @@
 # 010 · One communication identity for an agent
 
 Status: owner-authorized October 12, 2026. The frozen dc73996 implementation is
-qualified in its recorded scope; owner-review repairs and their requalification
-are in progress. Amends the default local agent installation in decision 009. Retains
+qualified in its recorded scope; owner-review repairs are qualified at 709cf824295c12963b5d62214877b91fcd750e8d. Amends the default local agent installation in decision 009. Retains
 the existing task, invocation-grant and verified provider-binding contracts.
 
 ## Purpose
@@ -94,8 +93,12 @@ records the completed pre-review qualification. The owner review then reopened
 normal MCP reply consumption, retained same-owner inspection after original
 credential revocation, hosted CI and public
 reproduction/documentation work. The [numbered plan](../connect-gate-4-implementation.html)
-tracks that repair cycle; earlier results do not qualify changed behavior.
+records the completed repair cycle; earlier results keep their original source.
 
 Gate 4 closes only after these checks and the remaining baseline checks pass.
 This change does not add video, a full connector contribution kit, remote
 deployment or community publication to Gate 4. Those remain in the roadmap.
+
+Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+
+[offline-709cf82](../evidence/gate-4/offline-709cf82.json), [package-709cf82](../evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](../evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](../evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](../evidence/gate-4/qualification-controls-d64f1b9.json)

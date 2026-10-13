@@ -82,7 +82,7 @@ enrollment, conversation and keyword enforcement have
 [voice-to-chat/SMS continuity](evidence/gate-4/live-voice-continuity.json)
 retain their actual tested sources. The frozen dc73996 package and full local
 qualification are recorded in the [source reconciliation](evidence/gate-4/final-source-composition.json).
-Owner-review repairs remain open in the [numbered plan](connect-gate-4-implementation.html).
+Owner-review repairs are qualified at 709cf82 in the [numbered plan](connect-gate-4-implementation.html).
 MCP tools and the installable skill are delivered Gate 4 interfaces;
 HTTP/JSON alone is not MCP.
 
@@ -95,8 +95,7 @@ provider-origin grants, and model grants cannot refresh themselves. Native SDK
 grant authentication is implemented as described below. It is an optional
 narrow mode, not a prerequisite for ordinary communication. The
 [actual normal-agent journey](evidence/gate-4/real-model-agent-dc73996.json)
-qualifies explicit exact-session continuation at dc73996. Current repair-cycle
-qualification remains tracked in the [Gate 4 plan](connect-gate-4-implementation.html#G4-021).
+qualifies explicit exact-session continuation at dc73996. Current repair-cycle qualification passes at 709cf82 and is tracked in the [Gate 4 plan](connect-gate-4-implementation.html#G4-021).
 
 Tracked reply consumption is an explicit owner operation, separate from reads,
 waits and follow-up sends. The native `consume_reply` task command and the ordinary
@@ -105,7 +104,7 @@ received conversation journal event ID and expected task revision. The normal
 MCP result wraps the task record as `kind: task` → `kind: record`; optional narrow
 grant catalogs do not expose that owner tool. See
 [agent access](AGENT_ACCESS.md) for the reply-reference and replay contract.
-The newly exposed MCP parity path remains subject to
+The newly exposed MCP parity path is qualified at 709cf82 in
 [G4-017 repair qualification](connect-gate-4-implementation.html#G4-017).
 
 ## Gate 2 telephone call control
@@ -285,3 +284,7 @@ reclassify an unknown result as a rejection. A transport failure or deadline sti
 `transport-uncertain`: preserve the logical mutation ID and reconcile acceptance.
 After fixing configuration or explicitly renewing a grant, close the helper and
 create a new client. It never reloads credentials or falls back to an owner token.
+
+Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+
+[offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)

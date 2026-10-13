@@ -157,8 +157,7 @@ after the original backing credential is revoked, expires or the task becomes
 terminal. Current caller authentication still applies; this does not revive
 continuation under the old credential or add a host-authentication probe.
 Diagnostic fields and reason codes are unchanged. The
-[numbered plan](connect-gate-4-implementation.html#G4-024) tracks the repaired
-read path and pending verification. Earlier reports remain proof of their
+[numbered plan](connect-gate-4-implementation.html#G4-024) records the repaired read path qualified at 709cf82. Earlier reports remain proof of their
 recorded version.
 
 ## Combined execution readiness
@@ -206,3 +205,7 @@ not replace the worker readiness or installed-host checks above.
 
 For historical binary migration, consistent task snapshots and interrupted-copy
 recovery, see [local Gate 4 recovery](TASK_RECOVERY.md).
+
+Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+
+[offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)

@@ -1,0 +1,315 @@
+{
+  "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+  "recorded_at": "2026-10-13T04:31:12.578567+00:00",
+  "scope": "Local macOS arm64 owner-review candidate; no publication, remote deployment or new live communication-provider/carrier operations.",
+  "status": "passed",
+  "phases": [
+    {
+      "name": "dependencies",
+      "status": "passed",
+      "seconds": 0.245
+    },
+    {
+      "name": "format",
+      "status": "passed",
+      "seconds": 0.814
+    },
+    {
+      "name": "typescript-install",
+      "status": "passed",
+      "seconds": 0.761
+    },
+    {
+      "name": "typescript-tests",
+      "status": "passed",
+      "seconds": 3.699
+    },
+    {
+      "name": "typescript-format",
+      "status": "passed",
+      "seconds": 0.573
+    },
+    {
+      "name": "typescript-distribution",
+      "status": "passed",
+      "seconds": 0.077
+    },
+    {
+      "name": "python-sdk",
+      "status": "passed",
+      "seconds": 3.525
+    },
+    {
+      "name": "agent-incoming-unit",
+      "status": "passed",
+      "seconds": 0.18,
+      "python_tests": {
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "runner-failure-tests",
+      "status": "passed",
+      "seconds": 6.795
+    },
+    {
+      "name": "agent-journey-unit",
+      "status": "passed",
+      "seconds": 0.182,
+      "python_tests": {
+        "passed": 14,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "voice-rehearsal-unit",
+      "status": "passed",
+      "seconds": 0.131,
+      "python_tests": {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "chat-rehearsal-unit",
+      "status": "passed",
+      "seconds": 2.853,
+      "python_tests": {
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "lint",
+      "status": "passed",
+      "seconds": 146.906
+    },
+    {
+      "name": "rustdoc",
+      "status": "passed",
+      "seconds": 121.869
+    },
+    {
+      "name": "workspace",
+      "status": "passed",
+      "seconds": 1598.334,
+      "rust_tests": {
+        "passed": 591,
+        "failed": 0,
+        "ignored": 9
+      },
+      "ignored_follow_up": [
+        "current_revocation_after_intent_persistence_denies_dispatch_and_required_startup",
+        "installed_runtime_discovers_skill_and_real_mcp_with_current_authority",
+        "interrupted_before_dispatch_replays_original_program_after_listener_restart",
+        "overlapping_drafts_preserve_bytes_context_and_bound_reply_after_restart",
+        "packaged_host_renews_original_session_and_continues_reply_after_restart_without_repeating_effect",
+        "persisted_call_precedes_dispatch_and_exact_resume_reconciles_one_effect",
+        "profile_one_and_four_concurrent_sessions_for_sixty_seconds",
+        "retired_setups_reuse_capacity_through_the_full_session_limit",
+        "two_installed_sessions_resume_bound_reply_after_server_restart_and_replay_one_follow_up"
+      ]
+    },
+    {
+      "name": "media-pressure",
+      "status": "passed",
+      "seconds": 129.037,
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "installed-host",
+      "status": "passed",
+      "seconds": 42.906,
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "upstream-regression",
+      "status": "passed",
+      "seconds": 831.082,
+      "rust_tests": {
+        "passed": 942,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "upstream-vapi",
+      "status": "passed",
+      "seconds": 21.012,
+      "rust_tests": {
+        "passed": 20,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "upstream-queues",
+      "status": "passed",
+      "seconds": 307.082,
+      "rust_tests": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "upstream-codec",
+      "status": "passed",
+      "seconds": 4.599,
+      "rust_tests": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "current-binaries",
+      "status": "passed",
+      "seconds": 171.354
+    },
+    {
+      "name": "host-capacity",
+      "status": "passed",
+      "seconds": 14.527
+    },
+    {
+      "name": "agent-incoming-public",
+      "status": "passed",
+      "seconds": 0.923,
+      "python_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "agent-incoming-host",
+      "status": "passed",
+      "seconds": 2.896,
+      "python_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "native-task-capacity",
+      "status": "passed",
+      "seconds": 41.673
+    },
+    {
+      "name": "reference-runner-capacity",
+      "status": "passed",
+      "seconds": 3.822
+    },
+    {
+      "name": "mcp-operating-load",
+      "status": "passed",
+      "seconds": 31.003
+    },
+    {
+      "name": "grant-lifecycle-load",
+      "status": "passed",
+      "seconds": 13.599
+    },
+    {
+      "name": "task-artifact-retention",
+      "status": "passed",
+      "seconds": 45.531
+    },
+    {
+      "name": "voice-setup-retirement",
+      "status": "passed",
+      "seconds": 1577.877
+    },
+    {
+      "name": "schema-six-build",
+      "status": "passed",
+      "seconds": 0.135
+    },
+    {
+      "name": "schema-ten-build",
+      "status": "passed",
+      "seconds": 0.241
+    },
+    {
+      "name": "historical-task-recovery",
+      "status": "passed",
+      "seconds": 8.072
+    },
+    {
+      "name": "dispatch",
+      "status": "passed",
+      "seconds": 12.373
+    },
+    {
+      "name": "identity",
+      "status": "passed",
+      "seconds": 8.001
+    },
+    {
+      "name": "typescript-probe",
+      "status": "passed",
+      "seconds": 1.358
+    },
+    {
+      "name": "crash-replay",
+      "status": "passed",
+      "seconds": 23.808
+    },
+    {
+      "name": "examples",
+      "status": "passed",
+      "seconds": 14.099
+    },
+    {
+      "name": "example-recovery",
+      "status": "passed",
+      "seconds": 35.272
+    },
+    {
+      "name": "current-recovery",
+      "status": "passed",
+      "seconds": 1.739
+    },
+    {
+      "name": "datagram-example",
+      "status": "passed",
+      "seconds": 1.553
+    }
+  ],
+  "required_phases": 42,
+  "passed_phases": 42,
+  "failed_phases": 0,
+  "omitted_phases": 0,
+  "source_stable": true,
+  "clean_at_start": true,
+  "fresh_independent_checkout": true,
+  "source_input_files": 860,
+  "source_inputs_sha256": "d6eb56bb50ba50e50586edba6934b4892bf56721ef4e2890b6c1915fe6f3312f",
+  "preparation": "Independent no-local source/dependency clones; verified ordinary historical baselines; only generated Cargo cache reused.",
+  "preparation_report_sha256": "89dcc02b7c9e4494bbe533ac30ae8f781ccbe027ad9fdc226686753a0bcc8f46",
+  "report_sha256": "f1b073f23ddf2bcfa358b7c279a9bfb141f05773075d294affb9ce0ad744e46c",
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.7.0",
+    "npm": "12.0.2",
+    "codex": "codex-cli 0.162.0-alpha.17.2",
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+  }
+}

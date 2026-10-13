@@ -36,8 +36,7 @@ reply consumption and an independent incoming answer. Two actual model turns
 can incur model usage. Offline observer tests do not qualify those turns.
 
 Current owner-review qualification is tracked in
-[G4-034](../../docs/connect-gate-4-implementation.html#G4-034). This newly public
-runner and changed consume behavior require fresh evidence; historical private
+[G4-034](../../docs/connect-gate-4-implementation.html#G4-034). This public runner and explicit consume behavior have fresh actual-model proof at 709cf82; historical private
 observer/model results remain attributed to their recorded source.
 
 ## Native UCTP/QUIC
@@ -234,10 +233,14 @@ cloud/model behavior. Separately, [actual scoped Vapi text/tool use](../../docs/
 passes on dc73996 and [actual Connect-carried voice and post-restart continuity](../../docs/evidence/gate-4/live-voice-continuity.json)
 retains its historical source and topology. Those reports preserve failed
 attempts and independently verified effects/cleanup. The current owner-review
-repair cycle requires its own source-linked verification through the
+repair cycle is qualified at 709cf82 with source-linked verification through the
 [Gate 4 plan](../../docs/connect-gate-4-implementation.html); a prior capture or
 qualification cannot be promoted into a new pass.
 
 Provider references: [session management](https://docs.vapi.ai/chat/session-management),
 [create chat](https://docs.vapi.ai/api-reference/chats/create), and
 [get chat](https://docs.vapi.ai/api-reference/chats/get).
+
+Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+
+[offline-709cf82](../../docs/evidence/gate-4/offline-709cf82.json), [package-709cf82](../../docs/evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](../../docs/evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](../../docs/evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](../../docs/evidence/gate-4/qualification-controls-d64f1b9.json)

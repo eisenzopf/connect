@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "live requirements observed; final candidate reconciliation in progress",
+  "status": "source-composed qualification complete",
   "recorded_at": "2026-10-12",
   "qualification_boundary": "Live operations were separately authorized and manually invoked; the account-free runner creates no public ingress and contacts no provider account.",
   "topologies": [
@@ -31,22 +31,43 @@
       "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
       "evidence": "real-model-draft-7edb1b1.json",
       "path": "Two actual Codex sessions \u2192 MCP drafts/artifacts/questions \u2192 explicit native human reply \u2192 restart \u2192 exact-session continuation and one attributed follow-up. The sibling task remains waiting."
+    },
+    {
+      "id": "L4-normal-agent-709cf82",
+      "status": "passed",
+      "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+      "evidence": "real-model-agent-709cf82.json",
+      "path": "Installed ordinary MCP/skill \u2192 actual Codex \u2192 two source-backed drafts/tasks \u2192 restart \u2192 exact session \u2192 one follow-up, explicit ConsumeReply and independent incoming answer; no task grant renewal."
     }
   ],
   "cleanup": {
     "status": "verified for completed live provider work",
     "details": "Owned temporary Connect/proxy/tunnel processes ended. Original Telnyx callback restored and read back. Original local server, database and tunnel preserved. Saved Vapi assistant not modified.",
-    "evidence": "live-voice-continuity.json"
+    "evidence": "live-voice-continuity.json",
+    "current_normal_model": {
+      "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+      "verified": true,
+      "evidence": "real-model-agent-709cf82.json"
+    }
   },
   "candidate_delta": {
-    "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
-    "evidence": "reply-reference-repair.json",
-    "qualification": "Final installed actual-model draft/reply and incoming-contact tests pass. Strict quality, focused regression and all 17 installed-package checks pass. Full baseline regression and final source integration/reconciliation remain open."
+    "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+    "evidence": "review-remediation-709cf82.json",
+    "qualification": "Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+    "previous_checkpoint": {
+      "source_revision": "7edb1b1487d0aef765f89792b4244a0d0418e4ea",
+      "evidence": "reply-reference-repair.json",
+      "qualification": "Final installed actual-model draft/reply and incoming-contact tests pass. Strict quality, focused regression and all 17 installed-package checks pass. Full baseline regression and final source integration/reconciliation remain open."
+    }
   },
   "limits": [
     "The voice model did not inspect the exact SMS effect before its spoken completion claim; delivery was independently verified. The later chat model did inspect pending-to-succeeded status.",
     "An absent voice end report leaves context completeness incomplete; available sourced decisions were actually retained and recalled.",
     "Handset and provider account scope is the recorded authorized test lane. No new phone number or saved assistant change was required.",
     "Earlier failed attempts and private harness mistakes remain linked in their individual reports."
-  ]
+  ],
+  "historical_master_snapshot": {
+    "path": "docs/evidence/gate-4/master-live-before-709cf82-3701ad37969b.json",
+    "sha256": "3701ad37969bd9cc12ba6a74a1d598aedf5d9679ad41e74c3231ef3050cbce80"
+  }
 }

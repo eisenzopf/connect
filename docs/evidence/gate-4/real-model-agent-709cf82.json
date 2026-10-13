@@ -1,0 +1,120 @@
+{
+  "source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+  "recorded_at": "2026-10-13T04:31:12.578567+00:00",
+  "scope": "Local macOS arm64 owner-review candidate; no publication, remote deployment or new live communication-provider/carrier operations.",
+  "status": "passed",
+  "access_mode": "regular-agent-credential",
+  "codex_version": "codex-cli 0.162.0-alpha.17.2",
+  "actual_codex_sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "driver_files_sha256": {
+    "scripts/live/agent-journey.py": "217c2dc877c63df72be9e7f20382eceb95b7639b975890bfdac3bf947a85112e",
+    "scripts/live/agent_journey/__init__.py": "73698a2ecce91d85a27401607de8af3ba50fa6b1756f2c9535775750d2754fb7",
+    "scripts/live/agent_journey/cli.py": "2b8a4c8d7b92e379bae98e73f1ab89c399718d91ee88be55fc2d2a160d93565e",
+    "scripts/live/agent_journey/common.py": "30a00ab35ddab56259fd21787012da61be9626696517abe13a69edec9b426188",
+    "scripts/live/agent_journey/model.py": "6f6d02eddcad68cabed75bfa4d7f0281da63e89857fbc571fe4d0edcb42cfda9",
+    "scripts/live/agent_journey/observe.py": "26b7a93e0538a50f3106915b646cf6c1c4ae193709808d468c91d7bdedb3166e",
+    "scripts/live/agent_journey/runtime.py": "133c8b60d2c0334782a44475444e85286cfac668b957977d8d7ab246a295f99e",
+    "scripts/live/agent_journey/scenario.py": "654f8ba2e0217c3e7c656faac5147cb81e158357e88999f7ab693aa55c60024a"
+  },
+  "model_tool_calls": {
+    "model-first": {
+      "calls_passed": 15,
+      "calls_failed": 0,
+      "successful_tools": {
+        "connect_artifact_append": 2,
+        "connect_artifact_begin": 2,
+        "connect_artifact_finish": 2,
+        "connect_context_view": 2,
+        "connect_inspect": 1,
+        "connect_task_create": 2,
+        "connect_task_send": 2,
+        "connect_task_wait": 2
+      },
+      "event_sha256": "f3b2a13d669865807b9fa8a532d44ccfb98b70f0f66f4685cad5701e987f2bc9",
+      "rule": "Model/schema/transport errors are retained and counted as failures; a corrected later call does not turn that failure into a pass."
+    },
+    "model-resume": {
+      "calls_passed": 17,
+      "calls_failed": 0,
+      "successful_tools": {
+        "connect_context_view": 2,
+        "connect_effect_status": 2,
+        "connect_inbox": 1,
+        "connect_inspect": 1,
+        "connect_request_status": 3,
+        "connect_send": 1,
+        "connect_task_consume_reply": 1,
+        "connect_task_send": 1,
+        "connect_task_status": 2,
+        "connect_task_transition": 1,
+        "connect_task_wait": 2
+      },
+      "event_sha256": "9daff43b8b750d6ad9ef700571d7835170a0fff29e5e9606eb710907b1c500f0",
+      "rule": "Model/schema/transport errors are retained and counted as failures; a corrected later call does not turn that failure into a pass."
+    }
+  },
+  "reply_semantics": {
+    "reply_to": "authorizes/correlates the tracked effect; it does not implicitly consume the inbox marker",
+    "consumed_marker": true,
+    "explicit_consume": "explicit normal MCP consume command, independently observed through the public SDK",
+    "followup_effect_id": "02aef3d1-0450-4783-bd03-d76ce547c07a",
+    "exact_reply_event_id": "907e8faf-a4b3-4706-b169-e0f061181c6b"
+  },
+  "actual_inference": true,
+  "one_credential_across_two_authorized_conversations": true,
+  "artifacts_verified_before_after_restart": {
+    "a": {
+      "conversation_id": "cf4ae4fc-601e-4670-a69d-04c8743ef36d",
+      "question_id": "37b27765-7c03-4255-acc9-af3ae8dc7f4e",
+      "task_id": "59b45f1a-0b6f-4850-971a-c183393de1a2",
+      "artifact_id": "db7943ee-9ceb-4813-a7b4-a2554f93bbb3",
+      "sha256": "e5b9187a465125495a23e788aaee498f47054572ac9f8d571fe03561d570b5f6",
+      "size": 562,
+      "source_message_id": "6f7bab1c-70fe-4e4b-b9b8-4c9d9f30a131"
+    },
+    "b": {
+      "conversation_id": "e464d6f8-83fa-4d7d-9ca5-a2870b756d02",
+      "question_id": "b483ff36-c65f-43bf-9674-87dade8dd36d",
+      "task_id": "395ab94d-613a-43f3-b3fb-0bdd193b87b7",
+      "artifact_id": "21c4639c-8160-404d-88ae-00fbfdbc8e65",
+      "sha256": "1b87b83eb627a6268d8ef40b15e6e9047fa00048d98940decc13eca0284d34e3",
+      "size": 597,
+      "source_message_id": "bb6d1295-4019-4993-b185-e5a8fad261fb"
+    }
+  },
+  "same_exact_host_session_after_server_restart": true,
+  "source_backed_review_followup_count": 1,
+  "source_backed_independent_incoming_answer_count": 1,
+  "unanswered_review_task_still_waiting": true,
+  "original_reply_attribution_retained_once": true,
+  "public_request_replay_preserves_messages": true,
+  "no_task_grant_issuance_or_renewal": true,
+  "continuation": "explicit exact saved session resume; delivered continuation prompt, without new user-supplied facts or reconstructed context",
+  "limits": [
+    "Local regular identity profile only; prior scoped-host/provider/SMS proofs retain their original recorded source and scope.",
+    "Explicit host turn/resume, not an always-running scheduler or unattended mailbox service.",
+    "No live voice/SMS/provider operation, remote deployment or security change."
+  ],
+  "report_sha256": "864ba5e4d8a3579d6431bd593e0a5dececa1baffa26812c3b6fd263ea1d054ec",
+  "independent_review": {
+    "checks_passed": 49,
+    "report_sha256": "f4abdf74f89e64e97b64f37ca10732bf85376545f92e15a3f5b4da83a786c301",
+    "conclusions": [
+      "Fresh final-package model receipts agree with independently downloaded artifact bytes and full public-client histories; no earlier model report supplies these checks.",
+      "Actual Codex first/resume event logs identify the same exact saved session and ordinary identity/key. Fresh observation shims only record owned processes and exec the actual installed Codex unchanged.",
+      "One confirmed tracked followup uses the received reply journal event. An explicit normal MCP ConsumeReply uses its current revision before completion; independent public reply observation retains attribution and confirms consumed=true.",
+      "The independently contacted sibling conversation receives one ordinary answer with retained facts while its unanswered tracking task remains waiting; peer request replay adds no messages."
+    ],
+    "scope_limits": [
+      "Read-only forensic review of the fresh retained observations, without new inference or a shell-sandbox guarantee.",
+      "Local regular-agent profile on source709cf824295c12963b5d62214877b91fcd750e8d; no live communication providers, SMS/PSTN, remote deployment, unattended wake or scheduler qualification.",
+      "Explicit exact-session resume after server restart is demonstrated; interruption during a model turn is outside this journey.",
+      "Earlier failed or historical model runs remain separate; their status is not changed by this review."
+    ]
+  },
+  "owned_process_cleanup_verified": true,
+  "local_preparation_commands_passed": 2,
+  "local_preparation_commands_failed": 0,
+  "ordinary_mcp_tool_calls_passed": 32,
+  "ordinary_mcp_tool_calls_failed": 0
+}

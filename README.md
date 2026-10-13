@@ -6,40 +6,36 @@ An open communications server and SDK from [Rudeless](https://rudeless.ai). One 
 
 ## Status
 
-Connect is in development. Gates 1–3 have recorded local macOS arm64 qualification for durable messaging, scoped credentials, recovery, provider control, native QUIC audio, SIP/PSTN and browser WebRTC media, bounded files, availability and cross-channel context. Rust, Python and TypeScript SDKs and HTTP/JSON share the application contract. The [pre-Gate 4 entry evidence](docs/connect-pre-gate-4-entry.html) records the follow-up repairs, reviewed SMS conversation, native SDK context recall and HELP/STOP/START suppression/recovery on the named test lane. That evidence retains its original account, handset and topology limits.
+Gate 4 is ready for local macOS arm64 owner review: [36 implementation
+items](docs/connect-gate-4-implementation.html#tracking) and [14 acceptance
+criteria](docs/evidence/gate-4/acceptance.html) have recorded evidence. Agents
+get [one revocable communication identity](docs/AGENT_ACCESS.md) across their
+authorized conversations. Tasks track work when needed; narrow grants remain
+optional. The [Codex host](docs/CODEX_TASK_HOST.md) preserves its session for
+explicit resume.
 
-Gate 4 adds MCP communication tools and a supplied agent skill, with [one
-revocable communication identity](docs/AGENT_ACCESS.md) as the default local
-installation. The agent uses its key across authorized conversations; tasks can
-track work, replies, waits and effects. Narrow task grants remain an optional
-mode. The [Codex host](docs/CODEX_TASK_HOST.md) preserves its exact session with
-explicit resume. Vapi retains verified call/chat bindings.
+The frozen `709cf82` candidate passes [42 offline qualification phases](docs/evidence/gate-4/offline-709cf82.json),
+[17 installed-package checks](docs/evidence/gate-4/package-709cf82.json) and
+[32 actual-model MCP calls](docs/evidence/gate-4/real-model-agent-709cf82.json).
+The [public journey runner](docs/AGENT_JOURNEY_QUALIFICATION.md) makes the
+separate model check reproducible. [Hosted CI](https://github.com/eisenzopf/connect/actions/runs/38334742398)
+uses `d64f1b9`; its workflow and three qualification-fixture files are the only
+changes from the immutable runtime candidate. The [qualification record](docs/evidence/gate-4/qualification-controls-d64f1b9.json)
+keeps that boundary and the earlier failed attempts explicit.
 
-Gate 4 is complete for local macOS arm64 owner review: all 36 implementation
-items and 14 required criteria have source-linked evidence. The [frozen local
-`0.1.0-alpha.1` package](docs/LOCAL_RELEASE.md) passes 17 installed checks outside
-the checkout. A fresh clean checkout of the same source passes all 41 required
-offline phases, including strict Clippy, Rustdoc, SDK, upstream, operating and
-recovery checks.
+Historical [Vapi](docs/evidence/gate-4/actual-vapi-chat-dc73996.json),
+[voice/chat](docs/evidence/gate-4/live-voice-continuity.json) and
+[SMS](docs/evidence/gate-4/sms-0737-rehearsal.json) rehearsals retain their exact
+source, account, handset and topology limits. The [source/provider review](docs/evidence/gate-4/review-remediation-709cf82.json)
+explains how those proofs relate to the current code.
 
-The [actual normal agent](docs/evidence/gate-4/real-model-agent-dc73996.json)
-uses one key across two conversations, preserves draft bytes, resumes its exact
-session after restart and answers independent incoming contact. Its 30 MCP
-calls succeed without task-grant renewal. [Fresh Vapi text](docs/evidence/gate-4/actual-vapi-chat-dc73996.json)
-invokes three successful source-backed tools. Earlier [Connect-carried
-voice/chat](docs/evidence/gate-4/live-voice-continuity.json) and [reviewed SMS](docs/evidence/gate-4/sms-0737-rehearsal.json)
-proofs retain their exact source versions and limits; the [source reconciliation](docs/evidence/gate-4/final-source-composition.json)
-links unchanged provider paths and current shared-MCP checks. Failed attempts
-remain recorded.
-
-Review the [completed checklist](docs/connect-gate-4-implementation.html#tracking)
-and [qualification report](docs/evidence/gate-4/acceptance.html). The development
-schema is 16; upgrades preserve existing state and require a matching verified
-backup. This alpha is unpublished. Full v0.1 video, complete connector kit,
+This local alpha is unpublished. Full v0.1 video, the complete connector kit,
 independent protocol conformance, first-run/reference experience, broader
 platforms and community publication remain Gate 5 work.
 
-See [the documentation and delivery index](docs/index.html), [the Gate 2 product/delivery plan](docs/connect-gate-2-plan.html), [the alignment audit](docs/documentation-alignment.html), [the qualification result](docs/evidence/gate-1/result.json) and [local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below describe the complete product we intend to build.
+See [the documentation and delivery index](docs/index.html) and
+[local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below
+describe the complete product we intend to build.
 
 ## Local development
 

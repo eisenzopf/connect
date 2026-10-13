@@ -9,9 +9,9 @@ evidence is recorded separately from the package qualification.
 The default local agent installation uses [one regular revocable identity
 credential](AGENT_ACCESS.md) across authorized conversations, with optional task
 tracking. [Scoped task installation](TASK_ACCESS.md) remains available for a
-narrow delegation. The [dc73996 candidate](evidence/gate-4/package-dc73996.json)
+narrow delegation. The [709cf82 candidate](evidence/gate-4/package-709cf82.json)
 passes all 17 required installed checks, with no failures or omissions. Earlier
-package reports retain their recorded scoped-mode sources. The
+package reports retain their recorded sources and modes. The
 [Gate 4 review](evidence/gate-4/acceptance.html) records completed local
 qualification and the evidence limits for owner review. This remains an
 unpublished review candidate.
@@ -74,37 +74,93 @@ restart either worker with the same files to exercise durable continuation.
 
 ## Gate 4 task and agent workflows
 
-The [dc73996 local candidate](evidence/gate-4/package-dc73996.json) packages
-source revision `dc739966ddd9a38ec5d19f54217b293ece51b4e4` and passes all 17
-installed checks. The [normal-agent actual-model proof](evidence/gate-4/real-model-agent-dc73996.json)
-uses one regular key across two conversations, verifies artifacts and correlated
-questions, resumes the exact session after server restart and handles both a
-tracked reply and an independent contact. Its immutable first/resume transcripts
-contain 30 successful tool calls and zero failures. A corrected independent
-public-SDK observer verifies those existing effects without new inference or
-answer injection; original failed observer reports remain failed.
+The [709cf82 local candidate](evidence/gate-4/package-709cf82.json) packages
+source revision `709cf824295c12963b5d62214877b91fcd750e8d` and passes all 17
+installed checks. The [fresh normal-agent actual-model proof](evidence/gate-4/real-model-agent-709cf82.json)
+uses one regular key across two conversations, verifies draft bytes and source
+facts, resumes the exact session after server restart, handles a tracked reply
+and answers independent contact. Its two fresh model turns record 32 successful
+MCP calls and zero failures. Two local preparation commands read the installed
+skill and calculate literal draft bytes/digests; they are retained in the private
+records. The independent review passes all 49 checks, including actual MCP
+receipts, downloaded artifact bytes, full histories and the exact saved session.
+Model communication uses the installed MCP tools; independent observations
+use the installed public SDK. The public [model-journey runbook](AGENT_JOURNEY_QUALIFICATION.md) and
+[runner](../scripts/live/agent-journey.py) provide the separately invoked check.
 
-The [fresh Vapi text proof](evidence/gate-4/actual-vapi-chat-dc73996.json) on the
-same candidate discovers seven scoped tools and completes task status, source
-recall and one useful cited send with three successful model calls and zero
-failures. It retains the optional provider-bound mode. Historical
+A tracked follow-up uses the received reply journal event to authorize and
+correlate its effect. That reference does not consume the reply implicitly.
+The current normal MCP tools expose explicit handled-reply consumption; the
+model uses the current revision after the effect is confirmed and before
+completion. An independent public-SDK observer verifies the retained attribution
+and consumed marker. The unanswered sibling task remains waiting.
+
+The [implementation plan](connect-gate-4-implementation.html#G4-033) and
+[Gate 4 review](evidence/gate-4/acceptance.html) link the completed current
+qualification: [42 required offline phases](evidence/gate-4/offline-709cf82.json),
+17 installed checks, and separately recorded actual model behavior. The
+workspace suite passes 591 tests with no failures; its nine ignored cases are
+explicitly executed in named complete-run phases. The run begins from an
+independent fresh clean `709cf82` Git clone with verified pinned dependency
+sources. Only generated Cargo cache and verified historical baseline binaries
+are reused; no application state or credentials are copied. All three
+[hosted jobs](https://github.com/eisenzopf/connect/actions/runs/38334742398)
+also pass under CI configuration
+`d64f1b944368f5c763d7872272e983dd7c10fede`: default-feature source, Gate 3/schema-6
+recovery and all-feature Gate 4 source. The [qualification controls](evidence/gate-4/qualification-controls-d64f1b9.json)
+record the exact PR merge checkout and its tree equality to that branch,
+with fixture revision `7bdd5341db558f062102df54487b8c2ad77573ff` recorded separately.
+Only the workflow and three qualification-fixture files change; all 856 other
+recorded inputs match `709cf82`, including the runtime, SDKs, dependencies and
+Rust tests. The load fixture observes HTTP 100 Continue for each admitted
+incomplete body before probing saturation. It retains 32 slots, 512 KiB
+bodies, the shared two-second setup bound, body timeout and recovery assertions,
+and the original profile budgets.
+
+The original combined `709cf82` job retains its 90-minute cancellation after
+its source checks passed. Its separate Gate 4 job retains the failed admission-
+saturation assertion. Controlled loopback scheduling reproduces that fixture
+race on the unchanged `709cf82` executable; the independent review distinguishes
+reproduced cause from unavailable per-request observations on the deleted CI
+runner. The independent recovery job at `7bdd534` separately timed out during
+cold compilation, before any fixture ran. The final workflow adds an explicit
+30-minute `--no-run` preparation step for that same locked/default-feature
+executable; it claims no test execution. The original 600-second fixture phase,
+all later checks and the 90/90/360-minute job budgets remain unchanged. Local
+command verification used a warm cache; the final hosted receipts separately
+verify cold preparation and actual subsequent behavior. Later green CI changes
+none of the prior failure or cancellation results. CI remains account-free and does not qualify an installed model host
+or live communication provider.
+
+Historical [normal-agent dc73996](evidence/gate-4/real-model-agent-dc73996.json)
+retains 30 successful calls and its corrected-observer boundary. Historical
 [scoped Codex draft/reply](evidence/gate-4/real-model-draft-7edb1b1.json) and
-[incoming-contact](evidence/gate-4/real-model-incoming-7edb1b1.json) reports remain
-archived at `7edb1b1`; they do not substitute for the new regular-key proof. The
-[implementation plan](connect-gate-4-implementation.html#G4-033) and
-[Gate 4 review](evidence/gate-4/acceptance.html) link the completed local
-qualification: 41 required source-stable offline phases, 17 installed checks,
-and separately recorded actual model/provider behavior. The complete run starts
-from a fresh clean `dc73996` checkout with independent pinned dependency sources
-and 839 unchanged runtime/test inputs. Verified generated build caches and
-historical baseline artifacts are reused without sharing application state.
-The earlier `9546c6` documentation-only dirty run remains a retained partial
-attempt; it does not stand in for this fresh complete run. Historical live
-voice/SMS reports retain their own recorded versions.
+[incoming contact](evidence/gate-4/real-model-incoming-7edb1b1.json) retain their
+`7edb1b1` sources. None substitutes for the new regular-key/explicit-consume
+proof. The prior [clean dc73996 offline run](evidence/gate-4/offline-dc73996.json)
+remains a separate 41-phase result; interrupted or failed attempts keep their
+original outcomes.
 
-Archive documents reflect the source checkpoint at packaging time. Later
-progress and review documents live in the repository; they do not change the
-archives or their recorded hashes. This candidate remains unpublished.
+The historical [Vapi text proof](evidence/gate-4/actual-vapi-chat-dc73996.json)
+on `dc73996` discovers seven optional provider-bound scoped tools and completes
+source recall and one useful cited send with three successful model calls and
+zero failures. [Connect-carried voice/chat](evidence/gate-4/live-voice-continuity.json)
+on `596e9b7` and [reviewed SMS](evidence/gate-4/sms-0737-rehearsal.json) on
+`9abf38f` retain their account, handset, source and topology limits. The
+[current source/provider review](evidence/gate-4/review-remediation-709cf82.json)
+compares the retained provider components and records the changed SIP terminal
+classification. Its 26 focused tests cover both callback/cleanup orders,
+active hangup, failed cleanup and real local SIP cancellation in default and
+all-feature profiles. This is local SIP evidence; it does not claim a new
+carrier call, SMS rehearsal or Vapi cloud turn on `709cf82`. The earlier
+[source composition](evidence/gate-4/final-source-composition.json) remains
+archived unchanged.
+
+Archive documents retain their packaging checkpoint, including earlier
+`dc73996` status links carried by the immutable `709cf82` archives. The current
+source-specific reports and these updated instructions live in the repository;
+they do not change archive bytes, manifests or recorded hashes. Use the matching
+archived checker for package reproduction. This candidate remains unpublished.
 The [full product roadmap](connect-roadmap.html) keeps video, the complete
 connector kit, independent protocol conformance, first-run/resource setup,
 the complete human reference client, broader platform qualification and
@@ -205,7 +261,7 @@ The current Gate 4 source migrates supported schemas 1–15 to schema 16, adding
 durable Vapi task-session setup bindings. Older task-linked legs receive an
 unknown-intent marker and must continue with a new voice leg on the same task
 and conversation. This preserves their history without guessing lost setup
-credentials. The [schema-16 dc73996 candidate](evidence/gate-4/package-dc73996.json)
+credentials. The [schema-16 709cf82 candidate](evidence/gate-4/package-709cf82.json)
 passes installed walkthrough, Vapi host, SDK and recovery checks. The
 [Gate 4 review](evidence/gate-4/acceptance.html) links the completed historical
 executable recovery and current backup/restore qualification. Check the installed
@@ -223,13 +279,13 @@ the historical schema-1 milestone binary and provenance manifest, without a
 database or credentials.
 
 Complete source qualification requires a Git checkout with full history. To
-reproduce the frozen `dc73996` candidate, check out its exact revision rather
+reproduce the frozen `709cf82` candidate, check out its exact revision rather
 than substituting newer main:
 
 ```sh
 git clone https://github.com/eisenzopf/connect.git connect-source
 cd connect-source
-git checkout --detach dc739966ddd9a38ec5d19f54217b293ece51b4e4
+git checkout --detach 709cf824295c12963b5d62214877b91fcd750e8d
 brew install opus pkgconf
 bash scripts/prepare-dependencies.sh
 ```
@@ -248,7 +304,7 @@ From that matching full-history checkout, with the extracted historical
 qualification archive outside the source directory:
 
 ```sh
-python3 scripts/check-gate-4.py --codex-binary /absolute/path/to/codex
+python3 scripts/check-gate-4.py --bounded-workspace --codex-binary /absolute/path/to/codex
 bash scripts/check-local.sh --previous-binary /absolute/path/qualification/connect-schema1
 ```
 
@@ -264,19 +320,28 @@ python3 /absolute/path/to/extracted/connect-source/scripts/check-package.py \
 ```
 
 The checker compares source bytes, including the workflow, to the candidate's
-source archive. Running a frozen `dc73996` archive check through a newer main
+source archive. Running a frozen `709cf82` archive check through a newer main
 checkout can correctly fail that comparison. For a new candidate, use its own
 recorded revision and matching source. Archive documents retain their packaging
 checkpoint; the separate owner-review supplement does not replace runtime or
 source bytes.
 
-The current source additionally offers `check-gate-4.py --bounded-workspace
---codex-binary /absolute/path/to/codex` for a new candidate. This records the
-storage strategy and retires completed test executables between targets while
-retaining every installed-host/continuation phase and the same phase budgets.
-The frozen `dc73996` source above predates that option; its archived proof remains
-the original complete run. Source-only mode remains an explicitly partial host
-qualification even though it uses the bounded workspace strategy by default.
+The separate strengthened hosted qualification uses checkout
+`d64f1b944368f5c763d7872272e983dd7c10fede` and
+`python3 scripts/check-gate-4.py --source-only`. That account-free source lane
+includes the admission fixture from `7bdd534`; its recovery workflow also
+prepares the first linked fixture before running the behavior checks. This is a
+distinct qualification source, so its checker must not replace the frozen
+`709cf82` package checker. The archived package retains its own source and
+17-check receipt.
+
+The current 42-phase qualification records `--bounded-workspace`: completed
+test executables are retired between targets while every installed-host and
+continuation phase and the original phase budgets remain required. Omit the
+flag for Cargo's original aggregate workspace command. Historical `dc73996`
+predates this option and retains its original 41-phase commands and results.
+Source-only mode remains an explicitly partial host qualification even though
+it uses the bounded workspace strategy by default.
 
 The Gate 4 offline runner is bounded and account-free. Raw logs and machine-readable
 results stay under ignored `.local/` directories. The package checker verifies
