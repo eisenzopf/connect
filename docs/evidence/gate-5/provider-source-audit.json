@@ -2,7 +2,7 @@
   "profile": "connect-gate5-provider-source-audit/1",
   "recorded_at": "2026-10-14T15:21:30.769109+00:00",
   "task": "G5-043",
-  "status": "Graph34 Parley qualification composition and component proof passed; runtime content unchanged from graph33; full source, browser impairment, installed and final acceptance remain open",
+  "status": "Graph34 full84 source phases passed; runtime content unchanged from graph33; browser impairment, installed and final acceptance remain open",
   "scope": "Local source and retained public evidence only. No provider account, carrier, purchasing, key mutation, tunnel, deployment or public ingress action.",
   "source_base_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
   "source_working_tree": "Current Gate5 changes remain uncommitted. This is an exact source/provenance snapshot, not a candidate release seal.",
@@ -4456,6 +4456,11 @@
     "changed_audited_source_files": [
       "dependencies/source-lock.json"
     ],
-    "scope": "Added recorded Parley standalone qualification patch; prepared runtime and vendored SDK file contents unchanged. Existing conditional provider claims and unresolved installed/media/full-source acceptance remain unchanged."
+    "scope": "Added recorded Parley standalone qualification patch; prepared runtime and vendored SDK file contents unchanged. All84 source phases now pass with stable selected inputs. Conditional provider claims retain their historical/live scope; decoded media, installed and final acceptance remain open.",
+    "full_source_result": {
+      "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
+      "sha256": "57338ed261774d668cf7ebd847523d0e60591617e0a3bc9509dfc264b53d0cd8"
+    },
+    "full_source_revision": "66115d237d0f096e4a78175c43484173d48b4f04"
   }
 }

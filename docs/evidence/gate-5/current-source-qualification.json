@@ -1,5 +1,5 @@
 {
-  "status": "full source qualification incomplete",
+  "status": "All84 source phases passed at clean66115d2 with1,108 stable selected inputs; whole-gate acceptance remains open",
   "scope": "Local macOS arm64 source-only lane; not installed, model, full media or release acceptance",
   "attempts": [
     {
@@ -169,11 +169,58 @@
       "cause": "The isolated Parley regression copy refuses its stale Cargo.lock under --locked. Review also found that Rvoip dependency-level registry overrides do not govern standalone Parley resolution; the check must explicitly select the prepared source graph.",
       "correction_verification": "Freshly prepared graph34 passes28 Parley tests,21 driver guards,25 package guards,6 archive guards and formatting, with1,108 stable selected inputs. Fullsource rerun remains pending.",
       "correction_evidence": "docs/evidence/gate-5/parley-qualification-graph.json"
+    },
+    {
+      "source_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
+      "source_dirty_at_start": false,
+      "result": {
+        "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
+        "sha256": "57338ed261774d668cf7ebd847523d0e60591617e0a3bc9509dfc264b53d0cd8"
+      },
+      "status": "passed-selected-lanes",
+      "selected_lanes": [
+        "source"
+      ],
+      "passed_phases": 84,
+      "required_phases": 84,
+      "not_run_phases": 0,
+      "stable_selected_source_inputs": 1108,
+      "started_at": "2026-10-14T17:45:37.438034+00:00",
+      "finished_at": "2026-10-14T19:47:17.155585+00:00",
+      "owned_worker_cleanup": "All84 phases report no leftover process-group members.",
+      "workspace": {
+        "path": ".local/ci-workspace/20261014T175008.368024Z/result.json",
+        "sha256": "b8b11d9b9f60e873473e4ef7a58ce25868ebe6341cd95790a350c36ed1a29877",
+        "passed_targets": 210,
+        "expected_targets": 210
+      },
+      "upstream_regression": {
+        "rvoip_tests_passed": 915,
+        "parley_tests_passed": 28
+      },
+      "voice_retirement": {
+        "path": ".local/voice-retirement/20261014T185740.441490Z/result.json",
+        "sha256": "277552a2c75ff8a352cbf54a40eb3b40808c9636c47cb72d45f05267ef793d07",
+        "retired_setups": 10000,
+        "batches": 313,
+        "point_samples": 628,
+        "duration_seconds": 1828.17
+      },
+      "limits": [
+        "Source lane only; whole_gate_qualified remains false.",
+        "Includes six source operating profiles; separately named unselected lanes remain unqualified.",
+        "Decoded browser impairment and matching installed/model/human acceptance remain open."
+      ]
     }
   ],
   "remaining": [
-    "Rerun all84 source phases from a clean corrected checkpoint.",
-    "Browser impairment media remains failed and separate.",
-    "Installed package, actual-model, independent usability, provider review and owner acceptance remain unresolved."
-  ]
+    "Current decoded browser impairment remains failed.",
+    "Build and qualify a matching installed candidate; independent-client/scripted-host/native-keychain/native-example and actual-model acceptance remain distinct.",
+    "Independent usability, final provider/quality review and owner acceptance remain unresolved."
+  ],
+  "independent_full_source_review": {
+    "path": ".local/gate5/full-source-independent-review/review.json",
+    "sha256": "00d882873e8bb2658a8617dba3e8be414dd36e087ac07cb1049a8b2eb83879ec"
+  },
+  "documentation_followup": "The implementation notes and public evidence were reconciled after the clean66115d2 run. These docs-only changes are excluded from the source-input selector; all1,108 selected qualification inputs still exactly match the recorded proof. Candidate documentation has separate review/installed obligations."
 }

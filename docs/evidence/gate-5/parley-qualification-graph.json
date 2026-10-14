@@ -1,5 +1,5 @@
 {
-  "status": "Prepared graph34 component integration passed; full source and release qualification incomplete",
+  "status": "Graph34 component integration and all84 source phases passed; release qualification incomplete",
   "scope": "Local macOS arm64 qualification graph; no provider operation or publication",
   "source_base_revision": "9cd89e8d9cc9f262b2f8445864f2b00df4069f62",
   "source_lock": {
@@ -57,7 +57,6 @@
   "runtime_scope": "All files in the prepared Rvoip, DTLS, interceptor, Quinn and Parley vendor trees compare exactly with preserved graph33. Connect Cargo.lock and vendored Vapi SDK are unchanged. Parley library and its standalone qualification composition change.",
   "retained_failures": "Original locked refusal and first composed build missing source_clock are retained in the private repair summary.",
   "remaining": [
-    "Rerun all84 source phases from a clean corrected checkpoint.",
     "Current browser impairment remains failed.",
     "Installed package, actual-model, independent usability and owner acceptance remain open."
   ],
@@ -65,5 +64,52 @@
     "path": ".local/gate5/parley-lock-integration/quality-prepared-review.json",
     "sha256": "b145284576c377a7105f910965d82803f4a16d60a25d389c87cff2a975dedf31"
   },
-  "post_component_documentation": "Corrected THIRD_PARTY_NOTICES.md to 34 patches and the graph34 source-lock digest after the 1,108-input component proof. This documentation-only edit and evidence/plan updates are to be covered by the next full-source run."
+  "post_component_documentation": "Corrected THIRD_PARTY_NOTICES.md to 34 patches and the graph34 source-lock digest after the 1,108-input component proof. This documentation-only edit and evidence/plan updates are to be covered by the next full-source run.",
+  "full_source_followup": {
+    "source_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
+    "source_dirty_at_start": false,
+    "result": {
+      "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
+      "sha256": "57338ed261774d668cf7ebd847523d0e60591617e0a3bc9509dfc264b53d0cd8"
+    },
+    "status": "passed-selected-lanes",
+    "selected_lanes": [
+      "source"
+    ],
+    "passed_phases": 84,
+    "required_phases": 84,
+    "not_run_phases": 0,
+    "stable_selected_source_inputs": 1108,
+    "started_at": "2026-10-14T17:45:37.438034+00:00",
+    "finished_at": "2026-10-14T19:47:17.155585+00:00",
+    "owned_worker_cleanup": "All84 phases report no leftover process-group members.",
+    "workspace": {
+      "path": ".local/ci-workspace/20261014T175008.368024Z/result.json",
+      "sha256": "b8b11d9b9f60e873473e4ef7a58ce25868ebe6341cd95790a350c36ed1a29877",
+      "passed_targets": 210,
+      "expected_targets": 210
+    },
+    "upstream_regression": {
+      "rvoip_tests_passed": 915,
+      "parley_tests_passed": 28
+    },
+    "voice_retirement": {
+      "path": ".local/voice-retirement/20261014T185740.441490Z/result.json",
+      "sha256": "277552a2c75ff8a352cbf54a40eb3b40808c9636c47cb72d45f05267ef793d07",
+      "retired_setups": 10000,
+      "batches": 313,
+      "point_samples": 628,
+      "duration_seconds": 1828.17
+    },
+    "limits": [
+      "Source lane only; whole_gate_qualified remains false.",
+      "Includes six source operating profiles; separately named unselected lanes remain unqualified.",
+      "Decoded browser impairment and matching installed/model/human acceptance remain open."
+    ]
+  },
+  "independent_full_source_review": {
+    "path": ".local/gate5/full-source-independent-review/review.json",
+    "sha256": "00d882873e8bb2658a8617dba3e8be414dd36e087ac07cb1049a8b2eb83879ec"
+  },
+  "documentation_followup": "The implementation notes and public evidence were reconciled after the clean66115d2 run. These docs-only changes are excluded from the source-input selector; all1,108 selected qualification inputs still exactly match the recorded proof. Candidate documentation has separate review/installed obligations."
 }
