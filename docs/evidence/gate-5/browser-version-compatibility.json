@@ -1,0 +1,51 @@
+{
+  "profile": "browser-version-compatibility/1",
+  "recorded_at": "2026-10-14T22:20:02.830753+00:00",
+  "status": "failed clean prerequisite; impairment not run",
+  "requirement": "G5-012; bounded selected-browser diagnostic only",
+  "selection_basis": "The package guide requires explicitly selected Chrome and Playwright tools. The already installed Chrome 153 passed a no-media capability probe; one unchanged clean 60-second comparison was selected, with impairment conditional on clean success. No download or default-browser change.",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local",
+  "source_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
+  "archive_review": {"path": ".local/gate5/package-independent-review-0d285d168509/review.json", "sha256": "c5022379bdb3e4690127dc3fe4c2c649c028f4a46558865ad57102472a684efd"},
+  "selected_tools": {"browser": "Google Chrome for Testing", "browser_version": "153.0.8010.12", "cache_revision": "chromium-1243", "browser_executable_sha256": "8319963f6625accf51c0dd4f55091ceaf9f09ed39e7a52fed4fae12b2a6b668a", "browser_executable_mode": "0755", "playwright_version": "1.62.1", "playwright_core_version": "1.62.1", "node_version": "v24.19.0", "node_executable_sha256": "9caea9deafcb0c7f22fac3206c32f0dcaf8d1f13460b0be3017fa09e7a4be4f6", "ffmpeg_version": "9.0.2", "python_version": "3.14.7", "scope": "Exact private paths, executable hashes and app/package contents are retained in the sealed proofs; OS libraries and hardware are not exhaustively sealed."},
+  "capability": {
+    "proof": {"path": ".local/gate5/browser153-capability-review/capability-probe/result.json", "sha256": "d82a2a88abe4bbb8b46cbcaeebed0820c265c6ba03373a577aafb38265e2eca9"},
+    "status": "passed no-media API probe",
+    "checks": ["secure loopback context", "ScriptTransform and Worker", "sender.transform and setCodecPreferences", "VP8, RTX and PCMU capabilities"],
+    "stable_app_and_playwright_entries": 889,
+    "limit": "Capability presence is not media interoperability. The initial import-argument probe failure before browser launch remains retained."
+  },
+  "harness": {
+    "manifest": {"path": ".local/gate5/chrome153-compatibility-runner/manifest.json", "sha256": "85f576cead6ff789ddc09ecfb5db84714dd01b5fc60968344db42290d73cdd1d"},
+    "review": {"path": ".local/gate5/chrome153-compatibility-runner/quality-harness-review.json", "sha256": "221c6b08d9c51df51e26bdd653ea5c48134f00db47239e8f5a0122dc2cbf98d9"},
+    "schema_validation": {"path": ".local/gate5/chrome153-compatibility-runner/schema-check.json", "sha256": "4495427b4c1a24074aa0cc4cb8e9d2ff3e182f8d7ee0dafad698ec676c1218f4"},
+    "scope": "Archived checker, SDK, runtime and generated inputs from 0d; selected Chrome 153 is the deliberate tool variation. Existing thresholds and requested codec settings remain unchanged; no field-trial override was added. Effective browser-internal trials are not asserted equal across versions. Clean failure prevents impairment execution."
+  },
+  "clean": {
+    "proof": {"path": ".local/gate5/chrome153-compatibility-0d285d168509-attempt1/clean.json", "sha256": "61ceea603af9f0840564d5cc29412204105f801c1b4baf659dc69666091eb987"},
+    "log": {"path": ".local/gate5/chrome153-compatibility-0d285d168509-attempt1/browser-browser-clean60.log", "sha256": "73ec3d2d1d130b9b1afeea64ce412090989d2d69cf0adb0a57e1f5fa3218c79f"},
+    "status": "failed",
+    "seconds": 60,
+    "frozen_limits": {"video_codec": "VP8", "width": 640, "height": 360, "minimum_changing_fps": 24, "minimum_coded_av_pairs": 42, "maximum_median_abs_skew_ms": 80, "maximum_p95_abs_skew_ms": 120},
+    "observations": [{"observer": 0, "decoded_frames": 1762, "changing_frames": 1474, "changing_fps": 24.56363713673969, "paired_av": 84, "median_abs_skew_ms": 89.80000001191968, "p95_abs_skew_ms": 114.19999992847352}, {"observer": 1, "decoded_frames": 1762, "changing_frames": 1501, "changing_fps": 25.01374840874163, "paired_av": 84, "median_abs_skew_ms": 99.14999997616114, "p95_abs_skew_ms": 131.19999992846942}],
+    "failure": "Both calibrated 84-pair A/V medians exceed 80 ms; observer 1 also exceeds 120 ms p95. This is the archived checker verdict, not a calibration or pair-count failure.",
+    "sampled_resources": {"sampled_peak_rss_bytes": 1992949760, "sampled_peak_cpu_percent": 185.5, "samples": 127, "coverage_complete": true, "observed_time_coverage": 0.996075177308719},
+    "completion_limits": "Early browser failure leaves resources.within_limits, completed reliable-file containment and finalized network acceptance absent. Missing redundant-validation fields are not additional measured resource/network violations or passes. Numeric live peaks are below the unchanged 2 GiB/800% ceilings.",
+    "forwarding_scope": "Required application video queue/age measurements passed their sampled bounds; raw-event/audio-age limitations remain in the private report.",
+    "other_observations": "Both audio, motion, source-identity and worker-pipeline checks passed."
+  },
+  "not_run": ["browser-browser impairment 60 seconds"],
+  "cleanup": {"owned_group_members_remaining": [], "server_stopped": true, "browser_teardown_seconds": 0.5976133750000008, "paired_termination": {"status": "passed", "seconds": 0.0013453750000044238, "limit_seconds": 5, "method": "first participant explicitly closes; second must receive terminal before its own close"}, "supervisor_finalization": "Reserved process group signalled; pre-cleanup member list was empty."},
+  "input_seals": {"archive_entries_verified": 3724, "original_archive_entries": 3700, "preexisting_reference_scratch_entries": 24, "tool_entries_verified": 892, "child_inputs_verified": 92, "before_after_stable": true},
+  "execution": {"path": ".local/gate5/chrome153-compatibility-0d285d168509-attempt1/result.json", "sha256": "7af9b51b47b38f5ffbe8ebc445964535ab7f1b44ece9b82838e00b5aa46f24e0"},
+  "independent_final_review": {"path": ".local/gate5/chrome153-compatibility-0d285d168509-attempt1/quality-final-review.json", "sha256": "16e1ae6076e22768a654830a491f839fdb7335cb11b316f8de022bd1bfa54d80"},
+  "retained_history": {
+    "chrome155_failure": {"path": ".local/gate5/release-media-diagnostic-7f8ae642fc54/browser-browser.json", "sha256": "008412eac8f53d79675d107e1f51194b1f55639392fe829891514164dc61ddd4"},
+    "browser_version": "155.0.8059.40",
+    "source_revision": "7f8ae642fc546fb29fc138aba4928b4fc7aa948d",
+    "scope": "Historical failure remains unchanged. Different candidate scope means this is not a controlled matched A/B comparison."
+  },
+  "limits": ["One failed Chrome 153 clean run does not establish a causal browser-version regression or a repair.", "No Chrome 153 impairment result, Chrome 149 sweep, browser adoption, production change or threshold relaxation.", "This selected diagnostic is not complete installed, whole-media, model, human or whole-gate qualification."],
+  "whole_gate_qualified": false,
+  "installed_qualified": false
+}
