@@ -291,7 +291,7 @@
       "owned_process_leftovers": []
     }
   ],
-  "controller_observation": "Clean and loss-only traces have zero delay OVERUSING events and final delay estimates1.9\u20132.4Mbps. Both jitter-only traces have12 OVERUSING events, minimum84,400bps, and final delay estimates170,550/129,631bps. This observes a delay-controller response under the isolated treatment, not proof of an implementation defect or its exact internal cause.",
+  "controller_observation": "Clean and loss-only traces have zero delay OVERUSING events and final delay estimates1.9\u20132.4Mbps. Both jitter-only traces have12 OVERUSING events, minimum84,400bps, and final delay estimates170,550/129,631bps. This observes a delay-controller response under the isolated treatment, not proof of an implementation defect or its exact internal cause. These are event-log records whose state is OVERUSING, not necessarily distinct transitions: a changed bitrate can emit another record with the same state.",
   "motion_guard_caveat": "The unchanged motionObservation impairment mode requires at least one burst. Both nonclean arms intentionally provide none, so their original motion verdicts and overall media verdicts remain failed with empty active_segments. Raw changing-frame observations, coded-AV verdicts, encoder counters and network/path controls remain independently reported; this analysis does not override original verdicts or claim a no-burst qualification pass.",
   "causal_limits": [
     "One sample per network treatment; not a statistical equivalence claim or proof3%loss always preserves cadence. Different traffic means different packet realizations.",
@@ -316,5 +316,16 @@
       "sha256": "9f7dd33b4a2142ded0f33b8e331c31eeff7dc4185203934001473dc702ed9e19"
     }
   ],
-  "independent_review": "Accepted bounded diagnostic interpretation;138 runtime inputs,20 analysis inputs and all retained case/log/event references verified."
+  "independent_review": "Accepted bounded diagnostic interpretation;138 runtime inputs,20 analysis inputs and all retained case/log/event references verified.",
+  "retained_detector_source_audit": {
+    "reconstruction-contract": {
+      "path": ".local/gate5/delay-estimator-input-inventory/reconstruction-contract.json",
+      "sha256": "e71b825327ead3cb156bf895416afc81550891a2a372a597b3c486c1179a6ced"
+    },
+    "decision-value": {
+      "path": ".local/gate5/delay-estimator-input-inventory/decision-value.json",
+      "sha256": "0647ee77123f38e1deb8181e50c1131c0fb0114b3b2f9a69df1e1d755ddd896c"
+    },
+    "scope": "Read-only pinned-source audit, not executed replay. Default detector state does not depend on packet size, but actual transport send-notification timing and effective field trials/predictor were not retained. No concrete production invariant violation or safe repair is established; no further runtime cycle follows solely from this ambiguity."
+  }
 }
