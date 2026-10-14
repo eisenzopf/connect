@@ -2,7 +2,7 @@
   "profile": "connect-gate5-provider-source-audit/1",
   "recorded_at": "2026-10-14T15:21:30.769109+00:00",
   "task": "G5-043",
-  "status": "Production graph33 source composition and combined component proof passed; normal build, decoded runtime and final qualification pending",
+  "status": "Graph33 component and normal build proofs passed; conditional provider composition review recorded; full source, browser impairment, installed and final acceptance remain open",
   "scope": "Local source and retained public evidence only. No provider account, carrier, purchasing, key mutation, tunnel, deployment or public ingress action.",
   "source_base_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
   "source_working_tree": "Current Gate5 changes remain uncommitted. This is an exact source/provenance snapshot, not a candidate release seal.",
@@ -4377,5 +4377,66 @@
     "repair_coverage": "Singleton prebinding intentionally does not activate for this actual multicodec negotiation. No runtime first-audio repair claim.",
     "logging_limitation": "Driver error logging was enabled, but SRTP errors are handled as warnings in rtc::peer_connection::handler. Absence of retained driver errors does not establish authenticated acceptance.",
     "scope": "Two actual browser participants on production graph 31 in a 60-second impaired local diagnostic. Audio and motion pass, but both A/V observations have zero calibrated pairs and the media result fails. No provider/carrier or complete operating-profile pass."
+  },
+  "current_conditional_claim_review": {
+    "review": {
+      "path": ".local/gate5/provider-composition-review-6635e26/result.json",
+      "sha256": "686e487c7360374b0060000057afb9b8ce0944e102f7e47a0f7b729d0ecb6108"
+    },
+    "source_revision": "6635e269b53937b0a4aa3494b39601c6d34812e9",
+    "source_lock_sha256": "19687aa337cd79400faaee1486ce603ac01dd1f4e1823a67a29ef135151be8e9",
+    "audited_files": 96,
+    "source_map_drift": 0,
+    "claim_matrix": [
+      {
+        "surface": "Telnyx SMS and signed callbacks",
+        "supportable_after_matching_local_qualification": "Historical delivery/HELP/STOP/START remains source-specific. Current request/status mapping, single-attempt dispatch, replay, eligibility and stricter malformed-input admission are locally verified compatibility composition.",
+        "fresh_external_evidence_required_for": "Current-candidate handset delivery, carrier callback execution or actual account/enrollment readiness."
+      },
+      {
+        "surface": "Vapi text and MCP tools",
+        "supportable_after_matching_local_qualification": "Historical actual model/tool proof plus current SDK/Store/Worker loopback tests supports default request/context/tool-binding compatibility. Builtin messages retain the legacy receipt path.",
+        "fresh_external_evidence_required_for": "Current Vapi model response, actual tool discovery/execution and source-backed response on this candidate. No normalized used-source provenance is inferred for builtin Vapi."
+      },
+      {
+        "surface": "Vapi telephone control",
+        "supportable_after_matching_local_qualification": "Historical live proof plus current legacy start/status/end/recovery fixtures supports default control composition; Worker::start selects normalized=false.",
+        "fresh_external_evidence_required_for": "Newly advertised normalized Vapi telephone execution. with_observed_driver is explicit and its carrier execution is not proved by fixtures."
+      },
+      {
+        "surface": "Native/browser Vapi audio and SIP/PSTN",
+        "supportable_after_matching_local_qualification": "Historical audio remains source-specific. Current audio bridge, codec, authorization, teardown, pressure and upstream tests can establish local compatibility of the changed graph. Shared runtime is not unchanged.",
+        "fresh_external_evidence_required_for": "Exact-candidate carrier answer/audio/remote-end behavior, arbitrary network reachability or production interoperability."
+      },
+      {
+        "surface": "Provider setup, catalogs and secrets",
+        "supportable_after_matching_local_qualification": "Local fixtures establish selection, refusal, protected-reference resolution, uncertainty recovery and metadata-only readiness reasoning.",
+        "fresh_external_evidence_required_for": "Actual account readiness, ownership, SMS consent, provisioning or purchases; no such operation follows from local proof."
+      },
+      {
+        "surface": "Normalized connector extension and contribution",
+        "supportable_after_matching_local_qualification": "Fixture connector and trusted-host lifecycle, receipt binding, reconciliation, independent ingress and attribution semantics.",
+        "fresh_external_evidence_required_for": "An additional real carrier/model capability or normalized builtin-provider execution; no automatic activation is inferred."
+      }
+    ],
+    "decision": {
+      "recommendation": "Accept historical live evidence plus matching current local composition for the narrowly stated compatibility claims. No specific new external operation is established as mandatory solely for those limited claims. Fresh exact-candidate external behavior and new normalized-provider capability claims remain unproved and must not be advertised.",
+      "conditions": [
+        "Matching current source proof has NOT yet passed at this review; active execution is not a pass.",
+        "Matching installed candidate proof has NOT yet passed.",
+        "Current browser impairment qualification remains failed/unresolved; full-source success cannot substitute for G5-042 or installed media.",
+        "Any stronger exact-current live provider/model/carrier claim needs separately authorized bounded external proof.",
+        "G5-043 remains open; this conditional decision does not waive its dependencies, close acceptance or authorize publication."
+      ],
+      "irreducible_external_boundaries": [
+        "Real current account/provider acceptance and callback interoperability",
+        "Actual current provider-model reasoning/tool execution",
+        "Current carrier answer, physical delivery and media behavior",
+        "New normalized carrier execution beyond deterministic local adapters"
+      ],
+      "not_required_by_this_review": "A blanket new live rehearsal for every source modification. Changed local admission/mapping/lifecycle semantics can be qualified locally while historical external results retain their exact source/topology."
+    },
+    "current_qualification_status": "Graph33 normal build and component proofs passed. Two current browser impairment diagnostics failed. Third fullsource attempt passed20phases and169workspace targets, then failed initialnative diagnostics receipt;63later phases were not run. Fullsource and installed qualification remain open.",
+    "limits": "Conditional review only. Historical live plus matching current local composition can support narrowly stated compatibility, but no current-candidate live execution, carrier/account readiness or new normalized-provider live claim is established. G5-043 remains open."
   }
 }

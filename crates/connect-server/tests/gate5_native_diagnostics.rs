@@ -21,22 +21,40 @@ async fn public_native_snapshot_observes_real_streams_and_shared_byte_buffer() {
         .subscribe_native_video_participant(&right, &f.left_id)
         .await
         .expect("authorized publisher subscriptions");
-    // Core allocates subscriber streams lazily on the first publisher frame.
-    // Warm both streams and process their reliable StreamOpened notifications;
-    // these best-effort first packets do not qualify the receipt below.
-    for _ in 0..2 {
-        left.send_pcmu(&[0xff; 160]).await.expect("warm audio");
-        left.send_vp8(&[0x35; 100]).await.expect("warm video");
-        let _ = right.receive(Duration::from_millis(100)).await;
-    }
-    left.send_pcmu(&[0xff; 160])
+    // StreamOpened control and best-effort media have no cross-channel delivery
+    // order. Keep a paced publisher alive until both actual receive paths work;
+    // a fixed number of ignored warm receipts is not a readiness barrier.
+    tokio::time::timeout(Duration::from_secs(5), async {
+        let mut tick = tokio::time::interval(Duration::from_millis(40));
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let (mut audio, mut video) = (false, false);
+        while !(audio && video) {
+            tokio::select! {
+                _ = tick.tick() => {
+                    left.send_pcmu(&[0xff; 160]).await.expect("warm audio");
+                    // VP8 partition-zero startup requires the encoded keyframe bit.
+                    left.send_vp8(&[0x34; 100]).await.expect("warm key-start video");
+                }
+                frame = right.receive(Duration::from_millis(500)) => {
+                    match frame.expect("warm media receipt") {
+                        NativeAvFrame::Audio(_) => audio = true,
+                        NativeAvFrame::Video(_) => video = true,
+                    }
+                }
+            }
+        }
+    })
+    .await
+    .expect("both native streams ready");
+    // Different fixture bytes require fresh post-readiness receipts, not a
+    // delayed warm packet. These encoded-byte fixtures are not decoder proof.
+    left.send_pcmu(&[0xfe; 160])
         .await
         .expect("audio local enqueue");
     left.send_vp8(&[0x35; 100])
         .await
         .expect("video local enqueue");
-    let mut audio = false;
-    let mut video = false;
+    let (mut audio, mut video) = (false, false);
     tokio::time::timeout(Duration::from_secs(5), async {
         while !(audio && video) {
             match right
@@ -44,8 +62,8 @@ async fn public_native_snapshot_observes_real_streams_and_shared_byte_buffer() {
                 .await
                 .expect("media receipt")
             {
-                NativeAvFrame::Audio(_) => audio = true,
-                NativeAvFrame::Video(_) => video = true,
+                NativeAvFrame::Audio(frame) => audio |= frame.payload == [0xfe; 160],
+                NativeAvFrame::Video(packet) => video |= packet.rtp.ends_with(&[0x35; 100]),
             }
         }
     })

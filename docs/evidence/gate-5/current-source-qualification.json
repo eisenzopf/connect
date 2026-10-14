@@ -81,6 +81,70 @@
         "path": ".local/gate5/webrtc-auth-boundary-repair/quality-final-review.json",
         "sha256": "66bb0ea18f8c5910b9c9e474ff4d991e197c2417d5a1ceb84ae1e72603e0c72d"
       }
+    },
+    {
+      "source_revision": "6635e269b53937b0a4aa3494b39601c6d34812e9",
+      "source_dirty_at_start": false,
+      "result": {
+        "path": ".local/gate-5-checks/20261014T161055.019916Z/result.json",
+        "sha256": "ed05ac4822e00f01c541796536fa2f82ba23def4cf8caff78cd562551781e538"
+      },
+      "status": "failed",
+      "passed_phases": 20,
+      "failed_phase": "source--workspace",
+      "required_phases": 84,
+      "not_run_phases": 63,
+      "workspace": {
+        "path": ".local/ci-workspace/20261014T161125.916876Z/result.json",
+        "sha256": "893df5c755f445b425478c6f41c6a58b953af514630ebb7b19acbaa4d3bc0669",
+        "passed_targets": 169,
+        "expected_targets": 210,
+        "failed": [
+          {
+            "package": "connect-server",
+            "target": "gate5_native_diagnostics"
+          }
+        ]
+      },
+      "cause": "The native diagnostics fixture sent only interframe-tagged synthetic VP8 payloads. The receiver correctly waits for a partition-zero keyframe start; video never reached the receive queue. Ten unchanged repetitions failed; adding a five-second readiness loop with the same payload also failed.",
+      "prior_correction_verification": "Corrected Gate3 valid-offer authorization test passed in the full workspace configuration.",
+      "correction_verification": "Passed: ten predeclared corrected-fixture repetitions with the exact workspace selector, dependency preparation, workspace strict Clippy and repository formatting. All 1,106 selected source inputs stable. Original qualified video0x35, old0x42/fresh0x65, existing receipt deadlines,64-packet/76,032-byte limits and200ms stale-frame policy retained. Full source rerun pending.",
+      "correction": "Use a key-start-tagged synthetic warm-up packet and explicitly observe both media kinds before distinct qualification frames. The diagnostic observes transport/queue behavior, not fully decoded VP8. Production receiver, queue, byte-buffer and200ms stale-frame limits remain unchanged.",
+      "focused_proof": {
+        "path": ".local/gate5/native-diagnostics-startup-repair/candidate-20261014T163840/result.json",
+        "sha256": "1e7f47b9c6f597519d0ac9439292072a2cf0323a3e9ad3102484911e85c2a0c3"
+      },
+      "causal_summary": {
+        "path": ".local/gate5/native-diagnostics-startup-repair/summary.json",
+        "sha256": "31742fce0b0719ffd1e6c0fc0ddcf8a87c94bb9d56889dd5f98dcbba0d653240"
+      },
+      "independent_review": {
+        "path": ".local/gate5/native-diagnostics-startup-repair/quality-final-review.json",
+        "sha256": "f1ce8db98c5e7ad34286f0da1449017a114abfef0d4b4a13924a480140f37755"
+      },
+      "proof_limits": [
+        "Synthetic key-start-tagged encoded payload proves actual transport/queue observations, not fully decoded VP8.",
+        "Separate bounded warm-up observes both actual streams; distinct post-readiness payloads must satisfy the original qualification receipt deadlines.",
+        "No production or upstream source changed; no full-source or media profile pass is claimed."
+      ],
+      "remaining_workspace_diagnostic": {
+        "summary": {
+          "path": ".local/gate5/remaining-workspace-diagnostic-20261014T164003.442627Z/summary.json",
+          "sha256": "bf39744b1987fadc1789704cfdb71766f4d136487db839222f36d0667710250b"
+        },
+        "workspace": {
+          "path": ".local/gate5/remaining-workspace-diagnostic-20261014T164003.442627Z/workspace/result.json",
+          "sha256": "727bc69db47c12e0cba36463f350dad02fb1e57d5a2d0a185a34f33cbfe95a6a"
+        },
+        "log": {
+          "path": ".local/gate5/remaining-workspace-diagnostic-20261014T164003.442627Z/workspace.log",
+          "sha256": "cef0fbfe2b626937144f0fe7fdb6232d47f0f6891f5c183ae30f7f617246aaa7"
+        },
+        "status": "passed",
+        "targets": 41,
+        "inputs_stable": true,
+        "limits": "Only the41 targets not passed in the retained failed run. Uses the same workspace selectors and feature unification; omits169 priorpassed targets. Diagnostic only, not a resumed or complete qualification pass."
+      }
     }
   ],
   "remaining": [
