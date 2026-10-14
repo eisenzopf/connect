@@ -1,0 +1,157 @@
+{
+  "status": "Canonical source-path correction independently reviewed; actual six-phase recovery through source symlink passed; matching rebuilt package qualification pending",
+  "scope": "Local macOS arm64; source-hash bookkeeping correction with unchanged recovery behavior and source containment. No provider operations, model inference or whole-gate claim.",
+  "whole_gate_qualified": false,
+  "retained_failure": {
+    "installed_report": {
+      "path": ".local/package-checks/20261014T205004.454623Z/result.json",
+      "sha256": "660fac3b385dc4815b7fef0194a60aa02e407a95f822ee2a76b810f714ff7dbf"
+    },
+    "gate5_report": {
+      "path": ".local/package-checks/20261014T205004.454623Z/gate5-installed/result.json",
+      "sha256": "517fcbb49973b1a8f6333d0ecc2c851f45d4a5d8fc4d08cc15ef00982715a567"
+    },
+    "phase": "installed-historical-recovery",
+    "cause": "Checker __file__ retained the macOS /var source path while imported ROOT resolved to /private/var. Lexical relative_to(ROOT) raised before any historical recovery behavior.",
+    "prior_phase": "installed-native-example-cleanup passed on repaired 98ef8947f5a6 candidate.",
+    "preservation": "Original candidate and failed report remain unchanged."
+  },
+  "change": {
+    "description": "Resolve each of the same nine selected source inputs strictly before containment and hashing; use the same canonical collection for final input-stability comparison. An input symlink escaping ROOT still raises.",
+    "source_sha256": {
+      "scripts/check-gate5-recovery.py": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1",
+      "scripts/tests/test_package_inventory.py": "0437a5f6b4c1da000fc231f37bb21cd9d5fb3207d0a33be32661d18fbdc4c2ee",
+      "scripts/check-gate-5.py": "91f9a3d63911b53f055c7848649be5e5689f3bd82951db40c349a2a4e297604a"
+    },
+    "analogous_paths": "Binary, SDK root, catalog and work-root selections already resolve; SDK relative names originate from the resolved SDK root."
+  },
+  "focused_guards": {
+    "author_record": {
+      "path": ".local/gate5/historical-recovery-canonical-path/result.json",
+      "sha256": "d6cb04202702c85dc4234771999e0d09b418cb963b86cf99bde42a7d61c417d6"
+    },
+    "execution_evidence": "Author-recorded tool transcript; no separately retained guard logs or before/after source seal. Independent review accepts source and actual recovery separately.",
+    "checks": [
+      {
+        "suite": "test_package_inventory.py",
+        "passed": 27,
+        "failed": 0
+      },
+      {
+        "suite": "test_gate5_driver.py",
+        "passed": 11,
+        "failed": 0
+      }
+    ],
+    "new_regressions": [
+      "Separate interpreter loads actual checker/helpers through symlinked source root, binds all nine exact source hashes, and observes a helper mutation only in its hash.",
+      "Identical-byte helper symlink escaping canonical ROOT is rejected before hash-map output."
+    ],
+    "retained_fixture_attempt": "Initial new-test fixture omitted inherited Gate4 helper files (one failure and one error); corrected fixture copies actual helpers before the passing run."
+  },
+  "actual_symlink_recovery": {
+    "control_report": {
+      "path": ".local/gate5/package-followup-98ef8947f5a6/control-diagnostic.json",
+      "sha256": "ea56804acf0d44a7c4c6c06403bf48a072c5591c24bb5e948953002238e3d746"
+    },
+    "report": {
+      "path": ".local/gate5/package-followup-98ef8947f5a6/recovery.json",
+      "sha256": "7c6cb1afe511d9526e123fd13e3f602b4b7f9572221397e7d2ed1fa77574a706"
+    },
+    "status": "passed",
+    "candidate_schema": 18,
+    "binary_sha256": "c16fab1ed79e3d6275961332d1974309c171a3ceeb0b3c04f01483b4c53cb161",
+    "baselines": [
+      {
+        "source_revision": "3aa6077bee3ea05cea0aca550e9469df53c5ed87",
+        "schema": 1,
+        "binary_sha256": "40126a3cbdc3f9739b1942cfb27d0305103cb4679b7b0269aa00264db02f6506"
+      },
+      {
+        "source_revision": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
+        "schema": 16,
+        "binary_sha256": "965b0d48592098b347f9330ce71d6c2705b6daa36b9581e43c3a1bb40f7c4e73"
+      }
+    ],
+    "source_inputs_sha256": {
+      "scripts/check-gate5-recovery.py": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1",
+      "scripts/lib/recovery_upgrade.py": "250be048ea39750e7376c718ed64f8f718549db7b806e87a1b913ad6f51072d0",
+      "scripts/lib/recovery_tasks.py": "d70ebe9d9d1be184a4158a18ed895c6eda2a9c966f1bd513bd68612d6175ba60",
+      "scripts/lib/recovery_interruption.py": "dd6de89d2300fe1903e2ed6758f78cd24fb38d549fbe0287f99eebd67feb1ddc",
+      "scripts/lib/recovery_restore_interruption.py": "6ee1cbbadeb8df68929801675557c3825ae8bdffbf533b7d4d991c525187ed77",
+      "scripts/check-recovery.py": "2e506d4cb17af8a8a88f5fafb40ef32acae78dddb74ee44889e1092a91e74231",
+      "scripts/lib/recovery_state.py": "c4e662e29d28869590e0c4b5b71b48ad2ed35c8f1303f5dfc14d8ced9eaa5e90",
+      "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+      "scripts/lib/profile_metrics.py": "1b08fee0509df2021b3ecfea67c5fee2c27804dac45699fd83debad40b14c4f9"
+    },
+    "python_sdk_sha256": {
+      "connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+      "connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+      "connect_sdk/contact_validation.py": "8afce6ce76a91703c34ba5e6d00987618c330b3e7cce82c56d1d6e1a44a780ff",
+      "connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+      "connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+      "connect_sdk/media_validation.py": "cb452252a276f06b21876e6dd59b33f7e1f638fdc3f9706431bd2704903a1e4d",
+      "connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+      "connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+      "connect_sdk/operations.py": "f54f15ad92def4c7d4d42a9fd4d46322c6609aa6b74bb28616b37744b5af0ae5",
+      "connect_sdk/protocol.py": "a441c87a10c17fa4f0299917a2d9c528bef573b5b58acbee559b5e974b405c47",
+      "connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+      "connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+      "connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95"
+    },
+    "catalog_sha256": "4a31bce3a302a13081ee99b5208b9b7fa23243976bc000b017f3cea62f70fca0",
+    "phases": [
+      {
+        "name": "public-schema1-fixture-upgrade-refusal-rollback",
+        "status": "passed"
+      },
+      {
+        "name": "public-schema16-populated-upgrade-refusal-ddl-rollback",
+        "status": "passed"
+      },
+      {
+        "name": "current-schema-task-continuation-current-authority",
+        "status": "passed"
+      },
+      {
+        "name": "current-schema-interrupted-backup-completion-marker",
+        "status": "passed"
+      },
+      {
+        "name": "current-schema-actual-restore-interruption",
+        "status": "passed"
+      },
+      {
+        "name": "current-schema-first-run-pairing-private-reference-recovery",
+        "status": "passed"
+      }
+    ],
+    "outer_seconds": 12.729,
+    "leftover_group_members": [],
+    "scope": "Corrected current checker invoked through a real source-root symlink against immutable 98ef894 runtime, packaged SDK and archived schema1/schema16 baselines. Existing final source/SDK/catalog/binary assertions passed. Separate diagnostic, not a resumed installed qualification."
+  },
+  "archived_reference_diagnostic": {
+    "report": {
+      "path": ".local/gate5/package-followup-98ef8947f5a6/reference.json",
+      "sha256": "5e0e84df0caffd82f83ed2ed674b62397e9af66c97e5158936156c61b6cc2420"
+    },
+    "status": "passed",
+    "source_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
+    "binary_sha256": "c16fab1ed79e3d6275961332d1974309c171a3ceeb0b3c04f01483b4c53cb161",
+    "ui_checks_passed": 11,
+    "av_checks_passed": 13,
+    "elapsed_seconds": 13.034284625,
+    "tested_inputs_stable": true,
+    "leftover_group_members": [],
+    "scope": "Separate archived reference checker, runtime and browser assets; generated capture, no independent human acceptance or 60-second decoded-profile claim."
+  },
+  "independent_review": {
+    "path": ".local/gate5/historical-recovery-canonical-path/quality-review.json",
+    "sha256": "53602ff823ceb86a80eb5638ecd4829032398bbce25f2f6b07f7436cb996fa73"
+  },
+  "remaining": [
+    "Build a matching package containing the checker correction and complete installed qualification.",
+    "All required decoded media profiles, actual-model lane, three independent human walkthroughs and owner acceptance remain separate; no new outcome is claimed here.",
+    "Publication remains separate and unperformed."
+  ]
+}

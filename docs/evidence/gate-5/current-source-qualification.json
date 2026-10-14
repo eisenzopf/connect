@@ -1,5 +1,5 @@
 {
-  "status": "All84 source phases passed at clean66115d2 with1,108 stable selected inputs; whole-gate acceptance remains open",
+  "status": "Historical clean66115d2 passed all84 source phases; current six-input repair delta has scoped source-composition evidence. Matching installed and whole-gate acceptance remain open.",
   "scope": "Local macOS arm64 source-only lane; not installed, model, full media or release acceptance",
   "attempts": [
     {
@@ -222,5 +222,120 @@
     "path": ".local/gate5/full-source-independent-review/review.json",
     "sha256": "00d882873e8bb2658a8617dba3e8be414dd36e087ac07cb1049a8b2eb83879ec"
   },
-  "documentation_followup": "The implementation notes and public evidence were reconciled after the clean66115d2 run. These docs-only changes are excluded from the source-input selector; all1,108 selected qualification inputs still exactly match the recorded proof. Candidate documentation has separate review/installed obligations."
+  "documentation_followup": "The earlier documentation-only followup preserved all1,108 baseline inputs. Subsequent native and qualification-checker repairs change six selected inputs as explicitly recorded below; the historical84-phase run is not relabeled as a current full run.",
+  "reviewed_source_composition": {
+    "status": "Accepted scoped source composition; matching installed and whole-gate acceptance remain open",
+    "baseline_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
+    "native_repair_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
+    "canonical_repair_revision": "Pending commit; exact input hashes below",
+    "contract_basis": [
+      "A5-16 permits explicitly reviewed source-composition evidence.",
+      "G5-049 requires requalification of affected artifacts."
+    ],
+    "baseline_selected_input_count": 1108,
+    "current_selected_input_count": 1109,
+    "unchanged_selected_input_count": 1103,
+    "changed_selected_inputs": {
+      "examples/native-video/src/interrupt.rs": {
+        "baseline_sha256": null,
+        "current_sha256": "808ce444d7f7eb0ba98fb85235bedbb35a541b27d9397527436a231395dcf959"
+      },
+      "examples/native-video/src/main.rs": {
+        "baseline_sha256": "82f2d7197710ef38a0f50186a912a7058e9407506bcd1d3cae8f01df11c4fdc5",
+        "current_sha256": "65a7495c18ea5c9ff3bc92c4d1145d02ecabfc6878c60e9ab5e909459d023171"
+      },
+      "scripts/check-gate-5.py": {
+        "baseline_sha256": "3f170c9b8fc3e477858d617e4382e7fa8b2afb4f2ff12005e8278d5a62b82a15",
+        "current_sha256": "91f9a3d63911b53f055c7848649be5e5689f3bd82951db40c349a2a4e297604a"
+      },
+      "scripts/check-gate5-recovery.py": {
+        "baseline_sha256": "9a1efe5be94ade95cbf90d0de75a9ed1d562194592f0dda388ced1f3ec67b4dd",
+        "current_sha256": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1"
+      },
+      "scripts/lib/package_inventory.py": {
+        "baseline_sha256": "99964396e8dca6ecc6aa08525edd347d2741a77ec0b6a602550934b0ca07ea79",
+        "current_sha256": "2d5006f0eb4232b9575d0a6f689b167155c86b5e05740a0aa8f90d1e9a2b2de5"
+      },
+      "scripts/tests/test_package_inventory.py": {
+        "baseline_sha256": "4252982cc5bbedff97ac405919c596649d577be67657d86df7f13a820789b708",
+        "current_sha256": "0437a5f6b4c1da000fc231f37bb21cd9d5fb3207d0a33be32661d18fbdc4c2ee"
+      }
+    },
+    "affected_slices": [
+      {
+        "phase": "source--workspace",
+        "scope": "Native example binary only; library, reverse-dependency interface and manifests unchanged.",
+        "proof": "13 native tests including real process-SIGINT regression; exact normal optimized package composition build; three cleanup runs,12pair lifecycles and24exits without forced cleanup.",
+        "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
+      },
+      {
+        "phase": "source--lint",
+        "scope": "Native binary and private interrupt module.",
+        "proof": "Scoped strict Clippy with all targets passed.",
+        "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
+      },
+      {
+        "phase": "source--format",
+        "scope": "Changed native Rust source.",
+        "proof": "Repository scripts/format.sh --check passed after the native repair.",
+        "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
+      },
+      {
+        "phase": "source--rustdoc",
+        "scope": "Native package including new private interrupt module.",
+        "proof": "Strict cargo doc --locked -p connect-native-video --all-features --no-deps passed;13 native source files match98ef8947. Concurrent recovery-checker edits explicitly excluded from this narrow scope.",
+        "result": {
+          "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc/result.json",
+          "sha256": "fbdfa2b67f2e924b246dc068960cc56584f1550eaa3ec544e62280312cef3470"
+        }
+      },
+      {
+        "phase": "source--package-proof-tests",
+        "scope": "Required interrupt runtime asset and canonical source-root hashing guards.",
+        "proof": "27 package inventory guards passed. Counts retained in author result/tool execution; standalone raw guard logs were not saved.98 candidate archive independently verifies shipped interrupt asset; fresh archive still required for canonical checker.",
+        "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
+      },
+      {
+        "phase": "source--gate5-driver-tests",
+        "scope": "Expected package guard count25 to27.",
+        "proof": "11 driver unit tests passed; unchanged10 dependency-root guards remain baseline evidence. This is not a new21-test aggregate invocation.",
+        "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
+      },
+      {
+        "phase": "source--gate5-historical-recovery",
+        "scope": "Same nine source inputs canonicalized before containment/hash comparison; behavior assertions unchanged.",
+        "proof": "All six actual historical recovery phases passed through a symlinked source root with immutable98 runtime and historical binaries; exact hashes stable and no owned survivors. Separate diagnostic, not a resumed installed pass.",
+        "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
+      }
+    ],
+    "unaffected_scope": "All other1,103 selected inputs are byte-identical to the baseline. Protocol, public SDK, library, store, service, server, manifests, lockfiles and34 upstream patches are unchanged. Earlier79-phase unaffected count applied only to the three-input98 repair; it is not reused for this six-input composition.",
+    "independent_reviews": [
+      {
+        "path": ".local/gate5/source-composition-98ef8947f5a6/assessment.json",
+        "sha256": "8ec933254de05f51d1440cb8383e3056b5dbc26473e11ccd2857c1ac622914e5"
+      },
+      {
+        "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc-review.json",
+        "sha256": "d0841de8bc73ab4b7482efdec4cc5d8922295fde826edf5351bff68f99890bca"
+      },
+      {
+        "path": ".local/gate5/native-peer-terminal-repair/quality-final-review.json",
+        "sha256": "212bed746bada577e26eafcaa0e44127621a7ecb2cdb9c63352040954b05fff7"
+      },
+      {
+        "path": ".local/gate5/historical-recovery-canonical-path/quality-review.json",
+        "sha256": "53602ff823ceb86a80eb5638ecd4829032398bbce25f2f6b07f7436cb996fa73"
+      }
+    ],
+    "limits": [
+      "Not84 source phases executed against the repaired candidate.",
+      "Matching new archives and complete installed qualification remain required;98 installed attempt failed before historical recovery behavior.",
+      "Decoded media diagnostics, actual model, independent humans and owner acceptance remain separate requirements. No threshold or required check waived."
+    ],
+    "combined_independent_review": {
+      "path": ".local/gate5/source-composition-98ef8947f5a6/six-input-review.json",
+      "sha256": "8eb2b4b59bd9113a6e6b04d5f6511e11f93230e868763358d707496aefd0a83e",
+      "scope": "Review of the composition append before this acceptance annotation;22 evidence digests and exact six-input delta independently verified."
+    }
+  }
 }

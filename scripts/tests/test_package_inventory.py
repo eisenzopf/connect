@@ -2,6 +2,7 @@
 import json
 import pathlib
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -41,6 +42,65 @@ class PackageInventoryTests(unittest.TestCase):
             else:
                 shutil.copy2(ROOT / name, target)
         copy_gate5_assets(self.source, self.release)
+
+    def copy_recovery_inputs(self):
+        # These are inherited Gate4 qualification helpers, outside the explicit
+        # Gate5 asset subset copied by this inventory fixture's setUp.
+        for name in ('recovery_upgrade', 'recovery_tasks', 'recovery_interruption',
+                     'recovery_restore_interruption', 'recovery_state', 'profile_metrics'):
+            shutil.copy2(ROOT / f'scripts/lib/{name}.py', self.source / f'scripts/lib/{name}.py')
+        shutil.copy2(ROOT / 'scripts/check-recovery.py', self.source / 'scripts/check-recovery.py')
+
+    def recovery_hashes_through_source_alias(self):
+        alias = self.base / 'source-alias'
+        if not alias.exists():
+            alias.symlink_to(self.source, target_is_directory=True)
+        # A separate interpreter imports the actual copied helpers through the
+        # alias. No package binary, recovery state, provider or media is invoked.
+        probe = """import json, pathlib, runpy, sys
+sys.path.insert(0, str(pathlib.Path(sys.argv[1]).parent))
+checker = runpy.run_path(sys.argv[1])
+assert pathlib.Path(checker['__file__']) != pathlib.Path(checker['__file__']).resolve()
+print(json.dumps(checker['source_input_hashes'](), sort_keys=True))
+"""
+        return subprocess.run([sys.executable, '-B', '-c', probe,
+                               str(alias / 'scripts/check-gate5-recovery.py')],
+                              text=True, capture_output=True, timeout=15)
+
+    def test_recovery_hashes_bind_actual_sources_through_symlinked_source_root(self):
+        self.copy_recovery_inputs()
+        expected_names = {'scripts/check-gate5-recovery.py', 'scripts/check-recovery.py',
+                          'scripts/lib/recovery_upgrade.py', 'scripts/lib/recovery_tasks.py',
+                          'scripts/lib/recovery_interruption.py',
+                          'scripts/lib/recovery_restore_interruption.py',
+                          'scripts/lib/recovery_state.py', 'scripts/lib/local_process.py',
+                          'scripts/lib/profile_metrics.py'}
+        result = self.recovery_hashes_through_source_alias()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        before = json.loads(result.stdout)
+        self.assertEqual(before, {name: digest(self.source / name) for name in expected_names})
+        changed = 'scripts/lib/recovery_upgrade.py'
+        target = self.source / changed
+        target.write_bytes(target.read_bytes() + b'\n# retained input mutation\n')
+        result = self.recovery_hashes_through_source_alias()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        after = json.loads(result.stdout)
+        self.assertNotEqual(before[changed], after[changed])
+        self.assertEqual(after[changed], digest(target))
+        self.assertEqual({k: v for k, v in before.items() if k != changed},
+                         {k: v for k, v in after.items() if k != changed})
+
+    def test_recovery_source_hashing_rejects_symlink_escape_even_with_identical_bytes(self):
+        self.copy_recovery_inputs()
+        target = self.source / 'scripts/lib/recovery_upgrade.py'
+        outside = self.base / 'foreign-recovery-upgrade.py'
+        outside.write_bytes(target.read_bytes())
+        target.unlink()
+        target.symlink_to(outside)
+        result = self.recovery_hashes_through_source_alias()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('ValueError', result.stderr)
+        self.assertEqual(result.stdout, '')
 
     def test_prepared_crate_notices_bind_selected_source_and_preserve_license_text(self):
         from lib.package_inventory import copy_prepared_crate_notices

@@ -1,5 +1,5 @@
 {
-  "status": "Replacement integration package and inventory pass; installed qualification failed on native capture-refusal terminal-send race after retained toolchain failure",
+  "status": "Repaired integration candidate 98ef8947f5a6 builds and passes inventory/native cleanup; full installed qualification fails before historical recovery on checker canonical-path mismatch. Separate corrected recovery and archived reference diagnostics pass.",
   "scope": "Local macOS arm64; unpublished integration candidate; no provider operations or model inference",
   "source_qualification": {
     "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
@@ -236,6 +236,146 @@
         "sha256": "8512fb87f5b2a70effd7973c0a013ba80062f6c7eb636f4df1f2dc038bd7f7ee",
         "scope": "Independent immutable archive/source inventory review; separate from installed behavior."
       }
+    },
+    {
+      "candidate": "connect-0.1.0-alpha.1-macos-arm64-98ef8947f5a6-gate5-local",
+      "source_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
+      "build": {
+        "path": ".local/gate5/package-build-20261014T204905.221667Z/result.json",
+        "sha256": "c54bab4e0704319793a80338302bd92595c9269268469f020724b6d0b37d3a36"
+      },
+      "build_status": "passed",
+      "source_proof_composition": {
+        "full_source_proof_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
+        "selected_inputs_equal_full_source_proof": false,
+        "source_delta": [
+          "examples/native-video/src/interrupt.rs",
+          "examples/native-video/src/main.rs",
+          "scripts/lib/package_inventory.py"
+        ],
+        "component_proofs": [
+          {
+            "path": ".local/gate5/native-peer-terminal-repair/signal-fixed-proof-20261014T204454.693627Z/result.json",
+            "sha256": "b91582821f47219277aa8531ed6db5de426786ed03d9a85fb4219d5484229c94"
+          },
+          {
+            "path": ".local/gate5/native-peer-terminal-repair/inventory-followup.json",
+            "sha256": "19777b32e0b2e401aebdbec6e81693f7d6df059b87156a47afba333977a36768"
+          }
+        ],
+        "selected_inputs_stable": true
+      },
+      "source_proof_scope": "84-phase source pass belongs to 66115d2; this integration candidate has three selected source changes covered by scoped native/inventory proofs, not an exact new full-source pass.",
+      "archives": {
+        "connect-0.1.0-alpha.1-macos-arm64-98ef8947f5a6-gate5-local-qualification.tar.gz": "066d3ebb0680d8ffbbd4dde31e41fc7954f3b8f3c946df0f933a2258a23eb5e7",
+        "connect-0.1.0-alpha.1-macos-arm64-98ef8947f5a6-gate5-local-source.tar.gz": "8701886a31380e9b08f76c2a8fae64399b35a45e65cb6bf198a96c3775d0fd4b",
+        "connect-0.1.0-alpha.1-macos-arm64-98ef8947f5a6-gate5-local.tar.gz": "3e8777d0d16ce12127078058052e6c68fdceafd17b10c0074412b8c916c2eb7a"
+      },
+      "inventory": {
+        "path": ".local/package-checks/20261014T204954.004141Z/result.json",
+        "sha256": "c1c9398f13cc441b530645a106bec9dc6345a05a83325b8bcb2706f71c7279b2",
+        "status": "inventory-verified",
+        "whole_gate_qualified": false
+      },
+      "independent_archive_review": {
+        "path": ".local/gate5/package-independent-review-98ef8947f5a6/review.json",
+        "sha256": "8d7d4713877726bc68549743c6a4fefcbf9f29b29c26b3353bace0971b4a72cd",
+        "scope": "Read-only immutable archive identity and scoped source-composition review; no installed behavior claim."
+      },
+      "status": "Native cleanup passes; complete installed run fails before historical recovery behavior on checker path canonicalization",
+      "installed_attempts": [
+        {
+          "report": {
+            "path": ".local/package-checks/20261014T205004.454623Z/result.json",
+            "sha256": "660fac3b385dc4815b7fef0194a60aa02e407a95f822ee2a76b810f714ff7dbf"
+          },
+          "gate5_report": {
+            "path": ".local/package-checks/20261014T205004.454623Z/gate5-installed/result.json",
+            "sha256": "517fcbb49973b1a8f6333d0ecc2c851f45d4a5d8fc4d08cc15ef00982715a567"
+          },
+          "status": "failed",
+          "passed_baseline_checks": [
+            "archive-checksums",
+            "inventory",
+            "sdk-source-build",
+            "first-launch-connect",
+            "first-launch-example",
+            "first-launch-schema1",
+            "first-launch-video",
+            "installed-walkthrough",
+            "restart-shutdown",
+            "installed-language-sdks",
+            "installed-gate4-agent",
+            "qualification-fixture-build",
+            "first-launch-fault-connect",
+            "first-launch-fault-connect-example",
+            "check-examples.py",
+            "check-recovery.py",
+            "check-crash-replay.py",
+            "check-example-recovery.py"
+          ],
+          "passed_gate5_phases": [
+            "connector-template-cold-tests",
+            "connector-template-cold-binary",
+            "connector-template-tests",
+            "connector-template-contract",
+            "connector-contribution-cold-tests",
+            "connector-contribution-cold-binary",
+            "connector-contribution-tests",
+            "connector-contribution-contract",
+            "independent-client-vectors",
+            "installed-independent-control",
+            "installed-public-setup",
+            "installed-connected-app",
+            "installed-session-controls",
+            "native-storage-fixture-cold-build",
+            "native-storage-installed-cli",
+            "source-media-failure-fixture-build",
+            "source-media-failure-fixture",
+            "external-media-failure-fixture-build",
+            "installed-media-failures",
+            "native-example-cold-build",
+            "installed-native-example-cleanup"
+          ],
+          "failed_phase": "installed-historical-recovery",
+          "failure": "Lexical /var checker path cannot be made relative to canonical /private/var ROOT; source hash collection raises before recovery behavior.",
+          "native_cleanup": {
+            "report": {
+              "path": ".local/package-checks/20261014T205004.454623Z/gate5-installed/native-example-cleanup.json",
+              "sha256": "919a48300c98cf5eeb8009fe031b60a66ae302186788f7c6f0addd04f110dfb4"
+            },
+            "status": "passed",
+            "tested_inputs_stable": true,
+            "scope": "Installed native interruption, capture-refusal terminal handling, owned cleanup and reattachment checks pass. Scoped native repair is now exercised by the installed checker."
+          },
+          "not_run": [
+            "historical recovery behavior within this failed installed attempt",
+            "installed-reference-client",
+            "all nine installed decoded scenarios",
+            "actual-model journey"
+          ],
+          "preservation": "Failed report, logs and all candidate archives remain unchanged."
+        }
+      ],
+      "separate_followup_diagnostics": {
+        "evidence": "canonical-path-repair.json",
+        "control_report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/control-diagnostic.json",
+          "sha256": "ea56804acf0d44a7c4c6c06403bf48a072c5591c24bb5e948953002238e3d746"
+        },
+        "corrected_historical_recovery": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/recovery.json",
+          "sha256": "7c6cb1afe511d9526e123fd13e3f602b4b7f9572221397e7d2ed1fa77574a706"
+        },
+        "archived_reference": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/reference.json",
+          "sha256": "5e0e84df0caffd82f83ed2ed674b62397e9af66c97e5158936156c61b6cc2420"
+        },
+        "status": "passed",
+        "scope": "Corrected current checker through source symlink plus immutable archived reference checker/assets. Neither resumes or changes the failed complete installed report; pending media diagnostics are not included."
+      },
+      "whole_gate_qualified": false,
+      "publication": "not published"
     }
   ],
   "installed_prerequisites": {
@@ -254,10 +394,9 @@
     }
   },
   "remaining": [
-    "Native terminal-send and interrupt-listener component repairs pass focused verification (native-terminal-repair.json); build and requalify the affected replacement candidate.",
-    "Complete installed historical/reference and all nine decoded scenarios; these were not run after the native cleanup failure.",
-    "Current browser impairment remains unqualified; separate diagnostics do not replace complete installed qualification.",
-    "Actual-model requires matching passing package report; three independent human walkthroughs, final technical/quality review and owner acceptance remain open.",
+    "Build a matching package containing the reviewed checker canonical-path correction and complete installed qualification; all prior failed reports remain failed.",
+    "Complete all nine required decoded scenarios on the matching candidate; separate archived diagnostics do not establish a passing installed report.",
+    "Actual-model requires matching passing package evidence; three independent human walkthroughs, final technical/quality review and owner acceptance remain open.",
     "Publication remains separate and unperformed."
   ],
   "documentation_repair_review": {
@@ -270,6 +409,11 @@
   },
   "native_repair_followup": {
     "evidence": "native-terminal-repair.json",
-    "scope": "Separately verified native component repair; does not change either failed installed report or immutable candidate archives."
+    "scope": "Separately verified native component repair; does not change either failed installed report or immutable candidate archives.",
+    "latest_installed_scope": "Candidate98ef8947f5a6 now passes installed-native-example-cleanup; the complete installed report fails at the next historical recovery checker phase."
+  },
+  "canonical_path_followup": {
+    "evidence": "canonical-path-repair.json",
+    "scope": "Narrow checker source correction, author-recorded guards and independently reviewed actual six-phase symlink recovery; separate archived reference pass. Matching replacement installed qualification remains pending."
   }
 }

@@ -22,6 +22,19 @@ from lib.recovery_state import baseline, snapshot, preserved
 
 
 
+def source_input_hashes():
+    # __file__ may retain /var (or another source-root symlink), while ROOT is
+    # canonical. Resolve both identity and containment before hashing; an input
+    # symlink outside this source tree must still fail closed.
+    inputs = [pathlib.Path(__file__), ROOT / 'scripts/lib/recovery_upgrade.py',
+              ROOT / 'scripts/lib/recovery_tasks.py', ROOT / 'scripts/lib/recovery_interruption.py',
+              ROOT / 'scripts/lib/recovery_restore_interruption.py',
+              ROOT / 'scripts/check-recovery.py', ROOT / 'scripts/lib/recovery_state.py',
+              ROOT / 'scripts/lib/local_process.py', ROOT / 'scripts/lib/profile_metrics.py']
+    inputs = [p.resolve(strict=True) for p in inputs]
+    return {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
+
+
 def setup_recovery(binary, work, schema):
     state = work / 'first-run'
     run('setup', 'init', '--directory', state, '--bind', f'127.0.0.1:{port()}', binary=binary)
@@ -170,12 +183,7 @@ def main():
     work = args.work_root.resolve() / datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
     work.mkdir(parents=True)
     binary, one, previous = [p.resolve() for p in [args.binary, args.schema_one_binary, args.gate4_binary]]
-    inputs = [pathlib.Path(__file__), ROOT / 'scripts/lib/recovery_upgrade.py',
-              ROOT / 'scripts/lib/recovery_tasks.py', ROOT / 'scripts/lib/recovery_interruption.py',
-              ROOT / 'scripts/lib/recovery_restore_interruption.py',
-              ROOT / 'scripts/check-recovery.py', ROOT / 'scripts/lib/recovery_state.py',
-              ROOT / 'scripts/lib/local_process.py', ROOT / 'scripts/lib/profile_metrics.py']
-    hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
+    hashes = source_input_hashes()
     sdk_hashes = {str(p.relative_to(sdk_root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((sdk_root / 'connect_sdk').rglob('*.py'))}
     catalog_hash = hashlib.sha256(catalog_path.read_bytes()).hexdigest()
     report = ProfileReport(work, {'python_sdk_sha256': sdk_hashes, 'catalog_sha256': catalog_hash, 'scope': 'local macOS arm64; isolated fixture state; no providers, personal database, model or deployment',
@@ -222,7 +230,7 @@ def main():
             report.checkpoint(restore_interruption=restore_interruption(binary, work, state, schema))
         with report.phase('current-schema-first-run-pairing-private-reference-recovery'):
             report.checkpoint(setup=setup_recovery(binary, work, schema))
-        assert all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest() == value for p, value in hashes.items())
+        assert source_input_hashes() == hashes
         assert hashlib.sha256(binary.read_bytes()).hexdigest() == report.data['binary_sha256']
         assert hashlib.sha256(catalog_path.read_bytes()).hexdigest() == catalog_hash
         assert all(hashlib.sha256((sdk_root / p).read_bytes()).hexdigest() == value for p, value in sdk_hashes.items())
