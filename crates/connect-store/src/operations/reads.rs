@@ -12,6 +12,9 @@ pub(super) fn read(
     store: &Store,
 ) -> Result<Option<Outcome>> {
     let outcome = match operation {
+        Operation::ContactState { peer_identity_id } => {
+            Outcome::Contact(crate::contacts::state(c, actor, peer_identity_id)?)
+        }
         Operation::Capabilities {
             address,
             conversation_id,
@@ -23,9 +26,16 @@ pub(super) fn read(
             runtime,
             store.limits(),
         )?),
-        Operation::BrowserBinding {} => {
-            Outcome::BrowserBinding(crate::discovery::browser_binding(c, actor, runtime)?)
-        }
+        Operation::BrowserBinding {
+            conversation_id,
+            session_id,
+        } => Outcome::BrowserBinding(crate::discovery::browser_binding(
+            c,
+            actor,
+            runtime,
+            conversation_id.as_deref(),
+            session_id.as_deref(),
+        )?),
         Operation::ContextDeliveries {
             conversation_id,
             before,

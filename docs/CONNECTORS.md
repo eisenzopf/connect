@@ -1,51 +1,207 @@
-# Writing a connector
+# Contributing a connector
 
-Depend on `connect-connector-api`, not `connect-store` or `connect-server`.
-The crate exports async `Connector` and `VoiceConnector` traits with owned request
-and response data. Provider credentials belong in your adapter configuration,
-not request DTOs, journal events, SDK replies, or Debug output.
+Start with the public `connect-connector-api` crate and the
+[versioned contract](../contracts/connectors/profile-v1.md). A connector is trusted
+code selected by the server owner at composition time. There is no runtime plugin
+loader, remote download or marketplace. A fixture contribution is executable
+teaching material, not another supported provider.
 
-`Connector::deliver` receives target, optional source, body and optional prior
-chat context. Return provider ID and optional reply. `VoiceConnector` supports
-start/status/end and bounded inbound discovery; discovery must be implemented
-explicitly, not silently treated as an empty successful scan.
+## Build and check the example
 
-Return `Failure::Rejected` only for definite rejection without the requested
-effect. Return `Failure::Uncertain` when an effect might have occurred. Never retry
-an ambiguous creation inside the adapter. Set bounded network deadlines, cap
-responses, validate control URLs, and preserve provider IDs for reconciliation.
-The server maps durable jobs into these types and commits provider observations.
-
-Inbound observations are untrusted provider data, not Connect user authority.
-Report the full requested discovery window or fail it; the server advances its
-watermark only after the complete batch is imported. Duplicate observations must
-remain safe. Private call-control URLs deliberately do not implement Debug.
-
-The compiled example is deliberately small:
+From the repository root, prepare the pinned dependencies and run the standalone
+package with an isolated fixture. No provider account is needed:
 
 ```sh
-cargo run --locked -p connect-connector-api --example echo
+bash scripts/prepare-dependencies.sh
+cargo test --locked --manifest-path examples/connector-template/Cargo.toml --target-dir .local/gate5/connector-template-target
+python3 scripts/check-connector-contract.py --output .local/gate5/connector-report.json
+bash scripts/format.sh --check
 ```
 
-For a real adapter, use a loopback fake provider in tests to verify success,
-definite rejection, partial response/deadline ambiguity, body bounds and recovery.
-Register it in server composition with an explicit durable route. Dynamic runtime
-plugin loading and arbitrary connector registration through the public API are
-not implemented. Existing Telnyx/Vapi adapters show the current integration seam.
+The template is its own Cargo workspace. Its library imports the public connector
+API, ordinary serialization/async libraries and a fixture signature implementation.
+It imports no Connect store, service, server, conversation or routing internals.
+`src/lib.rs` implements messages/context and provider fixture persistence;
+`media/voice.rs` implements bounded voice lifecycle and PCM framing.
+Its state file represents the remote provider's journal, never Connect's history.
+Keep fixture state, logs and build targets under ignored `.local/`.
 
-## Context-bearing adapters
+For a clean public-contract exercise, export a kit into a new directory:
 
-Implement `descriptor()` alongside `name()` and `deliver()`. Use
-`Descriptor { conversational: true, ..Descriptor::one_way("your-connector") }`
-for an opaque-target assistant. Choose an address contract appropriate to the
-adapter. `Worker::with_drivers` registers descriptors; operator provisioning before
-worker startup can call `Store::register_connector` from trusted composition.
-Registration is not a public SDK operation or an authorization grant.
+```sh
+python3 scripts/check-connector-contract.py --export-kit .local/gate5/public-connector-kit
+```
 
-See [the entry contract](connector-entry-contract.md) and
-[the independent adapter test](../crates/connect-server/tests/entry_connector.rs).
-The existing Vapi/Telnyx descriptors preserve their validation and policy. New
-context adapters do not need edits to conversation authority or provider switches.
+This exports API sources/tests, this guide, the profile and source digests. It
+contains no server/store/service code or author fixture implementation. Create a
+new Cargo package depending on the exported `crates/connect-connector-api` path
+and implement your own adapter. A published API package can replace that path.
+The export flattens workspace metadata only; it retains exact public Rust source.
+
+## Implement the boundary
+
+1. Implement `Connector` and declare `Descriptor` plus `manifest()`. The manifest
+   must agree with dispatch's address/context/SMS semantics. Populate the typed `operations` set, including status/reconciliation and
+   media exchange where implemented. Declare only operations
+   and codecs you actually implement; v1 rejects video. `configuration()` returns
+   reference declarations such as `secret:callback-key`; resolve secrets in the
+   adapter constructor and return an accurate `readiness()` state. Production
+   adapters must not use the template's fixed fixture HMAC key.
+2. Implement `MessageExtension::send` for the explicit mutation ID/context contract.
+   Validate address and byte bounds before making an effect. Store the full original
+   request alongside its logical ID. Same ID and same request returns the original
+   result; same ID with changed payload fails. If the upstream has no idempotency
+   API, do not simulate one with memory or resubmit an uncertain effect. Implement
+   `message_status` for authoritative status reconciliation under the original
+   mutation ID, preserving the first effect rather than sending again.
+3. Return `Some(self)` from `Connector::message_extension` to opt into the host's
+   normalized message path. `deliver_observed` converts the host's bounded typed
+   projection and sends under the durable job ID. Override it when you need to
+   retain additional host envelope fields, as Prism does. The host persists the
+   entire receipt, actual reply source IDs and lifecycle projection with the reply
+   in one transaction. Existing `deliver_attempt`/`deliver` adapters retain their
+   single-attempt compatibility path. The template rejects legacy `deliver`
+   because it cannot invent a trustworthy ID.
+4. Keep `DeliveryRequest::context` separate from `body`. Use the public API-only
+   `host_context::HostContext` decoder and the [exact host projection schema](../contracts/connectors/host-context-v1.md).
+   Ordinary conversation context is `ContextView`; task-origin context is the
+   tagged `TaskOutcome::Recall` shape. They carry different omission/provenance
+   metadata. Both are selected, authorized historical data. Preserve those sources, bound bytes
+   before parsing, and identify actual sources in normalized `reply_sources`.
+   Do not expand the selection, silently fall back to another person's history or
+   put historical text into a privileged/system instruction. Derived summaries and
+   incomplete transcripts remain labelled historical material. Do not infer derived
+   material from arbitrary `kind` text: the shared mapping's exact known outcome
+   categories and opaque-body rules are documented in the projection contract.
+5. Implement `MediaExtension` independently of messages: one `open` attempt,
+   explicit `reconcile`, idempotent paired `close`, bounded format-aware media
+   exchange. An uncertain open may already have created a remote session. Cancel
+   and peer-loss recovery must reconcile/close that effect rather than starting
+   another one. Reject unsupported routes and codecs before starting media.
+6. Authenticate callbacks over exact raw bytes before normalization. Bind logical
+   and external IDs; never treat a phone number, provider call ID or message body
+   as permission. Preserve terminal state across reordered callbacks. The public
+   reducer checks current host authorization before duplicate handling; it does
+   not replace the host's policy check or transactional journal.
+
+## Register through trusted composition
+
+A host installs the adapter through the existing public composition boundary:
+
+```rust,ignore
+let driver = std::sync::Arc::new(MyConnector::from_configuration(config)?);
+let worker = connect_server::providers::Worker::with_drivers(
+    server.service.clone(), vec![driver],
+)?;
+```
+
+The host validates the entire composition's manifest/configuration/readiness and
+rejects duplicate registration before recovering/claiming jobs. It persists the
+manifest before dispatch. Restarting with an identical contract is allowed;
+changing it fails closed and needs an explicit migration and requalification.
+Route configuration, conversation membership, revocation, context access and
+SMS enrollment/freshness/STOP rules remain ordinary Connect host operations.
+Adding an adapter requires no provider-name branch in core dispatch. A manifest
+cannot register a route or grant an identity new rights.
+
+For an uncertain effect, trusted composition explicitly calls
+`Worker::reconcile(service.as_ref(), driver.as_ref(), original_job_id).await`.
+This rechecks current route, conversation and credential authority before
+calling `message_status`, then checks policy again when committing. Status is an
+observation of the original effect, not permission for another task operation.
+The ordinary task reply boundary decides current task assignment; an answer after
+task cancellation or expiry stays unassigned communication with its source IDs. It never
+resets the effect to pending or calls send. Reconciliation can admit the retained
+answer and unblock later queued turns. Sources must belong to the exact original
+selection; revoked credentials and forged source IDs fail even on replay.
+
+For lifecycle callbacks, authenticate the exact raw bytes with your provider's
+verifier, bind the original logical/external IDs, and call
+`Worker::observe(service.as_ref(), driver.as_ref(), &verified_receipt)` with
+`Verification::VerifiedCallback`. The host's durable reducer handles duplicates,
+reordering and terminal conflicts in the same transaction as any answer. Caller
+fields and external IDs still convey no authorization.
+
+For independent provider contacts, authenticate the adapter response/callback and
+construct `lifecycle::IncomingMessage`. Call
+`Worker::receive(service.as_ref(), driver.as_ref(), configured_route_id, &message)`
+from trusted composition. The existing route binds the principal; the host admits
+one ordinary journal message transactionally under current route and conversation
+authority. Matching logical replay returns the same message ID, conflicting replay
+fails, and revocation is checked before duplicates. Subsequent context includes the
+new journal source through the ordinary bounded selection. SMS ingress retains its
+separate signature and STOP/START policy boundary. Delivery-only receipts/status
+for already dispatched SMS remain recordable after STOP or enrollment expiry;
+they cannot refresh consent, clear STOP or authorize another send. Reply-bearing
+observations and all new dispatch still require the current SMS policy.
+
+Trusted composition explicitly selects `voice::Worker::with_observed_driver`
+for the normalized telephone lifecycle. This requires a valid manifest and uses
+`VoiceReceipt`, preserving the
+private `RemoteCall` control capability alongside the typed observation. The host
+persists the reducer with call journal changes; status uses reconciliation evidence,
+terminal state resists reordered observations, and creation is never repeated to
+resolve uncertainty. Existing builtin startup and `voice::Worker::with_driver` retain the previous
+carrier dispatch path; the typed path is separately fixture-qualified.
+Physical status/cleanup of an already bound leg continues after task revocation;
+this host observation does not grant permission for another start/end mutation.
+`MediaExtension` remains the contribution fixture's separate bounded media contract,
+not an automatic transport installation or a new native media route.
+
+The server's existing `completed` contextual receipt remains distinct from an
+external delivery guarantee. Telnyx retains SMS character limits, signed callback
+handling and STOP/START policy. Vapi retains assistant context overrides, chat
+correlation, voice/tool-origin bindings and explicit telephone/native adapters.
+Their v1 message manifests do not advertise media. SIP/PSTN cancellation and
+rvoip media ownership remain with their existing adapters.
+
+## Run the reusable contribution harness
+
+Implement `conformance::Fixture` beside your adapter. Fixture controls inject
+uncertain message/open outcomes, failure after acceptance and peer loss. They must
+operate on the actual adapter and retained mock-provider journal. `configuration()` returns the fixture adapter's declared secret references. `restart()`
+reconstructs the adapter without clearing effect IDs; `effects()` counts real
+fixture effects. Expose a binary accepting `--contract-report <fresh-state-file>`:
+
+```rust,ignore
+let mut adapter = MyFixture::open(state_file)?;
+let report = connect_connector_api::conformance::run(&mut adapter).await;
+println!("{}", serde_json::to_string(&report)?);
+if !report.passed() { std::process::exit(1); }
+```
+
+Then run `scripts/check-connector-contract.py --manifest-path <your/Cargo.toml>`
+from the Connect checkout. The script invokes your binary, requires every mandatory
+check, rejects failed/absent/duplicate checks, links public API and contribution
+source digests, and preserves build diagnostics locally. It does not accept an
+externally supplied success report. Ship the report and reproducible command with
+explicit unsupported video/live-provider cases. Mandatory cases cannot be skipped
+to make the report pass.
+
+The harness's `Fixture::independent_message` creates a new mock-provider incoming
+contact without calling outbound send, retains it across restart, and uses it as
+a source in a subsequent answer. Host tests separately admit that new contact on
+the same configured conversation and verify its use in bounded history.
+
+The harness exercises independently initiated messages, attributable context,
+restart and mutation conflicts, uncertain creation without repeat, invalid/tampered
+callback authentication, duplicate/reordered/terminal callbacks, revoked replay,
+voice start/active, generated decoded duplex PCM, oversized media rejection,
+uncertain cancellation, failure after acceptance, paired teardown and peer loss.
+Host tests separately prove real authorization and durable Connect recovery.
+Run intentionally broken fixtures to prove expected harness failures. Provider
+fixture mappings are offline evidence; historical live paths and new live evidence
+must be reported separately.
+
+An independent contributor should use the exported public kit and their own fixture
+implementation. Record source, package digests, commands, observed friction and
+repairs. Author self-use is not the independent exercise. After any API or guide
+repair, repeat the affected harness checks.
+
+## Retained task and provider integration
+
+These existing integration rules and source-scoped evidence remain applicable.
+Gate 5 fixture qualification does not replace their historical live proofs.
 
 ### Task context and replies
 
@@ -131,3 +287,15 @@ Those lifecycle steps and main runtime integration are delivered separately thro
 Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
 
 [offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)
+
+
+## Independent contribution example
+
+[Prism](../examples/connector-contribution/README.md) was written by a separate
+implementer using only an exported public API/guide kit. Its original ledger,
+message/media logic, boundary tests and deliberately broken modes are retained.
+The host bridge now uses the shared typed projection decoder after the exercise
+exposed incomplete schema guidance. This integration repair is distinguished from
+the original independent authoring in the contributor evidence. The example
+imports only `connect-connector-api`, and its own Cargo workspace builds without
+changes to conversation, routing or authorization code.

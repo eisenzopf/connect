@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "status": "findings-being-closed; final stable-source and installed review pending",
+  "scope": "Independent read-only source/product review, separate from implementation authors; no builds or live providers",
+  "whole_gate_qualified": false,
+  "findings": [
+    {
+      "id": "R5-01",
+      "priority": 2,
+      "finding": "History byte-capped pages can contain fewer than100 messages with unread continuation",
+      "state": "source-fixed-and-regression-tested",
+      "files": [
+        "examples/conversation-client/app.js",
+        "sdk/tests/reference_client.test.mjs"
+      ],
+      "result": "Actual UI VM receives a 31-item byte-capped page and retains Load next. Latest public SDK runner has192 passing test instances. Final selected-graph browser/installed proof remains pending."
+    },
+    {
+      "id": "R5-02",
+      "priority": 2,
+      "finding": "Required camera/microphone choice missing",
+      "state": "source-fixed-and-regression-tested",
+      "files": [
+        "sdk/typescript/src/browser_capture.ts",
+        "sdk/typescript/src/browser_voice.ts",
+        "examples/conversation-client/video.js",
+        "examples/conversation-client/index.html"
+      ],
+      "result": "Validated capture-only local selectors, incompatible profile refusal, UIenumeration/defaults and disabledlive selectors; finalgenerated-device browser proof pending."
+    },
+    {
+      "id": "R5-03",
+      "priority": 2,
+      "finding": "Connector independent-contact checks did not initiate new contact",
+      "state": "source-fixed-and-component-tested",
+      "result": "Actual independent incoming turn and response are verified by public SDK host tests and both40/40 connector harnesses; source/provenance bindings retained in connector-runtime-integration.json."
+    },
+    {
+      "id": "R5-04",
+      "priority": 2,
+      "finding": "Provider discovery requires both unrelated credentials",
+      "state": "source-fixed-and-component-tested",
+      "result": "Explicit vapi/telnyx/all selector resolves only selected credentials and APIs. Loopback and actual CLI fixtures pass, recorded in setup-upgrade.json and setup-lane.json."
+    },
+    {
+      "id": "R5-05",
+      "priority": 2,
+      "finding": "Late playback completion can reactivate controls after concurrent hangup",
+      "state": "source-fixed-and-regression-tested",
+      "files": [
+        "examples/conversation-client/video.js",
+        "sdk/tests/reference_client.test.mjs"
+      ],
+      "result": "Independent actual-source VM reproduced stale controls. Post-attach ownership guard and conditional cleanup now keep Join available and mute/leave disabled; delayed-attach regression passes."
+    },
+    {
+      "id": "R5-06",
+      "priority": 2,
+      "finding": "Native generated example interruption and capture-refusal cleanup lacked process evidence",
+      "state": "implementation-in-progress",
+      "result": "Selected-binary process checker is being implemented; no runtime claim yet."
+    },
+    {
+      "id": "R5-07",
+      "priority": 2,
+      "finding": "End-versus-bind and accept-versus-reject transitions lacked explicit concurrent evidence",
+      "state": "source-fixed-and-component-tested",
+      "result": "Fourteen Store video/SIP tests pass: concurrent end/attach and accept/reject races, both deterministic winners/cleanup orders, explicit audio-only SIP admission and preserved Conversation context. See video-admission-cleanup.json. Final selected-runtime proof remains required."
+    },
+    {
+      "id": "R5-08",
+      "priority": 2,
+      "finding": "Nearest identical periodic AV pulses can alias a whole-period video delay",
+      "state": "source-fixed-and-regression-tested; actual decoded qualification pending",
+      "result": "Coded nonperiodic markers require unique interval ordinals in independently observed tracks, including negatives for1s/2s whole-period video delay. Pure measurement guards and native marker tests pass; current actual decoded qualification remains pending. The previous320.8ms failed rehearsal is unchanged; skew limits stay80/120ms."
+    },
+    {
+      "id": "R5-09",
+      "priority": 1,
+      "finding": "Normal durable Session end can race physical-peer authorization and leave a stale video attachment waiting until timeout",
+      "state": "implementation-in-progress",
+      "result": "External seven-case suite passed once, but focused terminal-state repeat reproduced ClientError::Timeout. Inspection identifies250ms all-session authorization versus1s durable terminal reconciliation. Exact-session retirement with current authority is being implemented; no timeout is accepted as explicit denial."
+    },
+    {
+      "id": "R5-10",
+      "priority": 2,
+      "finding": "Older observations of an earlier completed normalized connector job can regress a newer provider continuation ID",
+      "state": "implementation-in-progress",
+      "result": "Independent static review identifies unconditional completed-state provider_context upsert. Repair will admit advancement only for the latest eligible job and prove A then B then late A cannot revert B."
+    },
+    {
+      "id": "R5-11",
+      "priority": 2,
+      "finding": "Normalized messaging/voice workers can dispatch operations absent from their declared manifest capabilities",
+      "state": "implementation-in-progress",
+      "result": "Independent static review finds receive-only message and missing voice operation admission. Explicit capability gates and fixtures that panic if unsupported provider calls occur are being authored."
+    },
+    {
+      "id": "R5-12",
+      "priority": 2,
+      "finding": "Authorized terminal Session retirement can wait on sequential general ten-second signaling/event queue deadlines",
+      "state": "implementation-in-progress",
+      "result": "Exact session cleanup is correct in roomy-channel component tests. A shared terminal budget below five seconds, independent adapter delivery and saturated-channel regressions are being added; no backpressure qualification claim yet."
+    },
+    {
+      "id": "R5-13",
+      "priority": 3,
+      "finding": "start_with_vapi_media rustdoc says disabled polling means an injected Vapi adapter cannot affect an external account. Trusted injected adapter is caller-selected and used by the actual media lifecycle; no loopback-origin restriction is enforced by this method.",
+      "state": "documentation-precision-repair-in-progress",
+      "files": [
+        "crates/connect-server/src/runtime.rs"
+      ],
+      "result": "Static review identified wording precision only; parent assigned narrow rustdoc repair to setup lane. Active runtime source is excluded from this input seal. No new behavioral authority gap or release blocker; no production edit by this reviewer."
+    }
+  ],
+  "architecture_followup": {
+    "finding": "Normalized messaging/status/callback provenance disconnected from documented hostcomposition",
+    "state": "source-fixed-and-component-tested",
+    "result": "Normalized host dispatch/status/verified incoming/provenance and additive schema18 pass287 component and24 host tests. Terminal-task answers persist unassigned; delivery-only SMS receipts survive STOP/expiry without new sends. Legacy builtin provider paths remain explicitly separate."
+  },
+  "remaining": [
+    "Final coded-marker and distinct sender media execution on the selected graph",
+    "Native process cleanup and terminal-state physical-peer race repair",
+    "Full stable-source and installed qualification",
+    "Independent walkthroughs",
+    "Final independent review after fixes"
+  ],
+  "reviewed_at": "2026-10-14",
+  "latest_static_review": {
+    "reviewer": "gate5_independent_review",
+    "scope": "Read-only source/product review; no runtime claims",
+    "input_sha256": {
+      "crates/connect-store/src/connector_observations.rs": "90455f49ddda587b15890c4b85ff0c138741fb03877ad4b428d88ee7ae1945f5",
+      "crates/connect-server/src/providers.rs": "da91b0551ffdd67010fa0947d25711fc45c0f7394b106621d1709980927f9eda",
+      "patches/rvoip/terminal-session-resource-lifetime.patch": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+      "sdk/typescript/src/browser_video_stats.ts": "a004acaa58a62bc302e0c0be596674991c7e8bdc2ba80581e3007efd083cc081"
+    }
+  },
+  "organization_and_terminal_static_review": {
+    "evidence": "docs/evidence/gate-5/repository-organization-review.json",
+    "evidence_sha256": "565d98240853ccdfb5adbeeaecbd7b2ff74d564c3ac4d7de817b099bafc8d1ab",
+    "source_inputs_stable": true,
+    "reviewed_inputs": 32,
+    "new_release_blockers_identified": 0,
+    "claim_limit": "Independent setup/contact/native organization and terminal patch static review; no runtime or blanket all-findings closure."
+  }
+}

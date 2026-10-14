@@ -5,6 +5,8 @@ use std::time::Duration;
 
 mod chat_context;
 pub mod numbers;
+pub mod provider_mapping;
+pub mod provisioning;
 pub mod setup;
 mod vapi_endpoint;
 pub mod vapi_origin;
@@ -33,6 +35,12 @@ impl Telnyx {
 }
 #[async_trait]
 impl Connector for Telnyx {
+    fn manifest(&self) -> connect_connector_api::manifest::Manifest {
+        provider_mapping::telnyx_manifest()
+    }
+    fn configuration(&self) -> std::collections::BTreeMap<String, String> {
+        provider_mapping::references("api-key", "TELNYX_API_KEY")
+    }
     fn descriptor(&self) -> connect_connector_api::Descriptor {
         connect_connector_api::TELNYX
     }
@@ -87,6 +95,12 @@ impl Vapi {
 }
 #[async_trait]
 impl Connector for Vapi {
+    fn manifest(&self) -> connect_connector_api::manifest::Manifest {
+        provider_mapping::vapi_manifest()
+    }
+    fn configuration(&self) -> std::collections::BTreeMap<String, String> {
+        provider_mapping::references("private-key", "VAPI_PRIVATE_KEY")
+    }
     fn descriptor(&self) -> connect_connector_api::Descriptor {
         connect_connector_api::VAPI
     }

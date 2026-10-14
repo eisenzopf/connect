@@ -1,4 +1,5 @@
 //! Local recovery commands. Manifests are completion markers, never secret logs.
+mod setup_metadata;
 use super::init::{private_directory, private_write};
 use crate::{config::ServerConfig, installation::InstallationLock};
 use anyhow::{Context, Result};
@@ -20,6 +21,9 @@ const FILES: &[&str] = &[
     "operator.toml",
     "reviews.toml",
     "agent.toml",
+    "human.toml",
+    "setup.json",
+    "secret-references.toml",
 ];
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -138,10 +142,22 @@ pub fn backup(server_path: &Path, operator_path: &Path, output: &Path) -> Result
         &portable_client(operator_path, server.bind)?,
     )?;
     let parent = server_path.parent().unwrap_or(Path::new("."));
-    for name in ["reviews.toml", "agent.toml"] {
+    for name in ["reviews.toml", "agent.toml", "human.toml"] {
         let source = parent.join(name);
         if source.is_file() {
             private_write(&output.join(name), &portable_client(&source, server.bind)?)?;
+        }
+    }
+    for name in ["setup.json", "secret-references.toml"] {
+        let source = parent.join(name);
+        if source.is_file() {
+            if name == "setup.json" {
+                let _: super::first_run::SetupState =
+                    serde_json::from_slice(&bounded_read(&source)?)?;
+            } else {
+                crate::secrets::SecretReferences::load(&source)?;
+            }
+            private_write(&output.join(name), &bounded_read(&source)?)?;
         }
     }
     let mut files = BTreeMap::new();
@@ -197,7 +213,15 @@ pub fn restore(
     server.private_key = "private-key.der".into();
     private_directory(directory).context("Restore destination must be a fresh directory")?;
     for name in manifest.files.keys().filter(|n| *n != "server.toml") {
-        if name.ends_with(".toml") {
+        if name == "setup.json" {
+            let mut setup: super::first_run::SetupState =
+                serde_json::from_slice(&bounded_read(&backup.join(name))?)?;
+            setup.bind = bind;
+            private_write(&directory.join(name), &serde_json::to_vec_pretty(&setup)?)?;
+        } else if name == "secret-references.toml" {
+            crate::secrets::SecretReferences::load(&backup.join(name))?;
+            private_write(&directory.join(name), &bounded_read(&backup.join(name))?)?;
+        } else if name.ends_with(".toml") {
             private_write(
                 &directory.join(name),
                 &portable_client(&backup.join(name), bind)?,
@@ -269,11 +293,34 @@ pub fn migrate(server_path: &Path, operator_path: &Path, backup: &Path) -> Resul
     let operator = ClientConfig::load(operator_path)?;
     Store::authorize_recovery(&server.database, &operator.credential)?;
     let manifest = verified_manifest(backup)?;
-    let snapshot = Store::migrate(
-        &server.database,
-        &backup.join("state.sqlite3"),
-        &manifest.snapshot,
-    )?;
+    let setup = setup_metadata::prepare(server_path, &server, &manifest)?;
+    let snapshot = if manifest.snapshot.schema == connect_store::SCHEMA_VERSION
+        && setup
+            .as_ref()
+            .is_some_and(|setup| setup.needs_sync(connect_store::SCHEMA_VERSION))
+    {
+        // Explicit recovery from DB commit followed by interrupted metadata
+        // publication requires a NEW exact-current verified backup, never the
+        // pre-upgrade snapshot or an implicitly adopted installation.
+        let current = Store::inspect_snapshot(&server.database)?;
+        anyhow::ensure!(
+            current == manifest.snapshot,
+            "Current verified backup does not match this installation"
+        );
+        current
+    } else {
+        Store::migrate(
+            &server.database,
+            &backup.join("state.sqlite3"),
+            &manifest.snapshot,
+        )?
+    };
+    if let Some(setup) = setup {
+        Store::authorize_recovery(&server.database, &operator.credential)?;
+        setup.publish(&snapshot).context(
+            "Database migration committed but setup publication was not confirmed; preserve state and reconcile using a fresh exact-current verified backup"
+        )?;
+    }
     println!(
         "Migration complete schema={} installation={}",
         snapshot.schema, snapshot.installation_id

@@ -11,9 +11,9 @@ from .common import (ROOT, TURN_SECONDS, OUTER_SECONDS, MAX_LOG, require, verify
 
 
 class Runtime:
-    def __init__(self, runtime, codex, qualification):
+    def __init__(self, runtime, codex, qualification, expected_profile="gate4-local"):
         self.runtime, self.codex = runtime, codex
-        self.manifest = verify_runtime(runtime, qualification)
+        self.manifest = verify_runtime(runtime, qualification, expected_profile)
         self.binary = runtime / "bin/connect"
         self.common_env, self.model_env = selected_environment()
         # NativeClient inherits this harness process environment. Keep operator
@@ -21,7 +21,7 @@ class Runtime:
         os.environ.clear()
         os.environ.update(self.common_env)
         timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
-        self.directory = ROOT / ".local/gate4-agent-access" / ("identity-model-" + timestamp)
+        self.directory = ROOT / (".local/" + expected_profile.replace("-local", "") + "-agent-access") / ("identity-model-" + timestamp)
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=False)
         self.state = self.directory / "state"
         self.installation = self.directory / "host"
@@ -40,6 +40,7 @@ class Runtime:
         self.report = {
             "status": "running", "scope": "local macOS arm64; actual Codex inference; no live communication providers",
             "source_revision": self.manifest["source_revision"],
+            "qualification_profile": expected_profile,
             "binary_sha256": self.manifest["files"]["bin/connect"],
             "qualification_report_sha256": sha256(qualification),
             "runtime_manifest_sha256": sha256(runtime / "manifest.json"),

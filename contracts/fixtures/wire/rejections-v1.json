@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "vectors": [
+    {
+      "name": "wrong-envelope-version",
+      "envelope": {
+        "v": 255,
+        "type": "connect.request",
+        "id": "env_vector-health",
+        "ts": "2026-10-13T00:00:00Z",
+        "payload": {
+          "profile": "connect-control/1",
+          "op": "health"
+        }
+      },
+      "expected_type": "error",
+      "expected_code": 505
+    },
+    {
+      "name": "unsupported-profile",
+      "envelope": {
+        "v": 1,
+        "type": "connect.request",
+        "id": "env_vector-health",
+        "ts": "2026-10-13T00:00:00Z",
+        "payload": {
+          "profile": "connect-control/999",
+          "op": "health"
+        }
+      },
+      "expected_type": "error",
+      "expected_code": 501
+    }
+  ],
+  "source": "Authored from published Connect control profile; repository MIT license applies; shared data, no parser code."
+}

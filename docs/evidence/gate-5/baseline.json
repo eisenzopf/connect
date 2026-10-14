@@ -1,0 +1,829 @@
+{
+  "profile": "connect-gate5-retained-baseline/1",
+  "recorded_at": "2026-10-14T07:16:36.836325+00:00",
+  "task": "G5-002",
+  "status": "passed through transparent composition: all42 original source phases and all17 original installed checks; no single uninterrupted full-source pass",
+  "scope": "Local macOS arm64 offline checks with explicitly selected installed Codex and isolated owned fixture state. No provider operations or deployment.",
+  "single_full_run_passed": false,
+  "qualification_source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "current_source_clean": true,
+  "baseline_source_lock_sha256": "37f9a22d912fb1e2917259387d8d116e38cd5f94e3820af2c0b4f999316d840b",
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.7.0",
+    "npm": "12.0.2",
+    "codex": "codex-cli 0.162.0-alpha.17.2",
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "system": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+  },
+  "failed_attempts_retained": [
+    {
+      "attempt": 1,
+      "report_id": "20261013T074209.990459Z",
+      "status": "failed",
+      "private_report_sha256": "019584b36d7fa8ee08bc4ea70564396d8d388d309f2ac550409d703c52e5c573",
+      "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+      "source_clean_at_start": true,
+      "started_at": "2026-10-13T07:42:09.990749+00:00",
+      "finished_at": "2026-10-13T07:55:15.461106+00:00",
+      "passed_phase_count": 14,
+      "failed_phase": "workspace",
+      "failed_phase_seconds": 524.146,
+      "redacted_finding": "original Command.output 20-second timeout; internal turn budget 15 seconds"
+    },
+    {
+      "attempt": 2,
+      "report_id": "20261013T174737.017654Z",
+      "status": "failed",
+      "private_report_sha256": "41a4ff84d7af57fcac96727f1f818dad35bdf8750c37cb5ad817ff6839b92aec",
+      "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+      "source_clean_at_start": true,
+      "started_at": "2026-10-13T17:47:37.017863+00:00",
+      "finished_at": "2026-10-13T17:56:54.481266+00:00",
+      "passed_phase_count": 14,
+      "failed_phase": "workspace",
+      "failed_phase_seconds": 530.604,
+      "redacted_finding": "five missing pre-import host markers and one normal-complete 8-second turn timeout"
+    },
+    {
+      "attempt": 3,
+      "report_id": "20261013T182131.955995Z",
+      "status": "failed",
+      "private_report_sha256": "da6a22d038d4e560039f45755cb05e99aba75aebd194f98a67b8d7d84b0fcfe2",
+      "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+      "source_clean_at_start": true,
+      "started_at": "2026-10-13T18:21:31.956185+00:00",
+      "finished_at": "2026-10-13T18:27:07.899356+00:00",
+      "passed_phase_count": 14,
+      "failed_phase": "workspace",
+      "failed_phase_seconds": 306.084,
+      "redacted_finding": "task-diagnostics CLI Command.output original 15-second timeout"
+    },
+    {
+      "attempt": 4,
+      "report_id": "20261013T184036.374563Z",
+      "status": "failed",
+      "private_report_sha256": "60de075b2da7b8f9da16eaa7264ee1182fea0e8cfcba1c56cc4f7fd557f7701b",
+      "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+      "source_clean_at_start": true,
+      "started_at": "2026-10-13T18:40:36.375195+00:00",
+      "finished_at": "2026-10-13T19:19:02.201908+00:00",
+      "passed_phase_count": 17,
+      "failed_phase": "upstream-regression",
+      "failed_phase_seconds": 763.758,
+      "redacted_finding": "Cargo discovered the current parent workspace for standalone Parley copied under private local TMPDIR; nonmember rejection. Definite substrate cause; baseline source unchanged."
+    },
+    {
+      "attempt": 5,
+      "report_id": "20261013T211128.220468Z",
+      "status": "failed",
+      "private_report_sha256": "80cf3984b1c343e53dd23465c393fd28ac527c02d395e779c0a3423ecc9c81a2",
+      "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+      "source_clean_at_start": true,
+      "started_at": "2026-10-13T21:11:28.220664+00:00",
+      "finished_at": "2026-10-13T21:28:02.110063+00:00",
+      "passed_phase_count": 14,
+      "failed_phase": "workspace",
+      "failed_phase_seconds": 968.18,
+      "redacted_finding": "Four generated test outputs were tiny non-Mach-O mode0600 files during low-disk linker phase; linker reported success. Timing precedes unrelated guarded old-cache retirement. Exact corruption mechanism unproven."
+    },
+    {
+      "attempt": 6,
+      "report_id": "20261013T213009.003498Z",
+      "status": "failed",
+      "private_report_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce",
+      "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+      "source_clean_at_start": true,
+      "started_at": "2026-10-13T21:30:09.004148+00:00",
+      "finished_at": "2026-10-13T22:03:45.095034+00:00",
+      "passed_phase_count": 28,
+      "failed_phase": "grant-lifecycle-load",
+      "failed_phase_seconds": 12.043,
+      "redacted_finding": "Near expiry boundary a task_status MCP HTTP200 result contained isError/forbidden; original profile requires success for every200. Possible authorization-boundary race, not proved yet. Original12-second grants/deadlines/source unchanged."
+    }
+  ],
+  "composed_coverage": {
+    "required_phases": 42,
+    "passed_in_sixth_original_full_attempt": 28,
+    "separate_matching_original_grant_profile": {
+      "status": "passed",
+      "elapsed_seconds": 13.666,
+      "private_result_sha256": "cc3a84d9006c50fdcbbefe24805bc7b6c88c286769da95f99598442bb54761fc",
+      "binary_sha256": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+      "source_inputs_match_failed_profile": true,
+      "original_grant_seconds": 12,
+      "original_profile_budget_seconds": 180,
+      "observed_expired_status_and_receipt_denials": 64,
+      "renewals": 32,
+      "scope": "Same original profile; explicit --binary selects the original default executable. Its original full-driver failure is not relabeled."
+    },
+    "covered_phase_count": 42,
+    "covered_phases": [
+      "dependencies",
+      "format",
+      "typescript-install",
+      "typescript-tests",
+      "typescript-format",
+      "typescript-distribution",
+      "python-sdk",
+      "agent-incoming-unit",
+      "runner-failure-tests",
+      "agent-journey-unit",
+      "voice-rehearsal-unit",
+      "chat-rehearsal-unit",
+      "lint",
+      "rustdoc",
+      "workspace",
+      "media-pressure",
+      "installed-host",
+      "upstream-regression",
+      "upstream-vapi",
+      "upstream-queues",
+      "upstream-codec",
+      "current-binaries",
+      "host-capacity",
+      "agent-incoming-public",
+      "agent-incoming-host",
+      "native-task-capacity",
+      "reference-runner-capacity",
+      "mcp-operating-load",
+      "grant-lifecycle-load",
+      "task-artifact-retention",
+      "voice-setup-retirement",
+      "schema-six-build",
+      "schema-ten-build",
+      "historical-task-recovery",
+      "dispatch",
+      "identity",
+      "typescript-probe",
+      "crash-replay",
+      "examples",
+      "example-recovery",
+      "current-recovery",
+      "datagram-example"
+    ],
+    "remaining_count": 0,
+    "remaining_original_phases": [],
+    "continuation": "Completed. Original commands/counts/deadlines retained across matching frozen-source component runs; all failures remain separately failed. Exclusive original32/5s/10000 voice phase passed last.",
+    "source_matches_sixth_attempt": true,
+    "separate_matching_original_retention_profile": {
+      "status": "passed",
+      "outer_seconds": 46.071,
+      "private_report_sha256": "9abc20a1390ea025f2182d24e9ec7a0dd8efef4dc4a8402017f0c45873a51a42",
+      "private_profile_sha256": "1d9a9ab710222d44fd96f66cf9c48df91f3dde4d3f1fd3fa19c94cfe9da5c3fa",
+      "binary_sha256": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+      "outer_original_timeout_seconds": 240,
+      "inner_original_budget_seconds": 180,
+      "profile": {
+        "tasks": 32,
+        "task_seconds": 45,
+        "artifact_seconds": 12,
+        "artifact_bytes_each": 65536,
+        "chunk_bytes": 32768
+      },
+      "observations": {
+        "ready_expiring_files": 32,
+        "file_bytes": 65536,
+        "verified_chunks": 32,
+        "chunk_bytes": 32768,
+        "artifact_expiry_responses": {
+          "available": 3296,
+          "expired": 32
+        },
+        "expired_receipt_replays_denied": 32,
+        "expired_sources_retained": 32,
+        "message_sources_available": 32,
+        "expired_blobs_removed_on_restart": 32,
+        "live_control_blob_preserved": true,
+        "task_expiry_responses": {
+          "active": 12160,
+          "http_denied": 32,
+          "rpc_denied": 0,
+          "tool_denied": 0
+        },
+        "expired_task_tools_denied": 32,
+        "retained_expired_task_records": 32,
+        "original_messages_retained": 32,
+        "expired_task_renewals_denied": 32
+      },
+      "source_and_binary_guarded": true,
+      "unchanged_original_command": true,
+      "failure_retained": true
+    },
+    "background_workload_declared": {
+      "phase": "voice-setup-retirement",
+      "current_cargo_jobs": 2,
+      "profile_rss_scope": "own process",
+      "private_metadata_sha256": "4809b4d411c6c265f1c12bd1b748a8ee1ed4f4f29b7cf5dd8f22ef66b14a6e2b",
+      "original_budgets_unchanged": true,
+      "failures_not_waived": true
+    },
+    "independent_eleven_original_phases": {
+      "status": "passed",
+      "private_composed_report_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7",
+      "report_status": "partial; only voice remains",
+      "source_stable": true,
+      "baseline_binaries_sha256": {
+        "connect": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+        "connect-example": "d437beda9f61bdb55db0645f9fe34a22a5a16483ac44db00ba1bac225a19378c"
+      },
+      "steps": [
+        {
+          "name": "schema-six-build",
+          "status": "passed",
+          "seconds": 42.081,
+          "timeout_seconds": 7500
+        },
+        {
+          "name": "schema-ten-build",
+          "status": "passed",
+          "seconds": 212.674,
+          "timeout_seconds": 7500
+        },
+        {
+          "name": "historical-task-recovery",
+          "status": "passed",
+          "seconds": 9.905,
+          "timeout_seconds": 660
+        },
+        {
+          "name": "dispatch",
+          "status": "passed",
+          "seconds": 13.649,
+          "timeout_seconds": 600
+        },
+        {
+          "name": "identity",
+          "status": "passed",
+          "seconds": 8.07,
+          "timeout_seconds": 600
+        },
+        {
+          "name": "typescript-probe",
+          "status": "passed",
+          "seconds": 1.412,
+          "timeout_seconds": 600
+        },
+        {
+          "name": "crash-replay",
+          "status": "passed",
+          "seconds": 29.929,
+          "timeout_seconds": 600
+        },
+        {
+          "name": "examples",
+          "status": "passed",
+          "seconds": 13.904,
+          "timeout_seconds": 600
+        },
+        {
+          "name": "example-recovery",
+          "status": "passed",
+          "seconds": 37.375,
+          "timeout_seconds": 600
+        },
+        {
+          "name": "current-recovery",
+          "status": "passed",
+          "seconds": 1.774,
+          "timeout_seconds": 660
+        },
+        {
+          "name": "datagram-example",
+          "status": "passed",
+          "seconds": 1.537,
+          "timeout_seconds": 600
+        }
+      ],
+      "auxiliary_cache_retirements": [
+        {
+          "source_revision": "8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+          "binary_sha256": "f1faeaa6c96ab975482582490da1a47c790103a220bde950757f225ae081a452",
+          "cache_removed": true,
+          "free_bytes_before": 107664502784,
+          "free_bytes_after": 108678115328
+        },
+        {
+          "source_revision": "99243f3962cf25e780bbd176e56a4f27c752e121",
+          "binary_sha256": "d83bede9b56b95af193297d452e6672a447c603b0ffff7de83414aef50a1f59c",
+          "cache_removed": true,
+          "free_bytes_before": 106002259968,
+          "free_bytes_after": 107713789952
+        }
+      ]
+    },
+    "separate_matching_original_voice_profile": {
+      "status": "passed",
+      "private_report": ".local/gate5-setup-baseline-recheck/voice-exclusive-original-20261014T061811.595290Z/result.json",
+      "private_report_sha256": "30448c50feb88ff5660c05e448f8c8cd41c86e2fe4cb3e6e3c914260fb60f094",
+      "private_profile_report_sha256": "efda362af4964f70534a01743e96eaae5c171e3d1972ddb3d45e1c87437668b7",
+      "started_at": "2026-10-14T06:18:12.901590+00:00",
+      "finished_at": "2026-10-14T06:49:39.899307+00:00",
+      "outer_seconds": 1884.678,
+      "profile_seconds": 1884.435,
+      "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+      "source_inputs_count": 860,
+      "source_inputs_equal_sixth_full_attempt": true,
+      "source_clean": true,
+      "source_stable": true,
+      "exclusive_runtime_window": true,
+      "original_listener_batch": 32,
+      "original_setup_seconds": 5,
+      "target_setups": 10000,
+      "original_test_budget_seconds": 2700,
+      "original_phase_budget_seconds": 3300,
+      "original_outer_budget_seconds": 3600,
+      "original_commands_counts_and_deadlines_unchanged": true,
+      "measurements": {
+        "retired_setups": 10000,
+        "batches": 313,
+        "point_samples": 628,
+        "whole_process_sampled_peak_rss_bytes": 62128128,
+        "initial_process_rss_bytes": 46235648,
+        "final_retired_process_rss_bytes": 61194240,
+        "restarted_process_rss_bytes": 62128128,
+        "database_apparent_peak_bytes": 97829616,
+        "retained_binding_digest": "68254bd6a3c00bf8b22d45932b18dc0f836bc8c6440afd937cfa856e0b31986a",
+        "memory_scope": "Whole isolated Rust test process: server, clients and local API fixture. Point samples at batch boundaries; excludes Cargo/compiler and can miss transient peaks."
+      },
+      "default_cli_sha256_before": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+      "test_support_feature_cli_sha256": "c850576e7e78db8589eee5d6d728439cc8ba17f53eb38743ed05056b2813e4e4",
+      "default_cli_restored_from_verified_seal": true,
+      "build_profile_boundary": "Original cargo test --all-features produces a distinct test-support executable from the same frozen source; default normal executable is restored from its verified seal after the phase. No same-binary assertion across feature profiles.",
+      "owned_cleanup": {
+        "original_phase_group_cleanup": "signalled",
+        "leftover_group_members": [],
+        "scope": "Original qualification wrapper reports its own group signaling; retained as original baseline semantics, not reused as current no-forced-cleanup native proof."
+      },
+      "prior_failed_continuation_retained": true,
+      "single_full_run_passed": false,
+      "live_provider_claim": false
+    },
+    "phase_provenance": [
+      {
+        "name": "dependencies",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "format",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "typescript-install",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "typescript-tests",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "typescript-format",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "typescript-distribution",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "python-sdk",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "agent-incoming-unit",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "runner-failure-tests",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "agent-journey-unit",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "voice-rehearsal-unit",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "chat-rehearsal-unit",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "lint",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "rustdoc",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "workspace",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "media-pressure",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "installed-host",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "upstream-regression",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "upstream-vapi",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "upstream-queues",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "upstream-codec",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "current-binaries",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "host-capacity",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "agent-incoming-public",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "agent-incoming-host",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "native-task-capacity",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "reference-runner-capacity",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "mcp-operating-load",
+        "status": "passed",
+        "proof_group": "sixth-original-full-attempt",
+        "private_result_sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce"
+      },
+      {
+        "name": "grant-lifecycle-load",
+        "status": "passed",
+        "proof_group": "separate-matching-original-profile",
+        "private_result_sha256": "cc3a84d9006c50fdcbbefe24805bc7b6c88c286769da95f99598442bb54761fc"
+      },
+      {
+        "name": "task-artifact-retention",
+        "status": "passed",
+        "proof_group": "separate-matching-original-profile",
+        "private_result_sha256": "9abc20a1390ea025f2182d24e9ec7a0dd8efef4dc4a8402017f0c45873a51a42"
+      },
+      {
+        "name": "voice-setup-retirement",
+        "status": "passed",
+        "proof_group": "exclusive-matching-original-profile",
+        "private_result_sha256": "30448c50feb88ff5660c05e448f8c8cd41c86e2fe4cb3e6e3c914260fb60f094"
+      },
+      {
+        "name": "schema-six-build",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "schema-ten-build",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "historical-task-recovery",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "dispatch",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "identity",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "typescript-probe",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "crash-replay",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "examples",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "example-recovery",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "current-recovery",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      },
+      {
+        "name": "datagram-example",
+        "status": "passed",
+        "proof_group": "eleven-independent-original-phases",
+        "private_result_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7"
+      }
+    ]
+  },
+  "sixth_attempt_passes": {
+    "workspace": {
+      "passed": 591,
+      "failed": 0,
+      "ignored": 9,
+      "seconds": 1190.428,
+      "ignored_follow_up": "Selected installed-host and media-pressure phases passed; original voice setup retirement is still unresolved."
+    },
+    "installed_host": {
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 22.874,
+      "scope": "Original installed Codex host fixtures, not a new installed Gate5 package result."
+    },
+    "upstream_regression": "Passed original probe after fixing temporary workspace ancestry in the current parent only; frozen source unchanged."
+  },
+  "baseline_binaries_sha256": {
+    "connect": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+    "connect-example": "d437beda9f61bdb55db0645f9fe34a22a5a16483ac44db00ba1bac225a19378c"
+  },
+  "public_migration_baselines": {
+    "evidence": "docs/evidence/gate-5/migration-recovery.json",
+    "scope": "Public schema1 identity fixture and schema16 original source builds have independent seals and actual recovery proof. Original schema6/schema10 phases also completed in the frozen-source composition; these are distinct input sources."
+  },
+  "limits": [
+    "None of the six full attempts passed as a single uninterrupted run. Every failed result remains failed and preserved.",
+    "Passing separate original commands does not erase original full-run failures. Owner-approved composition now covers all42 original source phases at matching frozen source and original budgets; it is not a single uninterrupted full run.",
+    "Causes of the first three timing failures and the fifth non-executable generated-output failure remain unproven. The sixth expiry denial is consistent with an in-flight authorization-boundary race; exact exchange timing was not captured.",
+    "The current-source grant-boundary correction is separate and does not change the frozen baseline source or original budgets.",
+    "Original historical live/provider evidence retains its original source and account scope. No new live result is claimed."
+  ],
+  "inactive_upstream_cache_retirement": {
+    "status": "completed",
+    "private_report_sha256": "a5e8b6a075c7f2d46bafcdb9d5e706f81c37bbddac687076398318a8b0d523b7",
+    "scope": "Only frozen baseline target/upstream generated debug subdirectories after original upstream phases passed; no remaining phase uses this cache. Baseline debug, active main target, normal Parley and all proof preserved.",
+    "current_video_patch_sha256": "367e72ccb924d71f85d8d6b27ff0ebf14a9a39ecd7193fcd9aac2df9bf3f19d3",
+    "free_bytes_before": 11639656448,
+    "free_bytes_after": 18702983168,
+    "preserved_normal_binary_sha256": {
+      ".local/gate5-baseline/source/target/upstream/debug/parley": "322d329edb337e9693b1f162ad4a75e9d0e920d03c2f2c2d1d10589916bc5c52"
+    }
+  },
+  "continuation_attempts_retained": [
+    {
+      "status": "failed",
+      "kind": "continuation phase; not a seventh full attempt",
+      "phase": "task-artifact-retention",
+      "seconds": 45.023,
+      "private_report_sha256": "c5bfa741883b5c4dc656ae755f0cc4b26a856fa5f8ec3db21c5429f572433e0f",
+      "private_profile_sha256": "f203b1839acd5c51733ea8e48314788863e59d33ec9adaf9350d44c9431716ec",
+      "original_budget_seconds": 180,
+      "task_expiry_seconds": 45,
+      "binary_sha256": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+      "source_unchanged": true,
+      "redacted_finding": "At the task expiry boundary the RPC denial assertion expected Task authority is no longer current; frozen MCP authority guard emits MCP authority is no longer current. Literal mismatch is inferred from source; original failure report does not retain the response body. Earlier upload, artifact expiry and restart phases passed.",
+      "inner_phases": [
+        {
+          "name": "thirty-two-expiring-files-and-bounded-chunks",
+          "status": "passed",
+          "seconds": 1.296
+        },
+        {
+          "name": "artifact-expiry-denies-cached-bytes-and-retains-provenance",
+          "status": "passed",
+          "seconds": 10.255
+        },
+        {
+          "name": "restart-cleans-expired-bytes-but-preserves-sources",
+          "status": "passed",
+          "seconds": 0.212
+        },
+        {
+          "name": "task-expiry-under-load-denies-further-tools",
+          "status": "failed",
+          "seconds": 31.614
+        }
+      ]
+    },
+    {
+      "status": "failed",
+      "kind": "original continuation phase; not another full attempt",
+      "phase": "voice-setup-retirement",
+      "seconds": 1119.028,
+      "private_report_sha256": "f980dc64adf7f2e1da62c21e93b29563c5b63d16fce986a5fc961f78b2ae70b0",
+      "private_profile_sha256": "f9ba6c056d2b6378c8d61bee91b85dbb78c583ed8a2613b72d5ad09cf9bfcb58",
+      "private_observations_sha256": "a91e430a5472d66960b99b040a143db3574756c3e4755c0622542b530a5b6cae",
+      "last_successful_retired_setups": 6272,
+      "target_setups": 10000,
+      "original_setup_seconds": 5,
+      "original_listener_batch": 32,
+      "original_test_budget_seconds": 2700,
+      "original_outer_budget_seconds": 3600,
+      "partial_next_batch_published_intents": 18,
+      "first_failed_unpublished_index": 6290,
+      "shared_expiry_utc": "2026-10-13T23:46:09+00:00",
+      "first_partial_intent_mtime_utc": "2026-10-13T23:46:04.176156+00:00",
+      "last_partial_intent_mtime_utc": "2026-10-13T23:46:08.478356+00:00",
+      "redacted_finding": "Grant validation rejected the next shared-expiry batch while preparing its nineteenth grant. Prior18 definitions have exact history/send subset and fixed expiry; expires_at<=now is strongly inferred from validator and metadata timing, not captured as an invocation timestamp. Concurrent current cold build existed; causality unproven.",
+      "source_inputs_unchanged": true,
+      "source_git_clean": true,
+      "test_binary_sha256": "2a5b7843808f9458f5e09192e03e2f61845ca41abedcff36c66795c558037c7d",
+      "test_fingerprint_sha256": "95c7d66b8acc89886e65d7ae4a1fe8a9529bf7502f47d9cee6097b0ddbd026ed",
+      "test_features": "[\"test-support\"]",
+      "separate_outer_guard_error": {
+        "type": "AssertionError",
+        "detail": "Baseline binary changed during phase"
+      },
+      "normal_binary_restoration": {
+        "private_manifest_sha256": "22a9b3da37c7f0ab613e62e71cd6908932d9743ab5d59b2b02f6f9132119f76d",
+        "default_original_sha256": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+        "all_features_output_sha256": "c850576e7e78db8589eee5d6d728439cc8ba17f53eb38743ed05056b2813e4e4",
+        "restored_from_existing_original_default_artifact": "connect-d0ba56fe9bafcc82",
+        "normal_default_restored": true,
+        "feature_fingerprints": [
+          {
+            "artifact_fingerprint": ".fingerprint/connect-server-0619838921d1556d/bin-connect.json",
+            "features": "[\"test-support\"]",
+            "profile": 6492802860816623299,
+            "sha256": "18ea4fec5051985935359e0d4546ccf3634295caf23b1b1ecf5b85e208c474a8"
+          },
+          {
+            "artifact_fingerprint": ".fingerprint/connect-server-d0ba56fe9bafcc82/bin-connect.json",
+            "features": "[]",
+            "profile": 6492802860816623299,
+            "sha256": "6baf0cdc840d256ad08e82009f575d80670b0c9cfc6f21659ce218791d0e4874"
+          },
+          {
+            "artifact_fingerprint": ".fingerprint/connect-server-a46627e417aec7e2/bin-connect.json",
+            "features": "[\"test-support\"]",
+            "profile": 14539771029851030847,
+            "sha256": "d131a23db5e6b62001a471b714df27b9a1d462a494bd9bf7b03fa042fe26e28f"
+          }
+        ],
+        "scope": "Original frozen source cargo test --all-features rebuilt bin-connect at the same default output path. Distinct legitimate build-profile output, not source or current-target crosscontamination."
+      },
+      "retry_plan": "Original same32/5s/10000 phase once in exclusive window after current/baseline cold builds; original failure stays failed, no threshold changes."
+    }
+  ],
+  "installed_baseline": {
+    "status": "passed: all17 original installed checks newly reproduced",
+    "retained_prior_installed_proof": {
+      "status": "passed",
+      "candidate": "connect-0.1.0-alpha.1-macos-arm64-709cf824295c",
+      "private_report_sha256": "cc7f036fb1ff603baa523fe42f7beb041ec8786811c8a810ebae8f89442974f2",
+      "scope": "Original October12 installed17check proof; retained, not labeled a newly reproduced Gate5 result."
+    },
+    "new_reproduction": {
+      "runtime_and_qualification_source_revision": "709cf824295c12963b5d62214877b91fcd750e8d",
+      "source_clean": true,
+      "runtime_inputs_equal_frozen993": true,
+      "qualification_source_boundary": "709\u2192993 changes only workflow, MCP operating-load qualification helpers/tests, update-plan and documentation; crates/examples/SDK/contracts/skills/dependencies/patches plus Cargo/lock/toolchain are identical. Original installed checker runs from clean709 to satisfy archive/source equality.",
+      "private_archive_provenance_sha256": "33e66b0967492823f968e6111333489a2d70c0e156baa4f2694fa8af42957fd5",
+      "private_runner_provenance_sha256": "ebda1e5b7f2c20c437443f0e4db70a0239bb753fbe5ed84116b99b7a43ae60a7",
+      "original_checker_commands_counts_application_budgets_unchanged": true,
+      "compile_jobs_host_substrate": {
+        "sdk_direct": 2,
+        "original_helpers": 3,
+        "helpers_exclusive": true
+      },
+      "scheduler_pause": "Before original runtime phase starts; no application deadline is delayed",
+      "owner_distribution_and_review_bundles_untouched": true,
+      "completed_checks": 17,
+      "faultfixture_build_seconds": 163.619,
+      "scope": "All17 original709 installed checker checks newly passed, using copied immutable archives and isolated state; runtime source equals frozen993, qualification runs from originalclean709; no current package fallback.",
+      "status": "passed",
+      "private_report": ".local/gate5-installed-baseline/source709/.local/package-checks/20261014T001623.464313Z/result.json",
+      "private_report_sha256": "0cefe1785611047c75adfb0a7a0a0fd046810a19c82102f92d9bf9a18c91b419",
+      "private_completed_provenance_sha256": "5c48b4165e218622fbb503c8a52d66d12e2009e1b61397f1dfebaaf70b23a357",
+      "all_original_phase_groups_cleaned": true,
+      "no_owned_processes_remaining": true,
+      "runtime_binaries_sha256": {
+        "bin/connect": "a196ea3e650ea00a5fd874acc8884b1d626eb83375ed79fdef6134beee83f377",
+        "bin/connect-example": "ab383c444fbbfe9be72f55b8510269a4908fa504b39e490013cdb2febb9f3804"
+      },
+      "fixture_binaries_sha256": {
+        "connect": "1c519fab9ecb14b77a3b1ff8406c6e40554c7c13e439058ba42f99c918687e0a",
+        "connect-example": "995b9dcdca23303eaf649d9ea965c33643a70074ba965621a198499f4eff5d5c"
+      },
+      "archive_hashes_unchanged_after_checks": true,
+      "runtime_input_identity_guard": {
+        "base": "709cf824295c12963b5d62214877b91fcd750e8d",
+        "comparison": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+        "git_diff_paths": [
+          "crates",
+          "examples",
+          "sdk",
+          "contracts",
+          "skills",
+          "dependencies",
+          "patches",
+          "Cargo.toml",
+          "Cargo.lock",
+          "rust-toolchain.toml"
+        ],
+        "changed_files": []
+      }
+    },
+    "completion_gap": "None for applicable original source/installed lanes. Changed Gate5 candidate qualification remains separate."
+  },
+  "completion_semantics": {
+    "task": "G5-002",
+    "status": "done",
+    "source_phase_count": 42,
+    "installed_check_count": 17,
+    "full_attempt_failures_retained": 6,
+    "continuation_failures_retained": 2,
+    "single_full_run_passed": false,
+    "changed_gate5_candidate_qualified": false,
+    "downstream_dependencies": "The baseline dependency is fulfilled. Downstream implementation/acceptance tasks are not automatically complete; their own evidence and completed dependencies still apply."
+  }
+}

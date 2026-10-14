@@ -12,6 +12,10 @@ facade have separate modules. Consumers import protocol types from
 |---|---|
 | `open(ClientConfig)` | Verified TLS, required profile and credential-subject binding |
 | `resolve(address)` | Scoped durable identity and declared capabilities |
+| `contact_pairing_start(request_id, peer_identity_id, expires_at)` | Private one-use native ownership challenge, bounded to ten minutes |
+| `contact_pairing_complete(request_id, pairing_id, challenge)` | Intended peer proves possession of its current Connect credential |
+| `contact_pairing_revoke(request_id, pairing_id)` | Initiating owner revokes native pairing and completion replay |
+| `contact_state(peer_identity_id)` | Current native ownership observation; `sms_consent` remains false |
 | `create(request_id, participants)` | Saved conversation, caller included |
 | `send(request_id, conversation_id, body)` | Durable `SendReceipt`; not proof of peer processing |
 | `history(conversation_id, after, limit)` | Ordered `HistoryPage`; follow next until empty |
@@ -23,9 +27,11 @@ facade have separate modules. Consumers import protocol types from
 | `request_cancelled(operation, token)` | Explicit cancellation; closes physical peer |
 | `close()` | Bounded physical-peer shutdown |
 | `session_invite/accept/reject/cancel/end/get` | Durable bounded legs under an existing conversation |
-| `sip_dial/status/end` | Durable outbound SIP leg inside an accepted audio Session |
+| `sip_dial/status/end` | Durable outbound SIP leg inside an accepted audio-only Session; AV Sessions reject instead of downgrading |
 | `open_native_audio` | Negotiated PCMU/8 kHz UCTP/QUIC datagram stream |
 | `subscribe_native_audio` | Authorized publisher subscription on the same Session |
+| `open_native_video` | Separate authenticated PCMU audio and VP8 video streams for an accepted AV Session |
+| `subscribe_native_video_participant` | Current-authorized subscription to a named native participant's two publishers |
 | `availability_set/get` | Expiring availability and preferred-route hint |
 | `context_view` | Authorized 32 KiB conversation projection with provenance and provider-delivery outcomes |
 | `artifact_begin/append/finish/get/delete` | Offset-checked, digest-verified reliable transfer operations |
@@ -96,6 +102,54 @@ grant authentication is implemented as described below. It is an optional
 narrow mode, not a prerequisite for ordinary communication. The
 [actual normal-agent journey](evidence/gate-4/real-model-agent-dc73996.json)
 qualifies explicit exact-session continuation at dc73996. Current repair-cycle qualification passes at 709cf82 and is tracked in the [Gate 4 plan](connect-gate-4-implementation.html#G4-021).
+
+Gate 5 adds the [native contact-pairing contract](../contracts/contact-pairing-v1.md)
+to Rust, Python/TypeScript native-helper and HTTP clients, the JSON request CLI,
+and ordinary identity MCP tools `connect_contact_pairing_start`,
+`connect_contact_pairing_complete`, `connect_contact_pairing_revoke` and
+`connect_contact_state`. TypeScript uses camelCase convenience names. These
+operations require current `resolve` authority and permitted peers; they need
+no conversation or optional task. Task-bound invocation intentionally omits them.
+Preserve each mutation ID and the start expiry across retries. Return the private
+challenge only to the initiating owner; pass it through standard input to the
+CLI, never a process argument or diagnostics. A completed pairing proves native
+credential possession and supplies no phone ownership, route readiness, membership
+or SMS enrollment. Replays recheck current pairing and credential authority.
+Source qualification lives in `gate5_contact_interface_parity` and
+`sdk/tests/contact_probe.py` / `contact_probe.mjs`; these source tests do not
+establish installed-package, actual-model or browser-reference qualification.
+
+## Gate 5 video interface under qualification
+
+Rust's `NativeVideoSession` sends one externally encoded VP8 frame with `send_vp8`
+and one 20 ms PCMU frame with `send_pcmu`. `receive` returns identified audio or
+validated RTP video packets; `VideoFrameAssembler` reconstructs only complete
+bounded encoded frames. Its numeric diagnostics record assembly occupancy,
+peaks, expiry and discard counts without media content. Encoding, decoding and
+playout belong to the application. The [native example](../examples/native-video/README.md)
+uses explicit external FFmpeg tools; generated-media checks acquire no personal
+camera or microphone.
+
+Camera and microphone mute independently. `is_ended` observes cancellation and
+remote hangup without requiring an application's receive loop. `end` stops owned
+local media and bounds reliable connection teardown to five seconds; conversation
+history persists. Fatal negotiation timeout/protocol/transport failures disconnect
+the physical client because stream-handle state may be uncertain. Reopen with
+current authority; an application/profile rejection preserves control access.
+
+The browser entry point exports `BrowserVideoSession`. It negotiates active
+duplex audio and VP8 video, enforces the selected capture/send constraints, owns
+local/remote preview attachment and releases captured tracks on failure/hangup.
+Supplying `inputStream` transfers track ownership; clone tracks first to retain
+an application's original source. Numeric codec/decoder diagnostics include
+frames, dimensions, packet/byte counts, loss and jitter, excluding SDP and addresses.
+
+These media facades are Rust native QUIC and browser WebRTC interfaces. Python,
+TypeScript native-helper, HTTP/JSON and MCP retain their existing control and
+PCMU interfaces; they do not acquire a VP8 byte-stream API by importing a browser
+facade. The [media contract](../contracts/connect-media-vp8-v1.md) and
+[numbered Gate 5 plan](connect-gate-5-implementation.html) distinguish implemented
+source interfaces from complete decoded, operating and installed qualification.
 
 Tracked reply consumption is an explicit owner operation, separate from reads,
 waits and follow-up sends. The native `consume_reply` task command and the ordinary
@@ -288,3 +342,65 @@ create a new client. It never reloads credentials or falls back to an owner toke
 Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
 
 [offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)
+
+
+## Gate 5 source additions under qualification
+
+These APIs are implemented in the current source; the final installed candidate
+and sixty-second decoded-media evidence remain required before release claims.
+Rust supports `browser_binding_for(conversation_id, session_id)`; Python supports
+`browser_binding(conversation_id, session_id)` and TypeScript supports
+`browserBinding(conversationId, sessionId)`. Omitting both IDs preserves legacy
+discovery. Supplying only one is invalid. A selected accepted/ready audio/video
+Session must belong to the configured browser pair under current authority.
+Discovery does not allocate a media leg or grant permission.
+
+The browser facade can join that exact Session:
+
+```ts
+const binding = await client.browserBinding(conversationId, sessionId);
+const video = await BrowserVideoSession.open(binding.signaling_url, credential,
+    15000, {conversationId: binding.conversation_id, sessionId: binding.session_id});
+video.setCameraMuted(true);
+video.setMicrophoneMuted(false);
+await video.close();
+```
+
+It uses authenticated WebRTC. Capture, ICE, offer/answer and sender configuration
+share one monotonic participation timeout. Capture/options are snapshotted before
+asynchronous work. An application-supplied stream transfers track ownership;
+clone tracks first if the application must retain its source. Optional
+`audioDeviceId`/`videoDeviceId` choose local capture devices; they are snapshotted,
+validated and passed only to capture constraints. They never enter signaling or
+diagnostics. Device selectors cannot be combined with an application-supplied stream. Hangup, capture-source loss and failed ICE release
+owned tracks. Leaving the connection retains its accepted durable Session and
+Conversation; explicit `session_end` is terminal, and a new accepted invitation
+can be selected without restarting the server.
+
+Rust `NativeVideoSession` owns independently bounded PCMU and encoded VP8 media
+receivers. It retains a private original binding for receive, subscribe and
+teardown; changing public diagnostic ID strings cannot retarget media or cleanup.
+Calling `end` through another client rejects before releasing the original
+session. `media_diagnostics()` returns a bounded numeric Rust snapshot of local
+audio/video channel samples and the shared physical QUIC byte buffer. Video
+packets older than 200 ms are discarded before delivery to the SDK caller; sampled
+queue depth includes any sender reservations and is not an exact peak.
+Encoded media Debug output contains metadata rather than payload bytes.
+The native example supplies an independently selected FFmpeg codec; the server
+forwards encoded media and does not need FFmpeg. Python/TypeScript control uses
+the documented native helper. It does not become an independent native-video
+codec API, and tools/HTTP do not carry live camera frames.
+
+Browser `diagnostics()` also retains optional encoder time, packet-send delay,
+frame rate and a fixed quality-limit enum when the browser reports them. Missing
+observations stay absent; these numbers are separate from remote decoding.
+
+Authenticated `health().readiness.media` optionally reports process-local media
+queue, forwarding and QUIC byte-buffer observations. TypeScript exports the
+`MediaDiagnostics` types; Python and TypeScript validate the bounded numeric
+shape. Older health responses without media remain valid. Queue high-water is
+sampled; logarithmic p50/p95 values are bucket upper bounds and may exceed the
+exact maximum. QUIC acceptance is local enqueue, not remote delivery. Shared
+DATAGRAM byte-buffer eviction and packet age are unobserved, with explicit false
+flags. These diagnostics cannot replace independent decoding or end-to-end
+latency evidence. See the [wire/media contract](../contracts/connect-media-vp8-v1.md).

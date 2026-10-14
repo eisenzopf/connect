@@ -667,6 +667,22 @@ name = "connect-connector-api"
 version = "0.1.0-alpha.1"
 dependencies = [
  "async-trait",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+]
+
+[[package]]
+name = "connect-connector-template"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "connect-connector-api",
+ "hmac",
+ "serde",
+ "serde_json",
+ "sha2",
  "tokio",
 ]
 
@@ -708,6 +724,17 @@ dependencies = [
  "tempfile",
  "tokio",
  "tokio-util",
+]
+
+[[package]]
+name = "connect-native-video"
+version = "0.1.0-alpha.1"
+dependencies = [
+ "anyhow",
+ "clap",
+ "connect-client",
+ "connect-protocol",
+ "tokio",
 ]
 
 [[package]]
@@ -761,8 +788,10 @@ dependencies = [
  "clap",
  "connect-client",
  "connect-connector-api",
+ "connect-connector-template",
  "connect-connectors",
  "connect-mcp",
+ "connect-native-video",
  "connect-protocol",
  "connect-service",
  "connect-store",
@@ -771,6 +800,7 @@ dependencies = [
  "futures-util",
  "hex",
  "hmac",
+ "prism-fixture",
  "quinn",
  "rcgen",
  "reqwest 0.12.28",
@@ -787,6 +817,7 @@ dependencies = [
  "rvoip-vapi",
  "rvoip-webrtc",
  "rvoip-websocket",
+ "security-framework",
  "serde",
  "serde_json",
  "sha2",
@@ -2748,6 +2779,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "353e1ca18966c16d9deb1c69278edbc5f194139612772bd9537af60ac231e1e6"
 dependencies = [
  "elliptic-curve",
+]
+
+[[package]]
+name = "prism-fixture"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "connect-connector-api",
+ "hmac",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
 ]
 
 [[package]]

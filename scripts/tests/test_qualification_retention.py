@@ -20,7 +20,7 @@ class RetentionVerifierTests(unittest.TestCase):
             ((401, b''), 'http_denied'),
             (reply({'isError': True, 'structuredContent': {'code': 'forbidden'}}), 'tool_denied'),
             ((200, json.dumps({'jsonrpc': '2.0', 'id': 1, 'error': {
-                'code': -32600, 'message': 'Task authority is no longer current'}}).encode()), 'rpc_denied'),
+                'code': -32600, 'message': 'MCP authority is no longer current'}}).encode()), 'rpc_denied'),
         ]
         for response, expected in responses:
             self.assertEqual(classify_task_status((response, 99.9, 100.1), 'task', 100), expected)
@@ -39,7 +39,15 @@ class RetentionVerifierTests(unittest.TestCase):
         for response in [(503, b''),
                          reply({'isError': True, 'structuredContent': {'code': 'transport-uncertain'}}),
                          (200, json.dumps({'jsonrpc': '2.0', 'id': 1, 'error': {
-                             'code': -32600, 'message': 'unrelated failure'}}).encode())]:
+                             'code': -32600, 'message': 'unrelated failure'}}).encode()),
+                         (200, json.dumps({'jsonrpc': '2.0', 'id': 1, 'error': {
+                             'code': -32600, 'message': 'Task authority is no longer current'}}).encode()),
+                         (200, json.dumps({'jsonrpc': '2.0', 'id': 1, 'error': {
+                             'code': -32603, 'message': 'MCP authority is no longer current'}}).encode()),
+                         (200, json.dumps({'jsonrpc': '2.0', 'id': 2, 'error': {
+                             'code': -32600, 'message': 'MCP authority is no longer current'}}).encode()),
+                         (200, json.dumps({'jsonrpc': '1.0', 'id': 1, 'error': {
+                             'code': -32600, 'message': 'MCP authority is no longer current'}}).encode())]:
             with self.assertRaises(AssertionError):
                 classify_task_status((response, 99.9, 100.1), 'task', 100)
 

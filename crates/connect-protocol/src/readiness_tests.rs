@@ -10,3 +10,12 @@ fn legacy_observation_retains_wire_shape_and_unconfigured_is_explicit() {
     let serialized = serde_json::to_value(value).unwrap();
     assert_eq!(serialized["configured"], false);
 }
+
+#[test]
+fn older_readiness_wire_omits_additive_media_diagnostics() {
+    let value: super::Readiness =
+        serde_json::from_str(r#"{"state":"uncertain","components":[]}"#).unwrap();
+    assert!(value.media.is_none());
+    let encoded = serde_json::to_value(value).unwrap();
+    assert!(encoded.get("media").is_none());
+}

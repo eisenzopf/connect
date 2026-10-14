@@ -1,0 +1,307 @@
+{
+  "profile": "connect-gate5-public-migration-recovery/1",
+  "date": "2026-10-13",
+  "task_id": "G5-041",
+  "status": "source public prerequisites and six recovery phases passed; completion pending unchanged baseline and installed qualification",
+  "scope": "local macOS arm64; isolated fixture state; no providers, personal database, model or deployment",
+  "catalog_sha256": "4a31bce3a302a13081ee99b5208b9b7fa23243976bc000b017f3cea62f70fca0",
+  "current_binary_sha256": "dae32bd56c9a8687f56be6ec964100591c2d7d3382854dad1a269dd7380071ec",
+  "baseline_builds": [
+    {
+      "schema": 1,
+      "source_revision": "3aa6077bee3ea05cea0aca550e9469df53c5ed87",
+      "source_tree": "d9a77b58d787cd5b84b344eae75d9ff16b0f81cc",
+      "baseline_kind": "identity-only-recovery-fixture",
+      "source_repository": "https://github.com/eisenzopf/connect.git",
+      "source_acquisition": "anonymous-public-fetch",
+      "binary_sha256": "40126a3cbdc3f9739b1942cfb27d0305103cb4679b7b0269aa00264db02f6506",
+      "patch_sha256": "7813304cbdbae7f50b66525b9b09bc42088d386bf06986992a575070a2e6a7f6",
+      "cargo_lock_sha256": "40ce8d83d88bf30efdcb4ea7f592d4190caa7dbfcc413a95a0d498fa6f8ffb5a",
+      "dependencies": {
+        "format": 1,
+        "sources": {
+          "rvoip": {
+            "url": "https://github.com/eisenzopf/rvoip.git",
+            "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+            "license": "MIT"
+          },
+          "parley": {
+            "url": "https://github.com/eisenzopf/parley.git",
+            "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+            "license": "MIT"
+          }
+        },
+        "patches": [
+          {
+            "path": "patches/rvoip/parley-conference.patch",
+            "sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+            "source": "Parley pinned revision"
+          },
+          {
+            "path": "patches/rvoip/connect-quic-application.patch",
+            "sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+            "source": "Connect native application-handler plumbing; opt-in only"
+          }
+        ]
+      },
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "build_environment": {
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_INCREMENTAL": "0"
+      },
+      "result": "passed; sealed executable preserved, generated build target retired"
+    },
+    {
+      "schema": 16,
+      "source_revision": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
+      "source_tree": "2b8388a047236a61a22b577deb192aca33b7a5de",
+      "baseline_kind": "historical-unmodified",
+      "source_repository": "https://github.com/eisenzopf/connect.git",
+      "source_acquisition": "anonymous-public-fetch",
+      "binary_sha256": "965b0d48592098b347f9330ce71d6c2705b6daa36b9581e43c3a1bb40f7c4e73",
+      "patch_sha256": null,
+      "cargo_lock_sha256": "fb8fe2b98c6aebfe0f56d071905c715e890370a3e7c096b9ca0680f9830a9e73",
+      "dependencies": {
+        "format": 1,
+        "sources": {
+          "rvoip": {
+            "url": "https://github.com/eisenzopf/rvoip.git",
+            "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+            "license": "MIT"
+          },
+          "parley": {
+            "url": "https://github.com/eisenzopf/parley.git",
+            "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+            "license": "MIT"
+          }
+        },
+        "patches": [
+          {
+            "path": "patches/rvoip/parley-conference.patch",
+            "sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+            "source": "Parley pinned revision"
+          },
+          {
+            "path": "patches/rvoip/connect-quic-application.patch",
+            "sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+            "source": "Connect native application-handler plumbing; opt-in only"
+          },
+          {
+            "path": "patches/rvoip/connect-session-context.patch",
+            "sha256": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+            "source": "Expose canonical Session context on authenticated inbound connection events"
+          },
+          {
+            "path": "patches/rvoip/external-session-projection.patch",
+            "sha256": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+            "source": "Project application-owned conversations and sessions into rvoip orchestration"
+          },
+          {
+            "path": "patches/rvoip/sip-terminal-media-race.patch",
+            "sha256": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+            "source": "Let exact SIP terminal signaling win a normal remote-hangup media closure race"
+          },
+          {
+            "path": "patches/rvoip/audio-queue-policy.patch",
+            "sha256": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+            "source": "Expose opt-in audio queue ceilings through core orchestration and raw QUIC stream construction; preserve upstream defaults."
+          },
+          {
+            "path": "patches/rvoip/transport-audio-queues.patch",
+            "sha256": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+            "source": "Opt-in SIP and WebRTC frame queue caps with construction tests; preserve existing 64-frame defaults."
+          },
+          {
+            "path": "patches/rvoip/authenticated-envelope-guard.patch",
+            "sha256": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+            "source": "Opt-in authenticated envelope policy on SessionBindingResolver, before correlation/application/resource mutation; default preserves existing resolver behavior."
+          },
+          {
+            "path": "patches/rvoip/vapi-call-admission.patch",
+            "sha256": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+            "source": "Opt-in host-owned Vapi call admission after request preparation and immediately before REST send; default unchanged. Connect uses current atomic task/session admission; no duplicate possibly-sent creation."
+          }
+        ]
+      },
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "build_environment": {
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_INCREMENTAL": "0"
+      },
+      "result": "passed; sealed executable preserved, generated build target retired"
+    }
+  ],
+  "checks": [
+    {
+      "name": "public-schema1-fixture-upgrade-refusal-rollback",
+      "status": "passed",
+      "seconds": 3.257,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 0
+    },
+    {
+      "name": "public-schema16-populated-upgrade-refusal-ddl-rollback",
+      "status": "passed",
+      "seconds": 3.79,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 0
+    },
+    {
+      "name": "schema17-task-continuation-current-authority",
+      "status": "passed",
+      "seconds": 0.764,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 0
+    },
+    {
+      "name": "schema17-interrupted-backup-completion-marker",
+      "status": "passed",
+      "seconds": 0.292,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 0
+    },
+    {
+      "name": "schema17-actual-restore-interruption",
+      "status": "passed",
+      "seconds": 7.59,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 0
+    },
+    {
+      "name": "schema17-first-run-pairing-private-reference-recovery",
+      "status": "passed",
+      "seconds": 1.01,
+      "exchanges": 0,
+      "server_sampled_peak_rss_bytes": null,
+      "database_apparent_bytes": 0
+    }
+  ],
+  "observations": {
+    "schema16": {
+      "original_tables": 38,
+      "original_rows": 51,
+      "artifact_bytes": 28672,
+      "migration_ddl_rollback": true,
+      "old_binary_refuses_new_schema": true,
+      "matching_snapshot_rollback": true,
+      "synthetic_sms_rows_preserved": true
+    },
+    "tasks": {
+      "schema16_waiting_task_restored": true,
+      "native_grant_rows_and_binding_preserved": true,
+      "restored_grant_denies_live_media": true,
+      "original_question_replayed": true,
+      "current_cancellation_denies_replay": true
+    },
+    "interruption": {
+      "killed_after_database_before_manifest": true,
+      "incomplete_snapshot_refused": true,
+      "interrupted_destination_preserved": true,
+      "fresh_backup_restores_original_rows": true
+    },
+    "restore_interruption": {
+      "actual_restore_killed_during_database_copy": true,
+      "partial_destination_not_adopted_or_overwritten": true,
+      "matching_backup_restores_to_new_destination": true,
+      "disposable_padding_bytes": 33554432
+    },
+    "setup": {
+      "setup_files_private": true,
+      "secret_refs_preserved_without_export": true,
+      "pairing_receipt_restored_and_revocation_current": true,
+      "corrupt_backup_refused_before_destination": true,
+      "partial_restore_preserved": true
+    }
+  },
+  "source_inputs_sha256": {
+    "scripts/check-gate5-recovery.py": "bafd777747cbec018efe3276c984d3dcbab75b10cc6581b2ea773ddedfa099ad",
+    "scripts/lib/recovery_upgrade.py": "250be048ea39750e7376c718ed64f8f718549db7b806e87a1b913ad6f51072d0",
+    "scripts/lib/recovery_tasks.py": "d70ebe9d9d1be184a4158a18ed895c6eda2a9c966f1bd513bd68612d6175ba60",
+    "scripts/lib/recovery_interruption.py": "dd6de89d2300fe1903e2ed6758f78cd24fb38d549fbe0287f99eebd67feb1ddc",
+    "scripts/lib/recovery_restore_interruption.py": "6ee1cbbadeb8df68929801675557c3825ae8bdffbf533b7d4d991c525187ed77",
+    "scripts/check-recovery.py": "2e506d4cb17af8a8a88f5fafb40ef32acae78dddb74ee44889e1092a91e74231",
+    "scripts/lib/recovery_state.py": "c4e662e29d28869590e0c4b5b71b48ad2ed35c8f1303f5dfc14d8ced9eaa5e90",
+    "scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+    "scripts/lib/profile_metrics.py": "1b08fee0509df2021b3ecfea67c5fee2c27804dac45699fd83debad40b14c4f9"
+  },
+  "python_sdk_sha256": {
+    "connect_sdk/__init__.py": "5340890973b965342586eee3978df9b87a0c52cfbac7d8ad6b6a5d239e0e114d",
+    "connect_sdk/_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+    "connect_sdk/contact_validation.py": "8afce6ce76a91703c34ba5e6d00987618c330b3e7cce82c56d1d6e1a44a780ff",
+    "connect_sdk/errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+    "connect_sdk/http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+    "connect_sdk/native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+    "connect_sdk/native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+    "connect_sdk/operations.py": "f0dbb3b2e004fc6271300c612d4494bac60ddf695e29e7f5d9e3439021c7559f",
+    "connect_sdk/protocol.py": "25cbb89914fbc107c35df900c1c8c22c7aa7bfc926631fef5f7f9a63d467d6e3",
+    "connect_sdk/task_operations.py": "8e38684ec10f7b0d45032b95d9b85f2b71132e6ded71079bffe6dcf156190ddf",
+    "connect_sdk/task_protocol.py": "7a2d21587c6a8be1e5a17afb7ac79f6f346ca0d8ad46191dab0d6d6508f3a30d",
+    "connect_sdk/task_types.py": "d59cf7ccc284fe29dfcd31f98d9536bb543f377f4c93436511e70cbf30179d95"
+  },
+  "private_result_sha256": "caaaf603afdbfb8c11672fdc3a74ff2660b54356779ff2d48397af7f1c69d247",
+  "limitations": [
+    "Schema1 is the documented digest-pinned identity-only fixture from public schema2 source; it is not an unmodified private historical milestone.",
+    "Public schema6/10 cached binaries remain sealed and exact source/tree publicly verified; their retained executable regressions remain required in the baseline/source driver.",
+    "Source proof is separate from installed candidate and whole Gate5 qualification; unchanged Gate4 baseline is running and not yet passed.",
+    "No owner database, provider operation, model inference, remote deployment or personal Keychain was used."
+  ],
+  "additional_schema18_source_proof": {
+    "status": "passed",
+    "candidate_schema": 18,
+    "binary_sha256": "94ad7461c05529914dd73322d5c6c80a7ab0f1fd8f647f6ae9330043af1066d0",
+    "private_result_sha256": "8702ff8eadf9375f683ae9341739c036d4d298008252260a4ac6bd5df6e2c4a1",
+    "selected_source_cli": {
+      "binary": ".local/gate5/setup-schema18-source/connect-94ad7461c055",
+      "binary_sha256": "94ad7461c05529914dd73322d5c6c80a7ab0f1fd8f647f6ae9330043af1066d0",
+      "current_schema": 18,
+      "features": [],
+      "source_lock_sha256": "1f8f716ca3211ba5a37798845c18e6f4d18b0c40c04b94195387214b197707e5",
+      "video_patch_sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+      "scope": "Source setup fixtures only; normal default-feature CLI built during current focused tests, not final packaged/media qualification seal"
+    },
+    "phases": [
+      {
+        "name": "public-schema1-fixture-upgrade-refusal-rollback",
+        "status": "passed",
+        "seconds": 2.508,
+        "exchanges": 0
+      },
+      {
+        "name": "public-schema16-populated-upgrade-refusal-ddl-rollback",
+        "status": "passed",
+        "seconds": 2.075,
+        "exchanges": 0
+      },
+      {
+        "name": "current-schema-task-continuation-current-authority",
+        "status": "passed",
+        "seconds": 0.833,
+        "exchanges": 0
+      },
+      {
+        "name": "current-schema-interrupted-backup-completion-marker",
+        "status": "passed",
+        "seconds": 0.303,
+        "exchanges": 0
+      },
+      {
+        "name": "current-schema-actual-restore-interruption",
+        "status": "passed",
+        "seconds": 6.075,
+        "exchanges": 0
+      },
+      {
+        "name": "current-schema-first-run-pairing-private-reference-recovery",
+        "status": "passed",
+        "seconds": 0.978,
+        "exchanges": 0
+      }
+    ],
+    "scope": "New public1/16\u219218 source proof; original schema17 proof retained separately; final installed package proof pending."
+  }
+}

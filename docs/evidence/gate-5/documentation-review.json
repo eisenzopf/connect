@@ -1,0 +1,185 @@
+{
+  "profile": "connect-gate-5-documentation-preparation/1",
+  "task": "G5-047",
+  "recorded_at": "2026-10-14T07:23:25.642714+00:00",
+  "status": "drafts-and-static-link-provenance-review-passed; candidate/acceptance/owner-review-pending",
+  "scope": "Local release notes, proposed project-page copy and static repository documentation/provenance only; no build, native timing, provider/model/device operation, publication or deployment.",
+  "head_commit": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_working_tree": "uncommitted Gate5 implementation and documentation; exact reviewed file hashes recorded",
+  "reviewed_source_sha256": {
+    "README.md": "f71677965c9f782541fcc1f29dc5d456cbd285df912bc72611f7997e80fa522d",
+    "THIRD_PARTY_NOTICES.md": "111198e104fe825d451f3c759e42e7d38e1a78afb8a28c5d9352335c85d6bc4a",
+    "docs/LOCAL_RELEASE.md": "d38f3a74e52db8fa7f2441d864e862177d9c8b8bf277661ccee4cc67a47c7a29",
+    "docs/GATE5_PACKAGE.md": "608510d7b3842450b6e33d42847a9a617250b1011d019870f8b4ce1634c3fefe",
+    "docs/GATE5_RELEASE_NOTES.md": "61da5e940d5b230e92c5c9e810fab242312aba6253bf2d4436eacd9e140923b9",
+    "docs/GATE5_PROJECT_COPY.md": "dc907eacd68195c728eac04f20b446b5180c4658ab358bcc8c275c66e63ce22a",
+    "docs/connect-gate-5-plan.html": "43ff9035f59c48367df030092cfe46170f177320e5ec5a3369aabbad6dec30ac",
+    "docs/connect-gate-5-implementation.html": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"
+  },
+  "prepared": [
+    "Local release notes distinguish recorded component passes from targets and installed qualification.",
+    "Compatibility matrix covers public clients, normalized opt-ins, late task/SMS observations, independent control and schema18 recovery.",
+    "Unsupported matrix and F-01\u2013F-21 roadmap/coverage links preserve unqualified paths.",
+    "Project-page/conference copy retains local macOS arm64, browser WebRTC/native QUIC, unpublished/under-qualification status.",
+    "Runtime README source opens with current Gate5 entry point; exact historical Gate4 runbook retained as history.",
+    "Third-party notices identify all three runtime executables, recorded upstream patches and unbundled external tools.",
+    "Product plan footer now reports authorized ongoing implementation rather than all items not started.",
+    "Original baseline completion and contract/driver tasks are distinguished from changed-candidate release qualification; dependency completion does not close downstream acceptance automatically."
+  ],
+  "links": {
+    "checked_files": [
+      "README.md",
+      "THIRD_PARTY_NOTICES.md",
+      "docs/LOCAL_RELEASE.md",
+      "docs/GATE5_PACKAGE.md",
+      "docs/GATE5_RELEASE_NOTES.md",
+      "docs/GATE5_PROJECT_COPY.md",
+      "docs/connect-gate-5-plan.html",
+      "docs/connect-gate-5-implementation.html"
+    ],
+    "local_links_checked": 601,
+    "missing_local_targets": [],
+    "unresolved_local_anchors": [],
+    "external_links_not_network_checked": 12,
+    "scope": "Static repository local targets and anchors; no candidate extraction or external network qualification.",
+    "private_result": ".local/gate5/release-doc-link-check.json",
+    "private_result_sha256": "d97313a2b2807923845c265447b900d71ee61eedabc7bd2c1797422a6ef4ac0f"
+  },
+  "source_provenance": {
+    "repository_license": "MIT",
+    "repository_license_sha256": "2a2a2cbcaa51b2012f2c66f1168fa520cf86004397c0058682c4d3bb1bd53716",
+    "dependency_source_lock_sha256": "7731b24ad50e0f27ef11c0e95dece1a5517a5827f631f6fe11f09402b3eb13b4",
+    "upstream_sources": {
+      "rvoip": {
+        "declared": "MIT",
+        "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+        "url": "https://github.com/eisenzopf/rvoip.git",
+        "license_text_sha256": "d689025d3da6610ea2ff966052e3709e2eb15fc7553e7f2ddf49866e62b24859",
+        "observed_license_heading": "MIT License"
+      },
+      "parley": {
+        "declared": "MIT",
+        "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+        "url": "https://github.com/eisenzopf/parley.git",
+        "license_text_sha256": "912ebf66694a2ccb1bedc748864cad68ca651ba7938175e81c15f78481310075",
+        "observed_license_heading": "MIT License"
+      }
+    },
+    "patch_count": 12,
+    "patches": [
+      {
+        "path": "patches/rvoip/parley-conference.patch",
+        "recorded_sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+        "actual_sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/connect-quic-application.patch",
+        "recorded_sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+        "actual_sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/connect-session-context.patch",
+        "recorded_sha256": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+        "actual_sha256": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/external-session-projection.patch",
+        "recorded_sha256": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+        "actual_sha256": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/sip-terminal-media-race.patch",
+        "recorded_sha256": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+        "actual_sha256": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/audio-queue-policy.patch",
+        "recorded_sha256": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+        "actual_sha256": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/transport-audio-queues.patch",
+        "recorded_sha256": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+        "actual_sha256": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/authenticated-envelope-guard.patch",
+        "recorded_sha256": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+        "actual_sha256": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/vapi-call-admission.patch",
+        "recorded_sha256": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+        "actual_sha256": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/encoded-video-transport.patch",
+        "recorded_sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+        "actual_sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/terminal-session-resource-lifetime.patch",
+        "recorded_sha256": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+        "actual_sha256": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+        "matches": true
+      },
+      {
+        "path": "patches/rvoip/terminal-session-backpressure.patch",
+        "recorded_sha256": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+        "actual_sha256": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+        "matches": true
+      }
+    ],
+    "independent_python_notice": "examples/independent-uctp-client/DEPENDENCIES.md",
+    "independent_python_notice_sha256": "ac12d312f62ad8b781953ba1e58f3ed32d414b6488ae20e6de1568a7ee897ca3",
+    "independent_python_requirements_sha256": "706576302f3bff6dc411d54d55d46300ccaaea3f519197aeeffff44df0c9e2bc",
+    "external_tools_bundled": false,
+    "candidate_registry_notice_inventory_verified": false
+  },
+  "architecture_quality_findings": [
+    {
+      "finding": "Public connector API/examples retain storage/server-independent composition; adapters report observations and the Store owns authority, receipts and provenance. Native example uses public connect-client and owns external codec children.",
+      "scope": "Static boundary review and linked component evidence; no new final source/runtime execution inferred."
+    },
+    {
+      "finding": "Logical mutation replay and canonical business rejection receipts remain authoritative; unknown provider creation is reconciled without replacement logical IDs. Task-terminal replies and delivery-only SMS observations are separate from new effects.",
+      "evidence": "docs/evidence/gate-5/connector-runtime-integration.json"
+    },
+    {
+      "finding": "Qualification keeps control-only, generated capture, decoded-media, model-host, carrier-live and installed scope separate; strict native cleanup integration binds exact inputs/artifacts and rejects forced cleanup.",
+      "evidence": "docs/evidence/gate-5/package-native-cleanup-integration.json"
+    },
+    {
+      "finding": "No architecture refactor proposed as part of documentation preparation. Current physical-peer/durable-Session lifetime repair requires its own final source-composed regression and package evidence.",
+      "scope": "Root-owned qualification pending."
+    }
+  ],
+  "remaining_actions": [
+    "Cut the matching immutable clean-source runtime/source/qualification archives and validate installed artifact/link/license inventory, including licenses/registry-index.json and runtime prerequisites.",
+    "Complete full declared decoded-route/impairment/mute and native cleanup obligations on the final graph; generated/guard/smoke results do not substitute.",
+    "Refresh final source/interface/model/contributor/provider-audit evidence for the accepted candidate; historical carrier results retain their source/topology boundary.",
+    "Record the required independent fresh-user walkthroughs before advertising the ten-minute target as measured.",
+    "Complete independent quality review and owner acceptance; G5-047 and Gate5 are not marked complete by these drafts.",
+    "Publish/download-verify or update the Rudeless project page only after separate owner instruction."
+  ],
+  "whole_gate_qualified": false,
+  "published": false,
+  "baseline_completion": {
+    "evidence": "docs/evidence/gate-5/baseline.json",
+    "evidence_sha256": "5eeb09dabf4d0791108b3a07eccf9ac28df50ec07f6c83b8c814fa311d816ecf",
+    "original_source_phases": 42,
+    "original_installed_checks": 17,
+    "single_full_run_passed": false,
+    "current_gate5_candidate_pass": false
+  }
+}

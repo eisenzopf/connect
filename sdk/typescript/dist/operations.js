@@ -8,6 +8,32 @@ export class Operations extends TaskOperations {
             throw new ConnectError("protocol", "Unexpected outcome");
         return result.data;
     }
+    contactPairingStart(request_id, peer_identity_id, expires_at) {
+        return this.data("contact_pairing", {
+            op: "contact_pairing_start",
+            request_id,
+            peer_identity_id,
+            expires_at,
+        });
+    }
+    contactPairingComplete(request_id, pairing_id, challenge) {
+        return this.data("contact_pairing", {
+            op: "contact_pairing_complete",
+            request_id,
+            pairing_id,
+            challenge,
+        });
+    }
+    contactPairingRevoke(request_id, pairing_id) {
+        return this.data("contact_pairing", {
+            op: "contact_pairing_revoke",
+            request_id,
+            pairing_id,
+        });
+    }
+    contactState(peer_identity_id) {
+        return this.data("contact", { op: "contact_state", peer_identity_id });
+    }
     capabilities(address, conversation_id = null) {
         return this.data("capabilities", {
             op: "capabilities",
@@ -15,8 +41,15 @@ export class Operations extends TaskOperations {
             conversation_id,
         });
     }
-    browserBinding() {
-        return this.data("browser_binding", { op: "browser_binding" });
+    browserBinding(conversation_id, session_id) {
+        if ((conversation_id === undefined) !== (session_id === undefined))
+            throw new Error("Select both conversation_id and session_id");
+        return this.data("browser_binding", {
+            op: "browser_binding",
+            ...(conversation_id === undefined
+                ? {}
+                : { conversation_id, session_id }),
+        });
     }
     contextDeliveries(conversation_id, before = null, limit = 100) {
         return this.data("context_deliveries", {

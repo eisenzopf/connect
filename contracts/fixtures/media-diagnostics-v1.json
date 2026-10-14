@@ -1,0 +1,78 @@
+{
+  "scope": "server-process",
+  "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+  "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+  "queues": [
+    {
+      "stage": "core-video-dispatch",
+      "kind": "video",
+      "unit": "frame-packets",
+      "capacity_packets": 64,
+      "sampled_high_water_packets": 4,
+      "observations": 100,
+      "enqueue_full_observations": 0,
+      "stale_forwarding_discards": 1,
+      "max_forwarded_frame_age_ms": 120,
+      "frame_age_boundary": "dequeue-before-handoff-or-write"
+    }
+  ],
+  "forwarding": [
+    {
+      "stage": "core-video-dispatch",
+      "samples": 100,
+      "p50_us": 127,
+      "p95_us": 255,
+      "max_us": 200,
+      "percentile_method": "log2-bucket-upper-bound",
+      "missing_ingress_observations": 0,
+      "handoff_timeouts": 0
+    }
+  ],
+  "quic": {
+    "samples": 100,
+    "min_max_datagram_size_bytes": 1176,
+    "max_max_datagram_size_bytes": 1420,
+    "min_path_mtu_bytes": 1200,
+    "max_path_mtu_bytes": 1444,
+    "maximum_attempted_datagram_bytes": 1188,
+    "video_budget_observations": 99,
+    "min_video_rtp_budget_bytes": 1168,
+    "max_video_rtp_budget_bytes": 1180,
+    "maximum_source_video_rtp_bytes": 1180,
+    "video_repacketized_inputs": 10,
+    "video_packetizer_discards": 0,
+    "video_no_datagram_budget": 0,
+    "accepted_datagrams": 100,
+    "too_large": 0,
+    "unsupported_by_peer": 0,
+    "disabled": 0,
+    "connection_lost": 0,
+    "send_buffer": {
+      "scope": "shared-audio-video-peer-buffer",
+      "capacity_bytes": 76032,
+      "observations": 100,
+      "minimum_available_bytes": 69000,
+      "maximum_available_bytes": 76032,
+      "sampled_high_water_bytes": 7032,
+      "capacity_mismatch_observations": 0,
+      "send_exceeded_sampled_available_bytes": 0,
+      "evictions_observed": false,
+      "queued_age_observed": false
+    }
+  },
+  "webrtc_video_input": {
+    "source_packets": 1,
+    "maximum_source_payload_bytes": 1154,
+    "source_sequence_gap_events": 0,
+    "missing_sequence_slots": 0,
+    "source_reordered_packets": 0,
+    "padding_packets": 1,
+    "oversize_payload": 0,
+    "invalid_descriptor": 0,
+    "late_or_conflicting_mapping": 0,
+    "marshal_failed": 0,
+    "normalized_oversize": 0,
+    "reorder_expirations": 0,
+    "source_reset_discards": 0
+  }
+}

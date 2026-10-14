@@ -10,6 +10,19 @@ pub(super) fn authorize(
     store: &Store,
 ) -> Result<Vec<String>> {
     Ok(match operation {
+        Operation::ContactPairingStart {
+            peer_identity_id, ..
+        } => {
+            crate::contacts::authorize_peer(c, actor, peer_identity_id)?;
+            vec![actor.identity_id.clone(), peer_identity_id.clone()]
+        }
+        Operation::ContactPairingComplete { pairing_id, .. }
+        | Operation::ContactPairingRevoke { pairing_id, .. } => crate::contacts::authorize_pairing(
+            c,
+            actor,
+            pairing_id,
+            matches!(operation, Operation::ContactPairingComplete { .. }),
+        )?,
         Operation::Create { participants, .. } => {
             let mut members = participants.clone();
             members.push(actor.identity_id.clone());

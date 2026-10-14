@@ -7,7 +7,7 @@ fn downgrade(m: &MediaFixture) {
         .connection()
         .unwrap()
         .execute_batch(
-            "DROP TABLE vapi_session_setups; DROP INDEX session_bindings_task_grant;
+            "DROP TABLE connector_observations; DROP TABLE connector_receipt_events; DROP TABLE connector_incoming; DROP TABLE connector_voice_observations; DROP TABLE contact_pairings; DROP TABLE connector_manifests; DROP TABLE vapi_session_setups; DROP INDEX session_bindings_task_grant;
          ALTER TABLE session_bindings DROP COLUMN task_grant_id;
          PRAGMA user_version=14;",
         )

@@ -16,6 +16,19 @@ pub(super) fn apply(
         .request_id()
         .ok_or_else(|| invalid("Logical request ID is required"))?;
     match operation {
+        Operation::ContactPairingStart {
+            peer_identity_id,
+            expires_at,
+            ..
+        } => crate::contacts::start(c, actor, peer_identity_id, *expires_at),
+        Operation::ContactPairingComplete {
+            pairing_id,
+            challenge,
+            ..
+        } => crate::contacts::complete(c, actor, pairing_id, challenge),
+        Operation::ContactPairingRevoke { pairing_id, .. } => {
+            crate::contacts::revoke(c, actor, pairing_id)
+        }
         Operation::CallStart {
             conversation_id,
             route_id,

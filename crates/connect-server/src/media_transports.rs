@@ -77,7 +77,9 @@ async fn start_sip(
     listener.local_uri = format!("sip:connect@{}:{}", listener.local_ip, sip.bind.port());
     listener.sip_advertised_addr = sip.advertised;
     if let Some(outbound) = &sip.outbound {
-        apply_outbound_trunk(&mut listener, outbound, |name| std::env::var(name))?;
+        apply_outbound_trunk(&mut listener, outbound, |name| {
+            crate::secrets::resolve(name).map(|value| value.expose().to_owned())
+        })?;
     }
     if let Some(address) = sip.media_public {
         listener = listener.with_media_public_addr(address);
@@ -121,17 +123,19 @@ async fn start_sip(
     Ok((Some(coordinator), Some(sip.bind), registration))
 }
 
-fn apply_outbound_trunk(
+fn apply_outbound_trunk<E: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static>(
     listener: &mut SipConfig,
     outbound: &SipOutboundConfig,
-    read_secret: impl FnOnce(&str) -> std::result::Result<String, std::env::VarError>,
+    read_secret: impl FnOnce(&str) -> std::result::Result<String, E>,
 ) -> Result<()> {
-    let password = read_secret(&outbound.auth_password_env).with_context(|| {
-        format!(
-            "Outbound SIP password environment variable {} is unavailable",
-            outbound.auth_password_env
-        )
-    })?;
+    let password = read_secret(&outbound.auth_password_env)
+        .map_err(|_| anyhow::anyhow!("Outbound SIP secret unavailable"))
+        .with_context(|| {
+            format!(
+                "Outbound SIP password environment variable {} is unavailable",
+                outbound.auth_password_env
+            )
+        })?;
     if password.is_empty() {
         anyhow::bail!(
             "Outbound SIP password environment variable {} is empty",
@@ -155,12 +159,68 @@ async fn start_webrtc(
     let Some(webrtc) = &config.webrtc else {
         return Ok((None, None));
     };
-    let auth = rvoip_webrtc::signaling::auth::AuthCoreHook::new(StoreValidator::for_credential(
-        store,
-        webrtc.route.credential_id.clone(),
-    ))
-    .with_realm("connect");
-    let server = WebRtcServerBuilder::new(crate::media_profile::webrtc_config())
+    let video_route =
+        crate::media_ingress::configured_video_session(&store, &webrtc.route).is_some();
+    let selected_store = Arc::clone(&store);
+    let selected_route = crate::media_ingress::browser_route(&webrtc.route);
+    let validator = StoreValidator::new(store);
+    let auth = rvoip_webrtc::signaling::auth::AuthCoreHook::new(validator).with_realm("connect");
+    let mut profile = crate::media_profile::webrtc_config();
+    profile.require_vp8_audio_video_profile = video_route;
+    profile.allow_session_selection = true;
+    profile.inbound_session_authorizer = Some(Arc::new(
+        move |principal: &rvoip_core::identity::AuthenticatedPrincipal,
+              request: &rvoip_webrtc::config::WebRtcInboundSessionRequest| {
+            let denied = || {
+                rvoip_webrtc::WebRtcError::Unauthorized("Browser Session admission denied".into())
+            };
+            if principal.is_expired() {
+                return Err(denied());
+            }
+            match (request.conversation_id, request.session_id) {
+                (Some(cid), Some(sid)) if request.audio_video => selected_store
+                    .authorize_selected_browser_video(&principal.subject, &selected_route, cid, sid)
+                    .map(|_| ())
+                    .map_err(|_| denied()),
+                (None, None) if request.audio_video => {
+                    let sid = selected_route
+                        .binding
+                        .session_id
+                        .as_deref()
+                        .ok_or_else(denied)?;
+                    selected_store
+                        .authorize_selected_browser_video(
+                            &principal.subject,
+                            &selected_route,
+                            &selected_route.binding.conversation_id,
+                            sid,
+                        )
+                        .map(|_| ())
+                        .map_err(|_| denied())
+                }
+                (None, None) if principal.subject == selected_route.credential_id => {
+                    let runtime = connect_store::DiscoveryRuntime {
+                        browser: Some(selected_route.clone()),
+                        ..Default::default()
+                    };
+                    selected_store
+                        .execute_with_runtime(
+                            &principal.subject,
+                            &connect_protocol::Operation::BrowserBinding {
+                                conversation_id: None,
+                                session_id: None,
+                            },
+                            &runtime,
+                        )
+                        .map(|_| ())
+                        .map_err(|_| denied())
+                }
+                _ => Err(denied()),
+            }
+        },
+    ));
+    profile.media_diagnostics = Some(orchestrator.media_diagnostics());
+    let server = WebRtcServerBuilder::new(profile)
         .with_ws(webrtc.bind.to_string())
         .with_ws_auth(Arc::new(auth))
         .build()
@@ -191,8 +251,10 @@ mod tests {
     #[test]
     fn outbound_trunk_uses_environment_secret_without_logging_it() {
         let mut listener = SipConfig::local("connect", 5060);
-        apply_outbound_trunk(&mut listener, &trunk(), |_| Ok("private-password".into()))
-            .expect("valid trunk should be applied");
+        apply_outbound_trunk(&mut listener, &trunk(), |_| {
+            Ok::<_, std::env::VarError>("private-password".into())
+        })
+        .expect("valid trunk should be applied");
 
         assert_eq!(listener.local_uri, "sip:+12702628454@sip.telnyx.com");
         assert_eq!(
@@ -225,8 +287,10 @@ mod tests {
         .expect_err("missing secret should fail closed");
         assert!(missing.to_string().contains("CONNECT_SIP_PASSWORD"));
 
-        let empty = apply_outbound_trunk(&mut listener, &trunk(), |_| Ok(String::new()))
-            .expect_err("empty secret should fail closed");
+        let empty = apply_outbound_trunk(&mut listener, &trunk(), |_| {
+            Ok::<_, std::env::VarError>(String::new())
+        })
+        .expect_err("empty secret should fail closed");
         assert!(empty.to_string().contains("empty"));
     }
 }

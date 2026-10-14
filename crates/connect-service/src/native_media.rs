@@ -74,7 +74,8 @@ pub(crate) fn authorize(
             .vapi_session_route(&principal.subject, sid)
             .map_err(super::session_bindings::resource_error)?;
     }
-    if session.media != ["audio"]
+    let video = session.media == ["audio", "video"];
+    if (!video && session.media != ["audio"])
         || envelope
             .cid
             .as_deref()
@@ -101,9 +102,14 @@ pub(crate) fn authorize(
                 || envelope.connid.is_some()
                 || offer.from != participant
                 || offer.to != [counterpart.clone()]
-                || offer.medium != "voice"
+                || offer.medium != if video { "voice-video" } else { "voice" }
                 || offer.intent != "connect-session"
-                || offer.capabilities_offer != serde_json::json!({"audio":["g.711-mu"]})
+                || offer.capabilities_offer
+                    != if video {
+                        serde_json::json!({"audio":["g.711-mu"],"video":["vp8"]})
+                    } else {
+                        serde_json::json!({"audio":["g.711-mu"]})
+                    }
             {
                 return denied();
             }
@@ -115,12 +121,7 @@ pub(crate) fn authorize(
                 || offer.substrate != "quic"
                 || !offer.substrate_setup.is_null()
                 || offer.capabilities != serde_json::json!({})
-                || offer.streams_offered.len() != 1
-                || offer.streams_offered.iter().any(|s| {
-                    s.kind != "audio"
-                        || !matches!(s.direction.as_str(), "sendrecv" | "sendonly" | "recvonly")
-                        || s.codec_preferences != ["g.711-mu"]
-                })
+                || !valid_stream_offer(&offer.streams_offered, video)
             {
                 return denied();
             }
@@ -135,7 +136,9 @@ pub(crate) fn authorize(
                     s.from_participant
                         .as_ref()
                         .is_some_and(|p| p != counterpart)
-                        || s.kinds.iter().any(|kind| kind != "audio")
+                        || s.kinds
+                            .iter()
+                            .any(|kind| kind != "audio" && !(video && kind == "video"))
                 })
             {
                 return denied();
@@ -159,7 +162,7 @@ pub(crate) fn authorize(
             ) || update
                 .codec_preferences
                 .iter()
-                .any(|codec| codec != "g.711-mu")
+                .any(|codec| codec != "g.711-mu" && !(video && codec == "vp8"))
                 || update.details != serde_json::json!({})
             {
                 return denied();
@@ -178,4 +181,110 @@ fn forbidden() -> ResourceBindingError {
 }
 fn denied() -> Result<(), ResourceBindingError> {
     Err(forbidden())
+}
+
+/// Exact approved native profile, checked before the UCTP handler allocates streams.
+fn valid_stream_offer(streams: &[connection::StreamOffer], video: bool) -> bool {
+    let expected = if video { 2 } else { 1 };
+    streams.len() == expected
+        && streams.iter().all(|stream| !stream.id.is_empty())
+        && (streams.len() == 1 || streams[0].id != streams[1].id)
+        && streams
+            .iter()
+            .filter(|stream| stream.kind == "audio")
+            .count()
+            == 1
+        && streams
+            .iter()
+            .filter(|stream| stream.kind == "video")
+            .count()
+            == usize::from(video)
+        && streams.iter().all(|stream| {
+            (if video {
+                stream.direction == "sendrecv"
+            } else {
+                matches!(
+                    stream.direction.as_str(),
+                    "sendrecv" | "sendonly" | "recvonly"
+                )
+            }) && stream.codec_preferences
+                == [if stream.kind == "audio" {
+                    "g.711-mu"
+                } else {
+                    "vp8"
+                }]
+        })
+}
+
+/// Regular backing credentials retain generic audio behavior but accepted video
+/// Sessions use the same exact profile boundary as scoped native task grants.
+pub(crate) fn authorize_owner_video(
+    store: &Store,
+    principal: &AuthenticatedPrincipal,
+    envelope: &UctpEnvelope,
+) -> Result<(), ResourceBindingError> {
+    if !matches!(
+        envelope.msg_type,
+        MessageType::SessionInvite | MessageType::ConnectionOffer
+    ) {
+        return Ok(());
+    }
+    let Some(sid) = envelope.sid.as_deref() else {
+        return Ok(());
+    };
+    let session = store
+        .authorize_session_binding(&principal.subject, sid)
+        .map_err(super::session_bindings::resource_error)?;
+    if !session.media.iter().any(|kind| kind == "video") {
+        return Ok(());
+    }
+    if session.media != ["audio", "video"]
+        || envelope
+            .cid
+            .as_deref()
+            .is_some_and(|cid| cid != session.conversation_id)
+    {
+        return denied();
+    }
+    store
+        .vapi_session_route(&principal.subject, sid)
+        .map_err(super::session_bindings::resource_error)?;
+    match envelope.msg_type {
+        MessageType::SessionInvite => {
+            let offer: session::SessionInvite =
+                envelope.decode_payload().map_err(|_| forbidden())?;
+            let actor = store
+                .revalidate(&principal.subject)
+                .map_err(super::session_bindings::resource_error)?;
+            let counterpart = if actor.identity_id == session.initiator_id {
+                &session.participant_id
+            } else {
+                &session.initiator_id
+            };
+            if offer.from != principal.subject
+                || offer.to != [counterpart.clone()]
+                || envelope.cid.as_deref() != Some(session.conversation_id.as_str())
+                || offer.medium != "voice-video"
+                || offer.intent != "connect-session"
+                || offer.capabilities_offer
+                    != serde_json::json!({"audio":["g.711-mu"],"video":["vp8"]})
+            {
+                return denied();
+            }
+        }
+        MessageType::ConnectionOffer => {
+            let offer: connection::ConnectionOffer =
+                envelope.decode_payload().map_err(|_| forbidden())?;
+            if offer.by_participant != principal.subject
+                || offer.substrate != "quic"
+                || !offer.substrate_setup.is_null()
+                || offer.capabilities != serde_json::json!({})
+                || !valid_stream_offer(&offer.streams_offered, true)
+            {
+                return denied();
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }

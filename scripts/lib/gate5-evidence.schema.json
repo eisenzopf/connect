@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "connect:qualification:gate5:1",
+  "title": "Gate5 selected-lane evidence, not whole-gate acceptance",
+  "type": "object",
+  "required": ["schema_version", "scope", "status", "selected_lanes", "steps", "unresolved", "whole_gate_qualified", "source_inputs_sha256", "started_at"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "scope": {"type": "string"},
+    "status": {"enum": ["running", "failed", "passed-selected-lanes"]},
+    "whole_gate_qualified": {"const": false},
+    "selected_lanes": {"type": "array", "uniqueItems": true, "items": {"enum": ["source", "independent-client", "installed", "scripted-host", "actual-model", "operating", "native-keychain", "native-example"]}},
+    "source_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_inputs_sha256": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+    "dirty": {"type": "boolean"},
+    "source_stable": {"type": "boolean"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "required_steps": {"type": "array", "items": {"type": "string"}},
+    "not_run": {"type": "array", "items": {"type": "string"}},
+    "unresolved": {"type": "array", "items": {"type": "object", "required": ["lane", "reason"], "properties": {"lane": {"type": "string"}, "reason": {"type": "string"}}}},
+    "steps": {"type": "array", "items": {"type": "object", "required": ["name", "lane", "command", "timeout_seconds", "status", "log", "seconds"], "properties": {"name": {"type": "string"}, "lane": {"type": "string"}, "command": {"type": "array", "items": {"type": "string"}}, "timeout_seconds": {"type": "number", "exclusiveMinimum": 0}, "status": {"enum": ["running", "failed", "passed"]}, "log": {"type": "string", "pattern": "^[A-Za-z0-9_-]+\\.log$"}, "seconds": {"type": "number", "minimum": 0}}}}
+  },
+  "allOf": [{"if": {"properties": {"status": {"const": "passed-selected-lanes"}}}, "then": {"required": ["source_stable", "finished_at", "not_run"], "properties": {"source_stable": {"const": true}, "not_run": {"maxItems": 0}}}}]
+}

@@ -1,0 +1,78 @@
+{
+  "profile": "connect-gate5-checklist-reconciliation/1",
+  "recorded_at": "2026-10-14T07:23:25.667934+00:00",
+  "status": "dependency-and-evidence-scopes-reviewed",
+  "scope": "Static task status reconciliation from existing scoped behavior evidence; current changed candidate/installed/operating qualification remains open.",
+  "newly_completed_tasks": [
+    {
+      "id": "G5-002",
+      "depends": [
+        "G5-001"
+      ],
+      "evidence": "docs/evidence/gate-5/baseline.json; docs/evidence/gate-5/baseline-diagnostic.json",
+      "notes": "All42 original source phases and17 original installed checks reproduced with original counts, deadlines and isolated state. Transparent composition of matching frozen993 source:28 phases from sixth attempt, original grant and retention profiles,11 independent phases, final exclusive32/5s/10000 voice phase1884.678s. All860 voice source hashes match; default binary seal restored after declared feature-profile output. All six full failures and two continuation failures preserved. No single uninterrupted source pass, current Gate5 candidate pass or new live provider proof is claimed. Baseline dependency fulfilled; downstream task completion still requires its own evidence and dependencies."
+    },
+    {
+      "id": "G5-003",
+      "depends": [
+        "G5-001",
+        "G5-002"
+      ],
+      "evidence": "docs/evidence/gate-5/contracts.json; docs/evidence/gate-5/connector-runtime-integration.json; docs/evidence/gate-5/independent-conformance.json; docs/evidence/gate-5/contact-interface-parity.json",
+      "notes": "Versioned contract freeze and boundary review complete: UCTP primitives, Connect control/task/media profiles and provider DTOs remain distinct; exact IDs/current authority/context and unsupported routes are documented. Recorded manifest/reducer, reliable-control26 and contact/interface rejection fixtures establish source-scoped contract behavior. Current contract/type digests recorded. This completes contract definition; latest worker repairs, shared graph, decoded operation and installed interfaces retain their own pending qualification."
+    },
+    {
+      "id": "G5-006",
+      "depends": [
+        "G5-002",
+        "G5-003"
+      ],
+      "evidence": "docs/evidence/gate-5/qualification-driver.json",
+      "notes": "Current11 negative/self-test guards passed with exact input hashes before/after: failed child, timeout, interruption, disk pressure, live child leak, explicit missing prerequisites, profile/hash mismatch, provider-secret exclusion and zero-test upstream false success. Named lanes and immutable child budgets remain explicit; source-only cannot report release completion. Parent aggregate187 Python qualification units also passed, but that run lacks an input-before seal and is not an exact-candidate pass. Driver/schema task complete; actual source/installed/model/media lanes remain separate."
+    },
+    {
+      "id": "G5-027",
+      "depends": [
+        "G5-001",
+        "G5-003",
+        "G5-006"
+      ],
+      "evidence": "docs/evidence/gate-5/setup-upgrade.json; docs/evidence/gate-5/setup-lane.json",
+      "notes": "Selected schema18 public CLI verifies fresh/repeated protected init, partial/occupied/interrupted-state refusal, messages/files and restart. Actual known17\u219218 migration and explicit interrupted metadata publication reconciliation preserve original identity, receipts and references. Composed source behavior proofs close first-run implementation; dated source maps retain their own scopes. Final installed candidate and independent walkthrough remain separate."
+    },
+    {
+      "id": "G5-028",
+      "depends": [
+        "G5-027"
+      ],
+      "evidence": "docs/evidence/gate-5/secret-vault-migration.json; docs/evidence/gate-5/setup-upgrade.json",
+      "notes": "Protected references pass isolated native Keychain missing/write/rotation/reopen/lock/unlock/owned removal and selected public CLI migration/retry/original-only restore. Current authority, protected files, key trimming versus password bytes and no ambient fallback are tested with source-scoped proofs. Schema18 selected CLI followup supersedes relevant earlier source maps without relabeling them current. Final installed qualification and whole-tree quality remain separate."
+    },
+    {
+      "id": "G5-029",
+      "depends": [
+        "G5-027",
+        "G5-028"
+      ],
+      "evidence": "docs/evidence/gate-5/setup-lane.json; docs/evidence/gate-5/contact-interface-parity.json",
+      "notes": "Native authenticated one-use pairing, expiry/attempt bounds, wrong identity, revocation and current completing-credential replay pass Store/public-interface proofs. Challenges are redacted; pairing cannot grant Conversation membership or SMS consent. Source setup/recovery preserves pairing records. Production contacts are unchanged by later terminal lifecycle repairs. Installed/model contact probes remain in their downstream qualification tasks."
+    }
+  ],
+  "current_counts": {
+    "done": 7,
+    "in-progress": 38,
+    "not-started": 5,
+    "blocked": 0
+  },
+  "completed_dependency_validation": "All done tasks have owners/evidence and every dependency done. Downstream work is not marked complete simply because a prerequisite passed.",
+  "not_closed": [
+    "G5-004 (latest SDK activation findings; source-scoped feasibility does not pass profile)",
+    "G5-005 (feasibility dependency and combined graph qualification)",
+    "G5-017\u2013G5-023 (upstream prerequisite; latest connector fixes under verification)",
+    "G5-043 (changed shared graph/provider audit boundaries; exact-candidate source qualification pending)",
+    "G5-044\u2013G5-050 (release/install/usability/review/owner evidence pending)"
+  ],
+  "implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f",
+  "whole_gate_qualified": false,
+  "published": false
+}

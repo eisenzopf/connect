@@ -1,5 +1,26 @@
+import type { MediaDiagnostics } from "./media_diagnostics.js";
+export type { MediaDiagnostics, MediaQueueObservation, MediaForwardObservation, QuicTransmissionObservation, QuicSendBufferObservation, } from "./media_diagnostics.js";
+import type { ContactState, ContactPairing } from "./contacts.js";
+export type { ContactState, ContactPairing, OwnershipState, } from "./contacts.js";
 import type { TaskCommand, TaskOutcome } from "./tasks.js";
 export type Operation = {
+    op: "contact_pairing_start";
+    request_id: string;
+    peer_identity_id: string;
+    expires_at: number;
+} | {
+    op: "contact_pairing_complete";
+    request_id: string;
+    pairing_id: string;
+    challenge: string;
+} | {
+    op: "contact_pairing_revoke";
+    request_id: string;
+    pairing_id: string;
+} | {
+    op: "contact_state";
+    peer_identity_id: string;
+} | {
     op: "task";
     request: {
         task_profile: string;
@@ -14,6 +35,8 @@ export type Operation = {
     conversation_id: string | null;
 } | {
     op: "browser_binding";
+    conversation_id?: string;
+    session_id?: string;
 } | {
     op: "context_deliveries";
     conversation_id: string;
@@ -283,6 +306,8 @@ export interface RequestStatus {
     outcome: Outcome | null;
 }
 export interface Readiness {
+    /** Bounded process diagnostics; absent on older servers. */
+    media?: MediaDiagnostics;
     state: "ready" | "degraded" | "unavailable" | "uncertain";
     components: Array<{
         component: string;
@@ -300,6 +325,8 @@ export interface Health {
     readiness?: Readiness;
 }
 export interface OutcomeData {
+    contact: ContactState;
+    contact_pairing: ContactPairing;
     task: TaskOutcome;
     capabilities: Capabilities;
     browser_binding: BrowserBinding;
@@ -347,6 +374,7 @@ export interface Capabilities {
         page_size: number;
         audio_frame_ms: number;
         audio_codec: string;
+        video_profile?: VideoProfile | null;
     };
 }
 export interface BrowserBinding {
@@ -358,4 +386,17 @@ export interface BrowserBinding {
 export interface ContextDeliveryPage {
     deliveries: ContextDelivery[];
     next: string | null;
+}
+/** Fixed codec/transport limits for the advertised native/browser VP8 profile. */
+export interface VideoProfile {
+    profile: string;
+    codec: string;
+    width: number;
+    height: number;
+    max_fps: number;
+    target_bitrate_kbps: number;
+    max_rtp_bytes: number;
+    max_frame_bytes: number;
+    assembly_timeout_ms: number;
+    queue_packets: number;
 }

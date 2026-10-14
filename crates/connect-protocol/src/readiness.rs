@@ -35,6 +35,8 @@ fn is_configured(configured: &bool) -> bool {
 pub struct Readiness {
     pub state: ReadinessState,
     pub components: Vec<ComponentReadiness>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media: Option<crate::MediaDiagnostics>,
 }
 impl Readiness {
     /// Aggregate configured observations conservatively. Optional absence does
@@ -52,7 +54,11 @@ impl Readiness {
         } else {
             ReadinessState::Uncertain
         });
-        Self { state, components }
+        Self {
+            state,
+            components,
+            media: None,
+        }
     }
 }
 #[cfg(test)]

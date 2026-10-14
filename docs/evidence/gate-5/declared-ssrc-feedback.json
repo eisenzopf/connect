@@ -1,0 +1,38 @@
+{
+  "status": "upstream regression passed; Chrome integration and profile qualification pending",
+  "tasks": [
+    "G5-004",
+    "G5-005",
+    "G5-010",
+    "G5-012"
+  ],
+  "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_dirty": true,
+  "scope": "Local generated media only; no communication-provider account, live call, deployment or public ingress",
+  "recorded_patch": {
+    "path": "patches/rvoip/declared-ssrc-feedback.patch",
+    "sha256": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
+    "source_lock_sha256": "a391f1650752107987b2f5c7c30cc7f653d372ccf65092336d2aed80d6d37d6a"
+  },
+  "finding": "SDP-declared SSRCs defer codec selection until first RTP. The declared-SSRC path set that codec without registering receiver-report or transport-wide congestion feedback; RID and undeclared paths registered it. Chrome reported no remote receiver observations and reduced its target video bitrate to 30000 bits/s.",
+  "change": "Bind feedback exactly when the first negotiated payload resolves the declared SSRC codec. Subsequent packets keep receiver loss history. Unknown codecs and unrelated SSRCs do not acquire bindings.",
+  "verification": {
+    "command": "CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=4 CARGO_TARGET_DIR=target/gate4-final-review cargo test --locked --manifest-path .deps/rvoip/crates/webrtc/rvoip-rtc/Cargo.toml --lib declared_feedback_tests",
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0,
+    "raw_log": ".local/gate5/declared-feedback-edit/test.log",
+    "raw_log_sha256": "d962b0bbfc040b545b4552e4f5c23978efa67e774a2779c428ff5557a64cf1ab",
+    "observed": [
+      "Actual receiver-report and transport-wide feedback packets after declared-SSRC first codec binding",
+      "Sequence 1 then 3 reports cumulative loss 0 then 1 despite repeat endpoint lookup",
+      "Unnegotiated payload 127 produces neither feedback kind; foreign SSRC lookup remains absent"
+    ]
+  },
+  "independent_static_review": "setup_experience reviewed disjoint field borrowing, once-only binding and actual feedback tests; no blocker found",
+  "not_run": [
+    "Chrome feedback/bitrate recovery with the new graph",
+    "Full decoded-route and installed profile qualification"
+  ],
+  "whole_gate_qualified": false
+}

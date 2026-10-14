@@ -4,8 +4,12 @@ import type { Operation, Outcome } from "./types.js";
 export declare abstract class Operations extends TaskOperations {
     abstract request(operation: Operation): Promise<Outcome>;
     private data;
+    contactPairingStart(request_id: string, peer_identity_id: string, expires_at: number): Promise<import("./contacts.js").ContactPairing>;
+    contactPairingComplete(request_id: string, pairing_id: string, challenge: string): Promise<import("./contacts.js").ContactPairing>;
+    contactPairingRevoke(request_id: string, pairing_id: string): Promise<import("./contacts.js").ContactPairing>;
+    contactState(peer_identity_id: string): Promise<import("./contacts.js").ContactState>;
     capabilities(address: string, conversation_id?: string | null): Promise<import("./types.js").Capabilities>;
-    browserBinding(): Promise<import("./types.js").BrowserBinding>;
+    browserBinding(conversation_id?: string, session_id?: string): Promise<import("./types.js").BrowserBinding>;
     contextDeliveries(conversation_id: string, before?: string | null, limit?: number): Promise<import("./types.js").ContextDeliveryPage>;
     resolve(address: string): Promise<import("./types.js").Identity>;
     create(request_id: string, participants: string[]): Promise<import("./types.js").Conversation>;

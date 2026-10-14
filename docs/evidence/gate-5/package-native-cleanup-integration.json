@@ -1,0 +1,53 @@
+{
+  "profile": "connect-gate-5-installed-native-example-cleanup/1",
+  "recorded_at": "2026-10-14T01:18:01.670067+00:00",
+  "status": "integration-guards-passed-actual-installed-native-proof-not-run",
+  "source_sha256": {
+    "scripts/lib/package_gate5.py": "6b2999d495feab89a3b11f471cd41c1518938a9e1feedb7647ffce47b9f8fe3f",
+    "scripts/tests/test_package_inventory.py": "20faeda127d622e605d507d7136a95080f98b5ce2111f4f1ae8dea7f8fae002e",
+    "docs/GATE5_PACKAGE.md": "a061aeeb13e3eb6caa36166b3b26bff41ec3647685b4347f21b8b0a8a936c34c",
+    "scripts/check-native-video-cleanup.py": "96455633f2a5355b2be7158a6e8cd6567101e9f7d425c70a748e0971fe52332d"
+  },
+  "verification": {
+    "command": "python3 -m unittest discover -s scripts/tests -p test_package_inventory.py -v",
+    "passed": 19,
+    "failed": 0,
+    "private_log": ".local/gate5/package-native-cleanup-guards.log",
+    "log_sha256": "93950389564563fb058b4bdcffc7fbd9ca1c5512bfde510501a37c30a63ff40e",
+    "scope": "Pure Python mocked qualification and structured proof guards; no native/CLI/FFmpeg/live timing process."
+  },
+  "installed_lane": {
+    "phase": "installed-native-example-cleanup",
+    "timeout_seconds": 300,
+    "output": "native-example-cleanup.json",
+    "result_key": "native_example_cleanup",
+    "tools": "Explicit media_tools.ffmpeg; absence remains blocking, independent of browser tools. Existing phase budgets/checks retained.",
+    "required_proof": [
+      "Selected installed connect + connect-video, explicit archived source, FFmpeg/Python/ps + full helper/source families and exact before/after hashes bind the manifest revision.",
+      "Exact interrupt and capture-refusal cases, plus each fresh same-Session duplex native reattachment.",
+      "Both actual incoming complete keyframes; exact participant exit status/success/reasons; finite<=5-second trigger-to-exit and teardown.",
+      "No surviving owned descendants, forced cleanup, recovery signal or unrun case.",
+      "Same accepted Session + exact preserved Conversation/history and ordinary continued communication.",
+      "Retained native observation/IVF and private refusal shim artifact hashes, with summaries agreeing with retained reports.",
+      "Controlled audio avfoundation refusal before hardware, and generated real codec forwarding event."
+    ]
+  },
+  "input_inventory_repair": "Relative path-component filtering retains selected sources extracted under .local; private archive source regression guard passes.",
+  "failed_attempts": [
+    {
+      "log": ".local/gate5/package-native-cleanup-guards-attempt1.log",
+      "log_sha256": "ac137404f1fd9332d7f84dbee8639735e88d6f0571bd5c0a8b7b9d1e3aed5581",
+      "failure": "Pure fixture used /var paths instead of canonical /private/var paths required by checker; fixture canonicalized."
+    },
+    {
+      "log": ".local/gate5/package-native-cleanup-guards-attempt2.log",
+      "log_sha256": "3d582bb1b02423a08fb929016162572043bee8a50c549b7987f7c80b05f7998b",
+      "failure": "One pure negative guard used uncanonical marker path key; fixture corrected."
+    }
+  ],
+  "whole_gate_qualified": false,
+  "not_run": [
+    "actual selected source native cleanup runtime",
+    "actual installed candidate native cleanup runtime"
+  ]
+}

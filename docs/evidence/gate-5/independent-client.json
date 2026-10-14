@@ -1,0 +1,28 @@
+{
+  "task": "G5-025",
+  "status": "component-verified",
+  "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_dirty": true,
+  "runtime": "Python 3.11+ / aioquic 1.6.1",
+  "runtime_basis": [
+    "https://aioquic.readthedocs.io/en/latest/asyncio.html",
+    "https://aioquic.readthedocs.io/en/latest/quic.html",
+    "https://github.com/aiortc/aioquic",
+    "https://pypi.org/project/aioquic/1.6.1/"
+  ],
+  "files_sha256": {
+    "examples/independent-uctp-client/client.py": "19cd44509037edf369839f7c2df336069640c12aa10daa49a983dd8d8e48f2df",
+    "examples/independent-uctp-client/requirements.txt": "706576302f3bff6dc411d54d55d46300ccaaea3f519197aeeffff44df0c9e2bc",
+    "examples/independent-uctp-client/test_client.py": "625bc42f7fc2daf2be6660471bc5e51740adde552c3c4616c6c99a186622e648"
+  },
+  "independence": "Own JSON envelope/framing/auth/correlation/result parser. Imports only standard library plus aioquic; no SDK/helper/FFI/subprocess in client. AST/import audit passed. Separate native Rust participant and standalone Python client processes verified.",
+  "unit_checks": 6,
+  "transport_evidence": "independent-conformance.json",
+  "scope": "Reliable control only; no independent media implementation",
+  "unresolved": [
+    "Final candidate/source package conformance rerun",
+    "Completed prerequisite tasks before checklist closure"
+  ],
+  "conformance_checks": 26,
+  "native_executable_sha256": "e879da5d5ceccca423ee6927a5cbe570c8c813ad5cbe0f4b4b482ddce20c9d25"
+}

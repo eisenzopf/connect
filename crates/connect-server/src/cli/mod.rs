@@ -2,6 +2,7 @@ mod client_errors;
 mod connected_app_init;
 pub mod credentials;
 pub mod demo;
+pub mod first_run;
 pub mod init;
 pub mod recovery;
 

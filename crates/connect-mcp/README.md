@@ -9,11 +9,21 @@ or grant issuance as a model tool.
 
 The transport is opt-in loopback Streamable HTTP at `/mcp`. `LocalAuth` verifies
 the bearer against current identity authority before interpreting arguments.
-Ordinary tools take explicit conversation IDs and persistent mutation request
+Conversation tools take explicit conversation IDs and persistent mutation request
 IDs. Optional tracking tools select an owned task explicitly. Discovery exposes
 only currently permitted communication operations, without administrator
 controls or provider secrets. Bearer plaintext is removed before the MCP SDK
 receives HTTP context. See [regular agent installation](../../docs/AGENT_ACCESS.md).
+
+The ordinary identity catalog also exposes `connect_contact_pairing_start`,
+`connect_contact_pairing_complete`, `connect_contact_pairing_revoke` and
+`connect_contact_state` under current `resolve` authority. These independent
+operations need exact permitted peers and stable mutation IDs, without a
+conversation or task. The one-use challenge is private output to the initiating
+owner and private input from the independently authenticated intended peer;
+diagnostics omit it. Native verification supplies no phone ownership or SMS
+consent. Optional task-grant catalogs omit contact pairing. See the
+[contact contract](../../contracts/contact-pairing-v1.md).
 
 For an optional narrow installation, trusted composition registers an invocation
 binding, issues an opaque task grant and exports that secret to protected host

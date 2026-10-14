@@ -1,6 +1,6 @@
 //! Declarative route and context contracts, registered by trusted composition.
 /// Target validation independent of any provider name.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AddressKind {
     Opaque,
     Uuid,

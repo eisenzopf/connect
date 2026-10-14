@@ -22,12 +22,14 @@ def main():
     parser.add_argument("--qualification-report", type=Path, required=True)
     parser.add_argument("--codex-binary", type=Path, required=True)
     parser.add_argument("--allow-model-inference", action="store_true")
+    parser.add_argument("--profile", choices=("gate4-local", "gate5-local"), default="gate4-local",
+                        help="Require exact matching installed profile, never infer from package name")
     args = parser.parse_args()
     require(args.allow_model_inference, "explicit-inference-selection-required")
     runtime, codex = args.runtime.resolve(strict=True), args.codex_binary.resolve(strict=True)
     require(codex.is_file() and os.access(codex, os.X_OK), "selected-actual-codex-executable")
     os.umask(0o077)
-    harness = Harness(runtime, codex, args.qualification_report.resolve(strict=True))
+    harness = Harness(runtime, codex, args.qualification_report.resolve(strict=True), args.profile)
     sys.dont_write_bytecode = True
     sys.path.insert(0, str(runtime / "sdk/python"))
     from connect_sdk import NativeClient

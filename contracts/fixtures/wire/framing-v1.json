@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "profile": "connect-control/1",
+  "alpn": "uctp/1",
+  "source": "Authored from published Connect profile; repository license applies. No parser code imported.",
+  "vectors": [
+    {
+      "name": "auth-hello",
+      "json": {
+        "v": 1,
+        "type": "auth.hello",
+        "id": "env_vector-hello",
+        "ts": "2026-10-13T00:00:00Z",
+        "payload": {
+          "device": {
+            "id": "independent-vector",
+            "kind": "desktop",
+            "platform": "darwin",
+            "sdk_version": "1"
+          },
+          "auth_methods": [
+            "bearer"
+          ],
+          "capabilities": {}
+        }
+      },
+      "utf8_bytes": 227,
+      "frame_hex": "000000e37b2276223a312c2274797065223a22617574682e68656c6c6f222c226964223a22656e765f766563746f722d68656c6c6f222c227473223a22323032362d31302d31335430303a30303a30305a222c227061796c6f6164223a7b22646576696365223a7b226964223a22696e646570656e64656e742d766563746f72222c226b696e64223a226465736b746f70222c22706c6174666f726d223a2264617277696e222c2273646b5f76657273696f6e223a2231227d2c22617574685f6d6574686f6473223a5b22626561726572225d2c226361706162696c6974696573223a7b7d7d7d",
+      "expected": "valid-envelope"
+    },
+    {
+      "name": "health",
+      "json": {
+        "v": 1,
+        "type": "connect.request",
+        "id": "env_vector-health",
+        "ts": "2026-10-13T00:00:00Z",
+        "payload": {
+          "profile": "connect-control/1",
+          "op": "health"
+        }
+      },
+      "utf8_bytes": 141,
+      "frame_hex": "0000008d7b2276223a312c2274797065223a22636f6e6e6563742e72657175657374222c226964223a22656e765f766563746f722d6865616c7468222c227473223a22323032362d31302d31335430303a30303a30305a222c227061796c6f6164223a7b2270726f66696c65223a22636f6e6e6563742d636f6e74726f6c2f31222c226f70223a226865616c7468227d7d",
+      "expected": "valid-envelope"
+    },
+    {
+      "name": "malformed-json",
+      "frame_hex": "000000017b",
+      "expected": "stream-closed"
+    },
+    {
+      "name": "oversized-wire-frame",
+      "frame_hex": "00100001",
+      "expected": "stream-closed"
+    },
+    {
+      "name": "truncated-prefix",
+      "frame_hex": "000000",
+      "expected": "incomplete-read"
+    },
+    {
+      "name": "malformed-envelope",
+      "frame_hex": "000000517b2276223a312c2274797065223a22636f6e6e6563742e72657175657374222c226964223a22656e765f6d616c666f726d6564222c227473223a22323032362d31302d31335430303a30303a30305a227d",
+      "expected": "stream-closed"
+    }
+  ]
+}

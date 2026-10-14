@@ -13,6 +13,40 @@ export abstract class Operations extends TaskOperations {
             throw new ConnectError("protocol", "Unexpected outcome");
         return result.data as OutcomeData[K];
     }
+    contactPairingStart(
+        request_id: string,
+        peer_identity_id: string,
+        expires_at: number,
+    ) {
+        return this.data("contact_pairing", {
+            op: "contact_pairing_start",
+            request_id,
+            peer_identity_id,
+            expires_at,
+        });
+    }
+    contactPairingComplete(
+        request_id: string,
+        pairing_id: string,
+        challenge: string,
+    ) {
+        return this.data("contact_pairing", {
+            op: "contact_pairing_complete",
+            request_id,
+            pairing_id,
+            challenge,
+        });
+    }
+    contactPairingRevoke(request_id: string, pairing_id: string) {
+        return this.data("contact_pairing", {
+            op: "contact_pairing_revoke",
+            request_id,
+            pairing_id,
+        });
+    }
+    contactState(peer_identity_id: string) {
+        return this.data("contact", { op: "contact_state", peer_identity_id });
+    }
     capabilities(address: string, conversation_id: string | null = null) {
         return this.data("capabilities", {
             op: "capabilities",
@@ -20,8 +54,15 @@ export abstract class Operations extends TaskOperations {
             conversation_id,
         });
     }
-    browserBinding() {
-        return this.data("browser_binding", { op: "browser_binding" });
+    browserBinding(conversation_id?: string, session_id?: string) {
+        if ((conversation_id === undefined) !== (session_id === undefined))
+            throw new Error("Select both conversation_id and session_id");
+        return this.data("browser_binding", {
+            op: "browser_binding",
+            ...(conversation_id === undefined
+                ? {}
+                : { conversation_id, session_id }),
+        });
     }
     contextDeliveries(
         conversation_id: string,

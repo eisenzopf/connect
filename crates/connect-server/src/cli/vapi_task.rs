@@ -5,7 +5,6 @@ use crate::{config::ServerConfig, runtime::RunningServer};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use connect_client::ClientConfig;
-use connect_connectors::Vapi;
 use connect_store::Store;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 
@@ -86,7 +85,7 @@ fn load(arguments: &OwnerArguments) -> Result<(manifest::Manifest, ServerConfig)
 }
 async fn serve(arguments: Arguments) -> Result<()> {
     let (manifest, config) = load(&arguments.owner)?;
-    let provider = tokio::task::spawn_blocking(Vapi::from_env).await??;
+    let provider = tokio::task::spawn_blocking(crate::setup_vault::vapi_client).await??;
     let server =
         RunningServer::start_interfaces(config, arguments.http_bind, arguments.webhook_bind, true)
             .await?;
@@ -121,7 +120,7 @@ async fn reconcile(arguments: OwnerArguments, resource: &str) -> Result<()> {
         &manifest.state_directory,
     )
     .await?;
-    let provider = tokio::task::spawn_blocking(Vapi::from_env).await??;
+    let provider = tokio::task::spawn_blocking(crate::setup_vault::vapi_client).await??;
     let id = crate::vapi_bootstrap::reconcile_created(
         service,
         &provider,

@@ -10,3 +10,5 @@ export type * from "./types.js";
 
 export type * from "./tasks.js";
 export { TASK_PROFILE } from "./tasks.js";
+export { BrowserVideoSession } from "./browser_video.js";
+export type { VideoDiagnostics } from "./browser_voice.js";

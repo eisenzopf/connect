@@ -1,3 +1,5 @@
+import { validMediaDiagnostics } from "./media_diagnostics.js";
+import { validContact } from "./contact_validation.js";
 import { array, fields, integer, object } from "./validation.js";
 import { validTaskOutcome } from "./task_protocol.js";
 import { ConnectError } from "./errors.js";
@@ -5,6 +7,10 @@ export const MAX_REQUEST = 65537;
 export const MAX_RESPONSE = 600000;
 const kinds = {
     task: "task",
+    contact_pairing_start: "contact_pairing",
+    contact_pairing_complete: "contact_pairing",
+    contact_pairing_revoke: "contact_pairing",
+    contact_state: "contact",
     resolve: "identity",
     capabilities: "capabilities",
     browser_binding: "browser_binding",
@@ -53,6 +59,7 @@ function readiness(value) {
     const states = ["ready", "degraded", "unavailable", "uncertain"];
     return (fields(value, ["state"]) &&
         states.includes(String(value.state)) &&
+        (!("media" in value) || validMediaDiagnostics(value.media)) &&
         array(value.components, (component) => fields(component, ["component", "state", "reason"]) &&
             states.includes(String(component.state)) &&
             Number.isSafeInteger(component.observed_at) &&
@@ -103,6 +110,9 @@ function validData(kind, data, depth = 0) {
     switch (kind) {
         case "task":
             return validTaskOutcome(data, validData, depth);
+        case "contact":
+        case "contact_pairing":
+            return validContact(kind, data);
         case "identity":
             return (fields(data, ["id", "alias"]) &&
                 array(data.capabilities, (x) => typeof x === "string"));

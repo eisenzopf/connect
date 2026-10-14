@@ -1,0 +1,473 @@
+{
+  "tasks": [
+    "G5-004",
+    "G5-005",
+    "G5-009",
+    "G5-010",
+    "G5-012"
+  ],
+  "status": "component-and-failure-recovery-checks-passed; decoded-route-qualification-pending",
+  "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_dirty": true,
+  "files_sha256": {
+    "patches/rvoip/encoded-video-transport.patch": "367e72ccb924d71f85d8d6b27ff0ebf14a9a39ecd7193fcd9aac2df9bf3f19d3",
+    "dependencies/source-lock.json": "5d6c408984a2fac6f9e686002d1cc76b685f1422264ea1c48eafd96ebc8e08dc",
+    "scripts/prepare-dependencies.py": "6c920394629c88631e0e544505922fb0a38d8867bd7054bc034839ab1ce66984",
+    "crates/connect-server/src/media_ingress.rs": "9dd439191d0cce013992f16cbc6896a5deec12015976faa006e9bb86117c245f",
+    "crates/connect-server/src/media_lifecycle.rs": "a1d8db8069ea4db3c19a2e5ca62ee1deb509b5f021fc3dc19a7e2a18d4d7bfcd",
+    "crates/connect-server/src/media_transports.rs": "559f5750fc71af40e79d10e183ef475d2753cde0381756b5fd70bd9a618b0013",
+    "crates/connect-server/src/media_profile.rs": "9c6d621781864cf2e5d9053c0b7e92fe3aaf6d62f009658b18b660e458e7038b",
+    "crates/connect-server/tests/gate5_video_transport.rs": "9200a6ba22ddbddd019a944cc6259fcd7682e2a32b9833d407f155115ff77fb3",
+    "crates/connect-service/src/native_media.rs": "fc98118b6f672e74a3a3c3444e2eaca746f132f6962b11dd281f05e6a69279ec",
+    "crates/connect-service/src/session_bindings.rs": "51d8cff0699cacb78880a76ab01034f160a4882adaa12bbcbd06daf1b14b2c05",
+    "crates/connect-service/src/session_binding_tests.rs": "a01b6fd431e763a1b2f599e803fc43e7c6d5bffdc321113f8a85f33c4034c753",
+    "crates/connect-store/src/sessions.rs": "1e00689d5ace95fe68952d3faee9583d407f4fe771d8623d63e133e7f16a831d",
+    "crates/connect-store/src/discovery.rs": "80e5945da8809f02cf1d2a14cf3df73de4ad260c405e2bba96059d5bdf3496a4",
+    "crates/connect-store/tests/video_binding.rs": "20d8e4ba2a51c4f4e38b491023c6eebd850247d43aabe82094b610e7eb5002dd",
+    "crates/connect-server/src/runtime.rs": "fc69011bb746176228a899a2b81df57100015b75518301c51745f16d39c45d3f",
+    "crates/connect-protocol/src/discovery.rs": "0942afea58558b5eb466d377e4cf13b72d806ebeb109d3545e24695f3d3e7010",
+    "crates/connect-client/src/video/signaling.rs": "cb4a8072fe492db329c840bb2c799c8ddad8bc8d38d9abf450f31ffb3b1da608",
+    "contracts/connect-media-vp8-v1.md": "c86d1a010b6011be7f2238ab1addf2d22c851af39af2eea3d040598d832d2050",
+    "crates/connect-server/tests/gate5_video_failures.rs": "95fa1b782817af2a7021e3871bc39f8a3e68ca3f84b96f1c289ae0ccc5d68f21",
+    "crates/connect-client/src/video/mod.rs": "0baf6e887e2a5ce33dec53496c0fce4bd54c65715f12522fbebdcbbe2f041e79",
+    "crates/connect-client/src/video/lifecycle.rs": "f32a8802e44d746ed49c29498a1c174229f904dcb633ab60a68f1f6fe8fa6359",
+    "crates/connect-client/src/video/assembly.rs": "f4e259641f088acf55c5816da8c09d5a86ff9b5c76cfaab067238dcb358ea5b2",
+    "crates/connect-client/src/video/packet.rs": "82c0c437e4c14f601f9c0a0bd016e82399479158d1c3643a021e3d97a3ccf123",
+    "examples/native-video/src/playout.rs": "345fc79d9805e6e1e93ebd04a53fc420b051798654c55c85a471815223120050",
+    "crates/connect-server/src/media_lifecycle/bindings.rs": "01b90a07586e81c8a0abcd99037876f8b4041b078f9e02699282f9e0db0504cd",
+    "crates/connect-server/src/media_diagnostics.rs": "00af9be9d7a4b9ed06acff1f19a2c8557279051251691716d358c6c11d338f74",
+    "crates/connect-protocol/src/media_diagnostics.rs": "67e2008a25e4941b6861a60420dd0b820c4ff4c2de5d23bc779604d6a63998e8",
+    "crates/connect-service/src/readiness.rs": "5727cd6833422b6dc10396eb24802133711ae6e43e853efc51aa422d0177f8ad",
+    "crates/connect-server/tests/gate5_browser_selection.rs": "2aad561cca82703acb23a5718bb9dd264d996d7ccd84dfc739a00efa94624c40",
+    "crates/connect-client/src/video/diagnostics.rs": "be5d900deef0632b5cd0374fd1007ce5762819450457159acb7ccbf9dab56097",
+    "crates/connect-protocol/src/video_profile.rs": "d0f70c86b63b927bb286b9acfb2033f2211a34e27cd84c98258e7575c7025923",
+    "crates/connect-mcp/src/execution.rs": "93918ba412ce21f9a8601b86d94ace08499eecc0a1c4d4ba84e521f5a4ce8062",
+    "crates/connect-server/tests/gate5_native_diagnostics.rs": "0597f8a3ec0bae67347ae2cf5ee452780c78687e5bd9f09382a37e11a81293e0",
+    "examples/native-video/src/report.rs": "c76fbc5dc12fffbd8b8000d24bc2f84f4d38389b4449e542528cb33e57d2f568",
+    "examples/native-video/src/main.rs": "c4fb43fbcd21094c7398d2c4fcea8d466d7a3abcf085c8948071fcb6f3e49f8d"
+  },
+  "upstream": {
+    "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+    "recorded_patch": "patches/rvoip/encoded-video-transport.patch",
+    "prepared_source_verified": true,
+    "previous_graph_preserved": ".local/gate5/deps-before-media-unit-runtime",
+    "preparation": "bash scripts/prepare-dependencies.sh --cache .deps --destination <new-private-directory>; preserve current .deps, swap candidate, verify again",
+    "patch_sha256": "367e72ccb924d71f85d8d6b27ff0ebf14a9a39ecd7193fcd9aac2df9bf3f19d3",
+    "production_graph_first_tested": "f45cc8b46b918f841713f83d737dba2da286997670740c9180c8bceaef1b9a82",
+    "subsequent_graph_changes": "Test fixture constructor, import and Tokio runtime corrections only; production implementation unchanged."
+  },
+  "profile": {
+    "video_codec": "VP8",
+    "rtp_clock_hz": 90000,
+    "max_normalized_rtp_bytes": 1180,
+    "max_video_queue_packets": 64,
+    "max_forwarded_packet_age_ms": 200,
+    "rtp_frame_shape": "Video MediaFrame payload is a complete validated RTP packet. Native source sequence, marker and timestamp survive. Browser packets larger than the native bound are split preserving VP8 descriptor/body bytes, timestamp and final marker; bounded sequence translation retains loss gaps, maps exact duplicates consistently and drops unresolved late packets. Destination SSRC/PT are local. CSRC/extensions/padding are stripped.",
+    "raw_webrtc_video_event_queue": 64,
+    "sequence_history_inputs": 64,
+    "sequence_history_age_ms": 200
+  },
+  "architecture": [
+    "Native-to-native uses explicit authorized UCTP subscriptions and core fanout; lifecycle-only pairing propagates peer termination without consuming source frame receivers.",
+    "Native-to-WebRTC and WebRTC-to-WebRTC use owned encoded-video forwarding beside the owned audio bridge.",
+    "WebRTC distinct authenticated participants are enabled for a current accepted AV Session selected by paired Conversation/Session IDs or the configured default, restricted to the configured participant pair; audio routes retain the configured-credential restriction.",
+    "Both leg authorities are checked at pairing and every second thereafter. Video owners cancel and join on peer termination and shutdown.",
+    "Connect explicitly supplies raw QUIC VP8 capability descriptor and default audio codecs plus VP8 subscriber accepted-codec policy; upstream audio-only defaults remain intact.",
+    "Native grants admit the exact PCMU plus VP8 duplex profile and reject duplicate IDs, additional cameras, unsupported codecs and one-way video.",
+    "Store binding atomically admits at most one current video connection per participant and permits idempotent binding/reconnect after unbind.",
+    "Browser video admission requires one active duplex VP8 video section plus one duplex audio section, no simulcast/RID, before peer allocation.",
+    "Authenticated PLI/FIR for an exact local WebRTC video SSRC is coalesced and normalized to an upstream PLI by a bridge-owned worker with at most four requests per second. Native UCTP has no feedback wire profile and relies on the approved at-most-one-second periodic keyframe interval.",
+    "Connect AV WebRTC peer creation registers only VP8; default upstream codec behavior remains unchanged. Generated real SDP regression verifies that VP9/H264 cannot be offered by the opt-in profile.",
+    "After acquiring the installation lock, startup atomically reconciles interrupted AV binding observations and emits session_interrupted while preserving a reconnectable accepted Session. Fresh physical connections require current authorization.",
+    "Explicit externally owned Core projections become idle on last transient detach; ordinary Core origin retains auto-end. Bounded origin/tombstone registry denies foreign/adopted/terminal revival, and durable terminal lookup releases idle projections without sockets.",
+    "Shutdown cancels in-progress owned media event preparation before binding cleanup, starts native endpoint drain immediately and joins independent WebRTC routes concurrently; genuine incomplete AV regression completes in 96-101 ms.",
+    "Connect current Store authority callback runs before PeerConnection or UDP allocation for selected and default AV offers; media ingress and lifecycle revalidate afterward.",
+    "Authenticated Health exposes bounded numeric process aggregates with sampled queue depths, exact dequeue-age boundary, histogram upper-bound forwarding percentiles and typed QUIC outcomes; no identity, credentials or media bytes.",
+    "QUIC VP8 egress adapts normalized RTP fragments to actual peer max_datagram_size minus the eight-byte UCTP header. Opt-in physical peer send buffer is 76032 shared audio/video bytes; opaque Quinn eviction and age remain unobserved."
+  ],
+  "failed_attempts": [
+    {
+      "command": "cargo test -p rvoip-core --lib video_bridge --locked",
+      "result": "not runnable from Connect workspace: dependency package is not a workspace member",
+      "raw_log": ".local/gate5/video-upstream-unit.log"
+    },
+    {
+      "command": "initial video draft compile checks",
+      "result": "fixed WebRTC BytesMut conversion and TrackLocal API invocation; failed logs retained in .local/gate5/video-cargo-check*.log"
+    },
+    {
+      "command": "initial server transport test and formatting",
+      "result": "blocked by concurrently unfinished setup/secrets.rs, then rerun after file was present"
+    },
+    {
+      "command": "cargo test -p connect-server --test gate5_video_transport --locked -- --nocapture",
+      "result": "sanitizer passed; actual PLI timed out because RTC endpoint did not route feedback to local sender SSRCs. A second attempt after sender lookup also timed out because terminal NoopInterceptor dropped RTCP. Authenticated PLI/FIR tap plus sender lookup later passed actual transport.",
+      "raw_log": ".local/gate5/video-feedback-transport-tests.log"
+    },
+    {
+      "command": "cargo test -p connect-server --test gate5_video_transport --locked -- --nocapture",
+      "result": "sender lookup alone insufficient; NoopInterceptor discarded authenticated RTCP. Later typed PLI/FIR tap fixes this and actual propagation passed.",
+      "raw_log": ".local/gate5/video-feedback-transport-tests-2.log"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=target/upstream cargo test --locked --manifest-path .deps/rvoip/Cargo.toml -p rvoip-webrtc --lib profile_tests",
+      "result": "failed compile in test-only WebRtcMediaStreamInner fixture missing new feedback peer field; fixed in pending scratch patch, not yet rerun",
+      "raw_log": ".local/gate5/video-upstream-profile-tests.log"
+    },
+    {
+      "command": "final upstream core/profile unit build before baseline isolation",
+      "result": "interrupted to preserve isolated unchanged Gate4 baseline execution; incomplete builds are not passes",
+      "raw_log": ".local/gate5/video-upstream-final-core-tests.log"
+    },
+    {
+      "command": "initial bare UCTP detached-session test",
+      "result": "interrupted fixture waited for ConnectionAnswer produced by adapter, not bare coordinator; corrected bounded test later passed",
+      "raw_log": ".local/gate5/video-detached-wire-coordinator.log"
+    },
+    {
+      "command": "isolated actual native end/rejoin before Core projection fix",
+      "result": "first pair ended and same-session replacement attached, but replacement counterpart did not terminate because Core had auto-ended the durable projection; failed and requires rerun",
+      "raw_log": ".local/gate5/video-detached-wire-native-end-isolated.log"
+    },
+    {
+      "command": "first eight-second separate-process native/browser prototype",
+      "result": "failed before media: browser answer validator rejected valid application section; server SIGTERM exceeded eight seconds and SIGKILL was required. Both failures remain unqualified.",
+      "raw_log": ".local/gate5/media-processes/20261013T201236.001188Z/native-browser/server.log"
+    },
+    {
+      "command": "genuine incomplete browser/native shutdown regression before event cancellation fix",
+      "result": "failed after five seconds, isolated to media-lifecycle stream discovery; subsequent cancellation-aware cleanup passed in 96-101 ms",
+      "raw_log": ".local/gate5/video-incomplete-shutdown-diagnostic.log"
+    },
+    {
+      "command": "first cancellation-aware event wrapper compile",
+      "result": "failed compile: break in async block; event stream Closed handled outside the future, fixed and rerun passed",
+      "raw_log": ".local/gate5/video-incomplete-shutdown-cancel.log"
+    },
+    {
+      "command": "initial actual video_budget build",
+      "result": "failed: test-only start constructor required cancellation argument; repaired with start_with_cancel",
+      "raw_log": ".local/gate5/video-mtu-real-quic.log"
+    },
+    {
+      "command": "upstream WebRTC selector/admission commands without signaling-ws,client",
+      "result": "executed zero tests; unqualified and superseded by enabled actual-count checks",
+      "raw_log": ".local/gate5/video-host-preallocation.log"
+    },
+    {
+      "command": "enabled selected_session_admission build",
+      "result": "failed: unavailable test-only futures_util import; corrected to existing futures dependency",
+      "raw_log": ".local/gate5/video-host-preallocation-enabled.log"
+    },
+    {
+      "command": "enabled selected_av_offer unit",
+      "result": "failed: synchronous fixture allocated adapter without Tokio reactor; corrected to async Tokio test",
+      "raw_log": ".local/gate5/video-selector-units-final.log"
+    },
+    {
+      "command": "strict scoped Clippy initial run",
+      "result": "failed private MCP ToolOutcome enum size after additive diagnostics; internal Communication boxed with identical wire encoding",
+      "raw_log": ".local/gate5/video-final-scoped-clippy.log"
+    },
+    {
+      "command": "strict client Clippy first rerun",
+      "result": "failed new8-argument bind, test module placement and test unwrap; named BindRuntime and test hygiene repaired",
+      "raw_log": ".local/gate5/video-final-scoped-clippy-verified.log"
+    },
+    {
+      "command": "first real native SDK diagnostic fixture",
+      "result": "failed Timeout: Core subscriber stream allocated lazily on first publisher frame; subsequent fixture warms both actual streams before asserting later media receipt",
+      "raw_log": ".local/gate5/video-native-diagnostics-parity.log"
+    },
+    {
+      "command": "native SDK diagnostic fixture with receive-only warmup",
+      "result": "failed Timeout: receiving control alone cannot cause lazy Core subscriber allocation; actual publisher warmup required",
+      "raw_log": ".local/gate5/video-native-diagnostics-parity-verified.log"
+    },
+    {
+      "command": "fresh sealed eight-second native/browser separate-process prototype",
+      "result": "FAILED qualification: native AV-sync p95 320.796ms; six expired assemblies. Browser clean26.232 changingfps at VP8 640x360 and AV p9526ms; native24.0 changingfps. No full route pass inferred. Measured QUIC TooLarge/packetizer discards were zero; ingress/assembly cause remains unresolved.",
+      "private_report": ".local/gate5/media-prototype8-sealed-numeric.json",
+      "graph_patch_sha256": "367e72ccb924d71f85d8d6b27ff0ebf14a9a39ecd7193fcd9aac2df9bf3f19d3"
+    }
+  ],
+  "pending_tests": [
+    {
+      "command": "root native SDK failure/teardown tests and media qualification harness",
+      "purpose": "final graph independently decoded three-route clean/loss/reordering/stall/load evidence, single-ended native pair termination <=5 seconds, credential revocation, durable Session end, transport close and server restart. These are separate from component RTP tests."
+    }
+  ],
+  "unresolved": [
+    "The transport fixture uses synthetic VP8 RTP and does not itself qualify independently decoded moving frames or decoded duplex audio. Three-route decoded performance and recovery remain in the root qualification lane.",
+    "Native UCTP has no negotiated video feedback wire extension; native senders use periodic keyframes <=1 second. Browser PLI/FIR is authenticated, scoped to the exact local video SSRC and proxied between browser legs with coalescing and a four-per-second bound.",
+    "The 200 ms forwarding-age check begins at adapter receipt of a raw WebRTC track event. The upstream event lacks an original network-arrival timestamp; raw video track event queues are also bounded to 64 events.",
+    "All three final decoded route/load/loss/recovery envelopes remain pending; final normal binaries and source manifest are now sealed. Earlier separate-process prototype failures are not passes.",
+    "Application queue ages require only actual route forwarding stages: native/native quic-video-egress; native/browser both QUIC and WebRTC application ingress/egress; browser/browser WebRTC ingress/egress. NN publisher quic-video-ingress is an unused shadow queue; raw events and Quinn opaque buffer age are outside this boundary. Native SDK queue diagnostics are verified separately in client scope; actual three-route runtime snapshots remain pending.",
+    "Original full historical baseline002 remains failed at a grant-lifecycle timing race; isolated phase passes do not qualify the full baseline.",
+    "Fresh final sealed eight-second native/browser prototype failed native AV-sync p95320.796ms and six expired assemblies. Correct adaptive peer budgets and zero observed QUIC TooLarge do not establish the cause or qualify decoded recovery; read-only diagnosis remains required."
+  ],
+  "whole_gate_qualified": false,
+  "evidence_note": "Final component observations reference the recorded prepared patch and current source hashes. Earlier runs and failed/interrupted attempts are preserved separately. Raw logs remain ignored under .local/. No decoded-frame, complete G5 task, installed acceptance or whole-gate pass is inferred from component RTP counts.",
+  "prior_component_runs": [
+    {
+      "command": "cargo check -p connect-server --locked",
+      "result": "passed during draft compile repair; final graph subsequently exercised by server regression tests"
+    },
+    {
+      "command": "cargo test -p connect-server --test gate5_video_transport --test gate3_sip_webrtc --test gate3_media_authorization --locked -- --nocapture",
+      "result": "passed: 5 tests (2 video transport/header, 2 audio cross-transport, 1 credential expiry)",
+      "raw_log": ".local/gate5/video-server-regression.log"
+    },
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "result": "passed: source identities, all 10 patch digests and prepared file/status manifests verified"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "result": "passed"
+    },
+    {
+      "command": "cargo test -p connect-store --test video_binding --test discovery --locked",
+      "result": "passed: 3 tests; atomic two-thread video uniqueness/reconnect, both browser participants and audio default, existing discovery",
+      "raw_log": ".local/gate5/video-store-guards-tests.log"
+    },
+    {
+      "command": "cargo test -p connect-store --test video_binding --test discovery -p connect-service --lib session_binding --locked",
+      "result": "passed service 2 tests; store targets were filtered to zero by this command, so separate store command is authoritative",
+      "raw_log": ".local/gate5/video-guards-tests.log"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=target/upstream cargo test --locked --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --lib video_bridge",
+      "result": "passed 3 sanitizer/failure/stale-worker tests on pre-feedback patch; full final feedback patch rerun remains required",
+      "raw_log": ".local/gate5/video-upstream-unit-2.log"
+    },
+    {
+      "command": "cargo check -p connect-server --locked",
+      "result": "passed with native descriptor/full codec metadata, SDP profile guard, PLI API, video uniqueness/discovery changes before RTC sender-SSRC fallback",
+      "raw_log": ".local/gate5/video-admission-feedback-check.log"
+    },
+    {
+      "command": "cargo test -p connect-server --test gate5_video_transport --locked -- --nocapture",
+      "result": "passed 2 tests on authenticated RTCP tap graph: real downstream WebRTC PLI traversed Connect to the upstream peer, distinct authenticated AV clients exchanged both RTP kinds, invalid SDP rejected, and RTP hop metadata sanitizer passed. Pending fragmentation changes are not qualified by this run.",
+      "raw_log": ".local/gate5/video-feedback-transport-tests-3.log"
+    },
+    {
+      "command": "cargo test -p connect-store --test video_binding --test discovery --locked",
+      "result": "passed 4 tests including atomic video participant uniqueness, browser counterpart binding, unsupported Vapi AV routing and existing discovery; latest legacy SIP AV rejection assertion pending rerun",
+      "raw_log": ".local/gate5/video-final-store-guards.log"
+    },
+    {
+      "command": "bash scripts/prepare-dependencies.sh --cache .deps --destination .local/gate5/prepared-video-final-fragments; preserve current graph, atomic directory swap, bash scripts/prepare-dependencies.sh",
+      "result": "passed: freshly prepared pinned sources with all 10 recorded patches; preserved old graph, then verified source identities, patch digests and generated source manifests again after all tests"
+    },
+    {
+      "command": "cargo test -p connect-server --test gate5_video_transport --test gate3_sip_webrtc --test gate3_media_authorization --locked -- --nocapture",
+      "result": "passed 5 tests: real duplex WebRTC RTP audio/video between distinct authenticated participants, real receiver PLI propagated to the source, invalid SDP rejected promptly, RTP hop metadata sanitizer, existing two audio route regressions and credential expiry. RTP bytes do not establish decoded moving frames.",
+      "raw_log": ".local/gate5/video-final-transport.log"
+    },
+    {
+      "command": "cargo test -p connect-store --test video_binding --test discovery --locked",
+      "result": "passed 5 tests: atomic participant uniqueness/idempotence/reconnect, both authorized browser bindings with audio default preserved, Vapi and legacy SIP AV rejection, crash-style restart reconciliation and existing discovery",
+      "raw_log": ".local/gate5/video-final-store.log"
+    },
+    {
+      "command": "cargo test -p connect-service --lib session_binding --locked",
+      "result": "passed 2 tests: exact native task/owner AV offers, duplicate IDs/additional cameras/unsupported codecs/one-way/wrong-conversation denial, precise invitation and grant revocation, existing resource projection authority",
+      "raw_log": ".local/gate5/video-final-service.log"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=target/upstream cargo test --locked --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --lib video_bridge",
+      "result": "passed 4 tests: metadata/header sanitizer, malformed/oversized/mismatched/nonvideo denial, stale packet drop/destination close worker exit, feedback flood coalescing/rate bound and owned cancellation",
+      "raw_log": ".local/gate5/video-final-upstream-core.log"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=target/upstream cargo test --locked --manifest-path .deps/rvoip/Cargo.toml -p rvoip-webrtc --lib media::video",
+      "result": "passed 3 tests: disabled/nonvideo mapping denial, exact duplex VP8 SDP admission negatives, extended VP8 fragmentation reconstruction/MTU/markers/sequence wrap/loss gaps/exact duplicate mapping/late and conflicting duplicate denial",
+      "raw_log": ".local/gate5/video-final-upstream-webrtc.log"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=target/upstream cargo test --locked --manifest-path .deps/rvoip/Cargo.toml -p rvoip-webrtc --lib vp8_video_profile_registers_only_its_supported_camera_codec",
+      "result": "passed 1 generated-SDP test: strict AV profile offers VP8 without VP9/H264; upstream default behavior remains unchanged",
+      "raw_log": ".local/gate5/video-final-upstream-codecs.log"
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "result": "passed after all component source changes",
+      "raw_log": ".local/gate5/video-final-format-2.log"
+    },
+    {
+      "command": "cargo test --locked --manifest-path .deps/rvoip/crates/foundation/rvoip-core/Cargo.toml --lib external_projection_lifecycle_tests -- --test-threads=1",
+      "result": "passed: external-origin idle/rejoin; explicit terminal and ordinary-origin nonrevival; capacity/foreign allocation guards",
+      "tests": 2,
+      "raw_log": ".local/gate5/video-projection-core.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate5_video_failures --test gate5_video_transport --test gate3_sip_webrtc --test gate3_media_authorization --test gate5_contact_interface_parity -- --test-threads=1",
+      "result": "passed: 4 contact parity, 4 video lifecycle recovery, 3 video/actual PLI/incomplete shutdown, 2 audio cross-transport, 1 expiry",
+      "tests": 14,
+      "raw_log": ".local/gate5/video-projection-server-final.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate5_video_failures --test gate5_video_transport -- --test-threads=1",
+      "result": "passed: 5 lifecycle tests including exact Transport on physical native peer loss, context retention and counterpart termination, plus 3 video regressions",
+      "tests": 8,
+      "raw_log": ".local/gate5/video-final-sdk-failures.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-client --lib",
+      "result": "passed with final SDK cause propagation, selected codec metadata/error correlation/packet mutation/expired and reordered assembly units",
+      "tests": 15,
+      "raw_log": ".local/gate5/video-sdk-final-reason-units.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-native-video --bin connect-video playout::tests",
+      "result": "passed: shared release delay, RTP wrap/reorder, bounded/stale playout",
+      "tests": 3,
+      "raw_log": ".local/gate5/video-native-playout-final.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-store --test video_binding --test contact_pairing --test discovery -- --test-threads=1",
+      "result": "passed: 5 video binding/terminal lookup, 4 contacts, 1 discovery",
+      "tests": 10,
+      "raw_log": ".local/gate5/video-store-contacts-final.log"
+    },
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "result": "passed: current prepared graph and recorded digest verified"
+    },
+    {
+      "command": "bash scripts/format.sh; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "verified": [
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate3_media_authorization --test gate3_sip_webrtc --test gate5_browser_selection --test gate5_contact_interface_parity --test gate5_video_failures --test gate5_video_transport --test provider_context_manifest -- --test-threads=1",
+      "result": "passed: expiry1, audio cross-transport2, fresh selected browser Session1, contact parity4, native lifecycle/ownership7, RTP/independent PLI/incomplete shutdown3, actual Vapi manifest1",
+      "tests": 19,
+      "raw_log": ".local/gate5/video-preallocation-server.log"
+    },
+    {
+      "command": "cargo test --locked --manifest-path .deps/rvoip/crates/uctp/rvoip-quic/Cargo.toml --test video_budget",
+      "result": "passed: actual constrained QUIC datagram budget, VP8 fragment reconstruction/marker/loss-gap and sampled shared buffer bounds",
+      "tests": 1,
+      "raw_log": ".local/gate5/video-mtu-real-quic-final.log"
+    },
+    {
+      "command": "cargo test --locked --manifest-path .deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml --features signaling-ws,client --test selected_session_admission",
+      "result": "passed: selected and default AV denial before PeerConnection/UDP allocation",
+      "tests": 1,
+      "raw_log": ".local/gate5/video-host-preallocation-final.log"
+    },
+    {
+      "command": "cargo test --locked --manifest-path .deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml --features signaling-ws,client --lib selected_av_offer",
+      "result": "passed: opt-in selector pairing, syntax bounds and authentication; actual enabled test count checked",
+      "tests": 1,
+      "raw_log": ".local/gate5/video-selector-units-verified.log"
+    },
+    {
+      "command": "cargo test --locked --manifest-path .deps/rvoip/crates/foundation/rvoip-core-traits/Cargo.toml --lib media_diagnostics",
+      "result": "passed: bounded/private metadata receipt cache, missing sample distinction, numeric bucket bounds and shared buffer observations",
+      "tests": 5,
+      "raw_log": ".local/gate5/video-numeric-collector.log"
+    },
+    {
+      "command": "cargo test --locked --manifest-path .deps/rvoip/crates/foundation/rvoip-core/Cargo.toml --lib video_packetizer",
+      "result": "passed: adaptive budget, duplicate consistency, sequence gaps/wrap, late and malformed input rejection",
+      "tests": 3,
+      "raw_log": ".local/gate5/video-packetizer.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-store --test video_binding --test contact_pairing --test discovery",
+      "result": "passed: selected accepted AV in new Conversation, recipient-first, configured authority revocation and invalid selectors; contact4/discovery1",
+      "tests": 12,
+      "raw_log": ".local/gate5/video-selected-store.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-client -p connect-protocol --lib",
+      "result": "passed: SDK16 including ownership/privacy/error cause and protocol6 including additive selected binding/readiness wire shape",
+      "tests": 22,
+      "raw_log": ".local/gate5/video-final-sdk-protocol.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-native-video --bin connect-video playout::tests",
+      "result": "passed: shared delay/different RTP origins, reorder/wrap/replay, bounded stale playout",
+      "tests": 3,
+      "raw_log": ".local/gate5/video-playout-bin-final.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-service --lib readiness::",
+      "result": "passed: additive readiness provider snapshot",
+      "tests": 1,
+      "raw_log": ".local/gate5/video-readiness.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-client -p connect-protocol --lib -p connect-server --all-features --test gate5_native_diagnostics --test gate5_video_failures --test gate5_contact_interface_parity -- --test-threads=1",
+      "result": "passed: client16, protocol6, server library49, contact4, real native numeric diagnostics and paused receiver1, terminal/ownership7. Old queued VP8 discarded after300ms receiver pause, fresh later packet actually received, stale discard>0, forwarded age<=200ms, sampled76032-byte shared buffer and no private identifiers.",
+      "tests": 83,
+      "raw_log": ".local/gate5/video-final-client-ingress.log"
+    },
+    {
+      "command": "cargo clippy --locked -p connect-server -p connect-store -p connect-service -p connect-protocol -p connect-client -p connect-mcp -p connect-native-video --all-targets --all-features -- -D warnings",
+      "result": "passed on frozen SDK and native example sources; dev debug0",
+      "raw_log": ".local/gate5/video-final-frozen-clippy.log"
+    },
+    {
+      "command": "cargo build --locked -p connect-server --bin connect -p connect-native-video --bin connect-video",
+      "result": "passed normal dev debug0 binaries in3m24; sealed immutable private copies with per-file source ledger and hashes; ld emitted existing unwind-table size warning",
+      "raw_log": ".local/gate5/video-media-numeric-binaries.log"
+    }
+  ],
+  "sdk_final_note": "Final native SDK diagnostics/ownership/error cause/source privacy compile and pass client16 units and actual transport/failure tests. Video application ingress discards packets older than200ms before parsing; a paused-receiver real transport regression verifies stale discard and later fresh media. Independently decoded and complete installed/release envelopes remain pending.",
+  "hash_snapshot_note": "Frozen backend/native SDK/example source snapshot matches sealed normal binary source-input manifest. Runtime qualification remains separate.",
+  "verification_environment": {
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "platform": "local macOS arm64",
+    "zero_test_commands_do_not_qualify": true
+  },
+  "normal_binary_manifest": {
+    "graph_patch_sha256": "367e72ccb924d71f85d8d6b27ff0ebf14a9a39ecd7193fcd9aac2df9bf3f19d3",
+    "command": "cargo build --locked -p connect-server --bin connect -p connect-native-video --bin connect-video",
+    "result": "passed",
+    "profile": "dev unoptimized; CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0",
+    "sealed_at_utc": "2026-10-13T23:08:18.225874+00:00",
+    "raw_log": ".local/gate5/video-media-numeric-binaries.log",
+    "source_inputs_digest": "dd4f5eda0d622d05bb5d880accb16fda0b0e5301adb1a1a2549ebae749888496",
+    "binaries": [
+      {
+        "name": "connect",
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/sealed-media-numeric/connect",
+        "build_path": "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review/debug/connect",
+        "sha256": "11a61e08433dbc9173724654a51f303189f11ad7df28ad76b278e4ba04b51988",
+        "bytes": 241598928
+      },
+      {
+        "name": "connect-video",
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/sealed-media-numeric/connect-video",
+        "build_path": "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review/debug/connect-video",
+        "sha256": "d22bb5857a36a87b6e1f6bb2cd5453dc0cfcabd6a89120614bbc30beab4dd457",
+        "bytes": 25099472
+      }
+    ],
+    "private_manifest": ".local/gate5/sealed-media-numeric/manifest.json",
+    "manifest_sha256": "072e019c16bab3f07057da65cb3e414bd490b4bf8a7ff11fbafd66accd077cd5"
+  },
+  "generated_cache_retirement": {
+    "private_provenance": ".local/gate5/debug-cache-retirement.json",
+    "private_log": ".local/gate5/debug-cache-retirement.log",
+    "scope": [
+      "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review/debug/.fingerprint",
+      "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review/debug/build",
+      "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review/debug/deps",
+      "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review/debug/incremental",
+      "/Volumes/D2-2019/Developer/Connect/target/gate4-final-review/debug/examples"
+    ],
+    "no_active_compilers_and_exclusive_profile_lock": true,
+    "top_binaries_seals_and_target_debug_symlink_preserved": true,
+    "observed_freed_bytes": 95391526912,
+    "allocated_cache_bytes_sum": 127529644032,
+    "allocation_note": "APFS shared blocks make summed cache allocation distinct from observed disk free-space delta.",
+    "final_source_rebuild": "Cold qualification rebuild still required under existing budgets; retired cache does not qualify a pass."
+  }
+}

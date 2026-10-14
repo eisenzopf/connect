@@ -42,10 +42,25 @@ impl ConnectClient {
             tls.clone(),
         )
         .map_err(|_| ClientError::Transport)?;
+        // Bound the physical peer's shared DATAGRAM byte queue independently of
+        // the audio/video application packet queues. Reliable control is unaffected.
+        let mut transport = quinn::TransportConfig::default();
+        transport.max_idle_timeout(Some(
+            Duration::from_secs(30)
+                .try_into()
+                .map_err(|_| ClientError::Configuration)?,
+        ));
+        rvoip_quic::apply_encoded_video_transport_budget(&mut transport);
         let deadline = Duration::from_millis(config.timeout_ms);
         let peer = tokio::time::timeout(
             deadline,
-            UctpQuicClient::connect(&endpoint, config.endpoint, &config.server_name, tls),
+            UctpQuicClient::connect_with_transport(
+                &endpoint,
+                config.endpoint,
+                &config.server_name,
+                tls,
+                transport,
+            ),
         )
         .await
         .map_err(|_| ClientError::Timeout)?

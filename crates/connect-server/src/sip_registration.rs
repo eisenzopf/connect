@@ -14,8 +14,9 @@ pub(crate) async fn register(
     let Some(registrar) = &trunk.registrar_uri else {
         return Ok(None);
     };
-    let password = std::env::var(&trunk.auth_password_env)
-        .context("SIP registration password is unavailable")?;
+    let password = crate::secrets::resolve(&trunk.auth_password_env)?
+        .expose()
+        .to_owned();
     register_with_password(coordinator, trunk, registrar, password)
         .await
         .map(Some)

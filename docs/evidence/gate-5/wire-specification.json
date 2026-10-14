@@ -1,0 +1,37 @@
+{
+  "task": "G5-024",
+  "status": "implemented-awaiting-final-profile-and-native-vector-test",
+  "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_dirty": true,
+  "profiles": {
+    "uctp_envelope": 1,
+    "raw_quic_alpn": "uctp/1",
+    "control": "connect-control/1",
+    "task": "connect-task/1"
+  },
+  "files_sha256": {
+    "contracts/connect-control-v1.md": "8adde26f53e164ec2da645f0a1295e0432fe5ddef1c910ab55e89e66a655d21b",
+    "contracts/connect-task-v1.md": "7eba70da25b02fd23b0b9d57343c3b990dce0d60defa256f9de23d9a88dc4b67",
+    "contracts/fixtures/wire/framing-v1.json": "89785b8c4ae1f280169d1dd037eaeec5d04957a8788f49266ba24d2eb3cdb058",
+    "contracts/fixtures/wire/rejections-v1.json": "2e622fe3f8312b78b81c19ff39f195d92b4adcd5db3f4b4306a0eef9b78414f8",
+    "docs/PROTOCOL_CONFORMANCE.md": "ecec27bd3a0a84d4fc62643f2d71eafb4456c30a194991a4143d5b4c68367950",
+    "crates/connect-server/tests/gate5_wire_vectors.rs": "cc6e455d7106479837dace33f1cbcee2d5ca2f07dea065d668d92b671bc216d9"
+  },
+  "verified": [
+    "exact Python frame-vector encode/decode",
+    "real QUIC hello/bearer/application-profile negotiation",
+    "real profile501/version505 rejection",
+    "actual malformed JSON/missing-envelope-payload/oversized frame closure",
+    "native Rust participant agrees with Python conversation/message IDs",
+    "Shared malformed-envelope vector passed Python and actual native server rejection",
+    "Opaque cursor survives server restart with independently observed new native message",
+    "Unconsumed ACK recovered by same logical request ID with one native observed effect"
+  ],
+  "unresolved": [
+    "New native gate5_wire_vectors integration test awaits coordinated prepared dependency build",
+    "Final Gate5 media negotiation/profile additions belong to root video lane",
+    "Prerequisite completion and final source/package conformance rerun"
+  ],
+  "scope": "Published reliable-control specification and independently tested vectors; no independent media stack or final acceptance",
+  "evidence_note": "Component test observations identify tested revisions/hashes. Later conformance additions/source edits require the final source/candidate rerun and are not retrospectively counted as tested."
+}

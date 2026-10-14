@@ -110,7 +110,7 @@ def classify_task_status(observation, task_id, expiry):
         if 'error' in rpc:
             assert 'result' not in rpc
             assert rpc['error']['code'] == -32600
-            assert rpc['error']['message'] == 'Task authority is no longer current'
+            assert rpc['error']['message'] == 'MCP authority is no longer current'
             kind = 'rpc_denied'
         elif rpc['result'].get('isError') is True:
             forbidden(response)

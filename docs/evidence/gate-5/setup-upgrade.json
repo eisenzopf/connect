@@ -1,0 +1,77 @@
+{
+  "profile": "connect-gate5-first-run-upgrade/1",
+  "recorded_at": "2026-10-14T00:17:43.921158+00:00",
+  "status": "source behavior verified at schema18; final installed candidate proof remains separate",
+  "scope": "Synthetic known schema17 fixture and selected current public CLI; no historical schema17 binary claim, personal state, provider/device/model operations or Keychain changes.",
+  "current_schema": 18,
+  "database_authoritative": true,
+  "publication": "After current administrator authorization, exact verified backup and original setup metadata hash/path checks, DB migration commits before private atomic setup metadata publication. Current authorization is rechecked before publication.",
+  "interrupted_publication_recovery": "Explicit new exact-current verified backup with the same installation and original metadata is required. Old pre-upgrade backup, altered metadata, missing administrator scope or foreign snapshot cannot qualify reconciliation. Ordinary setup inspection does not repair mismatched state.",
+  "planned_behavior_checks": [
+    "Actual public CLI known17\u219218 migration plus setup inspection",
+    "Wrong scope and altered setup metadata refused before schema changes",
+    "Protected human/agent/operator configurations and secret refs preserved byte-for-byte",
+    "Original native mutation receipts replay without duplicate messages",
+    "Simulated DB-commit/post-metadata interruption, old backup refusal, explicit fresh-current verified-backup repair"
+  ],
+  "script_contract": "Setup and recovery checkers discover the exact selected candidate schema from fresh public setup init, verify DBuser_version independently and report candidate_schema; package qualification must compare it against the declared candidate schema. Earlier schema17 raw proof remains separate.",
+  "source_inputs_sha256": {
+    "crates/connect-server/src/cli/recovery.rs": "a38433e504c8e52980023c7baac0428e27cbf4e5d76455d3cf02bb1734a2d75d",
+    "crates/connect-server/src/cli/recovery/setup_metadata.rs": "dffe31bc2ac7d181d7f6c1744965b4fc147abccecf545273ae3c1b2cc04b358b",
+    "crates/connect-server/tests/first_run_migration.rs": "f5cdc8072556756755f68968d1bd50a41adfa35fef526122498844bb3a28f470",
+    "scripts/check-gate5-setup.py": "e7410fbf11c9784709379563028d17e37145062619b4dab9627dd22767480f30",
+    "scripts/check-gate5-recovery.py": "9a1efe5be94ade95cbf90d0de75a9ed1d562194592f0dda388ced1f3ec67b4dd"
+  },
+  "selected_source_cli": {
+    "binary": ".local/gate5/setup-schema18-source/connect-94ad7461c055",
+    "binary_sha256": "94ad7461c05529914dd73322d5c6c80a7ab0f1fd8f647f6ae9330043af1066d0",
+    "current_schema": 18,
+    "features": [],
+    "source_lock_sha256": "1f8f716ca3211ba5a37798845c18e6f4d18b0c40c04b94195387214b197707e5",
+    "video_patch_sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+    "scope": "Source setup fixtures only; normal default-feature CLI built during current focused tests, not final packaged/media qualification seal"
+  },
+  "proofs": {
+    "focused_public_cli": {
+      "private_log_sha256": "3298ba49a97fb9d71a514605fc7086483f0a9a258b130ad716f3a471cc22114d",
+      "status": "passed",
+      "executed": {
+        "existing_first_run": 5,
+        "synthetic_known17_to18_migration": 1,
+        "real_selected_provider_cli": 1,
+        "current_vault_authority": 1
+      }
+    },
+    "selected_credential_unit": {
+      "private_log_sha256": "4d42b92a7e3ca9d8697e9b5f7023d62389a84c32e0254a4569c2d534fd9bdffb",
+      "status": "passed"
+    },
+    "disposable_native_keychain": {
+      "private_log_sha256": "b8306345d23607810c9b48f7c1eccbdadd64f50e8f7232cf0ea6e8df8db6d6e4",
+      "status": "passed",
+      "executed": {
+        "isolated_parent": 1,
+        "native_child": 1
+      },
+      "scope": "Explicit original ignored followup executed; disposable Keychain only, selected CLI migration/retry/lock/unlock/original restore and internal currentauth/revocation checks."
+    },
+    "connector_catalogs": {
+      "private_log_sha256": "fd392f4b45b795e7242d71a2cf0d11416f70049fe159b7f68bf0549c8c2031a4",
+      "status": "passed"
+    },
+    "setup_public_checker": {
+      "status": "passed",
+      "candidate_schema": 18,
+      "private_report_sha256": "4174f7ed14d8c65ad2e96957552513a5a49f65d4baa93e42308b77cfbbb11fb3",
+      "binary_sha256": "94ad7461c05529914dd73322d5c6c80a7ab0f1fd8f647f6ae9330043af1066d0",
+      "phase_count": 0
+    },
+    "recovery_public_checker": {
+      "status": "passed",
+      "candidate_schema": 18,
+      "private_report_sha256": "8702ff8eadf9375f683ae9341739c036d4d298008252260a4ac6bd5df6e2c4a1",
+      "binary_sha256": "94ad7461c05529914dd73322d5c6c80a7ab0f1fd8f647f6ae9330043af1066d0",
+      "phase_count": 6
+    }
+  }
+}

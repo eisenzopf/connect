@@ -104,6 +104,32 @@ pub fn export(
     Ok(())
 }
 
+/// Remove only verified Connect export files. Saved sessions, diagnostics and
+/// unrelated host files remain; server authority is revoked separately.
+pub fn remove(directory: &Path) -> Result<()> {
+    let directory = directory.canonicalize()?;
+    load(&directory)?;
+    let _lock = crate::cli::task_access::codex_host::lock(&directory)?;
+    let mut files = vec![
+        directory.join("agent.toml"),
+        directory.join("mcp-override.txt"),
+    ];
+    for (name, _) in codex::SKILL {
+        files.push(directory.join(".agents/skills/connect").join(name));
+    }
+    for path in &files {
+        require_private(path)?;
+    }
+    for path in files {
+        std::fs::remove_file(path)?;
+    }
+    std::fs::remove_file(directory.join("install.json"))?;
+    println!(
+        "Connect export files removed; saved session diagnostics and unrelated files preserved"
+    );
+    Ok(())
+}
+
 fn validate_address(address: SocketAddr) -> Result<()> {
     anyhow::ensure!(
         address.ip().is_loopback() && address.port() != 0,

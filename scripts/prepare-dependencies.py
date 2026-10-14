@@ -20,11 +20,12 @@ def run(*args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cache', type=pathlib.Path, help='Optional verified audit snapshot cache')
+    parser.add_argument('--destination', type=pathlib.Path, help='New private dependency directory (default: .deps)')
     args = parser.parse_args()
     lock = json.loads((ROOT / 'dependencies/source-lock.json').read_text())
     for patch in lock['patches']:
         assert hashlib.sha256((ROOT / patch['path']).read_bytes()).hexdigest() == patch['sha256'], patch['path']
-    directory = ROOT / '.deps'
+    directory = args.destination or ROOT / '.deps'
     directory.mkdir(exist_ok=True)
     for name, source in lock['sources'].items():
         dest = directory / name
@@ -71,7 +72,7 @@ def main():
             marker.write_text(json.dumps(lock, sort_keys=True))
         elif git(dest, 'status', '--porcelain'):
             raise SystemExit(f'{dest}: unexpected changes')
-    print('Pinned sources and patch digests verified in .deps/')
+    print(f'Pinned sources and patch digests verified in {directory}/')
 
 
 if __name__ == '__main__':

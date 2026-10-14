@@ -1,3 +1,14 @@
+import { BrowserDeadline } from "./browser_deadline.js";
+import { negotiateBrowser, type BrowserSignal } from "./browser_negotiation.js";
+import {
+    browserOfferSelection,
+    type BrowserSessionSelection,
+} from "./browser_binding.js";
+import {
+    microphoneStream,
+    captureDevices,
+    type BrowserCaptureDevices,
+} from "./browser_capture.js";
 import { ConnectError } from "./errors.js";
 import { timeoutValue } from "./protocol.js";
 import {
@@ -5,21 +16,30 @@ import {
     type VoiceDiagnostics,
 } from "./browser_voice_stats.js";
 
-interface Signal {
-    type?: string;
-    sdp?: string;
-    connection_id?: string;
-    request_id?: string;
-}
+import {
+    constrainVideoCapture,
+    startVideoTransform,
+    stopVideoWorker,
+    configureVideoSender,
+} from "./browser_video_setup.js";
+import {
+    videoDiagnostics,
+    type VideoDiagnostics,
+} from "./browser_video_stats.js";
+export type { VideoDiagnostics } from "./browser_video_stats.js";
 
 /** Optional audio supplied by an application, such as processed or generated speech. */
-export interface BrowserVoiceOptions {
+export interface BrowserVoiceOptions
+    extends BrowserSessionSelection, BrowserCaptureDevices {
     /**
-     * A live audio-only stream. The session takes ownership of its tracks and
-     * stops them on failure or hangup. Clone tracks first to retain a source.
+     * A live stream matching the selected profile: one audio track by default,
+     * or one audio and one video track with video=true. The session owns and
+     * stops its tracks on failure/hangup. Clone tracks first to retain a source.
      * Omit this to acquire the user's microphone.
      */
     inputStream?: MediaStream;
+    /** Opt into the VP8/640×360 audio/video profile. Audio-only remains the default. */
+    video?: boolean;
 }
 
 /** One authenticated browser WebRTC leg retained by its signaling lease. */
@@ -27,6 +47,8 @@ export class BrowserVoiceSession {
     readonly remoteStream = new MediaStream();
     private connectionId?: string;
     private closed = false;
+    private readonly captureEvents = new AbortController();
+    private closing?: Promise<void>;
     private resolveEnded: () => void = () => {};
     /** Settles after either side ends this leg and microphone capture stops. */
     readonly ended = new Promise<void>((resolve) => {
@@ -37,7 +59,13 @@ export class BrowserVoiceSession {
         private readonly peer: RTCPeerConnection,
         private readonly socket: WebSocket,
         private readonly localStream: MediaStream,
+        private readonly videoWorker?: Worker,
     ) {
+        for (const track of localStream.getTracks())
+            track.addEventListener("ended", () => void this.close(), {
+                once: true,
+                signal: this.captureEvents.signal,
+            });
         peer.ontrack = (event) => {
             for (const track of event.streams[0]?.getTracks() ?? [event.track])
                 this.remoteStream.addTrack(track);
@@ -51,6 +79,20 @@ export class BrowserVoiceSession {
         options: BrowserVoiceOptions = {},
     ): Promise<BrowserVoiceSession> {
         timeoutMs = timeoutValue(timeoutMs);
+        if (options.video !== undefined && typeof options.video !== "boolean")
+            throw new ConnectError(
+                "invalid-request",
+                "Select a boolean media profile",
+            );
+        const video = options.video === true;
+        const inputStream = options.inputStream;
+        const devices = captureDevices(
+            options,
+            video,
+            inputStream !== undefined,
+        );
+        const selection = browserOfferSelection(options, video);
+        const budget = new BrowserDeadline(timeoutMs);
         const parsed = new URL(signalingUrl);
         if (
             parsed.protocol !== "ws:" ||
@@ -68,43 +110,82 @@ export class BrowserVoiceSession {
             );
         let stream: MediaStream;
         try {
-            if (options.inputStream) {
-                const tracks = options.inputStream.getTracks();
+            if (inputStream) {
+                const tracks = inputStream.getTracks();
                 if (
-                    tracks.length === 0 ||
-                    tracks.some(
-                        (track) =>
-                            track.kind !== "audio" ||
-                            track.readyState !== "live",
-                    )
+                    tracks.filter((track) => track.kind === "audio").length !==
+                        1 ||
+                    tracks.filter((track) => track.kind === "video").length !==
+                        (video ? 1 : 0) ||
+                    tracks.some((track) => track.readyState !== "live")
                 )
                     throw new ConnectError(
                         "invalid-request",
-                        "Input stream must contain live audio tracks only",
+                        "Input tracks do not match the selected audio/video profile",
                     );
-                stream = options.inputStream;
-            } else stream = await microphoneStream(timeoutMs);
+                stream = inputStream;
+            } else
+                stream = await microphoneStream(
+                    budget.remaining(),
+                    video,
+                    devices,
+                );
         } catch (error) {
             if (error instanceof ConnectError) throw error;
             throw new ConnectError(
                 "media-denied",
-                "Microphone access was denied",
+                "Microphone or camera access was denied",
             );
         }
         let peer: RTCPeerConnection | undefined;
         let socket: WebSocket | undefined;
         let session: BrowserVoiceSession | undefined;
+        let videoWorker: Worker | undefined;
         try {
+            // Chromium posts an encoded-stream bypass task when addTrack creates
+            // a sender. Finish capture awaits before creating that sender, then
+            // attach its transform synchronously in the same task. See
+            // https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
+            // Constructor:667-672; bypass:1064-1074.
+            if (video) await constrainVideoCapture(stream, budget.remaining());
             peer = new RTCPeerConnection();
             for (const track of stream.getTracks())
                 peer.addTrack(track, stream);
+            if (video) videoWorker = startVideoTransform(peer);
             peer.createDataChannel("connect-control", { ordered: true });
             socket = new WebSocket(signalingUrl, [
                 "rvoip.webrtc.v1",
                 `token.${credential}`,
             ]);
-            session = new BrowserVoiceSession(peer, socket, stream);
-            await session.negotiate(timeoutMs);
+            session = new BrowserVoiceSession(
+                peer,
+                socket,
+                stream,
+                videoWorker,
+            );
+            if (videoWorker) {
+                const owned = session;
+                videoWorker.onerror = () => void owned.close();
+                videoWorker.onmessage = () => void owned.close();
+            }
+            await budget.run(() =>
+                negotiateBrowser(
+                    peer!,
+                    socket!,
+                    stream,
+                    budget,
+                    (id) => {
+                        session!.connectionId = id;
+                    },
+                    selection,
+                ),
+            );
+            if (video) await budget.run(() => configureVideoSender(peer!));
+            if (session.closed)
+                throw new ConnectError(
+                    "unsupported-media-profile",
+                    "Video encoder support failed",
+                );
             session.watchEnd();
             return session;
         } catch (error) {
@@ -112,6 +193,7 @@ export class BrowserVoiceSession {
             else {
                 socket?.close();
                 peer?.close();
+                stopVideoWorker(videoWorker);
                 for (const track of stream.getTracks()) track.stop();
             }
             if (error instanceof ConnectError) throw error;
@@ -120,6 +202,24 @@ export class BrowserVoiceSession {
                 "WebRTC negotiation failed",
             );
         }
+    }
+
+    /** Local capture for a muted preview; this session still owns its tracks. */
+    get localPreview(): MediaStream {
+        return this.localStream;
+    }
+
+    /** Independently mute a captured kind without ending the durable Session. */
+    setMuted(kind: "audio" | "video", muted: boolean): void {
+        for (const track of this.localStream
+            .getTracks()
+            .filter((t) => t.kind === kind))
+            track.enabled = !muted;
+    }
+
+    /** Video decode counters, dimensions and timestamps; no SDP or addresses. */
+    async videoDiagnostics(): Promise<Array<VideoDiagnostics>> {
+        return videoDiagnostics(this.peer, this.videoWorker);
     }
 
     /** Attach remote audio and report browser playback-policy/output failure. */
@@ -161,46 +261,75 @@ export class BrowserVoiceSession {
         return voiceDiagnostics(this.peer);
     }
 
-    async close(): Promise<void> {
-        if (this.closed) return;
+    close(): Promise<void> {
+        if (this.closing) return this.closing;
         this.closed = true;
-        if (this.socket.readyState === WebSocket.OPEN && this.connectionId) {
-            await new Promise<void>((resolve) => {
-                const finish = () => {
-                    clearTimeout(timer);
-                    this.socket.removeEventListener("message", message);
-                    this.socket.removeEventListener("close", finish);
-                    resolve();
-                };
-                const message = (event: MessageEvent) => {
-                    if (typeof event.data !== "string") return;
+        this.closing = Promise.resolve().then(() => this.release());
+        return this.closing;
+    }
+
+    private async release(): Promise<void> {
+        this.captureEvents.abort();
+        try {
+            if (
+                this.socket.readyState === WebSocket.OPEN &&
+                this.connectionId
+            ) {
+                await new Promise<void>((resolve) => {
+                    const finish = () => {
+                        clearTimeout(timer);
+                        this.socket.removeEventListener("message", message);
+                        this.socket.removeEventListener("close", finish);
+                        resolve();
+                    };
+                    const message = (event: MessageEvent) => {
+                        if (typeof event.data !== "string") return;
+                        try {
+                            if (
+                                (JSON.parse(event.data) as BrowserSignal)
+                                    .type === "bye"
+                            )
+                                finish();
+                        } catch {
+                            // The negotiated session already owns protocol errors.
+                        }
+                    };
+                    const timer = setTimeout(finish, 500);
+                    this.socket.addEventListener("message", message);
+                    this.socket.addEventListener("close", finish, {
+                        once: true,
+                    });
                     try {
-                        if ((JSON.parse(event.data) as Signal).type === "bye")
-                            finish();
+                        this.socket.send(
+                            JSON.stringify({
+                                type: "bye",
+                                connection_id: this.connectionId,
+                                request_id: crypto.randomUUID(),
+                            }),
+                        );
                     } catch {
-                        // The negotiated session already owns protocol errors.
+                        finish();
                     }
-                };
-                const timer = setTimeout(finish, 500);
-                this.socket.addEventListener("message", message);
-                this.socket.addEventListener("close", finish, { once: true });
-                this.socket.send(
-                    JSON.stringify({
-                        type: "bye",
-                        connection_id: this.connectionId,
-                        request_id: crypto.randomUUID(),
-                    }),
-                );
-            });
+                });
+            }
+        } finally {
+            try {
+                if (
+                    this.socket.readyState === WebSocket.OPEN ||
+                    this.socket.readyState === WebSocket.CONNECTING
+                )
+                    this.socket.close(1000, "Connect voice ended");
+            } finally {
+                try {
+                    this.peer.close();
+                } finally {
+                    stopVideoWorker(this.videoWorker);
+                    for (const track of this.localStream.getTracks())
+                        track.stop();
+                    this.resolveEnded();
+                }
+            }
         }
-        if (
-            this.socket.readyState === WebSocket.OPEN ||
-            this.socket.readyState === WebSocket.CONNECTING
-        )
-            this.socket.close(1000, "Connect voice ended");
-        this.peer.close();
-        for (const track of this.localStream.getTracks()) track.stop();
-        this.resolveEnded();
     }
 
     private watchEnd(): void {
@@ -209,7 +338,7 @@ export class BrowserVoiceSession {
         this.socket.onmessage = (event) => {
             if (typeof event.data !== "string") return;
             try {
-                const signal = JSON.parse(event.data) as Signal;
+                const signal = JSON.parse(event.data) as BrowserSignal;
                 if (
                     signal.type === "bye" &&
                     signal.connection_id === this.connectionId
@@ -219,144 +348,12 @@ export class BrowserVoiceSession {
                 void this.close();
             }
         };
+        this.peer.addEventListener("iceconnectionstatechange", () => {
+            if (this.peer.iceConnectionState === "failed") void this.close();
+        });
         this.peer.addEventListener("connectionstatechange", () => {
             if (["failed", "closed"].includes(this.peer.connectionState))
                 void this.close();
         });
     }
-
-    private async negotiate(timeoutMs: number): Promise<void> {
-        const requestId = crypto.randomUUID();
-        const offer = await this.peer.createOffer();
-        await this.peer.setLocalDescription(offer);
-        await waitForIce(this.peer, timeoutMs);
-        const local = this.peer.localDescription;
-        if (!local?.sdp || local.sdp.length > 1024 * 1024)
-            throw new ConnectError("protocol", "Invalid local WebRTC offer");
-        await new Promise<void>((resolve, reject) => {
-            const timer = setTimeout(
-                () =>
-                    reject(
-                        new ConnectError(
-                            "timeout",
-                            "WebRTC signaling timed out",
-                        ),
-                    ),
-                timeoutMs,
-            );
-            let answerApplied = false;
-            let readyReceived = false;
-            const finishIfReady = () => {
-                if (!answerApplied || !readyReceived) return;
-                clearTimeout(timer);
-                resolve();
-            };
-            const fail = () => {
-                clearTimeout(timer);
-                reject(
-                    new ConnectError(
-                        "webrtc-failed",
-                        "WebRTC signaling closed",
-                    ),
-                );
-            };
-            this.socket.onerror = fail;
-            this.socket.onclose = fail;
-            const sendOffer = () =>
-                this.socket.send(
-                    JSON.stringify({
-                        type: "offer-ready",
-                        sdp: local.sdp,
-                        request_id: requestId,
-                    }),
-                );
-            this.socket.onopen = sendOffer;
-            this.socket.onmessage = async (event) => {
-                try {
-                    if (
-                        typeof event.data !== "string" ||
-                        event.data.length > 1024 * 1024
-                    )
-                        throw new Error();
-                    const signal = JSON.parse(event.data) as Signal;
-                    if (signal.request_id && signal.request_id !== requestId)
-                        return;
-                    if (signal.type === "answer") {
-                        if (!signal.sdp || !signal.connection_id)
-                            throw new Error();
-                        this.connectionId = signal.connection_id;
-                        await this.peer.setRemoteDescription({
-                            type: "answer",
-                            sdp: signal.sdp,
-                        });
-                        answerApplied = true;
-                        finishIfReady();
-                    } else if (signal.type === "ready") {
-                        readyReceived = true;
-                        finishIfReady();
-                    } else if (signal.type === "rejected") {
-                        throw new ConnectError(
-                            "forbidden",
-                            "Voice invitation was rejected",
-                        );
-                    }
-                } catch (error) {
-                    clearTimeout(timer);
-                    reject(error);
-                }
-            };
-            // ICE gathering can outlast the WebSocket handshake. Install the
-            // answer handler before sending, including when `open` already ran.
-            if (this.socket.readyState === WebSocket.OPEN) sendOffer();
-            else if (this.socket.readyState !== WebSocket.CONNECTING) fail();
-        });
-    }
-}
-
-async function microphoneStream(timeoutMs: number): Promise<MediaStream> {
-    const pending = navigator.mediaDevices.getUserMedia({ audio: true });
-    return new Promise((resolve, reject) => {
-        let expired = false;
-        const timer = setTimeout(() => {
-            expired = true;
-            reject(new ConnectError("timeout", "Microphone access timed out"));
-        }, timeoutMs);
-        pending.then(
-            (stream) => {
-                if (expired) {
-                    for (const track of stream.getTracks()) track.stop();
-                    return;
-                }
-                clearTimeout(timer);
-                resolve(stream);
-            },
-            (error) => {
-                if (expired) return;
-                clearTimeout(timer);
-                reject(error);
-            },
-        );
-    });
-}
-
-async function waitForIce(
-    peer: RTCPeerConnection,
-    timeoutMs: number,
-): Promise<void> {
-    if (peer.iceGatheringState === "complete") return;
-    await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(
-            () =>
-                reject(new ConnectError("timeout", "ICE gathering timed out")),
-            timeoutMs,
-        );
-        const changed = () => {
-            if (peer.iceGatheringState === "complete") {
-                clearTimeout(timer);
-                peer.removeEventListener("icegatheringstatechange", changed);
-                resolve();
-            }
-        };
-        peer.addEventListener("icegatheringstatechange", changed);
-    });
 }

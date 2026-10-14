@@ -1,13 +1,17 @@
 """Bounded response validation shared by both transports."""
 import json
 import math
+from .media_validation import valid_media
 from .errors import ConnectError
+from .contact_validation import valid_contact
 from ._validation import fields as _fields, array as _array
 from .task_protocol import valid_task_outcome
 
 MAX_REQUEST = 65537
 MAX_RESPONSE = 600000
 KINDS = {
+    "contact_pairing_start": "contact_pairing", "contact_pairing_complete": "contact_pairing",
+    "contact_pairing_revoke": "contact_pairing", "contact_state": "contact",
     "task": "task",
     "capabilities": "capabilities", "browser_binding": "browser_binding", "context_deliveries": "context_deliveries",
     "resolve": "identity", "create": "conversation", "close": "conversation",
@@ -39,7 +43,7 @@ def timeout_value(value):
 
 def _readiness(value):
     states = ("ready", "degraded", "unavailable", "uncertain")
-    return _fields(value, ("state",)) and value["state"] in states and _array(
+    return _fields(value, ("state",)) and value["state"] in states and ("media" not in value or valid_media(value["media"])) and _array(
         value.get("components"), lambda item: _fields(item, ("component", "state", "reason"))
         and item["state"] in states and type(item.get("observed_at")) is int
         and ("configured" not in item or type(item["configured"]) is bool))
@@ -48,6 +52,8 @@ def _readiness(value):
 def valid_data(kind, data, depth=0):
     if not isinstance(data, dict) or depth > 8:
         return False
+    if kind in ("contact", "contact_pairing"):
+        return valid_contact(kind, data)
     if kind == "task":
         return valid_task_outcome(data, valid_data, depth)
     if kind == "identity":

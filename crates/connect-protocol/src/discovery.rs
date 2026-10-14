@@ -15,6 +15,8 @@ pub struct RouteCapability {
 /// Public limits needed before sending a message, file or native audio frame.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CapabilityLimits {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub video_profile: Option<crate::video_profile::VideoProfile>,
     pub message_bytes: usize,
     pub artifact_bytes: u64,
     pub artifact_chunk_bytes: u32,

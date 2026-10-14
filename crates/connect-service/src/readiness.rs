@@ -1,6 +1,10 @@
 //! Process-local operational state, separate from the authoritative journal.
 use connect_protocol::{ComponentReadiness, Readiness, ReadinessState};
-use std::{collections::BTreeMap, sync::Mutex};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
+type MediaSnapshot = Arc<dyn Fn() -> connect_protocol::MediaDiagnostics + Send + Sync>;
 use tokio_util::sync::CancellationToken;
 
 /// Shared by runtime supervisors and authenticated health responses.
@@ -8,8 +12,14 @@ use tokio_util::sync::CancellationToken;
 pub struct OperationalReadiness {
     components: Mutex<BTreeMap<&'static str, ComponentReadiness>>,
     fatal: CancellationToken,
+    media: Mutex<Option<MediaSnapshot>>,
 }
 impl OperationalReadiness {
+    /// Install a process-local bounded numeric provider. Authorization remains
+    /// the existing Health operation's responsibility.
+    pub fn set_media_snapshot(&self, provider: MediaSnapshot) {
+        *self.media.lock().unwrap_or_else(|p| p.into_inner()) = Some(provider);
+    }
     /// Publish a bounded, static component/reason pair without private data.
     pub fn set(&self, component: &'static str, state: ReadinessState, reason: &'static str) {
         self.components
@@ -63,7 +73,10 @@ impl OperationalReadiness {
             .values()
             .cloned()
             .collect();
-        Readiness::from_components(components)
+        let provider = self.media.lock().unwrap_or_else(|p| p.into_inner()).clone();
+        let mut readiness = Readiness::from_components(components);
+        readiness.media = provider.map(|provider| provider());
+        readiness
     }
 }
 #[cfg(test)]

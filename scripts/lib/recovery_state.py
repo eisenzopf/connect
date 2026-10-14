@@ -46,8 +46,8 @@ def sms_fixture(path, cid):
                    ('fixture-stop', '+15550000001', '+15550000002', 'STOP', now, 1))
 
 
-def baseline(binary, revision, schema):
-    manifest = json.loads(binary.with_name('manifest.json').read_text())
+def baseline(binary, revision, schema, manifest_path=None):
+    manifest = json.loads((manifest_path or binary.with_name('manifest.json')).read_text())
     assert manifest['source_revision'] == revision, 'Wrong historical source'
     assert manifest['schema'] == schema, 'Wrong historical schema'
     expected = manifest.get('binary_sha256') or manifest['files']['bin/connect']

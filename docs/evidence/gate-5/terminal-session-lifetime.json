@@ -1,0 +1,484 @@
+{
+  "profile": "connect-gate5-terminal-session-lifetime/1",
+  "recorded_at": "2026-10-14T06:16:32.398669+00:00",
+  "status": "Recorded twelve-patch graph terminal/backpressure component behavior and focused strict quality verified; integrated later graph qualification remains separate",
+  "scope": "Current Rust SDK/Store/service/recorded UCTP source plus explicitly selected normal external server; no browser, provider, decoded timing, installed package or whole Gate5 closure",
+  "patch_sha256": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+  "source_lock_sha256": "7738c4b360752fd7bc47a15a7dbe39e7048efad97506422f1e2da5085dda2a35",
+  "normal_server": {
+    "path": ".local/gate5/terminal-verification-20261014T060901.853984Z/connect-normal",
+    "sha256": "93c81111d128a763651334bbb054d7d1adaa75c3225975afe6c3849e28b7b2e6",
+    "features": "default; no test-support",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked",
+      "-p",
+      "connect-server",
+      "--bin",
+      "connect"
+    ],
+    "normal_target_sha256": "93c81111d128a763651334bbb054d7d1adaa75c3225975afe6c3849e28b7b2e6"
+  },
+  "source_components": [
+    {
+      "phase": "prepared-recorded-graph",
+      "result": "passed",
+      "rust_tests": null,
+      "seconds": 0.171
+    },
+    {
+      "phase": "store-lifetime",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 2.919
+    },
+    {
+      "phase": "service-delegated-lifetime",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 24.679
+    },
+    {
+      "phase": "upstream-terminal-lifetime",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 172.882
+    },
+    {
+      "phase": "upstream-original-revocation",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 0.427
+    },
+    {
+      "phase": "external-fixture-compile",
+      "result": "passed",
+      "rust_tests": null,
+      "seconds": 173.2
+    }
+  ],
+  "external_components": [
+    {
+      "phase": "normal-server-build",
+      "result": "passed",
+      "rust_tests": null,
+      "seconds": 168.206
+    },
+    {
+      "phase": "external-seven",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 48.958
+    },
+    {
+      "phase": "external-stale-repeat-1",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 5.03
+    },
+    {
+      "phase": "external-stale-repeat-2",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 5.024
+    },
+    {
+      "phase": "external-stale-repeat-3",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 5.021
+    },
+    {
+      "phase": "external-stale-repeat-4",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 4.99
+    },
+    {
+      "phase": "external-stale-repeat-5",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 5.006
+    }
+  ],
+  "normal_target_restored_from_verified_seal": true,
+  "featured_target_sha256": "57d45417d58d52ec4d5cac7a0ad4603579c83183abd49fadce1adc812561f777",
+  "compiled_rust_inputs_stable": true,
+  "normal_and_external_batch_all_source_inputs_stable": true,
+  "source_boundary": "Earlier browser SDK edits stopped firstwrapper before normalbuild. Exact compiled Rust/dependency inputs remained identical; originalwrapperfailedreport preserved and units joined explicitly. Normal/externalbatch source inputs then stayed stable.",
+  "private_reports": [
+    {
+      "path": ".local/gate5/terminal-verification-20261014T055940.799682Z/result.json",
+      "sha256": "39e5e6e5def884d26850fb1f48b3bacd7c3ea04b4a22e996f9a3eb50f403e661"
+    },
+    {
+      "path": ".local/gate5/terminal-verification-20261014T060058.693533Z/result.json",
+      "sha256": "3903c2e2763bf8f44a8fffd6112eb787325d838fe6b407ea8d54b4cb5bf374c4"
+    },
+    {
+      "path": ".local/gate5/terminal-verification-20261014T060901.853984Z/result.json",
+      "sha256": "1c05f87f51ca8f4f9d3fa16b2112f203f022699e3e706ba88176205d806bd5f3"
+    }
+  ],
+  "strict_stale_attachment_assertion": "ClientError::Application with code forbidden; Timeout not accepted; five exact repeats passed",
+  "failure_history": [
+    {
+      "finding": "NewStore fixture expected forbidden for revokedcredential; existing correctStore API returns unauthorized",
+      "resolution": "Exact fixture expectation corrected to unauthorized; production and external forbidden assertion unchanged",
+      "private_report": ".local/gate5/terminal-verification-20261014T055940.799682Z/result.json"
+    },
+    {
+      "finding": "Concurrent browser SDK source edits tripped broadwrapper runtimeguard before normalbuild",
+      "resolution": "Rust-only proof composed from identical compiled inputs; no browser/fullsource claim",
+      "private_report": ".local/gate5/terminal-verification-20261014T060058.693533Z/result.json"
+    }
+  ],
+  "remaining": [
+    "Root thirteen-patch RTC feedback graph, fresh normal binaries and integrated source/installed/media/package qualification remain separate."
+  ],
+  "backpressure_correction": {
+    "status": "Five upstream fixtures executed and passed, including saturated wire/event/both queues and independent adapter teardown notification",
+    "patch": "patches/rvoip/terminal-session-backpressure.patch",
+    "patch_sha256": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+    "shared_notification_deadline_seconds": 2,
+    "absolute_guard_error_deadline_seconds": 3,
+    "authored_upstream_fixture_total": 5,
+    "new_negative_cases": [
+      "outgoing queue saturated",
+      "adapter event queue saturated",
+      "both queues saturated",
+      "adapter teardown event independent of blocked wire"
+    ],
+    "known_scope_limit": "The ordinary-channel passes remain09bac source proof; correction and current combined normal/external/package qualification have not run.",
+    "static_checks": {
+      "formatting": "passed",
+      "rust_syntax_format_check": "passed",
+      "recorded_patch_dry_run": "passed",
+      "scope": "No compile or execution; shared prepared graph remains prior ordinary-channel graph until exclusive baseline release"
+    },
+    "scope": "Recorded twelve-patch graph7731b24a; no thirteen-patch, decoded-media or installed-package qualification claim"
+  },
+  "combined_graph_proof": {
+    "recorded_at": "2026-10-14T07:31:24.914823+00:00",
+    "scope": "Current compiled Rust component graph and exact selected normal external server; forty test instances passed, no ignored cases; source and installed package closure remain separate",
+    "source_lock_sha256": "7731b24ad50e0f27ef11c0e95dece1a5517a5827f631f6fe11f09402b3eb13b4",
+    "normal_binaries": [
+      {
+        "name": "connect",
+        "path": ".local/gate5/combined-current-20261014T071800.548842Z/normal/connect",
+        "sha256": "b7b8329bdf1c3dd26b53920385d4a3f1b6d8dd48ac92de82132c8ea164fc49d4",
+        "bytes": 242810048,
+        "features": "default; no test-support"
+      },
+      {
+        "name": "connect-video",
+        "path": ".local/gate5/combined-current-20261014T071800.548842Z/normal/connect-video",
+        "sha256": "36d7cb826990432a069f39f67a56ed15d208c2ac1a24511c9c317a2095d4e77c",
+        "bytes": 25148784,
+        "features": "default; no test-support"
+      },
+      {
+        "name": "connect-example",
+        "path": ".local/gate5/combined-current-20261014T071800.548842Z/normal/connect-example",
+        "sha256": "092994039f19d1623e2f4377d3fd30d191ac3ba64cae747110d82084316662e9",
+        "bytes": 34594272,
+        "features": "default; no test-support"
+      }
+    ],
+    "passed_tests": 40,
+    "checks": [
+      {
+        "phase": "verify-selected-recorded-graph",
+        "result": "passed",
+        "rust_tests": null,
+        "seconds": 0.134
+      },
+      {
+        "phase": "upstream-terminal-five",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 0.294
+      },
+      {
+        "phase": "upstream-legacy-revocation",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 0.295
+      },
+      {
+        "phase": "store-terminal-three",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 0.251
+      },
+      {
+        "phase": "service-delegated-one",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 0.247
+      },
+      {
+        "phase": "normal-three-binaries",
+        "result": "passed",
+        "rust_tests": null,
+        "seconds": 172.301
+      },
+      {
+        "phase": "verify-selected-recorded-graph",
+        "result": "passed",
+        "rust_tests": null,
+        "seconds": 0.246
+      },
+      {
+        "phase": "external-seven",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 46.284
+      },
+      {
+        "phase": "external-stale-repeat-1",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 5.029
+      },
+      {
+        "phase": "external-stale-repeat-2",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 5.054
+      },
+      {
+        "phase": "external-stale-repeat-3",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 5.018
+      },
+      {
+        "phase": "external-stale-repeat-4",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 5.024
+      },
+      {
+        "phase": "external-stale-repeat-5",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 5.056
+      },
+      {
+        "phase": "connector-observation-order",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 3.036
+      },
+      {
+        "phase": "connector-template",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 6.539
+      },
+      {
+        "phase": "connector-voice-flow",
+        "result": "passed",
+        "rust_tests": {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        "seconds": 6.586
+      }
+    ],
+    "reports": [
+      {
+        "path": ".local/gate5/combined-current-20261014T071800.548842Z/result.json",
+        "sha256": "a2bfdef1a4453d5f784c26c56e47978b006822579494c1ebd9848d5bcec103e2"
+      },
+      {
+        "path": ".local/gate5/combined-current-20261014T072623.554370Z/result.json",
+        "sha256": "7ca9925d6b7a4676beb2200e1b4868eaf59e2069b2447632156ebc5f990623d1"
+      }
+    ],
+    "failure_history": [
+      {
+        "finding": "New connector capability guard connection borrow failed to coerce MutexGuard",
+        "resolution": "Explicit local guard binding, authorized by owning connector agent; new source-bound batch passed",
+        "report": ".local/gate5/combined-current-20261014T071252.241117Z/result.json"
+      },
+      {
+        "finding": "Private runner requested nonexistent library-only connect-mcp bin",
+        "resolution": "Runner corrected to exact available connect/connect-example/connect-video bins; all sealed",
+        "report": ".local/gate5/combined-current-20261014T071650.828973Z/result.json"
+      },
+      {
+        "finding": "External firstattempt six passed, one pre-readiness QUIC bind failure on transient loopback port; no failedcase media assertion reached",
+        "resolution": "Unchanged seven-test args/deadlines/assertions rerun passed; originalfailure and concrete bindlog retained",
+        "report": ".local/gate5/combined-current-20261014T071800.548842Z/result.json",
+        "diagnostic": ".local/gate5/combined-current-20261014T071800.548842Z/external-bind-failure-provenance.json"
+      },
+      {
+        "finding": "StrictClippy large Outcome variant after expanded readiness DTO",
+        "resolution": "Root authorized localized documented API-preserving allowance; strict rerun passed. Public Rust constructors and wire fields unchanged.",
+        "report": ".local/gate5/combined-current-20261014T072623.554370Z/result.json"
+      }
+    ],
+    "quality_rerun": {
+      "status": "passed",
+      "report": ".local/gate5/combined-current-20261014T073027.274102Z/result.json",
+      "sha256": "c64737534ae04ef50e2ad8bf071b9b0c9e0a2bbd06f06d05e4430c7d62552658",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-connectors",
+        "-p",
+        "connect-native-video",
+        "-p",
+        "connect-mcp",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "seconds": 141.858,
+      "compiled_inputs_stable": true,
+      "scope": "Focused all targets/all features strict quality after localized API-preserving lint allowance and injected-provider rustdoc correction; no later thirteen-patch claim"
+    },
+    "binary_scope_limit": "Normal seals compiled before subsequent lint-allow and rustdoc-only edits; next fresh recorded graph must rebuild before integrated qualification",
+    "quality_only_source_changes": {
+      "crates/connect-protocol/src/lib.rs": "ce11551b0bf24f1bbe01e1ae0729b698dae28ede9bf19793983171b686c54460",
+      "crates/connect-server/src/runtime.rs": "7b2fc0d192e5ab20ded7217ebe89fef4899393f9d4e0036e10a119ec5d867681"
+    }
+  },
+  "subsequent_graph_guard": {
+    "recorded_at": "2026-10-14T07:37:20.204301+00:00",
+    "status": "Thirteen-patch graph prepared; declared feedback component passed; fresh normal binaries and integrated qualification pending",
+    "source_lock_sha256": "a391f1650752107987b2f5c7c30cc7f653d372ccf65092336d2aed80d6d37d6a",
+    "recorded_patch_count": 13,
+    "new_patch": {
+      "path": "patches/rvoip/declared-ssrc-feedback.patch",
+      "sha256": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
+      "source": "Bind negotiated receiver-report and transport-wide congestion feedback when the first RTP packet resolves an SDP-declared SSRC codec; preserve per-stream loss history and reject unnegotiated codec binding."
+    },
+    "preserved_scope": "All forty prior component test instances and focused strict Clippy remain explicitly dated twelve-patch evidence; no promotion of old binary seals to the new graph",
+    "static_review": {
+      "result": "No apparent borrow or codec move conflict; binding occurs only on empty codec transition",
+      "real_interceptor_coverage": "Actual ReceiverReport and TransportLayerCc objects are inspected; sequence1\u21923 retains loss0\u21921 on repeated SSRC lookup; unknown SSRC and unnegotiated payload do not acquire feedback bindings",
+      "limit": "No decoded Chrome/BWE or whole-peer network claim from two interceptor component tests"
+    },
+    "root_component_execution": {
+      "command_scope": "rtc --lib declared_feedback_tests",
+      "result": "passed",
+      "rust_tests": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      "raw_log": ".local/gate5/declared-feedback-edit/test.log",
+      "raw_log_sha256": "d962b0bbfc040b545b4552e4f5c23978efa67e774a2779c428ff5557a64cf1ab",
+      "executed_by": "root"
+    },
+    "normal_binary_selection": "Pending root fresh three-bin build; twelve-patch immutable binaries remain separate component seals",
+    "pending": [
+      "Fresh normal three-bin seal with current source and thirteen-patch graph",
+      "Integrated source and installed checks with current inputs",
+      "Decoded media, operating limits and package qualification"
+    ]
+  }
+}

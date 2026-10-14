@@ -1,0 +1,125 @@
+{
+  "profile": "connect-gate5-contact-interface-source-evidence/1",
+  "date": "2026-10-13",
+  "task_ids": [
+    "G5-003",
+    "G5-036"
+  ],
+  "status": "source interface parity passed; installed/model and complete release envelopes pending",
+  "source_commit": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "worktree_changes": true,
+  "platform": "local macOS arm64",
+  "source_inputs_sha256": {
+    "crates/connect-mcp/src/identity_catalog.rs": "0c31bfbe7085f10b408844817c5a1487e164d0620efbed963dee47a4688020fd",
+    "crates/connect-mcp/src/identity_schemas.rs": "f8fd05141fd3546da7112349fb478da99e9b2beff1e5e34fd460060604001f1a",
+    "crates/connect-protocol/src/contacts.rs": "d043948e93b805cd1c4194d0a288a191afa385636d02f600ee751e1bf6c01fd3",
+    "crates/connect-protocol/tests/contact_response.rs": "9fa647ae3d0efa1a47b597f64a6fd87fc2e3d1288b981070447b6865bf7ec94d",
+    "crates/connect-store/src/contacts.rs": "53219a03be91bb85e9059cee402b75d60d56f0220533a51ce47e9997b291669d",
+    "crates/connect-store/tests/contact_pairing.rs": "e129f2566e25b7dd64976394d394f404c33fdf5dfab58659c7f8a94dc9bafda0",
+    "crates/connect-server/tests/gate5_contact_interface_parity.rs": "8f0be3a589ee2b0edcdd8eccec2a8f8d3727d1fded7392625a9a731e0e6e0ab6",
+    "sdk/tests/contact_probe.py": "19caa48f63c886c11230b016db41f416356543851c3fade5f416258b3eb38b48",
+    "sdk/tests/contact_probe.mjs": "6a5bc3e39b714accd89bf5aece3844bc3691d2a34a0af48bd076cc570f19c63b",
+    "sdk/tests/test_contacts.py": "ffbee9292271fe2e7d2bc5891303c99eb147dd166dc0e69e09e703cc40d3c675",
+    "sdk/tests/contacts.test.mjs": "90e5a09eb8c1eaa2adde686bd46c15daf6eae23e3390975d53b0fc6a98cde589"
+  },
+  "checks": [
+    {
+      "command": "PYTHONPATH=sdk/python python3 -m unittest sdk/tests/test_contacts.py",
+      "result": "passed",
+      "tests": 2
+    },
+    {
+      "command": "node --test sdk/tests/contacts.test.mjs",
+      "result": "passed",
+      "tests": 1
+    },
+    {
+      "command": "python3 -m py_compile sdk/tests/contact_probe.py",
+      "result": "passed; syntax only"
+    },
+    {
+      "command": "node --check sdk/tests/contact_probe.mjs",
+      "result": "passed; syntax only"
+    },
+    {
+      "command": "bash scripts/format.sh",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "cargo test --locked -p connect-protocol --test contact_response",
+      "result": "passed",
+      "tests": 1,
+      "raw_log": ".local/gate5/contact-protocol-final.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-store --test video_binding --test contact_pairing --test discovery -- --test-threads=1",
+      "result": "passed; contact_pairing subset",
+      "tests": 4,
+      "raw_log": ".local/gate5/video-store-contacts-final.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate5_video_failures --test gate5_video_transport --test gate3_sip_webrtc --test gate3_media_authorization --test gate5_contact_interface_parity -- --test-threads=1",
+      "result": "passed; contact-interface subset includes actual Python/TypeScript native-helper and HTTP, native/HTTP/JSON CLI/MCP parity and current original owner/revocation guards",
+      "tests": 4,
+      "raw_log": ".local/gate5/video-projection-server-final.log"
+    },
+    {
+      "command": "cargo test --locked -p connect-server --all-features --test gate5_contact_interface_parity (part of the sequential 19-test server aggregate)",
+      "result": "passed: actual Rust/native/HTTP/CLI/MCP plus Python/TypeScript helper parity and current replay ownership/revocation",
+      "tests": 4,
+      "raw_log": ".local/gate5/video-preallocation-server.log",
+      "graph_patch_sha256": "367e72ccb924d71f85d8d6b27ff0ebf14a9a39ecd7193fcd9aac2df9bf3f19d3"
+    },
+    {
+      "command": "cargo test --locked -p connect-client -p connect-protocol --lib -p connect-server --all-features --test gate5_native_diagnostics --test gate5_video_failures --test gate5_contact_interface_parity -- --test-threads=1",
+      "result": "passed: contact interface subset after private MCP outcome boxing; wire receipts/ownership unaffected",
+      "tests": 4,
+      "raw_log": ".local/gate5/video-final-client-ingress.log"
+    }
+  ],
+  "not_run": [],
+  "intended_real_server_proof": [
+    "Rust/HTTP/JSON CLI/ordinary MCP durable receipt and outcome parity",
+    "no mandatory task or grant",
+    "closed MCP schemas reject actor and task injection",
+    "denied peer recipients",
+    "wrong challenge does not verify and exact replay commits only one attempt",
+    "wrong identity cannot complete",
+    "stable intent conflicts",
+    "one-use completion and current pairing revocation",
+    "current original owner credential revocation on replay",
+    "replacement completing credential needs a new pairing",
+    "Python/TypeScript actual native-helper and HTTP conveniences",
+    "actual helper debug diagnostics omit exact credentials and challenges"
+  ],
+  "qualified_proof": [
+    "Python/TypeScript malformed ownership, expiry and challenge DTO rejection",
+    "Python/TypeScript sms_consent=true rejection",
+    "protocol errors do not echo sentinel private fields",
+    "Rust/HTTP/JSON CLI/ordinary MCP durable receipt and outcome parity",
+    "no mandatory task or grant",
+    "closed MCP schemas reject actor and task injection",
+    "denied peer recipients",
+    "wrong challenge does not verify and exact replay commits only one attempt",
+    "wrong identity cannot complete",
+    "stable intent conflicts",
+    "one-use completion and current pairing revocation",
+    "current original owner credential revocation on replay",
+    "replacement completing credential needs a new pairing",
+    "Python/TypeScript actual native-helper and HTTP conveniences",
+    "actual helper debug diagnostics omit exact credentials and challenges"
+  ],
+  "unresolved": [
+    "installed outside-checkout contact probes not yet executed",
+    "actual-model contact tools not qualified",
+    "broader Gate5 interface/media operation matrix and shared release prerequisites remain open",
+    "Historical baseline002 and full installed/media/release qualification envelopes remain unresolved; no whole-task completion is inferred from source interface parity."
+  ],
+  "whole_task_complete": false,
+  "installed_package_qualified": false,
+  "live_providers_used": false
+}

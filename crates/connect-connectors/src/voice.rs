@@ -47,6 +47,46 @@ fn valid_control_url(url: &str, id: &str) -> bool {
 }
 #[async_trait]
 impl VoiceConnector for Vapi {
+    fn voice_manifest(&self) -> Option<connect_connector_api::manifest::Manifest> {
+        Some(crate::provider_mapping::vapi_telephone_manifest())
+    }
+    fn voice_configuration(&self) -> std::collections::BTreeMap<String, String> {
+        crate::provider_mapping::references("private-key", "VAPI_PRIVATE_KEY")
+    }
+    fn normalize(
+        &self,
+        mutation_id: &str,
+        call: &RemoteCall,
+    ) -> Result<connect_connector_api::lifecycle::Observation, Failure> {
+        use connect_connector_api::lifecycle::{Observation, State, Verification};
+        if mutation_id.is_empty()
+            || mutation_id.len() > 256
+            || uuid::Uuid::parse_str(&call.id).is_err()
+        {
+            return Err(Failure::Rejected);
+        }
+        Ok(Observation {
+            mutation_id: mutation_id.into(),
+            external_id: Some(call.id.clone()),
+            event_id: format!("vapi-call:{}:{}", call.id, call.state),
+            state: State::Voice(crate::provider_mapping::vapi_voice_state(&call.state)),
+            verification: Verification::AuthenticatedResponse,
+        })
+    }
+    async fn end_receipt(
+        &self,
+        mutation_id: &str,
+        external_id: &str,
+        control_url: Option<&str>,
+    ) -> Result<connect_connector_api::VoiceReceipt, Failure> {
+        // Existing end already obtains an authoritative status after control.
+        // Keep that exact request path and preserve its private control capability.
+        let call = self.end(external_id, control_url).await?;
+        let mut observation = self.normalize(mutation_id, &call)?;
+        observation.verification = connect_connector_api::lifecycle::Verification::Reconciliation;
+        observation.event_id = format!("reconcile:{}", observation.event_id);
+        Ok(connect_connector_api::VoiceReceipt { call, observation })
+    }
     async fn inbound(&self, binding: &VoiceQuery) -> Result<Vec<InboundCall>, Failure> {
         // Updated timestamps catch calls indexed or changed after creation.
         // Re-read an overlap, and advance the durable watermark only after import.

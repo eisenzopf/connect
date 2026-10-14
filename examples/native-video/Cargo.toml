@@ -1,0 +1,22 @@
+[package]
+name = "connect-native-video"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+connect-client.workspace = true
+connect-protocol.workspace = true
+tokio.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "connect-video"
+path = "src/main.rs"

@@ -85,7 +85,7 @@ fn schema_fifteen_upgrade_preserves_sessions_without_inventing_lost_setup_intent
     m.f.store
         .connection()
         .unwrap()
-        .execute_batch("DROP TABLE vapi_session_setups; PRAGMA user_version=15;")
+        .execute_batch("DROP TABLE connector_observations; DROP TABLE connector_receipt_events; DROP TABLE connector_incoming; DROP TABLE connector_voice_observations; DROP TABLE contact_pairings; DROP TABLE connector_manifests; DROP TABLE vapi_session_setups; PRAGMA user_version=15;")
         .unwrap();
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let backup = m.f._dir.path().join("before-setup-migration.sqlite3");
@@ -125,7 +125,7 @@ fn schema_fifteen_upgrade_preserves_sessions_without_inventing_lost_setup_intent
 fn setup_migration_failure_rolls_back_and_does_not_modify_verified_backup() {
     let (m, _, _, _, _) = fixture();
     m.f.store.connection().unwrap().execute_batch(
-        "DROP TABLE vapi_session_setups; CREATE TABLE vapi_session_setups(conflict TEXT); PRAGMA user_version=15;",
+        "DROP TABLE connector_observations; DROP TABLE connector_receipt_events; DROP TABLE connector_incoming; DROP TABLE connector_voice_observations; DROP TABLE contact_pairings; DROP TABLE connector_manifests; DROP TABLE vapi_session_setups; CREATE TABLE vapi_session_setups(conflict TEXT); PRAGMA user_version=15;",
     ).unwrap();
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let backup = m.f._dir.path().join("failed-setup-migration.sqlite3");

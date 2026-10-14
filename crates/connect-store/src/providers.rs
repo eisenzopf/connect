@@ -30,7 +30,7 @@ pub struct ProviderJob {
     /// Exact serialized context selection journaled before provider dispatch.
     pub context: Option<String>,
 }
-fn route(c: &Connection, id: &str) -> Result<Route> {
+pub(crate) fn route(c: &Connection, id: &str) -> Result<Route> {
     c.query_row("SELECT id,identity_id,credential_id,conversation_id,connector,target,source,enabled FROM connector_routes WHERE id=?1", [id], |r| Ok(Route { id:r.get(0)?,identity_id:r.get(1)?,credential_id:r.get(2)?,conversation_id:r.get(3)?,connector:r.get(4)?,target:r.get(5)?,source:r.get(6)?,enabled:r.get(7)? })).map_err(|_|Error::forbidden())
 }
 pub(crate) fn enqueue(
@@ -235,6 +235,23 @@ impl Store {
             tx.commit().map_err(|_| Error::storage())?;
             return Ok(None);
         }
+        match crate::connector_registry::require_operation(
+            &tx,
+            &r.connector,
+            connect_connector_api::manifest::ConnectorOperation::MessageSend,
+        ) {
+            Ok(()) => (),
+            Err(error) if error.code == "unsupported-connector-operation" => {
+                // Ordinary native communication remains journaled. Its fanout
+                // intent is explicitly failed without claiming a remote send or
+                // selecting/exporting context for a receive-only adapter.
+                tx.execute("UPDATE provider_jobs SET state='failed' WHERE id=?1", [&id])
+                    .map_err(|_| Error::storage())?;
+                tx.commit().map_err(|_| Error::storage())?;
+                return Ok(None);
+            }
+            Err(error) => return Err(error),
+        }
         if self.connector(&r.connector)?.sms {
             let source = r.source.as_deref().unwrap_or_default();
             let decision = match crate::tasks::task_sms_decision(
@@ -374,7 +391,12 @@ impl Store {
         }
         tx.commit().map_err(|_| Error::storage())
     }
-    fn insert_provider_message(&self, c: &Connection, r: &Route, body: &str) -> Result<String> {
+    pub(crate) fn insert_provider_message(
+        &self,
+        c: &Connection,
+        r: &Route,
+        body: &str,
+    ) -> Result<String> {
         let actor = actor_from_connection(c, &r.credential_id)?;
         actor.require("send")?;
         let conv = authorized_conversation(c, &actor, &r.conversation_id)?;

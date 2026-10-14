@@ -207,9 +207,14 @@ impl Store {
             || (actor.identity_id != session.initiator_id
                 && actor.identity_id != session.participant_id)
             || !matches!(session.state.as_str(), "accepted" | "ready")
-            || !session.media.iter().any(|kind| kind == "audio")
         {
             return Err(Error::forbidden());
+        }
+        if session.media != ["audio"] {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "The configured SIP or legacy browser route supports audio only",
+            ));
         }
         Ok(RoutedInboundSession {
             session,
@@ -325,6 +330,51 @@ impl Store {
         authorize_binding(&tx, &actor, session_id)
     }
 
+    /// Classify an existing media binding for trusted peer lifetime supervision.
+    /// Current credential, membership and participant authority are checked in
+    /// the same transaction as state. An ended Session permits exact transport
+    /// retirement only; this never authorizes another attachment or media write.
+    pub fn authorize_session_lifetime(
+        &self,
+        credential_id: &str,
+        session_id: &str,
+    ) -> Result<Session> {
+        let mut c = self.connection()?;
+        let tx = c.transaction().map_err(|_| Error::storage())?;
+        let actor = crate::identity::actor_from_connection(&tx, credential_id)?;
+        authorize_binding_lifetime(&tx, &actor, session_id)
+    }
+
+    /// Return terminal durable media Sessions among the supplied runtime projections.
+    /// This operational lookup also reconciles idle projections with no live socket.
+    /// Callers own the process namespace; credential admission remains a separate check.
+    pub fn terminal_media_session_ids(&self, session_ids: &[String]) -> Result<Vec<String>> {
+        if session_ids.len() > 10_000 {
+            return Err(Error::new(
+                "capacity-exceeded",
+                "Media projection capacity exceeded",
+            ));
+        }
+        let connection = self.connection()?;
+        let mut terminal = Vec::new();
+        for chunk in session_ids.chunks(256) {
+            let placeholders = std::iter::repeat_n("(?)", chunk.len())
+                .collect::<Vec<_>>()
+                .join(",");
+            let sql = format!("WITH requested(id) AS (VALUES {placeholders}) SELECT requested.id FROM requested LEFT JOIN sessions s ON s.id=requested.id LEFT JOIN conversations c ON c.id=s.conversation_id WHERE s.id IS NULL OR s.state NOT IN ('accepted','ready') OR c.closed=1");
+            let mut query = connection.prepare(&sql).map_err(|_| Error::storage())?;
+            let rows = query
+                .query_map(rusqlite::params_from_iter(chunk), |row| {
+                    row.get::<_, String>(0)
+                })
+                .map_err(|_| Error::storage())?;
+            for row in rows {
+                terminal.push(row.map_err(|_| Error::storage())?);
+            }
+        }
+        Ok(terminal)
+    }
+
     /// Resolve the one enabled Vapi assistant that may answer an initiator's
     /// accepted Session. The durable route is bound to the invited assistant
     /// identity, so merely knowing a Session ID cannot trigger a provider call.
@@ -362,6 +412,12 @@ impl Store {
             assistant_identity_id: session.participant_id,
             assistant_id,
         });
+        if route.is_some() && session.media.iter().any(|kind| kind == "video") {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "The configured Vapi route supports audio only",
+            ));
+        }
         Ok(route)
     }
 
@@ -389,6 +445,19 @@ impl Store {
         let members =
             crate::conversations::authorized_conversation(&tx, &actor, &current.conversation_id)?
                 .participants;
+        if current.media.iter().any(|kind| kind == "video") {
+            let connected: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM session_bindings WHERE session_id=?1 AND participant_id=?2 AND state='ready' AND connection_id<>?3)",
+                params![session_id, actor.identity_id, connection_id],
+                |row| row.get(0),
+            ).map_err(|_| Error::storage())?;
+            if connected {
+                return Err(Error::new(
+                    "video-participant-already-connected",
+                    "The video participant already has an active connection",
+                ));
+            }
+        }
         tx.execute(
             "INSERT INTO session_bindings(session_id,participant_id,credential_id,connection_id,state,updated_at,task_grant_id) VALUES(?1,?2,?3,?4,'ready',?5,?6) ON CONFLICT(session_id,participant_id,connection_id) DO UPDATE SET credential_id=excluded.credential_id,task_grant_id=excluded.task_grant_id,state='ready',updated_at=excluded.updated_at",
             params![session_id, actor.identity_id, actor.credential_id, connection_id, now(), grant_id],
@@ -412,6 +481,56 @@ impl Store {
         let result = get_by_id(&tx, session_id)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(result)
+    }
+
+    /// Reconcile live AV observations after acquiring the installation lock at
+    /// process startup. Physical sockets do not survive a process restart; their
+    /// durable Sessions remain accepted and require fresh authorized connections.
+    pub fn reconcile_interrupted_video_connections(&self) -> Result<usize> {
+        let mut connection = self.connection()?;
+        let tx = connection
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        let candidates = {
+            let mut statement = tx
+                .prepare("SELECT DISTINCT session_id FROM session_bindings WHERE state='ready'")
+                .map_err(|_| Error::storage())?;
+            let rows = statement
+                .query_map([], |row| row.get::<_, String>(0))
+                .map_err(|_| Error::storage())?;
+            rows.collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(|_| Error::storage())?
+        };
+        let mut reconciled = 0;
+        for id in candidates {
+            let session = get_by_id(&tx, &id)?;
+            if !session.media.iter().any(|kind| kind == "video") {
+                continue;
+            }
+            tx.execute(
+                "UPDATE session_bindings SET state='ended',updated_at=?1 WHERE session_id=?2 AND state='ready'",
+                params![now(), id],
+            ).map_err(|_| Error::storage())?;
+            if session.state == "ready" {
+                tx.execute(
+                    "UPDATE sessions SET state='accepted',updated_at=?1 WHERE id=?2",
+                    params![now(), id],
+                )
+                .map_err(|_| Error::storage())?;
+                let session = get_by_id(&tx, &id)?;
+                let members = members(&tx, &session.conversation_id)?;
+                if !capacity(&tx, members.len() as u64, 0, self)? {
+                    return Err(Error::new(
+                        "capacity-exceeded",
+                        "Durable event capacity exceeded",
+                    ));
+                }
+                emit(&tx, &members, &session, "session_interrupted")?;
+            }
+            reconciled += 1;
+        }
+        tx.commit().map_err(|_| Error::storage())?;
+        Ok(reconciled)
     }
 
     /// Record a transient native connection interruption without ending its
@@ -548,6 +667,19 @@ pub(crate) fn authorize_binding(
     actor: &Actor,
     session_id: &str,
 ) -> Result<Session> {
+    let session = authorize_binding_lifetime(c, actor, session_id)?;
+    if !matches!(session.state.as_str(), "accepted" | "ready") {
+        return Err(Error::forbidden());
+    }
+    Ok(session)
+}
+
+/// Current authority for either a live binding or its explicit durable end.
+pub(crate) fn authorize_binding_lifetime(
+    c: &Connection,
+    actor: &Actor,
+    session_id: &str,
+) -> Result<Session> {
     actor.require("session_get")?;
     let session = get_by_id(c, session_id)?;
     let conversation =
@@ -555,9 +687,13 @@ pub(crate) fn authorize_binding(
     if conversation.closed
         || (actor.identity_id != session.initiator_id
             && actor.identity_id != session.participant_id)
-        || !matches!(session.state.as_str(), "accepted" | "ready")
+        || !matches!(session.state.as_str(), "accepted" | "ready" | "ended")
     {
         return Err(Error::forbidden());
     }
     Ok(session)
 }
+
+#[cfg(test)]
+#[path = "session_lifetime_tests.rs"]
+mod lifetime_tests;

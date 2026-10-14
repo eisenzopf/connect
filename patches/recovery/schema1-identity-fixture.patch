@@ -1,0 +1,20 @@
+--- a/crates/connect-store/src/lib.rs
++++ b/crates/connect-store/src/lib.rs
+@@ -16,7 +16,7 @@
+ 
+ pub use identity::{Actor, IssuedCredential, Scope};
+ pub use recovery::Snapshot;
+-pub const SCHEMA_VERSION: u32 = 2;
++pub const SCHEMA_VERSION: u32 = 1;
+ 
+ pub struct Store {
+     connection: Mutex<Connection>,
+@@ -39,8 +39,6 @@
+         let mut connection = connection;
+         let tx = connection.transaction().map_err(|_| Error::storage())?;
+         tx.execute_batch(include_str!("../migrations/001_identity.sql"))
+-            .map_err(|_| Error::storage())?;
+-        tx.execute_batch(include_str!("../migrations/002_conversations.sql"))
+             .map_err(|_| Error::storage())?;
+         tx.execute(
+             "INSERT INTO installation VALUES(1,?1,?2)",

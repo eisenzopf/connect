@@ -1,7 +1,9 @@
 //! Durable application storage. SQLite is the only application-state authority.
 mod artifacts;
 mod availability;
+mod connector_observations;
 mod connector_registry;
+mod contacts;
 mod context;
 mod discovery;
 pub use discovery::{BrowserRoute, DiscoveryRuntime};
@@ -45,7 +47,7 @@ pub use sip_legs::{SipConnectionEnd, SipLegAction, SipLegJob};
 pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 16;
+pub const SCHEMA_VERSION: u32 = 18;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
@@ -108,6 +110,10 @@ impl Store {
         tx.execute_batch(include_str!("../migrations/015_native_media_authority.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/016_vapi_session_setups.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/017_contacts.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/018_connector_observations.sql"))
             .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;

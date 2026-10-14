@@ -48,7 +48,15 @@ pub(crate) fn existing(spec: &Spec, mutation: bool) -> Map<String, Value> {
 
 pub(crate) fn ordinary(operation: &str) -> Map<String, Value> {
     let mut schema = empty();
-    let mutation = matches!(operation, "create" | "close" | "availability_set");
+    let mutation = matches!(
+        operation,
+        "create"
+            | "close"
+            | "availability_set"
+            | "contact_pairing_start"
+            | "contact_pairing_complete"
+            | "contact_pairing_revoke"
+    );
     if mutation || operation == "request_status" {
         add(&mut schema, "request_id", schemas::identifier(), true);
     }
@@ -82,7 +90,32 @@ pub(crate) fn ordinary(operation: &str) -> Map<String, Value> {
             );
         }
         "availability_get" => add(&mut schema, "identity_id", schemas::identifier(), true),
-        "request_status" | "health" | "browser_binding" | "inspect" => (),
+        "contact_pairing_start" => {
+            add(&mut schema, "peer_identity_id", schemas::identifier(), true);
+            add(
+                &mut schema,
+                "expires_at",
+                schemas::integer(1, i64::MAX as u64),
+                true,
+            );
+        }
+        "contact_pairing_complete" => {
+            add(&mut schema, "pairing_id", schemas::identifier(), true);
+            add(&mut schema, "challenge", schemas::string(256), true);
+        }
+        "contact_pairing_revoke" => add(&mut schema, "pairing_id", schemas::identifier(), true),
+        "contact_state" => add(&mut schema, "peer_identity_id", schemas::identifier(), true),
+        "browser_binding" => {
+            add(&mut schema, "conversation_id", schemas::identifier(), false);
+            add(&mut schema, "session_id", schemas::identifier(), false);
+            schema.insert(
+                "dependentRequired".into(),
+                json!({
+                    "conversation_id": ["session_id"], "session_id": ["conversation_id"]
+                }),
+            );
+        }
+        "request_status" | "health" | "inspect" => (),
         _ => unreachable!("ordinary catalog operation has no schema"),
     }
     schema

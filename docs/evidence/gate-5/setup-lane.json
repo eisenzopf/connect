@@ -1,0 +1,231 @@
+{
+  "profile": "connect-gate5-setup-source-evidence/1",
+  "date": "2026-10-13",
+  "task_ids": [
+    "G5-027",
+    "G5-028",
+    "G5-029",
+    "G5-030",
+    "G5-031",
+    "G5-032",
+    "G5-033",
+    "G5-034"
+  ],
+  "status": "source implementation verified; task completion pending shared prerequisites and integrated release qualification",
+  "source_commit": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "worktree_changes": true,
+  "platform": "local macOS arm64",
+  "dependency_source_lock_sha256": "701345501b628aacadc0ba9b6d2c0bbf55ec078838c42c0e124e92ecc048a71e",
+  "checks": [
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "result": "passed; pinned sources and patch digests verified"
+    },
+    {
+      "command": "bash scripts/format.sh",
+      "result": "passed"
+    },
+    {
+      "command": "cargo test -p connect-server --test first_run --test sms_policy_extension -p connect-store --test contact_pairing -p connect-connectors --test provisioning --test setup",
+      "result": "passed",
+      "counts": {
+        "first_run": 3,
+        "sms_policy_extension": 1,
+        "contact_pairing": 3,
+        "provisioning": 6,
+        "setup": 4
+      }
+    },
+    {
+      "command": "cargo test -p connect-server --lib cli::agent_access::tests",
+      "result": "passed",
+      "passed": 7
+    },
+    {
+      "command": "cargo test -p connect-server --lib secrets::tests",
+      "result": "passed",
+      "passed": 1
+    },
+    {
+      "command": "cargo test -p connect-store --lib migration",
+      "result": "passed",
+      "passed": 11
+    },
+    {
+      "command": "cargo test -p connect-store --test voice --test sms_migration",
+      "result": "passed",
+      "counts": {
+        "voice": 11,
+        "sms_migration": 1
+      }
+    },
+    {
+      "command": "cargo test -p connect-server --test secrets_native isolated_native_keychain -- --ignored --nocapture",
+      "result": "passed; child process with disposable test keychain only",
+      "proof": [
+        "missing entry",
+        "write",
+        "rotation",
+        "reopen",
+        "locked denied",
+        "explicit unlock",
+        "test-owned removal",
+        "original search list restored",
+        "configured missing Keychain entry never uses ambient provider variable",
+        "absent configured reference remains absent despite ambient provider variable"
+      ]
+    },
+    {
+      "command": "target/debug/connect setup demo --directory <fresh isolated .local directory> --bind 127.0.0.1:0",
+      "result": "passed; source binary, not installed-candidate proof",
+      "proof": [
+        "native QUIC message each direction",
+        "file each direction",
+        "authenticated native pairing",
+        "same-port restart with history/file preservation",
+        "zero provider requests",
+        "no model",
+        "no required tasks"
+      ]
+    },
+    {
+      "command": "cargo clippy -p connect-server -p connect-connectors -p connect-store --all-targets --no-deps -- -D warnings",
+      "result": "passed; final current-source refresh"
+    },
+    {
+      "command": "cargo doc -p connect-server -p connect-connectors -p connect-store -p connect-protocol --no-deps",
+      "result": "passed; public Rustdoc generated without warnings"
+    },
+    {
+      "command": "cargo test -p connect-store --lib schema_twelve",
+      "result": "passed; existing task/grant/receipt migration retained",
+      "passed": 1
+    }
+  ],
+  "failure_history": [
+    {
+      "check": "first_run",
+      "failure": "Immediate same-port restart could race asynchronous Quinn socket release",
+      "resolution": "Packaged demo now observes port release with an unchanged five-second bound; repeated native restart test passes"
+    },
+    {
+      "check": "agent_access removal fixture",
+      "failure": "Initial removal resolved skill manifest names from the wrong directory",
+      "resolution": "Removal enumerates the known shipped skill files beneath .agents/skills/connect; unknown files are never considered; preservation fixture passes"
+    },
+    {
+      "check": "strict all-target Clippy",
+      "failure": "Concurrent new connector fixture tests lacked the repository fixture-only unwrap convention",
+      "resolution": "Connector owner repaired fixture lint scope; strict shared-source check passes"
+    }
+  ],
+  "limits": [
+    "No task is declared complete before G5-001/G5-003/G5-006 and connector dependencies pass.",
+    "No installed candidate, actual model invocation or independent fresh-user usability result is claimed by this lane.",
+    "Catalog/provisioning/network/SMS tests use isolated fixtures. No live provider resource, purchase, call, message, personal keychain entry, owner database, tunnel, public ingress or remote deployment was touched.",
+    "Legacy SIP checkpoints now migrate to immutable operator-authorized Keychain references with read-back confirmation. Fresh SIP secret values never serialize into checkpoints; missing protected entries require explicit original-only recovery. See secret-vault-migration.json for focused evidence."
+  ],
+  "task_checks": {
+    "G5-027": [
+      "first_run fresh/repeated/versioned/private init",
+      "occupied port, partial existing state, interrupted staging and permissive credentials",
+      "concrete local port and normal revocable identities"
+    ],
+    "G5-028": [
+      "secret refs schema/private mode/redacted SecretValue/explicit env",
+      "native isolated Keychain missing/write/rotation/reopen/lock/unlock/remove",
+      "no ambient fallback with configured missing or absent reference"
+    ],
+    "G5-029": [
+      "native QUIC pairing in demo",
+      "valid/wrong identity/replayed/used/expired/exhausted/revoked",
+      "schema16 backup-gated upgrade and conflicting-table rollback",
+      "no implicit address ownership, membership or SMS consent"
+    ],
+    "G5-030": [
+      "SDK loopback read-only metadata discovery/paging/auth-rejection redaction",
+      "large/empty catalog, exact ID selection, capability gaps, ambiguity",
+      "existing assistant/profile/trunk reused without edits or credential export"
+    ],
+    "G5-031": [
+      "fixture before request interruption + authoritative absence uses same logical ID",
+      "provider acceptance before receipt reconciles without duplicate creation",
+      "unknown/rejected/cancelled states distinct",
+      "cancelled reconciliation makes no attempt; cleanup only accepted owned resources"
+    ],
+    "G5-032": [
+      "callback-only success cannot imply SIP/RTP/media/SMS",
+      "separate inbound/outbound actions, absent unknown and expiry stale",
+      "no readiness claim of human receipt or automatic route fallback"
+    ],
+    "G5-033": [
+      "alternative SmsPolicy through same authenticated snapshot/store authority",
+      "STOP cancels queued work/blocks new dispatch and replay",
+      "START permits only new authorized work",
+      "stale lease rejects delivery; ownership never supplies enrollment"
+    ],
+    "G5-034": [
+      "source-binary provider-free native messages/files/pairing/restart",
+      "selected normal-key Codex export and existing host config preservation",
+      "unknown qualified host version/missing model auth fail before intent/launch",
+      "exact-session explicit resume and redacted credential fixture",
+      "remove only known verified Connect configs; retain unrelated host files and session diagnostics"
+    ]
+  },
+  "prior_source_sha256": {
+    "crates/connect-server/src/secrets.rs": "371d271c4f96d4c8bd00db8508985ee7ec90d6ef5e5521f767129cc2e70c581e",
+    "crates/connect-server/src/cli/first_run/mod.rs": "deb65d60332803063c5e8a3c558e409f3c219df1ff24470182501d6916c62cfe",
+    "crates/connect-server/src/cli/first_run/arguments.rs": "5e05c386bdbbf0d34936e6de4cfe4f1b39faa8e783dac4f2b9b453eff8a2d983",
+    "crates/connect-server/src/cli/first_run/demo.rs": "0ddfb5f48f3988d187d0976cfc07ce2e44833caded389f3196d6a2fb99d5c6ff",
+    "crates/connect-server/src/cli/agent_access/preflight.rs": "ec9f19331e0507a5d3faef9dcf1e781cc824617281a59e16a60ce375ab072e49",
+    "crates/connect-store/src/contacts.rs": "82175021a9b34d8c2c485932823d0273a069efac5bacd545c1b61783ecbefedd",
+    "crates/connect-store/migrations/017_contacts.sql": "f337f87e9d70007063599ec733da95aa01f866a8fc54d46c8abaf9ab66583597",
+    "crates/connect-connectors/src/provisioning/execution.rs": "06aed4445342355c594c2ad9ab47cd9d148d912e44c14d093732b9372f619d2e",
+    "crates/connect-connectors/src/provisioning/discovery.rs": "519a6722119b1de9567c9392ff3870124ba2676d62498f1fd1a66e3fff70e32d",
+    "crates/connect-connectors/src/provisioning/catalog.rs": "6c7cc1d5a94ccdd18dd0d63bcebfb35172976c9fd418a87b54d13a903c524673",
+    "crates/connect-connectors/src/provisioning/mod.rs": "3a777a21f7bc73e92199ce7a10d85bfd77d978cceea2ad8a4a3a10727d98e886",
+    "crates/connect-connectors/src/provisioning/readiness.rs": "33c7aaf434de2fb5ef9edcee4d626a8d19e9955c2c35700cfd3c5d15288fb4ae",
+    "crates/connect-connectors/src/setup.rs": "de435525ca73f083ef771e927d482866633b9e1d573161b30d8f82730e8283d8",
+    "crates/connect-server/src/sms_authority.rs": "6512e640841e0ea3421dbdba3c0398006744107306627179e844d4dbf699133c",
+    "crates/connect-server/tests/first_run.rs": "8bb5e5ffca63d0d7bdd8d1378b01eb945449364be75989a0a4decfa2692c47df",
+    "crates/connect-server/tests/secrets_native.rs": "665b66291532cc446bc52c3016d63badc23a6d31d236d07355c885eaa2ffb1e4",
+    "crates/connect-server/tests/sms_policy_extension.rs": "8530b251d22f335d4efeb19f6bbfacef8f4443f9c94e67416a9b02c12d00a53b",
+    "crates/connect-store/tests/contact_pairing.rs": "bbaad95db191a381fa513770456d4ac1bb1cf91a5be7152e6fb8a2088bf52e51",
+    "crates/connect-connectors/tests/provisioning.rs": "3b41b518ac8c9f8ad6613102cde0ebee519de50b2a33697a29185e56c3b3fde8",
+    "crates/connect-connectors/tests/setup.rs": "963eeea00fb207b17da96796d4463cb2e55b4a7744b1f3dcdaa8324634698a6e",
+    "docs/SETUP.md": "4987eda4ac6eeb11b7eff1297c78444402b3a43321d7be5dec4cf9f0a1662d74",
+    "contracts/contact-pairing-v1.md": "9b24dc03575b6d992a673b9d6c2a6565e77a3ef750b6d3522389a091b7ed1be4"
+  },
+  "source_sha256": {
+    "crates/connect-server/src/secrets.rs": "02beeb45593abcab1a9f020c10b4fce554bbe04a2a9cdb69dc3453cab56eb154",
+    "crates/connect-server/src/cli/first_run/mod.rs": "72deead1f6315b724f0910549929831893cdca8b1b1ca478a0ded9e7e030013a",
+    "crates/connect-server/src/cli/first_run/arguments.rs": "5e05c386bdbbf0d34936e6de4cfe4f1b39faa8e783dac4f2b9b453eff8a2d983",
+    "crates/connect-server/src/cli/first_run/demo.rs": "0ddfb5f48f3988d187d0976cfc07ce2e44833caded389f3196d6a2fb99d5c6ff",
+    "crates/connect-server/src/cli/agent_access/preflight.rs": "ec9f19331e0507a5d3faef9dcf1e781cc824617281a59e16a60ce375ab072e49",
+    "crates/connect-store/src/contacts.rs": "53219a03be91bb85e9059cee402b75d60d56f0220533a51ce47e9997b291669d",
+    "crates/connect-store/migrations/017_contacts.sql": "f337f87e9d70007063599ec733da95aa01f866a8fc54d46c8abaf9ab66583597",
+    "crates/connect-connectors/src/provisioning/execution.rs": "06aed4445342355c594c2ad9ab47cd9d148d912e44c14d093732b9372f619d2e",
+    "crates/connect-connectors/src/provisioning/discovery.rs": "519a6722119b1de9567c9392ff3870124ba2676d62498f1fd1a66e3fff70e32d",
+    "crates/connect-connectors/src/provisioning/catalog.rs": "6c7cc1d5a94ccdd18dd0d63bcebfb35172976c9fd418a87b54d13a903c524673",
+    "crates/connect-connectors/src/provisioning/mod.rs": "3a777a21f7bc73e92199ce7a10d85bfd77d978cceea2ad8a4a3a10727d98e886",
+    "crates/connect-connectors/src/provisioning/readiness.rs": "33c7aaf434de2fb5ef9edcee4d626a8d19e9955c2c35700cfd3c5d15288fb4ae",
+    "crates/connect-connectors/src/setup.rs": "76cbd369100684763e362d9cb339715efc16af4008501303387a90f682d38463",
+    "crates/connect-server/src/sms_authority.rs": "6512e640841e0ea3421dbdba3c0398006744107306627179e844d4dbf699133c",
+    "crates/connect-server/tests/first_run.rs": "e486303c8b263aab242125374882f203660e992218d6b8a456663121353c253a",
+    "crates/connect-server/tests/secrets_native.rs": "0f378712214e595df4ec32b1267f098b1e3b056551f898ba574b99630d12a143",
+    "crates/connect-server/tests/sms_policy_extension.rs": "8530b251d22f335d4efeb19f6bbfacef8f4443f9c94e67416a9b02c12d00a53b",
+    "crates/connect-store/tests/contact_pairing.rs": "e129f2566e25b7dd64976394d394f404c33fdf5dfab58659c7f8a94dc9bafda0",
+    "crates/connect-connectors/tests/provisioning.rs": "3b41b518ac8c9f8ad6613102cde0ebee519de50b2a33697a29185e56c3b3fde8",
+    "crates/connect-connectors/tests/setup.rs": "57ddd62667f816af47311b44257f8fd0090d9bc33fa3a939baf9da10896661ee",
+    "docs/SETUP.md": "e022ad9bf3ccfa8d312538e14c6b786ee3c7df02ac240017bbff08cf37a326b0",
+    "contracts/contact-pairing-v1.md": "9b24dc03575b6d992a673b9d6c2a6565e77a3ef750b6d3522389a091b7ed1be4"
+  },
+  "follow_up_status": "Focused migration/contact/snapshot source19, selected-key native integration1, first-run public JSON+library5, and disposable Keychain parent+child/public CLI lifecycle passed. Installed candidate, public historical recovery and complete unchanged baseline remain pending; see secret-vault-migration.json and baseline-diagnostic.json.",
+  "public_setup_followup": {
+    "status": "passed with fresh normal binary; installed candidate remains separate",
+    "binary_sha256": "dae32bd56c9a8687f56be6ec964100591c2d7d3382854dad1a269dd7380071ec",
+    "result_sha256": "a279ab9436c3a429913d23295f810ed978a9ee35782c10898808decc8fe32881",
+    "checks": "messages/files/restart/pairing/revocation/private modes/ref fallback denial/occupied and partial state"
+  },
+  "public_recovery_evidence": "migration-recovery.json"
+}

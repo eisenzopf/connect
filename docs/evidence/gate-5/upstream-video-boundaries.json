@@ -1,0 +1,76 @@
+{
+  "gate": 5,
+  "status": "passed",
+  "scope": "Recorded upstream source component checks; no decoded timing or installed-runtime claim.",
+  "patch_sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+  "source_lock_sha256": "1f8f716ca3211ba5a37798845c18e6f4d18b0c40c04b94195387214b197707e5",
+  "source_files": {
+    "patches/rvoip/encoded-video-transport.patch": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+    "dependencies/source-lock.json": "1f8f716ca3211ba5a37798845c18e6f4d18b0c40c04b94195387214b197707e5",
+    "crates/connect-protocol/src/media_diagnostics.rs": "6187f4b168daa30074791471b900257cd1622d35eac22b23ca483d4ceb640327",
+    "sdk/typescript/src/media_diagnostics.ts": "68227eb9bba3c1777591fb422c03960d3c76822d3fc7b683eba79daad0260f33",
+    "sdk/python/connect_sdk/media_validation.py": "0c42ed4984d5561f5c35d4da910b7927e2a37414e93c786bc5f6a35adf530f36"
+  },
+  "checks": [
+    {
+      "name": "prepare",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600,
+      "status": "passed",
+      "seconds": 0.25,
+      "private_log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "name": "webrtc-video-boundaries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml",
+        "--features",
+        "signaling-ws,client",
+        "--lib",
+        "media::video_"
+      ],
+      "timeout_seconds": 1200,
+      "status": "passed",
+      "seconds": 201.643,
+      "rust_tests": {
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0
+      },
+      "private_log_sha256": "d2dda2340a5a53486e1febb3d42252020ebea715eaa4bd03a700ae086edd9697"
+    },
+    {
+      "name": "bounded-diagnostics",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/crates/foundation/rvoip-core-traits/Cargo.toml",
+        "--lib",
+        "media_diagnostics"
+      ],
+      "timeout_seconds": 1200,
+      "status": "passed",
+      "seconds": 6.642,
+      "rust_tests": {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      },
+      "private_log_sha256": "b114c1ee7b2ff5e09ccf4b8c0074e80984c64f23b79a24f97ae044b0d5d038b0"
+    }
+  ],
+  "remaining": [
+    "Fresh normal selected graph binaries",
+    "Sender-specific decoded three-route timing, recovery and operating qualification",
+    "Installed candidate media failure and decoded path checks"
+  ]
+}

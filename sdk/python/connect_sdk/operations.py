@@ -9,14 +9,36 @@ class Operations(TaskOperations, ABC):
         """Return a validated outcome; mutations always use caller-owned IDs."""
         raise NotImplementedError
 
+    def contact_pairing_start(self, request_id, peer_identity_id, expires_at):
+        """Start native ownership pairing; no SMS consent is granted."""
+        return self.request({"op": "contact_pairing_start", "request_id": request_id,
+                             "peer_identity_id": peer_identity_id, "expires_at": expires_at})["data"]
+
+    def contact_pairing_complete(self, request_id, pairing_id, challenge):
+        """Complete as the intended authenticated peer using its one-use challenge."""
+        return self.request({"op": "contact_pairing_complete", "request_id": request_id,
+                             "pairing_id": pairing_id, "challenge": challenge})["data"]
+
+    def contact_pairing_revoke(self, request_id, pairing_id):
+        return self.request({"op": "contact_pairing_revoke", "request_id": request_id,
+                             "pairing_id": pairing_id})["data"]
+
+    def contact_state(self, peer_identity_id):
+        return self.request({"op": "contact_state", "peer_identity_id": peer_identity_id})["data"]
+
     def capabilities(self, address, conversation_id=None):
         """Return authorized configured routes and limits; not a reachability guarantee."""
         return self.request({"op": "capabilities", "address": address,
                              "conversation_id": conversation_id})["data"]
 
-    def browser_binding(self):
-        """Return the current credential's configured browser conversation."""
-        return self.request({"op": "browser_binding"})["data"]
+    def browser_binding(self, conversation_id=None, session_id=None):
+        """Discover the configured route or a currently authorized accepted AV session."""
+        if (conversation_id is None) != (session_id is None):
+            raise ValueError("Select both conversation_id and session_id")
+        operation = {"op": "browser_binding"}
+        if conversation_id is not None:
+            operation.update(conversation_id=conversation_id, session_id=session_id)
+        return self.request(operation)["data"]
 
     def context_deliveries(self, conversation_id, before=None, limit=100):
         """Page newest-first delivery receipts with an opaque older-page cursor."""

@@ -12,11 +12,17 @@ pub struct Worker {
 impl Worker {
     pub fn start(service: Arc<Service>) -> anyhow::Result<Self> {
         let mut drivers: Vec<Arc<dyn Connector>> = Vec::new();
-        if std::env::var_os("TELNYX_API_KEY").is_some() {
-            drivers.push(Arc::new(Telnyx::from_env()?));
+        if let Some(key) = crate::secrets::optional("TELNYX_API_KEY")? {
+            drivers.push(Arc::new(Telnyx::new(
+                key.expose(),
+                "https://api.telnyx.com/v2",
+            )?));
         }
-        if std::env::var_os("VAPI_PRIVATE_KEY").is_some() {
-            drivers.push(Arc::new(Vapi::from_env()?));
+        if let Some(key) = crate::secrets::optional("VAPI_PRIVATE_KEY")? {
+            drivers.push(Arc::new(Vapi::new(
+                key.expose(),
+                connect_connectors::vapi_api_base()?.as_str(),
+            )?));
         }
         anyhow::ensure!(
             !drivers.is_empty(),
@@ -24,26 +30,52 @@ impl Worker {
         );
         service.store.expire_sms_authorities()?;
         let authority = crate::sms_authority::Authority::from_env()?;
-        Self::with_authority(service, drivers, authority)
+        Self::with_policy(
+            service,
+            drivers,
+            authority.map(|policy| Arc::new(policy) as Arc<dyn crate::SmsPolicy>),
+        )
     }
     /// Public adapter boundary also used by deterministic integration fixtures.
     pub fn with_drivers(
         service: Arc<Service>,
         drivers: Vec<Arc<dyn Connector>>,
     ) -> anyhow::Result<Self> {
-        Self::with_authority(service, drivers, None)
+        Self::with_policy(service, drivers, None)
     }
-    fn with_authority(
+    /// Compose another authenticated enrollment service without provider-specific
+    /// consent branches. Agents cannot invoke this protected composition boundary.
+    pub fn with_policy(
         service: Arc<Service>,
         drivers: Vec<Arc<dyn Connector>>,
-        authority: Option<crate::sms_authority::Authority>,
+        authority: Option<Arc<dyn crate::SmsPolicy>>,
     ) -> anyhow::Result<Self> {
+        if authority.is_some() {
+            service.store.expire_sms_authorities()?;
+        }
+        let mut registry = connect_connector_api::manifest::Registry::default();
+        let mut contracts = Vec::new();
+        // Validate the entire composition before changing registration or claiming work.
         for driver in &drivers {
+            let manifest = driver.manifest();
+            let descriptor = driver.descriptor();
+            manifest.validate_descriptor(descriptor)?;
             anyhow::ensure!(
-                driver.name() == driver.descriptor().name,
+                driver.name() == descriptor.name,
                 "Connector name differs from descriptor"
             );
-            service.store.register_connector(driver.descriptor())?;
+            manifest.validate_configuration(&driver.configuration())?;
+            anyhow::ensure!(
+                driver.readiness() == connect_connector_api::manifest::Readiness::Ready,
+                "Connector is not ready"
+            );
+            registry.register(manifest.clone())?;
+            contracts.push((descriptor, manifest));
+        }
+        for (descriptor, manifest) in &contracts {
+            service
+                .store
+                .register_connector_manifest(*descriptor, manifest)?;
         }
         service.store.recover_provider_jobs()?;
         let stop = CancellationToken::new();
@@ -62,7 +94,7 @@ impl Worker {
                         if tokio::time::Instant::now() >= next_refresh {
                             let result = tokio::select! {
                                 _ = cancelled.cancelled() => break,
-                                value = authority.refresh(service.store.clone()) => value,
+                                value = crate::synchronize_sms_policy(authority.as_ref(), service.store.clone()) => value,
                             };
                             if result.is_err() {
                                 tracing::warn!(
@@ -83,33 +115,64 @@ impl Worker {
                                 previous_chat_id: job.previous_chat_id.clone(),
                                 context: job.context.clone(),
                             };
-                            let result = if let Some(driver) =
-                                drivers.iter().find(|d| d.name() == job.route.connector)
-                            {
-                                tokio::select! {
-                                    _ = cancelled.cancelled() => Err(Failure::Uncertain),
-                                    result = tokio::time::timeout(Duration::from_secs(35), driver.deliver(&request)) => {
-                                        result.unwrap_or(Err(Failure::Uncertain))
-                                    },
+                            let selected = drivers.iter().zip(contracts.iter()).find(
+                                |(_, (descriptor, _))| descriptor.name == job.route.connector,
+                            );
+                            let result = if let Some((driver, (_, manifest))) = selected {
+                                if !manifest.operations.contains(
+                                    &connect_connector_api::manifest::ConnectorOperation::MessageSend,
+                                ) || manifest
+                                    .validate_address(&request.target, request.source.as_deref())
+                                    .is_err()
+                                    || request.body.len() > manifest.limits.message_bytes
+                                    || request.context.as_ref().is_some_and(|v| {
+                                        !manifest.context || v.len() > manifest.limits.context_bytes
+                                    })
+                                {
+                                    Err(Failure::Rejected)
+                                } else {
+                                    tokio::select! {
+                                        _ = cancelled.cancelled() => Err(Failure::Uncertain),
+                                        result = tokio::time::timeout(Duration::from_secs(35), driver.deliver_observed(&job.id, &request)) => {
+                                            result.unwrap_or(Err(Failure::Uncertain))
+                                        },
+                                    }
                                 }
                             } else {
                                 Err(Failure::Rejected)
                             };
+                            let normalized = selected
+                                .is_some_and(|(driver, _)| driver.message_extension().is_some());
+                            let observed = result.unwrap_or_else(|failure| {
+                                connect_connector_api::lifecycle::message_attempt(
+                                    &job.id,
+                                    Err(failure),
+                                )
+                            });
                             let store = service.store.clone();
-                            let saved = tokio::task::spawn_blocking(move || match result {
-                                Ok(done) => store.finish_provider_job(
-                                    &job,
-                                    if done.reply.is_some() {
-                                        "completed"
-                                    } else {
-                                        "accepted"
-                                    },
-                                    Some(&done.provider_id),
-                                    done.reply.as_deref(),
-                                ),
-                                Err(failure) => {
-                                    store.finish_provider_job(&job, failure.state(), None, None)
+                            let saved = tokio::task::spawn_blocking(move || {
+                                if normalized {
+                                    return store
+                                        .apply_connector_receipt(&job.route.connector, &observed)
+                                        .map(|_| ());
                                 }
+                                use connect_connector_api::lifecycle::{MessageState, State};
+                                let state = match observed.observation.state {
+                                    State::Message(MessageState::Accepted)
+                                        if observed.reply.is_some() =>
+                                    {
+                                        "completed"
+                                    }
+                                    State::Message(MessageState::Accepted) => "accepted",
+                                    State::Message(MessageState::Failed) => "failed",
+                                    _ => "uncertain",
+                                };
+                                store.finish_provider_job(
+                                    &job,
+                                    state,
+                                    observed.observation.external_id.as_deref(),
+                                    observed.reply.as_deref(),
+                                )
                             })
                             .await;
                             if !matches!(saved, Ok(Ok(()))) {
@@ -142,6 +205,91 @@ impl Worker {
             task: Some(task),
         })
     }
+    /// Explicit read-only reconciliation of an existing logical attempt. Callers
+    /// use the same trusted adapter composition as dispatch; uncertain sends are
+    /// never resubmitted to discover their outcome.
+    pub async fn reconcile(
+        service: &Service,
+        driver: &dyn Connector,
+        mutation_id: &str,
+    ) -> anyhow::Result<connect_connector_api::lifecycle::Apply> {
+        use connect_connector_api::{lifecycle::Verification, manifest::ConnectorOperation};
+        validate_driver(service, driver)?;
+        anyhow::ensure!(
+            driver
+                .manifest()
+                .operations
+                .contains(&ConnectorOperation::MessageStatus),
+            "Connector has no status operation"
+        );
+        let job = service
+            .store
+            .connector_reconciliation_job(mutation_id, driver.name())?;
+        let extension = driver
+            .message_extension()
+            .ok_or_else(|| anyhow::anyhow!("Connector has no normalized message extension"))?;
+        let receipt =
+            tokio::time::timeout(Duration::from_secs(35), extension.message_status(&job.id))
+                .await
+                .map_err(|_| anyhow::anyhow!("Connector reconciliation timed out"))?
+                .map_err(|_| anyhow::anyhow!("Connector reconciliation unavailable"))?;
+        anyhow::ensure!(
+            receipt.observation.mutation_id == job.id
+                && receipt.observation.verification == Verification::Reconciliation,
+            "Invalid connector reconciliation"
+        );
+        let applied = service
+            .store
+            .apply_connector_receipt(driver.name(), &receipt)?;
+        service.notify_changed();
+        Ok(applied)
+    }
+    /// Protected ingress for an adapter-authenticated independent contact.
+    /// Route configuration establishes the principal; provider IDs do not.
+    pub fn receive(
+        service: &Service,
+        driver: &dyn Connector,
+        route_id: &str,
+        message: &connect_connector_api::lifecycle::IncomingMessage,
+    ) -> anyhow::Result<String> {
+        use connect_connector_api::manifest::ConnectorOperation;
+        validate_driver(service, driver)?;
+        let manifest = driver.manifest();
+        anyhow::ensure!(
+            manifest
+                .operations
+                .contains(&ConnectorOperation::MessageReceive)
+                && message.body.len() <= manifest.limits.message_bytes,
+            "Connector incoming message is unsupported or exceeds bounds"
+        );
+        let id = service
+            .store
+            .receive_connector_message(driver.name(), route_id, message)?;
+        service.notify_changed();
+        Ok(id)
+    }
+    /// Apply a lifecycle callback only after the adapter verifies its exact raw
+    /// bytes and binds it to the original logical attempt. Policy, source bounds
+    /// and replay handling remain inside the transactional host boundary.
+    pub fn observe(
+        service: &Service,
+        driver: &dyn Connector,
+        receipt: &connect_connector_api::lifecycle::MessageReceipt,
+    ) -> anyhow::Result<connect_connector_api::lifecycle::Apply> {
+        use connect_connector_api::lifecycle::Verification;
+        validate_driver(service, driver)?;
+        anyhow::ensure!(
+            driver.message_extension().is_some()
+                && driver.manifest().messaging
+                && receipt.observation.verification == Verification::VerifiedCallback,
+            "Connector callback has not been verified"
+        );
+        let applied = service
+            .store
+            .apply_connector_receipt(driver.name(), receipt)?;
+        service.notify_changed();
+        Ok(applied)
+    }
     pub async fn shutdown(mut self) -> anyhow::Result<()> {
         self.stop.cancel();
         crate::worker::drain(
@@ -158,4 +306,23 @@ impl Drop for Worker {
             task.abort();
         }
     }
+}
+
+fn validate_driver(service: &Service, driver: &dyn Connector) -> anyhow::Result<()> {
+    let manifest = driver.manifest();
+    let descriptor = driver.descriptor();
+    manifest.validate_descriptor(descriptor)?;
+    anyhow::ensure!(
+        driver.name() == descriptor.name,
+        "Connector name differs from descriptor"
+    );
+    manifest.validate_configuration(&driver.configuration())?;
+    anyhow::ensure!(
+        driver.readiness() == connect_connector_api::manifest::Readiness::Ready,
+        "Connector is not ready"
+    );
+    service
+        .store
+        .register_connector_manifest(descriptor, &manifest)?;
+    Ok(())
 }

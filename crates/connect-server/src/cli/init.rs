@@ -34,23 +34,30 @@ pub fn private_write(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 pub fn initialize(directory: &Path, example: bool, bind: std::net::SocketAddr) -> Result<()> {
-    initialize_profile(directory, example, false, bind)
+    initialize_profile(directory, example, false, bind, true)
+}
+/// Initialize for a caller that emits its own structured result on standard output.
+pub fn initialize_quiet(directory: &Path, example: bool, bind: std::net::SocketAddr) -> Result<()> {
+    initialize_profile(directory, example, false, bind, false)
 }
 /// Fresh developer-owned connected-app preset; existing installations are preserved.
 pub fn initialize_connected_app(directory: &Path, bind: std::net::SocketAddr) -> Result<()> {
-    initialize_profile(directory, false, true, bind)
+    initialize_profile(directory, false, true, bind, true)
 }
 fn initialize_profile(
     directory: &Path,
     example: bool,
     connected_app: bool,
     bind: std::net::SocketAddr,
+    print_status: bool,
 ) -> Result<()> {
     if directory.exists() {
         let config = ServerConfig::load(&directory.join("server.toml"))
             .context("Existing directory is not a complete installation; select a new directory")?;
         Store::open(&config.database, config.limits)?.integrity_check()?;
-        println!("Existing installation preserved: {}", directory.display());
+        if print_status {
+            println!("Existing installation preserved: {}", directory.display());
+        }
         return Ok(());
     }
     if !bind.ip().is_loopback() {
@@ -118,7 +125,9 @@ fn initialize_profile(
         &directory.join("server.toml"),
         toml::to_string_pretty(&config)?.as_bytes(),
     )?;
-    println!("Initialized local installation: {}", directory.display());
+    if print_status {
+        println!("Initialized local installation: {}", directory.display());
+    }
     Ok(())
 }
 

@@ -7,6 +7,8 @@ use serde_json::{json, Value};
 use std::{fs, io::Write, path::Path};
 
 const ASSISTANT_PROMPT: &str = include_str!("../prompts/assistant.txt");
+mod secrets;
+pub use secrets::{migrate_secrets, restore_secret, SecretMigration, SetupSecretStore};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -14,6 +16,12 @@ pub struct Plan {
     pub name: String,
     /// Explicit reuse skips assistant creation; existing assistants are never edited.
     pub assistant_id: Option<String>,
+    /// Exact existing profile ID; reused read-only, never edited by setup.
+    #[serde(default)]
+    pub messaging_profile_id: Option<String>,
+    /// Exact existing credential connection ID; never edited or treated as owned.
+    #[serde(default)]
+    pub sip_connection_id: Option<String>,
     /// Existing Telnyx number ID; purchases are deliberately separate.
     pub phone_number_id: Option<String>,
     pub callback_url: Option<String>,
@@ -23,17 +31,34 @@ pub struct Plan {
 }
 #[derive(Serialize, Deserialize)]
 struct SetupState {
+    #[serde(default)]
+    operation_id: Option<String>,
     plan: Plan,
     name: String,
     assistant_id: Option<String>,
     messaging_profile_id: Option<String>,
     sip_connection_id: Option<String>,
     sip_user: String,
-    sip_password: String,
+    /// Read-only compatibility input; never serialized into a new checkpoint.
+    #[serde(default, skip_serializing)]
+    sip_password: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sip_password_ref: Option<String>,
+    /// Protected one-way check used to reject importing a different password.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sip_password_fingerprint: Option<String>,
     pending: Option<String>,
     number_messaging_applied: bool,
     number_sip_applied: bool,
     previous_number: Option<Value>,
+}
+/// Validate approved intent without provider I/O or checkpoint mutation.
+pub fn verify_checkpoint_intent(path: &Path, plan: &Plan) -> Result<()> {
+    ensure!(
+        secrets::load_private(path)?.plan == *plan,
+        "Setup plan changed; preserve the original checkpoint and select a fresh state path"
+    );
+    Ok(())
 }
 pub fn load_plan(path: &Path) -> Result<Plan> {
     let plan: Plan = serde_json::from_slice(&fs::read(path)?)?;
@@ -41,6 +66,21 @@ pub fn load_plan(path: &Path) -> Result<Plan> {
     Ok(plan)
 }
 fn validate(p: &Plan) -> Result<()> {
+    ensure!(
+        !(p.create_sip && p.sip_connection_id.is_some()),
+        "Select an existing SIP connection or create one, not both"
+    );
+    for id in [&p.messaging_profile_id, &p.sip_connection_id]
+        .into_iter()
+        .flatten()
+    {
+        ensure!(
+            !id.is_empty()
+                && id.len() <= 128
+                && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'),
+            "Invalid selected resource ID"
+        );
+    }
     ensure!(
         !p.name.is_empty()
             && p.name.len() <= 48
@@ -75,45 +115,105 @@ fn validate(p: &Plan) -> Result<()> {
         );
     }
     ensure!(
-        p.phone_number_id.is_none() || p.callback_url.is_some(),
-        "Number setup needs an existing public callback URL"
+        p.phone_number_id.is_none() || p.callback_url.is_some() || p.messaging_profile_id.is_some(),
+        "Number setup needs an existing messaging profile or public callback URL"
     );
     Ok(())
 }
 pub fn describe(p: &Plan) -> Value {
-    json!({"name":p.name,"assistant":if p.assistant_id.is_some(){"reuse; no edits"}else{"create isolated Connect assistant"},"sms":if p.phone_number_id.is_some(){"create messaging profile; associate selected existing number"}else{"not configured; select an existing number and callback"},"sip":if p.create_sip{"create credential connection; associate selected number if present"}else{"not configured"},"outbound_voice":if p.outbound_voice_profile_id.is_some(){"selected profile"}else{"not configured"},"purchases":false,"deployment":"local only; callback URL must already exist"})
+    json!({"name":p.name,"assistant":if p.assistant_id.is_some(){"reuse; no edits"}else{"create isolated Connect assistant"},"sms":if p.messaging_profile_id.is_some(){"reuse exact messaging profile; no edits"}else if p.callback_url.is_some(){"create messaging profile"}else{"not configured"},"number":if p.phone_number_id.is_some(){"explicitly associate selected existing number; retain previous associations"}else{"not selected"},"sip":if p.sip_connection_id.is_some(){"reuse exact connection; no edits or credential export"}else if p.create_sip{"create owned credential connection"}else{"not configured"},"selected":{"assistant_id":p.assistant_id,"messaging_profile_id":p.messaging_profile_id,"sip_connection_id":p.sip_connection_id,"phone_number_id":p.phone_number_id,"outbound_voice_profile_id":p.outbound_voice_profile_id},"purchases":false,"sms_consent":false,"deployment":"local only; callback and SIP/RTP reachability need separate checks"})
 }
 pub async fn discover() -> Result<Value> {
     let t = Telnyx::from_env()?;
     let v = Vapi::from_env()?;
-    let numbers: Value = t
-        .client
-        .get("/phone_numbers")
-        .query(&json!({"page[size]":100}))
-        .await
-        .map_err(|_| anyhow::anyhow!("Telnyx number discovery failed"))?;
-    let profiles: Value = t
-        .client
-        .get("/messaging_profiles")
-        .query(&json!({"page[size]":100}))
-        .await
-        .map_err(|_| anyhow::anyhow!("Telnyx messaging discovery failed"))?;
-    let connections: Value = t
-        .client
-        .get("/connections")
-        .query(&json!({"page[size]":100}))
-        .await
-        .map_err(|_| anyhow::anyhow!("Telnyx connection discovery failed"))?;
-    let assistants = v
-        .client
-        .get("/assistant")
-        .await
-        .map_err(|_| anyhow::anyhow!("Vapi discovery failed"))?;
-    Ok(
-        json!({"phone_numbers":numbers,"messaging_profiles":profiles,"connections":connections,"assistants":assistants,"note":"First 100 Telnyx resources per category; inspect pagination before selecting on larger accounts"}),
-    )
+    discover_with_clients(&v, &t).await
 }
+fn catalog_metadata(value: &Value) -> Value {
+    let row = |value: &Value| {
+        let mut fields = serde_json::Map::new();
+        for name in [
+            "id",
+            "name",
+            "phone_number",
+            "connection_name",
+            "active",
+            "enabled",
+        ] {
+            if let Some(value) = value.get(name).filter(|value| {
+                value.is_boolean() || value.as_str().is_some_and(|s| s.len() <= 256)
+            }) {
+                fields.insert(name.into(), value.clone());
+            }
+        }
+        if let Some(features) = value.get("features").and_then(Value::as_array) {
+            fields.insert(
+                "features".into(),
+                json!(features
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .filter(|name| matches!(*name, "sms" | "mms" | "voice" | "fax"))
+                    .collect::<Vec<_>>()),
+            );
+        }
+        Value::Object(fields)
+    };
+    if let Some(rows) = value.as_array() {
+        return Value::Array(rows.iter().map(row).collect());
+    }
+    let data = value
+        .get("data")
+        .and_then(Value::as_array)
+        .map(|rows| rows.iter().map(row).collect::<Vec<_>>())
+        .unwrap_or_default();
+    json!({"data":data})
+}
+/// Legacy category names remain stable; provider credentials/configuration never
+/// enter the saved discovery output. Clients can target isolated fixture origins.
+pub async fn discover_with_clients(v: &Vapi, t: &Telnyx) -> Result<Value> {
+    discover_selected_clients(Some(v), Some(t)).await
+}
+/// Read selected metadata categories only; omitted providers contribute no rows.
+pub async fn discover_selected_clients(v: Option<&Vapi>, t: Option<&Telnyx>) -> Result<Value> {
+    ensure!(
+        v.is_some() || t.is_some(),
+        "Select a provider for discovery"
+    );
+    let mut catalog = serde_json::Map::new();
+    if v.is_none() || t.is_none() {
+        catalog.insert("complete".into(), json!(false));
+    }
+    if let Some(t) = t {
+        for (category, endpoint) in [
+            ("phone_numbers", "/phone_numbers"),
+            ("messaging_profiles", "/messaging_profiles"),
+            ("connections", "/connections"),
+        ] {
+            let value: Value = t
+                .client
+                .get(endpoint)
+                .query(&json!({"page[size]":100}))
+                .await
+                .map_err(|_| anyhow::anyhow!("Telnyx catalog discovery failed"))?;
+            catalog.insert(category.into(), catalog_metadata(&value));
+        }
+    }
+    if let Some(v) = v {
+        let assistants = v
+            .client
+            .get("/assistant")
+            .await
+            .map_err(|_| anyhow::anyhow!("Vapi discovery failed"))?;
+        catalog.insert("assistants".into(), catalog_metadata(&assistants));
+    }
+    catalog.insert("note".into(), json!("Metadata only; omitted providers were not requested; first 100 Telnyx resources per category; inspect pagination before selecting on larger accounts"));
+    Ok(Value::Object(catalog))
+}
+
 fn write_state(path: &Path, s: &SetupState) -> Result<()> {
+    ensure!(
+        s.sip_password.is_none(),
+        "Refuse to publish a checkpoint before confirming SIP secret migration"
+    );
     let tmp = path.with_extension("pending.json");
     let mut options = fs::OpenOptions::new();
     options.write(true).create_new(true);
@@ -168,7 +268,18 @@ pub async fn apply(plan: &Plan, path: &Path) -> Result<()> {
 
 /// Injection point for provider contract tests; production uses fixed HTTPS origins.
 pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) -> Result<()> {
+    apply_with_clients_and_secrets(plan, path, v, t, &secrets::NoSecrets).await
+}
+/// Provision using an authenticated server vault. Checkpoints retain only references.
+pub async fn apply_with_clients_and_secrets(
+    plan: &Plan,
+    path: &Path,
+    v: &Vapi,
+    t: &Telnyx,
+    secret_store: &dyn SetupSecretStore,
+) -> Result<()> {
     validate(plan)?;
+    secret_store.authorize()?;
     let lock_path = path.with_extension("lock");
     let mut options = fs::OpenOptions::new();
     options.read(true).write(true).create(true).truncate(false);
@@ -181,21 +292,24 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
     lock.try_lock_exclusive()
         .context("Another provider setup is running")?;
     let mut state = if path.exists() {
-        serde_json::from_slice::<SetupState>(&fs::read(path)?)?
+        secrets::load_private(path)?
     } else {
         let suffix = uuid::Uuid::new_v4().simple().to_string();
         SetupState {
+            operation_id: Some(suffix.clone()),
             plan: plan.clone(),
             name: format!("{}-{}", plan.name, &suffix[..12]),
             assistant_id: plan.assistant_id.clone(),
-            messaging_profile_id: None,
-            sip_connection_id: None,
-            sip_user: format!("connect{}", &suffix[..20]),
-            sip_password: format!(
-                "{}{}",
-                uuid::Uuid::new_v4().simple(),
-                uuid::Uuid::new_v4().simple()
-            ),
+            messaging_profile_id: plan.messaging_profile_id.clone(),
+            sip_connection_id: plan.sip_connection_id.clone(),
+            sip_user: if plan.create_sip {
+                format!("connect{}", &suffix[..20])
+            } else {
+                String::new()
+            },
+            sip_password: None,
+            sip_password_ref: None,
+            sip_password_fingerprint: None,
             pending: None,
             number_messaging_applied: false,
             number_sip_applied: false,
@@ -208,6 +322,24 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
     );
     if !path.exists() {
         write_state(path, &state)?;
+    }
+    if secrets::protect(&mut state, secret_store)? {
+        secret_store.authorize()?;
+        write_state(path, &state)?;
+    }
+    if let Some(id) = &plan.messaging_profile_id {
+        let _: Value = t
+            .client
+            .get(format!("/messaging_profiles/{id}"))
+            .await
+            .map_err(|_| anyhow::anyhow!("Selected messaging profile is inaccessible"))?;
+    }
+    if let Some(id) = &plan.sip_connection_id {
+        let _: Value = t
+            .client
+            .get(format!("/credential_connections/{id}"))
+            .await
+            .map_err(|_| anyhow::anyhow!("Selected SIP connection is inaccessible"))?;
     }
     if let Some(kind) = state.pending.clone() {
         let (rows, field) = match kind.as_str() {
@@ -249,11 +381,12 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
         write_state(path, &state)?;
     }
     if state.assistant_id.is_none() {
+        secret_store.authorize()?;
         state.pending = Some("assistant".into());
         write_state(path, &state)?;
         let assistant = json!({
             "name": state.name,
-            "metadata": {"connect": true},
+            "metadata": {"connect": true,"connect_operation_id":state.operation_id},
             "model": {
                 "provider": "openai", "model": "gpt-4o-mini",
                 "messages": [{"role": "system", "content": ASSISTANT_PROMPT}],
@@ -284,6 +417,7 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
     }
     if let Some(callback) = &plan.callback_url {
         if state.messaging_profile_id.is_none() {
+            secret_store.authorize()?;
             state.pending = Some("messaging".into());
             write_state(path, &state)?;
             let mut params = telnyx::messaging::CreateMessagingProfileParams::new(
@@ -309,9 +443,16 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
         }
     }
     if plan.create_sip && state.sip_connection_id.is_none() {
+        secret_store.authorize()?;
         state.pending = Some("sip".into());
         write_state(path, &state)?;
-        let mut body = json!({"connection_name":state.name,"user_name":state.sip_user,"password":state.sip_password,"active":true});
+        let password = secret_store.read(
+            state
+                .sip_password_ref
+                .as_deref()
+                .context("SIP vault reference is missing")?,
+        )?;
+        let mut body = json!({"connection_name":state.name,"user_name":state.sip_user,"password":password,"active":true});
         if let Some(id) = &plan.outbound_voice_profile_id {
             body["outbound"] = json!({"outbound_voice_profile_id":id});
         }
@@ -345,6 +486,7 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
             write_state(path, &state)?;
         }
         if !state.number_messaging_applied {
+            secret_store.authorize()?;
             let _: Value = t
                 .client
                 .patch(
@@ -360,7 +502,8 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
             state.number_messaging_applied = true;
             write_state(path, &state)?;
         }
-        if plan.create_sip && !state.number_sip_applied {
+        if (plan.create_sip || plan.sip_connection_id.is_some()) && !state.number_sip_applied {
+            secret_store.authorize()?;
             let _: Value = t
                 .client
                 .patch(
@@ -381,6 +524,10 @@ pub async fn apply_with_clients(plan: &Plan, path: &Path, v: &Vapi, t: &Telnyx) 
 /// Fetch the account verification key so the two provider API keys suffice.
 pub async fn public_key() -> Result<String> {
     let t = Telnyx::from_env()?;
+    public_key_with_client(&t).await
+}
+/// Explicit server secret injection without writing provider tokens to the environment.
+pub async fn public_key_with_client(t: &Telnyx) -> Result<String> {
     let value: Value = t.client.get("/public_key").await.map_err(|_| {
         anyhow::anyhow!("Cannot retrieve Telnyx webhook key; set TELNYX_PUBLIC_KEY explicitly")
     })?;
@@ -504,8 +651,13 @@ pub(crate) struct OwnedSip {
     pub username: String,
     pub password: String,
 }
-pub(crate) fn owned_sip(path: &Path) -> Result<OwnedSip> {
-    let state: SetupState = serde_json::from_slice(&fs::read(path)?)?;
+pub(crate) fn owned_sip(path: &Path, secrets: &dyn SetupSecretStore) -> Result<OwnedSip> {
+    let state = secrets::load_private(path)?;
+    secrets.authorize()?;
+    ensure!(
+        state.sip_password.is_none(),
+        "Migrate the legacy SIP checkpoint to protected vault storage before voice setup"
+    );
     ensure!(
         state.pending.is_none() && state.plan.create_sip,
         "SIP setup must be complete and owned by Connect"
@@ -515,6 +667,11 @@ pub(crate) fn owned_sip(path: &Path) -> Result<OwnedSip> {
         assistant_id: state.assistant_id.context("Missing assistant")?,
         connection_id: state.sip_connection_id.context("Missing SIP connection")?,
         username: state.sip_user,
-        password: state.sip_password,
+        password: secrets.read(
+            state
+                .sip_password_ref
+                .as_deref()
+                .context("SIP vault reference missing; import the original secret explicitly")?,
+        )?,
     })
 }

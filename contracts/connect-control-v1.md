@@ -1,6 +1,6 @@
 # Connect control profile v1
 
-Status: experimental, local Gates 1–3. Profile `connect-control/1`, UCTP envelope
+Status: experimental local profile. Profile `connect-control/1`, UCTP envelope
 version 1, raw QUIC ALPN `uctp/1`. These identifiers do not derive from crate
 semver or the datagram wire version.
 
@@ -28,7 +28,7 @@ the native SDK adds the UCTP profile wrapper. HTTP responses include the profile
 |---|---|---|
 | resolve | address: `connect:alias@local` | permitted stable identity and static media declaration |
 | capabilities | address, optional conversation_id | caller-permitted operations, configured routes, availability and limits |
-| browser_binding | none | authoritative conversation, participant, optional session and signaling URL for this credential |
+| browser_binding | optional paired conversation_id and session_id | configured default or currently authorized accepted AV Session and signaling URL |
 | create | request_id, participants: identity IDs | durable conversation; caller included |
 | send | request_id, conversation_id, body: UTF-8 text | accepted receipt |
 | history | conversation_id, after: opaque cursor or null, limit | ordered messages and next cursor |
@@ -210,13 +210,22 @@ It returns only caller-permitted operations, configured routes, actual bounded
 message/file/audio limits and (with `availability_get`) the target's expiring
 availability. `configured` means the installation has that route configured;
 it does not promise an active worker, reachable peer, carrier delivery or SMS
-eligibility. Video is not advertised by this implementation. The legacy
-`resolve.capabilities` field remains a static identity declaration.
+eligibility. Gate 5 source advertises native VP8/PCMU AV and the configured
+browser pair, under the [video profile](connect-media-vp8-v1.md); final media
+qualification is still required. The legacy `resolve.capabilities` field remains
+a static identity declaration.
 
-`browser_binding()` requires `session_get` and the exact configured WebRTC route
-credential. The returned conversation, participant and signaling URL are the
-server's binding. The reference client compares these with its selected
-conversation/participant before acquiring a microphone.
+`browser_binding()` requires `session_get`. Without IDs it retains the configured
+route default and its exact audio credential policy. Gate 5 adds paired
+`conversation_id` and `session_id` fields to select a currently accepted/ready
+AV Session belonging to the configured identity pair in either invitation
+direction. Both the configured and joining credentials retain current authority;
+IDs never grant access. Partial, wrong-context, terminal or unauthorized selection
+is denied. The returned peer, Session and signaling URL are authoritative. The
+reference compares all selected IDs before acquiring camera or microphone.
+A new accepted invitation can be selected without server configuration/restart.
+The same paired fields accompany authenticated WebRTC `offer-ready`; see the
+[media contract](connect-media-vp8-v1.md) for bounds and admission.
 
 `context_deliveries(conversation_id, before?, limit)` requires `context_view` and
 current conversation authority. It returns newest-first receipts, a signed,
@@ -270,3 +279,113 @@ this field. This is a sampled operational diagnostic, not a durable event,
 authorization decision, delivery acknowledgement or end-to-end reachability promise.
 SIP observations expire with the registrar's accepted lease even if a stale coarse
 state still says registered. Worker failures are not silently retried.
+
+## Exact native reliable-control framing (Gate 5 protocol kit)
+
+This section defines the wire input for an independently authored implementation.
+It describes the deployed rvoip UCTP envelope and Connect extension separately;
+it does not declare Connect extensions an adopted external standard.
+
+Raw QUIC runs over UDP with TLS 1.3 and ALPN `uctp/1`. The client verifies the
+server certificate against an explicitly configured trust anchor and verifies
+the configured DNS server name (`localhost` for the generated local certificate).
+The installation exports that trust anchor as DER. Convert it to PEM if your
+runtime requires PEM; disabling verification or falling back to another transport
+is forbidden. Local qualification listens on loopback only. Neither WebTransport
+ALPN `h3` nor the optional WebSocket transport is this native proof.
+
+After QUIC establishment the client opens one bidirectional reliable stream.
+Both directions contain consecutive frames: **four unsigned big-endian bytes
+of JSON byte length, followed by exactly that many UTF-8 JSON bytes**. The prefix
+excludes itself. Maximum JSON frame length is 1,048,576 bytes. Reads must handle
+split/coalesced packets; a packet boundary is never a frame boundary. A truncated
+frame, invalid JSON or missing required envelope field terminates the stream.
+An oversized declared length is rejected before allocating that payload. The
+public helper/client additionally admits requests at most 65,536 bytes and
+responses at most 600,000 bytes. Reliable control does not carry audio/video frames.
+
+Every envelope requires `v: 1`, `type` (dotted string), `id` (string), `ts`
+(RFC3339 timestamp with timezone), and `payload` (JSON object for this profile).
+Optional `cid`, `sid`, `connid`, `in_reply_to`, and `signature` can be omitted.
+These are UCTP envelope fields; unknown envelope fields are currently tolerated.
+`signature` belongs to the optional upstream RFC9421 facility and is not required
+for the configured Connect bearer profile. No client-side signing key is needed
+for this proof. Envelope IDs and reply correlation IDs are 1–128 URI-unreserved
+ASCII characters (`A-Z a-z 0-9 . _ ~ -`); the canonical generated form is
+`env_` plus a UUID without hyphens. Invalid IDs are silently dropped before
+correlation; clients must bound the resulting wait. Sender timestamps never
+establish event order. Unsupported `v` gets UCTP `error` code 505.
+
+Handshake, each with a fresh envelope ID:
+
+1. Client sends `auth.hello`, payload
+   `{"device":{"id":"example","kind":"desktop","platform":"darwin","sdk_version":"1"},"auth_methods":["bearer"],"capabilities":{}}`.
+2. Server replies `auth.challenge`, `in_reply_to` = hello ID. Payload contains
+   `nonce`, `accepted_methods`, `server_capabilities.application_profiles`.
+   Require `bearer` and `connect-control/1` before disclosing a credential.
+3. Client sends `auth.response`, payload `{"method":"bearer","credential":"<private bearer>"}`.
+   For this deployed bearer method the nonce is informational, not a signed
+   challenge response; `in_reply_to` on this client envelope is unnecessary.
+4. Server replies `auth.session`, `in_reply_to` = response ID, with
+   `identity_id`, `participant_id`, `session_token`, `expires_at`, `assurance`
+   and optional `reachability`. Failure is an `error`, typically code 401.
+   Session tokens are private; the independent client reconnects by reauthenticating
+   its original backing credential and does not assume a session token grants access.
+
+An application envelope is `type: "connect.request"`, with the operations above
+inside `payload`, always including `profile: "connect-control/1"`. When supplied,
+`cid` must equal the operation's conversation ID. The server returns
+`type: "connect.result"`, `in_reply_to` = request envelope ID, and preserves the
+request's optional `cid`. Result payload is exactly one of:
+
+```json
+{"profile":"connect-control/1","result":{"Ok":{"kind":"accepted","data":{"request_id":"logical-1","message_id":"message-1","conversation_id":"conversation-1"}}}}
+```
+
+```json
+{"profile":"connect-control/1","result":{"Err":{"code":"forbidden","message":"Operation or resource is not permitted"}}}
+```
+
+A `result` has one variant only; error `code` is the stable programmatic value.
+Peer-controlled error messages must not be logged. The profile and correlation
+must match before accepting the outcome. Required known outcome fields remain
+mandatory while additional outcome fields and unfamiliar state strings are
+forward compatible. Unknown operation/fields yield `invalid-request`; an unknown
+application profile is UCTP `error` 501 (`unsupported-application-profile`), rather
+than a stock conversation mutation. UCTP error payload includes numeric `code`
+and `reason`; preauthentication/current-principal failures use 401/403. UCTP
+errors remain distinguishable from application `Err` and uncertain transport loss.
+
+Control outcomes used by the independent client are `identity` (`id`, `alias`,
+`capabilities`), `conversation` (`id`, `participants`, `closed`), `accepted`
+(`request_id`, `message_id`, `conversation_id`), `history` (`messages`, `next`),
+`inbox` (`events`, `cursor`), `request_status` (`state`, nullable `outcome`), and
+`health` (`installation_id`, `schema`, `profile`, optional `readiness`).
+Complete application result examples live in `contracts/fixtures/results/`;
+operation shapes live in `contracts/fixtures/`. Task shapes/versioning are in
+[connect-task-v1.md](connect-task-v1.md); a task remains an additive Connect
+extension inside this outer framing.
+
+Logical mutation `request_id` is 1–128 ASCII letters/digits/hyphens/underscores,
+owned by one stable actor. It is not an envelope ID. Preserve it across timeout,
+reconnect and restart; use fresh envelope IDs. Changed input conflicts; identical
+replay returns the original immutable result only under current authorization.
+Use `request_status` to inspect uncertainty; no `not_found` observation permits
+silently changing the logical request ID.
+
+Durable inbox payload is `{"events":[...],"cursor":null-or-string}`. Each event
+has `id`, `kind`, `conversation_id`, nullable `message`, and its own opaque `cursor`.
+Optional `call`, `session`, `artifact` carry their respective lifecycle outcomes.
+A message has `id`, `conversation_id`, `sender`, `body`; server authority selects
+sender. Process events in returned order and persist event IDs/cursor only after
+handling is durable. The same cursor may replay events. It is installation- and
+identity-bound and invalid after foreign identity use; never parse or construct
+it. Resume by passing it unchanged to `inbox`. Notifications are only hints;
+this reliable-control client polls the journal and does not require a push channel.
+Server restart retains journal/receipt state, not a transport session.
+
+Framing vectors in `contracts/fixtures/wire/` include exact byte prefixes and
+positive/negative envelopes. They contain synthetic values and repository MIT
+license provenance. Media packets have a separate datagram profile and negotiated
+bindings; these framing vectors and the independent client prove no media codec,
+rendering, WebRTC, SIP or provider behavior.

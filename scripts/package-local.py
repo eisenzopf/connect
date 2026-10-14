@@ -12,21 +12,50 @@ import subprocess
 import tarfile
 import tomllib
 from lib.local_process import ROOT
+from lib.package_inventory import source_inventory, copy_gate5_assets, verify_baseline
+from lib.package_environment import fixture_environment
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--previous-binary', type=pathlib.Path, default=ROOT/'.local/milestones/m1/connect')
+parser.add_argument('--profile', choices=('gate4-local', 'gate5-local'), default='gate4-local')
+parser.add_argument('--previous-binary', type=pathlib.Path, help='Schema1 fixture; Gate4 retains its archived milestone default, Gate5 uses the public pinned fixture')
+parser.add_argument('--gate4-binary', type=pathlib.Path, help='Gate5 public pinned schema16 historical binary')
+parser.add_argument('--rehearse-source', type=pathlib.Path, metavar='REPORT', help='Offline source inventory only; allows dirty source, creates no release candidate')
 args = parser.parse_args()
+selected_environment = fixture_environment()
+os.environ.clear()
+os.environ.update(selected_environment)
 os.umask(0o077)
+if args.rehearse_source:
+    if args.profile != 'gate5-local':
+        parser.error('Source rehearsal requires explicit gate5-local profile')
+    inputs = source_inventory(ROOT)
+    report = {'profile': args.profile, 'result': 'source-inventory-verified', 'files': inputs,
+              'source_revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+              'source_dirty': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT)),
+              'candidate_created': False, 'behavior_qualified': False, 'whole_gate_qualified': False,
+              'not_run': ['release compilation', 'archive installation', 'historical upgrade', 'installed media', 'installed setup']}
+    args.rehearse_source.parent.mkdir(parents=True, exist_ok=True)
+    args.rehearse_source.write_text(json.dumps(report, indent=2)+'\n')
+    print('Offline source inventory only:', args.rehearse_source)
+    raise SystemExit(0)
 if platform.system() != 'Darwin' or platform.machine() != 'arm64':
     parser.error('This candidate qualifies macOS arm64 only')
 if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip():
     parser.error('Commit the candidate source first; packaging requires a clean worktree')
-previous = args.previous_binary.resolve()
+catalog = json.loads((ROOT/'dependencies/recovery-baselines.json').read_text())['baselines'] if args.profile == 'gate5-local' else {}
+previous_default = ROOT/'.local/milestones/m1/connect' if args.profile == 'gate4-local' else ROOT/'.local/recovery-baselines'/catalog['1']['revision']/'connect'
+previous = (args.previous_binary or previous_default).resolve()
 prior = json.loads(previous.with_name('manifest.json').read_text())
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 if digest(previous) != prior['binary_sha256']:
     parser.error('Archived milestone binary checksum mismatch')
+if args.profile == 'gate5-local':
+    source_inventory(ROOT)
+    verify_baseline(previous, prior, ROOT, 1)
+    gate4 = (args.gate4_binary or ROOT/'.local/recovery-baselines'/catalog['16']['revision']/'connect').resolve()
+    gate4_manifest = json.loads(gate4.with_name('manifest.json').read_text())
+    verify_baseline(gate4, gate4_manifest, ROOT, 16)
 revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
 
 
@@ -40,22 +69,26 @@ def ensure_source_unchanged():
 
 version = tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['package']['version']
 candidate = f'connect-{version}-macos-arm64-{revision[:12]}'
+if args.profile == 'gate5-local':
+    candidate += '-gate5-local'
 output = ROOT/'dist'/candidate
 if output.exists():
     parser.error('Candidate directory exists; retain it and use a new source revision')
-subprocess.run(['bash', 'scripts/prepare-dependencies.sh'], cwd=ROOT, check=True)
-subprocess.run(['npm', 'ci', '--prefix', 'sdk/typescript'], cwd=ROOT, check=True)
-subprocess.run(['npm', 'run', 'build', '--prefix', 'sdk/typescript'], cwd=ROOT, check=True)
-subprocess.run(['cargo', 'build', '--locked', '--release', '-p', 'connect-server',
-                '-p', 'connect-review-loop', '--bins'], cwd=ROOT, check=True)
+subprocess.run(['bash', 'scripts/prepare-dependencies.sh'], cwd=ROOT, check=True, timeout=600)
+subprocess.run(['npm', 'ci', '--prefix', 'sdk/typescript'], cwd=ROOT, check=True, timeout=300)
+subprocess.run(['npm', 'run', 'build', '--prefix', 'sdk/typescript'], cwd=ROOT, check=True, timeout=120)
+build = ['cargo', 'build', '--locked', '--release', '-p', 'connect-server', '-p', 'connect-review-loop']
+if args.profile == 'gate5-local':
+    build += ['-p', 'connect-native-video']
+subprocess.run(build + ['--bins'], cwd=ROOT, check=True, timeout=7200)
 ensure_source_unchanged()
-metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--format-version=1'], cwd=ROOT))
+metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--format-version=1'], cwd=ROOT, timeout=120))
 # Use the build's Cargo configuration, including an explicit CARGO_TARGET_DIR.
 target_directory = pathlib.Path(metadata['target_directory'])
 output.mkdir(parents=True)
 runtime = output/candidate
 (runtime/'bin').mkdir(parents=True)
-for name in ['connect', 'connect-example']:
+for name in ['connect', 'connect-example'] + (['connect-video'] if args.profile == 'gate5-local' else []):
     source = target_directory/'release'/name
     for control in [b'CONNECT_TEST_FAULT_STAGE', b'CONNECT_EXAMPLE_FAULT_STAGE', b'CONNECT_CONNECTED_APP_FAULT']:
         if control in source.read_bytes():
@@ -93,6 +126,10 @@ shutil.copytree(ROOT/'examples/agent-presence', runtime/'examples/agent-presence
                 ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'tests'))
 shutil.copytree(ROOT/'examples/conversation-client', runtime/'examples/conversation-client',
                 ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+if args.profile == 'gate5-local':
+    copy_gate5_assets(ROOT, runtime)
+    with readme.open('a') as guide:
+        guide.write('\nGate 5 candidates use the explicit [Gate 5 package profile](docs/GATE5_PACKAGE.md); inventory and retained baseline checks do not establish Gate 5 closure.\n')
 # Preserve dependency license/notice texts alongside a readable package index.
 # The workspace graph is a conservative superset of the two runtime binaries.
 notices = []
@@ -119,7 +156,7 @@ manifest = {'candidate': candidate, 'version': version, 'source_revision': revis
             'cargo_lock_sha256': digest(ROOT/'Cargo.lock'),
             'dependencies': json.loads((ROOT/'dependencies/source-lock.json').read_text()),
             'features': 'default; no test-support', 'scope': 'local candidate; unpublished',
-            'qualification_profile': 'gate4-local', 'files': files}
+            'qualification_profile': args.profile, 'files': files}
 (runtime/'manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
 with tarfile.open(output/(candidate+'.tar.gz'), 'w:gz') as archive:
     archive.add(runtime, arcname=candidate)
@@ -130,10 +167,13 @@ qualification = output/'qualification'
 qualification.mkdir()
 shutil.copy2(previous, qualification/'connect-schema1')
 (qualification/'manifest.json').write_text(json.dumps(prior, indent=2)+'\n')
+if args.profile == 'gate5-local':
+    shutil.copy2(gate4, qualification/'connect-schema16')
+    (qualification/'schema16-manifest.json').write_text(json.dumps(gate4_manifest, indent=2)+'\n')
 with tarfile.open(output/(candidate+'-qualification.tar.gz'), 'w:gz') as archive:
     archive.add(qualification, arcname='qualification')
 archives = sorted(output.glob('*.tar.gz'))
 (output/'SHA256SUMS').write_text(''.join(f'{digest(p)}  {p.name}\n' for p in archives))
-(output/'QUALIFICATION.json').write_text(json.dumps({'candidate': candidate, 'result': 'not-run', 'scope': 'local macOS arm64 only'}, indent=2)+'\n')
+(output/'QUALIFICATION.json').write_text(json.dumps({'candidate': candidate, 'result': 'not-run', 'profile': args.profile, 'whole_gate_qualified': False, 'scope': 'local macOS arm64 only'}, indent=2)+'\n')
 print('Local candidate:', output)
-print('Runtime archive, complete SDK source, and archived schema-1 qualification binary created. Nothing published.')
+print('Runtime, complete source and historical qualification archives created for', args.profile + '. Nothing published.')

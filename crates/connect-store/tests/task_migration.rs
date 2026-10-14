@@ -77,7 +77,7 @@ fn old_send() -> Operation {
 }
 fn rows(path: &Path) -> BTreeMap<String, Vec<Vec<Value>>> {
     let c = Connection::open(path).unwrap();
-    let mut table_query=c.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'task%' AND name NOT IN ('media_end_intents','media_start_admissions','vapi_session_setups') ORDER BY name").unwrap();
+    let mut table_query=c.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'task%' AND name NOT IN ('media_end_intents','media_start_admissions','vapi_session_setups','contact_pairings','connector_manifests','connector_observations','connector_receipt_events','connector_incoming','connector_voice_observations') ORDER BY name").unwrap();
     let names = table_query
         .query_map([], |r| r.get::<_, String>(0))
         .unwrap()
@@ -126,6 +126,24 @@ fn upgrade_populated_ten_preserves_all_existing_rows_and_verified_backup() {
     let upgraded = Store::migrate(&db, &backup, &snapshot).unwrap();
     assert_eq!(upgraded.schema, SCHEMA_VERSION);
     assert_eq!(rows(&db), before);
+    let migrated = Connection::open(&db).unwrap();
+    for table in [
+        "contact_pairings",
+        "connector_manifests",
+        "connector_observations",
+        "connector_receipt_events",
+        "connector_incoming",
+        "connector_voice_observations",
+    ] {
+        assert_eq!(
+            migrated
+                .query_row::<u32, _, _>(&format!("SELECT COUNT(*) FROM {table}"), [], |row| row
+                    .get(0))
+                .unwrap(),
+            0,
+            "new table must not invent retained state"
+        );
+    }
     assert_eq!(Store::inspect_snapshot(&backup).unwrap(), snapshot);
     let store = Store::open(&db, Limits::default()).unwrap();
     store.integrity_check().unwrap();
@@ -189,6 +207,27 @@ fn migration_failure_rolls_back_new_tables_and_version_without_touching_old_rows
     );
     assert_eq!(Store::inspect_snapshot(&db).unwrap(), snapshot);
     assert_eq!(rows(&db), before);
+    let migrated = Connection::open(&db).unwrap();
+    for table in [
+        "contact_pairings",
+        "connector_manifests",
+        "connector_observations",
+        "connector_receipt_events",
+        "connector_incoming",
+        "connector_voice_observations",
+    ] {
+        assert_eq!(
+            migrated
+                .query_row::<u32, _, _>(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE name=?1",
+                    [table],
+                    |row| row.get(0)
+                )
+                .unwrap(),
+            0,
+            "failed migration must roll back every new table"
+        );
+    }
     let c = Connection::open(&db).unwrap();
     assert_eq!(
         c.query_row::<u64, _, _>(

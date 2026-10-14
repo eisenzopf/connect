@@ -1,0 +1,654 @@
+{
+  "recorded_at": "2026-10-14T00:27:25.273547+00:00",
+  "scope": "Local offline component qualification of normalized trusted host composition, contribution fixtures and additive schema18; no release/package/installed/live-provider closure.",
+  "head_commit": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "working_tree": "Modified source; the file digests below, not HEAD alone, identify the tested component implementation.",
+  "schema": 18,
+  "implemented": [
+    "Connector::message_extension and deliver_observed opt into full normalized receipts; legacy deliver_attempt/deliver remain compatible.",
+    "Worker::reconcile reads status under the original job ID without sending. Current original sender and route/delegate credential, membership and route authorization precede observation/replay; claim/dispatch still check task authority before any new effect. Receipt communication uses native current task assignment, so terminal-task answers are unassigned rather than rejected or resumed.",
+    "Worker::observe accepts adapter-verified callbacks for normalized adapters. Projection, full receipt/event, actual reply source IDs and ordinary/task reply admission commit atomically; older acceptance cannot regress terminal delivery or lose an as-yet-uncommitted synchronous answer. Delivery-only SMS evidence remains recordable after STOP/lease expiry without changing policy; reply-bearing receipts and new dispatch retain current SMS eligibility.",
+    "Worker::receive journals independently created adapter-authenticated contacts under a configured route with current policy before duplicate handling, payload/external binding checks and bounded durable receipts. Subsequent same-conversation replies reference the actual incoming message source.",
+    "voice::Worker::with_observed_driver explicitly uses VoiceReceipt and durable reducer while retaining RemoteCall control capabilities. Builtin startup and with_driver retain the previous carrier dispatch path. Status of an owned physical effect continues after revocation without granting new mutations.",
+    "Migration018 is additive, backup gated and included in snapshot digests. Exact schema17 backup transition retains installation, revocation and immutable manifests; older populated migration/rollback cases retain every original row."
+  ],
+  "verification": [
+    {
+      "suite": "connector-late-observation-contract-store-tests",
+      "command": "TMPDIR=<owned ignored private temp directory> CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-connector-api -p connect-store -p connect-connectors",
+      "passed_tests": 287,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "e447c9785e7f4151dd8f78397f27ba2278b6cafd58384dd9d75461b653050e74"
+    },
+    {
+      "suite": "connector-late-observation-host-tests",
+      "command": "TMPDIR=<owned ignored private temp directory> CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-server --test connector_template --test connector_contribution --test voice_flow --test entry_connector --test provider_flow --test provider_context_manifest --test sms_policy_extension",
+      "passed_tests": 24,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "0331216b4a84f77dcdf47ef28c81a64d494485cee1e9a9dec9059c7289efbb7e"
+    },
+    {
+      "suite": "connector-late-observation-store-tests",
+      "command": "TMPDIR=<owned ignored private temp directory> CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-store --lib effect_provider_observations",
+      "passed_tests": 6,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "997b881f55fca18338972693fd52f9f3bab857f7d5878ee6fa161708812f6b9d"
+    }
+  ],
+  "format": {
+    "command": "bash scripts/format.sh",
+    "exit_code": 0,
+    "scope": "Late-observation source frozen/formatted before targeted tests. Final whole-tree format check belongs to parent after other media lane files freeze."
+  },
+  "harnesses": [
+    {
+      "connector": "local-contributor",
+      "profile": "connect-connector-fixture-v1",
+      "passed": true,
+      "checks": [
+        {
+          "name": "manifest-valid",
+          "passed": true
+        },
+        {
+          "name": "configuration-valid",
+          "passed": true
+        },
+        {
+          "name": "missing-secret-rejected",
+          "passed": true
+        },
+        {
+          "name": "raw-secret-rejected",
+          "passed": true
+        },
+        {
+          "name": "incompatible-manifest-rejected",
+          "passed": true
+        },
+        {
+          "name": "unsupported-video-rejected",
+          "passed": true
+        },
+        {
+          "name": "duplicate-registration",
+          "passed": true
+        },
+        {
+          "name": "restart-manifest-compatibility",
+          "passed": true
+        },
+        {
+          "name": "setup-ready",
+          "passed": true
+        },
+        {
+          "name": "attributable-context-reply",
+          "passed": true
+        },
+        {
+          "name": "message-restart",
+          "passed": true
+        },
+        {
+          "name": "message-logical-effect-once",
+          "passed": true
+        },
+        {
+          "name": "mutation-conflict-rejected",
+          "passed": true
+        },
+        {
+          "name": "independently-initiated-message",
+          "passed": true
+        },
+        {
+          "name": "uncertain-message",
+          "passed": true
+        },
+        {
+          "name": "uncertain-restart",
+          "passed": true
+        },
+        {
+          "name": "uncertain-no-repeat",
+          "passed": true
+        },
+        {
+          "name": "uncertain-message-reconcile",
+          "passed": true
+        },
+        {
+          "name": "reconciled-message-no-repeat",
+          "passed": true
+        },
+        {
+          "name": "signed-callback",
+          "passed": true
+        },
+        {
+          "name": "invalid-callback-auth",
+          "passed": true
+        },
+        {
+          "name": "tampered-callback",
+          "passed": true
+        },
+        {
+          "name": "final-before-acceptance",
+          "passed": true
+        },
+        {
+          "name": "duplicate-callback",
+          "passed": true
+        },
+        {
+          "name": "revoked-replay",
+          "passed": true
+        },
+        {
+          "name": "reordered-no-regression",
+          "passed": true
+        },
+        {
+          "name": "terminal-race-reconcile",
+          "passed": true
+        },
+        {
+          "name": "callback-restart",
+          "passed": true
+        },
+        {
+          "name": "voice-start-active",
+          "passed": true
+        },
+        {
+          "name": "duplex-generated-decoded-audio",
+          "passed": true
+        },
+        {
+          "name": "media-frame-bound",
+          "passed": true
+        },
+        {
+          "name": "voice-restart",
+          "passed": true
+        },
+        {
+          "name": "paired-teardown",
+          "passed": true
+        },
+        {
+          "name": "uncertain-voice-create",
+          "passed": true
+        },
+        {
+          "name": "unknown-voice-restart",
+          "passed": true
+        },
+        {
+          "name": "unknown-voice-no-repeat",
+          "passed": true
+        },
+        {
+          "name": "unknown-voice-reconcile",
+          "passed": true
+        },
+        {
+          "name": "cancel-uncertain-creation",
+          "passed": true
+        },
+        {
+          "name": "failure-after-acceptance",
+          "passed": true
+        },
+        {
+          "name": "peer-loss-bounded-cleanup",
+          "passed": true
+        }
+      ],
+      "unsupported": [
+        "video",
+        "live-provider"
+      ],
+      "command": [
+        "cargo",
+        "run",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "examples/connector-template/Cargo.toml",
+        "--target-dir",
+        "target",
+        "--",
+        "--contract-report",
+        "<fresh-isolated-fixture-file>"
+      ],
+      "source_files": {
+        "examples/connector-template/Cargo.lock": "95e5ed62f12b4c88042502325fdb5d573b00caa9f3813c13297b0587a80b6326",
+        "examples/connector-template/Cargo.toml": "47e9d5f95e11ad5f751f30e6aa8b4c816a38d7bd5bae0f8f0d77a8d486441bef",
+        "examples/connector-template/media/voice.rs": "c1050828affe83ca4e28ad9d2c3ccb82738fff7bec5d0b8f2693b173b7766a20",
+        "examples/connector-template/src/lib.rs": "a0ae6fd6ba0af568a4d51328c7a82c50efaa7bb076f52ce06ee4f591fe099f91",
+        "examples/connector-template/src/main.rs": "1658d3b68bc9da125ae18c60ab90c9b511e379469bbe0ac03a4a92472b0f7547",
+        "examples/connector-template/tests/broken_fixture.rs": "620a6285603a656748b8a2eb0d5ff093762f5c9419d8a9f37d503b9f75c8f7e4",
+        "examples/connector-template/tests/contract.rs": "54fee6066f8ebed4365be0b9120b8b0a3c044b13db85bd4caa7a2bcda9c07e0e",
+        "crates/connect-connector-api/src/conformance.rs": "1129295207f24cf01c11fab32a701e435ca192da9513ce407a5c459c12d5e5a7",
+        "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
+        "crates/connect-connector-api/src/host_context.rs": "f7aff6f38d52744a4a06dd7f3375870460c5a57fa3a315e2c5272e7fc2ce3fa4",
+        "crates/connect-connector-api/src/lib.rs": "3384abb54e6ce291680f0577299d772cb95ea1d738cacb73b0b9bb8d42eafdb2",
+        "crates/connect-connector-api/src/lifecycle.rs": "c01dafeb700e72d339864e7d29a9a6924b0358349944bd4587ca8982eb7ac286",
+        "crates/connect-connector-api/src/manifest.rs": "de5c7baa7e740b98ee91e08a623c5c11808696c2c4535c47d39f41ae324c63c4",
+        "crates/connect-connector-api/Cargo.toml": "423405d05c8d5d81dcbecd6ddded85ae90848dc99e4a786437936e0d897a0ce1",
+        "docs/CONNECTORS.md": "94748cc2fc5eed88e8e7147b2eb6c95c9a930e978e59717191f90e89594837b9",
+        "contracts/connectors/profile-v1.md": "d0ee8c8ffef1e1d89e1408a35fecbbc1f14f4f3737d288bd62cdfa632bd11921",
+        "contracts/connectors/host-context-v1.md": "44b23d70ca14f1e2428e8f8b9ffa39e37ca9f364888cfe10fa78e4c75f2b251d",
+        "scripts/check-connector-contract.py": "011b5c391e6b144bcef0afc19aa91f2c704425fe36d2d50523a6cd59855db3b0"
+      }
+    },
+    {
+      "connector": "prism-fixture",
+      "profile": "connect-connector-fixture-v1",
+      "passed": true,
+      "checks": [
+        {
+          "name": "manifest-valid",
+          "passed": true
+        },
+        {
+          "name": "configuration-valid",
+          "passed": true
+        },
+        {
+          "name": "missing-secret-rejected",
+          "passed": true
+        },
+        {
+          "name": "raw-secret-rejected",
+          "passed": true
+        },
+        {
+          "name": "incompatible-manifest-rejected",
+          "passed": true
+        },
+        {
+          "name": "unsupported-video-rejected",
+          "passed": true
+        },
+        {
+          "name": "duplicate-registration",
+          "passed": true
+        },
+        {
+          "name": "restart-manifest-compatibility",
+          "passed": true
+        },
+        {
+          "name": "setup-ready",
+          "passed": true
+        },
+        {
+          "name": "attributable-context-reply",
+          "passed": true
+        },
+        {
+          "name": "message-restart",
+          "passed": true
+        },
+        {
+          "name": "message-logical-effect-once",
+          "passed": true
+        },
+        {
+          "name": "mutation-conflict-rejected",
+          "passed": true
+        },
+        {
+          "name": "independently-initiated-message",
+          "passed": true
+        },
+        {
+          "name": "uncertain-message",
+          "passed": true
+        },
+        {
+          "name": "uncertain-restart",
+          "passed": true
+        },
+        {
+          "name": "uncertain-no-repeat",
+          "passed": true
+        },
+        {
+          "name": "uncertain-message-reconcile",
+          "passed": true
+        },
+        {
+          "name": "reconciled-message-no-repeat",
+          "passed": true
+        },
+        {
+          "name": "signed-callback",
+          "passed": true
+        },
+        {
+          "name": "invalid-callback-auth",
+          "passed": true
+        },
+        {
+          "name": "tampered-callback",
+          "passed": true
+        },
+        {
+          "name": "final-before-acceptance",
+          "passed": true
+        },
+        {
+          "name": "duplicate-callback",
+          "passed": true
+        },
+        {
+          "name": "revoked-replay",
+          "passed": true
+        },
+        {
+          "name": "reordered-no-regression",
+          "passed": true
+        },
+        {
+          "name": "terminal-race-reconcile",
+          "passed": true
+        },
+        {
+          "name": "callback-restart",
+          "passed": true
+        },
+        {
+          "name": "voice-start-active",
+          "passed": true
+        },
+        {
+          "name": "duplex-generated-decoded-audio",
+          "passed": true
+        },
+        {
+          "name": "media-frame-bound",
+          "passed": true
+        },
+        {
+          "name": "voice-restart",
+          "passed": true
+        },
+        {
+          "name": "paired-teardown",
+          "passed": true
+        },
+        {
+          "name": "uncertain-voice-create",
+          "passed": true
+        },
+        {
+          "name": "unknown-voice-restart",
+          "passed": true
+        },
+        {
+          "name": "unknown-voice-no-repeat",
+          "passed": true
+        },
+        {
+          "name": "unknown-voice-reconcile",
+          "passed": true
+        },
+        {
+          "name": "cancel-uncertain-creation",
+          "passed": true
+        },
+        {
+          "name": "failure-after-acceptance",
+          "passed": true
+        },
+        {
+          "name": "peer-loss-bounded-cleanup",
+          "passed": true
+        }
+      ],
+      "unsupported": [
+        "video",
+        "live-provider"
+      ],
+      "command": [
+        "cargo",
+        "run",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "examples/connector-contribution/Cargo.toml",
+        "--target-dir",
+        "target",
+        "--",
+        "--contract-report",
+        "<fresh-isolated-fixture-file>"
+      ],
+      "source_files": {
+        "examples/connector-contribution/Cargo.lock": "5eee845cc0b032f902302f6799cd3c76dc4e0e8867c18bcd6f02d99d5b34ea19",
+        "examples/connector-contribution/Cargo.toml": "016088f10da1ddaa7f09d67c3966e7852fa057fcadf534c880ce862639302d80",
+        "examples/connector-contribution/src/lib.rs": "c80f8c45400281042a077f3ec163a87015a6e1cc1aca61dbcadcfe7ce76cd415",
+        "examples/connector-contribution/src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
+        "examples/connector-contribution/src/media.rs": "455f89124255a8a0edfab1d5b9c018730bfa6458ff39993d3b0ad8fb5502816d",
+        "examples/connector-contribution/tests/boundaries.rs": "43a1d3a6bb6f6ada41e078d012320d3bf6be0c2566cd1f6152b36b2fa42c3a65",
+        "crates/connect-connector-api/src/conformance.rs": "1129295207f24cf01c11fab32a701e435ca192da9513ce407a5c459c12d5e5a7",
+        "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
+        "crates/connect-connector-api/src/host_context.rs": "f7aff6f38d52744a4a06dd7f3375870460c5a57fa3a315e2c5272e7fc2ce3fa4",
+        "crates/connect-connector-api/src/lib.rs": "3384abb54e6ce291680f0577299d772cb95ea1d738cacb73b0b9bb8d42eafdb2",
+        "crates/connect-connector-api/src/lifecycle.rs": "c01dafeb700e72d339864e7d29a9a6924b0358349944bd4587ca8982eb7ac286",
+        "crates/connect-connector-api/src/manifest.rs": "de5c7baa7e740b98ee91e08a623c5c11808696c2c4535c47d39f41ae324c63c4",
+        "crates/connect-connector-api/Cargo.toml": "423405d05c8d5d81dcbecd6ddded85ae90848dc99e4a786437936e0d897a0ce1",
+        "docs/CONNECTORS.md": "94748cc2fc5eed88e8e7147b2eb6c95c9a930e978e59717191f90e89594837b9",
+        "contracts/connectors/profile-v1.md": "d0ee8c8ffef1e1d89e1408a35fecbbc1f14f4f3737d288bd62cdfa632bd11921",
+        "contracts/connectors/host-context-v1.md": "44b23d70ca14f1e2428e8f8b9ffa39e37ca9f364888cfe10fa78e4c75f2b251d",
+        "scripts/check-connector-contract.py": "011b5c391e6b144bcef0afc19aa91f2c704425fe36d2d50523a6cd59855db3b0"
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "mode": "context",
+      "exit_code": 1,
+      "failed_checks": [
+        "attributable-context-reply",
+        "independently-initiated-message"
+      ],
+      "observed_expected_failure": true
+    },
+    {
+      "mode": "authentication",
+      "exit_code": 1,
+      "failed_checks": [
+        "invalid-callback-auth",
+        "tampered-callback"
+      ],
+      "observed_expected_failure": true
+    },
+    {
+      "mode": "uncertainty",
+      "exit_code": 1,
+      "failed_checks": [
+        "uncertain-no-repeat",
+        "reconciled-message-no-repeat"
+      ],
+      "observed_expected_failure": true
+    }
+  ],
+  "repairs_and_failed_attempts": [
+    {
+      "failure": "Prism new incoming fixture worked but manifest omitted MessageReceive; public host rejected it.",
+      "repair": "Declare implemented receive operation; conformance now requires it alongside actual independent contact.",
+      "final": "Host and both harnesses pass."
+    },
+    {
+      "failure": "Private old-schema downgrade fixtures retained new18 tables, causing additive migration collisions.",
+      "repair": "Remove all four new tables only while reconstructing historical private fixtures; production migration remains strict/transactional.",
+      "final": "All store suites pass."
+    },
+    {
+      "failure": "Schema10 migration row helper counted new empty setup/observation tables as original rows; a newly inserted successful-migration assertion also ran on rollback.",
+      "repair": "Compare every original table/field unchanged, assert new tables empty after success and absent after rollback.",
+      "final": "Populated migration and rollback tests pass."
+    }
+  ],
+  "independent_contribution_boundary": "Original independent Prism authoring remains documented in contributor-exercise.json. These current host/API/guide integration repairs are not a fresh independent authoring exercise.",
+  "remaining_or_unsupported": [
+    "No fresh carrier/provider proof or live operations.",
+    "MediaExtension qualifies the offline contribution fixture; it does not install a native media transport or route.",
+    "Final candidate freeze/package/installed acceptance and publication remain separate."
+  ],
+  "source_files": {
+    "Cargo.lock": "84f7ac268fbb4439b2380dd90957b62096773c26c336f9d1fef3762d7bdb5bfb",
+    "Cargo.toml": "652f0f7210ba2e22a471e99f7b9ef3c2f4b79e18c3b6e4a3500f083ddadc3feb",
+    "contracts/connectors/profile-v1.md": "d0ee8c8ffef1e1d89e1408a35fecbbc1f14f4f3737d288bd62cdfa632bd11921",
+    "crates/connect-connector-api/Cargo.toml": "423405d05c8d5d81dcbecd6ddded85ae90848dc99e4a786437936e0d897a0ce1",
+    "crates/connect-connector-api/examples/echo.rs": "c9a2be1910b12df428b0273e15393848a75d95c61da72d7d0376ae8e295ad0ec",
+    "crates/connect-connector-api/src/conformance.rs": "1129295207f24cf01c11fab32a701e435ca192da9513ce407a5c459c12d5e5a7",
+    "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
+    "crates/connect-connector-api/src/host_context.rs": "f7aff6f38d52744a4a06dd7f3375870460c5a57fa3a315e2c5272e7fc2ce3fa4",
+    "crates/connect-connector-api/src/lib.rs": "3384abb54e6ce291680f0577299d772cb95ea1d738cacb73b0b9bb8d42eafdb2",
+    "crates/connect-connector-api/src/lifecycle.rs": "c01dafeb700e72d339864e7d29a9a6924b0358349944bd4587ca8982eb7ac286",
+    "crates/connect-connector-api/src/manifest.rs": "de5c7baa7e740b98ee91e08a623c5c11808696c2c4535c47d39f41ae324c63c4",
+    "crates/connect-connector-api/tests/contracts.rs": "a7f6193dca05b49d0925e588754c6586432383fced1fed5911e369cf3bf28601",
+    "crates/connect-connector-api/tests/host_context.rs": "8076807e5d4e73f2783a712e26a2f887347d36d31aee488edb802b3500538427",
+    "crates/connect-connectors/src/voice.rs": "fc8ba2c9cc1e92821b5e3817c7b7b56bc34ff2d9e1578c69c5117d3af0cd9bf7",
+    "crates/connect-server/src/providers.rs": "da91b0551ffdd67010fa0947d25711fc45c0f7394b106621d1709980927f9eda",
+    "crates/connect-server/src/voice.rs": "1512d82ac4ee0dc9ab7b3bb50cdf6ce794d972d9116e3c2b37468cc2f866d94b",
+    "crates/connect-server/tests/connector_contribution.rs": "3c4abc7362ab55718b382654650438210157e67dd101d30648b4038ce78ae706",
+    "crates/connect-server/tests/connector_template.rs": "c44ae7e6e2f6186ab8c3bdc918454d9faac462f4822405fba4542e82ada8cd2f",
+    "crates/connect-server/tests/voice_flow.rs": "633f09b9bab4850f1131edd52f765564bfd813f26e1175303c844464b6c89963",
+    "crates/connect-store/migrations/018_connector_observations.sql": "1c53bafb243eaf637b78bc0375a50e467d991cca7418ef5ab596c95c36f263fe",
+    "crates/connect-store/src/connector_observations.rs": "90455f49ddda587b15890c4b85ff0c138741fb03877ad4b428d88ee7ae1945f5",
+    "crates/connect-store/src/lib.rs": "d5ca38d8cea766d204f430f935a70b5b1b306ff1161ae6a7bfdf68be71f11f6e",
+    "crates/connect-store/src/providers.rs": "b31dc50597ccbdcee8c69c7a3d9928ae443d5d4c6cf036b31cb2511edff9ba3c",
+    "crates/connect-store/src/recovery.rs": "3c7d538585e4b8901649c6c987008bb95e2d453021c0525dad92b2bfb33538c5",
+    "crates/connect-store/src/tasks/tests/effect_migration.rs": "d73d81ab63a0706430a06ca357873c5588b8a000660ee03ab239da9d9c531677",
+    "crates/connect-store/src/tasks/tests/media_migration.rs": "422e6ea37ac271ab55810b3d213ab61d48f8730ea2fd21617164d47ac6cd428d",
+    "crates/connect-store/src/tasks/tests/media_setup_binding.rs": "a685c3a08b84c21d0313e9124ca55a862e76faa17800ceec5dd3609eba7b30b0",
+    "crates/connect-store/src/tasks/tests/native_media_migration.rs": "889e28df4ccc2fce72dddb38545f947499fcb124da37982f6d166b55806bee2f",
+    "crates/connect-store/src/tasks/tests/sms_policy.rs": "81fe933a7fb5338346275aafb7e4064f4e814f5cd0607851fba5564155323494",
+    "crates/connect-store/src/voice.rs": "7c4782015457623a43f95cfab9e7c09953d6ef59f7e35b246fba441d50979a9b",
+    "crates/connect-store/tests/connector_observation_migration.rs": "e5ae027cfc4534debed2563c504eda8a2b7cc3c14ba126824b3dbd6f8e1befee",
+    "crates/connect-store/tests/contact_pairing.rs": "f17ce1761f6f1377173f2663eece3ee5014925fd48880421dd045a9be4646498",
+    "crates/connect-store/tests/task_migration.rs": "4b2a06b9964851ba9216e75d399039423bdd24c5c219187ce874cffa8b4e7403",
+    "crates/connect-store/tests/voice.rs": "a9c081f48506d4722103dfd61ab8426dba76c440c4df0b9fe68264aa8470bf18",
+    "dependencies/source-lock.json": "1f8f716ca3211ba5a37798845c18e6f4d18b0c40c04b94195387214b197707e5",
+    "docs/CONNECTORS.md": "94748cc2fc5eed88e8e7147b2eb6c95c9a930e978e59717191f90e89594837b9",
+    "examples/connector-contribution/Cargo.lock": "5eee845cc0b032f902302f6799cd3c76dc4e0e8867c18bcd6f02d99d5b34ea19",
+    "examples/connector-contribution/Cargo.toml": "016088f10da1ddaa7f09d67c3966e7852fa057fcadf534c880ce862639302d80",
+    "examples/connector-contribution/src/lib.rs": "c80f8c45400281042a077f3ec163a87015a6e1cc1aca61dbcadcfe7ce76cd415",
+    "examples/connector-contribution/src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
+    "examples/connector-contribution/src/media.rs": "455f89124255a8a0edfab1d5b9c018730bfa6458ff39993d3b0ad8fb5502816d",
+    "examples/connector-contribution/tests/boundaries.rs": "43a1d3a6bb6f6ada41e078d012320d3bf6be0c2566cd1f6152b36b2fa42c3a65",
+    "examples/connector-template/Cargo.lock": "95e5ed62f12b4c88042502325fdb5d573b00caa9f3813c13297b0587a80b6326",
+    "examples/connector-template/Cargo.toml": "47e9d5f95e11ad5f751f30e6aa8b4c816a38d7bd5bae0f8f0d77a8d486441bef",
+    "examples/connector-template/media/voice.rs": "c1050828affe83ca4e28ad9d2c3ccb82738fff7bec5d0b8f2693b173b7766a20",
+    "examples/connector-template/src/lib.rs": "a0ae6fd6ba0af568a4d51328c7a82c50efaa7bb076f52ce06ee4f591fe099f91",
+    "examples/connector-template/src/main.rs": "1658d3b68bc9da125ae18c60ab90c9b511e379469bbe0ac03a4a92472b0f7547",
+    "examples/connector-template/tests/broken_fixture.rs": "620a6285603a656748b8a2eb0d5ff093762f5c9419d8a9f37d503b9f75c8f7e4",
+    "examples/connector-template/tests/contract.rs": "54fee6066f8ebed4365be0b9120b8b0a3c044b13db85bd4caa7a2bcda9c07e0e",
+    "scripts/check-connector-contract.py": "011b5c391e6b144bcef0afc19aa91f2c704425fe36d2d50523a6cd59855db3b0",
+    "crates/connect-store/src/tasks/tests/effect_provider_observations.rs": "f072ed819950afc44bb2a81d69aa6f6779a91cb9ff1b0beac773249ab695e2ed",
+    "crates/connect-store/src/tasks/tests/mod.rs": "eda723f9785a86642fc7f0cb3d6df989abc64860429de1bd66b3b72eec132dd4"
+  },
+  "preparation": {
+    "command": "bash scripts/prepare-dependencies.sh",
+    "coordination": "Root prepared and verified the selected pinned graph before this agent received the exclusive current Cargo window.",
+    "private_log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "source_lock_sha256": "1f8f716ca3211ba5a37798845c18e6f4d18b0c40c04b94195387214b197707e5"
+  },
+  "prior_verification": [
+    {
+      "suite": "connector-runtime-contract-store-tests",
+      "command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-connector-api -p connect-store -p connect-connectors",
+      "passed_tests": 281,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "1324a1baabec42ea2f693a179c24e5072d3fa128961dd9281bcf7e387225f012"
+    },
+    {
+      "suite": "connector-runtime-host-final-tests",
+      "command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-server --test connector_template --test connector_contribution --test voice_flow --test entry_connector --test provider_flow --test provider_context_manifest --test sms_policy_extension",
+      "passed_tests": 23,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "28af8903631f3006b60e1334e5da10bf7b8a4c5ec3c51e5332e7fe49631e9e1a"
+    },
+    {
+      "suite": "connector-runtime-template-standalone-tests",
+      "command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --offline --locked --manifest-path examples/connector-template/Cargo.toml --target-dir target",
+      "passed_tests": 4,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "15caa384562694a45482d2e501f32cbfc9b77997d5248cdb9e578c7215558b2d"
+    },
+    {
+      "suite": "connector-runtime-prism-standalone-tests",
+      "command": "PRISM_TEST_STATE_DIR=<fresh ignored fixture directory> CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --offline --locked --manifest-path examples/connector-contribution/Cargo.toml --target-dir target",
+      "passed_tests": 4,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "b4e2cebb693d7ff6bcc8331e6267d006cc17d33bd75154cb6683bf218d15588d"
+    },
+    {
+      "suite": "connector-runtime-exported-api-tests",
+      "command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --offline --manifest-path <fresh exported public kit>/crates/connect-connector-api/Cargo.toml --target-dir target",
+      "passed_tests": 10,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "267a4b9120a66d2200f3b2abafe23a664c790256d3363aa88e7b867a4e8c0473"
+    }
+  ],
+  "retained_standalone_verification": [
+    {
+      "suite": "connector-runtime-template-standalone-tests",
+      "command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --offline --locked --manifest-path examples/connector-template/Cargo.toml --target-dir target",
+      "passed_tests": 4,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "15caa384562694a45482d2e501f32cbfc9b77997d5248cdb9e578c7215558b2d"
+    },
+    {
+      "suite": "connector-runtime-prism-standalone-tests",
+      "command": "PRISM_TEST_STATE_DIR=<fresh ignored fixture directory> CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --offline --locked --manifest-path examples/connector-contribution/Cargo.toml --target-dir target",
+      "passed_tests": 4,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "b4e2cebb693d7ff6bcc8331e6267d006cc17d33bd75154cb6683bf218d15588d"
+    },
+    {
+      "suite": "connector-runtime-exported-api-tests",
+      "command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --offline --manifest-path <fresh exported public kit>/crates/connect-connector-api/Cargo.toml --target-dir target",
+      "passed_tests": 10,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "exit_code": 0,
+      "private_log_sha256": "267a4b9120a66d2200f3b2abafe23a664c790256d3363aa88e7b867a4e8c0473"
+    }
+  ],
+  "retained_standalone_scope": "These earlier standalone/API executions retain exact API/fixture source digests; those Rust sources are unchanged by the subsequent Store/host late-observation repair. The guide was repaired and both affected harnesses were repeated below; a fresh public kit was exported with identical API Rust bytes.",
+  "late_observation_repair": {
+    "finding": "Receipt/status admission initially incorrectly reused live task continuation and outbound SMS eligibility for already-dispatched effect observations.",
+    "repair": "Separate current route/base credential communication admission from task continuation and outbound policy. Original effect/question/source binding remains verified; terminal task answers become unassigned ordinary communication. Delivery-only SMS status does not clear STOP/renew enrollment/trigger a message.",
+    "verification": "6 targeted cases included in287 aggregate tests and actual public SDK Prism cancellation/reconciliation journey in24 host tests; zero failures or ignored cases.",
+    "task_effects": "No additional task effect or task reply event is admitted for a terminal task; matching replay retains one ordinary reply/provenance.",
+    "authority": "Revoked credential replay and disabled-route first admission remain forbidden."
+  }
+}

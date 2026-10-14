@@ -1,0 +1,102 @@
+{
+  "status": "passed-control-only",
+  "runtime_version": "1.6.1",
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "server_sha256": "e879da5d5ceccca423ee6927a5cbe570c8c813ad5cbe0f4b4b482ddce20c9d25",
+  "client_sha256": "19cd44509037edf369839f7c2df336069640c12aa10daa49a983dd8d8e48f2df",
+  "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_dirty": true,
+  "requirements_sha256": "706576302f3bff6dc411d54d55d46300ccaaea3f519197aeeffff44df0c9e2bc",
+  "checker_sha256": "a6c1b3ae147d4a49b2f009f1518e37d37d3deaf2abe63ef07afbd31ca307f09d",
+  "checks_not_run": [],
+  "media": "not tested; independent control client has no media implementation",
+  "stage": "complete",
+  "server_version": "connect 0.1.0-alpha.1",
+  "standalone_client_process": "authenticated verified QUIC and resolved native identity",
+  "tls_wrong_server_name": "rejected before authentication; no trust fallback",
+  "transport": {
+    "runtime": "aioquic",
+    "alpn": "uctp/1",
+    "tls_verified": true,
+    "stream_id": 0,
+    "network": "UDP/QUIC",
+    "control_only": true
+  },
+  "checks": [
+    "standalone-client-entrypoint",
+    "verified-quic-authentication",
+    "resolve",
+    "send-native-observation",
+    "native-reply-independent-observation",
+    "stable-mutation-replay",
+    "conflicting-replay",
+    "unauthorized-identity",
+    "unauthorized-conversation",
+    "oversized-message",
+    "unknown-request-field",
+    "incompatible-profile",
+    "incompatible-envelope-version",
+    "reconnect-cursor-resume",
+    "independent-incoming-contact",
+    "reconnect-mutation-replay-one-effect",
+    "uncertain-ack-replay-one-native-effect",
+    "malformed-json-frame-rejection",
+    "malformed-envelope-rejection",
+    "oversized-wire-frame-rejection",
+    "restart-cursor-resume",
+    "restart-replay",
+    "malformed-cursor",
+    "foreign-identity-cursor",
+    "revoked-current-authority-replay",
+    "revoked-authentication"
+  ],
+  "packet_path": {
+    "implementation": "aioquic qlog transport events",
+    "event_counts": {
+      "transport:version_information": 3,
+      "transport:alpn_information": 3,
+      "transport:parameters_set": 6,
+      "recovery:metrics_updated": 99,
+      "transport:packet_sent": 67,
+      "transport:datagrams_sent": 61,
+      "transport:datagrams_received": 62,
+      "transport:packet_received": 65,
+      "security:key_updated": 12,
+      "connectivity:spin_bit_updated": 56,
+      "security:key_retired": 12
+    },
+    "connections": 3,
+    "raw_trace": "not exported; no TLS secrets log enabled"
+  },
+  "tested_inputs_stable": true,
+  "scope": "Independent reliable-control component proof against immutable private native executable; dirty source, no final package, media or whole-gate claim",
+  "whole_gate_qualified": false,
+  "later_failed_attempts": [
+    {
+      "status": "failed",
+      "error_class": "TimeoutError",
+      "binary_sha256_at_entry": "fad32296f4446d292b7fd22619edc016e3fae3c4d2dec0a02693a9e6953696f7",
+      "checker_sha256": "9fdeecd6a3909e8a26ce70713bad6d2dc93d2b01a326ac32dc8338c4c55ca92b",
+      "stage": "server-first-readiness; logs empty",
+      "input_changed_afterward": true,
+      "private_result": ".local/independent-uctp/restart-uncertainty-proof.json",
+      "new_checks_not_verified": [
+        "restart-cursor-resume",
+        "uncertain-ack-replay-one-native-effect"
+      ]
+    },
+    {
+      "status": "failed",
+      "error_class": "ValueError",
+      "stage": "malformed-oversized-frames",
+      "native_binary_sha256": "e879da5d5ceccca423ee6927a5cbe570c8c813ad5cbe0f4b4b482ddce20c9d25",
+      "private_result": ".local/independent-uctp/immutable-proof.json",
+      "finding": "A terminal QUIC stream can race local close with a finished-stream ValueError. Cleanup now tolerates only pinned runtime finished/reset errors; actual runtime unit regression and subsequent full conformance passed. Original failure retained."
+    }
+  ],
+  "selected_artifact_option": {
+    "result": "passed-control-only",
+    "private_result": ".local/independent-uctp/selected-artifact-proof.json",
+    "scope": "Exact independently copied client selected via --client-root; this is not a packaged installed-release qualification"
+  }
+}

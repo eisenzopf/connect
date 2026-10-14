@@ -57,6 +57,26 @@
       "path": "patches/rvoip/vapi-call-admission.patch",
       "sha256": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
       "source": "Opt-in host-owned Vapi call admission after request preparation and immediately before REST send; default unchanged. Connect uses current atomic task/session admission; no duplicate possibly-sent creation."
+    },
+    {
+      "path": "patches/rvoip/encoded-video-transport.patch",
+      "sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+      "source": "Add bounded encoded-video forwarding and RTP-preserving QUIC/WebRTC streams; audio retains its compatibility path."
+    },
+    {
+      "path": "patches/rvoip/terminal-session-resource-lifetime.patch",
+      "sha256": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+      "source": "Opt-in current-authority durable Session retirement preserves physical peer control and other Sessions; default peer revocation guard unchanged, unknown/revoked/storage failures remain fail-closed."
+    },
+    {
+      "path": "patches/rvoip/terminal-session-backpressure.patch",
+      "sha256": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+      "source": "Bound opt-in terminal Session wire/event delivery concurrently within two seconds and current-peer abort/guard error within an absolute three-second budget; saturated queue regressions."
+    },
+    {
+      "path": "patches/rvoip/declared-ssrc-feedback.patch",
+      "sha256": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
+      "source": "Bind negotiated receiver-report and transport-wide congestion feedback when the first RTP packet resolves an SDP-declared SSRC codec; preserve per-stream loss history and reject unnegotiated codec binding."
     }
   ]
 }

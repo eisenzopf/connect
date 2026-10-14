@@ -1,0 +1,1329 @@
+{
+  "profile": "connect-gate5-provider-source-audit/1",
+  "recorded_at": "2026-10-14T07:16:36.836325+00:00",
+  "task": "G5-043",
+  "status": "draft source audit; current provider-live qualification not performed; release closure pending",
+  "scope": "Local source and retained public evidence only. No provider account, carrier, purchasing, key mutation, tunnel, deployment or public ingress action.",
+  "source_base_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_working_tree": "Gate5 changes uncommitted; source hashes below are an audit snapshot, not a release seal.",
+  "retained_live_proofs": [
+    {
+      "id": "vapi-text",
+      "evidence": "docs/evidence/gate-4/actual-vapi-chat-dc73996.json",
+      "evidence_sha256": "fa4152cea3ee238508bd2afabb4edb1572b01cc10c02f1bc02bd087ba102f469",
+      "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+      "status": "passed",
+      "claim_limit": "Original source/topology only; not promoted to a new Gate5 candidate live pass."
+    },
+    {
+      "id": "native-vapi-voice",
+      "evidence": "docs/evidence/gate-4/live-voice-continuity.json",
+      "evidence_sha256": "deefcbc7b83f7cd1c3ba9ec36f90952ce52a03d2165bbe7a5481f8de9059892c",
+      "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+      "status": "passed",
+      "claim_limit": "Original source/topology only; not promoted to a new Gate5 candidate live pass."
+    },
+    {
+      "id": "telnyx-sms-controls",
+      "evidence": "docs/evidence/gate-4/sms-0737-rehearsal.json",
+      "evidence_sha256": "47cacdf18efc5cf608d1a055ade4a449890fb5910567a31280d49d4a65903552",
+      "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+      "status": "passed live SMS task and signed-control rehearsal",
+      "claim_limit": "Original source/topology only; not promoted to a new Gate5 candidate live pass."
+    },
+    {
+      "id": "sip-registration",
+      "evidence": "docs/evidence/gate-3/sip-registration-live.json",
+      "evidence_sha256": "6b059b5f96466e4186cdfc7d7970af43d2323999f692667a79c7c3df98f1d2c8",
+      "source_revision": "dc48bbfdfe3e61bffbdb6654bd66395cf326115c",
+      "status": "registration-passed-live-audio-pending",
+      "claim_limit": "Original source/topology only; not promoted to a new Gate5 candidate live pass."
+    },
+    {
+      "id": "native-browser-pstn-audio",
+      "evidence": "docs/evidence/gate-3/live.json",
+      "evidence_sha256": "25c3356b3253231a015635ec4c9eb16f3505fb07ed9da72dc5916bdd86d28cd4",
+      "source_revision": "e457960137a375d2ea1e9067a063065f815d29a0",
+      "status": "passed",
+      "claim_limit": "Original source/topology only; not promoted to a new Gate5 candidate live pass."
+    }
+  ],
+  "unchanged_provider_method_bodies": [
+    {
+      "path": "crates/connect-connectors/src/lib.rs",
+      "function": "new",
+      "occurrences": 2,
+      "function_sha256": [
+        "019d98d70aa4af3a4ac5b26751cf38a5ac0bb104057c7f143c0ebfa00f6a3c2b",
+        "989417e49f7316a4b9d3c49daf98a9f8623ce8bee3eaa812e9ba10b2d0ecefc7"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "019d98d70aa4af3a4ac5b26751cf38a5ac0bb104057c7f143c0ebfa00f6a3c2b",
+            "989417e49f7316a4b9d3c49daf98a9f8623ce8bee3eaa812e9ba10b2d0ecefc7"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "019d98d70aa4af3a4ac5b26751cf38a5ac0bb104057c7f143c0ebfa00f6a3c2b",
+            "989417e49f7316a4b9d3c49daf98a9f8623ce8bee3eaa812e9ba10b2d0ecefc7"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "019d98d70aa4af3a4ac5b26751cf38a5ac0bb104057c7f143c0ebfa00f6a3c2b",
+            "989417e49f7316a4b9d3c49daf98a9f8623ce8bee3eaa812e9ba10b2d0ecefc7"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/lib.rs",
+      "function": "deliver",
+      "occurrences": 2,
+      "function_sha256": [
+        "013b2cefc0a3e905d329719d0d2cf821433ed47f52e8bc292f9a86f01f749a8b",
+        "d92d4ed7fd162bd907d621713c8dfb3f936d9a6e0c187fce03a4e1e461565fed"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "013b2cefc0a3e905d329719d0d2cf821433ed47f52e8bc292f9a86f01f749a8b",
+            "d92d4ed7fd162bd907d621713c8dfb3f936d9a6e0c187fce03a4e1e461565fed"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "013b2cefc0a3e905d329719d0d2cf821433ed47f52e8bc292f9a86f01f749a8b",
+            "d92d4ed7fd162bd907d621713c8dfb3f936d9a6e0c187fce03a4e1e461565fed"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "013b2cefc0a3e905d329719d0d2cf821433ed47f52e8bc292f9a86f01f749a8b",
+            "d92d4ed7fd162bd907d621713c8dfb3f936d9a6e0c187fce03a4e1e461565fed"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/lib.rs",
+      "function": "classify",
+      "occurrences": 1,
+      "function_sha256": [
+        "297b0616593fa118a42673706ed765510c335166e1abf1ccf09e906e66d1dbe1"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "297b0616593fa118a42673706ed765510c335166e1abf1ccf09e906e66d1dbe1"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "297b0616593fa118a42673706ed765510c335166e1abf1ccf09e906e66d1dbe1"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "297b0616593fa118a42673706ed765510c335166e1abf1ccf09e906e66d1dbe1"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/voice.rs",
+      "function": "remote",
+      "occurrences": 1,
+      "function_sha256": [
+        "a05333d9c6e4e0d0dd646b4f3ad0ec48a717c3c42497db0bcea28e1d94f9b83b"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "a05333d9c6e4e0d0dd646b4f3ad0ec48a717c3c42497db0bcea28e1d94f9b83b"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "a05333d9c6e4e0d0dd646b4f3ad0ec48a717c3c42497db0bcea28e1d94f9b83b"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "a05333d9c6e4e0d0dd646b4f3ad0ec48a717c3c42497db0bcea28e1d94f9b83b"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/voice.rs",
+      "function": "inbound",
+      "occurrences": 1,
+      "function_sha256": [
+        "248b26fe74563129a55b6a657c9f8d4812fad202cbf0bdfb157503948cd3bc0f"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "248b26fe74563129a55b6a657c9f8d4812fad202cbf0bdfb157503948cd3bc0f"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "248b26fe74563129a55b6a657c9f8d4812fad202cbf0bdfb157503948cd3bc0f"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "248b26fe74563129a55b6a657c9f8d4812fad202cbf0bdfb157503948cd3bc0f"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/voice.rs",
+      "function": "start",
+      "occurrences": 1,
+      "function_sha256": [
+        "35fce00d04a0cbf211054dbde80f48d34fa4a4e68f07cfb4988fd77886dcb56d"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "35fce00d04a0cbf211054dbde80f48d34fa4a4e68f07cfb4988fd77886dcb56d"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "35fce00d04a0cbf211054dbde80f48d34fa4a4e68f07cfb4988fd77886dcb56d"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "35fce00d04a0cbf211054dbde80f48d34fa4a4e68f07cfb4988fd77886dcb56d"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/voice.rs",
+      "function": "status",
+      "occurrences": 1,
+      "function_sha256": [
+        "4bc6cdac4201684818623abc82caba00560e979437eade913115040e2a096ddc"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "4bc6cdac4201684818623abc82caba00560e979437eade913115040e2a096ddc"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "4bc6cdac4201684818623abc82caba00560e979437eade913115040e2a096ddc"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "4bc6cdac4201684818623abc82caba00560e979437eade913115040e2a096ddc"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/voice.rs",
+      "function": "end",
+      "occurrences": 1,
+      "function_sha256": [
+        "7999e61cbf1e27e73829eac267c54fbb5c93344de2987a4d4b5e22646d46a4e9"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "7999e61cbf1e27e73829eac267c54fbb5c93344de2987a4d4b5e22646d46a4e9"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "7999e61cbf1e27e73829eac267c54fbb5c93344de2987a4d4b5e22646d46a4e9"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "7999e61cbf1e27e73829eac267c54fbb5c93344de2987a4d4b5e22646d46a4e9"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-server/src/sms_authority.rs",
+      "function": "new",
+      "occurrences": 1,
+      "function_sha256": [
+        "185cd47e68e56da1966602dd5d7a4517f993b570aa3602044c16784e69b7315e"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "185cd47e68e56da1966602dd5d7a4517f993b570aa3602044c16784e69b7315e"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "185cd47e68e56da1966602dd5d7a4517f993b570aa3602044c16784e69b7315e"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "185cd47e68e56da1966602dd5d7a4517f993b570aa3602044c16784e69b7315e"
+          ]
+        }
+      ]
+    }
+  ],
+  "comparison_method": "Read local Git blobs at each recorded historical live revision. Recompute whole-file SHA256/equality and named Rust function slices from the fn token through the matching brace (same slicing as prior audit). Named existing provider transport methods and retained legacy store methods are compared separately from new host wrappers; new wrappers are source-reviewed rather than falsely called byte-identical.",
+  "current_source_sha256": {
+    "Cargo.lock": "84f7ac268fbb4439b2380dd90957b62096773c26c336f9d1fef3762d7bdb5bfb",
+    "contracts/connectors/profile-v1.md": "d0ee8c8ffef1e1d89e1408a35fecbbc1f14f4f3737d288bd62cdfa632bd11921",
+    "crates/connect-connector-api/src/conformance.rs": "1129295207f24cf01c11fab32a701e435ca192da9513ce407a5c459c12d5e5a7",
+    "crates/connect-connector-api/src/host_context.rs": "f7aff6f38d52744a4a06dd7f3375870460c5a57fa3a315e2c5272e7fc2ce3fa4",
+    "crates/connect-connector-api/src/lib.rs": "3384abb54e6ce291680f0577299d772cb95ea1d738cacb73b0b9bb8d42eafdb2",
+    "crates/connect-connector-api/src/lifecycle.rs": "c01dafeb700e72d339864e7d29a9a6924b0358349944bd4587ca8982eb7ac286",
+    "crates/connect-connector-api/src/manifest.rs": "de5c7baa7e740b98ee91e08a623c5c11808696c2c4535c47d39f41ae324c63c4",
+    "crates/connect-connectors/src/lib.rs": "42f922dfba31889134e91675e8644b5c8bb64324bb164e677b25f922b58f64e9",
+    "crates/connect-connectors/src/numbers.rs": "0d2225f4160919676772b25c857391faca77de5013bab4181e8a4e7295d84c45",
+    "crates/connect-connectors/src/provider_mapping.rs": "e6c09b4aa156a5208dc0a60134e08d2a6a243061482c1f15229b368698ed380f",
+    "crates/connect-connectors/src/setup.rs": "4c441775190aab88900e585c54d7cf972a28ff1a665c6f86559adb07d19f2f06",
+    "crates/connect-connectors/src/setup/secrets.rs": "74f68f976e9a94c21046c32c653fbd019d55ac53988875fd7abc97bbcccedae1",
+    "crates/connect-connectors/src/voice.rs": "fc8ba2c9cc1e92821b5e3817c7b7b56bc34ff2d9e1578c69c5117d3af0cd9bf7",
+    "crates/connect-connectors/src/voice_native_setup.rs": "c41d88ea38fdf676b78bcb9f0ada7c9c6395dfe2aa38606d605a9a88d0373238",
+    "crates/connect-connectors/src/voice_setup.rs": "1f7af1a38a6a2101b9e5e0c304a3da387772344311af8d7deca0fe74a59b9af0",
+    "crates/connect-connectors/tests/provider_mapping.rs": "fed10408134f7e9fb1ede60af4a816c6545b37d8efa994c68678747ecbae2444",
+    "crates/connect-server/src/main.rs": "f827e4e59e4035e9e1c66ac85cf485fcadf42101ed50611c0ccd2741aa7c02a4",
+    "crates/connect-server/src/media_transports.rs": "559f5750fc71af40e79d10e183ef475d2753cde0381756b5fd70bd9a618b0013",
+    "crates/connect-server/src/providers.rs": "0c4dfc01125c4f359e8933d90b5d0e04a20fc53dd084543418d55cd1be60ea0d",
+    "crates/connect-server/src/runtime.rs": "fc69011bb746176228a899a2b81df57100015b75518301c51745f16d39c45d3f",
+    "crates/connect-server/src/secrets.rs": "9d34e818c783dd9e1af35899daedf796715d3c8efee8ccdc6b7ad21d223f7d4a",
+    "crates/connect-server/src/setup_vault.rs": "7730c2686809551e047e6d9f6664f5b0314f9e6e3f085d001ce69247dc96b530",
+    "crates/connect-server/src/sip_registration.rs": "7f96ccd9094e78f6cdc727113599ffe28355adfb493f444978dac5c76ef43ee4",
+    "crates/connect-server/src/sms_authority.rs": "6512e640841e0ea3421dbdba3c0398006744107306627179e844d4dbf699133c",
+    "crates/connect-server/src/transports/telnyx_http.rs": "cc54ce426f58719b738c978bd67aea5f94c6bdbd5be650eb4ae50803dedc078b",
+    "crates/connect-server/src/voice.rs": "bd2ff4dd886c4d2e1e6dd20f15b9a2b4f49d837ed3ad83cbd6c9a46656a15493",
+    "crates/connect-server/tests/connector_contribution.rs": "3c4abc7362ab55718b382654650438210157e67dd101d30648b4038ce78ae706",
+    "crates/connect-server/tests/connector_template.rs": "8a956ef07157d9dcad128b8b14b958ddcf0a43724295d6634d0bfd5f19049727",
+    "crates/connect-server/tests/provider_context_manifest.rs": "50da14de8bd705d036285f23bd504ead416b219e8add02ba413597b16d04d418",
+    "crates/connect-server/tests/provider_flow.rs": "fce3dbc16d7991863609b91902ec02a4da42e464407bed29fa3d3c27b8cca291",
+    "crates/connect-server/tests/sms_policy_extension.rs": "8530b251d22f335d4efeb19f6bbfacef8f4443f9c94e67416a9b02c12d00a53b",
+    "crates/connect-server/tests/voice_flow.rs": "014d081f19bc28506064c1d95560614e43f8419910ab748cb23813aed9542339",
+    "crates/connect-store/migrations/018_connector_observations.sql": "1c53bafb243eaf637b78bc0375a50e467d991cca7418ef5ab596c95c36f263fe",
+    "crates/connect-store/src/connector_observations.rs": "930c766ecfd4b15dbe1f14a6d4a034c6768d9476af2e8725983dc22abc150d0c",
+    "crates/connect-store/src/connector_registry.rs": "5b39a47876c0cfee0460ee106937fe34b99b95411738a2374522b1d4cf8fb8c7",
+    "crates/connect-store/src/lib.rs": "d5ca38d8cea766d204f430f935a70b5b1b306ff1161ae6a7bfdf68be71f11f6e",
+    "crates/connect-store/src/providers.rs": "a4d5530d870245e26af6f2d4798affecb39322b34c01f1330d915476668be956",
+    "crates/connect-store/src/recovery.rs": "3c7d538585e4b8901649c6c987008bb95e2d453021c0525dad92b2bfb33538c5",
+    "crates/connect-store/src/sip_legs.rs": "6280230e13ec5fa2c8e96e85e0d3355819f566c74780314f5f52f5931c97c226",
+    "crates/connect-store/src/sip_legs/dispatch.rs": "2e295ff3db9b22bf8f8fe2b3664dc44734c4243a58717566fd8ddd48073874c9",
+    "crates/connect-store/src/tasks/effects/dispatch.rs": "49a3283cd61ad1b0ce6b50a64ffb3ef6826525c6e9905a8c721f1b919ede00b8",
+    "crates/connect-store/src/tasks/effects/provider.rs": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f",
+    "crates/connect-store/src/tasks/native_reply.rs": "7b3307beb27ab1c675612370ca1767edb60867ea0529b08d842ffbc17d67d13c",
+    "crates/connect-store/src/tasks/tests/effect_provider_observations.rs": "f072ed819950afc44bb2a81d69aa6f6779a91cb9ff1b0beac773249ab695e2ed",
+    "crates/connect-store/src/voice.rs": "7c4782015457623a43f95cfab9e7c09953d6ef59f7e35b246fba441d50979a9b",
+    "crates/connect-store/src/voice/dispatch.rs": "48149630c5751f6185046403c3cf11557eb7c27c3f494498adf72b72f4501eee",
+    "crates/connect-store/src/voice/jobs.rs": "187dc6fb6b5f3cbcbd23f83fbe9b35643d648e5b4244f315d5685dec96028fc2",
+    "crates/connect-store/tests/connector_observation_order.rs": "07c5a4a641e834f9b17780188c159ea8caddf9be26a9e8c500b57dfc4c79ee32",
+    "crates/connect-store/tests/gate3_sip_legs.rs": "2aa28b6028bc152c7e49f8888c542d5ad08f496be84120369808026a9f37ed32",
+    "crates/connect-store/tests/video_binding.rs": "7e7a5173a00d3facb659549a3368b620469eb98d0966be90a37a0ba78a8d4ce0",
+    "dependencies/source-lock.json": "7731b24ad50e0f27ef11c0e95dece1a5517a5827f631f6fe11f09402b3eb13b4",
+    "docs/CONNECTORS.md": "94748cc2fc5eed88e8e7147b2eb6c95c9a930e978e59717191f90e89594837b9",
+    "patches/rvoip/encoded-video-transport.patch": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+    "patches/rvoip/terminal-session-backpressure.patch": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+    "patches/rvoip/terminal-session-resource-lifetime.patch": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e"
+  },
+  "dependency_delta": {
+    "upstream_revisions": {
+      "rvoip": {
+        "url": "https://github.com/eisenzopf/rvoip.git",
+        "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+        "license": "MIT"
+      },
+      "parley": {
+        "url": "https://github.com/eisenzopf/parley.git",
+        "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+        "license": "MIT"
+      }
+    },
+    "upstream_revisions_same_as_pinned_gate4_base": true,
+    "changed_or_added_patch_records": [
+      {
+        "path": "patches/rvoip/encoded-video-transport.patch",
+        "sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+        "source": "Add bounded encoded-video forwarding and RTP-preserving QUIC/WebRTC streams; audio retains its compatibility path."
+      },
+      {
+        "path": "patches/rvoip/terminal-session-resource-lifetime.patch",
+        "sha256": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+        "source": "Opt-in current-authority durable Session retirement preserves physical peer control and other Sessions; default peer revocation guard unchanged, unknown/revoked/storage failures remain fail-closed."
+      },
+      {
+        "path": "patches/rvoip/terminal-session-backpressure.patch",
+        "sha256": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+        "source": "Bound opt-in terminal Session wire/event delivery concurrently within two seconds and current-peer abort/guard error within an absolute three-second budget; saturated queue regressions."
+      }
+    ],
+    "impact": "Encoded video/MTU/feedback/Core lifecycle changes share native, browser and provider-audio orchestration. Unchanged provider SDK requests alone do not establish carrier/media behavior on the new graph.",
+    "previous_audit_patch_records": [
+      {
+        "path": "patches/rvoip/encoded-video-transport.patch",
+        "sha256": "367e72ccb924d71f85d8d6b27ff0ebf14a9a39ecd7193fcd9aac2df9bf3f19d3",
+        "source": "Add bounded encoded-video forwarding and RTP-preserving QUIC/WebRTC streams; audio retains its compatibility path."
+      }
+    ],
+    "source_lock_patch_count": 12,
+    "current_preparation_status": "Source-lock records terminal resource lifetime and backpressure patches. The combined candidate preparation/build is pending; no proof from an earlier graph is promoted to these changed sources."
+  },
+  "path_matrix": [
+    {
+      "id": "telnyx-sms",
+      "historical_proof": "telnyx-sms-controls",
+      "preserved": "Telnyx SDK from/to/body, 1,600-character rejection, zero SDK/application automatic retries and classify method bodies remain byte-identical. Legacy claim/finish/recover/receive_sms/delivery_sms store function bodies match historical source; the surrounding store file and worker are changed.",
+      "changed": "Worker now validates/persists the manifest and configuration, canonical E164 source/target and 6,400-byte bound before one attempt. Builtin Telnyx does not opt into MessageExtension: deliver_observed delegates once to deliver_attempt\u2192deliver and maps valid acceptance/failure back to legacy finish_provider_job. The common wrapper newly makes over-256-byte or control-bearing provider IDs uncertain and drops an unbound reply; adapters already returned Uncertain for empty IDs. Protected API-key resolution and trusted SmsPolicy injection also change composition. No generic reconciliation or incoming-contact installation is automatically enabled for builtin SMS.",
+      "claim": "Valid default SMS delivery/control source composition is supported by current loopback, STOP/START and replay fixtures; malformed/canonical admission is intentionally stricter, not blanket historical behavior equivalence. Historical live proof remains at its original source; no fresh carrier pass."
+    },
+    {
+      "id": "telnyx-signed-callback",
+      "historical_proof": "telnyx-sms-controls",
+      "preserved": "Raw Ed25519 admission/digest/event identity and durable STOP/START/journal paths retained.",
+      "changed": "Finalized status match delegates to provider_mapping; delivered mapsdelivered; delivery_failed/sending_failed/failed mapfailed; accepted/queued/sent/unknown still cause no finalized import. Runtime public-key resolution supports protected refs; prior default direct key/API fetch origins retained.",
+      "claim": "Equivalent status mapping is source reviewed and fixture-covered; current carrier webhook rehearsal absent."
+    },
+    {
+      "id": "vapi-text-and-tools",
+      "historical_proof": "vapi-text",
+      "preserved": "Same Vapi default API origin/configured isolated fixture-origin policy, SDK token/timeout30s/retries0; assistant_id/input/previous_chat_id/context overrides, assistant capability check, reply role aggregation and empty-result uncertainty; task effect, context, and reply binding and provider MCP origin validator unchanged.",
+      "changed": "Protected host key resolution, immutable manifest registration, canonical assistant address and 40,000-byte body/1 MiB context admission. Builtin Vapi does not opt into MessageExtension: one legacy deliver runs through the common observation wrapper and existing finish_provider_job. Full normalized reply_sources/status/callback receipts apply only to explicit extension adapters. Oversized/control-bearing provider IDs newly become uncertain; valid reply and task binding use the retained legacy path. Explicit secret refs suppress ambient fallback.",
+      "claim": "Original model/tool results remain source-specific. Current public SDK/Store/Worker/Vapi loopback context and signed-provider tests pass; generic fixture provenance is not evidence that Vapi replies now report actual used source IDs or that a new actual Vapi model call ran."
+    },
+    {
+      "id": "vapi-telephone-control",
+      "historical_proof": "native-vapi-voice",
+      "preserved": "Existing inbound discovery/start/status/end SDK function bodies, remote-call parsing and control-URL binding remain byte-identical. Worker::start\u2192with_driver\u2192with_contract(normalized=false) still invokes start/status/end and legacy finish_voice_job; its None-observation branch executes the same state/control/reason SQL update and journal logic. Raw queued/ringing/in-progress/ended/failed/uncertain strings, polling failures, cancellation and dispatch checks are retained.",
+      "changed": "Worker/store source files are changed: protected key selection and separate telephone manifest persistence occur before recovery. Explicit with_observed_driver(normalized=true) calls typed VoiceReceipt hooks and persists a lifecycle reducer; it retains the private RemoteCall control capability. Vapi end_receipt annotates the authoritative status already obtained by existing end, adding no HTTP request. This opt-in path adds binding, terminal/race/replay handling; inbound discovery still uses the existing import path.",
+      "claim": "Unchanged transport/control methods plus current legacy voice-flow fixtures support default source composition. The normalized worker is separately qualified by a deterministic voice driver and Vapi SDK mapping fixtures, not by a fresh normalized Vapi telephone/carrier/media execution."
+    },
+    {
+      "id": "native-browser-vapi-audio",
+      "historical_proof": "native-vapi-voice",
+      "preserved": "Vapi media bridge/observer and provider SDK composition defaults retain historical logic; secret bytes remain transient SDK/transport inputs.",
+      "changed": "Runtime secret routing, negotiated video profile, QUICbuffer/MTU changes, Core session projection, feedback/selection/route cleanup and overlapping native drain affect shared audio/video lifecycle.",
+      "claim": "Current local decoded media proof and retained audio regressions are required. Original provider audio proof cannot become exact-current-graph live proof."
+    },
+    {
+      "id": "telnyx-sip-pstn",
+      "historical_proof": "native-browser-pstn-audio",
+      "preserved": "Existing SIP outbound control/store behavior retained; registration realm/user/registrar/trunk/RTP configuration fields preserved, selected SIP password bytes are never trimmed.",
+      "changed": "SIP register/outbound adapter password lookup now resolves explicit protectedrefs, missing/locked failclosed; shared Core/native/WebRTC/media shutdown graph changed.",
+      "claim": "Gate3 completed audio proof remains e457960; initial pstn-live.json failed-before-answer is not an audio pass. Dirty dc48 registration proof retains its recorded source file hashes. No new carrier test."
+    },
+    {
+      "id": "sms-policy-composition",
+      "historical_proof": "telnyx-sms-controls",
+      "preserved": "Rudeless default URL/source digest, HTTPS or loopback rule, bearer/header,5-second timeout/no redirects,8 MiB response cap, atomic store.refresh_sms_grants, stale lease/STOP dispatch authority.",
+      "changed": "Trusted host SmsPolicy source/snapshot injection with existing Authority asdefault; selected token can use protectedreference; failure cannot extend enrollment lease; ordinary contact pairing is never SMS consent. Normalized delivery-only observations of dispatched SMS can now be recorded after STOP/lease expiry without renewing a lease, clearing STOP or creating a message. Reply-bearing observations and every new dispatch still use current policy. This protected opt-in receipt path does not replace builtin signed callback handling.",
+      "claim": "Reusable boundary is local fixture proof, not a new enrollment provider or new consent proof."
+    },
+    {
+      "id": "provider-setup-and-catalog",
+      "historical_proof": null,
+      "preserved": "Existing selected assistant/profile/connection/number intent, no implicit purchase, protected original ownership/uncertainty IDs; provider apply requestpayload fields and origins preserved where selected plan is unchanged.",
+      "changed": "CLI requires current vault authority for SIP secret operations; add-only operation-bound refs/fingerprint, legacy checkpoint migrate/original-only restore. Metadata-only discovery intentionally omits provider configuration/password/key DTOs. New fixture-only plan/readiness stages never activate carrier resources. Native Vapi-Telnyx credential apiKey comes from the same selected Telnyx resolver and never persists locally.",
+      "claim": "New setup/vault behavior is source/public CLI/disposableKeychain fixture proof only; old unprotected libraryapply intentionally rejects without vault, so blanket provisioning CLI compatibility is not claimed."
+    },
+    {
+      "id": "normalized-contribution-host",
+      "historical_proof": null,
+      "preserved": "Ordinary conversation routes, current base credentials/membership, immutable effect/question metadata, bounded original context selection and native task reply admission remain host responsibilities. No provider-name branch, plugin loader or wire registration added.",
+      "changed": "Connector::message_extension opts into deliver_observed full receipts; protected Worker::observe/reconcile/receive persist authenticated lifecycle, full event receipts, exact selected reply source IDs and independent contacts. Explicit status reads never send again. Late terminal-task answers are unassigned communication through provider_task_reply, not task continuation. Delivery-only SMS observations do not borrow outbound eligibility, while reply-bearing observations retain current SMS checks. These are actual new storage/admission behaviors under additive schema18.",
+      "claim": "Current fixture source evidence qualifies the normalized extension path and genuine independent peer contact; it does not create another supported carrier, confer business authority, or retroactively upgrade builtin Vapi/Telnyx receipt provenance."
+    }
+  ],
+  "safe_compatibility_repair": {
+    "finding": "Legacy connector key constructor trimmed API key environment values; host resolver initially preserved surrounding whitespace.",
+    "fix": "Normalize only TELNYX_API_KEY and VAPI_PRIVATE_KEY after resolving the selected source. Preserve SIP passwords and authority tokens byte-for-byte. Configured missing or locked references never consult ambient values.",
+    "source": "crates/connect-server/src/secrets.rs",
+    "tests": [
+      "secrets::tests::provider_api_key_whitespace_preserves_legacy_headers_and_password_bytes",
+      "secrets::tests::explicit_missing_or_locked_provider_reference_cannot_read_ambient_key"
+    ],
+    "status": "Passed: three scoped secret resolver/privacy units, including API key whitespace and missing/locked references without ambient fallback.",
+    "verification": {
+      "status": "passed",
+      "tests_passed": 3,
+      "log_sha256": "a5d553edf9ac29905e87e90f07cc06511e1f35cd5e6dbdd1d1a4c861b90eeeb1",
+      "scope": "Actual source fixtures with owned 0700 TMPDIR under ignored .local; no live provider operation.",
+      "tested_feature_configuration": {
+        "enabled_features": [],
+        "declared_features": [
+          "test-support"
+        ],
+        "profile_id": 1180653783950952665,
+        "rustflags": [],
+        "fingerprint_sha256": "2c14133987aac9480af6c85d5e49bef3a64dbb3b0ec66df706ca62771b92f267",
+        "scope": "Source test profile, default crate features; test-support not enabled."
+      }
+    }
+  },
+  "local_evidence": [
+    {
+      "evidence": "docs/evidence/gate-5/setup-lane.json",
+      "scope": "Fresh ordinary public CLI/setup and fixture-selected resource paths; graph and version limitations in original result."
+    },
+    {
+      "evidence": "docs/evidence/gate-5/secret-vault-migration.json",
+      "scope": "Disposable Keychain/source CLI migration/uncertainty/authentication; installed selected-binary proof remains separate."
+    },
+    {
+      "evidence": "docs/evidence/gate-5/migration-recovery.json",
+      "scope": "Public schema1/16/17 actual runtime recovery; not live provider proof."
+    },
+    {
+      "evidence": "docs/evidence/gate-5/baseline-diagnostic.json",
+      "scope": "Completed original frozen-source42-phase and originalinstalled17-check composition; all six full failures and two continuation failures remain recorded. No changed Gate5 candidate or live provider qualification."
+    },
+    {
+      "evidence": "docs/evidence/gate-5/connector-runtime-integration.json",
+      "evidence_sha256": "9144fa8ecd1b1298f5da2c7b08ee48bcfd5a2ad3705301cdc681d7ed7eac354d",
+      "scope": "Retained earlier prepared graph component qualification:287 API/store/connectors tests;24 real host SDK/legacy provider/normalized voice integration tests;6 targeted terminal-task/SMS cases (included in287); retained standalone template4/Prism4/exportedAPI10 with unchanged API/fixture Rust; both guide-repaired harnesses40/40; negative controls retained. No live provider operation or final release claim. Latest context-order/operation-admission source changes are excluded from these pass counts."
+    }
+  ],
+  "required_gaps": [
+    "Execute the remaining 13 original baseline phases with unchanged commands and budgets; compose all 42 with transparent source-specific provenance.",
+    "Matching final-graph media/audio behavior and retained provider/SMS/Vapi/SIP fixture regression, plus installed-candidate qualification, remain required. The two local compatibility repairs have scoped behavior passes.",
+    "No exact-current-graph provider/carrier/audio/model live rehearsal. If release claims require that proof, G5-043 and release remain blocked pending separate explicit authorization."
+  ],
+  "separate_bounded_rehearsal_proposal": {
+    "status": "proposal only; not authorized or invoked",
+    "precondition": "Stable matching sealed candidate and completed local/installed qualification; owner explicitly authorizes exact provider account/resources/topology.",
+    "scope": [
+      "Existing reviewed enrollment/sender/handset only; one SMS delivery plus signedcontrol and eligibility verification with documented restoration.",
+      "Existing selected Vapi assistant only; one source-backed text/tool continuity/restart check without assistant mutation.",
+      "Existing owned route only; native/audio and SIP/PSTN answer/remote-end/teardown on selected graph, preserving originalsettings."
+    ],
+    "requirements": "Owned isolated state, protected references, bounded request/time/cost caps chosen in review, pre-recorded restoration/readback plan; publication and deployment separate.",
+    "no_action_taken": true
+  },
+  "limits": [
+    "Static identity of payload functions is not an end-to-end compatibility pass.",
+    "Historical receipts retain original source revisions and private hashes; no raw credentials/receipts/contact IDs imported.",
+    "Draft snapshot hashes will need refresh if source/graph changes before final release audit.",
+    "G5-043 cannot close while a required live gap remains unresolved."
+  ],
+  "full_file_comparisons": [
+    {
+      "path": "crates/connect-connectors/src/chat_context.rs",
+      "current_sha256": "60af82258dd153686bc5da284ea76efe09bed5b4b9cd045c7a8ad7321ea091ea",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "60af82258dd153686bc5da284ea76efe09bed5b4b9cd045c7a8ad7321ea091ea"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "60af82258dd153686bc5da284ea76efe09bed5b4b9cd045c7a8ad7321ea091ea"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "60af82258dd153686bc5da284ea76efe09bed5b4b9cd045c7a8ad7321ea091ea"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/vapi_endpoint.rs",
+      "current_sha256": "d12fe10e82ed39ca27ffe9e0e42422de9acd68c243af5256dca9e26067ea3474",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "d12fe10e82ed39ca27ffe9e0e42422de9acd68c243af5256dca9e26067ea3474"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "d12fe10e82ed39ca27ffe9e0e42422de9acd68c243af5256dca9e26067ea3474"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "d12fe10e82ed39ca27ffe9e0e42422de9acd68c243af5256dca9e26067ea3474"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-connectors/src/vapi_origin.rs",
+      "current_sha256": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "current_sha256": "a4d5530d870245e26af6f2d4798affecb39322b34c01f1330d915476668be956",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": false,
+          "historical_sha256": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": false,
+          "historical_sha256": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": false,
+          "historical_sha256": "aae02ee8849808b00a4505fbb9a13ca4f10303f3729ec9bd4f7ed9e6f18565fa"
+        }
+      ],
+      "source_difference": "Whole file is changed: route/insert helper visibility and formatting support the new isolated normalized receipt module. Existing claim, legacy finish, recovery and SMS event functions are separately compared below; do not call this file byte-identical."
+    },
+    {
+      "path": "crates/connect-store/src/provider_chat_context.rs",
+      "current_sha256": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "13d5371c30338fca79ebffeb949d832b1bb168afcf515ebb20c4c244741ce852"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-store/src/tasks/effects/provider.rs",
+      "current_sha256": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "5a29d5bc64030231dd934e14b88e8c35824a8e617a767282c8183da29c212e8f"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-store/src/sms_eligibility.rs",
+      "current_sha256": "024ec22b3aa23ada1a5a93d4b760246ae128ad0e9574a47d4c2e9af6dfce2878",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "024ec22b3aa23ada1a5a93d4b760246ae128ad0e9574a47d4c2e9af6dfce2878"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "024ec22b3aa23ada1a5a93d4b760246ae128ad0e9574a47d4c2e9af6dfce2878"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "024ec22b3aa23ada1a5a93d4b760246ae128ad0e9574a47d4c2e9af6dfce2878"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-store/src/tasks/sms.rs",
+      "current_sha256": "302ae5675c016b985cad2c3818d99f9a299544205f4527e0385b04421deb1a24",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "302ae5675c016b985cad2c3818d99f9a299544205f4527e0385b04421deb1a24"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "302ae5675c016b985cad2c3818d99f9a299544205f4527e0385b04421deb1a24"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "302ae5675c016b985cad2c3818d99f9a299544205f4527e0385b04421deb1a24"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-mcp/src/vapi_auth.rs",
+      "current_sha256": "6a2db205b6995e1b8f965b0d891bb146b85e97df169c6df370314ca8ee60977f",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "6a2db205b6995e1b8f965b0d891bb146b85e97df169c6df370314ca8ee60977f"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "6a2db205b6995e1b8f965b0d891bb146b85e97df169c6df370314ca8ee60977f"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "6a2db205b6995e1b8f965b0d891bb146b85e97df169c6df370314ca8ee60977f"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-server/src/vapi_media.rs",
+      "current_sha256": "4f3f565c89ba5d26a116d24b6bbb9de9844f2b21eb99d7157e35af940d5cd799",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "4f3f565c89ba5d26a116d24b6bbb9de9844f2b21eb99d7157e35af940d5cd799"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "4f3f565c89ba5d26a116d24b6bbb9de9844f2b21eb99d7157e35af940d5cd799"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": false,
+          "historical_sha256": "93389eea406616900ef6017e44a29d02a1936c67c30cf0e9bb0247e63292ae04"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-server/src/sip_outbound.rs",
+      "current_sha256": "615a459980a5be8ff1bc7ba65c2715ea1ca48203de74006515a734e102a706a3",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "615a459980a5be8ff1bc7ba65c2715ea1ca48203de74006515a734e102a706a3"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "615a459980a5be8ff1bc7ba65c2715ea1ca48203de74006515a734e102a706a3"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "615a459980a5be8ff1bc7ba65c2715ea1ca48203de74006515a734e102a706a3"
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-server/src/cli/vapi_task/host.rs",
+      "current_sha256": "a1c29f3049c6dddb3fa187fe8d0634248e3e337f0d3c31b22f661c252cc50041",
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_sha256": "a1c29f3049c6dddb3fa187fe8d0634248e3e337f0d3c31b22f661c252cc50041"
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_sha256": "a1c29f3049c6dddb3fa187fe8d0634248e3e337f0d3c31b22f661c252cc50041"
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_sha256": "a1c29f3049c6dddb3fa187fe8d0634248e3e337f0d3c31b22f661c252cc50041"
+        }
+      ]
+    }
+  ],
+  "delta_classification": [
+    {
+      "id": "provider-wire-defaults",
+      "class": "default-preserved source composition",
+      "details": "The existing Telnyx/Vapi constructor and raw delivery/telephone transport methods listed in unchanged_provider_method_bodies match historical blobs. Surrounding API, worker, manifest and store source is changed. Default voice selects the legacy branch; default messaging runs one legacy delivery through a wrapper with stricter provider-ID validation. No blanket whole-file or end-to-end identity claim.",
+      "live_requirement": "Valid transport behavior is current loopback/source-composed evidence with retained historical live proof. Typed normalized composition and stricter local admission are separately scoped; no exact-candidate live provider claim."
+    },
+    {
+      "id": "secret-references",
+      "class": "additive opt-in configuration with compatibility restoration",
+      "details": "No explicit reference map uses legacy environment values; API key-only trim restores prior constructors. Explicit map is sole authority and missing/locked values deny; SIP/authority password bytes preserved.",
+      "live_requirement": "Disposable vault/auth/whitespace/header fixtures can prove composition. New references alone do not require carrier calls; they do not imply carrier readiness."
+    },
+    {
+      "id": "manifest-admission",
+      "class": "additive contract persistence plus stricter local admission",
+      "details": "Valid historical canonical UUID and E164 addresses remain valid; previously accepted leading-zero and noncanonical forms are rejected locally. Message byte limits cover existing character bounds. The ordinary context cap regression was repaired to 1 MiB, with an actual public-client/Store/Worker/Vapi fixture proving intact escaped source context above 128,000 bytes and one effect across replay. Valid 1,600-scalar SMS bodies fit the 6,400-byte ceiling; the unchanged adapter still rejects >1,600 characters. The common legacy message wrapper additionally treats >256-byte/control-bearing provider IDs as uncertain. These are deliberate stricter admission/correlation edges, not byte-equivalent behavior for malformed inputs. New persisted operation checks also deny undeclared sends before provider claim/context export and deny undeclared voice methods before dispatch; these latest guards are authored/formatted but not executed yet.",
+      "live_requirement": "Earlier address/context limits retain recorded local proof. Latest operation-admission fixtures require current candidate execution; carrier calls cannot establish or repair local admission semantics."
+    },
+    {
+      "id": "callback-final-states",
+      "class": "equivalent source refactor",
+      "details": "The exact old delivered/failure set maps to the same durable strings; nonterminal/unknown states still no finalized import. Signature/raw event admission and SMS control store unchanged.",
+      "live_requirement": "Mapping+signature/replay fixtures suffice for refactor; historical carrier callback proof retained with exactsource."
+    },
+    {
+      "id": "sms-policy-injection",
+      "class": "additive trusted composition; default adapter preserved",
+      "details": "HTTP enrollment fetch/source derived from the URL/store refresh/STOP/lease rules preserved; new trait allows another trusted adapter. Pairing cannotauthorizeSMS.",
+      "live_requirement": "Default snapshot/stale lease/STOP fixture regression required; no new provider support or consent claimed."
+    },
+    {
+      "id": "provisioning-vault-and-metadata",
+      "class": "intentional security and CLI behavior change",
+      "details": "Old unsafe raw secret libraryentry refuses without current vault authority; legacy private checkpoint migrated toadd-only reference with originalsecret restoration. Inventory output removes rawprovider configuration. Provider payload fields for approved selected plan retained.",
+      "live_requirement": "Current source CLI/disposableKeychain/uncertainty/restart fixtures required. Resource/categorypresence stays observation, not verified carrier readiness."
+    },
+    {
+      "id": "shared-media-graph",
+      "class": "genuinely changed runtime behavior across shared media",
+      "details": "Video negotiation is additive, but MTU/buffer/sessionselection/Coreprojection/routecleanup/drain also touchshared native/browser/provider audio lifecycle. Cannot classify whole graph asopt-invideo-only.",
+      "live_requirement": "Matching decodedlocal audio/media and failureteardown regression is required. If the release claims exactcandidate carrier or provider audio execution, separately authorized new rehearsal is required; otherwise evidence must remain source-composed historical live with currentlocal bridge qualification and explicit limit."
+    },
+    {
+      "id": "normalized-host-observations",
+      "class": "explicit additive composition with new durable lifecycle/provenance and preserved communication boundaries",
+      "details": "MessageExtension opt-in and with_observed_driver are explicit. Builtin Vapi/Telnyx stay on legacy message receipt commit, and builtin telephone start/with_driver stays raw. New normalized tracking uses current route/base credential checks before duplicates, immutable original sources and effect/question binding, terminal protection, no creation retry, and native unassigned reply admission for terminal tasks. SMS status/delivery-only tracking is separate from current outbound consent. Latest source adds conversational context sequence protection against Older and older Applied reconciliation; current compile/test proof is pending.",
+      "live_requirement": "Qualify with authenticated offline adapters, real public SDK host journeys, cancellation/expiry/revocation, STOP/lease and duplicate/reorder/unknown controls. These checks cannot establish a new carrier or provider model/media execution."
+    }
+  ],
+  "concrete_compatibility_claims": {
+    "can_claim_now": [
+      "Historical live Vapi/Telnyx results remain valid at their originalsources and topologies.",
+      "New setupcatalog does not grant SMS consent or carrier readiness; native pairing is authenticated localcommunication.",
+      "The host resolver preserves API key trimming and password bytes, and missing or locked explicit references cannot read ambient values; scoped units passed.",
+      "A serialized authorized ordinary context over 128,000 bytes reaches the actual Vapi SDK loopback request intact, with source attribution and one effect across replay; the manifest cap regression is repaired.",
+      "The specifically enumerated existing provider constructor/delivery/telephone method bodies match recorded historical source blobs; new surrounding host composition and malformed-input checks are explicitly distinct.",
+      "Builtin telephone startup and with_driver select the legacy raw-control/state branch; explicit with_observed_driver is a separately qualified normalized path.",
+      "Builtin Vapi/Telnyx messages do not activate the full MessageExtension receipt/status/provenance path automatically; existing valid delivery states and legacy task reply behavior have current offline regressions.",
+      "Current normalized contribution fixtures create actual independent incoming contacts and return replies referencing the newly journaled same-conversation source. This does not constitute new carrier support.",
+      "Current normalized terminal-task answers retain one unassigned source-backed ordinary reply without task continuation; credential revocation and disabled routes still deny receipt admission/replay.",
+      "Normalized delivery-only SMS receipts/status after STOP or expired lease do not authorize a new send, create a message or resurrect policy; reply-bearing receipts and dispatch remain policy-gated. Builtin signed SMS callback handling remains on its existing path."
+    ],
+    "pending_local": [
+      "Matching shared media/audio lifecycle/source fixtures and installedcandidate proof; original42-phase baseline is complete through source-specific composition, while changed candidate remains pending.",
+      "Current combined candidate execution for context sequence guards and declared operation admission:3 new Store and3 new server cases, plus existing relevant provider/voice/SMS regressions. Earlier287/24 counts do not qualify these edits."
+    ],
+    "cannot_claim": [
+      "Gate5 live carrier/provider/model/audio execution on exactnew candidate.",
+      "New enrollment/provider support from genericpolicy/connector fixture.",
+      "Full provisioningCLI backwardcompatibility: authenticated vault requirement and metadata-onlyDTO are intentionalchanges.",
+      "Gate5 releasepass or publication approval."
+    ]
+  },
+  "ordinary_context_static_counterexample": {
+    "raw_selected_item_bytes": 24116,
+    "old_raw_context_budget": 32768,
+    "serialized_context_bytes": 144361,
+    "fits_old_context_selection": true,
+    "body_chars_per_message": 12000,
+    "existing_message_bytes_limit": 16384,
+    "fixture_values_only": true,
+    "limitation": "The original static counterexample is retained as failure analysis. The separately recorded actual loopback fixture provides behavior verification of the repair.",
+    "previous_gate5_draft_manifest_context_bytes": 128000,
+    "resolution": "Provider-specific limit increased to 1 MiB; actual scoped fixture passed.",
+    "rejected_by_previous_gate5_draft_manifest": true,
+    "currently_rejected_by_vapi_manifest": false
+  },
+  "safe_context_compatibility_repair": {
+    "finding": "Authorized ordinary projection can exceed128,000-bytes after JSONescaping despite oldraw32 KiBselection.",
+    "fix": "Vapi provider-specific context admission1 MiB; existing body, address, and authorization limits retained, no source history truncation.",
+    "tests": [
+      "escaped_ordinary_context_over_128k_reaches_vapi_intact_with_source_provenance"
+    ],
+    "test_path": "crates/connect-server/tests/provider_context_manifest.rs",
+    "coverage": "Three public native sends with 8,000-byte bodies; store context selection; worker manifest admission; actual Vapi SDK loopback POST; intact bodies, source IDs, actors, and journal sequences; one effect across public receipt replay.",
+    "status": "Passed: actual public-client/Store/Worker/Vapi loopback fixture with scoped private temporary state.",
+    "initial_pass_evidence": {
+      "log_sha256": "f70c64fc4e94455ce8655159bab149d0959cbf4c52e85d63e2c1300aaa501117",
+      "fixture_result": "passed",
+      "scope": "Initial ephemeral-temp source test; private scoped rerun queued before final evidence.",
+      "retained_log_path_still_matches_initial_hash": true
+    },
+    "verification": {
+      "status": "passed",
+      "tests_passed": 1,
+      "log_sha256": "28d31fdbb2ad7c63d3179339ab150b5c2ea742090aa9341da10d1d5d2efee820",
+      "scope": "Actual source fixtures with owned 0700 TMPDIR under ignored .local; no live provider operation.",
+      "tested_feature_configuration": {
+        "enabled_features": [],
+        "declared_features": [
+          "test-support"
+        ],
+        "profile_id": 1180653783950952665,
+        "rustflags": [],
+        "fingerprint_sha256": "856105f328b7f92dd9d98066d1fb170404b1655103c892590dfa5d12ba25694f",
+        "scope": "Source test profile, default crate features; test-support not enabled."
+      }
+    },
+    "refreshed_aggregate_evidence": {
+      "evidence": "docs/evidence/gate-5/connector-runtime-integration.json",
+      "evidence_sha256": "9144fa8ecd1b1298f5da2c7b08ee48bcfd5a2ad3705301cdc681d7ed7eac354d",
+      "host_aggregate_passed": 24,
+      "included_fixture": "escaped_ordinary_context_over_128k_reaches_vapi_intact_with_source_provenance",
+      "scope": "Actual current public SDK/Store/Worker/Vapi SDK loopback fixture; no fresh provider-live proof."
+    },
+    "previous_aggregate_evidence": {
+      "log_sha256": "f70c64fc4e94455ce8655159bab149d0959cbf4c52e85d63e2c1300aaa501117",
+      "scope": "Refreshed 19-test server aggregate; scoped context fixture also has separate immutable recorded proof hash."
+    }
+  },
+  "audit_snapshot_refresh": {
+    "changed_since_prior_draft": [
+      "crates/connect-server/src/providers.rs",
+      "crates/connect-server/src/voice.rs",
+      "crates/connect-server/tests/connector_template.rs",
+      "crates/connect-server/tests/voice_flow.rs",
+      "crates/connect-store/src/connector_observations.rs",
+      "crates/connect-store/src/connector_registry.rs",
+      "crates/connect-store/src/providers.rs",
+      "crates/connect-store/tests/connector_observation_order.rs",
+      "dependencies/source-lock.json",
+      "patches/rvoip/encoded-video-transport.patch",
+      "patches/rvoip/terminal-session-backpressure.patch",
+      "patches/rvoip/terminal-session-resource-lifetime.patch"
+    ],
+    "reason": "Formatted current source snapshot includes context-order and declared operation admission repairs. Nine provider transport method groups and five retained Store methods still match historical blobs; claim_provider_job is explicitly changed and compared as changed. Source-lock now includes terminal resource and backpressure patches; combined preparation/compile/test proof pending."
+  },
+  "baseline_qualification_strategy": {
+    "mode": "Transparent composed coverage of all original 42 phases; owner accepted on matching frozen source and binary.",
+    "current_coverage": {
+      "original_full_attempt_passes": 28,
+      "separate_original_grant_profile_passes": 1,
+      "separate_original_retention_profile_passes": 1,
+      "independent_original_remaining_phase_passes": 11,
+      "exclusive_original_voice_profile_passes": 1,
+      "total_original_source_phases": 42,
+      "original_installed_checks": 17,
+      "remaining_original_phases": 0
+    },
+    "single_full_run_passed": false,
+    "continuation": "Completed all42 matching original source phases and17 original installed checks. Original source/commands/counts/deadlines retained; transparent individual-run composition, not one uninterrupted full run.",
+    "original_failures_retained": 6,
+    "cache_retirement": "Only schema6/schema10 sealed, inactive generated Cargo targets; preserve original manifests, binaries, logs, source proof and all databases.",
+    "completion_evidence": "docs/evidence/gate-5/baseline.json"
+  },
+  "baseline_continuation_plan": {
+    "status": "completed; see baseline.json exact source/phase/provenance composition",
+    "command": "TMPDIR=<owned 0700 final-owned-tmp> PYTHONDONTWRITEBYTECODE=1 python3 .local/gate5-setup-baseline-recheck/continue-original-baseline.py --codex-binary /Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex --run",
+    "source": "Clean pinned 993771a98b8f39c7a83418d6b6da4182b8a3c797 checkout with all original 42 phases, deadlines, and default single-thread test execution. Do not use source-only or bounded modes.",
+    "preconditions": [
+      "No overlapping Cargo or browser/media runtime.",
+      "Verify source clean and preserved dependency graph; generated outputs are valid executables after earlier isolated repair.",
+      "Enough disk for originalhistorical schema 6 and schema 10 child builds; preserve active/warm cache and all sealed binaries, databases, and evidence."
+    ],
+    "pass_requirement": "All 13 genuinely remaining phases must pass with unchanged commands and deadlines. Compose their provenance with the 28 original full-attempt passes and the separately passed original grant profile on matching frozen inputs. Retain all six failed full reports, source hashes, and separate pass. Never claim a single full run passed."
+  },
+  "local_repair_completed_at": "2026-10-13T22:44:07.705948+00:00",
+  "optional_catalog_selection": {
+    "status": "source verified: connectors2 +real publicCLI1 +selected-credential unit1 passed",
+    "change": "Both public discovery commands accept --provider vapi|telnyx|all (default all). Only selected provider references resolve and only selected catalogs are requested. Single-provider combined catalogs are partial and cannot authorize creates; omitted providers supply no categories/resources/capabilities.",
+    "classification": "Additive explicit selection; default all preserves both credential requirements and existing read-only categories. No provider operation performed.",
+    "planned_checks": [
+      "Selected-only credential resolution, including selected locked error without fallback",
+      "Read-only Vapi-only and Telnyx-only loopback catalogs; exact reuse permitted, create refused for partial catalog",
+      "Real selected public CLI Vapi-only with explicit protected reference map, no Telnyx reference; both command surfaces and missing-selected fail-closed"
+    ],
+    "source_sha256": {
+      "crates/connect-connectors/src/provisioning/discovery.rs": "c20edfb4b2ab5f124686855e05ce2a611728c2b41d9bac1c1920823f18bafa34",
+      "crates/connect-connectors/src/setup.rs": "4c441775190aab88900e585c54d7cf972a28ff1a665c6f86559adb07d19f2f06",
+      "crates/connect-server/src/setup_vault.rs": "7730c2686809551e047e6d9f6664f5b0314f9e6e3f085d001ce69247dc96b530",
+      "crates/connect-server/src/cli/first_run/arguments.rs": "27564489216030401d85439860c1c01973df3b1e1f3fb7fba3870baa6f42d607",
+      "crates/connect-server/tests/provider_discovery.rs": "7a28705eda4cb2f54c61781e5528df5c1c0020a41c0c2fec933c125a5415493c",
+      "crates/connect-connectors/tests/provider_discovery.rs": "4c8eff151abeef8b1ef201295f23a24f1b4c256914f89ca665acb38bff852a23"
+    },
+    "proofs": {
+      "connector_catalogs": {
+        "private_log_sha256": "fd392f4b45b795e7242d71a2cf0d11416f70049fe159b7f68bf0549c8c2031a4",
+        "status": "passed"
+      },
+      "selected_credential_unit": {
+        "private_log_sha256": "4d42b92a7e3ca9d8697e9b5f7023d62389a84c32e0254a4569c2d534fd9bdffb",
+        "status": "passed"
+      },
+      "focused_public_cli": {
+        "private_log_sha256": "3298ba49a97fb9d71a514605fc7086483f0a9a258b130ad716f3a471cc22114d",
+        "status": "passed",
+        "executed": {
+          "existing_first_run": 5,
+          "synthetic_known17_to18_migration": 1,
+          "real_selected_provider_cli": 1,
+          "current_vault_authority": 1
+        }
+      }
+    },
+    "selected_source_cli": {
+      "binary": ".local/gate5/setup-schema18-source/connect-94ad7461c055",
+      "binary_sha256": "94ad7461c05529914dd73322d5c6c80a7ab0f1fd8f647f6ae9330043af1066d0",
+      "current_schema": 18,
+      "features": [],
+      "source_lock_sha256": "1f8f716ca3211ba5a37798845c18e6f4d18b0c40c04b94195387214b197707e5",
+      "video_patch_sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+      "scope": "Source setup fixtures only; normal default-feature CLI built during current focused tests, not final packaged/media qualification seal"
+    }
+  },
+  "preserved_legacy_store_method_bodies": [
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "function": "recover_provider_jobs",
+      "function_sha256": [
+        "430c77dc9c96e9d68e508aa325cd7ef52206a3465585cd9b0c2d4b140940a0ee"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "430c77dc9c96e9d68e508aa325cd7ef52206a3465585cd9b0c2d4b140940a0ee"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "430c77dc9c96e9d68e508aa325cd7ef52206a3465585cd9b0c2d4b140940a0ee"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "430c77dc9c96e9d68e508aa325cd7ef52206a3465585cd9b0c2d4b140940a0ee"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "function": "finish_provider_job",
+      "function_sha256": [
+        "ab2936101660bb91642f88c28c1bb5928fb5ee9b5f9aa8718f50b1d5a3d862a5"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "ab2936101660bb91642f88c28c1bb5928fb5ee9b5f9aa8718f50b1d5a3d862a5"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "ab2936101660bb91642f88c28c1bb5928fb5ee9b5f9aa8718f50b1d5a3d862a5"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "ab2936101660bb91642f88c28c1bb5928fb5ee9b5f9aa8718f50b1d5a3d862a5"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "function": "receive_sms",
+      "function_sha256": [
+        "da8548581ee9a74f06d4bf47b872d2c59bf2fc9d793123d052271f65ff7222ce"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "da8548581ee9a74f06d4bf47b872d2c59bf2fc9d793123d052271f65ff7222ce"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "da8548581ee9a74f06d4bf47b872d2c59bf2fc9d793123d052271f65ff7222ce"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "da8548581ee9a74f06d4bf47b872d2c59bf2fc9d793123d052271f65ff7222ce"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "function": "delivery_sms",
+      "function_sha256": [
+        "499ccf4038c111af261f9160f0232d14720892518f86a518fcdcbc16f7f60c26"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "499ccf4038c111af261f9160f0232d14720892518f86a518fcdcbc16f7f60c26"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "499ccf4038c111af261f9160f0232d14720892518f86a518fcdcbc16f7f60c26"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "499ccf4038c111af261f9160f0232d14720892518f86a518fcdcbc16f7f60c26"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "function": "admit_event",
+      "function_sha256": [
+        "b35467be2326d692befa50be70c58681de185dc2e5df54e8241b593791961ea7"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "b35467be2326d692befa50be70c58681de185dc2e5df54e8241b593791961ea7"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "b35467be2326d692befa50be70c58681de185dc2e5df54e8241b593791961ea7"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": true,
+          "historical_function_sha256": [
+            "b35467be2326d692befa50be70c58681de185dc2e5df54e8241b593791961ea7"
+          ]
+        }
+      ]
+    }
+  ],
+  "normalized_host_review": {
+    "builtin_dispatch_modes": {
+      "telnyx_message": "default message_extension None; one legacy attempt, legacy finish and existing signed SMS ingress/final status handling",
+      "vapi_message": "default message_extension None; one legacy attempt, legacy finish/native task reply handling",
+      "vapi_telephone": "Worker::start and with_driver select normalized=false; typed hooks are enabled only by with_observed_driver"
+    },
+    "new_opt_in_behavior": "New normalized host lifecycle/provenance/reconciliation and independent ingress require explicit trusted adapter composition; they do not grant a principal new rights.",
+    "compatibility_findings": [
+      {
+        "id": "terminal-task-answer",
+        "finding": "Initial normalized admission incorrectly required live task continuation before peer reply admission. Legacy/native reply retained cancelled/expired task answers unassigned.",
+        "repair": "Receipt/status admission now checks current original sender and route/delegate credentials/membership without authorizing another task send; provider_task_reply verifies the original effect/question and current task assignment. Claim/dispatch retain task authority checks.",
+        "verification": "Repair passed:6 targeted Store cases,287 aggregate API/store/connectors and24 host tests; source-linked component report. No failure/ignored case or task/policy resurrection."
+      },
+      {
+        "id": "sms-final-observation-after-stop",
+        "finding": "Initial normalized receipt admission incorrectly required current SMS enrollment/STOP eligibility even for delivery-only tracking of an already dispatched effect.",
+        "repair": "Current SMS eligibility is checked for reply-bearing receipts and all new claims/dispatch. Verified delivery-only callbacks/status can persist after STOP/lease expiry without policy resurrection or another effect. Builtin signed callback path unchanged.",
+        "verification": "Repair passed:6 targeted Store cases,287 aggregate API/store/connectors and24 host tests; source-linked component report. No failure/ignored case or task/policy resurrection."
+      },
+      {
+        "id": "older-context-pointer-regression",
+        "finding": "A late receipt for older conversational job A could replace newer completed job B provider_context even when the reducer returned Older.",
+        "repair": "Older never advances provider_context. For Applied completion/reconciliation, compare provider_jobs effect sequence and preserve a newer completed job or the newer job already bound by provider_context, including later failure reconciliation. Keep immutable original receipt/provenance and exact duplicate semantics.",
+        "verification": "Three meaningful Store fixtures authored (Older/replay, older Applied reconciliation, and reconciliation after newer job failure); all assert subsequent C uses chat B and earlier source-backed answers remain. Formatted only; compile/execution pending."
+      },
+      {
+        "id": "undeclared-operation-effect",
+        "finding": "Message dispatch could call a receive-only provider; voice discovery/start could call absent manifest operations.",
+        "repair": "Store claim gates MessageSend after current authorization and before claim/context export; message worker also gates before provider call. Voice captures a validated manifest, skips absent VoiceDiscover, and gates actual Start/Status/End before possible dispatch. Unsupported Start yields explicit local failed reason; unavailable existing-call status/end stays uncertain. Manifestless legacy drivers and builtin full operation manifests retain their supported transport paths.",
+        "verification": "One receive-only and two normalized voice fixtures authored with panic-on-unsupported provider methods, real ingress/native replies and supported opposite-direction voice control. Formatted only; compile/execution pending."
+      }
+    ],
+    "remaining_limitations": [
+      "No normalized builtin Vapi/Telnyx extension activation or fresh provider-live proof.",
+      "Typed Vapi telephone source composition is SDK mapping plus deterministic normalized worker evidence, not an actual new normalized carrier execution.",
+      "The reducer still requires authoritative Reconciliation to clear an Uncertain projection; uncertain creation is not repeated to obtain status.",
+      "Current candidate/package/installed qualification remains separate."
+    ],
+    "verification": {
+      "evidence": "docs/evidence/gate-5/connector-runtime-integration.json",
+      "evidence_sha256": "9144fa8ecd1b1298f5da2c7b08ee48bcfd5a2ad3705301cdc681d7ed7eac354d",
+      "api_store_connectors_passed": 287,
+      "host_passed": 24,
+      "targeted_late_observation_cases_passed": 6,
+      "targeted_cases_already_included_in_aggregate": true,
+      "ignored_cases": 0,
+      "standalone_template_passed": 4,
+      "standalone_prism_passed": 4,
+      "exported_api_passed": 10,
+      "standalone_scope": "These earlier standalone/API executions retain exact API/fixture source digests; those Rust sources are unchanged by the subsequent Store/host late-observation repair. The guide was repaired and both affected harnesses were repeated below; a fresh public kit was exported with identical API Rust bytes.",
+      "template_harness_passed": 40,
+      "prism_harness_passed": 40,
+      "actual_provider_live_claim": false,
+      "claim_limit": "287/24/standalone and harness results qualify their recorded earlier snapshot; they do not execute the latest context-order or operation-admission changes."
+    },
+    "component_status": "Retained earlier component qualification remains valid at its recorded source snapshot. Current context-order and operation-admission edits are formatted/test-authored; compilation and execution pending."
+  },
+  "public_media_admission_review": {
+    "scope": "New Gate5 AV feature admission; does not change audio carrier HTTP/wire implementations or cleanup authority for already owned SIP legs.",
+    "finding": "Legacy SipDial accepted any Session containing audio, including audio+video, while configured inbound SIP already required audio-only. This could silently downgrade a newly advertised AV Session.",
+    "repair": "Authorized initiator/accepted state retained; exact audio-only profile required before a leg is inserted. Canonical business-rejection receipt/replay retained; no framework specialcase. Pending claim, cancellation observation and final dispatch translate unsupported profile into durable refusal without worker failure or network admission. Existing leg-end path is unchanged.",
+    "verification": {
+      "evidence": "docs/evidence/gate-5/video-admission-cleanup.json",
+      "evidence_sha256": "068386e237e56066c16b9c3b61c3cbc77a86482ffba08be402f3fd19a54f8e46",
+      "store_passed": 14,
+      "store_failed": 0,
+      "store_ignored": 0,
+      "native_process_status": "not-run; selected immutable native binaries must still execute the checker"
+    }
+  },
+  "changed_legacy_store_method_bodies": [
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "function": "claim_provider_job",
+      "function_sha256": [
+        "e51fbecc7cd2d90d8a25b714d98fe89917475a5be71073b5b1c60bae74185cc6"
+      ],
+      "comparisons": [
+        {
+          "source_revision": "dc739966ddd9a38ec5d19f54217b293ece51b4e4",
+          "byte_identical": false,
+          "historical_function_sha256": [
+            "d053680c6de48f04e04b1ea902de884996809da82500f1bbe11d55551875b2a9"
+          ]
+        },
+        {
+          "source_revision": "596e9b7c83d087db89dc49f92df5137638798ede",
+          "byte_identical": false,
+          "historical_function_sha256": [
+            "d053680c6de48f04e04b1ea902de884996809da82500f1bbe11d55551875b2a9"
+          ]
+        },
+        {
+          "source_revision": "9abf38f191a08de4a3ca5defbc4815ce4a0aaaed",
+          "byte_identical": false,
+          "historical_function_sha256": [
+            "d053680c6de48f04e04b1ea902de884996809da82500f1bbe11d55551875b2a9"
+          ]
+        }
+      ],
+      "classification": "Changed admission, not byte-identical to historical Store function",
+      "behavior": "After existing task/current principal/route authorization and before sending claim or context export, persisted manifests must declare MessageSend. Unsupported fanout becomes failed without provider dispatch. Manifestless legacy composition and full builtin manifests retain this admission; HTTP payload/transport functions are separately unchanged.",
+      "verification": "Implemented and formatted; receive-only panic-on-deliver fixture authored. Compile and execution pending combined candidate build."
+    }
+  ],
+  "operation_and_context_review": {
+    "status": "implemented and formatted; no compilation or execution of latest changes yet",
+    "new_store_cases": 3,
+    "new_server_cases": 3,
+    "focused_suites": {
+      "connector_observation_order": 3,
+      "connector_template": 8,
+      "voice_flow": 7
+    },
+    "typed_failure": "unsupported-connector-operation",
+    "unsupported_message_outcome": "Native communication remains journaled; unsupported provider fanout fails before sending/context export and no remote provider function is called.",
+    "builtin_compatibility_boundary": "No Vapi/Telnyx HTTP request or raw telephone state normalization change. Full builtin manifests declare existing operations. Claim and host wrapper source changed deliberately; behavioral equivalence still needs current candidate regression tests.",
+    "schema_change": false,
+    "live_provider_operations": false
+  }
+}

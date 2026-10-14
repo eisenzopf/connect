@@ -14,7 +14,7 @@ use rvoip_uctp::{
     substrate::{PeerMediaRegistration, PeerMediaRouteKey},
     types::MessageType,
 };
-use std::{sync::Arc, time::Duration};
+use std::{fmt, sync::Arc, time::Duration};
 
 /// Live native UCTP/QUIC audio leg bound to one durable Session.
 pub struct NativeAudioSession {
@@ -38,7 +38,7 @@ pub struct NativeAudioSession {
     ended: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 /// One received native audio datagram after UCTP/RTP validation.
 pub struct NativeAudioFrame {
     /// Encoded audio payload. Gate 3 uses a 160-byte PCMU frame.
@@ -47,6 +47,16 @@ pub struct NativeAudioFrame {
     pub timestamp_rtp: u32,
     /// Negotiated RTP payload type when present.
     pub payload_type: Option<u8>,
+}
+
+impl fmt::Debug for NativeAudioFrame {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("NativeAudioFrame")
+            .field("bytes", &self.payload.len())
+            .field("timestamp_rtp", &self.timestamp_rtp)
+            .field("payload_type", &self.payload_type)
+            .finish()
+    }
 }
 
 impl NativeAudioSession {
@@ -406,14 +416,22 @@ impl ConnectClient {
     }
 }
 
-fn negotiation_error(envelope: &UctpEnvelope) -> ClientError {
+pub(crate) fn negotiation_error(envelope: &UctpEnvelope) -> ClientError {
     let (code, message) = match envelope.payload.get("code").and_then(|v| v.as_u64()) {
         Some(401) => (
             "unauthenticated",
             "Native media authentication was rejected",
         ),
         Some(403) => ("forbidden", "Native media is outside current authority"),
-        Some(501) => (
+        Some(404) => (
+            "media-peer-not-ready",
+            "The requested media publisher is not ready",
+        ),
+        Some(429) => (
+            "capacity-exceeded",
+            "The media route has reached its bounded capacity",
+        ),
+        Some(488 | 501) => (
             "unsupported-media-profile",
             "Native media route is not supported by this profile",
         ),
@@ -421,4 +439,21 @@ fn negotiation_error(envelope: &UctpEnvelope) -> ClientError {
         _ => return ClientError::Protocol,
     };
     ClientError::Application(connect_protocol::Error::new(code, message))
+}
+
+#[cfg(test)]
+mod frame_debug_tests {
+    use super::*;
+
+    #[test]
+    fn frame_debug_exposes_metadata_without_recorded_media() {
+        let frame = NativeAudioFrame {
+            payload: vec![123; 160],
+            timestamp_rtp: 400,
+            payload_type: Some(0),
+        };
+        let debug = format!("{frame:?}");
+        assert!(debug.contains("bytes: 160") && debug.contains("timestamp_rtp: 400"));
+        assert!(!debug.contains("123") && debug.len() < 120);
+    }
 }

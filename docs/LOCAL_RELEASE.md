@@ -1,5 +1,59 @@
 # Run a local Connect candidate
 
+## Gate 5 candidate entry point
+
+The next `gate5-local` candidate is under qualification for local macOS arm64.
+It is unpublished. Its three executable artifacts are `bin/connect`,
+`bin/connect-example` and `bin/connect-video`; the matching source archive,
+SDKs, reference client, contracts and qualification inputs have distinct
+verification obligations. Use the [Gate 5 package guide](GATE5_PACKAGE.md) and
+[draft release notes](GATE5_RELEASE_NOTES.md) for the current compatibility matrix
+and exact explicit tool inputs. [Project-page copy](GATE5_PROJECT_COPY.md) is
+prepared locally for owner review, not deployed.
+
+Verify the candidate archives/checksums and inspect its manifest before use.
+Current Gate 5 source uses schema 18; select the actual candidate schema and
+source revision from its manifest. The retained schema-16 Gate 4 binary and
+known schema-17 source fixtures are separate recovery inputs. The schema-17
+fixture is not a claim that a historical schema-17 executable was released.
+`serve` does not migrate implicitly: stop the affected server, retain its
+matching verified backup and use explicit migration. Restore/rollback uses a
+new directory and a compatible binary; see [setup recovery](SETUP.md) and
+[historical-input qualification](GATE5_PACKAGE.md).
+
+For a first run, replace `CONNECT` with the selected candidate's absolute
+`bin/connect` path and follow [the setup guide](SETUP.md). The provider-free
+`setup demo` exchanges local messages/files and verifies restart/history with
+deterministic participants. It is separate from actual-model, reference-video
+and installed-release qualification.
+
+Optional server provider secrets use protected references selected through
+`CONNECT_SECRET_REFERENCES`; macOS Keychain and an explicitly selected
+environment reference are supported. Existing installations without that
+reference file retain their documented environment configuration. Missing or
+locked storage never authorizes a plaintext fallback. Do not move provider keys
+into client/host configurations. [Setup](SETUP.md) describes vault migration and
+recovery without repeating an uncertain provider creation.
+
+FFmpeg, Chrome, Playwright and Node are explicitly selected external tools;
+the independent Python environment is prepared separately. They are not bundled
+with Connect. Generated codecs and controlled capture-child refusal do not
+prove physical camera/microphone permissions. Three-route full decoded media,
+actual installed native cleanup, current provider compatibility, independent
+fresh-user walkthroughs and owner acceptance retain their recorded scopes;
+check the current reports rather than inferring completion from this guide.
+
+The [retained baseline](evidence/gate-5/baseline.json) now reproduces all 42
+original source phases through matching-source individual runs and all 17
+original installed checks. Original failures remain recorded; this is composed
+coverage, not a single uninterrupted source run or a changed Gate 5 candidate pass.
+
+## Retained Gate 4 local candidate runbook
+
+The instructions and evidence below describe the historical Gate 4 candidate.
+Its schema-16 and installed/model/provider claims remain tied to their named
+sources. They do not qualify the current Gate 5 candidate.
+
 This candidate packages the Connect server, native Rust helper, Python and
 TypeScript SDKs, task/MCP tools, workflow skill, agent-presence example, browser
 facade, and the human conversation test client for

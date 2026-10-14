@@ -1,4 +1,7 @@
+//! Supervised media event worker; bindings own route pairing and cleanup.
+mod bindings;
 use anyhow::Result;
+use bindings::{bind_and_pair_connection, bind_or_end_routed_connection, finish_connection};
 use connect_store::{SipConnectionEnd, Store};
 use rvoip_core::{
     adapter::EndReason,
@@ -53,6 +56,7 @@ struct MediaState {
     sip_legs: HashMap<ConnectionId, String>,
     waiting_by_session: HashMap<String, Vec<ConnectionId>>,
     paired_connections: HashMap<ConnectionId, ConnectionId>,
+    video_bridges: HashMap<ConnectionId, rvoip_core::video_bridge::EncodedVideoBridge>,
     vapi: crate::vapi_media::VapiMedia,
 }
 
@@ -79,6 +83,39 @@ impl MediaLifecycle {
                     _ = cancelled.cancelled() => break,
                     _ = expiry.tick() => {
                         state.vapi.expire_setups().await;
+                        // Accepted durable Sessions survive socket loss. Explicit durable
+                        // terminal state must still release an idle Core projection.
+                        let projected: Vec<_> = orchestrator.externally_projected_session_ids()
+                            .into_iter().filter_map(|id| id.as_str().strip_prefix(&prefix).map(str::to_owned)).collect();
+                        match store.terminal_media_session_ids(&projected) {
+                            Ok(terminal) => for session in terminal {
+                                let id = rvoip_core::ids::SessionId::from_string(format!("{prefix}{session}"));
+                                let _ = orchestrator.end_session(id, EndReason::Normal).await;
+                            },
+                            Err(error) => tracing::warn!(code = error.code, "could not reconcile durable terminal media projections"),
+                        }
+                        let denied: Vec<_> = state.sessions.iter().filter_map(|(connection, session)| {
+                            let credential = state.credentials.get(connection)?;
+                            let allowed = if credential.starts_with(connect_protocol::tasks::TASK_PRINCIPAL_PREFIX) {
+                                store.authorize_native_task_session_binding(credential, session)
+                            } else {
+                                store.authorize_session_binding(credential, session)
+                            };
+                            let allowed = allowed.and_then(|value| {
+                                if value.media == ["audio", "video"]
+                                    && orchestrator.connection_transport(connection).is_ok_and(|transport|transport == rvoip_core::connection::Transport::WebRtc)
+                                {
+                                    let route = inbound_routes.webrtc.as_ref().ok_or_else(connect_protocol::Error::forbidden)?;
+                                    store.authorize_selected_browser_video(credential,
+                                        &crate::media_ingress::browser_route(route), &value.conversation_id, &value.id)
+                                        .map(|binding|binding.session)
+                                } else {Ok(value)}
+                            });
+                            allowed.err().map(|_| connection.clone())
+                        }).collect();
+                        for connection in denied {
+                            let _ = orchestrator.end_connection(connection, EndReason::Failed { detail: "media-authority-ended".into() }).await;
+                        }
                         continue;
                     },
                     command = command_receiver.recv() => {
@@ -120,81 +157,76 @@ impl MediaLifecycle {
                     },
                     event = events.recv() => event,
                 };
-                match event {
-                    Ok(Event::ConnectionInbound { connection_id, .. }) => {
-                        if let Some(binding) = crate::media_ingress::admit(
-                            &orchestrator,
-                            &store,
-                            &inbound_routes,
-                            connection_id.clone(),
-                            &namespace,
-                        )
-                        .await
-                        {
-                            state
-                                .credentials
-                                .insert(connection_id.clone(), binding.credential_id);
-                            state
-                                .sessions
-                                .insert(connection_id.clone(), binding.session_id);
-                            if binding.owns_session {
-                                state.routed_connections.insert(connection_id);
-                            }
-                        }
-                    }
-                    Ok(Event::ConnectionPrincipalAuthenticated {
-                        connection_id,
-                        session_id,
-                        participant_id,
-                        principal,
-                        ..
-                    }) => {
-                        let routed = state.routed_connections.contains(&connection_id);
-                        if !routed && orchestrator.session_of(&connection_id).is_none() {
-                            if let Some(session_id) = session_id.clone() {
-                                if let Err(error) = orchestrator
-                                    .route_inbound_connection(
-                                        connection_id.clone(),
-                                        InboundAction::Accept {
-                                            session_id,
-                                            participant_id: ParticipantId::from_string(
-                                                participant_id,
-                                            ),
-                                        },
-                                    )
-                                    .await
-                                {
-                                    tracing::warn!(%error, "could not admit authenticated UCTP media leg");
-                                    continue;
+                // Stream/bridge discovery can wait while an offered peer has no
+                // ICE media yet. Cancel that owned preparation before draining
+                // bindings; waiting only between events strands shutdown behind it.
+                if matches!(
+                    &event,
+                    Err(tokio::sync::broadcast::error::RecvError::Closed)
+                ) {
+                    break;
+                }
+                let handle_event = async {
+                    match event {
+                        Ok(Event::ConnectionInbound { connection_id, .. }) => {
+                            if let Some(binding) = crate::media_ingress::admit(
+                                &orchestrator,
+                                &store,
+                                &inbound_routes,
+                                connection_id.clone(),
+                                &namespace,
+                            )
+                            .await
+                            {
+                                state
+                                    .credentials
+                                    .insert(connection_id.clone(), binding.credential_id);
+                                state
+                                    .sessions
+                                    .insert(connection_id.clone(), binding.session_id);
+                                if binding.owns_session {
+                                    state.routed_connections.insert(connection_id);
                                 }
                             }
                         }
-                        if let Some(durable_session) = session_id
-                            .as_ref()
-                            .and_then(|session| session.as_str().strip_prefix(&prefix))
-                        {
+                        Ok(Event::ConnectionPrincipalAuthenticated {
+                            connection_id,
+                            session_id,
+                            participant_id,
+                            principal,
+                            ..
+                        }) => {
+                            let routed = state.routed_connections.contains(&connection_id);
+                            if !routed && orchestrator.session_of(&connection_id).is_none() {
+                                if let Some(session_id) = session_id.clone() {
+                                    if let Err(error) = orchestrator
+                                        .route_inbound_connection(
+                                            connection_id.clone(),
+                                            InboundAction::Accept {
+                                                session_id,
+                                                participant_id: ParticipantId::from_string(
+                                                    participant_id,
+                                                ),
+                                            },
+                                        )
+                                        .await
+                                    {
+                                        tracing::warn!(%error, "could not admit authenticated UCTP media leg");
+                                        return;
+                                    }
+                                }
+                            }
+                            if let Some(durable_session) = session_id
+                                .as_ref()
+                                .and_then(|session| session.as_str().strip_prefix(&prefix))
+                            {
+                                state
+                                    .sessions
+                                    .insert(connection_id.clone(), durable_session.to_owned());
+                            }
                             state
-                                .sessions
-                                .insert(connection_id.clone(), durable_session.to_owned());
-                        }
-                        state
-                            .credentials
-                            .insert(connection_id.clone(), principal.subject);
-                        bind_or_end_routed_connection(
-                            &orchestrator,
-                            &store,
-                            vapi.as_ref(),
-                            &mut state,
-                            &connection_id,
-                        )
-                        .await;
-                    }
-                    Ok(Event::ConnectionConnected { connection_id, .. }) => {
-                        // SIP publishes Connected before its staged outbound
-                        // activation receipt enables media writes. The
-                        // outbound worker explicitly activates this binding
-                        // after `PreparedOutboundConnection::commit` returns.
-                        if !state.sip_legs.contains_key(&connection_id) {
+                                .credentials
+                                .insert(connection_id.clone(), principal.subject);
                             bind_or_end_routed_connection(
                                 &orchestrator,
                                 &store,
@@ -204,45 +236,75 @@ impl MediaLifecycle {
                             )
                             .await;
                         }
-                    }
-                    Ok(Event::ConnectionEnded {
-                        connection_id,
-                        reason,
-                        ..
-                    }) => {
-                        let end = if matches!(reason, EndReason::Cancelled) {
-                            SipConnectionEnd::Cancelled
-                        } else {
-                            SipConnectionEnd::Ended
-                        };
-                        finish_connection(&orchestrator, &store, &mut state, &connection_id, end)
+                        Ok(Event::ConnectionConnected { connection_id, .. }) => {
+                            // SIP publishes Connected before its staged outbound
+                            // activation receipt enables media writes. The
+                            // outbound worker explicitly activates this binding
+                            // after `PreparedOutboundConnection::commit` returns.
+                            if !state.sip_legs.contains_key(&connection_id) {
+                                bind_or_end_routed_connection(
+                                    &orchestrator,
+                                    &store,
+                                    vapi.as_ref(),
+                                    &mut state,
+                                    &connection_id,
+                                )
+                                .await;
+                            }
+                        }
+                        Ok(Event::ConnectionEnded {
+                            connection_id,
+                            reason,
+                            ..
+                        }) => {
+                            let end = if matches!(reason, EndReason::Cancelled) {
+                                SipConnectionEnd::Cancelled
+                            } else {
+                                SipConnectionEnd::Ended
+                            };
+                            finish_connection(
+                                &orchestrator,
+                                &store,
+                                &mut state,
+                                &connection_id,
+                                end,
+                            )
                             .await;
-                    }
-                    Ok(Event::ConnectionFailed {
-                        connection_id,
-                        detail,
-                        ..
-                    }) => {
-                        tracing::warn!(%connection_id, %detail, "media connection failed");
-                        finish_connection(
-                            &orchestrator,
-                            &store,
-                            &mut state,
-                            &connection_id,
-                            SipConnectionEnd::Failed,
-                        )
-                        .await;
-                    }
-                    Ok(_) => {}
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                        tracing::warn!(
+                        }
+                        Ok(Event::ConnectionFailed {
+                            connection_id,
+                            detail,
+                            ..
+                        }) => {
+                            tracing::warn!(%connection_id, %detail, "media connection failed");
+                            finish_connection(
+                                &orchestrator,
+                                &store,
+                                &mut state,
+                                &connection_id,
+                                SipConnectionEnd::Failed,
+                            )
+                            .await;
+                        }
+                        Ok(_) => {}
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                            tracing::warn!(
                             "media lifecycle observer lagged; durable state remains authoritative"
                         );
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {}
                     }
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                };
+                tokio::select! {
+                    biased;
+                    _ = cancelled.cancelled() => break,
+                    _ = handle_event => {}
                 }
             }
             let vapi_shutdown = state.vapi.shutdown().await;
+            for (_, bridge) in state.video_bridges.drain() {
+                bridge.shutdown().await;
+            }
             for (connection_id, session_id) in state.sessions {
                 let result = if state.routed_connections.contains(&connection_id) {
                     store
@@ -349,190 +411,5 @@ impl MediaRegistrar {
             .await
             .map_err(|_| anyhow::anyhow!("media lifecycle activation was not acknowledged"))?
             .map_err(|reason| anyhow::anyhow!(reason))
-    }
-}
-
-async fn finish_connection(
-    orchestrator: &Arc<Orchestrator>,
-    store: &Arc<Store>,
-    state: &mut MediaState,
-    connection_id: &ConnectionId,
-    end: SipConnectionEnd,
-) {
-    state.credentials.remove(connection_id);
-    let durable_session = state.sessions.remove(connection_id);
-    let routed = state.routed_connections.remove(connection_id);
-    let sip_leg = state.sip_legs.remove(connection_id);
-    for waiting in state.waiting_by_session.values_mut() {
-        waiting.retain(|candidate| candidate != connection_id);
-    }
-    state
-        .waiting_by_session
-        .retain(|_, waiting| !waiting.is_empty());
-    let paired = state.paired_connections.remove(connection_id);
-    if let Some(peer) = paired.as_ref() {
-        state.paired_connections.remove(peer);
-    }
-    state.vapi.end_connection(connection_id).await;
-    let persisted = if routed {
-        durable_session.as_deref().map_or(Ok(None), |session_id| {
-            store
-                .end_routed_inbound_session(session_id, "media-leg-ended")
-                .map(Some)
-        })
-    } else {
-        store.unbind_session_connection(connection_id.as_str())
-    };
-    if let Err(error) = persisted {
-        tracing::warn!(code = error.code, "could not persist media termination");
-    }
-    if sip_leg.is_some() {
-        if let Err(error) = store.observe_sip_connection_end(
-            connection_id.as_str(),
-            end,
-            if end == SipConnectionEnd::Failed {
-                "sip-connection-failed"
-            } else {
-                "sip-connection-ended"
-            },
-        ) {
-            tracing::warn!(code = error.code, "could not persist SIP leg termination");
-        }
-    }
-    if let Some(peer) = paired {
-        let _ = orchestrator
-            .end_connection(peer, EndReason::BridgeTorn)
-            .await;
-    }
-}
-
-async fn bind_or_end_routed_connection(
-    orchestrator: &Arc<Orchestrator>,
-    store: &Arc<Store>,
-    vapi: Option<&Arc<VapiAdapter>>,
-    state: &mut MediaState,
-    connection_id: &ConnectionId,
-) {
-    let routed = state.routed_connections.contains(connection_id);
-    if let Err(reason) =
-        bind_and_pair_connection(orchestrator, store, vapi, state, connection_id, routed).await
-    {
-        tracing::warn!(%connection_id, reason, "media connection could not become ready");
-        if state.sessions.contains_key(connection_id) {
-            if let Some(session_id) = state.sessions.get(connection_id) {
-                if let Err(error) = store.end_routed_inbound_session(session_id, reason) {
-                    tracing::error!(
-                        code = error.code,
-                        %session_id,
-                        "could not terminate failed routed media session"
-                    );
-                }
-            }
-        }
-        let _ = orchestrator
-            .end_connection(
-                connection_id.clone(),
-                EndReason::Failed {
-                    detail: reason.into(),
-                },
-            )
-            .await;
-    }
-}
-
-async fn bind_and_pair_connection(
-    orchestrator: &Arc<Orchestrator>,
-    store: &Arc<Store>,
-    vapi: Option<&Arc<VapiAdapter>>,
-    state: &mut MediaState,
-    connection_id: &ConnectionId,
-    routed: bool,
-) -> std::result::Result<(), &'static str> {
-    let (Some(credential), Some(durable_session)) = (
-        state.credentials.get(connection_id),
-        state.sessions.get(connection_id),
-    ) else {
-        return Ok(());
-    };
-    if let Err(error) =
-        store.bind_session_connection(credential, durable_session, connection_id.as_str())
-    {
-        tracing::warn!(code = error.code, "could not persist media readiness");
-        return Err("media-binding-denied");
-    }
-    let outcome = state
-        .vapi
-        .bind(
-            orchestrator,
-            store,
-            vapi,
-            crate::vapi_media::VapiBinding {
-                credential,
-                durable_session,
-                connection_id,
-                routed,
-            },
-        )
-        .await?;
-    if outcome == crate::vapi_media::BindOutcome::NoRoute {
-        pair_connection(orchestrator, state, connection_id).await?;
-    }
-    Ok(())
-}
-
-async fn pair_connection(
-    orchestrator: &Arc<Orchestrator>,
-    state: &mut MediaState,
-    connection_id: &ConnectionId,
-) -> std::result::Result<(), &'static str> {
-    if state.paired_connections.contains_key(connection_id) {
-        return Ok(());
-    }
-    let Some(session_id) = state.sessions.get(connection_id).cloned() else {
-        return Ok(());
-    };
-    let transport = orchestrator
-        .connection_transport(connection_id)
-        .map_err(|_| "media-connection-unavailable")?;
-    let waiting = state
-        .waiting_by_session
-        .entry(session_id.clone())
-        .or_default();
-    let peer_index = waiting.iter().position(|candidate| {
-        candidate != connection_id
-            && orchestrator
-                .connection_transport(candidate)
-                .is_ok_and(|candidate_transport| candidate_transport != transport)
-    });
-    let Some(peer_index) = peer_index else {
-        if !waiting.contains(connection_id) {
-            waiting.push(connection_id.clone());
-        }
-        return Ok(());
-    };
-    let peer = waiting.remove(peer_index);
-    if waiting.is_empty() {
-        state.waiting_by_session.remove(&session_id);
-    }
-    match orchestrator
-        .bridge_connections(peer.clone(), connection_id.clone())
-        .await
-    {
-        Ok(_) => {
-            state
-                .paired_connections
-                .insert(peer.clone(), connection_id.clone());
-            state.paired_connections.insert(connection_id.clone(), peer);
-            Ok(())
-        }
-        Err(error) => {
-            tracing::warn!(%error, "could not bridge cross-transport Session peers");
-            state
-                .waiting_by_session
-                .entry(session_id)
-                .or_default()
-                .push(peer);
-            Err("cross-transport-bridge-failed")
-        }
     }
 }

@@ -298,6 +298,38 @@ impl Store {
         control_url: Option<&str>,
         reason: Option<&str>,
     ) -> Result<()> {
+        self.finish_voice_result(job, state, provider_id, control_url, reason, None)
+    }
+    /// Trusted physical observation of an already admitted/bound leg. This
+    /// cannot initiate an operation under a revoked principal; cleanup status
+    /// continues under the host's ownership of the existing remote effect.
+    pub fn finish_voice_observation(
+        &self,
+        job: &VoiceJob,
+        state: &str,
+        provider_id: Option<&str>,
+        control_url: Option<&str>,
+        reason: Option<&str>,
+        observation: &connect_connector_api::lifecycle::Observation,
+    ) -> Result<()> {
+        self.finish_voice_result(
+            job,
+            state,
+            provider_id,
+            control_url,
+            reason,
+            Some(observation),
+        )
+    }
+    fn finish_voice_result(
+        &self,
+        job: &VoiceJob,
+        state: &str,
+        provider_id: Option<&str>,
+        control_url: Option<&str>,
+        reason: Option<&str>,
+        observation: Option<&connect_connector_api::lifecycle::Observation>,
+    ) -> Result<()> {
         if ![
             "queued",
             "ringing",
@@ -316,6 +348,61 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let old = get(&tx, &job.call.conversation_id, &job.call.id)?;
+        if let Some(observation) = observation {
+            use connect_connector_api::lifecycle::{
+                Apply, Projection, State, Verification, VoiceState,
+            };
+            let normalized = match state {
+                "queued" | "ringing" => VoiceState::Starting,
+                "in-progress" => VoiceState::Active,
+                "ended" => VoiceState::Ended,
+                "failed" => VoiceState::Failed,
+                _ => VoiceState::Uncertain,
+            };
+            if observation.mutation_id != old.id
+                || observation.external_id.as_deref() != provider_id
+                || observation.state != State::Voice(normalized)
+                || (old.provider_id.is_some()
+                    && provider_id.is_some()
+                    && old.provider_id.as_deref() != provider_id)
+                || (observation.verification == Verification::LocalAttempt
+                    && !matches!(normalized, VoiceState::Failed | VoiceState::Uncertain))
+            {
+                return Err(invalid());
+            }
+            let prior: Option<String> = tx
+                .query_row(
+                    "SELECT projection_json FROM connector_voice_observations WHERE call_id=?1",
+                    [&old.id],
+                    |r| r.get(0),
+                )
+                .optional()
+                .map_err(|_| Error::storage())?;
+            let mut projection = match prior {
+                Some(json) => {
+                    serde_json::from_str::<Projection>(&json).map_err(|_| Error::storage())?
+                }
+                None => Projection::new(
+                    old.id.clone(),
+                    State::Voice(match old.state.as_str() {
+                        "ended" => VoiceState::Ended,
+                        "failed" => VoiceState::Failed,
+                        "in-progress" => VoiceState::Active,
+                        "uncertain" => VoiceState::Uncertain,
+                        _ => VoiceState::Starting,
+                    }),
+                )
+                .map_err(|_| invalid())?,
+            };
+            let applied = projection
+                .apply(observation.clone(), true)
+                .map_err(|_| Error::new("conflict", "Voice observation requires reconciliation"))?;
+            tx.execute("INSERT INTO connector_voice_observations VALUES(?1,?2) ON CONFLICT(call_id) DO UPDATE SET projection_json=excluded.projection_json", params![old.id,serde_json::to_string(&projection).map_err(|_| Error::storage())?]).map_err(|_| Error::storage())?;
+            if matches!(applied, Apply::Older | Apply::Duplicate) {
+                tx.commit().map_err(|_| Error::storage())?;
+                return Ok(());
+            }
+        }
         tx.execute("UPDATE voice_calls SET state=?2,provider_id=COALESCE(?3,provider_id),control_url=COALESCE(?4,control_url),ended_reason=?5,end_requested=CASE WHEN ?2 IN ('ended','failed') THEN 0 ELSE end_requested END WHERE id=?1",params![old.id,state,provider_id,control_url,reason]).map_err(|_| Error::storage())?;
         let saved = get(&tx, &old.conversation_id, &old.id)?;
         if saved != old {

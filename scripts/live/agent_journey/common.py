@@ -76,13 +76,14 @@ def port(allocated):
     raise ProofFailure("unused-local-port")
 
 
-def verify_runtime(runtime, qualification):
+def verify_runtime(runtime, qualification, expected_profile="gate4-local"):
     manifest = read_json(runtime / "manifest.json", 8 * MAX_LOG)
     report = read_json(qualification, 8 * MAX_LOG)
     require(report.get("result") == "passed", "passed-package-required")
     require(report.get("manifest") == manifest, "exact-package-manifest-required")
     require(manifest.get("target") == "aarch64-apple-darwin", "local-arm64-target")
-    require(manifest.get("qualification_profile") == "gate4-local", "gate4-runtime-profile")
+    require(expected_profile in ("gate4-local", "gate5-local"), "known-runtime-profile")
+    require(manifest.get("qualification_profile") == expected_profile, "matching-runtime-profile")
     require(manifest.get("source_revision"), "recorded-source-revision")
     files = manifest.get("files", {})
     require("docs/AGENT_ACCESS.md" in files, "new-regular-agent-package-required")

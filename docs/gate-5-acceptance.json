@@ -3,10 +3,10 @@
   "title": "Downloadable v0.1",
   "revision": 2,
   "updated": "2026-10-13",
-  "status": "draft-for-owner-review",
+  "status": "implementation-in-progress",
   "plan": "connect-gate-5-plan.html",
   "implementation": "connect-gate-5-implementation.html",
-  "scope": "Product acceptance proposal. No implementation, provider operations, public ingress, deployment or publication authorized. Local macOS arm64 qualification baseline.",
+  "scope": "Owner-authorized Gate 5 implementation and parallel qualification. Local macOS arm64 only; communication provider operations, public ingress, deployment and publication remain separate. Acceptance requires current behavior evidence and actual owner review.",
   "acceptance": [
     {
       "id": "A5-01",

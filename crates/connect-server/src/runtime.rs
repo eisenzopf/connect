@@ -77,9 +77,9 @@ impl RunningServer {
         Self::start_interfaces_inner(config, http_bind, webhook_bind, providers, None).await
     }
 
-    /// Dependency-injected Vapi media path for the bounded local provider
-    /// harness. Provider polling remains disabled, so this cannot affect an
-    /// external account.
+    /// Dependency-injected Vapi media path with provider polling disabled.
+    /// The caller selects the adapter and is responsible for its endpoint and
+    /// account effects; the local provider harness supplies loopback fixtures.
     #[doc(hidden)]
     pub async fn start_with_vapi_media(
         config: ServerConfig,
@@ -100,23 +100,37 @@ impl RunningServer {
         let installation = crate::installation::InstallationLock::acquire(&config.database)?;
         let store = Arc::new(Store::open(&config.database, config.limits.clone())?);
         store.integrity_check()?;
+        store.reconcile_interrupted_video_connections()?;
+        let telnyx_key = if providers {
+            crate::secrets::optional("TELNYX_API_KEY")?
+        } else {
+            None
+        };
+        let vapi_key = if providers {
+            crate::secrets::optional("VAPI_PRIVATE_KEY")?
+        } else {
+            None
+        };
         let mut discovery = connect_store::DiscoveryRuntime {
             native_audio: true,
+            native_video: true,
             sip: config
                 .sip
                 .as_ref()
                 .is_some_and(|sip| sip.outbound.is_some()),
             providers: if providers {
-                [("telnyx", "TELNYX_API_KEY"), ("vapi", "VAPI_PRIVATE_KEY")]
-                    .into_iter()
-                    .filter(|(_, key)| std::env::var_os(key).is_some())
-                    .map(|(name, _)| name.to_owned())
-                    .collect()
+                [
+                    ("telnyx", telnyx_key.is_some()),
+                    ("vapi", vapi_key.is_some()),
+                ]
+                .into_iter()
+                .filter(|(_, present)| *present)
+                .map(|(name, _)| name.to_owned())
+                .collect()
             } else {
                 Vec::new()
             },
-            vapi_audio: injected_vapi_media.is_some()
-                || (providers && std::env::var_os("VAPI_PRIVATE_KEY").is_some()),
+            vapi_audio: injected_vapi_media.is_some() || vapi_key.is_some(),
             browser: config.webrtc.as_ref().map(|w| connect_store::BrowserRoute {
                 credential_id: w.route.credential_id.clone(),
                 binding: connect_protocol::BrowserBinding {
@@ -129,15 +143,20 @@ impl RunningServer {
         };
         let readiness = Arc::new(connect_service::readiness::OperationalReadiness::default());
         let orchestrator = Orchestrator::new(crate::media_profile::orchestrator_config());
+        let media_diagnostics = orchestrator.media_diagnostics();
+        readiness.set_media_snapshot(Arc::new(move || {
+            crate::media_diagnostics::snapshot(media_diagnostics.snapshot())
+        }));
         let session_resolver =
             StoreSessionBindingResolver::new(store.clone(), orchestrator.clone())?;
         let vapi_media = if injected_vapi_media.is_some() {
             injected_vapi_media
         } else if providers {
-            std::env::var("VAPI_PRIVATE_KEY")
-                .ok()
+            vapi_key
+                .as_ref()
                 .map(|value| {
-                    let key = VapiApiKey::new(value).map_err(anyhow::Error::from)?;
+                    let key =
+                        VapiApiKey::new(value.expose().to_owned()).map_err(anyhow::Error::from)?;
                     let mut config = crate::media_profile::vapi_config(key);
                     config.api_base = connect_connectors::vapi_api_base()?;
                     if config.api_base.scheme() == "http" {
@@ -206,13 +225,29 @@ impl RunningServer {
         };
         let sip_address = media_transports.sip_address;
         let webrtc_address = media_transports.webrtc_address;
-        let public_key = if let Ok(key) = std::env::var("TELNYX_PUBLIC_KEY") {
-            Some(key)
+        let configured_public_key = if http_bind.is_some() || webhook_bind.is_some() {
+            crate::secrets::optional("TELNYX_PUBLIC_KEY")?
+        } else {
+            None
+        };
+        let public_key = if let Some(key) = configured_public_key {
+            Some(key.expose().to_owned())
         } else if providers
             && (http_bind.is_some() || webhook_bind.is_some())
-            && std::env::var_os("TELNYX_API_KEY").is_some()
+            && telnyx_key.is_some()
         {
-            Some(connect_connectors::setup::public_key().await?)
+            Some(
+                connect_connectors::setup::public_key_with_client(
+                    &connect_connectors::Telnyx::new(
+                        telnyx_key
+                            .as_ref()
+                            .context("Missing Telnyx secret")?
+                            .expose(),
+                        "https://api.telnyx.com/v2",
+                    )?,
+                )
+                .await?,
+            )
         } else {
             None
         };
@@ -242,7 +277,7 @@ impl RunningServer {
             None
         };
         let webhook_address = webhook.as_ref().map(|h| h.address);
-        let voice = if providers && std::env::var_os("VAPI_PRIVATE_KEY").is_some() {
+        let voice = if vapi_key.is_some() {
             Some(crate::voice::Worker::start(service.clone())?)
         } else {
             None
@@ -272,6 +307,10 @@ impl RunningServer {
         // Bind native transport after optional listener admission. A rejected
         // optional listener must not leave a substrate accept task holding QUIC.
         let mut transport = quinn::TransportConfig::default();
+        let datagram_capacity = rvoip_quic::apply_encoded_video_transport_budget(&mut transport);
+        orchestrator
+            .media_diagnostics()
+            .configure_quic_send_buffer(datagram_capacity);
         transport.max_idle_timeout(Some(Duration::from_secs(30).try_into()?));
         let endpoint = Arc::new(
             rvoip_uctp::substrate::make_server_endpoint(
@@ -291,12 +330,19 @@ impl RunningServer {
             .take(rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES)
             .context("Missing UCTP ALPN route")?;
         let mut cfg = UctpQuicConfig::new(endpoint.clone(), rx, validator)
+            .with_local_capabilities(crate::media_profile::native_capabilities())
             .with_application_handler(service.clone())
             .with_session_binding_resolver(session_resolver)
-            .with_subscription_handler(rvoip_uctp::state::OrchestratorSubscriptionHandler::new(
-                orchestrator.clone(),
-                orchestrator.publisher_registry(),
-            ))
+            .with_subscription_handler(
+                rvoip_uctp::state::OrchestratorSubscriptionHandler::with_accepted_codecs(
+                    orchestrator.clone(),
+                    orchestrator.publisher_registry(),
+                    rvoip_uctp::state::DEFAULT_ACCEPTED_CODECS
+                        .iter()
+                        .copied()
+                        .chain(std::iter::once("vp8")),
+                ),
+            )
             .with_orchestrator(orchestrator.clone());
         cfg.max_concurrent_connections = config.limits.connections;
         cfg.coordinator_caps.scope_policy = connect_service::native_media_scope_policy();
@@ -339,54 +385,77 @@ impl RunningServer {
     }
     /// Stop intake, terminate media legs, and drain all owned resources.
     pub async fn shutdown(mut self) -> Result<()> {
+        let began = std::time::Instant::now();
+        let stage = |phase: &str| {
+            tracing::debug!(
+                phase,
+                elapsed_ms = began.elapsed().as_millis(),
+                "server shutdown stage"
+            )
+        };
         self.adapter.begin_drain();
+        stage("intake-closed");
+        // Start physical native drain with intake shutdown, so it overlaps the
+        // owned facade/peer cleanup rather than adding a second serial deadline.
+        self.endpoint.close(0u32.into(), b"server shutdown");
         let mut failures = Vec::new();
+        stage("mcp");
         if let Some(mcp) = self.mcp.take() {
             if let Err(error) = mcp.shutdown().await {
                 failures.push(error.to_string());
             }
         }
+        stage("voice");
         if let Some(voice) = self.voice.take() {
             if let Err(error) = voice.shutdown().await {
                 failures.push(error.to_string());
             }
         }
+        stage("webhook");
         if let Some(webhook) = self.webhook.take() {
             if let Err(error) = webhook.shutdown().await {
                 failures.push(error.to_string());
             }
         }
+        stage("http");
         if let Some(http) = self.http.take() {
             if let Err(error) = http.shutdown().await {
                 failures.push(error.to_string());
             }
         }
+        stage("providers");
         if let Some(providers) = self.providers.take() {
             if let Err(error) = providers.shutdown().await {
                 failures.push(error.to_string());
             }
         }
+        stage("sip-outbound");
         if let Some(sip_outbound) = self.sip_outbound.take() {
             if let Err(error) = sip_outbound.shutdown().await {
                 failures.push(error.to_string());
             }
         }
+        stage("media-lifecycle");
         if let Some(media_lifecycle) = self.media_lifecycle.take() {
             if let Err(error) = media_lifecycle.shutdown().await {
                 failures.push(error.to_string());
             }
         }
+        stage("media-transports");
         self.media_transports.shutdown(&mut failures).await;
+        stage("prepared-core");
         self.orchestrator
             .drain_prepared_outbound_connections()
             .await;
+        stage("core-lifecycle");
         self.orchestrator.drain_connection_lifecycle_tasks().await;
-        self.endpoint.close(0u32.into(), b"server shutdown");
+        stage("websocket");
         if let Some(websocket) = self.websocket.take() {
             if let Err(error) = websocket.shutdown().await {
                 failures.push(error.to_string());
             }
         }
+        stage("quic-idle");
         if tokio::time::timeout(Duration::from_secs(5), self.endpoint.wait_idle())
             .await
             .is_err()
@@ -397,6 +466,7 @@ impl RunningServer {
             );
             failures.push("QUIC shutdown exceeded 5 seconds".into());
         }
+        stage("complete");
         anyhow::ensure!(failures.is_empty(), "{}", failures.join("; "));
         Ok(())
     }

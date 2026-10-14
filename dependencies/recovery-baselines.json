@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "repository": "https://github.com/eisenzopf/connect.git",
+  "baselines": {
+    "1": {
+      "revision": "3aa6077bee3ea05cea0aca550e9469df53c5ed87",
+      "kind": "identity-only-recovery-fixture",
+      "patch": "patches/recovery/schema1-identity-fixture.patch",
+      "patch_sha256": "7813304cbdbae7f50b66525b9b09bc42088d386bf06986992a575070a2e6a7f6",
+      "qualification": "Explicit schema2-to-schema1 initialization patch; not an unmodified historical release or behavioral schema1 messaging baseline."
+    },
+    "6": {
+      "revision": "8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+      "kind": "historical-unmodified"
+    },
+    "10": {
+      "revision": "99243f3962cf25e780bbd176e56a4f27c752e121",
+      "kind": "historical-unmodified"
+    },
+    "16": {
+      "revision": "32f4fadeaf45b1d59432a552b30522a94d388eb0",
+      "kind": "historical-unmodified"
+    }
+  }
+}

@@ -11,30 +11,68 @@ pub struct Worker {
 }
 impl Worker {
     pub fn start(service: Arc<Service>) -> anyhow::Result<Self> {
-        Self::with_driver(service, Arc::new(Vapi::from_env()?))
+        Self::with_driver(
+            service,
+            Arc::new(Vapi::new(
+                crate::secrets::resolve("VAPI_PRIVATE_KEY")?.expose(),
+                connect_connectors::vapi_api_base()?.as_str(),
+            )?),
+        )
     }
     pub fn with_driver(
         service: Arc<Service>,
         driver: Arc<dyn VoiceConnector>,
     ) -> anyhow::Result<Self> {
+        Self::with_contract(service, driver, false)
+    }
+    /// Explicit normalized lifecycle composition. Existing telephone startup and
+    /// with_driver retain their carrier-qualified compatibility dispatch path.
+    pub fn with_observed_driver(
+        service: Arc<Service>,
+        driver: Arc<dyn VoiceConnector>,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            driver.voice_manifest().is_some(),
+            "Normalized voice driver requires a manifest"
+        );
+        Self::with_contract(service, driver, true)
+    }
+    fn with_contract(
+        service: Arc<Service>,
+        driver: Arc<dyn VoiceConnector>,
+        normalized: bool,
+    ) -> anyhow::Result<Self> {
+        let manifest = driver.voice_manifest();
+        if let Some(manifest) = &manifest {
+            manifest.validate_configuration(&driver.voice_configuration())?;
+            service.store.register_extension_manifest(manifest)?;
+        }
         service.store.recover_voice_calls()?;
         let stop = CancellationToken::new();
-        let discovery = crate::worker::spawn(
-            service.readiness.clone(),
-            "voice-discovery",
-            stop.clone(),
-            discover(service.clone(), driver.clone(), stop.clone()),
-        );
+        let mut tasks = Vec::new();
+        if supports(
+            &manifest,
+            connect_connector_api::manifest::ConnectorOperation::VoiceDiscover,
+        )
+        .is_ok()
+        {
+            tasks.push(crate::worker::spawn(
+                service.readiness.clone(),
+                "voice-discovery",
+                stop.clone(),
+                discover(service.clone(), driver.clone(), stop.clone()),
+            ));
+        } else {
+            service.readiness.unconfigured("voice-discovery");
+        }
         let control = crate::worker::spawn(
             service.readiness.clone(),
             "voice-control",
             stop.clone(),
-            control(service, driver, stop.clone()),
+            control(service, driver, stop.clone(), normalized, manifest),
         );
-        Ok(Self {
-            stop,
-            tasks: vec![discovery, control],
-        })
+        tasks.push(control);
+        Ok(Self { stop, tasks })
     }
     pub async fn shutdown(mut self) -> anyhow::Result<()> {
         self.stop.cancel();
@@ -48,6 +86,21 @@ impl Drop for Worker {
             task.abort();
         }
     }
+}
+fn supports(
+    manifest: &Option<connect_connector_api::manifest::Manifest>,
+    operation: connect_connector_api::manifest::ConnectorOperation,
+) -> connect_protocol::Result<()> {
+    if manifest
+        .as_ref()
+        .is_some_and(|manifest| !manifest.operations.contains(&operation))
+    {
+        return Err(connect_protocol::Error::new(
+            "unsupported-connector-operation",
+            "Connector operation is not declared",
+        ));
+    }
+    Ok(())
 }
 async fn discover(
     service: Arc<Service>,
@@ -137,6 +190,8 @@ async fn control(
     service: Arc<Service>,
     driver: Arc<dyn VoiceConnector>,
     cancelled: CancellationToken,
+    normalized: bool,
+    manifest: Option<connect_connector_api::manifest::Manifest>,
 ) -> anyhow::Result<()> {
     loop {
         if cancelled.is_cancelled() {
@@ -157,6 +212,66 @@ async fn control(
                 anyhow::bail!("Voice storage unavailable");
             }
         };
+        use connect_connector_api::manifest::ConnectorOperation;
+        let operation = match job.action {
+            VoiceAction::Start => ConnectorOperation::VoiceStart,
+            VoiceAction::Poll => ConnectorOperation::VoiceStatus,
+            VoiceAction::End => ConnectorOperation::VoiceEnd,
+        };
+        if supports(&manifest, operation).is_err() {
+            // No possible physical dispatch is admitted for an undeclared
+            // operation. Known starts fail locally; unavailable status/end
+            // cannot invent termination of an already-owned remote call.
+            let store = service.store.clone();
+            tokio::task::spawn_blocking(move || {
+                let state = if job.action == VoiceAction::Start {
+                    "failed"
+                } else {
+                    "uncertain"
+                };
+                if normalized {
+                    use connect_connector_api::lifecycle::{
+                        Observation, State, Verification, VoiceState,
+                    };
+                    let observation = Observation {
+                        mutation_id: job.call.id.clone(),
+                        external_id: job.call.provider_id.clone(),
+                        event_id: format!("unsupported:{}:{operation:?}", job.call.id),
+                        state: State::Voice(if state == "failed" {
+                            VoiceState::Failed
+                        } else {
+                            VoiceState::Uncertain
+                        }),
+                        verification: Verification::LocalAttempt,
+                    };
+                    store.finish_voice_observation(
+                        &job,
+                        state,
+                        job.call.provider_id.as_deref(),
+                        job.control_url.as_deref(),
+                        Some("unsupported-connector-operation"),
+                        &observation,
+                    )
+                } else {
+                    store.finish_voice_job(
+                        &job,
+                        state,
+                        job.call.provider_id.as_deref(),
+                        job.control_url.as_deref(),
+                        Some("unsupported-connector-operation"),
+                    )
+                }
+            })
+            .await
+            .map_err(|_| anyhow::anyhow!("Voice capability admission task failed"))??;
+            service.readiness.set(
+                "voice-control",
+                connect_protocol::ReadinessState::Degraded,
+                "unsupported-connector-operation",
+            );
+            service.notify_changed();
+            continue;
+        }
         let check_store = service.store.clone();
         let admitted = tokio::task::spawn_blocking(move || {
             let admitted = check_store.voice_dispatch_allowed(&job)?;
@@ -174,16 +289,36 @@ async fn control(
             destination: job.call.destination.clone(),
         };
         let action = async {
-            match job.action {
-                VoiceAction::Start => driver.start(&request).await,
-                VoiceAction::Poll => match job.call.provider_id.as_deref() {
-                    Some(id) => driver.status(id).await,
-                    None => Err(Failure::Rejected),
-                },
-                VoiceAction::End => match job.call.provider_id.as_deref() {
-                    Some(id) => driver.end(id, job.control_url.as_deref()).await,
-                    None => Err(Failure::Rejected),
-                },
+            if normalized {
+                let receipt = match job.action {
+                    VoiceAction::Start => driver.start_receipt(&job.call.id, &request).await,
+                    VoiceAction::Poll => match job.call.provider_id.as_deref() {
+                        Some(id) => driver.status_receipt(&job.call.id, id).await,
+                        None => Err(Failure::Rejected),
+                    },
+                    VoiceAction::End => match job.call.provider_id.as_deref() {
+                        Some(id) => {
+                            driver
+                                .end_receipt(&job.call.id, id, job.control_url.as_deref())
+                                .await
+                        }
+                        None => Err(Failure::Rejected),
+                    },
+                }?;
+                Ok((receipt.call, Some(receipt.observation)))
+            } else {
+                let call = match job.action {
+                    VoiceAction::Start => driver.start(&request).await,
+                    VoiceAction::Poll => match job.call.provider_id.as_deref() {
+                        Some(id) => driver.status(id).await,
+                        None => Err(Failure::Rejected),
+                    },
+                    VoiceAction::End => match job.call.provider_id.as_deref() {
+                        Some(id) => driver.end(id, job.control_url.as_deref()).await,
+                        None => Err(Failure::Rejected),
+                    },
+                }?;
+                Ok((call, None))
             }
         };
         let result = tokio::select! {
@@ -216,24 +351,49 @@ async fn control(
         );
         let store = service.store.clone();
         let saved = tokio::task::spawn_blocking(move || match result {
-            Ok(remote) => store.finish_voice_job(
-                &job,
-                &remote.state,
-                Some(&remote.id),
-                remote.control_url.as_deref(),
-                remote.ended_reason.as_deref(),
-            ),
-            Err(f) => store.finish_voice_job(
-                &job,
-                if job.action == VoiceAction::Start && matches!(f, Failure::Rejected) {
+            Ok((remote, observation)) => match observation {
+                Some(observation) => store.finish_voice_observation(
+                    &job,
+                    &remote.state,
+                    Some(&remote.id),
+                    remote.control_url.as_deref(),
+                    remote.ended_reason.as_deref(),
+                    &observation,
+                ),
+                None => store.finish_voice_job(
+                    &job,
+                    &remote.state,
+                    Some(&remote.id),
+                    remote.control_url.as_deref(),
+                    remote.ended_reason.as_deref(),
+                ),
+            },
+            Err(f) => {
+                let state = if job.action == VoiceAction::Start && matches!(f, Failure::Rejected) {
                     "failed"
                 } else {
                     "uncertain"
-                },
-                None,
-                None,
-                None,
-            ),
+                };
+                if normalized {
+                    use connect_connector_api::lifecycle::{
+                        Observation, State, Verification, VoiceState,
+                    };
+                    let observation = Observation {
+                        mutation_id: job.call.id.clone(),
+                        external_id: None,
+                        event_id: format!("attempt:{}:{:?}:{state}", job.call.id, job.action),
+                        state: State::Voice(if state == "failed" {
+                            VoiceState::Failed
+                        } else {
+                            VoiceState::Uncertain
+                        }),
+                        verification: Verification::LocalAttempt,
+                    };
+                    store.finish_voice_observation(&job, state, None, None, None, &observation)
+                } else {
+                    store.finish_voice_job(&job, state, None, None, None)
+                }
+            }
         })
         .await;
         if !matches!(saved, Ok(Ok(()))) {

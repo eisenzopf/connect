@@ -65,13 +65,37 @@ pub(crate) fn named(v: &Value, name: &str, field: &str) -> Result<Option<String>
 }
 /// Does not buy a number. Only the explicitly selected number's voice routing changes.
 pub async fn apply(
-    setup_state: &Path,
-    number_id: &str,
-    number: &str,
-    state_path: &Path,
-    inbound_only: bool,
+    _setup_state: &Path,
+    _number_id: &str,
+    _number: &str,
+    _state_path: &Path,
+    _inbound_only: bool,
 ) -> Result<Value> {
-    let owned = owned_sip(setup_state)?;
+    anyhow::bail!("Voice provisioning requires the authenticated server vault CLI; use connect providers voice-apply with operator/server config")
+}
+/// Explicit SDK clients and current authenticated server-vault access.
+pub struct VoiceSetupRequest<'a> {
+    pub setup_state: &'a Path,
+    pub number_id: &'a str,
+    pub number: &'a str,
+    pub state_path: &'a Path,
+    pub inbound_only: bool,
+}
+/// Read credential bytes only at the provider boundary; never in a checkpoint.
+pub async fn apply_with_clients_and_secrets(
+    request: VoiceSetupRequest<'_>,
+    v: &Vapi,
+    t: &Telnyx,
+    secrets: &dyn crate::setup::SetupSecretStore,
+) -> Result<Value> {
+    let VoiceSetupRequest {
+        setup_state,
+        number_id,
+        number,
+        state_path,
+        inbound_only,
+    } = request;
+    let owned = owned_sip(setup_state, secrets)?;
     ensure!(
         number_id.chars().all(|c| c.is_ascii_digit()) && !number_id.is_empty(),
         "Invalid Telnyx number ID"
@@ -91,8 +115,6 @@ pub async fn apply(
     }
     let lock = options.open(state_path.with_extension("lock"))?;
     lock.try_lock_exclusive()?;
-    let t = Telnyx::from_env()?;
-    let v = Vapi::from_env()?;
     let current: Value = t
         .client
         .get(format!("/phone_numbers/{number_id}"))
@@ -220,6 +242,7 @@ pub async fn apply(
         let resource_id = if let Some(id) = existing {
             id
         } else {
+            secrets.authorize()?;
             state.pending = Some(kind.into());
             write(state_path, &state)?;
             let result=match kind {
@@ -243,7 +266,9 @@ pub async fn apply(
         state.pending = None;
         write(state_path, &state)?;
     }
+    secrets.authorize()?;
     t.client.patch::<Value>(&format!("/credential_connections/{}",owned.connection_id),&json!({"outbound":{"outbound_voice_profile_id":state.outbound_profile_id,"channel_limit":2,"ani_override":number,"ani_override_type":"always"}})).await.map_err(|_|anyhow::anyhow!("Cannot attach outbound profile to owned trunk"))?;
+    secrets.authorize()?;
     v.client
         .patch(
             &format!(
@@ -257,6 +282,7 @@ pub async fn apply(
         )
         .await
         .map_err(|_| anyhow::anyhow!("Cannot update owned Vapi SIP destination"))?;
+    secrets.authorize()?;
     t.client
         .patch::<Value>(
             &format!("/phone_numbers/{number_id}/voice"),
@@ -272,6 +298,7 @@ pub async fn apply(
                     .collect::<Vec<_>>()
             )
         })?;
+    secrets.authorize()?;
     t.client
         .patch::<Value>(
             &format!("/phone_numbers/{number_id}"),

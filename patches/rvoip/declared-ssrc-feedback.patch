@@ -1,0 +1,196 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/endpoint.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/endpoint.rs
+@@ -439,15 +439,30 @@
+                         .find(|codec| codec.payload_type == rtp_header.payload_type)
+                 //TODO: what about RTX/FEC stream?
+                 {
+-                    Some(codec.rtp_codec.clone())
++                    Some(codec.clone())
+                 } else {
+                     None
+                 };
+ 
+                 if let Some(codec) = track_codec {
++                    // SDP-declared SSRCs defer codec selection until the first
++                    // RTP payload type is known. Bind hop feedback at that same
++                    // transition, just as the RID/undeclared paths do. Binding
++                    // on every packet would reset receiver loss/report state.
++                    let parameters = receiver.get_parameters(self.media_engine);
++                    RTCRtpReceiverInternal::interceptor_remote_stream_op(
++                        self.interceptor,
++                        true,
++                        ssrc,
++                        codec.payload_type,
++                        &codec.rtp_codec,
++                        &parameters.rtp_parameters.header_extensions,
++                    );
+                     // Set valid Codec for track when received the first RTP packet for such ssrc stream
+                     // assert not inserting new entry
+-                    let new_entry = receiver.track_mut().set_codec_by_ssrc(codec, ssrc);
++                    let new_entry = receiver
++                        .track_mut()
++                        .set_codec_by_ssrc(codec.rtp_codec, ssrc);
+                     assert!(!new_entry);
+ 
+                     // Get RTX and FEC SSRCs from coding parameters
+@@ -886,3 +901,6 @@
+         assert_eq!(codings[0].ssrc, Some(1001));
+     }
+ }
++
++#[cfg(test)]
++mod declared_feedback_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/endpoint/declared_feedback_tests.rs
+@@ -0,0 +1,151 @@
++//! SDP-declared SSRCs must enter the actual hop feedback interceptors once.
++use super::*;
++use crate::media_stream::MediaStreamTrack;
++use crate::peer_connection::configuration::interceptor_registry::{
++    configure_rtcp_reports, configure_twcc_receiver_only,
++};
++use crate::rtp_transceiver::rtp_sender::{
++    RTCRtpCodec, RTCRtpCodecParameters, RTCRtpEncodingParameters,
++};
++use crate::rtp_transceiver::{RTCRtpTransceiverDirection, RTCRtpTransceiverInit};
++use interceptor::{Registry, TaggedPacket};
++use rtcp::receiver_report::ReceiverReport;
++use rtcp::transport_feedbacks::transport_layer_cc::TransportLayerCc;
++use sansio::Protocol;
++use std::time::Duration;
++
++fn observe_feedback(payload_type: u8, repeat_binding: bool) -> (Vec<i32>, usize) {
++    let codec = RTCRtpCodecParameters {
++        rtp_codec: RTCRtpCodec {
++            mime_type: "video/VP8".into(),
++            clock_rate: 90_000,
++            ..Default::default()
++        },
++        payload_type: 96,
++    };
++    let mut media = MediaEngine::default();
++    media
++        .register_codec(codec.clone(), RtpCodecKind::Video)
++        .unwrap();
++    let registry = configure_rtcp_reports(Registry::new());
++    let mut chain = configure_twcc_receiver_only(registry, &mut media)
++        .unwrap()
++        .build();
++    let mut transceiver = RTCRtpTransceiverInternal::new(
++        RtpCodecKind::Video,
++        None,
++        RTCRtpTransceiverInit {
++            direction: RTCRtpTransceiverDirection::Recvonly,
++            ..Default::default()
++        },
++    );
++    transceiver.set_mid("video-0".into()).unwrap();
++    let receiver = transceiver.receiver_mut().as_mut().unwrap();
++    receiver.set_codec_preferences(vec![codec]);
++    let coding = RTCRtpCodingParameters {
++        ssrc: Some(1001),
++        ..Default::default()
++    };
++    receiver.set_coding_parameters(vec![coding.clone()]);
++    receiver.set_track(MediaStreamTrack::new(
++        "source".into(),
++        "video".into(),
++        "declared video".into(),
++        RtpCodecKind::Video,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: coding,
++            ..Default::default()
++        }],
++    ));
++    // This is the actual SDP path: the declared SSRC still has no codec.
++    receiver.interceptor_remote_streams_op(&media, &mut chain, true);
++    let extension_id = receiver
++        .get_parameters(&media)
++        .rtp_parameters
++        .header_extensions
++        .iter()
++        .find(|ext| ext.uri.contains("transport-wide-cc"))
++        .unwrap()
++        .id as u8;
++    let mut transceivers = vec![transceiver];
++    let mut context = EndpointHandlerContext::default();
++    let mut stats = RTCStatsAccumulator::new();
++    let now = Instant::now();
++    let mut losses = Vec::new();
++    let mut twcc = 0;
++    for (index, sequence) in [1, 3].into_iter().enumerate() {
++        let mut packet = rtp::Packet::default();
++        packet.header.ssrc = 1001;
++        packet.header.payload_type = payload_type;
++        packet.header.sequence_number = sequence;
++        packet.header.timestamp = u32::from(sequence) * 3000;
++        packet
++            .header
++            .set_extension(extension_id, sequence.to_be_bytes().to_vec().into())
++            .unwrap();
++        if index == 0 || repeat_binding {
++            let mut endpoint = EndpointHandler::new(
++                &mut context,
++                &mut transceivers,
++                &media,
++                &mut chain,
++                &mut stats,
++            );
++            assert_eq!(
++                endpoint.find_track_id_by_ssrc(1001, Some(&packet.header)),
++                Some("video".into())
++            );
++            assert!(
++                endpoint
++                    .find_track_id_by_ssrc(9999, Some(&packet.header))
++                    .is_none()
++            );
++        }
++        let at = now + Duration::from_secs(index as u64 * 2);
++        chain
++            .handle_read(TaggedPacket {
++                now: at,
++                transport: TransportContext::default(),
++                message: Packet::Rtp(packet),
++            })
++            .unwrap();
++        chain.handle_timeout(at + Duration::from_secs(1)).unwrap();
++        while let Some(out) = chain.poll_write() {
++            if let Packet::Rtcp(packets) = out.message {
++                for packet in packets {
++                    if let Some(report) = packet.as_any().downcast_ref::<ReceiverReport>() {
++                        for block in &report.reports {
++                            assert_eq!(block.ssrc, 1001);
++                            losses.push(block.total_lost as i32);
++                        }
++                    }
++                    if packet.as_any().is::<TransportLayerCc>() {
++                        twcc += 1;
++                    }
++                }
++            }
++        }
++    }
++    (losses, twcc)
++}
++
++#[test]
++fn declared_ssrc_generates_receiver_and_transport_feedback_without_resetting_loss() {
++    let (losses, twcc) = observe_feedback(96, true);
++    assert_eq!(
++        losses,
++        vec![0, 1],
++        "first codec bind must enable reports; repeated packets cannot reset loss"
++    );
++    assert_eq!(
++        twcc, 2,
++        "negotiated extension must enable real TWCC feedback"
++    );
++}
++
++#[test]
++fn unnegotiated_payload_cannot_bind_declared_ssrc_feedback() {
++    let (losses, twcc) = observe_feedback(127, true);
++    assert!(losses.is_empty());
++    assert_eq!(twcc, 0);
++}

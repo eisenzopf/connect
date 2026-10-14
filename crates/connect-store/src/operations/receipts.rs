@@ -42,7 +42,16 @@ pub(super) fn receipt(c: &Connection, actor: &str, id: &str) -> Result<Option<Sa
     .transpose()
 }
 pub(super) fn check_receipt_authority(actor: &Actor, saved: &Saved) -> Result<()> {
-    actor.require(&saved.operation)?;
+    actor.require(
+        if matches!(
+            saved.operation.as_str(),
+            "contact_pairing_start" | "contact_pairing_complete" | "contact_pairing_revoke"
+        ) {
+            "resolve"
+        } else {
+            &saved.operation
+        },
+    )?;
     if saved.resources.iter().any(|p| !actor.permits_recipient(p)) {
         return Err(Error::forbidden());
     };

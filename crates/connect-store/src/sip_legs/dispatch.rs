@@ -1,5 +1,5 @@
 //! SIP preparation can await; authorization must survive until wire admission.
-use super::{get, require_dial_authority, SipLegAction, SipLegJob};
+use super::{get, permitted_dial, require_dial_authority, SipLegAction, SipLegJob};
 use crate::{
     conversations::authorized_conversation, identity::actor_from_connection, media_end, Store,
 };
@@ -29,7 +29,7 @@ impl Store {
     /// flight. Cleanup must not misrepresent a possibly sent INVITE as unsent.
     pub fn sip_origination_cancelled(&self, job: &SipLegJob) -> Result<bool> {
         let c = self.connection()?;
-        Ok(!media_end::permitted(allowed(&c, job))?.unwrap_or(false))
+        Ok(!permitted_dial(allowed(&c, job))?.unwrap_or(false))
     }
     /// Recheck at the final commit boundary. Records one possible physical
     /// dispatch; repeat admission cannot redial or send another hangup.
@@ -43,8 +43,13 @@ impl Store {
             if leg.state != "starting" {
                 return Ok(false);
             }
-            if !media_end::permitted(allowed(&tx, job))?.unwrap_or(false) {
-                tx.execute("UPDATE sip_legs SET state='cancelled',ended_reason='authority-revoked-before-dispatch',end_requested=0,updated_at=?1 WHERE id=?2 AND state='starting'",params![crate::now(),leg.id]).map_err(|_|Error::storage())?;
+            let admission = allowed(&tx, job);
+            let unsupported = admission
+                .as_ref()
+                .err()
+                .is_some_and(|error| error.code == "unsupported-media-profile");
+            if !permitted_dial(admission)?.unwrap_or(false) {
+                tx.execute("UPDATE sip_legs SET state='cancelled',ended_reason=?1,end_requested=0,updated_at=?2 WHERE id=?3 AND state='starting'",params![if unsupported { "unsupported-media-profile" } else { "authority-revoked-before-dispatch" },crate::now(),leg.id]).map_err(|_|Error::storage())?;
                 tx.commit().map_err(|_| Error::storage())?;
                 return Ok(false);
             }

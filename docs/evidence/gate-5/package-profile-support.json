@@ -1,0 +1,169 @@
+{
+  "format": 1,
+  "task_ids": [
+    "G5-044",
+    "G5-045"
+  ],
+  "scope": "packaging support implementation and offline staged public-source kit rehearsal only",
+  "release_candidate_created": false,
+  "published": false,
+  "whole_gate_qualified": false,
+  "preserved": "Gate4 default profile, historical archive names and archived schema1 fixture default unchanged",
+  "implementation_files": {
+    "scripts/package-local.py": "cecd02dd8b335301381260d8c9b7a22fcfe931858dd1c8eadc885e55a1d7a77f",
+    "scripts/check-package.py": "64f95788a0bd87f7e46ac57d8fcd5df7d65039fa4d2fc66f1e98a8ca0f94a49c",
+    "scripts/lib/package_inventory.py": "ebd3b423b2bf41313b8976d762fee575948ddf1005eef0d7cd4405fa978612c8",
+    "scripts/lib/package_gate5.py": "64a37caf79c978c0ed2889483190a5dea9a817e8043ed05954a9ff1ce1610dde",
+    "scripts/tests/test_package_inventory.py": "4ec7a000505fa17f22c8bb91b109d3c843ade507e7fffb0e78d7508150414cdb",
+    "scripts/check-connector-contract.py": "011b5c391e6b144bcef0afc19aa91f2c704425fe36d2d50523a6cd59855db3b0",
+    "scripts/check-independent-uctp.py": "15b3fd94124a1411821d8c4dcf97dbe3626b05ac2df6d6d633ee1950efb0a93a",
+    "docs/GATE5_PACKAGE.md": "4b7b59cc8adc166ae9a60ac209c66d77eed8d60a774a50bc0368a52603aad4e2"
+  },
+  "inventory_unit_tests": {
+    "passed": 13,
+    "failed": 0,
+    "ignored": 0,
+    "coverage": [
+      "missing video asset",
+      "missing codec fixture",
+      "source substitution",
+      "API dependency drift",
+      "source inventory mismatch",
+      "symlink asset",
+      "baseline checksum/revision/schema/repository/kind/patch mismatch",
+      "owned installed artifact selection",
+      "incomplete status despite partial passes",
+      "success without required tests rejected",
+      "independent pass for another binary rejected",
+      "installed60-second media smoke rejected",
+      "separate clean/impairment/mute route inputs",
+      "seven exact-source failure checks required"
+    ]
+  },
+  "staged_kit_tests": {
+    "public_api": {
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0
+    },
+    "connector_template": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    "connector_contribution": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "independent_wire_vectors": {
+    "passed": 6,
+    "failed": 0,
+    "ignored": 0
+  },
+  "staged_contract_harnesses": {
+    "template": {
+      "passed": 40,
+      "failed": 0,
+      "profile": "connect-connector-fixture-v1",
+      "source_files": {
+        "examples/connector-template/Cargo.lock": "95e5ed62f12b4c88042502325fdb5d573b00caa9f3813c13297b0587a80b6326",
+        "examples/connector-template/Cargo.toml": "47e9d5f95e11ad5f751f30e6aa8b4c816a38d7bd5bae0f8f0d77a8d486441bef",
+        "examples/connector-template/media/voice.rs": "c1050828affe83ca4e28ad9d2c3ccb82738fff7bec5d0b8f2693b173b7766a20",
+        "examples/connector-template/src/lib.rs": "9ecb5cef7be6dad2176f34a4887be938ef5d8f75f1659bdbc4760a79729b5ca5",
+        "examples/connector-template/src/main.rs": "1658d3b68bc9da125ae18c60ab90c9b511e379469bbe0ac03a4a92472b0f7547",
+        "examples/connector-template/tests/broken_fixture.rs": "a1a44eb4087ab564abf64027266ceb04e8069e1a0ff92e4156ee8451c42a498f",
+        "examples/connector-template/tests/contract.rs": "54fee6066f8ebed4365be0b9120b8b0a3c044b13db85bd4caa7a2bcda9c07e0e",
+        "crates/connect-connector-api/src/conformance.rs": "adce594b8b45312ad1b278e09210f3814426c62c8311d1fa575b3d53d2d769aa",
+        "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
+        "crates/connect-connector-api/src/host_context.rs": "f7aff6f38d52744a4a06dd7f3375870460c5a57fa3a315e2c5272e7fc2ce3fa4",
+        "crates/connect-connector-api/src/lib.rs": "ddebd6de81134323bb795fb5a587d15e6ac2778c536a6852707d14713bfcbc83",
+        "crates/connect-connector-api/src/lifecycle.rs": "b0608038dc516fa6f4722247164c63d4e8bc458c1944c23110cab68fca60aa16",
+        "crates/connect-connector-api/src/manifest.rs": "de5c7baa7e740b98ee91e08a623c5c11808696c2c4535c47d39f41ae324c63c4",
+        "crates/connect-connector-api/Cargo.toml": "0ee8afa1b2ef064f2d65d6544b7c447a4a73c17a5adb5442a2a492c4f3fbc643",
+        "docs/CONNECTORS.md": "2ec5933f92f3fb2da5433ee1c2a07d9696f79766ddba59897d8207833276b4c9",
+        "contracts/connectors/profile-v1.md": "121e6dd703034e754716e3ac456ae75a78c558ed83e20dc432aa54e3941287f1",
+        "contracts/connectors/host-context-v1.md": "44b23d70ca14f1e2428e8f8b9ffa39e37ca9f364888cfe10fa78e4c75f2b251d",
+        "scripts/check-connector-contract.py": "011b5c391e6b144bcef0afc19aa91f2c704425fe36d2d50523a6cd59855db3b0"
+      }
+    },
+    "contribution": {
+      "passed": 40,
+      "failed": 0,
+      "profile": "connect-connector-fixture-v1",
+      "source_files": {
+        "examples/connector-contribution/Cargo.lock": "5eee845cc0b032f902302f6799cd3c76dc4e0e8867c18bcd6f02d99d5b34ea19",
+        "examples/connector-contribution/Cargo.toml": "016088f10da1ddaa7f09d67c3966e7852fa057fcadf534c880ce862639302d80",
+        "examples/connector-contribution/src/lib.rs": "9c24b528020db9e558979741b97e22c852d06d3139e7af7f37c4e60558a1a812",
+        "examples/connector-contribution/src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
+        "examples/connector-contribution/src/media.rs": "455f89124255a8a0edfab1d5b9c018730bfa6458ff39993d3b0ad8fb5502816d",
+        "examples/connector-contribution/tests/boundaries.rs": "43a1d3a6bb6f6ada41e078d012320d3bf6be0c2566cd1f6152b36b2fa42c3a65",
+        "crates/connect-connector-api/src/conformance.rs": "adce594b8b45312ad1b278e09210f3814426c62c8311d1fa575b3d53d2d769aa",
+        "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
+        "crates/connect-connector-api/src/host_context.rs": "f7aff6f38d52744a4a06dd7f3375870460c5a57fa3a315e2c5272e7fc2ce3fa4",
+        "crates/connect-connector-api/src/lib.rs": "ddebd6de81134323bb795fb5a587d15e6ac2778c536a6852707d14713bfcbc83",
+        "crates/connect-connector-api/src/lifecycle.rs": "b0608038dc516fa6f4722247164c63d4e8bc458c1944c23110cab68fca60aa16",
+        "crates/connect-connector-api/src/manifest.rs": "de5c7baa7e740b98ee91e08a623c5c11808696c2c4535c47d39f41ae324c63c4",
+        "crates/connect-connector-api/Cargo.toml": "0ee8afa1b2ef064f2d65d6544b7c447a4a73c17a5adb5442a2a492c4f3fbc643",
+        "docs/CONNECTORS.md": "2ec5933f92f3fb2da5433ee1c2a07d9696f79766ddba59897d8207833276b4c9",
+        "contracts/connectors/profile-v1.md": "121e6dd703034e754716e3ac456ae75a78c558ed83e20dc432aa54e3941287f1",
+        "contracts/connectors/host-context-v1.md": "44b23d70ca14f1e2428e8f8b9ffa39e37ca9f364888cfe10fa78e4c75f2b251d",
+        "scripts/check-connector-contract.py": "011b5c391e6b144bcef0afc19aa91f2c704425fe36d2d50523a6cd59855db3b0"
+      }
+    }
+  },
+  "source_rehearsal": {
+    "result": "source-inventory-verified",
+    "source_dirty": true,
+    "candidate_created": false,
+    "note": "Current working-tree source inventory plus real staged copy/flattened API tests; no archive/runtime qualification claim"
+  },
+  "quality": {
+    "python_compile": true,
+    "format_check": true,
+    "diff_check": true
+  },
+  "not_run": [
+    "clean-source release compilation",
+    "three-archive inventory installation",
+    "installed retained behavior",
+    "installed independent control against release binary",
+    "installed schema16 upgrade/rollback/replay",
+    "installed setup/native Keychain",
+    "installed decoded native/browser video and adverse-network recovery"
+  ],
+  "qualification_hook_result": "Actual installed execution pending. Dedicated checks fail/incomplete on unresolved coverage; full hook success remains separate from whole Gate5 acceptance.",
+  "private_artifacts": ".local/gate5/package-*; fixture state and build logs stay ignored",
+  "installed_hook_scope": {
+    "status": "implemented-under-qualification",
+    "required": [
+      "selected-candidate public setup",
+      "isolated native Keychain with installed CLI override",
+      "public pinned schema1/schema16 recovery",
+      "independent Python QUIC control",
+      "all three decoded video routes clean and impaired for 60 seconds",
+      "runtime inventory/hash stability after behavior"
+    ],
+    "not_a_whole_gate_claim": true
+  },
+  "package_orchestration_unit_tests": {
+    "passed": 13,
+    "failed": 0,
+    "scope": "asset inventory and qualification guards; fake process results only, no installed behavior claim"
+  },
+  "installed_required_coverage": {
+    "status": "implemented-not-run",
+    "checks": [
+      "public selected-binary setup",
+      "native Keychain parent/child with installed CLI",
+      "exact archived-source seven failure fixtures (separate scope)",
+      "public historical migrations",
+      "reference UI and controlled media faults",
+      "three clean60 routes",
+      "three impaired60 routes",
+      "three mute20 routes"
+    ],
+    "claims": "No release candidate or installed behavior has been qualified yet."
+  }
+}

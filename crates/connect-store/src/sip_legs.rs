@@ -118,11 +118,26 @@ pub(crate) fn end(
 fn require_dial_authority(actor: &Actor, session: &Session) -> Result<()> {
     if actor.identity_id != session.initiator_id
         || !matches!(session.state.as_str(), "accepted" | "ready")
-        || !session.media.iter().any(|value| value == "audio")
     {
         return Err(Error::forbidden());
     }
+    if session.media != ["audio"] {
+        return Err(Error::new(
+            "unsupported-media-profile",
+            "SIP origination supports audio-only Sessions",
+        ));
+    }
     Ok(())
+}
+
+// An unsupported pending profile is a durable admission refusal, not an
+// infrastructure failure. Keep this SIP-specific; other workers retain their
+// existing authorization/infrastructure distinction.
+fn permitted_dial<T>(result: Result<T>) -> Result<Option<T>> {
+    match result {
+        Err(error) if error.code == "unsupported-media-profile" => Ok(None),
+        other => crate::media_end::permitted(other),
+    }
 }
 
 fn valid_destination(value: &str) -> bool {
@@ -172,10 +187,22 @@ impl Store {
                 let session = crate::sessions::get(&tx, &conversation_id, &leg.session_id)?;
                 require_dial_authority(&actor, &session)
             })();
-            if crate::media_end::permitted(allowed)?.is_none() {
+            let unsupported = allowed
+                .as_ref()
+                .err()
+                .is_some_and(|error| error.code == "unsupported-media-profile");
+            if permitted_dial(allowed)?.is_none() {
                 tx.execute(
-                    "UPDATE sip_legs SET state='failed',ended_reason='authority-revoked',updated_at=?1 WHERE id=?2",
-                    params![now(), id],
+                    "UPDATE sip_legs SET state='failed',ended_reason=?1,updated_at=?2 WHERE id=?3",
+                    params![
+                        if unsupported {
+                            "unsupported-media-profile"
+                        } else {
+                            "authority-revoked"
+                        },
+                        now(),
+                        id
+                    ],
                 )
                 .map_err(|_| Error::storage())?;
                 tx.commit().map_err(|_| Error::storage())?;

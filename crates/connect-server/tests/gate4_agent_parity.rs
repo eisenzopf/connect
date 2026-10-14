@@ -94,8 +94,21 @@ async fn ordinary_discovery_availability_delivery_and_close_do_not_expose_privat
         installation_id,
         native.health().await.unwrap().installation_id
     );
-    let binding = mcp::operation(&client, &Operation::BrowserBinding {}).await;
-    match native.request(Operation::BrowserBinding {}).await {
+    let binding = mcp::operation(
+        &client,
+        &Operation::BrowserBinding {
+            conversation_id: None,
+            session_id: None,
+        },
+    )
+    .await;
+    match native
+        .request(Operation::BrowserBinding {
+            conversation_id: None,
+            session_id: None,
+        })
+        .await
+    {
         Ok(expected) => assert_eq!(mcp::outcome(binding), expected),
         Err(ClientError::Application(error)) => assert_eq!(mcp::error(binding), error),
         Err(error) => panic!("browser discovery failed outside application contract: {error}"),

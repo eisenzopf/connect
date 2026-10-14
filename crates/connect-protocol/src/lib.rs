@@ -1,10 +1,17 @@
 //! Transport-independent Connect application contract carried by UCTP envelopes.
 
+pub mod contacts;
 mod discovery;
 pub mod media_profile;
 pub mod tasks;
+pub mod video_profile;
 pub use discovery::*;
 
+mod media_diagnostics;
+pub use media_diagnostics::{
+    MediaDiagnostics, MediaForwardObservation, MediaQueueObservation, QuicSendBufferObservation,
+    QuicTransmissionObservation, WebRtcVideoInputObservation,
+};
 mod readiness;
 pub use readiness::{ComponentReadiness, Readiness, ReadinessState};
 
@@ -35,9 +42,27 @@ impl Request {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
+    /// Native authenticated pairing verifies an identity only, never SMS consent.
+    ContactPairingStart {
+        request_id: String,
+        peer_identity_id: String,
+        expires_at: i64,
+    },
+    ContactPairingComplete {
+        request_id: String,
+        pairing_id: String,
+        challenge: String,
+    },
+    ContactPairingRevoke {
+        request_id: String,
+        pairing_id: String,
+    },
+    ContactState {
+        peer_identity_id: String,
+    },
     /// Additive task policy carried by the existing control application. The
     /// authenticated principal supplies ownership, never the request payload.
     Task {
@@ -50,7 +75,12 @@ pub enum Operation {
         address: String,
         conversation_id: Option<String>,
     },
-    BrowserBinding {},
+    BrowserBinding {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        conversation_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        session_id: Option<String>,
+    },
     ContextDeliveries {
         conversation_id: String,
         before: Option<String>,
@@ -196,6 +226,15 @@ pub enum Operation {
     Health {},
 }
 
+impl std::fmt::Debug for Operation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Operation")
+            .field("op", &self.name())
+            .field("request_id", &self.request_id())
+            .finish_non_exhaustive()
+    }
+}
+
 impl Operation {
     /// Canonical conversation routing metadata for UCTP envelopes.
     pub fn conversation_id(&self) -> Option<&str> {
@@ -271,15 +310,22 @@ impl Operation {
             | Self::Close {
                 conversation_id, ..
             } => Some(conversation_id),
+            Self::BrowserBinding {
+                conversation_id, ..
+            } => conversation_id.as_deref(),
             _ => None,
         }
     }
     pub fn name(&self) -> &'static str {
         match self {
+            Self::ContactPairingStart { .. } => "contact_pairing_start",
+            Self::ContactPairingComplete { .. } => "contact_pairing_complete",
+            Self::ContactPairingRevoke { .. } => "contact_pairing_revoke",
+            Self::ContactState { .. } => "contact_state",
             Self::Task { .. } => "task",
             Self::Resolve { .. } => "resolve",
             Self::Capabilities { .. } => "capabilities",
-            Self::BrowserBinding {} => "browser_binding",
+            Self::BrowserBinding { .. } => "browser_binding",
             Self::ContextDeliveries { .. } => "context_deliveries",
             Self::Create { .. } => "create",
             Self::Send { .. } => "send",
@@ -314,15 +360,22 @@ impl Operation {
     /// Additive read APIs use the existing authority for the information they expose.
     pub fn required_scope(&self) -> &'static str {
         match self {
+            Self::ContactPairingStart { .. }
+            | Self::ContactPairingComplete { .. }
+            | Self::ContactPairingRevoke { .. }
+            | Self::ContactState { .. } => "resolve",
             Self::Task { request } => request.command.required_scope(),
             Self::Capabilities { .. } => "resolve",
-            Self::BrowserBinding {} => "session_get",
+            Self::BrowserBinding { .. } => "session_get",
             Self::ContextDeliveries { .. } => "context_view",
             _ => self.name(),
         }
     }
     pub fn request_id(&self) -> Option<&str> {
         match self {
+            Self::ContactPairingStart { request_id, .. }
+            | Self::ContactPairingComplete { request_id, .. }
+            | Self::ContactPairingRevoke { request_id, .. } => Some(request_id),
             Self::Task { request } => request.command.request_id(),
             Self::Create { request_id, .. }
             | Self::Send { request_id, .. }
@@ -526,7 +579,13 @@ pub struct ProviderDelivery {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
+// This bounded wire DTO keeps its existing public Rust construction API.
+// Boxing the inline health readiness field would change caller types solely
+// to reduce stack size; all wire responses retain their protocol size limits.
+#[allow(clippy::large_enum_variant)]
 pub enum Outcome {
+    Contact(contacts::ContactState),
+    ContactPairing(contacts::Pairing),
     /// Task results retain their own pending/uncertain semantics and provenance.
     Task(Box<tasks::TaskOutcome>),
     Capabilities(Capabilities),
@@ -707,6 +766,36 @@ mod tests {
         let mut spoofed = value;
         spoofed["sender"] = serde_json::json!("other-actor");
         assert!(serde_json::from_value::<Request>(spoofed).is_err());
+    }
+
+    #[test]
+    fn browser_selection_preserves_legacy_wire_and_exact_selected_binding() {
+        let legacy = Operation::BrowserBinding {
+            conversation_id: None,
+            session_id: None,
+        };
+        assert_eq!(
+            serde_json::to_value(&legacy).unwrap(),
+            serde_json::json!({"op":"browser_binding"})
+        );
+        assert_eq!(
+            serde_json::from_value::<Operation>(serde_json::json!({"op":"browser_binding"}))
+                .unwrap(),
+            legacy
+        );
+        let selected = Operation::BrowserBinding {
+            conversation_id: Some("conversation".into()),
+            session_id: Some("session".into()),
+        };
+        let value = serde_json::json!({"op":"browser_binding","conversation_id":"conversation","session_id":"session"});
+        assert_eq!(serde_json::to_value(&selected).unwrap(), value);
+        assert_eq!(
+            serde_json::from_value::<Operation>(value).unwrap(),
+            selected
+        );
+        assert_eq!(selected.conversation_id(), Some("conversation"));
+        assert_eq!(selected.required_scope(), "session_get");
+        assert!(serde_json::from_value::<Operation>(serde_json::json!({"op":"browser_binding","conversation_id":"c","session_id":"s","identity_id":"spoof"})).is_err());
     }
 
     #[test]

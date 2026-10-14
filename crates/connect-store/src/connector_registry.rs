@@ -44,6 +44,64 @@ impl crate::Store {
         registry.insert(descriptor.name, descriptor);
         Ok(())
     }
+    /// Persist the full extension contract before worker recovery. An identical
+    /// restart is allowed; capability/configuration drift requires an explicit
+    /// migration/requalification rather than silently changing durable routes.
+    pub fn register_connector_manifest(
+        &self,
+        descriptor: Descriptor,
+        manifest: &connect_connector_api::manifest::Manifest,
+    ) -> Result<()> {
+        manifest
+            .validate_descriptor(descriptor)
+            .map_err(|_| Error::new("invalid-request", "Invalid connector manifest"))?;
+        self.persist_extension_manifest(manifest, Some(descriptor))
+    }
+    /// Persist non-messaging extension contracts without creating message routes.
+    pub fn register_extension_manifest(
+        &self,
+        manifest: &connect_connector_api::manifest::Manifest,
+    ) -> Result<()> {
+        manifest
+            .validate()
+            .map_err(|_| Error::new("invalid-request", "Invalid connector manifest"))?;
+        self.persist_extension_manifest(manifest, None)
+    }
+    fn persist_extension_manifest(
+        &self,
+        manifest: &connect_connector_api::manifest::Manifest,
+        descriptor: Option<Descriptor>,
+    ) -> Result<()> {
+        let encoded = serde_json::to_string(manifest).map_err(|_| Error::storage())?;
+        let mut c = self.connection()?;
+        let tx = c
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        use rusqlite::OptionalExtension;
+        let previous: Option<String> = tx
+            .query_row(
+                "SELECT manifest FROM connector_manifests WHERE name=?1",
+                [&manifest.name],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|_| Error::storage())?;
+        if previous.as_ref().is_some_and(|prior| prior != &encoded) {
+            return Err(Error::new(
+                "conflict",
+                "Connector manifest differs from persisted contract",
+            ));
+        }
+        if let Some(descriptor) = descriptor {
+            self.register_connector(descriptor)?;
+        }
+        tx.execute(
+            "INSERT OR IGNORE INTO connector_manifests(name,manifest) VALUES(?1,?2)",
+            rusqlite::params![manifest.name, encoded],
+        )
+        .map_err(|_| Error::storage())?;
+        tx.commit().map_err(|_| Error::storage())
+    }
     pub(crate) fn connector(&self, name: &str) -> Result<Descriptor> {
         self.connectors
             .0
@@ -53,6 +111,45 @@ impl crate::Store {
             .copied()
             .ok_or_else(|| Error::new("unavailable", "Connector contract is not registered"))
     }
+    /// Read declared operation support at trusted composition boundaries. This
+    /// is capability validation, never principal authorization. Legacy drivers
+    /// without a persisted manifest retain their existing dispatch behavior.
+    pub fn require_connector_operation(
+        &self,
+        name: &str,
+        operation: connect_connector_api::manifest::ConnectorOperation,
+    ) -> Result<()> {
+        let connection = self.connection()?;
+        require_operation(&connection, name, operation)
+    }
+}
+
+pub(crate) fn require_operation(
+    connection: &rusqlite::Connection,
+    name: &str,
+    operation: connect_connector_api::manifest::ConnectorOperation,
+) -> Result<()> {
+    use rusqlite::OptionalExtension;
+    let encoded: Option<String> = connection
+        .query_row(
+            "SELECT manifest FROM connector_manifests WHERE name=?1",
+            [name],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?;
+    if let Some(encoded) = encoded {
+        let manifest: connect_connector_api::manifest::Manifest =
+            serde_json::from_str(&encoded).map_err(|_| Error::storage())?;
+        manifest.validate().map_err(|_| Error::storage())?;
+        if !manifest.operations.contains(&operation) {
+            return Err(Error::new(
+                "unsupported-connector-operation",
+                "Connector operation is not declared",
+            ));
+        }
+    }
+    Ok(())
 }
 
 pub(crate) fn validate(descriptor: Descriptor, target: &str, source: Option<&str>) -> Result<()> {

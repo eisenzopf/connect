@@ -295,3 +295,254 @@ fn sip_intent_is_authorized_idempotent_recoverable_and_terminable() {
         "failed"
     );
 }
+
+struct MediaFixture {
+    _directory: tempfile::TempDir,
+    store: Store,
+    app: String,
+    agent: String,
+    app_key: String,
+    agent_key: String,
+    conversation: String,
+    av_session: String,
+    audio_session: String,
+}
+fn media_fixture() -> MediaFixture {
+    let directory = tempfile::tempdir().unwrap();
+    let store =
+        Store::initialize(&directory.path().join("state.sqlite3"), Limits::default()).unwrap();
+    let app = store.create_identity("audio-app").unwrap().id;
+    let agent = store.create_identity("audio-agent").unwrap().id;
+    let expiry = chrono::Utc::now().timestamp() + 600;
+    let app_key = store
+        .issue(&app, Scope::communications(vec![agent.clone()]), expiry)
+        .unwrap()
+        .id;
+    let agent_key = store
+        .issue(&agent, Scope::communications(vec![app.clone()]), expiry)
+        .unwrap()
+        .id;
+    let Outcome::Conversation(conversation) = store
+        .execute(
+            &app_key,
+            &Operation::Create {
+                request_id: "profile-conversation".into(),
+                participants: vec![agent.clone()],
+            },
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    let mut sessions = Vec::new();
+    for (name, media) in [
+        ("av", vec!["audio".into(), "video".into()]),
+        ("audio", vec!["audio".into()]),
+    ] {
+        let Outcome::Session(session) = store
+            .execute(
+                &app_key,
+                &Operation::SessionInvite {
+                    request_id: format!("invite-{name}"),
+                    conversation_id: conversation.id.clone(),
+                    participant_id: agent.clone(),
+                    media,
+                },
+            )
+            .unwrap()
+        else {
+            panic!()
+        };
+        store
+            .execute(
+                &agent_key,
+                &Operation::SessionAccept {
+                    request_id: format!("accept-{name}"),
+                    conversation_id: conversation.id.clone(),
+                    session_id: session.id.clone(),
+                },
+            )
+            .unwrap();
+        sessions.push(session.id);
+    }
+    MediaFixture {
+        _directory: directory,
+        store,
+        app,
+        agent,
+        app_key,
+        agent_key,
+        conversation: conversation.id,
+        av_session: sessions[0].clone(),
+        audio_session: sessions[1].clone(),
+    }
+}
+fn profile_dial(f: &MediaFixture, session: &str, request: &str) -> Operation {
+    Operation::SipDial {
+        request_id: request.into(),
+        conversation_id: f.conversation.clone(),
+        session_id: session.into(),
+        destination: "sip:peer@127.0.0.1:5099".into(),
+    }
+}
+fn count(f: &MediaFixture, query: &str) -> u64 {
+    rusqlite::Connection::open(f.store.path())
+        .unwrap()
+        .query_row(query, [], |row| row.get(0))
+        .unwrap()
+}
+fn leg(f: &MediaFixture, id: &str) -> connect_protocol::SipLeg {
+    let Outcome::SipLeg(leg) = f
+        .store
+        .execute(
+            &f.app_key,
+            &Operation::SipStatus {
+                conversation_id: f.conversation.clone(),
+                sip_leg_id: id.into(),
+            },
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    leg
+}
+fn insert_legacy_av_leg(f: &MediaFixture, id: &str, state: &str) {
+    // Model an existing unsupported row admitted by the old audio-containing
+    // check. This private fixture never signals or uses a real SIP endpoint.
+    rusqlite::Connection::open(f.store.path()).unwrap().execute(
+        "INSERT INTO sip_legs(id,conversation_id,session_id,credential_id,actor_id,destination,state,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,'sip:peer@127.0.0.1:5099',?6,?7,?7)",
+        rusqlite::params![id, f.conversation, f.av_session, f.app_key, f.app, state, chrono::Utc::now().timestamp()],
+    ).unwrap();
+}
+
+#[test]
+fn av_sip_dial_is_canonically_rejected_without_intent_and_same_conversation_audio_dispatches() {
+    let f = media_fixture();
+    let events = count(&f, "SELECT COUNT(*) FROM journal");
+    let operation = profile_dial(&f, &f.av_session, "unsupported-av-dial");
+    for _ in 0..2 {
+        assert_eq!(
+            f.store.execute(&f.app_key, &operation).unwrap_err().code,
+            "unsupported-media-profile"
+        );
+    }
+    assert_eq!(count(&f, "SELECT COUNT(*) FROM sip_legs"), 0);
+    assert_eq!(
+        count(
+            &f,
+            "SELECT COUNT(*) FROM requests WHERE id='unsupported-av-dial'"
+        ),
+        1
+    );
+    let saved: String = rusqlite::Connection::open(f.store.path())
+        .unwrap()
+        .query_row(
+            "SELECT result FROM requests WHERE id='unsupported-av-dial'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let rejection: connect_protocol::Result<Outcome> = serde_json::from_str(&saved).unwrap();
+    assert_eq!(rejection.unwrap_err().code, "unsupported-media-profile");
+    assert_eq!(count(&f, "SELECT COUNT(*) FROM journal"), events);
+    assert!(f.store.claim_sip_leg_job().unwrap().is_none());
+    let Outcome::SipLeg(audio) = f
+        .store
+        .execute(
+            &f.app_key,
+            &profile_dial(&f, &f.audio_session, "audio-dial"),
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(audio.conversation_id, f.conversation);
+    let job = f.store.claim_sip_leg_job().unwrap().unwrap();
+    assert_eq!(job.leg.id, audio.id);
+    assert!(!f.store.sip_origination_cancelled(&job).unwrap());
+    assert!(f.store.sip_dispatch_allowed(&job).unwrap());
+    assert!(
+        !f.store.sip_dispatch_allowed(&job).unwrap(),
+        "one possible physical admission"
+    );
+    assert_eq!(count(&f, "SELECT COUNT(*) FROM media_start_admissions"), 1);
+}
+
+#[test]
+fn old_unsupported_pending_sip_leg_is_refused_without_worker_error_or_dispatch() {
+    let f = media_fixture();
+    insert_legacy_av_leg(&f, "legacy-pending", "pending");
+    assert!(f.store.claim_sip_leg_job().unwrap().is_none());
+    let refused = leg(&f, "legacy-pending");
+    assert_eq!(refused.state, "failed");
+    assert_eq!(
+        refused.ended_reason.as_deref(),
+        Some("unsupported-media-profile")
+    );
+    assert!(refused.connection_id.is_none());
+    assert!(f.store.claim_sip_leg_job().unwrap().is_none());
+    assert_eq!(count(&f, "SELECT COUNT(*) FROM media_start_admissions"), 0);
+    let Outcome::SipLeg(audio) = f
+        .store
+        .execute(
+            &f.app_key,
+            &profile_dial(&f, &f.audio_session, "audio-after-refusal"),
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    let next = f.store.claim_sip_leg_job().unwrap().unwrap();
+    assert_eq!(next.leg.id, audio.id);
+    assert!(f.store.sip_dispatch_allowed(&next).unwrap());
+}
+
+#[test]
+fn old_claimed_av_sip_start_is_cancelled_but_already_owned_leg_can_be_ended() {
+    let f = media_fixture();
+    insert_legacy_av_leg(&f, "legacy-starting", "starting");
+    let job = connect_store::SipLegJob {
+        leg: leg(&f, "legacy-starting"),
+        credential_id: f.app_key.clone(),
+        actor_id: f.app.clone(),
+        action: SipLegAction::Start,
+        end_intent_id: None,
+    };
+    assert!(f.store.sip_origination_cancelled(&job).unwrap());
+    assert!(!f.store.sip_dispatch_allowed(&job).unwrap());
+    assert!(!f.store.sip_dispatch_allowed(&job).unwrap());
+    let refused = leg(&f, "legacy-starting");
+    assert_eq!(refused.state, "cancelled");
+    assert_eq!(
+        refused.ended_reason.as_deref(),
+        Some("unsupported-media-profile")
+    );
+    assert_eq!(count(&f, "SELECT COUNT(*) FROM media_start_admissions"), 0);
+    insert_legacy_av_leg(&f, "legacy-active", "active");
+    // Existing ownership still grants cleanup; audio-only admission is not a
+    // reason to strand a physical leg already owned by this participant.
+    let Outcome::SipLeg(ending) = f
+        .store
+        .execute(
+            &f.agent_key,
+            &Operation::SipEnd {
+                request_id: "end-owned-av".into(),
+                conversation_id: f.conversation.clone(),
+                sip_leg_id: "legacy-active".into(),
+            },
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    assert!(ending.end_requested);
+    let cleanup = f.store.claim_sip_leg_job().unwrap().unwrap();
+    assert_eq!(cleanup.action, SipLegAction::End);
+    assert_eq!(cleanup.actor_id, f.agent);
+    assert!(f.store.sip_dispatch_allowed(&cleanup).unwrap());
+    f.store
+        .finish_sip_leg_job(&cleanup, "ended", Some("owned-cleanup"))
+        .unwrap();
+    assert_eq!(leg(&f, "legacy-active").state, "ended");
+}

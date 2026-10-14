@@ -23,7 +23,31 @@ impl ConnectClient {
     }
     /// Read the authoritative WebRTC route before acquiring or joining browser media.
     pub async fn browser_binding(&mut self) -> Result<BrowserBinding> {
-        match self.request(Operation::BrowserBinding {}).await? {
+        match self
+            .request(Operation::BrowserBinding {
+                conversation_id: None,
+                session_id: None,
+            })
+            .await?
+        {
+            Outcome::BrowserBinding(value) => Ok(value),
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    /// Select an accepted duplex AV Session through current server authority.
+    /// Discovery is not an allocation or a reusable authorization lease.
+    pub async fn browser_binding_for(
+        &mut self,
+        conversation_id: &str,
+        session_id: &str,
+    ) -> Result<BrowserBinding> {
+        match self
+            .request(Operation::BrowserBinding {
+                conversation_id: Some(conversation_id.into()),
+                session_id: Some(session_id.into()),
+            })
+            .await?
+        {
             Outcome::BrowserBinding(value) => Ok(value),
             _ => Err(ClientError::Protocol),
         }

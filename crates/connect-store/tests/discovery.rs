@@ -127,12 +127,26 @@ fn discovery_and_delivery_pages_are_authorized_and_survive_restart() {
     };
     assert_eq!(
         store
-            .execute_with_runtime(&ak.id, &Operation::BrowserBinding {}, &runtime)
+            .execute_with_runtime(
+                &ak.id,
+                &Operation::BrowserBinding {
+                    conversation_id: None,
+                    session_id: None
+                },
+                &runtime
+            )
             .unwrap(),
         Outcome::BrowserBinding(binding)
     );
     assert!(store
-        .execute_with_runtime(&bk.id, &Operation::BrowserBinding {}, &runtime)
+        .execute_with_runtime(
+            &bk.id,
+            &Operation::BrowserBinding {
+                conversation_id: None,
+                session_id: None
+            },
+            &runtime
+        )
         .is_err());
     let selection = store.context_for_session(&ak.id, &s.id).unwrap();
     let mut newest = String::new();

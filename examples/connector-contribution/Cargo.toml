@@ -1,0 +1,20 @@
+[package]
+name = "prism-fixture"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.97.1"
+license = "MIT"
+
+[workspace]
+
+[dependencies]
+connect-connector-api = { path = "../../crates/connect-connector-api" }
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+hmac = "0.12"
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"

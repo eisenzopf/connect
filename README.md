@@ -6,7 +6,16 @@ An open communications server and SDK from [Rudeless](https://rudeless.ai). One 
 
 ## Status
 
-Gate 4 is ready for local macOS arm64 owner review: [36 implementation
+[Gate 5 implementation](docs/connect-gate-5-implementation.html) is underway:
+three two-party VP8/PCMU video paths, a contributor connector kit, independently
+implemented UCTP control, first-run setup and an expanded reference client.
+Component evidence is being recorded; the final installed candidate and complete
+release acceptance remain open. Review the [product plan](docs/connect-gate-5-plan.html)
+and [local package profile](docs/GATE5_PACKAGE.md) for the qualification boundary.
+[Draft release notes](docs/GATE5_RELEASE_NOTES.md) and
+[proposed project-page copy](docs/GATE5_PROJECT_COPY.md) are prepared locally for review.
+
+The retained Gate 4 baseline is ready for local macOS arm64 owner review: [36 implementation
 items](docs/connect-gate-4-implementation.html#tracking) and [14 acceptance
 criteria](docs/evidence/gate-4/acceptance.html) have recorded evidence. Agents
 get [one revocable communication identity](docs/AGENT_ACCESS.md) across their
@@ -29,9 +38,9 @@ Historical [Vapi](docs/evidence/gate-4/actual-vapi-chat-dc73996.json),
 source, account, handset and topology limits. The [source/provider review](docs/evidence/gate-4/review-remediation-709cf82.json)
 explains how those proofs relate to the current code.
 
-This local alpha is unpublished. Full v0.1 video, the complete connector kit,
-independent protocol conformance, first-run/reference experience, broader
-platforms and community publication remain Gate 5 work.
+The local alpha is unpublished. Gate 5 qualifies local macOS arm64 and prepares
+an owner-review candidate. Additional platforms need separate qualification;
+community publication follows a separate owner instruction.
 
 See [the documentation and delivery index](docs/index.html) and
 [local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below
@@ -56,7 +65,7 @@ cargo build --locked -p connect-server -p connect-review-loop --bins
 
 See [the developer guide](docs/DEVELOPING.md) for the workspace layout and checks,
 and [the gate documentation index](docs/index.html#gates) for
-progress and verification evidence. The source build and installed local candidate both pass the native messaging
+progress and verification evidence. The retained Gate 4 source build and installed local candidate both pass the native messaging
 journey. The sample agent is deterministic; no provider account is required.
 
 ## What we're building

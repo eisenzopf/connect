@@ -33,6 +33,11 @@ fn save(path: &Path, value: &Purchase) -> Result<()> {
     Ok(())
 }
 pub async fn search(country: &str, area: Option<&str>) -> Result<Value> {
+    let t = Telnyx::from_env()?;
+    search_with_client(&t, country, area).await
+}
+/// Read-only inventory using the host-selected protected provider client.
+pub async fn search_with_client(t: &Telnyx, country: &str, area: Option<&str>) -> Result<Value> {
     ensure!(
         country.len() == 2 && country.chars().all(|c| c.is_ascii_uppercase()),
         "Use a two-letter country code"
@@ -43,7 +48,6 @@ pub async fn search(country: &str, area: Option<&str>) -> Result<Value> {
             "Invalid area code"
         );
     }
-    let t = Telnyx::from_env()?;
     let mut request = t
         .client
         .get::<Value>("/available_phone_numbers")

@@ -30,6 +30,7 @@ def environment(codex_binary=None):
              'MACOSX_DEPLOYMENT_TARGET', 'SYSTEMROOT')
     result = {key: os.environ[key] for key in names if key in os.environ}
     result.update(PYTHONPATH=str(ROOT / 'sdk/python'), RUSTDOCFLAGS='-D warnings',
+                  PYTHONDONTWRITEBYTECODE='1',
                   CONNECT_BINARY=str(ROOT / 'target/debug/connect'),
                   CONNECT_TEST_BINARY=str(ROOT / 'target/debug/connect'), CARGO_TERM_COLOR='never',
                   CARGO_PROFILE_DEV_DEBUG='0', CARGO_PROFILE_TEST_DEBUG='0', CARGO_INCREMENTAL='0')
@@ -61,7 +62,7 @@ IGNORED = {
 }
 
 
-def check_test_results(result, directory):
+def check_test_results(result, directory, allowed_ignored=None):
     """Record test totals and refuse an unaccounted ignored workspace check."""
     text = (directory / result['log']).read_text(errors='replace')
     totals = re.findall(r'test result: (?:ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
@@ -90,7 +91,8 @@ def check_test_results(result, directory):
         raise ValueError('Rust test failures contradict phase success')
     if result['name'] == 'workspace':
         ignored = set(re.findall(r'^test (\S+) \.\.\. ignored', text, re.M))
-        if ignored != IGNORED or counts['ignored'] != len(IGNORED):
+        required_ignored = IGNORED if allowed_ignored is None else allowed_ignored
+        if ignored != required_ignored or counts['ignored'] != len(required_ignored):
             raise ValueError('Workspace ignored tests differ from the explicit follow-up phases')
         result['ignored_follow_up'] = sorted(ignored)
     elif counts['passed'] != expected[result['name']] or counts['ignored']:

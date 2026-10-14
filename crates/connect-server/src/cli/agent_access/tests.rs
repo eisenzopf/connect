@@ -271,6 +271,10 @@ async fn regular_host_resumes_exact_session_and_redacts_its_key_without_grant_re
     private_write(&script,br##"#!/usr/bin/env python3
 import json, os, sys
 from pathlib import Path
+if sys.argv[1:] == ['--version']:
+    print('codex-cli 0.162.0-alpha.17.2'); sys.exit(0)
+if sys.argv[1:] == ['login', 'status']:
+    print('Logged in using a fixture account'); sys.exit(0)
 state = json.loads(Path('host-state.json').read_text())
 session = state['session_id'] or '01a12f42-67d2-70b2-8b61-963c5f7db249'
 if state['session_id']:
@@ -321,4 +325,42 @@ print(json.dumps({'type':'turn.completed'}), flush=True)
         crate::cli::task_access::codex_host::diagnostics::HostState::BindingMismatch
     );
     assert!(wrong.session_id.is_none());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn unknown_host_or_missing_model_auth_preserves_installation_and_does_not_launch() {
+    use std::os::unix::fs::PermissionsExt;
+    for (name,script,error) in [
+        ("unknown", "#!/bin/sh\nprintf 'codex-cli unknown\\n'\n", "Unknown Codex host version"),
+        ("no-auth", "#!/bin/sh\nif [ \"$1\" = '--version' ]; then printf 'codex-cli 0.162.0-alpha.17.2\\n'; exit 0; fi\nexit 1\n", "no usable authentication"),
+    ] {
+        let fixture=Fixture::ordinary();let output=fixture.install();let binary=fixture.directory.path().join(name);
+        private_write(&binary,script.as_bytes()).unwrap();std::fs::set_permissions(&binary,std::fs::Permissions::from_mode(0o700)).unwrap();
+        let prompt=fixture.directory.path().join("prompt.txt");private_write(&prompt,b"Fixture only").unwrap();
+        let prior=std::fs::read(output.join("install.json")).unwrap();
+        assert!(run(&output,&binary,Some(&prompt),10).await.unwrap_err().to_string().contains(error));
+        assert!(!output.join("host-state.json").exists());assert_eq!(prior,std::fs::read(output.join("install.json")).unwrap());
+    }
+}
+
+#[test]
+fn removal_deletes_only_verified_connect_configuration_and_preserves_other_files() {
+    let fixture = Fixture::ordinary();
+    let output = fixture.install();
+    private_write(&output.join("unrelated-host.toml"), b"user-setting=1").unwrap();
+    private_write(
+        &output.join("saved-session-note.txt"),
+        b"Explicit session resume metadata retained",
+    )
+    .unwrap();
+    super::remove(&output).unwrap();
+    assert!(!output.join("agent.toml").exists());
+    assert!(!output.join("install.json").exists());
+    assert_eq!(
+        std::fs::read(output.join("unrelated-host.toml")).unwrap(),
+        b"user-setting=1"
+    );
+    assert!(output.join("saved-session-note.txt").exists());
+    assert!(super::remove(&output).is_err());
 }

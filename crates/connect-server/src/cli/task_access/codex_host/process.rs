@@ -12,6 +12,41 @@ use tokio::{
 const MAX_EVENTS: u64 = 4 * 1024 * 1024;
 const MAX_EVENT: usize = 512 * 1024;
 
+/// Bounded metadata/authentication preflight with the same child ownership rules.
+pub(crate) async fn probe_host(
+    command: &mut Command,
+    deadline: tokio::time::Instant,
+) -> Result<std::process::Output> {
+    let mut owned = OwnedChild::spawn(command)?;
+    let result = tokio::time::timeout_at(deadline, async {
+        let mut stdout = owned
+            .child()?
+            .stdout
+            .take()
+            .context("Missing host preflight output")?
+            .take(4097);
+        let mut bytes = Vec::new();
+        stdout.read_to_end(&mut bytes).await?;
+        anyhow::ensure!(bytes.len() <= 4096, "Codex preflight output exceeds limit");
+        let status = owned.wait().await?;
+        Ok::<_, anyhow::Error>(std::process::Output {
+            status,
+            stdout: bytes,
+            stderr: Vec::new(),
+        })
+    })
+    .await
+    .context("Codex preflight exceeded its bounded deadline")
+    .and_then(|result| result);
+    if result.is_err() {
+        owned
+            .stop_and_reap()
+            .await
+            .context("Codex preflight cleanup failed")?;
+    }
+    result
+}
+
 /// Shared process ownership and session persistence, independent of access mode.
 pub(crate) trait TurnState {
     fn run_id(&self) -> &str;

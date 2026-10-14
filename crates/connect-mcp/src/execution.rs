@@ -14,7 +14,7 @@ use serde_json::{Map, Value};
 pub(crate) enum ToolOutcome {
     Projection(Value),
     Task(TaskOutcome),
-    Communication(Outcome),
+    Communication(Box<Outcome>),
 }
 impl ToolOutcome {
     pub fn encode(&self) -> Result<Value> {
@@ -28,9 +28,12 @@ impl ToolOutcome {
     pub fn inbox_pending(&self) -> Option<bool> {
         match self {
             Self::Task(TaskOutcome::Inbox { events, .. }) => Some(events.is_empty()),
-            Self::Communication(Outcome::Inbox { events, .. }) => Some(events.is_empty()),
-            Self::Communication(Outcome::Task(outcome)) => match outcome.as_ref() {
-                TaskOutcome::Inbox { events, .. } => Some(events.is_empty()),
+            Self::Communication(outcome) => match outcome.as_ref() {
+                Outcome::Inbox { events, .. } => Some(events.is_empty()),
+                Outcome::Task(outcome) => match outcome.as_ref() {
+                    TaskOutcome::Inbox { events, .. } => Some(events.is_empty()),
+                    _ => None,
+                },
                 _ => None,
             },
             _ => None,
@@ -108,7 +111,9 @@ pub(crate) async fn execute(
                 identity_commands::Command::Create(input) => Ok(service
                     .create_identity_task(identity, input)
                     .await
-                    .map(|outcome| ToolOutcome::Communication(Outcome::Task(Box::new(outcome))))),
+                    .map(|outcome| {
+                        ToolOutcome::Communication(Box::new(Outcome::Task(Box::new(outcome))))
+                    })),
                 identity_commands::Command::Operation(mut operation) => {
                     match &mut operation {
                         Operation::Inbox { wait_ms, .. } => *wait_ms = budget.limit_wait(*wait_ms),
@@ -122,7 +127,7 @@ pub(crate) async fn execute(
                     Ok(service
                         .execute_identity(identity, operation)
                         .await
-                        .map(ToolOutcome::Communication))
+                        .map(|outcome| ToolOutcome::Communication(Box::new(outcome))))
                 }
             }
         }

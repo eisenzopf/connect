@@ -29,6 +29,27 @@ struct State {
 /// Operates only on the selected number already recorded in the Connect SIP
 /// checkpoint. It never purchases a number or modifies existing Vapi credentials.
 pub async fn apply(voice_state: &Path, state_path: &Path) -> Result<Value> {
+    let key = std::env::var("TELNYX_API_KEY").context("TELNYX_API_KEY missing")?;
+    apply_with_clients(
+        voice_state,
+        state_path,
+        &Telnyx::from_env()?,
+        &Vapi::from_env()?,
+        &key,
+    )
+    .await
+}
+
+/// Compose native routing using host-selected clients and the selected Telnyx key.
+/// The key is transient provider request data and is never persisted in the checkpoint.
+pub async fn apply_with_clients(
+    voice_state: &Path,
+    state_path: &Path,
+    t: &Telnyx,
+    v: &Vapi,
+    telnyx_api_key: &str,
+) -> Result<Value> {
+    ensure!(!telnyx_api_key.is_empty(), "Selected Telnyx key is empty");
     let source: Value = serde_json::from_slice(&fs::read(voice_state)?)?;
     let number_id = source["number_id"]
         .as_str()
@@ -57,8 +78,6 @@ pub async fn apply(voice_state: &Path, state_path: &Path) -> Result<Value> {
     }
     let lock = options.open(state_path.with_extension("lock"))?;
     lock.try_lock_exclusive()?;
-    let t = Telnyx::from_env()?;
-    let v = Vapi::from_env()?;
     let current: Value = t
         .client
         .get(format!("/phone_numbers/{number_id}"))
@@ -150,11 +169,10 @@ pub async fn apply(voice_state: &Path, state_path: &Path) -> Result<Value> {
             s.pending = Some(kind.into());
             write(state_path, &s)?;
             let result = if kind == "credential" {
-                let key = std::env::var("TELNYX_API_KEY").context("TELNYX_API_KEY missing")?;
                 v.client
                     .post(
                         endpoint,
-                        &json!({"provider":"telnyx","name":label,"apiKey":key}),
+                        &json!({"provider":"telnyx","name":label,"apiKey":telnyx_api_key}),
                     )
                     .await
             } else {
@@ -206,8 +224,8 @@ pub async fn apply(voice_state: &Path, state_path: &Path) -> Result<Value> {
     s.application_id = Some(app.into());
     write(state_path, &s)?;
     let (active_profile, shared) = application_profile(
-        &t,
-        &v,
+        t,
+        v,
         app,
         s.credential_id.as_deref().context("Missing credential")?,
         profile,
@@ -332,6 +350,61 @@ mod tests {
         matchers::{body_json, method, path},
         Mock, MockServer, ResponseTemplate,
     };
+    #[tokio::test]
+    async fn selected_integration_key_is_transient_even_when_creation_is_uncertain() {
+        let server = MockServer::start().await;
+        let t = Telnyx::new("selected-header-key", &server.uri()).unwrap();
+        let v = Vapi::new("selected-vapi-key", &server.uri()).unwrap();
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.local/gate5-native-provider-fixtures");
+        fs::create_dir_all(&root).unwrap();
+        let directory = tempfile::tempdir_in(root).unwrap();
+        let source = directory.path().join("owned-voice.json");
+        let checkpoint = directory.path().join("native.json");
+        let number = "+15550000001";
+        fs::write(
+            &source,
+            serde_json::to_vec(&json!({
+                "name":"fixture", "number_id":"1234", "number":number,
+                "assistant_id":"12345678-1234-1234-1234-123456789012",
+                "outbound_profile_id":"2345"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        for (endpoint, body) in [
+            (
+                "/phone_numbers/1234",
+                json!({"data":{"phone_number":number}}),
+            ),
+            (
+                "/phone_numbers/1234/messaging",
+                json!({"data":{"messaging_profile_id":"fixture-sms"}}),
+            ),
+            ("/phone_numbers/1234/voice", json!({"data":{}})),
+            ("/credential", json!([])),
+        ] {
+            Mock::given(method("GET"))
+                .and(path(endpoint))
+                .respond_with(ResponseTemplate::new(200).set_body_json(body))
+                .expect(1)
+                .mount(&server)
+                .await;
+        }
+        let selected = "selected-disposable-integration-key";
+        Mock::given(method("POST")).and(path("/credential"))
+            .and(body_json(json!({"provider":"telnyx","name":resource_label("fixture", "native"),"apiKey":selected})))
+            .respond_with(ResponseTemplate::new(500))
+            .expect(1).mount(&server).await;
+        assert!(apply_with_clients(&source, &checkpoint, &t, &v, selected)
+            .await
+            .is_err());
+        let protected = fs::read_to_string(&checkpoint).unwrap();
+        assert!(!protected.contains(selected) && !protected.contains("apiKey"));
+        let state: Value = serde_json::from_str(&protected).unwrap();
+        assert_eq!(state["pending"], "credential");
+        assert_eq!(state["number_id"], "1234");
+    }
     #[tokio::test]
     async fn shared_application_is_read_only_and_retains_its_existing_limits() {
         let server = MockServer::start().await;

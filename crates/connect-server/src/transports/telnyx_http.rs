@@ -99,11 +99,14 @@ pub(super) async fn webhook(
             "message.finalized" => {
                 let provider_id = required(&payload["id"])?;
                 let status = required(&payload["to"][0]["status"])?;
-                let final_state = match status.as_str() {
-                    "delivered" => "delivered",
-                    "delivery_failed" | "sending_failed" | "failed" => "failed",
-                    _ => return Ok(false),
-                };
+                let final_state =
+                    match connect_connectors::provider_mapping::telnyx_message_state(&status) {
+                        Ok(connect_connector_api::lifecycle::MessageState::Delivered) => {
+                            "delivered"
+                        }
+                        Ok(connect_connector_api::lifecycle::MessageState::Failed) => "failed",
+                        _ => return Ok(false),
+                    };
                 store.delivery_sms(&format!("telnyx:{id}"), &digest, &provider_id, final_state)
             }
             _ => Ok(false),

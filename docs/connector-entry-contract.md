@@ -25,10 +25,13 @@ duplicating the remote effect.
 
 This closes R07's narrow context-bearing fixture criterion. The existing Vapi
 telephone DTOs, native Vapi audio adapter and Telnyx callback translation remain
-explicit provider integrations. This is not the full generic voice connector kit.
-A new chat host uses this contract; a new telephone/media provider must first define
-its normalized lifecycle contract in the Gate 5 connector work. Do not add another
-provider-name switch to core context dispatch.
+explicit provider integrations. The historical entry proof covered the narrow
+message/context boundary. New telephone/media adapters use the normalized Gate 5
+lifecycle contract and independently registered extension manifest; their actual
+transport remains an explicit provider adapter. Do not add another provider-name
+switch to core context dispatch.
 
-The full manifests, packaging templates, independent contributor exercise and
-protocol conformance remain the separately promised Gate 5 deliverables.
+The [Gate 5 connector kit](CONNECTORS.md) extends this boundary with versioned
+manifests, normalized messaging/voice contracts, a standalone template and common
+fixture harness. Its component checks and independent contribution exercise do
+not by themselves qualify provider live operation or the final release candidate.

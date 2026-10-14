@@ -22,6 +22,11 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Provider-free first run, native contact pairing and durable setup diagnostics.
+    Setup {
+        #[command(subcommand)]
+        command: connect_server::cli::first_run::Command,
+    },
     /// Install a regular agent communication credential with MCP tools and skill.
     AgentAccess {
         #[command(subcommand)]
@@ -228,6 +233,20 @@ enum DemoCommand {
 }
 #[derive(Subcommand)]
 enum ProviderCommand {
+    /// Move a legacy SIP checkpoint password into its installation-owned Keychain.
+    VaultMigrate {
+        #[arg(long)]
+        state: PathBuf,
+        #[command(flatten)]
+        vault: connect_server::setup_vault::Arguments,
+    },
+    /// Restore the original password from standard input to a missing vault entry.
+    VaultRestore {
+        #[arg(long)]
+        state: PathBuf,
+        #[command(flatten)]
+        vault: connect_server::setup_vault::Arguments,
+    },
     VoiceNative {
         #[arg(long)]
         voice_state: PathBuf,
@@ -235,6 +254,8 @@ enum ProviderCommand {
         state: PathBuf,
     },
     VoiceApply {
+        #[command(flatten)]
+        vault: connect_server::setup_vault::Arguments,
         #[arg(long)]
         inbound_only: bool,
         #[arg(long)]
@@ -267,6 +288,8 @@ enum ProviderCommand {
         state: PathBuf,
     },
     Discover {
+        #[arg(long, value_enum, default_value = "all")]
+        provider: connect_server::setup_vault::DiscoveryProvider,
         #[arg(long)]
         output: PathBuf,
     },
@@ -275,6 +298,8 @@ enum ProviderCommand {
         input: PathBuf,
     },
     Apply {
+        #[command(flatten)]
+        vault: connect_server::setup_vault::Arguments,
         #[arg(long)]
         input: PathBuf,
         #[arg(long)]
@@ -292,6 +317,7 @@ async fn main() -> Result<()> {
         )
         .init();
     match Cli::parse().command {
+        Command::Setup { command } => command.execute().await?,
         Command::AgentAccess { command } => command.execute().await?,
         Command::VapiTask { command } => connect_server::cli::vapi_task::run(command).await?,
         Command::DiscardFailedChat {
@@ -456,28 +482,57 @@ async fn main() -> Result<()> {
             println!("Route configured");
         }
         Command::Providers { command } => match command {
+            ProviderCommand::VaultMigrate { state, vault } => {
+                let vault = vault.open(&state)?;
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&connect_connectors::setup::migrate_secrets(
+                        &state, &vault
+                    )?)?
+                );
+            }
+            ProviderCommand::VaultRestore { state, vault } => {
+                use std::io::Read;
+                let vault = vault.open(&state)?;
+                let mut value = String::new();
+                std::io::stdin().take(257).read_to_string(&mut value)?;
+                anyhow::ensure!(
+                    !value.is_empty() && value.len() <= 256,
+                    "SIP restore secret must contain 1–256 bytes"
+                );
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&connect_connectors::setup::restore_secret(
+                        &state,
+                        &vault,
+                        value.trim_end_matches(['\n', '\r'])
+                    )?)?
+                );
+            }
             ProviderCommand::VoiceNative { voice_state, state } => {
                 println!(
                     "{}",
                     serde_json::to_string_pretty(
-                        &connect_connectors::voice_native_setup::apply(&voice_state, &state)
+                        &connect_server::setup_vault::voice_native_apply(&voice_state, &state)
                             .await?
                     )?
                 );
             }
             ProviderCommand::VoiceApply {
+                vault,
                 inbound_only,
                 setup_state,
                 number_id,
                 number,
                 state,
             } => {
-                let result = connect_connectors::voice_setup::apply(
+                let result = connect_server::setup_vault::voice_apply(
                     &setup_state,
                     &number_id,
                     &number,
                     &state,
                     inbound_only,
+                    &vault,
                 )
                 .await?;
                 println!("{}", serde_json::to_string_pretty(&result)?);
@@ -487,7 +542,13 @@ async fn main() -> Result<()> {
                 area,
                 output,
             } => {
-                let value = connect_connectors::numbers::search(&country, area.as_deref()).await?;
+                let provider = connect_server::setup_vault::telnyx_client()?;
+                let value = connect_connectors::numbers::search_with_client(
+                    &provider,
+                    &country,
+                    area.as_deref(),
+                )
+                .await?;
                 init::private_write(&output, serde_json::to_vec_pretty(&value)?.as_slice())?;
                 println!("Number inventory saved");
             }
@@ -496,15 +557,22 @@ async fn main() -> Result<()> {
                 connection_id,
                 state,
             } => {
-                connect_connectors::numbers::order(&number, &connection_id, &state).await?;
+                let provider = connect_server::setup_vault::telnyx_client()?;
+                connect_connectors::numbers::order_with_client(
+                    &provider,
+                    &number,
+                    &connection_id,
+                    &state,
+                )
+                .await?;
                 println!("Number order checkpoint saved");
             }
             ProviderCommand::Check { state } => println!(
                 "{}",
-                serde_json::to_string_pretty(&connect_connectors::setup::check(&state).await?)?
+                serde_json::to_string_pretty(&connect_server::setup_vault::check(&state).await?)?
             ),
-            ProviderCommand::Discover { output } => {
-                let value = connect_connectors::setup::discover().await?;
+            ProviderCommand::Discover { output, provider } => {
+                let value = connect_server::setup_vault::discover(provider).await?;
                 init::private_write(&output, serde_json::to_vec_pretty(&value)?.as_slice())?;
                 println!("Inventory saved to {}", output.display());
             }
@@ -515,9 +583,12 @@ async fn main() -> Result<()> {
                     serde_json::to_string_pretty(&connect_connectors::setup::describe(&plan))?
                 );
             }
-            ProviderCommand::Apply { input, state } => {
-                let plan = connect_connectors::setup::load_plan(&input)?;
-                connect_connectors::setup::apply(&plan, &state).await?;
+            ProviderCommand::Apply {
+                input,
+                state,
+                vault,
+            } => {
+                connect_server::setup_vault::apply(&input, &state, &vault).await?;
                 println!("Provider setup state saved to {}", state.display());
             }
         },

@@ -23,6 +23,7 @@ fn sample() -> TaskDiagnostics {
             code: "scope-denied".into(),
         },
         server_readiness: DiagnosticSection::Available(Readiness {
+            media: None,
             state: R::Ready,
             components: vec![],
         }),
@@ -74,6 +75,7 @@ fn server_failure_and_sample_changes_remain_explicit_without_mutating_original_v
         .any(|c| c.reason == "task-changed-during-sample"));
     assert_eq!(serde_json::to_vec(&task).unwrap(), before);
     task.server_readiness = DiagnosticSection::Available(Readiness {
+        media: None,
         state: R::Unavailable,
         components: vec![],
     });

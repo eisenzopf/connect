@@ -1,0 +1,505 @@
+{
+  "profile": "connect-gate5-baseline-diagnostic/1",
+  "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_unchanged": true,
+  "complete_baseline": "All42 original source phases and17 original installed checks passed through recorded composition. No single uninterrupted source run passed; failed attempts remain failed.",
+  "failures_retained": [
+    {
+      "report": ".local/gate5-baseline/source/.local/gate-4-checks/20261013T074209.990459Z/result.json",
+      "sha256": "019584b36d7fa8ee08bc4ea70564396d8d388d309f2ac550409d703c52e5c573",
+      "status": "failed",
+      "target": "gate4_codex_autonomy",
+      "finding": "original Command.output 20-second timeout; internal turn budget 15 seconds"
+    },
+    {
+      "report": ".local/gate5-baseline/source/.local/gate-4-checks/20261013T174737.017654Z/result.json",
+      "sha256": "41a4ff84d7af57fcac96727f1f818dad35bdf8750c37cb5ad817ff6839b92aec",
+      "status": "failed",
+      "target": "gate4_codex_cleanup",
+      "finding": "five missing pre-import host markers and one normal-complete 8-second turn timeout"
+    },
+    {
+      "report": ".local/gate5-baseline/source/.local/gate-4-checks/20261013T182131.955995Z/result.json",
+      "sha256": "da6a22d038d4e560039f45755cb05e99aba75aebd194f98a67b8d7d84b0fcfe2",
+      "status": "failed",
+      "target": "gate4_agent_diagnostics",
+      "finding": "task-diagnostics CLI Command.output original 15-second timeout"
+    },
+    {
+      "report": ".local/gate5-baseline/source/.local/gate-4-checks/20261013T184036.374563Z/result.json",
+      "sha256": "60de075b2da7b8f9da16eaa7264ee1182fea0e8cfcba1c56cc4f7fd557f7701b",
+      "status": "failed",
+      "target": "upstream-regression/check-parley.py",
+      "finding": "Cargo discovered the current parent workspace for standalone Parley copied under private local TMPDIR; nonmember rejection. Definite substrate cause; baseline source unchanged."
+    },
+    {
+      "report": ".local/gate5-baseline/source/.local/gate-4-checks/20261013T211128.220468Z/result.json",
+      "sha256": "80cf3984b1c343e53dd23465c393fd28ac527c02d395e779c0a3423ecc9c81a2",
+      "status": "failed",
+      "target": "workspace/gate4_agent_media launch",
+      "finding": "Four generated test outputs were tiny non-Mach-O mode0600 files during low-disk linker phase; linker reported success. Timing precedes unrelated guarded old-cache retirement. Exact corruption mechanism unproven."
+    },
+    {
+      "report": ".local/gate5-baseline/source/.local/gate-4-checks/20261013T213009.003498Z/result.json",
+      "sha256": "e3db1eb36f416bd0f0230f53e50cec74e5afb099c8df47e0394bc946bf6aebce",
+      "status": "failed",
+      "target": "grant-lifecycle-load",
+      "finding": "Near expiry boundary a task_status MCP HTTP200 result contained isError/forbidden; original profile requires success for every200. Possible authorization-boundary race, not proved yet. Original12-second grants/deadlines/source unchanged."
+    }
+  ],
+  "isolates": {
+    "autonomy": {
+      "exit": 0,
+      "elapsed_seconds": 1.471,
+      "baseline_modified": false
+    },
+    "cleanup_grouped": {
+      "exit": 0,
+      "elapsed_seconds": 9.567,
+      "baseline_modified": false,
+      "original_internal_deadlines": true,
+      "rust_test_threads": null
+    },
+    "diagnostics_grouped": {
+      "returncode": 0,
+      "seconds": 4.363,
+      "binary_sha256": "3d9a3e9fd0c7a3a8dc41d40d39a719ab989a2621a54f3bfb7743afefea156adc",
+      "source_unchanged": true,
+      "original_deadlines": true
+    },
+    "grant_lifecycle_original": {
+      "result_sha256": "cc3a84d9006c50fdcbbefe24805bc7b6c88c286769da95f99598442bb54761fc",
+      "binary_sha256": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+      "elapsed_seconds": 13.666,
+      "status": "passed",
+      "phases": [
+        {
+          "name": "original-effects-and-continuous-load-through-expiry",
+          "status": "passed",
+          "seconds": 11.013
+        },
+        {
+          "name": "explicit-renewal-and-original-receipt-replay",
+          "status": "passed",
+          "seconds": 0.889
+        },
+        {
+          "name": "autonomous-own-task-cancel-and-sibling-isolation",
+          "status": "passed",
+          "seconds": 0.059
+        },
+        {
+          "name": "restart-preserves-expiry-cancellation-and-original-effects",
+          "status": "passed",
+          "seconds": 0.214
+        }
+      ],
+      "observations": {
+        "original_effects": 32,
+        "expiry_load_responses": {
+          "200": 4192,
+          "401": 32
+        },
+        "expired_status_and_receipt_denied": 64,
+        "explicit_renewals": 32,
+        "original_receipts_preserved": 32,
+        "saved_export_not_refreshed": true,
+        "old_grants_still_denied": true,
+        "autonomous_cancellations": 16,
+        "independent_survivors": 16,
+        "restart_old_grants_denied": true,
+        "restart_cancelled_grants_denied": true,
+        "retained_original_messages": 32,
+        "surviving_original_receipts": 16
+      },
+      "baseline_modified": false,
+      "original_grant_seconds": 12,
+      "original_profile_budget_seconds": 180
+    }
+  },
+  "limits": [
+    "Frozen source, original counts and deadlines were not changed.",
+    "Earlier timing/generated-output failures and their uncertain diagnoses remain historical failures.",
+    "The completed evidence is owner-approved matching-source composition, not a relabeled single full run.",
+    "Current Gate5 source/binaries/media/package must pass their own qualification; this baseline does not qualify changed behavior."
+  ],
+  "exclusive_run_passed_phases": {
+    "dependencies": 0.247,
+    "format": 0.714,
+    "typescript-install": 0.796,
+    "typescript-tests": 3.6,
+    "typescript-format": 0.487,
+    "typescript-distribution": 0.068,
+    "python-sdk": 3.542,
+    "agent-incoming-unit": 0.189,
+    "runner-failure-tests": 7.133,
+    "agent-journey-unit": 0.183,
+    "voice-rehearsal-unit": 0.135,
+    "chat-rehearsal-unit": 2.934,
+    "lint": 1.008,
+    "rustdoc": 0.313,
+    "workspace": 1359.487,
+    "media-pressure": 125.339,
+    "installed-host": 34.992
+  },
+  "temporary_workspace_boundary": {
+    "status": "passed actual unchanged upstream-regression48.328seconds in complete retry",
+    "fix_scope": "Current root Cargo.toml excludes .local; historical baseline source remains unchanged",
+    "check": "cargo metadata --offline --no-deps --format-version=1 on copied original Parley under owned local TMPDIR",
+    "result_sha256": "ee17f226112806acebfe00858deba3b36ff74f82ee9f67891d85d65cc5ed1cb7"
+  },
+  "generated_output_repair": {
+    "metadata_sha256": "2642e0d7d1803ff65076ef4cf712a187a45c958f5c88d1048638e67001f58ec5",
+    "source_modified": false,
+    "removed_generated_outputs": [
+      ".local/gate5-baseline/source/target/debug/deps/gate4_agent_media-70d4663d79e62ea5",
+      ".local/gate5-baseline/source/target/debug/deps/gate4_sms_tasks-6a6162cb73636066",
+      ".local/gate5-baseline/source/target/debug/deps/gate4_vapi_bootstrap_preparation-d2a7d1bde11bf198",
+      ".local/gate5-baseline/source/target/debug/deps/voice_flow-b76213c101cdedca"
+    ],
+    "retry": "all four relinked Mach-O outputs executed successfully; workspace591passed9ignored; later independent grant-load failure",
+    "classification": "Archived files contain neither Mach-O nor rustc metadata header; real nearby .rmeta begins727573740000000a. Successful missing-output relink produced normal Mach-O executables. Prior fingerprint causal evidence overwritten by relink; exact mechanism remains unproven.",
+    "relink_evidence_sha256": "65a7ff7a57a871005b820ad2e5f9492bf2fe8e2d6590235006a8d7aea6143115"
+  },
+  "latest_passed_phases": {
+    "dependencies": 0.239,
+    "format": 0.72,
+    "typescript-install": 0.918,
+    "typescript-tests": 3.696,
+    "typescript-format": 0.486,
+    "typescript-distribution": 0.064,
+    "python-sdk": 3.591,
+    "agent-incoming-unit": 0.187,
+    "runner-failure-tests": 7.129,
+    "agent-journey-unit": 0.133,
+    "voice-rehearsal-unit": 0.135,
+    "chat-rehearsal-unit": 2.87,
+    "lint": 1.219,
+    "rustdoc": 0.284,
+    "workspace": 1190.428,
+    "media-pressure": 122.457,
+    "installed-host": 22.874,
+    "upstream-regression": 48.328,
+    "upstream-vapi": 23.098,
+    "upstream-queues": 297.62,
+    "upstream-codec": 5.363,
+    "current-binaries": 162.075,
+    "host-capacity": 16.928,
+    "agent-incoming-public": 0.942,
+    "agent-incoming-host": 2.838,
+    "native-task-capacity": 52.625,
+    "reference-runner-capacity": 3.809,
+    "mcp-operating-load": 31.183
+  },
+  "grant_expiry_failure_diagnosis": {
+    "failed_result_sha256": "c4c58343576fdec5aa50c14d08674b4fdf3426bd0ee93779f5be915e2ca44e4b",
+    "grant_count": 32,
+    "grant_expiry_utc": "2026-10-13T22:03:45+00:00",
+    "all_grants_same_expiry": true,
+    "revoked_grants": 0,
+    "task_count": 32,
+    "task_expiry_utc": "2026-10-13T22:13:33+00:00",
+    "failure_profile_elapsed_seconds": 11.895,
+    "failed_phase_exchanges": 4160,
+    "denial": {
+      "http": 200,
+      "isError": true,
+      "code": "forbidden"
+    },
+    "source_behavior": "MCP authenticates at request admission, then service/store rechecks current grant at operation execution; expiration returns forbidden.",
+    "inference": "A request admitted before expiry and executed after expiry can return HTTP200 with a forbidden tool outcome. Failure ended atgrant expiry; exact per-exchange timestamps absent, so this cause is not proved.",
+    "security_result": "No expired operation success demonstrated; the failing response denied work. Original isolate subsequently passed expiry denials, renewal/replay, cancellation and restart.",
+    "complete_baseline": "still incomplete; passing isolate does not replace remaining42-phase complete run"
+  },
+  "continuation_attempts_retained": [
+    {
+      "status": "failed",
+      "kind": "continuation phase; not a seventh full attempt",
+      "phase": "task-artifact-retention",
+      "seconds": 45.023,
+      "private_report_sha256": "c5bfa741883b5c4dc656ae755f0cc4b26a856fa5f8ec3db21c5429f572433e0f",
+      "private_profile_sha256": "f203b1839acd5c51733ea8e48314788863e59d33ec9adaf9350d44c9431716ec",
+      "original_budget_seconds": 180,
+      "task_expiry_seconds": 45,
+      "binary_sha256": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+      "source_unchanged": true,
+      "redacted_finding": "At the task expiry boundary the RPC denial assertion expected Task authority is no longer current; frozen MCP authority guard emits MCP authority is no longer current. Literal mismatch is inferred from source; original failure report does not retain the response body. Earlier upload, artifact expiry and restart phases passed.",
+      "inner_phases": [
+        {
+          "name": "thirty-two-expiring-files-and-bounded-chunks",
+          "status": "passed",
+          "seconds": 1.296
+        },
+        {
+          "name": "artifact-expiry-denies-cached-bytes-and-retains-provenance",
+          "status": "passed",
+          "seconds": 10.255
+        },
+        {
+          "name": "restart-cleans-expired-bytes-but-preserves-sources",
+          "status": "passed",
+          "seconds": 0.212
+        },
+        {
+          "name": "task-expiry-under-load-denies-further-tools",
+          "status": "failed",
+          "seconds": 31.614
+        }
+      ]
+    },
+    {
+      "status": "failed",
+      "kind": "original continuation phase; not another full attempt",
+      "phase": "voice-setup-retirement",
+      "seconds": 1119.028,
+      "private_report_sha256": "f980dc64adf7f2e1da62c21e93b29563c5b63d16fce986a5fc961f78b2ae70b0",
+      "private_profile_sha256": "f9ba6c056d2b6378c8d61bee91b85dbb78c583ed8a2613b72d5ad09cf9bfcb58",
+      "private_observations_sha256": "a91e430a5472d66960b99b040a143db3574756c3e4755c0622542b530a5b6cae",
+      "last_successful_retired_setups": 6272,
+      "target_setups": 10000,
+      "original_setup_seconds": 5,
+      "original_listener_batch": 32,
+      "original_test_budget_seconds": 2700,
+      "original_outer_budget_seconds": 3600,
+      "partial_next_batch_published_intents": 18,
+      "first_failed_unpublished_index": 6290,
+      "shared_expiry_utc": "2026-10-13T23:46:09+00:00",
+      "first_partial_intent_mtime_utc": "2026-10-13T23:46:04.176156+00:00",
+      "last_partial_intent_mtime_utc": "2026-10-13T23:46:08.478356+00:00",
+      "redacted_finding": "Grant validation rejected the next shared-expiry batch while preparing its nineteenth grant. Prior18 definitions have exact history/send subset and fixed expiry; expires_at<=now is strongly inferred from validator and metadata timing, not captured as an invocation timestamp. Concurrent current cold build existed; causality unproven.",
+      "source_inputs_unchanged": true,
+      "source_git_clean": true,
+      "test_binary_sha256": "2a5b7843808f9458f5e09192e03e2f61845ca41abedcff36c66795c558037c7d",
+      "test_fingerprint_sha256": "95c7d66b8acc89886e65d7ae4a1fe8a9529bf7502f47d9cee6097b0ddbd026ed",
+      "test_features": "[\"test-support\"]",
+      "separate_outer_guard_error": {
+        "type": "AssertionError",
+        "detail": "Baseline binary changed during phase"
+      },
+      "normal_binary_restoration": {
+        "private_manifest_sha256": "22a9b3da37c7f0ab613e62e71cd6908932d9743ab5d59b2b02f6f9132119f76d",
+        "default_original_sha256": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+        "all_features_output_sha256": "c850576e7e78db8589eee5d6d728439cc8ba17f53eb38743ed05056b2813e4e4",
+        "restored_from_existing_original_default_artifact": "connect-d0ba56fe9bafcc82",
+        "normal_default_restored": true,
+        "feature_fingerprints": [
+          {
+            "artifact_fingerprint": ".fingerprint/connect-server-0619838921d1556d/bin-connect.json",
+            "features": "[\"test-support\"]",
+            "profile": 6492802860816623299,
+            "sha256": "18ea4fec5051985935359e0d4546ccf3634295caf23b1b1ecf5b85e208c474a8"
+          },
+          {
+            "artifact_fingerprint": ".fingerprint/connect-server-d0ba56fe9bafcc82/bin-connect.json",
+            "features": "[]",
+            "profile": 6492802860816623299,
+            "sha256": "6baf0cdc840d256ad08e82009f575d80670b0c9cfc6f21659ce218791d0e4874"
+          },
+          {
+            "artifact_fingerprint": ".fingerprint/connect-server-a46627e417aec7e2/bin-connect.json",
+            "features": "[\"test-support\"]",
+            "profile": 14539771029851030847,
+            "sha256": "d131a23db5e6b62001a471b714df27b9a1d462a494bd9bf7b03fa042fe26e28f"
+          }
+        ],
+        "scope": "Original frozen source cargo test --all-features rebuilt bin-connect at the same default output path. Distinct legitimate build-profile output, not source or current-target crosscontamination."
+      },
+      "retry_plan": "Original same32/5s/10000 phase once in exclusive window after current/baseline cold builds; original failure stays failed, no threshold changes."
+    }
+  ],
+  "separate_original_retention_pass": {
+    "status": "passed",
+    "outer_seconds": 46.071,
+    "private_report_sha256": "9abc20a1390ea025f2182d24e9ec7a0dd8efef4dc4a8402017f0c45873a51a42",
+    "private_profile_sha256": "1d9a9ab710222d44fd96f66cf9c48df91f3dde4d3f1fd3fa19c94cfe9da5c3fa",
+    "binary_sha256": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+    "outer_original_timeout_seconds": 240,
+    "inner_original_budget_seconds": 180,
+    "profile": {
+      "tasks": 32,
+      "task_seconds": 45,
+      "artifact_seconds": 12,
+      "artifact_bytes_each": 65536,
+      "chunk_bytes": 32768
+    },
+    "observations": {
+      "ready_expiring_files": 32,
+      "file_bytes": 65536,
+      "verified_chunks": 32,
+      "chunk_bytes": 32768,
+      "artifact_expiry_responses": {
+        "available": 3296,
+        "expired": 32
+      },
+      "expired_receipt_replays_denied": 32,
+      "expired_sources_retained": 32,
+      "message_sources_available": 32,
+      "expired_blobs_removed_on_restart": 32,
+      "live_control_blob_preserved": true,
+      "task_expiry_responses": {
+        "active": 12160,
+        "http_denied": 32,
+        "rpc_denied": 0,
+        "tool_denied": 0
+      },
+      "expired_task_tools_denied": 32,
+      "retained_expired_task_records": 32,
+      "original_messages_retained": 32,
+      "expired_task_renewals_denied": 32
+    },
+    "source_and_binary_guarded": true,
+    "unchanged_original_command": true,
+    "failure_retained": true
+  },
+  "recorded_at": "2026-10-14T07:16:36.836325+00:00",
+  "composed_coverage_after_independent_eleven": {
+    "status": "passed",
+    "private_composed_report_sha256": "a90b6e045c3299cf02d1596032ca4b0f1175510aae57c1767f676bab6d9048b7",
+    "report_status": "partial; only voice remains",
+    "source_stable": true,
+    "baseline_binaries_sha256": {
+      "connect": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+      "connect-example": "d437beda9f61bdb55db0645f9fe34a22a5a16483ac44db00ba1bac225a19378c"
+    },
+    "steps": [
+      {
+        "name": "schema-six-build",
+        "status": "passed",
+        "seconds": 42.081,
+        "timeout_seconds": 7500
+      },
+      {
+        "name": "schema-ten-build",
+        "status": "passed",
+        "seconds": 212.674,
+        "timeout_seconds": 7500
+      },
+      {
+        "name": "historical-task-recovery",
+        "status": "passed",
+        "seconds": 9.905,
+        "timeout_seconds": 660
+      },
+      {
+        "name": "dispatch",
+        "status": "passed",
+        "seconds": 13.649,
+        "timeout_seconds": 600
+      },
+      {
+        "name": "identity",
+        "status": "passed",
+        "seconds": 8.07,
+        "timeout_seconds": 600
+      },
+      {
+        "name": "typescript-probe",
+        "status": "passed",
+        "seconds": 1.412,
+        "timeout_seconds": 600
+      },
+      {
+        "name": "crash-replay",
+        "status": "passed",
+        "seconds": 29.929,
+        "timeout_seconds": 600
+      },
+      {
+        "name": "examples",
+        "status": "passed",
+        "seconds": 13.904,
+        "timeout_seconds": 600
+      },
+      {
+        "name": "example-recovery",
+        "status": "passed",
+        "seconds": 37.375,
+        "timeout_seconds": 600
+      },
+      {
+        "name": "current-recovery",
+        "status": "passed",
+        "seconds": 1.774,
+        "timeout_seconds": 660
+      },
+      {
+        "name": "datagram-example",
+        "status": "passed",
+        "seconds": 1.537,
+        "timeout_seconds": 600
+      }
+    ],
+    "auxiliary_cache_retirements": [
+      {
+        "source_revision": "8bf5bd31a519a5fa84ef8f80e4da3b58374c6de5",
+        "binary_sha256": "f1faeaa6c96ab975482582490da1a47c790103a220bde950757f225ae081a452",
+        "cache_removed": true,
+        "free_bytes_before": 107664502784,
+        "free_bytes_after": 108678115328
+      },
+      {
+        "source_revision": "99243f3962cf25e780bbd176e56a4f27c752e121",
+        "binary_sha256": "d83bede9b56b95af193297d452e6672a447c603b0ffff7de83414aef50a1f59c",
+        "cache_removed": true,
+        "free_bytes_before": 106002259968,
+        "free_bytes_after": 107713789952
+      }
+    ]
+  },
+  "historical_incomplete_snapshot": {
+    "complete_baseline": "not passed; sixth unchanged run failed atgrant-lifecycle-load; later phases unqualified",
+    "recorded_at": "2026-10-13T23:53:26.882521+00:00",
+    "claim_limit": "Diagnostic state before final original voice completion; retained failures are unchanged."
+  },
+  "single_full_run_passed": false,
+  "completion_evidence": "docs/evidence/gate-5/baseline.json",
+  "exclusive_original_voice_pass": {
+    "status": "passed",
+    "private_report": ".local/gate5-setup-baseline-recheck/voice-exclusive-original-20261014T061811.595290Z/result.json",
+    "private_report_sha256": "30448c50feb88ff5660c05e448f8c8cd41c86e2fe4cb3e6e3c914260fb60f094",
+    "private_profile_report_sha256": "efda362af4964f70534a01743e96eaae5c171e3d1972ddb3d45e1c87437668b7",
+    "started_at": "2026-10-14T06:18:12.901590+00:00",
+    "finished_at": "2026-10-14T06:49:39.899307+00:00",
+    "outer_seconds": 1884.678,
+    "profile_seconds": 1884.435,
+    "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+    "source_inputs_count": 860,
+    "source_inputs_equal_sixth_full_attempt": true,
+    "source_clean": true,
+    "source_stable": true,
+    "exclusive_runtime_window": true,
+    "original_listener_batch": 32,
+    "original_setup_seconds": 5,
+    "target_setups": 10000,
+    "original_test_budget_seconds": 2700,
+    "original_phase_budget_seconds": 3300,
+    "original_outer_budget_seconds": 3600,
+    "original_commands_counts_and_deadlines_unchanged": true,
+    "measurements": {
+      "retired_setups": 10000,
+      "batches": 313,
+      "point_samples": 628,
+      "whole_process_sampled_peak_rss_bytes": 62128128,
+      "initial_process_rss_bytes": 46235648,
+      "final_retired_process_rss_bytes": 61194240,
+      "restarted_process_rss_bytes": 62128128,
+      "database_apparent_peak_bytes": 97829616,
+      "retained_binding_digest": "68254bd6a3c00bf8b22d45932b18dc0f836bc8c6440afd937cfa856e0b31986a",
+      "memory_scope": "Whole isolated Rust test process: server, clients and local API fixture. Point samples at batch boundaries; excludes Cargo/compiler and can miss transient peaks."
+    },
+    "default_cli_sha256_before": "5d2d1fe1e63d6be7e39765f55cd09be52f525a9479e75ea5fd4ff405909465fe",
+    "test_support_feature_cli_sha256": "c850576e7e78db8589eee5d6d728439cc8ba17f53eb38743ed05056b2813e4e4",
+    "default_cli_restored_from_verified_seal": true,
+    "build_profile_boundary": "Original cargo test --all-features produces a distinct test-support executable from the same frozen source; default normal executable is restored from its verified seal after the phase. No same-binary assertion across feature profiles.",
+    "owned_cleanup": {
+      "original_phase_group_cleanup": "signalled",
+      "leftover_group_members": [],
+      "scope": "Original qualification wrapper reports its own group signaling; retained as original baseline semantics, not reused as current no-forced-cleanup native proof."
+    },
+    "prior_failed_continuation_retained": true,
+    "single_full_run_passed": false,
+    "live_provider_claim": false
+  },
+  "completed_original_phase_count": 42,
+  "completed_original_installed_check_count": 17
+}

@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
-exclude = [".deps/rvoip", ".deps/parley"]
-members = ["crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "crates/connect-connectors", "crates/connect-mcp"]
+exclude = [".local", ".deps/rvoip", ".deps/parley", "examples/connector-template", "examples/connector-contribution"]
+members = ["crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "examples/native-video", "crates/connect-connectors", "crates/connect-mcp"]
 
 [workspace.package]
 version = "0.1.0-alpha.1"
@@ -60,6 +60,7 @@ x509-parser = "0.18"
 tokio-tungstenite = "0.29"
 base64 = "0.22"
 parking_lot = "0.12"
+security-framework = "3.5.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

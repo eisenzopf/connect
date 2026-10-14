@@ -38,7 +38,7 @@ def verify(client, saved):
     assert chunk['artifact']['sha256'] == hashlib.sha256(DRAFT).hexdigest()
 
 
-def qualify(binary, previous, work, schema):
+def qualify(binary, previous, work, schema, historical_schema=10, populate=None):
     state = work / 'legacy'
     run('init', '--directory', state, '--example', 'review-loop',
         '--bind', f'127.0.0.1:{port()}', binary=previous)
@@ -55,8 +55,10 @@ def qualify(binary, previous, work, schema):
             saved = {'cid': cid, 'peer': peer, 'artifact': upload(client, cid),
                      'receipt': client.send('recovery-fact', cid, 'Keep the approved blue draft.')}
     sms_fixture(state / 'state.sqlite3', cid)
+    if populate:
+        populate(previous, work, state, saved, historical_schema)
     original = snapshot(state / 'state.sqlite3')
-    preserved(state / 'state.sqlite3', original, 10)
+    preserved(state / 'state.sqlite3', original, historical_schema)
     before = work / 'before-upgrade'
     backup(binary, state, before)
     run('migrate', '--config', state / 'operator.toml', '--server-config',
@@ -73,12 +75,13 @@ def qualify(binary, previous, work, schema):
     with Server(rollback, binary=previous, log_path=work / 'rollback.log'):
         with NativeClient(rollback / 'operator.toml', executable=str(previous)) as client:
             verify(client, saved)
-    preserved(rollback / 'state.sqlite3', original, 10)
+    preserved(rollback / 'state.sqlite3', original, historical_schema)
     failed = work / 'failed-upgrade'
     shutil.copytree(rollback, failed)
     config_port(failed, port())
     with sqlite3.connect(failed / 'state.sqlite3') as db:
-        db.execute('CREATE TABLE tasks(broken TEXT)')
+        table = 'contact_pairings' if historical_schema == 16 else 'tasks'
+        db.execute(f'CREATE TABLE {table}(broken TEXT)')
     failed_input = snapshot(failed / 'state.sqlite3')
     # Back up the actual failing input, so this reaches DDL rather than only
     # failing the stale-backup guard. The original good rollback stays intact.
@@ -88,14 +91,14 @@ def qualify(binary, previous, work, schema):
                  failed / 'server.toml', '--backup', failing_backup, binary=binary, success=False)
     # The public CLI redacts SQLite details as storage-unavailable.
     assert 'storage-unavailable' in result.stderr, result.stderr
-    preserved(failed / 'state.sqlite3', failed_input, 10)
+    preserved(failed / 'state.sqlite3', failed_input, historical_schema)
     assert snapshot(failed / 'state.sqlite3') == failed_input
     recovered = work / 'recovered'
     restore(binary, before, recovered)
     with Server(recovered, binary=previous, log_path=work / 'recovered.log'):
         with NativeClient(recovered / 'operator.toml', executable=str(previous)) as client:
             verify(client, saved)
-    preserved(recovered / 'state.sqlite3', original, 10)
+    preserved(recovered / 'state.sqlite3', original, historical_schema)
     return state, saved, {'original_tables': len(original),
                           'original_rows': sum(len(t['rows']) for t in original.values()),
                           'artifact_bytes': len(DRAFT), 'migration_ddl_rollback': True,

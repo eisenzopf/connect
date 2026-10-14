@@ -5,6 +5,7 @@ import time
 import tomllib
 
 from .local_process import run
+from .grant_boundary import status_at_boundary
 from .mcp_load_http import ADMISSIONS, Endpoint, burst, encode, success
 
 OPERATIONS = ['send', 'history', 'task_cancel']
@@ -68,17 +69,28 @@ def boundary(jobs, expiry, report):
             assert accepted['data']['request_id'] == job['send']['request_id']
             job['receipt'] = receipt
         observations = {200: 0, 401: 0}
+        outcomes = {'status-completed': 0, 'http-unauthorized': 0, 'execution-expired': 0}
+        crossings = []
+        def status(index):
+            started = time.time()
+            response = jobs[index]['old_endpoint'].request(encode('connect_task_status', {}))
+            return response, started, time.time()
         while time.time() < expiry + .05:
-            results = burst(lambda i: jobs[i]['old_endpoint'].request(encode('connect_task_status', {})), report)
-            for job, response in zip(jobs, results):
-                assert response[0] in observations, response[0]
+            results = burst(status, report)
+            for job, (response, started, finished) in zip(jobs, results):
+                outcome = status_at_boundary(response, started, finished, expiry, job['task']['id'])
                 observations[response[0]] += 1
-                if response[0] == 200:
-                    assert success(response)['structuredContent']['data']['id'] == job['task']['id']
+                outcomes[outcome] += 1
+                if started < expiry <= finished:
+                    # Only bounded numeric metadata, never bearer or raw response.
+                    crossings.append({'task_index': job['index'], 'started_unix_seconds': started,
+                                      'finished_unix_seconds': finished, 'expiry_unix_seconds': expiry,
+                                      'outcome': outcome})
             time.sleep(.05)
         expired(jobs, report)
-        assert observations[200] >= ADMISSIONS
+        assert outcomes['status-completed'] >= ADMISSIONS
         report.checkpoint(original_effects=32, expiry_load_responses=observations,
+                          expiry_outcomes=outcomes, measured_expiry_crossings=crossings,
                           expired_status_and_receipt_denied=64)
 
 

@@ -118,6 +118,17 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     if schema >= 16 {
         tables.push("vapi_session_setups");
     }
+    if schema >= 17 {
+        tables.extend(["contact_pairings", "connector_manifests"]);
+    }
+    if schema >= 18 {
+        tables.extend([
+            "connector_observations",
+            "connector_receipt_events",
+            "connector_incoming",
+            "connector_voice_observations",
+        ]);
+    }
     for table in tables {
         digest.update(table.as_bytes());
         // Names are a fixed allowlist, never user-controlled SQL.
@@ -280,6 +291,14 @@ impl Store {
         }
         if expected.schema < 16 {
             tx.execute_batch(include_str!("../migrations/016_vapi_session_setups.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 17 {
+            tx.execute_batch(include_str!("../migrations/017_contacts.sql"))
+                .map_err(|_| Error::storage())?;
+        }
+        if expected.schema < 18 {
+            tx.execute_batch(include_str!("../migrations/018_connector_observations.sql"))
                 .map_err(|_| Error::storage())?;
         }
         let snapshot = inspect(&tx)?;

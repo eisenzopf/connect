@@ -1,0 +1,731 @@
+{
+  "task": "G5-006",
+  "status": "current-driver-self-tests-passed; full named release lanes remain pending",
+  "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_dirty": true,
+  "whole_gate_qualified": false,
+  "schema": "scripts/lib/gate5-evidence.schema.json",
+  "schema_version": 1,
+  "commands": [
+    {
+      "command": "python3 -m unittest discover -s scripts/tests -p test_gate5*.py",
+      "result": "passed",
+      "tests": 11,
+      "log_sha256": "171ae43d06ada4c050a4d946ea5cef4f6c6f64421a892a72148ec9181cead606"
+    },
+    {
+      "command": "python3 -m unittest discover -s scripts/tests -p test_qualification*.py",
+      "result": "passed",
+      "tests": 72
+    },
+    {
+      "command": "python3 -m unittest discover -s scripts/tests -p test_live_agent_journey.py -v",
+      "result": "passed",
+      "tests": 14
+    },
+    {
+      "command": "python3 scripts/check-gate-5.py --lane actual-model --allow-model-inference",
+      "result": "expected-nonzero",
+      "behavior": "Missing explicit runtime/report/Codex prerequisites retained as failed/unresolved; no inference attempted"
+    }
+  ],
+  "failure_proof": [
+    "failed child exit7",
+    "actual timeout with unchanged deadline",
+    "child interrupted by SIGINT",
+    "disk headroom rejection before build",
+    "inherited child-process leak killed and retained as failed",
+    "later selected checks marked not_run",
+    "source success whole_gate_qualified false",
+    "explicit gate5 profile/hash mismatches rejected",
+    "zero-test WebRTC default-feature success rejected; enabled feature flags are explicit"
+  ],
+  "private_logs": [
+    ".local/independent-uctp/runner-tests-final.log",
+    ".local/independent-uctp/missing-model-preflight.log",
+    ".local/independent-uctp/gate5-driver-final.log"
+  ],
+  "files_sha256": {
+    "scripts/check-gate-5.py": "25fd9fd333637ebf2224dee8205a649c097298952327d0603bae5988fecde11c",
+    "scripts/lib/gate5_phases.py": "96fade68df9ead269448f06d5de84fc4093d7fb114e0bdee967134ec27aee421",
+    "scripts/lib/gate5-evidence.schema.json": "5f767d52eaad66c24d72f36640952b2ca6f9804c3c0110bb5cf12e88bf785383",
+    "scripts/tests/test_gate5_driver.py": "d1640f031b0ee19d9e940400312ac4351adb925ceb93b5082d07dfafa74ae127",
+    ".github/workflows/local-checks.yml": "7e8f07fcf979ced65033309f7ec318d0eb7893e44dfe0a813261de7abdc090a7"
+  },
+  "selected_plan": [
+    {
+      "lane": "source",
+      "name": "source--dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "source",
+      "name": "source--gate5-driver-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_gate5*.py"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--typescript-install",
+      "command": [
+        "npm",
+        "ci",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "lane": "source",
+      "name": "source--typescript-tests",
+      "command": [
+        "npm",
+        "test",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "lane": "source",
+      "name": "source--typescript-format",
+      "command": [
+        "npm",
+        "run",
+        "format:check",
+        "--prefix",
+        "sdk/typescript"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--typescript-distribution",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "sdk/typescript/dist"
+      ],
+      "timeout_seconds": 60
+    },
+    {
+      "lane": "source",
+      "name": "source--python-sdk",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "sdk/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "lane": "source",
+      "name": "source--agent-incoming-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "examples/agent-presence/tests",
+        "-p",
+        "test_incoming*.py"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--runner-failure-tests",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_qualification*.py"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--agent-journey-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_agent_journey.py"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--voice-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_task_voice.py"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--chat-rehearsal-unit",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_live_*chat*.py"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--lint",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "timeout_seconds": 2400
+    },
+    {
+      "lane": "source",
+      "name": "source--rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--workspace",
+        "--all-features",
+        "--no-deps"
+      ],
+      "timeout_seconds": 2400
+    },
+    {
+      "lane": "source",
+      "name": "source--workspace",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-workspace-ci.py",
+        "--all-features"
+      ],
+      "timeout_seconds": 7200
+    },
+    {
+      "lane": "source",
+      "name": "source--media-pressure",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--all-features",
+        "--test",
+        "gate3_media_pressure",
+        "--",
+        "--ignored",
+        "--test-threads=1"
+      ],
+      "timeout_seconds": 1200
+    },
+    {
+      "lane": "source",
+      "name": "source--upstream-regression",
+      "command": [
+        "bash",
+        "scripts/check-baseline.sh"
+      ],
+      "timeout_seconds": 3600
+    },
+    {
+      "lane": "source",
+      "name": "source--upstream-vapi",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-vapi",
+        "--test",
+        "mock_transport"
+      ],
+      "timeout_seconds": 1200
+    },
+    {
+      "lane": "source",
+      "name": "source--upstream-queues",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-sip",
+        "-p",
+        "rvoip-webrtc",
+        "--lib",
+        "queue_budget_tests"
+      ],
+      "timeout_seconds": 1200
+    },
+    {
+      "lane": "source",
+      "name": "source--upstream-codec",
+      "command": [
+        "env",
+        "CARGO_TARGET_DIR=target/upstream",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-sip",
+        "--test",
+        "adapter_renegotiate"
+      ],
+      "timeout_seconds": 1200
+    },
+    {
+      "lane": "source",
+      "name": "source--current-binaries",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "-p",
+        "connect-review-loop",
+        "--bin",
+        "connect",
+        "--bin",
+        "connect-example"
+      ],
+      "timeout_seconds": 1200
+    },
+    {
+      "lane": "source",
+      "name": "source--agent-incoming-public",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "examples/agent-presence/tests",
+        "-p",
+        "test_public_intake.py"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "source",
+      "name": "source--native-task-capacity",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-task-capacity.py"
+      ],
+      "timeout_seconds": 960
+    },
+    {
+      "lane": "source",
+      "name": "source--reference-runner-capacity",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-runner-capacity.py"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "lane": "source",
+      "name": "source--mcp-operating-load",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-mcp-load.py"
+      ],
+      "timeout_seconds": 240
+    },
+    {
+      "lane": "source",
+      "name": "source--grant-lifecycle-load",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-grant-lifecycle.py"
+      ],
+      "timeout_seconds": 240
+    },
+    {
+      "lane": "source",
+      "name": "source--task-artifact-retention",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-retention-load.py"
+      ],
+      "timeout_seconds": 240
+    },
+    {
+      "lane": "source",
+      "name": "source--voice-setup-retirement",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-voice-retirement.py"
+      ],
+      "timeout_seconds": 3600
+    },
+    {
+      "lane": "source",
+      "name": "source--schema-six-build",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/build-recovery-baseline.py",
+        "--schema",
+        "6",
+        "--retire-build-cache"
+      ],
+      "timeout_seconds": 7500
+    },
+    {
+      "lane": "source",
+      "name": "source--schema-ten-build",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/build-recovery-baseline.py",
+        "--schema",
+        "10",
+        "--retire-build-cache"
+      ],
+      "timeout_seconds": 7500
+    },
+    {
+      "lane": "source",
+      "name": "source--historical-task-recovery",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-gate4-recovery.py",
+        "--previous-binary",
+        ".local/recovery-baselines/99243f3962cf25e780bbd176e56a4f27c752e121/connect"
+      ],
+      "timeout_seconds": 660
+    },
+    {
+      "lane": "source",
+      "name": "source--dispatch",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-dispatch.py"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "source",
+      "name": "source--identity",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-identity.py"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "source",
+      "name": "source--typescript-probe",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-typescript.py"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "source",
+      "name": "source--crash-replay",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-crash-replay.py"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "source",
+      "name": "source--examples",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-examples.py"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "source",
+      "name": "source--example-recovery",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-example-recovery.py"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "source",
+      "name": "source--current-recovery",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-recovery.py",
+        "--current-only"
+      ],
+      "timeout_seconds": 660
+    },
+    {
+      "lane": "source",
+      "name": "source--datagram-example",
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--example",
+        "quic_audio"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "source",
+      "name": "source--connector-template-cold-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--manifest-path",
+        "examples/connector-template/Cargo.toml",
+        "--target-dir",
+        ".local/gate5/connector-template-target"
+      ],
+      "timeout_seconds": 1200
+    },
+    {
+      "lane": "source",
+      "name": "source--connector-template-contract",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/check-connector-contract.py"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "lane": "independent-client",
+      "name": "independent-client--dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "lane": "independent-client",
+      "name": "independent-client--independent-runtime",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/prepare-independent-uctp.py"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "lane": "independent-client",
+      "name": "independent-client--independent-vector-tests",
+      "command": [
+        "/Volumes/D2-2019/Developer/Connect/.local/independent-uctp/venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "examples/independent-uctp-client",
+        "-p",
+        "test_*.py"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "lane": "independent-client",
+      "name": "independent-client--independent-cold-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "connect-server",
+        "--bin",
+        "connect"
+      ],
+      "timeout_seconds": 2400
+    },
+    {
+      "lane": "independent-client",
+      "name": "independent-client--independent-quic-conformance",
+      "command": [
+        "/Volumes/D2-2019/Developer/Connect/.local/independent-uctp/venv/bin/python",
+        "scripts/check-independent-uctp.py"
+      ],
+      "timeout_seconds": 120
+    }
+  ],
+  "unresolved": [
+    {
+      "lane": "installed",
+      "reason": "required lane not selected"
+    },
+    {
+      "lane": "scripted-host",
+      "reason": "required lane not selected"
+    },
+    {
+      "lane": "actual-model",
+      "reason": "required lane not selected"
+    },
+    {
+      "lane": "operating",
+      "reason": "required lane not selected"
+    },
+    {
+      "lane": "native-keychain",
+      "reason": "required lane not selected"
+    }
+  ],
+  "ci_execution": "workflow prepared; not executed in this session",
+  "scope": "Tooling self-tests and partial real control conformance; no complete source/installed/model/operating/video qualification",
+  "evidence_note": "Component test observations identify tested revisions/hashes. Later conformance additions/source edits require the final source/candidate rerun and are not retrospectively counted as tested.",
+  "required_media_source_phases": {
+    "typescript_public_media": 192,
+    "native_diagnostics": 1,
+    "quic_actual_mtu": 1,
+    "webrtc_preallocation_enabled": 1,
+    "webrtc_selector_enabled": 1,
+    "bounded_collector": 6,
+    "video_packetizer": 3,
+    "scope": "Enabled padding/reorder eight and collector six checks passed on the selected graph, recorded separately in upstream-video-boundaries.json. Driver requires all current counts; complete source lane and decoded/installed qualification remain pending.",
+    "webrtc_padding_reorder_enabled": 8
+  },
+  "previous_source_scoped_driver_snapshot": {
+    "files_sha256": {
+      "scripts/check-gate-5.py": "ff56a928be260b496e4b2251aeb047e519d2f6e0d54183bd81b21886f79bfcad",
+      "scripts/lib/gate5_phases.py": "bd16f5f23baef359eb4be9693d2a2f2d3e683876968e1cb8124030dabba347c4",
+      "scripts/lib/gate5-evidence.schema.json": "7db6661fb01bc3b645704e163d4a08d7fec008fa35ed699d0148c209dfe7120e",
+      "scripts/tests/test_gate5_driver.py": "d521987703c664b72a75056a9ff05cf90637f52905bd119be9dfb31ed43c8105",
+      ".github/workflows/local-checks.yml": "037c5b09a8528588822cc2484115255dd7e199cac06fc4a4fa1d91fcbf00d85f"
+    },
+    "commands": [
+      {
+        "command": "python3 -m unittest discover -s scripts/tests -p test_gate5*.py",
+        "result": "passed",
+        "tests": 11,
+        "log_sha256": "171ae43d06ada4c050a4d946ea5cef4f6c6f64421a892a72148ec9181cead606"
+      },
+      {
+        "command": "python3 -m unittest discover -s scripts/tests -p test_qualification*.py",
+        "result": "passed",
+        "tests": 72
+      },
+      {
+        "command": "python3 -m unittest discover -s scripts/tests -p test_live_agent_journey.py -v",
+        "result": "passed",
+        "tests": 14
+      },
+      {
+        "command": "python3 scripts/check-gate-5.py --lane actual-model --allow-model-inference",
+        "result": "expected-nonzero",
+        "behavior": "Missing explicit runtime/report/Codex prerequisites retained as failed/unresolved; no inference attempted"
+      }
+    ],
+    "claim_limit": "Retained earlier source snapshot; refreshed11-case run below identifies current exact driver files."
+  },
+  "recorded_at": "2026-10-14T07:19:42.710383+00:00",
+  "current_self_test_run": {
+    "command": "python3 -m unittest discover -s scripts/tests -p 'test_gate5*.py'",
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "exit_code": 0,
+    "private_log": ".local/gate5/connector-admission-review/driver-current.log",
+    "private_log_sha256": "163577d68b50a896d3c3aaa1207676dfcc4994193f9222aedb7802ae07837e74",
+    "inputs_before_sha256": {
+      "scripts/check-gate-5.py": "25fd9fd333637ebf2224dee8205a649c097298952327d0603bae5988fecde11c",
+      "scripts/lib/gate5_phases.py": "96fade68df9ead269448f06d5de84fc4093d7fb114e0bdee967134ec27aee421",
+      "scripts/lib/gate5-evidence.schema.json": "5f767d52eaad66c24d72f36640952b2ca6f9804c3c0110bb5cf12e88bf785383",
+      "scripts/tests/test_gate5_driver.py": "d1640f031b0ee19d9e940400312ac4351adb925ceb93b5082d07dfafa74ae127",
+      ".github/workflows/local-checks.yml": "7e8f07fcf979ced65033309f7ec318d0eb7893e44dfe0a813261de7abdc090a7"
+    },
+    "inputs_after_sha256": {
+      "scripts/check-gate-5.py": "25fd9fd333637ebf2224dee8205a649c097298952327d0603bae5988fecde11c",
+      "scripts/lib/gate5_phases.py": "96fade68df9ead269448f06d5de84fc4093d7fb114e0bdee967134ec27aee421",
+      "scripts/lib/gate5-evidence.schema.json": "5f767d52eaad66c24d72f36640952b2ca6f9804c3c0110bb5cf12e88bf785383",
+      "scripts/tests/test_gate5_driver.py": "d1640f031b0ee19d9e940400312ac4351adb925ceb93b5082d07dfafa74ae127",
+      ".github/workflows/local-checks.yml": "7e8f07fcf979ced65033309f7ec318d0eb7893e44dfe0a813261de7abdc090a7"
+    },
+    "inputs_stable": true,
+    "scope": "Python-owned synthetic child tests; no Connect server, Cargo, decoded timing, provider or model execution."
+  },
+  "parent_aggregate_python_run": {
+    "private_log": ".local/gate5/python-qualification-current.log",
+    "private_log_sha256": "1def8cb02a3231d41f30a54dee5694a2df51e0028ed0ebdf113fc252a2a7f634",
+    "passed": 187,
+    "failed": 0,
+    "scope": "Observed parent-run aggregate qualification unit tests. No input-before seal was recorded for this run; no later exact-candidate stability claim."
+  },
+  "task_completion_boundary": "G5-006 completes the driver/schema and meaningful refusal/cleanup self-tests. It does not complete source/installed/independent/model/media lanes; required not-run scopes remain explicit."
+}

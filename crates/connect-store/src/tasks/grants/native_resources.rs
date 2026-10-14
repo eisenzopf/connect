@@ -28,6 +28,19 @@ impl Store {
         Ok(Self::native_session_authority(&tx, subject, session_id)?.session)
     }
 
+    /// Current delegated authority for trusted terminal media retirement.
+    /// This preserves the full grant, task, parent, membership and provenance
+    /// checks in one transaction. An ended result cannot authorize media use.
+    pub fn authorize_native_task_session_lifetime(
+        &self,
+        subject: &str,
+        session_id: &str,
+    ) -> Result<Session> {
+        let mut c = self.connection()?;
+        let tx = c.transaction().map_err(|_| Error::storage())?;
+        Ok(Self::native_session_authority_with_lifetime(&tx, subject, session_id, true)?.session)
+    }
+
     /// Trusted store composition only: no broad credential or cached authority
     /// is recovered from a task subject. The caller owns the transaction.
     pub(crate) fn native_session_authority(
@@ -35,13 +48,26 @@ impl Store {
         subject: &str,
         session_id: &str,
     ) -> Result<NativeSessionAuthority> {
+        Self::native_session_authority_with_lifetime(c, subject, session_id, false)
+    }
+
+    fn native_session_authority_with_lifetime(
+        c: &rusqlite::Connection,
+        subject: &str,
+        session_id: &str,
+        allow_ended: bool,
+    ) -> Result<NativeSessionAuthority> {
         let id = task_grant_id(subject)?;
         let invocation = invocation_for_subject(c, id)?;
         let (grant, actor, mut task) = revalidate(c, &invocation, crate::now())?;
         if !grant.grant.operations.contains(&TaskPermission::SessionGet) {
             return Err(Error::forbidden());
         }
-        let session = crate::sessions::authorize_binding(c, &actor, session_id)?;
+        let session = if allow_ended {
+            crate::sessions::authorize_binding_lifetime(c, &actor, session_id)?
+        } else {
+            crate::sessions::authorize_binding(c, &actor, session_id)?
+        };
         if session.conversation_id != task.conversation_id {
             return Err(Error::forbidden());
         }

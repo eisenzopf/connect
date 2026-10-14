@@ -1,0 +1,57 @@
+{
+  "profile": "connect-gate5-contract-freeze/1",
+  "task": "G5-003",
+  "recorded_at": "2026-10-14T07:19:42.710383+00:00",
+  "status": "contract-boundary-review-passed",
+  "scope": "Versioned public contract freeze and review of recorded fixture evidence. This does not qualify latest worker code, media operation, release package or provider execution.",
+  "source_base_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "working_tree": "Current uncommitted contract/type digests identify the reviewed snapshot.",
+  "reviewed_source_sha256": {
+    "contracts/connect-control-v1.md": "bb3204dd14327e1c375145718dd20392c093a233bfc388215b7c4177f8a4d20e",
+    "contracts/connect-task-v1.md": "7eba70da25b02fd23b0b9d57343c3b990dce0d60defa256f9de23d9a88dc4b67",
+    "contracts/connect-task-access-v1.md": "0a1ece5af39804024d2ec1537e00bef9dac88fd7ac3632dc7f4af82410a3fe74",
+    "contracts/connect-media-vp8-v1.md": "c365d4e009a20dd0749f5cd860d9e094ed0aee70cd7a6a5fe864ae67623d4c3a",
+    "contracts/contact-pairing-v1.md": "9b24dc03575b6d992a673b9d6c2a6565e77a3ef750b6d3522389a091b7ed1be4",
+    "contracts/connectors/profile-v1.md": "d0ee8c8ffef1e1d89e1408a35fecbbc1f14f4f3737d288bd62cdfa632bd11921",
+    "contracts/connectors/host-context-v1.md": "44b23d70ca14f1e2428e8f8b9ffa39e37ca9f364888cfe10fa78e4c75f2b251d",
+    "contracts/fixtures/wire/framing-v1.json": "89785b8c4ae1f280169d1dd037eaeec5d04957a8788f49266ba24d2eb3cdb058",
+    "contracts/fixtures/wire/rejections-v1.json": "2e622fe3f8312b78b81c19ff39f195d92b4adcd5db3f4b4306a0eef9b78414f8",
+    "crates/connect-protocol/src/video_profile.rs": "d0f70c86b63b927bb286b9acfb2033f2211a34e27cd84c98258e7575c7025923",
+    "crates/connect-protocol/src/discovery.rs": "0942afea58558b5eb466d377e4cf13b72d806ebeb109d3545e24695f3d3e7010",
+    "crates/connect-protocol/src/contacts.rs": "d043948e93b805cd1c4194d0a288a191afa385636d02f600ee751e1bf6c01fd3",
+    "crates/connect-connector-api/src/manifest.rs": "de5c7baa7e740b98ee91e08a623c5c11808696c2c4535c47d39f41ae324c63c4",
+    "crates/connect-connector-api/src/lifecycle.rs": "c01dafeb700e72d339864e7d29a9a6924b0358349944bd4587ca8982eb7ac286"
+  },
+  "reviewed_boundaries": [
+    "Stock UCTP reliable envelopes and connect-control/1 application profile remain distinct from Connect media datagrams and provider DTOs.",
+    "Existing identity, Conversation, message and task primitives retain current authority, exact logical IDs, opaque cursors and bounded source views; Session and provider effects do not create a second Conversation model.",
+    "VP8/PCMU profile is explicitly two-party and route-specific; unsupported SIP audio/video is an explicit canonical rejection, and browser routes remain WebRTC.",
+    "Manifest operations/context/configuration and typed message/voice uncertainty are versioned in the public connector API. Trusted adapters cannot register code or grant authority through a wire request.",
+    "One-use pairing is not Conversation membership or SMS enrollment; setup/health observations cannot grant callback, media or provider readiness.",
+    "Reference clients and independent implementation keep explicit supported/omitted public interface boundaries; media-byte MCP APIs, Vapi vision, PSTN/SMS video and multiparty are unsupported."
+  ],
+  "recorded_behavior_evidence": [
+    {
+      "evidence": "docs/evidence/gate-5/connector-runtime-integration.json",
+      "scope": "Source-scoped manifest/configuration/reducer/unknown/replay/provenance and current-auth contract cases; retained287 API/Store/connectors and24 host tests at that snapshot. Latest context-order/capability host repairs are separate pending implementation proof."
+    },
+    {
+      "evidence": "docs/evidence/gate-5/independent-conformance.json",
+      "scope": "26 reliable-control checks with incompatible profile/version, malformed framing/JSON, unauthorized identity/Conversation, current revocation, same-ID uncertainty/reconnect/restart. Reliable control only, source-scoped immutable native executable."
+    },
+    {
+      "evidence": "docs/evidence/gate-5/contact-interface-parity.json",
+      "scope": "Native Rust, HTTP JSON, CLI, MCP and Python/TypeScript contact response/current-authority parity fixtures. No consent or provider execution implied."
+    },
+    {
+      "evidence": "docs/evidence/gate-5/video-transport.json",
+      "scope": "Negotiation/admission and malformed/unsupported media contract components at recorded source. Full decoded operation and changed graph behavior remain required separately."
+    }
+  ],
+  "remaining_implementation_qualification": [
+    "Latest host operation-admission/context-order implementation tests",
+    "Changed shared terminal lifecycle graph",
+    "Three-route decoded operating/failure profile and final installed interfaces"
+  ],
+  "whole_gate_qualified": false
+}

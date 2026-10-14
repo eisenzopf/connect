@@ -8,6 +8,13 @@ import time
 import uuid
 from pathlib import Path
 
+if sys.argv[1:] == ["--version"]:
+    print("codex-cli 0.162.0-alpha.17.2")
+    sys.exit(0)
+if sys.argv[1:] == ["login", "status"]:
+    print("Logged in using a fixture account")
+    sys.exit(0)
+
 Path("fixture-phase").write_text("entered")
 
 args = sys.argv[1:]

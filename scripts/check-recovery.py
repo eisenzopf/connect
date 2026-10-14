@@ -58,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix='connect-recovery-') as temporary:
         # Actual preserved prior milestone binary, not a mock reader.
         previous=pathlib.Path(os.environ.get('CONNECT_PREVIOUS_BINARY',ROOT/'.local/milestones/m1/connect'))
         assert previous.is_file(), 'Supply the archived schema-1 milestone binary (see docs/LOCAL_RELEASE.md)'
-        prior_manifest=json.loads(previous.with_name('manifest.json').read_text())
+        prior_manifest=json.loads(pathlib.Path(os.environ.get('CONNECT_PREVIOUS_MANIFEST', previous.with_name('manifest.json'))).read_text())
         assert hashlib.sha256(previous.read_bytes()).hexdigest()==prior_manifest['binary_sha256']
         legacy=work/'legacy'
         run('init','--directory',legacy,'--example','review-loop','--bind',f'127.0.0.1:{port()}',binary=previous)

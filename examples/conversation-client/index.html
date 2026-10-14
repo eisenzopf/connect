@@ -21,7 +21,11 @@
           >HTTP API <input id="http" value="http://127.0.0.1:3018"
         /></label>
         <label
-          >WebRTC signaling <input id="webrtc" readonly placeholder="Read from the server before joining"
+          >WebRTC signaling
+          <input
+            id="webrtc"
+            readonly
+            placeholder="Read from the server before joining"
         /></label>
         <label
           >Credential <input id="credential" type="password" autocomplete="off"
@@ -49,9 +53,17 @@
             <h2>Conversation</h2>
             <span id="watermark"></span>
           </div>
-          <ol id="messages"></ol><button id="more-history">Load next history page</button>
-          <p id="pending"></p><button id="retry">Retry saved action</button>
-          <details><summary>Context and delivery outcomes</summary><p id="context-state"></p><ol id="context-events"></ol><ol id="deliveries"></ol><button id="more-deliveries">Older delivery receipts</button></details>
+          <ol id="messages"></ol>
+          <button id="more-history">Load next history page</button>
+          <p id="pending"></p>
+          <button id="retry">Retry saved action</button>
+          <details>
+            <summary>Context and delivery outcomes</summary>
+            <p id="context-state"></p>
+            <ol id="context-events"></ol>
+            <ol id="deliveries"></ol>
+            <button id="more-deliveries">Older delivery receipts</button>
+          </details>
           <form id="message-form">
             <textarea
               id="message"
@@ -62,6 +74,38 @@
           </form>
         </article>
         <aside>
+          <section class="card">
+            <h2>Contact and routes</h2>
+            <label
+              >Connect address
+              <input id="contact-address" value="connect:agent@local"
+            /></label>
+            <button id="inspect-contact">Select and inspect</button>
+            <p id="contact-state"></p>
+            <ul id="contact-routes"></ul>
+            <details>
+              <summary>Verify native ownership</summary>
+              <button id="pair-start">Start one-use pairing</button>
+              <label>Pairing ID <input id="pairing-id" /></label>
+              <label
+                >One-use challenge
+                <input
+                  id="pairing-challenge"
+                  type="password"
+                  autocomplete="off"
+              /></label>
+              <div class="actions">
+                <button id="pair-complete">Complete as peer</button
+                ><button id="pair-revoke">Revoke as owner</button>
+              </div>
+              <p>
+                Use the independently authenticated peer to complete the
+                challenge. Native ownership grants no SMS consent or
+                conversation access. The challenge stays in this tab's memory;
+                re-enter it after reload to retry an uncertain completion.
+              </p>
+            </details>
+          </section>
           <section class="card">
             <h2>Availability</h2>
             <div class="actions">
@@ -75,18 +119,71 @@
             <input id="file" type="file" /><button id="upload">
               Upload to conversation
             </button>
+            <label
+              >Expiry in seconds (optional)<input
+                id="file-ttl"
+                type="number"
+                min="1"
+                max="604800"
+                placeholder="No expiry"
+            /></label>
             <p id="file-state">No file selected.</p>
+            <ul id="artifact-list"></ul>
+            <label>Artifact ID <input id="artifact-id" /></label
+            ><button id="download">Download and verify</button>
+            <p>
+              Recent files appear here. Older artifact IDs remain usable through
+              the public API while authorized and unexpired.
+            </p>
           </section>
           <section class="card">
             <h2>Session control</h2>
             <label>Session ID <input id="session" /></label>
             <div class="actions">
               <button id="invite">Invite audio</button
-              ><button id="accept">Accept</button><button id="end">End</button>
+              ><button id="invite-video">Invite audio + video</button
+              ><button id="accept">Accept</button
+              ><button id="reject">Reject</button><button id="end">End</button>
             </div>
           </section>
           <section class="card">
-            <h2>Browser voice</h2><p id="voice-binding">The server binding is checked before microphone access.</p>
+            <h2>Browser video</h2>
+            <p>
+              Join the accepted video Session selected by the server. Camera and
+              microphone start only after the binding matches this conversation.
+            </p>
+            <div class="grid">
+              <label
+                >Microphone
+                <select id="audio-device">
+                  <option value="">System default</option>
+                </select></label
+              ><label
+                >Camera
+                <select id="video-device">
+                  <option value="">System default</option>
+                </select></label
+              >
+            </div>
+            <div class="actions">
+              <button id="refresh-devices">List devices</button
+              ><button id="join-video">Join video</button
+              ><button id="end-video" disabled>Leave video</button>
+            </div>
+            <video id="local-video" muted playsinline autoplay></video
+            ><video id="remote-video" playsinline controls autoplay></video>
+            <div class="actions">
+              <button id="mute-camera" disabled>Mute camera</button
+              ><button id="mute-microphone" disabled>Mute microphone</button
+              ><button id="video-diagnostics">Inspect video</button>
+            </div>
+            <pre id="video-proof" aria-live="polite"></pre>
+          </section>
+          <section class="card">
+            <h2>Browser voice</h2>
+            <p id="voice-binding">
+              The server binding is checked before microphone access.
+            </p>
             <p>
               Authenticated WebRTC audio enters the configured conversation
               route and reaches the assistant through Connect.
@@ -103,5 +200,7 @@
       </section>
     </main>
     <script type="module" src="app.js"></script>
+    <script type="module" src="video.js"></script>
+    <script type="module" src="contacts.js"></script>
   </body>
 </html>

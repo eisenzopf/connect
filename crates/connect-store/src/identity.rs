@@ -279,6 +279,30 @@ impl Store {
             .map_err(|_| Error::storage())?;
         actor_from_connection(&connection, &id.ok_or_else(Error::unauthorized)?)
     }
+    /// Read-only current operator admission for installation-owned secret storage.
+    /// No migration, cleanup, credential issue or journal mutation is performed.
+    pub fn authorize_secret_storage_file(path: &std::path::Path, token: &str) -> Result<String> {
+        if token.len() != 64 {
+            return Err(Error::unauthorized());
+        }
+        let mut connection =
+            rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+                .map_err(|_| Error::storage())?;
+        let tx = connection.transaction().map_err(|_| Error::storage())?;
+        let id: Option<String> = tx
+            .query_row(
+                "SELECT id FROM credentials WHERE verifier=?1",
+                [verifier(token)],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|_| Error::storage())?;
+        actor_from_connection(&tx, &id.ok_or_else(Error::unauthorized)?)?.require("admin")?;
+        tx.query_row("SELECT id FROM installation WHERE singleton=1", [], |r| {
+            r.get(0)
+        })
+        .map_err(|_| Error::storage())
+    }
     pub fn revalidate(&self, credential_id: &str) -> Result<Actor> {
         let connection = self.connection()?;
         actor_from_connection(&connection, credential_id)

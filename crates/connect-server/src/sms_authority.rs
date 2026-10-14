@@ -1,10 +1,28 @@
 //! Bounded, authenticated enrollment synchronization. Provider work remains local;
 //! an expired or absent authority snapshot can never authorize an SMS.
+use async_trait::async_trait;
 use connect_store::{SmsGrantSnapshot, Store};
 use sha2::{Digest, Sha256};
 use std::{sync::Arc, time::Duration};
 
-pub(crate) struct Authority {
+/// Trusted server composition supplies an authenticated complete enrollment snapshot.
+/// Connect remains the one dispatch authority for leases, consent, STOP and replay.
+#[async_trait]
+pub trait SmsPolicy: Send + Sync {
+    /// Stable authority identity, never selected by an agent or incoming message.
+    fn source(&self) -> &str;
+    async fn snapshot(&self) -> anyhow::Result<SmsGrantSnapshot>;
+}
+/// Synchronize one policy through the existing atomic store boundary. Failure never
+/// extends a stale lease or clears durable STOP state.
+pub async fn synchronize(policy: &dyn SmsPolicy, store: Arc<Store>) -> anyhow::Result<()> {
+    let snapshot = policy.snapshot().await?;
+    let source = policy.source().to_owned();
+    tokio::task::spawn_blocking(move || store.refresh_sms_grants(&source, &snapshot)).await??;
+    Ok(())
+}
+
+pub struct Authority {
     client: reqwest::Client,
     url: reqwest::Url,
     token: String,
@@ -15,11 +33,12 @@ impl Authority {
         let Some(url) = std::env::var("CONNECT_SMS_AUTHORITY_URL").ok() else {
             return Ok(None);
         };
-        let token = std::env::var("CONNECT_SMS_AUTHORITY_TOKEN")
-            .map_err(|_| anyhow::anyhow!("SMS authority token is required"))?;
+        let token = crate::secrets::resolve("CONNECT_SMS_AUTHORITY_TOKEN")?
+            .expose()
+            .to_owned();
         Self::new(&url, token).map(Some)
     }
-    pub(crate) fn new(url: &str, token: String) -> anyhow::Result<Self> {
+    pub fn new(url: &str, token: String) -> anyhow::Result<Self> {
         let url =
             reqwest::Url::parse(url).map_err(|_| anyhow::anyhow!("Invalid SMS authority URL"))?;
         let loopback = url.host_str().is_some_and(|h| {
@@ -48,7 +67,17 @@ impl Authority {
             source,
         })
     }
+    #[cfg(test)]
     pub(crate) async fn refresh(&self, store: Arc<Store>) -> anyhow::Result<()> {
+        synchronize(self, store).await
+    }
+}
+#[async_trait]
+impl SmsPolicy for Authority {
+    fn source(&self) -> &str {
+        &self.source
+    }
+    async fn snapshot(&self) -> anyhow::Result<SmsGrantSnapshot> {
         let mut response = self
             .client
             .get(self.url.clone())
@@ -74,9 +103,7 @@ impl Authority {
         }
         let snapshot: SmsGrantSnapshot = serde_json::from_slice(&body)
             .map_err(|_| anyhow::anyhow!("Invalid SMS authority snapshot"))?;
-        let source = self.source.clone();
-        tokio::task::spawn_blocking(move || store.refresh_sms_grants(&source, &snapshot)).await??;
-        Ok(())
+        Ok(snapshot)
     }
 }
 #[cfg(test)]

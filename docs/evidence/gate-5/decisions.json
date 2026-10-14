@@ -1,0 +1,13 @@
+{
+  "status": "recorded",
+  "date": "2026-10-13",
+  "basis": "Owner directed full Gate5 implementation; implementation defaults derived from D5-01\u2013D5-05, no runtime qualification implied.",
+  "profile": "connect-video-vp8/1",
+  "decision": "docs/decisions/011-gate-5-profile.md",
+  "sha256": "8039f578ccc2cc798497968c5cf9fb0f01a7de0805f7c2ba30636e69bd8f84c2",
+  "source": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "scope": "Local macOS arm64; qualification required; no publication/deployment/carrier operations.",
+  "initial_recorded_sha256": "0e1077d9ed9a762cce08ca5662c7cb13c737cd30087b36408ec02b9be50b2d5b",
+  "working_tree_amendment": "Frozen AV marker/resource/wire/file/recovery ceilings and an explicit physical-peer QUIC byte-buffer bound before final route qualification. Sampled internal byte pressure does not assert eviction or queued-age visibility. All implemented source still requires sealed verification.",
+  "previous_recorded_sha256": "b9b93c1867a101c4ee02e3ee9dd5d9c8bfc4621d6ff2c813f7b83b49207e4b24"
+}

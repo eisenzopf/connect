@@ -1,0 +1,120 @@
+{
+  "profile": "connect-gate-5-local-media-admission-cleanup/1",
+  "recorded_at": "2026-10-14T00:48:39.360327+00:00",
+  "status": "store-and-checker-guards-qualified-native-process-proof-pending",
+  "scope": "Local Store fixture and cleanup checker guard qualification; no live provider, physical capture, native process media or full Gate5 claim.",
+  "source_sha256": {
+    "crates/connect-store/src/sip_legs.rs": "6280230e13ec5fa2c8e96e85e0d3355819f566c74780314f5f52f5931c97c226",
+    "crates/connect-store/src/sip_legs/dispatch.rs": "2e295ff3db9b22bf8f8fe2b3664dc44734c4243a58717566fd8ddd48073874c9",
+    "crates/connect-store/tests/gate3_sip_legs.rs": "2aa28b6028bc152c7e49f8888c542d5ad08f496be84120369808026a9f37ed32",
+    "crates/connect-store/tests/video_binding.rs": "7e7a5173a00d3facb659549a3368b620469eb98d0966be90a37a0ba78a8d4ce0",
+    "scripts/check-native-video-cleanup.py": "96455633f2a5355b2be7158a6e8cd6567101e9f7d425c70a748e0971fe52332d",
+    "scripts/tests/test_native_video_cleanup.py": "1528e5b6f7cd4b47d9ea4e00db547e1cfa0e41b294954cc35b347f5f31beae68"
+  },
+  "dependency_source_lock_sha256": "1f8f716ca3211ba5a37798845c18e6f4d18b0c40c04b94195387214b197707e5",
+  "store_verification": {
+    "command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-store --test video_binding --test gate3_sip_legs",
+    "passed": 14,
+    "failed": 0,
+    "ignored": 0,
+    "suites": {
+      "video_binding": 10,
+      "gate3_sip_legs": 4
+    },
+    "private_log": ".local/gate5/video-race-sip-tests.log",
+    "log_sha256": "6cb5273b609957f5ce99a8ae5993a87f4db86bdf09d837deda8740ffd30bcdab",
+    "behavior": [
+      "SessionEnd versus bind_session_connection with16 barrier races; one terminal event per recipient, no stale attach/accept resurrection.",
+      "Concurrent accept versus reject with16 barrier races and explicit each winner serialization; exactly one transition and terminal followthrough.",
+      "Explicit durable end versus last physical cleanup in both orders; no resurrection and exact interruption/terminal event counts.",
+      "AV SipDial canonical unsupported-media-profile rejection repeated under the same logical ID; one rejected receipt, zero SipLeg/queue/start-admission/activity changes.",
+      "Audio-only Session in the same Conversation still admits one possible SIP dispatch; replay cannot duplicate.",
+      "Private old unsupported pending/starting AV rows are refused without worker error or possible dispatch; already owned active AV leg can still be ended by the other participant."
+    ]
+  },
+  "guard_verification": {
+    "command": "python3 -m unittest discover -s scripts/tests -p test_native_video_cleanup.py -v",
+    "passed": 9,
+    "failed": 0,
+    "private_log": ".local/gate5/native-cleanup-checker-guards.log",
+    "log_sha256": "ce791584364c2fdfed6301bc7f2718aa505d0b4d554939a6cf178c53719e18e4",
+    "scope": "Eight synthetic deadline/reason/process-group guards plus one actual harmless owned Python child exit. No native media proof.",
+    "ownership": "waitid(WNOWAIT) leaves PID/PGID reserved until all possible group signaling completes before any reaping; zombie anchors excluded from live descendant observations; no successful cleanup SIGKILL or signal after reap."
+  },
+  "setup": {
+    "prepare_log": ".local/gate5/video-race-sip-prepare.log",
+    "prepare_log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "format_log": ".local/gate5/video-race-sip-format.log",
+    "format_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "format": "scripts/format.sh passed",
+    "python_syntax": "py_compile passed",
+    "diff_check": "passed"
+  },
+  "failed_attempts": [
+    {
+      "log": ".local/gate5/video-race-sip-tests-attempt1.log",
+      "log_sha256": "f7fd96db4c8514f203a2a7e283617fc9135935092d5fc79e88b3429522b7b625",
+      "failure": "New fixture used request_id instead of requests.id; fixed fixture query."
+    },
+    {
+      "log": ".local/gate5/video-race-sip-tests-attempt2.log",
+      "log_sha256": "1a3dd655bc6b6ad916a695d9c76bc43fed8d473bf7eaf322052ec2ebff5d4f79",
+      "failure": "Overstrict zero rejection receipt expectation conflicted with canonical business-rejection replay; root required preserving existing receipt contract."
+    }
+  ],
+  "native_process_checker": {
+    "script": "scripts/check-native-video-cleanup.py",
+    "cli": "--runtime PATH [--source-path PATH] [--server-binary PATH] [--video-binary PATH] --ffmpeg PATH --source-revision REV --work-root PRIVATE_LOCAL_PATH [--output PRIVATE_LOCAL_JSON]",
+    "not_run": [
+      "selected native SIGINT after actual duplex incoming keyframes",
+      "selected capture-child refusal through controlled avfoundation-intercept shim with actual generated FFmpeg codecs",
+      "same accepted Session fresh native reattachment after each fault"
+    ],
+    "intended_acceptance": "Both native processes exit within5seconds of trigger; exact interrupt/peer-terminal or child-failure/peer-terminal, no owned live descendants or forced cleanup, durable accepted Session + exact Conversation message history and continued communication + actual fresh duplex keyframes, bound source/helpers/tools/binaries stable before/after.",
+    "hardware_boundary": "Explicit private shim refuses audio avfoundation before exec/hardware and only forwards generated lavfi inputs to selected actual FFmpeg. Capture-child refusal is not physical permission/device proof.",
+    "bound_helper_scope": "All scripts/video helpers including source_identity, decoder and Python/JS coded/CDF marker observers, owned process/phase-supervisor sources and guard source are hashed before/after. Binding unused helpers does not claim their execution.",
+    "output_contract": {
+      "checker_profile": "connect-native-video-cleanup/1",
+      "passed_status": "passed",
+      "cases": [
+        "interrupt",
+        "capture-refusal"
+      ],
+      "fault_rows": [
+        "fault",
+        "fresh_reattachment"
+      ],
+      "identity_fields": [
+        "source_revision",
+        "selected_runtime",
+        "selected_source",
+        "selected_server_binary",
+        "selected_video_binary",
+        "selected_ffmpeg",
+        "selected_binary_sha256",
+        "input_sha256",
+        "input_sha256_after",
+        "tested_inputs_stable"
+      ],
+      "acceptance_fields": [
+        "status",
+        "not_run",
+        "case.status",
+        "case.{fault,fresh_reattachment}.status",
+        "case.{fault,fresh_reattachment}.readiness.complete_incoming_keyframes",
+        "case.{fault,fresh_reattachment}.cleanup.both_exited_within5seconds",
+        "case.{fault,fresh_reattachment}.cleanup.remaining_owned_processes",
+        "case.{fault,fresh_reattachment}.recovery_signals",
+        "case.{continuity,continued_communication,after_reattachment}.session_state",
+        "case.{continuity,continued_communication,after_reattachment}.history_preserved"
+      ]
+    },
+    "supplementary_input_inventory_verification": {
+      "evidence": "docs/evidence/gate-5/package-native-cleanup-integration.json",
+      "evidence_sha256": "eb0897422807e65bc70ef38510484ed0d4dfe1d20027a3197a8b7e1dc198c6a0",
+      "package_guards_passed": 19,
+      "repair": "Selected source archives under .local are bound using relative file components."
+    }
+  },
+  "whole_gate_qualified": false
+}

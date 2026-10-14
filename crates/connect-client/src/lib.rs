@@ -21,6 +21,7 @@
 //! ```
 mod client;
 mod config;
+mod contacts;
 mod discovery;
 mod error;
 mod media;
@@ -28,6 +29,11 @@ mod media_end;
 mod operations;
 pub mod task_diagnostics;
 mod task_operations;
+mod video;
+pub use video::{
+    NativeAvFrame, NativeVideoFrame, NativeVideoPacket, NativeVideoSession,
+    VideoAssemblyDiagnostics, VideoFrameAssembler,
+};
 
 pub use client::ConnectClient;
 pub use config::ClientConfig;

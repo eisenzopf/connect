@@ -1,0 +1,172 @@
+--- a/crates/uctp/rvoip-uctp/src/state/coordinator.rs
++++ b/crates/uctp/rvoip-uctp/src/state/coordinator.rs
+@@ -1764,22 +1764,40 @@
+     /// terminal signaling and adapter-event delivery. Other Sessions and
+     /// application pending replies remain owned by the existing coordinator.
+     pub async fn retire_authorized_terminal_session(&self, sid: &SessionId) -> Result<()> {
++        // One shared two-second budget covers both independent deliveries.
++        // The adapter event must not wait behind a congested wire queue:
++        // it owns route/stream cancellation even if the peer ignores signaling.
++        let started = tokio::time::Instant::now();
++        let delivery_deadline = started + Duration::from_secs(2);
++        let terminal_deadline = started + Duration::from_secs(3);
+         self.remove_session_resources(sid);
+         let payload = payloads::session::SessionEnd {
+             by: "local".into(),
+             reason_code: 0,
+             reason: "durable-session-ended".into(),
+         };
+-        self.send_out(
+-            UctpEnvelope::new(MessageType::SessionEnd, serde_json::to_value(payload)?)
+-                .with_sid(sid.to_string()),
+-        )
+-        .await?;
+-        self.emit_event(UctpSessionEvent::SessionEnded {
++        let envelope = UctpEnvelope::new(MessageType::SessionEnd, serde_json::to_value(payload)?)
++            .with_sid(sid.to_string());
++        let event = UctpSessionEvent::SessionEnded {
+             sid: sid.clone(),
+             reason: "durable-session-ended".into(),
++        };
++        let delivery = tokio::time::timeout_at(delivery_deadline, async {
++            tokio::join!(self.send_out(envelope), self.emit_event(event))
+         })
+-        .await
++        .await;
++        if matches!(delivery, Ok((Ok(()), Ok(())))) {
++            return Ok(());
++        }
++        // Critical backpressure cannot retain old media or consume the
++        // ordinary ten-second signaling drain. Abort the peer immediately;
++        // its supervisor observes completed shutdown and cancels all pumps.
++        self.cancel.cancel();
++        // The absolute terminal budget also bounds the owned driver abort.
++        // Cancellation is already visible to the coupled peer supervisor and
++        // its media workers even if an application callback delays its driver.
++        let _ = tokio::time::timeout_at(terminal_deadline, self.abort()).await;
++        Err(UctpError::Closed)
+     }
+ 
+     fn clear_all_resources(&self) {
+--- a/crates/uctp/rvoip-uctp/src/state/terminal_supervisor_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/state/terminal_supervisor_tests.rs
+@@ -194,3 +194,119 @@
+     let _ = guard.await;
+     coordinator.abort().await;
+ }
++
++#[tokio::test(start_paused = true)]
++async fn terminal_backpressure_has_one_bounded_budget_and_fails_closed() {
++    for (wire_full, events_full) in [(true, false), (false, true), (true, true)] {
++        let bindings = PeerResourceBindings::new(Arc::new(TerminalResolver {
++            current: Arc::new(AtomicBool::new(true)),
++            ended: Arc::new(AtomicBool::new(true)),
++        }));
++        bindings
++            .authenticate(AuthenticatedPrincipal::anonymous())
++            .unwrap();
++        let terminal = SessionId::from_string("terminal");
++        bindings.bind_session(&terminal).unwrap();
++        bindings
++            .bind_session(&SessionId::from_string("other"))
++            .unwrap();
++        let (_in_tx, in_rx) = mpsc::channel(ENVELOPE_CHANNEL_CAP);
++        let (out_tx, _out_rx) = mpsc::channel(1);
++        let (events_tx, _events_rx) = mpsc::channel(1);
++        if wire_full {
++            out_tx
++                .try_send(crate::envelope::UctpEnvelope::new(
++                    crate::types::MessageType::Ack,
++                    serde_json::json!({}),
++                ))
++                .unwrap();
++        }
++        if events_full {
++            events_tx
++                .try_send(UctpSessionEvent::SessionEnded {
++                    sid: SessionId::from_string("occupied"),
++                    reason: "fixture".into(),
++                })
++                .unwrap();
++        }
++        let coordinator = UctpCoordinator::start(
++            "test",
++            in_rx,
++            out_tx,
++            events_tx,
++            rvoip_auth_core::bearer_stub(),
++        );
++        coordinator.set_resource_bindings(bindings.clone()).unwrap();
++        let started = tokio::time::Instant::now();
++        let result = tokio::time::timeout(
++            Duration::from_secs(4),
++            coordinator.retire_authorized_terminal_session(&terminal),
++        )
++        .await
++        .expect("critical backpressure must not consume ordinary signaling timeouts");
++        assert!(result.is_err());
++        assert!(started.elapsed() <= Duration::from_secs(3));
++        // Critical delivery failure fails the whole peer closed: no retained
++        // sibling media survives and cancellation wakes its coupled supervisor.
++        assert!(bindings.core_session(&terminal).is_none());
++        assert!(bindings
++            .core_session(&SessionId::from_string("other"))
++            .is_none());
++        assert_eq!(coordinator.resource_snapshot().connections, 0);
++        tokio::time::timeout(Duration::ZERO, coordinator.cancelled())
++            .await
++            .unwrap();
++    }
++}
++
++#[tokio::test(start_paused = true)]
++async fn terminal_adapter_event_is_independent_of_a_saturated_wire_queue() {
++    let bindings = PeerResourceBindings::new(Arc::new(TerminalResolver {
++        current: Arc::new(AtomicBool::new(true)),
++        ended: Arc::new(AtomicBool::new(true)),
++    }));
++    bindings
++        .authenticate(AuthenticatedPrincipal::anonymous())
++        .unwrap();
++    let terminal = SessionId::from_string("terminal");
++    bindings.bind_session(&terminal).unwrap();
++    let (_in_tx, in_rx) = mpsc::channel(ENVELOPE_CHANNEL_CAP);
++    let (out_tx, _out_rx) = mpsc::channel(1);
++    let (events_tx, mut events_rx) = mpsc::channel(1);
++    out_tx
++        .try_send(crate::envelope::UctpEnvelope::new(
++            crate::types::MessageType::Ack,
++            serde_json::json!({}),
++        ))
++        .unwrap();
++    let coordinator = UctpCoordinator::start(
++        "test",
++        in_rx,
++        out_tx,
++        events_tx,
++        rvoip_auth_core::bearer_stub(),
++    );
++    coordinator.set_resource_bindings(bindings.clone()).unwrap();
++    let retirement = coordinator.clone();
++    let task = tokio::spawn(async move {
++        retirement
++            .retire_authorized_terminal_session(&terminal)
++            .await
++    });
++    let event = tokio::time::timeout(Duration::from_millis(100), events_rx.recv())
++        .await
++        .expect("media teardown event must not wait for wire capacity")
++        .unwrap();
++    assert!(
++        matches!(event, UctpSessionEvent::SessionEnded { sid, .. } if sid.as_str() == "terminal")
++    );
++    assert!(!task.is_finished());
++    assert!(bindings
++        .core_session(&SessionId::from_string("terminal"))
++        .is_none());
++    assert!(tokio::time::timeout(Duration::from_secs(3), task)
++        .await
++        .unwrap()
++        .unwrap()
++        .is_err());
++}

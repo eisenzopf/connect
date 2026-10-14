@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "task_ids": [
+    "G5-012",
+    "G5-014",
+    "G5-015",
+    "G5-035",
+    "G5-039"
+  ],
+  "status": "component-verified; final source graph and installed qualification pending",
+  "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "source_dirty": true,
+  "whole_gate_qualified": false,
+  "scope": "offline real Chromium and local public HTTP interface; generated capture, controlled capture/ICE faults, no physical device, provider or60-second operating claim",
+  "binary_sha256": "11a61e08433dbc9173724654a51f303189f11ad7df28ad76b278e4ba04b51988",
+  "graph_patch_sha256": "367e72ccb924d71f85d8d6b27ff0ebf14a9a39ecd7193fcd9aac2df9bf3f19d3",
+  "tested_inputs_stable": true,
+  "elapsed_seconds": 12.848367375,
+  "phase_timeout_seconds": 180,
+  "leftover_owned_processes": 0,
+  "checks": [
+    "101-message history paging",
+    "lost acknowledgement followed by reload and same-ID replay",
+    "exactly one committed message",
+    "voice refusal before microphone acquisition",
+    "keyboard message submission",
+    "public UI upload/download with independent byte verification",
+    "corrupted download rejected before save",
+    "cross-conversation file denied",
+    "expired file denied",
+    "390px narrow layout",
+    "no page errors"
+  ],
+  "video_checks": [
+    "reject before capture",
+    "public invite/accept and duplex decode",
+    "independent camera/microphone controls",
+    "explicit Session end releases both pages",
+    "reverse-initiated fresh Session in new Conversation without restart",
+    "leaving a leg retains accepted Session and Conversation",
+    "follow-up message in same context",
+    "attributed message, artifact and terminal Session context survive server restart",
+    "capture loss and ICE failure release both legs within five seconds",
+    "all owned tracks stopped"
+  ],
+  "video_observations": {
+    "initial": [
+      {
+        "audio": {
+          "matched_windows": 9,
+          "expected_hz": 660
+        },
+        "frames": 2,
+        "width": 640,
+        "height": 360,
+        "codec": "video/VP8"
+      },
+      {
+        "audio": {
+          "matched_windows": 8,
+          "expected_hz": 440
+        },
+        "frames": 1,
+        "width": 640,
+        "height": 360,
+        "codec": "video/VP8"
+      }
+    ],
+    "rejoined": [
+      {
+        "audio": {
+          "matched_windows": 8,
+          "expected_hz": 660
+        },
+        "frames": 1,
+        "width": 640,
+        "height": 360,
+        "codec": "video/VP8"
+      },
+      {
+        "audio": {
+          "matched_windows": 8,
+          "expected_hz": 440
+        },
+        "frames": 4,
+        "width": 640,
+        "height": 360,
+        "codec": "video/VP8"
+      }
+    ],
+    "controlled_failures": [
+      {
+        "failure": "capture-ended",
+        "cleanupMs": 519.7582920000004,
+        "scope": "controlled source/state fault on actual negotiated WebRTC peers"
+      },
+      {
+        "failure": "ice-failed",
+        "cleanupMs": 516.5382920000011,
+        "scope": "controlled source/state fault on actual negotiated WebRTC peers"
+      }
+    ]
+  },
+  "retained_failed_attempts": [
+    {
+      "phase": "original route corruption fixture",
+      "result": "failed",
+      "cause": "Harness selected body.Ok instead of versioned response.result.Ok; unhandled route error caused owned group leak, cleaned by runner",
+      "phase_report_sha256": "fc984dae650d1ae931424eb8d53caec434f5a48e3f518f2d4f3b57f8e4fd4b62"
+    },
+    {
+      "phase": "corrected envelope run",
+      "result": "failed",
+      "cause": "Generated capture fixture closed its AudioContext repeatedly when already-ended tracks were stopped. Fixture cleanup made idempotent; application cleanup unchanged",
+      "phase_report_sha256": "fce2eefee89c3aa204c28918d8d56e607af64486f911c8246f5e62f97042fb1f"
+    }
+  ],
+  "publication": false,
+  "retained_private_report_sha256": "70795f3b73d2349e4dd7f851bc7a5e71273047600c433ee06262507c9177b584"
+}

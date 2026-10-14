@@ -59,6 +59,8 @@ header p,
     color: var(--muted);
 }
 .card {
+    min-width: 0;
+    overflow-wrap: anywhere;
     background: color-mix(in srgb, var(--panel) 92%, transparent);
     border: 1px solid var(--line);
     border-radius: 18px;
@@ -83,6 +85,7 @@ label {
 }
 input,
 textarea,
+select,
 button {
     font: inherit;
     border: 1px solid var(--line);
@@ -90,6 +93,16 @@ button {
     background: #100e16;
     color: var(--ink);
     padding: 10px;
+}
+input,
+textarea,
+select {
+    width: 100%;
+    min-width: 0;
+}
+pre {
+    max-width: 100%;
+    overflow-x: auto;
 }
 button {
     cursor: pointer;
@@ -174,4 +187,11 @@ audio {
     header {
         align-items: flex-start;
     }
+}
+video {
+    width: 100%;
+    max-height: 240px;
+    background: #08080c;
+    border-radius: 10px;
+    margin: 8px 0;
 }

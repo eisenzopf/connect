@@ -1,3 +1,5 @@
+import { validMediaDiagnostics } from "./media_diagnostics.js";
+import { validContact } from "./contact_validation.js";
 import { array, fields, integer, object } from "./validation.js";
 import { validTaskOutcome } from "./task_protocol.js";
 import { ConnectError } from "./errors.js";
@@ -6,6 +8,10 @@ export const MAX_REQUEST = 65537;
 export const MAX_RESPONSE = 600000;
 const kinds: Record<Operation["op"], Outcome["kind"]> = {
     task: "task",
+    contact_pairing_start: "contact_pairing",
+    contact_pairing_complete: "contact_pairing",
+    contact_pairing_revoke: "contact_pairing",
+    contact_state: "contact",
     resolve: "identity",
     capabilities: "capabilities",
     browser_binding: "browser_binding",
@@ -54,6 +60,7 @@ function readiness(value: unknown): boolean {
     return (
         fields(value, ["state"]) &&
         states.includes(String(value.state)) &&
+        (!("media" in value) || validMediaDiagnostics(value.media)) &&
         array(
             value.components,
             (component) =>
@@ -122,6 +129,9 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
     switch (kind) {
         case "task":
             return validTaskOutcome(data, validData, depth);
+        case "contact":
+        case "contact_pairing":
+            return validContact(kind, data);
         case "identity":
             return (
                 fields(data, ["id", "alias"]) &&

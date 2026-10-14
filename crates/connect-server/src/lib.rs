@@ -2,6 +2,7 @@
 pub mod cli;
 pub mod config;
 pub mod installation;
+mod media_diagnostics;
 mod media_ingress;
 mod media_lifecycle;
 pub mod media_profile;
@@ -18,9 +19,14 @@ mod vapi_observer;
 pub mod vapi_task_setup;
 
 pub mod providers;
+pub mod secrets;
+pub mod setup_vault;
 
 pub mod voice;
 
 mod sms_authority;
+pub use sms_authority::{
+    synchronize as synchronize_sms_policy, Authority as HttpSmsPolicy, SmsPolicy,
+};
 mod startup;
 mod worker;

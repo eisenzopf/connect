@@ -29,6 +29,8 @@ class Model:
         shim_text = f"""#!{sys.executable}
 import json,os,sys
 args=sys.argv[1:]
+if args == ['--version'] or args == ['login','status']:
+    os.execv({str(self.codex)!r},[{str(self.codex)!r},*args])
 mode='resume' if len(args)>1 and args[0:2]==['exec','resume'] else 'first'
 value={{'pid':os.getpid(),'ppid':os.getppid(),'pgid':os.getpgrp(),'mode':mode,'session_id':args[2] if mode=='resume' else None,'normal_credential_present':bool(os.environ.get('CONNECT_AGENT_CREDENTIAL')),'task_grant_present':'CONNECT_TASK_GRANT' in os.environ,'provider_secret_present':any(name in os.environ for name in ('TELNYX_API_KEY','VAPI_PRIVATE_KEY','CONNECT_OPERATOR_CREDENTIAL'))}}
 with open({str(record)!r},'x') as stream:json.dump(value,stream)

@@ -5,6 +5,11 @@ use std::{net::SocketAddr, path::PathBuf};
 /// Protected communication access for one already-issued agent identity.
 #[derive(Subcommand)]
 pub enum Command {
+    /// Remove verified Connect export files while preserving saved host diagnostics.
+    RemoveCodex {
+        #[arg(long)]
+        installation: PathBuf,
+    },
     /// Create an agent identity once using explicit current owner authority.
     CreateIdentity {
         #[arg(long)]
@@ -46,6 +51,7 @@ impl Command {
     /// Execute using protected files; never issue a grant or invoke a provider.
     pub async fn execute(self) -> anyhow::Result<()> {
         match self {
+            Self::RemoveCodex { installation } => super::remove(&installation),
             Self::CreateIdentity {
                 config,
                 server_config,

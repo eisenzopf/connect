@@ -109,6 +109,52 @@ impl StoreSessionBindingResolver {
 #[path = "session_binding_tests.rs"]
 mod tests;
 impl SessionBindingResolver for StoreSessionBindingResolver {
+    fn supports_terminal_session_retirement(&self) -> bool {
+        true
+    }
+
+    fn reauthorize_peer(
+        &self,
+        principal: &AuthenticatedPrincipal,
+    ) -> std::result::Result<(), ResourceBindingError> {
+        if principal.issuer.as_deref() != Some("connect-local")
+            || principal.tenant.as_deref() != Some(self.namespace.as_str())
+            || principal.is_expired()
+        {
+            return Err(resource_error(Error::forbidden()));
+        }
+        if principal.subject.starts_with(TASK_PRINCIPAL_PREFIX) {
+            self.store
+                .revalidate_native_task_principal(&principal.subject)
+                .map(|_| ())
+        } else {
+            self.store.revalidate(&principal.subject).map(|_| ())
+        }
+        .map_err(resource_error)
+    }
+
+    fn session_is_terminal(
+        &self,
+        principal: &AuthenticatedPrincipal,
+        wire_session: &SessionId,
+        canonical_session: &SessionId,
+    ) -> std::result::Result<bool, ResourceBindingError> {
+        self.reauthorize_peer(principal)?;
+        let session = if principal.subject.starts_with(TASK_PRINCIPAL_PREFIX) {
+            self.store
+                .authorize_native_task_session_lifetime(&principal.subject, wire_session.as_str())
+        } else {
+            self.store
+                .authorize_session_lifetime(&principal.subject, wire_session.as_str())
+        }
+        .map_err(resource_error)?;
+        let expected = format!("connect:{}:{}", self.namespace, session.id);
+        if expected != canonical_session.as_str() {
+            return Err(ResourceBindingError::forbidden("connect-session-mismatch"));
+        }
+        Ok(session.state == "ended")
+    }
+
     fn authorize_envelope(
         &self,
         principal: &AuthenticatedPrincipal,
@@ -117,7 +163,7 @@ impl SessionBindingResolver for StoreSessionBindingResolver {
         if principal.subject.starts_with(TASK_PRINCIPAL_PREFIX) {
             super::native_media::authorize(&self.store, &self.namespace, principal, envelope)
         } else {
-            Ok(())
+            super::native_media::authorize_owner_video(&self.store, principal, envelope)
         }
     }
     fn resolve_session(

@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "gate_id": "G5-023",
+  "result": "verified independent fixture component; final release qualification remains separate",
+  "source_base": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
+  "scope": "local macOS arm64 deterministic fixtures and isolated loopback host; no live provider operations, account mutations, public ingress, publication or deployment",
+  "independent_authoring": {
+    "implementer": "separate agent, public exported kit only",
+    "excluded_inputs": [
+      "author connector template",
+      "Connect core server/store/service/routing source",
+      "earlier agent connector implementation"
+    ],
+    "original_kit_manifest_sha256": "12d6cb32e6eaf4e2157e12215b2fbbe184c6fe521c6497273357b46ca1a248c4",
+    "original_report_sha256": "1c7ce0ca86f4570f45ad9f0c43c717e0e210d3d7a34f5333608f8ba6eaf5f956",
+    "original_source_sha256": {
+      "Cargo.toml": "3a56bef6f2efe0354b9111c3e6ed5902b3163e6021671f8ce6062a2b0b05b457",
+      "Cargo.lock": "5eee845cc0b032f902302f6799cd3c76dc4e0e8867c18bcd6f02d99d5b34ea19",
+      "src/lib.rs": "3003b04edcfd9b9ef9b747631a705ae8d65ee047945383b726332f7f6339812e",
+      "src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
+      "tests/boundaries.rs": "92a807143af8e6b1f5d77cef6d840ca52677513c8f4cc21cc6b357610b548da3",
+      "README.md": "33e7d9f70301b8b4b160a2649e9903713ab10af71c541fc707060123af101c07"
+    },
+    "common_checks": 40,
+    "boundary_tests": 4,
+    "expected_negative_modes": {
+      "context": {
+        "exit_code": 1,
+        "failed_checks": [
+          "attributable-context-reply"
+        ]
+      },
+      "authentication": {
+        "exit_code": 1,
+        "failed_checks": [
+          "invalid-callback-auth",
+          "tampered-callback"
+        ]
+      },
+      "uncertainty": {
+        "exit_code": 1,
+        "failed_checks": [
+          "uncertain-no-repeat",
+          "reconciled-message-no-repeat"
+        ]
+      }
+    },
+    "historical_findings": [
+      {
+        "finding": "Kit guide starts with checkout-only prepare/build/format commands, though exported kit contains none of those scripts. Export paragraph gives sufficient standalone API dependency guidance.",
+        "blocking": false
+      },
+      {
+        "finding": "Host projection items list source_id/actor_id/kind/body/sequence, but no complete schema or normative kind-to-derived mapping. Typed MessageRequest/ContextItem API has full explicit provenance.",
+        "blocking": false
+      },
+      {
+        "finding": "Root checker source_files hashes checkout API Cargo.toml while this implementation builds the exported flattened Cargo.toml.",
+        "blocking": false
+      },
+      {
+        "finding": "Repository format check exited 1.",
+        "blocking": false
+      }
+    ]
+  },
+  "integration_repairs": [
+    {
+      "finding": "Host context envelope schema/kind-derived mapping was incomplete in the original guide",
+      "repair": "Added API-only typed HostContext decoder for exact ContextView and tagged task Recall, public schema contract, journal reference/provenance/omission mapping; no guessed summary/incomplete-transcript labels"
+    },
+    {
+      "finding": "Original illustrative source ID collapsed repeated source references at different journal positions",
+      "repair": "Conversation items use journal:sequence:source_id; task items retain exact conversation-journal event reference; original source ID stays in provenance"
+    },
+    {
+      "finding": "Task provenance is structured metadata rather than a short identifier",
+      "repair": "Prism allows 1024-byte provenance within its unchanged 8192-byte total context budget; unavailable/unattributed sources fail body-bearing conversion without fabrication"
+    },
+    {
+      "finding": "Durable public packaging and readable media module",
+      "repair": "Copied only independently authored source/manifests/tests, changed dependency to public repository API, mechanically split media implementation; no provider ledger state or raw logs copied",
+      "media_impl_text_unchanged": true
+    }
+  ],
+  "current_checks": [
+    {
+      "name": "durable-independent-boundaries",
+      "command": "PRISM_TEST_STATE_DIR=\"$PWD/.local/gate5/prism-durable-tests\" cargo test --offline --locked --manifest-path examples/connector-contribution/Cargo.toml --target-dir .local/gate5/connector-contribution-target",
+      "passed": true,
+      "tests": 4,
+      "ignored": 0,
+      "log_sha256": "f9fdb7529c113528b4e33e3c14f4d91016419dd52ab475555d1160a40bfe924f"
+    },
+    {
+      "name": "public-host-ordinary-and-task-recall",
+      "command": "cargo test -p connect-server --test connector_contribution",
+      "passed": true,
+      "tests": 5,
+      "ignored": 0,
+      "log_sha256": "761440396e09e82fa274b88cb73dc001c66e1bfc940028945f3050e098ed2030"
+    },
+    {
+      "name": "shared-decoder-vectors",
+      "command": "cargo test -p connect-connector-api",
+      "passed": true,
+      "tests": 10,
+      "ignored": 0,
+      "log_sha256": "69f810f25feb713d445b8befe6d852aa9958ea0e9790491240368e549875a35f"
+    }
+  ],
+  "common_harness": {
+    "passed": true,
+    "checks": 40,
+    "mandatory_missing": [],
+    "profile": "connect-connector-fixture-v1",
+    "report_sha256": "3b762b53241aacfd5f2aad055b69db97f04514e19b9c2f05078b2a24b548224b"
+  },
+  "negative_controls": {
+    "context": {
+      "exit_code": 1,
+      "failed_checks": [
+        "attributable-context-reply"
+      ],
+      "expected": true,
+      "command": [
+        "cargo",
+        "run",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "examples/connector-contribution/Cargo.toml",
+        "--target-dir",
+        ".local/gate5/connector-contribution-target",
+        "--",
+        "--contract-report",
+        "<fresh-isolated-fixture-file>",
+        "--broken-mode",
+        "context"
+      ]
+    },
+    "authentication": {
+      "exit_code": 1,
+      "failed_checks": [
+        "invalid-callback-auth",
+        "tampered-callback"
+      ],
+      "expected": true,
+      "command": [
+        "cargo",
+        "run",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "examples/connector-contribution/Cargo.toml",
+        "--target-dir",
+        ".local/gate5/connector-contribution-target",
+        "--",
+        "--contract-report",
+        "<fresh-isolated-fixture-file>",
+        "--broken-mode",
+        "authentication"
+      ]
+    },
+    "uncertainty": {
+      "exit_code": 1,
+      "failed_checks": [
+        "uncertain-no-repeat",
+        "reconciled-message-no-repeat"
+      ],
+      "expected": true,
+      "command": [
+        "cargo",
+        "run",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "examples/connector-contribution/Cargo.toml",
+        "--target-dir",
+        ".local/gate5/connector-contribution-target",
+        "--",
+        "--contract-report",
+        "<fresh-isolated-fixture-file>",
+        "--broken-mode",
+        "uncertainty"
+      ]
+    }
+  },
+  "quality_checks": [
+    {
+      "command": "cargo clippy -p connect-connector-api -p connect-server --all-targets --no-deps -- -D warnings",
+      "passed": true
+    },
+    {
+      "command": "cargo clippy --offline --locked --manifest-path examples/connector-contribution/Cargo.toml --target-dir .local/gate5/connector-contribution-target --all-targets --no-deps -- -D warnings",
+      "passed": true
+    },
+    {
+      "command": "bash scripts/format.sh --check",
+      "passed": true
+    },
+    {
+      "command": "python3 -m py_compile scripts/check-connector-contract.py",
+      "passed": true
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "retained_failures": {
+    "original_dependency_prepare": "Original exercise failed because the checked-out dependency lock was changing; current integration prepare verified pinned sources/digests before builds",
+    "original_repository_format": "Original independent reviewer recorded a failed repository check without inspecting core source; current integration format check was repeated after coordinator fixes",
+    "negative_modes": "Expected code defects still fail named mandatory cases; never promoted to successful behavior"
+  },
+  "core_policy_edits": false,
+  "registration": "explicit trusted composition through public Worker, validated manifest and durable contract snapshot",
+  "unsupported": [
+    "video",
+    "live-provider",
+    "network media quality or real-time capacity",
+    "multi-process concurrent writes to fixture ledger",
+    "automatic fetching beyond selected host context"
+  ],
+  "qualification_limits": [
+    "Independent authorship happened before the shared decoder was added; current host bridge is an explicitly recorded integration repair",
+    "The public body-bearing mapping rejects unavailable/unattributed recall rows while retaining their exact absence in typed DTOs",
+    "Component evidence does not establish matching packaged/installed final candidate acceptance or publication approval"
+  ],
+  "public_source_files": {
+    "Cargo.lock": "84f7ac268fbb4439b2380dd90957b62096773c26c336f9d1fef3762d7bdb5bfb",
+    "Cargo.toml": "e14e88a98f35f3d17e42f7209b1c60e810251e30d81d37384315b000b6f35438",
+    "contracts/connectors/host-context-v1.md": "44b23d70ca14f1e2428e8f8b9ffa39e37ca9f364888cfe10fa78e4c75f2b251d",
+    "crates/connect-connector-api/src/host_context.rs": "f7aff6f38d52744a4a06dd7f3375870460c5a57fa3a315e2c5272e7fc2ce3fa4",
+    "crates/connect-connector-api/src/lib.rs": "ddebd6de81134323bb795fb5a587d15e6ac2778c536a6852707d14713bfcbc83",
+    "crates/connect-connector-api/tests/host_context.rs": "8076807e5d4e73f2783a712e26a2f887347d36d31aee488edb802b3500538427",
+    "crates/connect-server/Cargo.toml": "551b71c65080dbda211d8cdefe50f4b3ea2f34aa8ff620462d2f75952a6a225a",
+    "crates/connect-server/tests/connector_contribution.rs": "cff1666351a9bfd346bcdce27637f05dddcb9762d9c076bd9ddb708cb22ba758",
+    "dependencies/source-lock.json": "5611771be0841ee978852828b9e89e5d2ccbf262fc44916ecf17edbd918a612f",
+    "docs/CONNECTORS.md": "2ec5933f92f3fb2da5433ee1c2a07d9696f79766ddba59897d8207833276b4c9",
+    "examples/connector-contribution/Cargo.lock": "5eee845cc0b032f902302f6799cd3c76dc4e0e8867c18bcd6f02d99d5b34ea19",
+    "examples/connector-contribution/Cargo.toml": "016088f10da1ddaa7f09d67c3966e7852fa057fcadf534c880ce862639302d80",
+    "examples/connector-contribution/README.md": "a111e12798ed069e475791ddee2636908ac2971cf1a9c642bb10fa05d16a486c",
+    "examples/connector-contribution/src/lib.rs": "9c24b528020db9e558979741b97e22c852d06d3139e7af7f37c4e60558a1a812",
+    "examples/connector-contribution/src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
+    "examples/connector-contribution/src/media.rs": "455f89124255a8a0edfab1d5b9c018730bfa6458ff39993d3b0ad8fb5502816d",
+    "examples/connector-contribution/tests/boundaries.rs": "43a1d3a6bb6f6ada41e078d012320d3bf6be0c2566cd1f6152b36b2fa42c3a65",
+    "examples/connector-template/src/lib.rs": "9ecb5cef7be6dad2176f34a4887be938ef5d8f75f1659bdbc4760a79729b5ca5",
+    "scripts/check-connector-contract.py": "a688cb2fd2970d25dce1c6c2cb48b0f912f1b4cf625150dba941f66d6b1f8f4a",
+    "scripts/format.sh": "9ffddddf89a15b8043642f11142d56ffd27db0eabe71cfeb76a3c08677e9f352"
+  }
+}

@@ -1,0 +1,424 @@
+--- a/crates/uctp/rvoip-quic/src/server.rs
++++ b/crates/uctp/rvoip-quic/src/server.rs
+@@ -505,10 +505,18 @@
+     let pending = coord.pending();
+     let auth_guard =
+         rvoip_uctp::state::spawn_auth_lifecycle_guard(Arc::clone(&coord), authentication_deadline);
+-    let resource_guard = rvoip_uctp::state::spawn_resource_authorization_guard(
+-        Arc::clone(&resource_bindings),
+-        Duration::from_millis(250),
+-    );
++    let resource_guard = if resource_bindings.supports_terminal_session_retirement() {
++        rvoip_uctp::state::spawn_resource_authorization_guard_with_session_retirement(
++            Arc::clone(&resource_bindings),
++            Arc::clone(&coord),
++            Duration::from_millis(250),
++        )
++    } else {
++        rvoip_uctp::state::spawn_resource_authorization_guard(
++            Arc::clone(&resource_bindings),
++            Duration::from_millis(250),
++        )
++    };
+ 
+     // Inbound substrate → coordinator pump.
+     let in_tx_for_pump = in_tx.clone();
+--- a/crates/uctp/rvoip-uctp/src/state/coordinator.rs
++++ b/crates/uctp/rvoip-uctp/src/state/coordinator.rs
+@@ -1759,6 +1759,29 @@
+         self.remove_session_resources(sid);
+     }
+ 
++    /// Retire one trusted-host-authorized durable Session without closing its
++    /// physical peer. Remove exact subscriptions/bindings before bounded
++    /// terminal signaling and adapter-event delivery. Other Sessions and
++    /// application pending replies remain owned by the existing coordinator.
++    pub async fn retire_authorized_terminal_session(&self, sid: &SessionId) -> Result<()> {
++        self.remove_session_resources(sid);
++        let payload = payloads::session::SessionEnd {
++            by: "local".into(),
++            reason_code: 0,
++            reason: "durable-session-ended".into(),
++        };
++        self.send_out(
++            UctpEnvelope::new(MessageType::SessionEnd, serde_json::to_value(payload)?)
++                .with_sid(sid.to_string()),
++        )
++        .await?;
++        self.emit_event(UctpSessionEvent::SessionEnded {
++            sid: sid.clone(),
++            reason: "durable-session-ended".into(),
++        })
++        .await
++    }
++
+     fn clear_all_resources(&self) {
+         let session_ids = self
+             .sessions
+--- a/crates/uctp/rvoip-uctp/src/state/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/state/mod.rs
+@@ -30,7 +30,8 @@
+     ResourceBindingError, SessionBindingResolver, SubscriptionHandler, SubscriptionOutcome,
+ };
+ pub use supervisor::{
+-    spawn_auth_lifecycle_guard, spawn_resource_authorization_guard, supervise_peer_tasks,
++    spawn_auth_lifecycle_guard, spawn_resource_authorization_guard,
++    spawn_resource_authorization_guard_with_session_retirement, supervise_peer_tasks,
+     supervise_peer_tasks_with_media_cancel, try_deliver_adapter_event,
+     try_deliver_orchestrator_event, PeerSessionExit, DEFAULT_AUTHENTICATION_DEADLINE,
+ };
+--- a/crates/uctp/rvoip-uctp/src/state/subscription.rs
++++ b/crates/uctp/rvoip-uctp/src/state/subscription.rs
+@@ -158,10 +158,39 @@
+         _principal: &AuthenticatedPrincipal,
+         _wire_session: &SessionId,
+         _canonical_session: &SessionId,
++    ) -> Result<(), ResourceBindingError> {
++        Ok(())
++    }
++
++    /// Opt into exact terminal-Session retirement instead of whole-peer teardown.
++    /// The default retains the original fail-closed peer lifetime behavior.
++    fn supports_terminal_session_retirement(&self) -> bool {
++        false
++    }
++
++    /// Revalidate the physical peer even after its last Session is retired.
++    /// Opted-in stateful hosts must check current credential/delegated authority.
++    fn reauthorize_peer(
++        &self,
++        _principal: &AuthenticatedPrincipal,
+     ) -> Result<(), ResourceBindingError> {
+         Ok(())
+     }
+ 
++    /// Distinguish an explicitly ended Session whose current principal,
++    /// membership and delegated authority still permit exact cleanup. This
++    /// does not authorize any envelope, attachment, subscription or media.
++    /// Unknown or unavailable authority must return an error, never terminal.
++    fn session_is_terminal(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        wire_session: &SessionId,
++        canonical_session: &SessionId,
++    ) -> Result<bool, ResourceBindingError> {
++        self.reauthorize_session(principal, wire_session, canonical_session)
++            .map(|()| false)
++    }
++
+     /// Reauthorize one exact wire Connection before a subscription mutation.
+     /// The default preserves session-only resolvers; deployments whose wire
+     /// Session names encode a connection owner can additionally prevent a
+@@ -467,6 +496,38 @@
+         Ok(())
+     }
+ 
++    /// Whether this trusted deployment explicitly owns terminal Session cleanup.
++    pub fn supports_terminal_session_retirement(&self) -> bool {
++        self.resolver.supports_terminal_session_retirement()
++    }
++
++    /// Validate current peer authority and snapshot only authorized terminal
++    /// wire Sessions. Nothing is removed here: the coordinator must first own
++    /// exact registry and adapter cleanup. Every error remains fail-closed.
++    pub fn authorized_terminal_sessions(&self) -> Result<Vec<SessionId>, ResourceBindingError> {
++        let _mutation = self.mutation.lock();
++        if self.principal.read().is_none() {
++            return Ok(Vec::new());
++        }
++        let principal = self.active_principal_locked()?;
++        self.resolver.reauthorize_peer(&principal)?;
++        let sessions = self
++            .sessions
++            .iter()
++            .map(|entry| (entry.key().clone(), entry.value().clone()))
++            .collect::<Vec<_>>();
++        let mut terminal = Vec::new();
++        for (wire, canonical) in sessions {
++            if self
++                .resolver
++                .session_is_terminal(&principal, &wire, &canonical)?
++            {
++                terminal.push(wire);
++            }
++        }
++        Ok(terminal)
++    }
++
+     fn active_principal_locked(&self) -> Result<AuthenticatedPrincipal, ResourceBindingError> {
+         let principal = self
+             .principal
+--- a/crates/uctp/rvoip-uctp/src/state/supervisor.rs
++++ b/crates/uctp/rvoip-uctp/src/state/supervisor.rs
+@@ -136,6 +136,39 @@
+     })
+ }
+ 
++/// Opt-in resource supervision with exact Session retirement. Current peer
++/// authority is rechecked even when no Session remains. Any unsupported,
++/// revoked, unknown or unavailable authorization still ends the whole peer.
++/// An authorized durable end retires only its own coordinator resources and
++/// adapter workers, preserving control signaling and other live Sessions.
++pub fn spawn_resource_authorization_guard_with_session_retirement(
++    bindings: Arc<PeerResourceBindings>,
++    coordinator: Arc<UctpCoordinator>,
++    validation_interval: Duration,
++) -> JoinHandle<()> {
++    tokio::spawn(async move {
++        if !bindings.supports_terminal_session_retirement() {
++            return;
++        }
++        let mut interval = tokio::time::interval(validation_interval);
++        loop {
++            interval.tick().await;
++            let Ok(terminal) = bindings.authorized_terminal_sessions() else {
++                return;
++            };
++            for session in terminal {
++                if coordinator
++                    .retire_authorized_terminal_session(&session)
++                    .await
++                    .is_err()
++                {
++                    return;
++                }
++            }
++        }
++    })
++}
++
+ /// Result of supervising a substrate peer's coupled tasks.
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ pub struct PeerSessionExit {
+@@ -344,3 +377,7 @@
+             .expect("resource guard must not panic");
+     }
+ }
++
++#[cfg(test)]
++#[path = "terminal_supervisor_tests.rs"]
++mod terminal_tests;
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/state/terminal_supervisor_tests.rs
+@@ -0,0 +1,196 @@
++//! Exact Session cleanup and fail-closed current peer lifetime fixtures.
++use super::{spawn_resource_authorization_guard_with_session_retirement, UctpCoordinator};
++use crate::state::{
++    PeerResourceBindings, ResourceBindingError, SessionBindingResolver, UctpSessionEvent,
++    ENVELOPE_CHANNEL_CAP,
++};
++use rvoip_core::identity::AuthenticatedPrincipal;
++use rvoip_core::ids::SessionId;
++use std::{
++    sync::{
++        atomic::{AtomicBool, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::sync::mpsc;
++
++struct TerminalResolver {
++    current: Arc<AtomicBool>,
++    ended: Arc<AtomicBool>,
++}
++impl SessionBindingResolver for TerminalResolver {
++    fn resolve_session(
++        &self,
++        _: &AuthenticatedPrincipal,
++        wire: &SessionId,
++    ) -> Result<SessionId, ResourceBindingError> {
++        Ok(wire.clone())
++    }
++    fn supports_terminal_session_retirement(&self) -> bool {
++        true
++    }
++    fn reauthorize_peer(&self, _: &AuthenticatedPrincipal) -> Result<(), ResourceBindingError> {
++        if self.current.load(Ordering::Acquire) {
++            Ok(())
++        } else {
++            Err(ResourceBindingError::forbidden("current-authority-lost"))
++        }
++    }
++    fn session_is_terminal(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        wire: &SessionId,
++        _: &SessionId,
++    ) -> Result<bool, ResourceBindingError> {
++        self.reauthorize_peer(principal)?;
++        Ok(wire.as_str() == "terminal" && self.ended.load(Ordering::Acquire))
++    }
++}
++
++#[tokio::test]
++async fn authorized_terminal_session_retires_exact_resources_keeps_control_and_current_peer_guard()
++{
++    let current = Arc::new(AtomicBool::new(true));
++    let ended = Arc::new(AtomicBool::new(false));
++    let bindings = PeerResourceBindings::new(Arc::new(TerminalResolver {
++        current: current.clone(),
++        ended: ended.clone(),
++    }));
++    bindings
++        .authenticate(AuthenticatedPrincipal::anonymous())
++        .unwrap();
++    let terminal = SessionId::from_string("terminal");
++    let other = SessionId::from_string("other");
++    bindings.bind_session(&terminal).unwrap();
++    bindings.bind_session(&other).unwrap();
++    let (_in_tx, in_rx) = mpsc::channel(ENVELOPE_CHANNEL_CAP);
++    let (out_tx, mut out_rx) = mpsc::channel(ENVELOPE_CHANNEL_CAP);
++    let (events_tx, mut events_rx) = mpsc::channel(ENVELOPE_CHANNEL_CAP);
++    let coordinator = UctpCoordinator::start(
++        "test",
++        in_rx,
++        out_tx,
++        events_tx,
++        rvoip_auth_core::bearer_stub(),
++    );
++    coordinator.set_resource_bindings(bindings.clone()).unwrap();
++    let pending = coordinator.pending();
++    let waiting = pending.clone();
++    let control = tokio::spawn(async move {
++        waiting
++            .wait_for(
++                crate::ids::EnvelopeId::from_string("control"),
++                Duration::from_secs(1),
++            )
++            .await
++    });
++    tokio::task::yield_now().await;
++    let guard = spawn_resource_authorization_guard_with_session_retirement(
++        bindings.clone(),
++        coordinator.clone(),
++        Duration::from_millis(5),
++    );
++    ended.store(true, Ordering::Release);
++    let event = tokio::time::timeout(Duration::from_secs(1), events_rx.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(matches!(event, UctpSessionEvent::SessionEnded { sid, .. } if sid == terminal));
++    let envelope = out_rx.recv().await.unwrap();
++    assert_eq!(envelope.msg_type, crate::types::MessageType::SessionEnd);
++    assert_eq!(envelope.sid.as_deref(), Some("terminal"));
++    assert!(bindings.core_session(&terminal).is_none());
++    assert_eq!(bindings.core_session(&other), Some(other.clone()));
++    assert!(!guard.is_finished());
++    assert!(pending.has_waiter("control"));
++    pending
++        .deliver(
++            crate::envelope::UctpEnvelope::new(
++                crate::types::MessageType::Ack,
++                serde_json::json!({}),
++            )
++            .with_in_reply_to("control"),
++        )
++        .unwrap();
++    assert!(control.await.unwrap().is_ok());
++    bindings.remove_session(&other);
++    current.store(false, Ordering::Release);
++    tokio::time::timeout(Duration::from_secs(1), guard)
++        .await
++        .unwrap()
++        .unwrap();
++    coordinator.abort().await;
++}
++
++#[tokio::test]
++async fn current_authority_loss_wins_before_or_after_terminal_state_without_terminal_shortcut() {
++    for end_first in [false, true] {
++        let current = Arc::new(AtomicBool::new(true));
++        let ended = Arc::new(AtomicBool::new(false));
++        let bindings = PeerResourceBindings::new(Arc::new(TerminalResolver {
++            current: current.clone(),
++            ended: ended.clone(),
++        }));
++        bindings
++            .authenticate(AuthenticatedPrincipal::anonymous())
++            .unwrap();
++        bindings
++            .bind_session(&SessionId::from_string("terminal"))
++            .unwrap();
++        if end_first {
++            ended.store(true, Ordering::Release);
++        }
++        current.store(false, Ordering::Release);
++        if !end_first {
++            ended.store(true, Ordering::Release);
++        }
++        assert!(bindings.authorized_terminal_sessions().is_err());
++        assert!(bindings
++            .core_session(&SessionId::from_string("terminal"))
++            .is_some());
++    }
++}
++
++#[tokio::test]
++async fn adapter_retirement_before_guard_tick_preserves_control_and_sibling_session() {
++    let current = Arc::new(AtomicBool::new(true));
++    let ended = Arc::new(AtomicBool::new(true));
++    let bindings = PeerResourceBindings::new(Arc::new(TerminalResolver { current, ended }));
++    bindings
++        .authenticate(AuthenticatedPrincipal::anonymous())
++        .unwrap();
++    let terminal = SessionId::from_string("terminal");
++    let other = SessionId::from_string("other");
++    bindings.bind_session(&terminal).unwrap();
++    bindings.bind_session(&other).unwrap();
++    let (_in_tx, in_rx) = mpsc::channel(ENVELOPE_CHANNEL_CAP);
++    let (out_tx, _out_rx) = mpsc::channel(ENVELOPE_CHANNEL_CAP);
++    let (events_tx, _events_rx) = mpsc::channel(ENVELOPE_CHANNEL_CAP);
++    let coordinator = UctpCoordinator::start(
++        "test",
++        in_rx,
++        out_tx,
++        events_tx,
++        rvoip_auth_core::bearer_stub(),
++    );
++    coordinator.set_resource_bindings(bindings.clone()).unwrap();
++    // The ordinary adapter path can win the same durable-end race. The next
++    // guard pass must not interpret already-removed bindings as revoked peer
++    // authority or touch a sibling Session.
++    coordinator.retire_local_session(&terminal);
++    let guard = spawn_resource_authorization_guard_with_session_retirement(
++        bindings.clone(),
++        coordinator.clone(),
++        Duration::from_millis(5),
++    );
++    tokio::time::sleep(Duration::from_millis(15)).await;
++    assert!(!guard.is_finished());
++    assert!(bindings.core_session(&terminal).is_none());
++    assert_eq!(bindings.core_session(&other), Some(other));
++    coordinator.retire_local_session(&terminal);
++    assert!(bindings.authorized_terminal_sessions().unwrap().is_empty());
++    guard.abort();
++    let _ = guard.await;
++    coordinator.abort().await;
++}
+--- a/crates/uctp/rvoip-webtransport/src/server.rs
++++ b/crates/uctp/rvoip-webtransport/src/server.rs
+@@ -467,10 +467,18 @@
+     );
+     let auth_guard =
+         rvoip_uctp::state::spawn_auth_lifecycle_guard(Arc::clone(&coord), authentication_deadline);
+-    let resource_guard = rvoip_uctp::state::spawn_resource_authorization_guard(
+-        Arc::clone(&resource_bindings),
+-        Duration::from_millis(250),
+-    );
++    let resource_guard = if resource_bindings.supports_terminal_session_retirement() {
++        rvoip_uctp::state::spawn_resource_authorization_guard_with_session_retirement(
++            Arc::clone(&resource_bindings),
++            Arc::clone(&coord),
++            Duration::from_millis(250),
++        )
++    } else {
++        rvoip_uctp::state::spawn_resource_authorization_guard(
++            Arc::clone(&resource_bindings),
++            Duration::from_millis(250),
++        )
++    };
+ 
+     // Use one finite unidirectional stream per control envelope. Chromium does
+     // not expose bytes written by web-transport-quinn on a long-lived stream

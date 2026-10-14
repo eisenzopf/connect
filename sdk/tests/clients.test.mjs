@@ -1,4 +1,6 @@
+import './media_diagnostics.test.mjs';
 import './tasks.test.mjs';
+import './contacts.test.mjs';
 import './reference_client.test.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';

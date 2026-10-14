@@ -21,6 +21,7 @@ pub async fn run(
     codex::load(&directory)?;
     let _lock = codex_host::lock(&directory)?;
     let installation = codex::load(&directory)?;
+    super::preflight::check(binary, deadline).await?;
     anyhow::ensure!(
         installation.credential_expires_at > chrono::Utc::now().timestamp(),
         "Installed agent credential expired; retain its original session for owner repair"

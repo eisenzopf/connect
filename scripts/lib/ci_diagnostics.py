@@ -7,7 +7,7 @@ import shutil
 import subprocess
 
 MAX_LOG_BYTES = 1024 * 1024
-SCOPES = ("checks", "gate-3-checks", "gate-4-checks", "ci-workspace")
+SCOPES = ("checks", "gate-3-checks", "gate-4-checks", "gate-5-checks", "ci-workspace")
 
 
 def redact(text):
