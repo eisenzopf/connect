@@ -454,5 +454,3 @@ def mute_observation(content, transitions, expected_hz):
         'decoder_mapping': content.get('decoder_mapping'),
         'identifiable_unmuted_audio': audio_identified,
         'limits': {'changing_video_fps': 24, 'recovery_seconds': 2, 'silence_rms': .003}, 'observations': observations}
-
-
