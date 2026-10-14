@@ -1,12 +1,13 @@
 # Gate 5 local alpha — release notes prepared for review
 
-This is a draft for the next local macOS arm64 candidate. Gate 5 is still under
-qualification. No matching installed candidate, complete acceptance record or
-publication is asserted here. The retained Gate 4 candidate and historical
+This is a draft for the local macOS arm64 candidate `0d285d168509`. Gate 5 is
+still under qualification. No complete installed qualification, final acceptance
+or publication is asserted here. The retained Gate 4 candidate and historical
 provider rehearsals keep their original source and topology limits.
 
 Follow the [implementation tracker](connect-gate-5-implementation.html),
-[acceptance map](gate-5-acceptance.json) and [package guide](GATE5_PACKAGE.md) for
+[acceptance map](gate-5-acceptance.json), [unsealed acceptance progress](evidence/gate-5/acceptance.html)
+and [package guide](GATE5_PACKAGE.md) for
 current evidence. A conference demonstration, component test or short media
 rehearsal does not establish the full release profile.
 The [product roadmap](connect-roadmap.html) and [feature coverage map](feature-coverage.json)
@@ -16,6 +17,27 @@ The [retained baseline](evidence/gate-5/baseline.json) now reproduces all 42
 original source phases through matching-source individual runs and all 17
 original installed checks. Original failures remain recorded; this is composed
 coverage, not a single uninterrupted source run or a changed Gate 5 candidate pass.
+
+## Current candidate observations
+
+Candidate `0d285d168509` passed archive inventory and independent archive review.
+Its selected archived reference check passed all 11 general checks and all 13
+AV/continuity checks. A separate private real-browser augmentation passed five
+contact-selection checks against archived assets and the public local API.
+The [contact repair record](evidence/gate-5/contact-selection-repair.json) retains
+all three original regression failures, the 216-test source result and the
+selected browser followup. These checks do not constitute a complete installed
+pass; see the exact [package evidence](evidence/gate-5/local-package-qualification.json).
+
+A separate 60-second [two-native-pair observation](evidence/gate-5/native-concurrency-observation.json)
+recorded roughly 5.1–5.3 independently decoded changing frames per second across
+four participants, below the 24 fps clean-profile comparison. This exploratory
+result does not extend the supported **one simultaneous two-party call** profile
+or establish a capacity claim. Approved browser impairment remains unresolved.
+Actual-model execution, three independent human walkthroughs and owner acceptance
+remain open. All 16 acceptance criteria remain not-qualified. Earlier failed
+runs retain their original outcomes. These progress annotations postdate the
+0d archive and are not claimed to be its baked documentation.
 
 ## Changes prepared for this candidate
 
@@ -101,8 +123,8 @@ patch and SHA256 digest. Modified upstream behavior is attributed to those
 patches rather than described as unmodified upstream code. The package notice
 builder includes both license texts for each prepared crate override as well as
 the Git and registry notices; [third-party notices](../THIRD_PARTY_NOTICES.md)
-explain these inventories. The unpublished aa31f0281516 candidate passed archive
-inventory and independent source/patch review; see the exact
+explain these inventories. The unpublished 0d285d168509 candidate passed archive
+inventory and independent archive review; see the exact
 [package evidence](evidence/gate-5/local-package-qualification.json). Its runtime,
 source and qualification archives retain that source boundary. Thelve and Bridgefu
 are design provenance, not copied source in this candidate.

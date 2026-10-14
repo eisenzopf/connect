@@ -1,7 +1,7 @@
 {
   "profile": "reference-contact-selection-repair/1",
   "recorded_at": "2026-10-14T21:51:01.843535+00:00",
-  "status": "source-component-verified; browser/package followup separate",
+  "status": "source-component and matching archived real-browser contact followup verified; whole-package qualification remains open",
   "source_revision": "c5bf7359c1d735ecf5753ed2833f74f5f1625416",
   "source_dirty": true,
   "source_sha256": {
@@ -42,7 +42,7 @@
   },
   "behavior": "Snapshot address/conversation and participant before asynchronous lookup; reject changed selection and edit-back via revision; clear previous owned contact selection at start/edit; publish identity, ownership and routes only once all exact-input lookups finish. Preserve independently entered participant.",
   "proof_limits": [
-    "Tests execute actual contacts.js handler through VM DOM/public-client fixtures, not a real browser or API backend.",
+    "Historical source-component tests execute actual contacts.js through VM DOM/public-client fixtures; the separately labeled archived_browser_followup adds real Chrome/API coverage.",
     "Full SDK suite includes owned loopback fixture HTTP servers and synthetic helper processes; no production Connect server, physical device, provider or model operation.",
     "Original/focused reports bind5 selected inputs; broad final report seals1111 including all actual module/test dependencies.",
     "Reference UI runtime behavior changes; TypeScript SDK distribution, core binaries, protocol and media transport are unchanged. No complete installed, human or whole-gate pass."
@@ -52,5 +52,63 @@
     "path": ".local/gate5/contact-selection-repair/quality-final-review.json",
     "sha256": "ac519a6e7debedc0f7dc2cc5726b28be61f1689d0b8dac410782c004b71e3f7f"
   },
-  "requirement": "G5-035 / A5-05; reference contact selection only"
+  "requirement": "G5-035 / A5-05; reference contact selection only",
+  "archived_browser_followup": {
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local",
+    "source_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
+    "archive_review": {
+      "path": ".local/gate5/package-independent-review-0d285d168509/review.json",
+      "sha256": "c5022379bdb3e4690127dc3fe4c2c649c028f4a46558865ad57102472a684efd"
+    },
+    "result": {
+      "path": ".local/gate5/package-followup-0d285d168509/contact-browser/result.json",
+      "sha256": "efcd88c1236191d48548421adddead0503bb887c9353ee95f3db4041e9e0a2a1"
+    },
+    "harness": {
+      "path": ".local/gate5/package-reference-concurrency-runner/harness-manifest.json",
+      "sha256": "a68524ecc15eaba18a5a484cf131121e717352ed78dbd319c9b78fdc9e40b835"
+    },
+    "independent_harness_review": {
+      "path": ".local/gate5/package-reference-concurrency-runner/quality-harness-review.json",
+      "sha256": "3bf21234ced0d7e8723350dfc7838d36d2f64ed59bbb7bb3a0921c37dc120d7e"
+    },
+    "independent_execution_review": {
+      "path": ".local/gate5/package-followup-0d285d168509/quality-selected-review.json",
+      "sha256": "b46b7ec88c90a9718ef13c01467190a1982aaee6fd2ee2352282e285f888cdf5"
+    },
+    "status": "passed",
+    "checks": [
+      "successful real inspection publishes matching identity/routes/ownership from exact request inputs",
+      "delayed real resolve plus address/conversation edits cannot publish or issue mixed followup lookups",
+      "no partial identity publication while capabilities pending; real input edit-back invalidates response",
+      "real unknown-address failure retains no old owned selection",
+      "manual participant remains intact after real failed inspection"
+    ],
+    "delayed_real_responses": {
+      "count": 2,
+      "operations": [
+        "resolve",
+        "capabilities"
+      ],
+      "body_and_headers_unchanged": true
+    },
+    "exact_server_inputs_verified": "Resolved identity, requested address/conversation, ownership and route strings are compared with actual public SDK responses. Real DOM input events invalidate delayed selection and edit-back. Unknown-address errors come from the real server, not fabricated responses.",
+    "source_assets": "Unmodified candidate runtime reference UI and SDK; ReferenceRuntime helper from matching source archive; only orchestration/response holds belong to private harness.",
+    "inputs_stable": true,
+    "cleanup": "All browser/server/route/static-server cleanup settled; owned supervisor group had no leftovers.",
+    "separate_unchanged_reference": {
+      "result": {
+        "path": ".local/gate5/package-followup-0d285d168509/reference.json",
+        "sha256": "2a24b8970aab4957b84cde5e1049797f71b4fed97047fd42aae2e99c95f770e5"
+      },
+      "status": "passed",
+      "ui_checks": 11,
+      "av_lifecycle_checks": 13,
+      "scope": "Existing full reference browser checker remains separate; its original checks do not click Inspect contact."
+    },
+    "limits": [
+      "Initial source-component/VM proof scope is retained above; this followup adds real Chrome and production local API execution.",
+      "No real user/human walkthrough, provider/model, complete installed or whole-gate acceptance."
+    ]
+  }
 }

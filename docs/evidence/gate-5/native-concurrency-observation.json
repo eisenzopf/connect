@@ -1,0 +1,220 @@
+{
+  "profile": "native-two-pair-exploratory-observation/1",
+  "recorded_at": "2026-10-14T22:05:12.567108+00:00",
+  "status": "required exploratory observation recorded; two-pair 24 fps comparison failed in both retained observations",
+  "whole_gate_qualified": false,
+  "supported_profile_pairs": 1,
+  "current": {
+    "source_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
+    "result": {
+      "path": ".local/gate5/package-followup-0d285d168509/exploratory-concurrency.json",
+      "sha256": "9f71fb4efa5f987303d25a3dd2d90a44e739b16ad54959c20cf8857c83880ac5"
+    },
+    "scope": "Current clean 0d285 candidate runtime/checker/SDK/reference assets extracted from three independently reviewed immutable archives; private runner only selects and seals the archived checker.",
+    "status": "observed-exploratory",
+    "tested_inputs_stable_at_execution": true,
+    "supported_profile_pairs": 1,
+    "attempted_simultaneous_pairs": 2,
+    "measurement_seconds": 60,
+    "participants": [
+      {
+        "pair": 1,
+        "slot": 1,
+        "decoded_frames": 328,
+        "changing_fps": 5.316666666666666,
+        "maximum_motion_gap_seconds": 0.7395749092102051,
+        "tone_identified": true,
+        "teardown_seconds": 0.00191375
+      },
+      {
+        "pair": 1,
+        "slot": 2,
+        "decoded_frames": 318,
+        "changing_fps": 5.1,
+        "maximum_motion_gap_seconds": 0.6286764144897461,
+        "tone_identified": true,
+        "teardown_seconds": 0.001519708
+      },
+      {
+        "pair": 2,
+        "slot": 1,
+        "decoded_frames": 329,
+        "changing_fps": 5.266666666666667,
+        "maximum_motion_gap_seconds": 0.5433294773101807,
+        "tone_identified": true,
+        "teardown_seconds": 0.002505875
+      },
+      {
+        "pair": 2,
+        "slot": 2,
+        "decoded_frames": 320,
+        "changing_fps": 5.116666666666666,
+        "maximum_motion_gap_seconds": 0.765883207321167,
+        "tone_identified": true,
+        "teardown_seconds": 0.001549
+      }
+    ],
+    "comparison": {
+      "all_peer_moving_fps_at_least24": false,
+      "all_peer_motion_freshness_within2seconds": true,
+      "all_peer_tones_identified": true,
+      "all_teardown_under5seconds": true
+    },
+    "live_resources": {
+      "sampled_peak_rss_bytes": 362201088,
+      "sampled_peak_cpu_percent": 1337.0,
+      "sampled_peak_processes": 16,
+      "samples": 131,
+      "observed_time_coverage": 0.9952249895136052,
+      "coverage_complete": true,
+      "scope": "owned checker/server/native/browser launcher PIDs and descendants, including FFmpeg and Chrome; sampled, not exact kernel high-water; live call through participant teardown, before independent post-run content analysis",
+      "metric_note": "ps CPU is its platform process-average percentage; not a hardware instantaneous CPU counter"
+    },
+    "postprocessing_resources": {
+      "sampled_peak_rss_bytes": 134184960,
+      "sampled_peak_cpu_percent": 64.89999999999999,
+      "samples": 2,
+      "observed_time_coverage": 0.5951059200485999,
+      "coverage_complete": false
+    },
+    "concurrent_reliable_file": {
+      "status": "passed",
+      "bytes": 1048576,
+      "sha256": "064e4924a5fdbe1aa1dbf4c2ed2a4ac7df0a3715c86d0d243ca2eddd5544d090",
+      "elapsed_seconds": 6.720402332954109
+    },
+    "proxy_config": {
+      "random_drop_probability": 0,
+      "delay_range_ms": [
+        0,
+        0
+      ]
+    },
+    "acknowledged_unmeasured_scope": [
+      "Exploratory two-pair run does not collect authenticated internal forwarding/queue diagnostics or qualify an additional supported capacity"
+    ],
+    "candidate": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local",
+    "archives": [
+      {
+        "name": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local-qualification.tar.gz",
+        "sha256": "5756fe36227dbbe6c83a9928da3ddef21ca0a443375d2cb912da629f0ebe085d",
+        "bytes": 60807729
+      },
+      {
+        "name": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local-source.tar.gz",
+        "sha256": "c3fa028d68fbc71be7c99d3ab62f165da6f4267a6146d171f8a093839e80c7d0",
+        "bytes": 3534686
+      },
+      {
+        "name": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local.tar.gz",
+        "sha256": "230b823042ed437fea026ff1ae6bad69dd896da8ef02264e96ec267c720c486a",
+        "bytes": 40630443
+      }
+    ],
+    "independent_execution_review": {
+      "path": ".local/gate5/package-followup-0d285d168509/quality-selected-review.json",
+      "sha256": "b46b7ec88c90a9718ef13c01467190a1982aaee6fd2ee2352282e285f888cdf5"
+    },
+    "runner_result": {
+      "path": ".local/gate5/package-followup-0d285d168509/selected-diagnostic.json",
+      "sha256": "e3ec1205ad1e2d7dec089051dc4d55a210e695d1c34db7f5adc3433004e03df3"
+    },
+    "leftover_owned_group_members": 0
+  },
+  "historical": {
+    "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+    "result": {
+      "path": ".local/gate5/remaining-media-20261014T082858.707828Z/exploratory.json",
+      "sha256": "0e2eeb7f0ba501ece00952e6aa0bd1de77187776a47f58b0758f2a365bda4f7a"
+    },
+    "scope": "Historical ee34 source-working-tree observation; source/helper/runtime graph predates current repairs. Preserved as history, not current-runtime equivalence. Recorded input seal is historical; current checkout is not substituted for those bytes.",
+    "status": "observed-exploratory",
+    "tested_inputs_stable_at_execution": true,
+    "supported_profile_pairs": 1,
+    "attempted_simultaneous_pairs": 2,
+    "measurement_seconds": 60,
+    "participants": [
+      {
+        "pair": 1,
+        "slot": 1,
+        "decoded_frames": 341,
+        "changing_fps": 5.316666666666666,
+        "maximum_motion_gap_seconds": 0.8722660541534424,
+        "tone_identified": true,
+        "teardown_seconds": 0.01658175
+      },
+      {
+        "pair": 1,
+        "slot": 2,
+        "decoded_frames": 363,
+        "changing_fps": 5.533333333333333,
+        "maximum_motion_gap_seconds": 0.7349145412445068,
+        "tone_identified": true,
+        "teardown_seconds": 0.002650458
+      },
+      {
+        "pair": 2,
+        "slot": 1,
+        "decoded_frames": 347,
+        "changing_fps": 5.35,
+        "maximum_motion_gap_seconds": 0.8129482269287109,
+        "tone_identified": true,
+        "teardown_seconds": 0.020768125
+      },
+      {
+        "pair": 2,
+        "slot": 2,
+        "decoded_frames": 337,
+        "changing_fps": 5.2,
+        "maximum_motion_gap_seconds": 0.6375999450683594,
+        "tone_identified": true,
+        "teardown_seconds": 0.002082375
+      }
+    ],
+    "comparison": {
+      "all_peer_moving_fps_at_least24": false,
+      "all_peer_motion_freshness_within2seconds": true,
+      "all_peer_tones_identified": true,
+      "all_teardown_under5seconds": true
+    },
+    "live_resources": {
+      "sampled_peak_rss_bytes": 809910272,
+      "sampled_peak_cpu_percent": 1359.0,
+      "sampled_peak_processes": 16,
+      "samples": 132,
+      "observed_time_coverage": 0.9947892939492168,
+      "coverage_complete": true,
+      "scope": "owned checker/server/native/browser launcher PIDs and descendants, including FFmpeg and Chrome; sampled, not exact kernel high-water",
+      "metric_note": "ps CPU is its platform process-average percentage; not a hardware instantaneous CPU counter"
+    },
+    "postprocessing_resources": {},
+    "concurrent_reliable_file": {
+      "status": "passed",
+      "bytes": 1048576,
+      "sha256": "064e4924a5fdbe1aa1dbf4c2ed2a4ac7df0a3715c86d0d243ca2eddd5544d090",
+      "elapsed_seconds": 10.745211709057912
+    },
+    "proxy_config": {
+      "random_drop_probability": 0,
+      "delay_range_ms": [
+        0,
+        0
+      ]
+    },
+    "acknowledged_unmeasured_scope": [
+      "Exploratory two-pair run does not collect authenticated internal forwarding/queue diagnostics or qualify an additional supported capacity"
+    ],
+    "phase_result": {
+      "path": ".local/gate5/remaining-media-20261014T082858.707828Z/exploratory-result.json",
+      "sha256": "a7f859408f892d381aa80eefed8edf44696fce57785dae1d710cf6d0867b1e1f"
+    }
+  },
+  "interpretation": [
+    "The requested additional-concurrency experiment is complete as an observation. It does not establish supported two-pair capacity.",
+    "Current four participants decode 5.1\u20135.3167 changing fps; historical participants decode 5.2\u20135.5333 changing fps. Both comparisons against 24 fps fail. No frame-rate threshold was relaxed.",
+    "Current live CPU/RSS sampling has valid coverage; short separate decoder-postprocessing sampling has incomplete coverage and is not promoted to a complete resource measurement. CPU is the platform ps process-average sum, not instantaneous hardware usage.",
+    "Motion freshness, expected tone identification and teardown comparisons pass, and the concurrent reliable 1 MiB file completes. These observations do not establish paired A/V synchronization acceptance for two pairs.",
+    "Authenticated internal forwarding/queue diagnostics and a new supported capacity envelope are unmeasured. Participant assembly/playout observations are not a substitute for internal server queue measurements.",
+    "No direct causal explanation for the low frame rate is claimed from these observations alone; the supported single-pair profile and unresolved browser impairment remain separate."
+  ]
+}

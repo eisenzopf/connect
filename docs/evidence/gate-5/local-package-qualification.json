@@ -1,5 +1,5 @@
 {
-  "status": "Clean aa31f0281516 candidate built and passed archive inventory plus both affected archived checks. Full installed and impaired-browser qualification remain open; all earlier failures are preserved.",
+  "status": "Clean 0d285d168509 candidate built and passed archive inventory, archived reference and real-browser contact repair checks. Exploratory two-pair observation completed with degraded frame rate; complete installed and impaired-browser qualification remain open. All earlier failures are preserved.",
   "scope": "Local macOS arm64; unpublished integration candidate; no provider operations or model inference",
   "source_qualification": {
     "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
@@ -444,6 +444,89 @@
           "sha256": "0122eb2166761edd8544cfee108603b9abe48017bfc80b624a47729b541e2a3c"
         },
         "resource_limits": "Mute resource sampling passed. The fast recovery report retained zero resource samples, so no recovery RSS/CPU measurement is claimed."
+      }
+    },
+    {
+      "candidate": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local",
+      "source_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
+      "build": {
+        "path": ".local/gate5/package-build-20261014T215601.373945Z/result.json",
+        "sha256": "ff8d82a3a8b4c6d05866c2da7224a77ef179dfb50b33d1f273e56b4042070e53"
+      },
+      "build_selected_inputs_stable": true,
+      "build_selected_inputs": 1109,
+      "source_qualification_scope": "Historical 84-phase clean 66115d2 baseline plus independently reviewed ten-input repair composition; no new literal 84-phase source invocation. All three normal binaries equal aa31 / 98.",
+      "archives": [
+        {
+          "name": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local-qualification.tar.gz",
+          "sha256": "5756fe36227dbbe6c83a9928da3ddef21ca0a443375d2cb912da629f0ebe085d",
+          "bytes": 60807729
+        },
+        {
+          "name": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local-source.tar.gz",
+          "sha256": "c3fa028d68fbc71be7c99d3ab62f165da6f4267a6146d171f8a093839e80c7d0",
+          "bytes": 3534686
+        },
+        {
+          "name": "connect-0.1.0-alpha.1-macos-arm64-0d285d168509-gate5-local.tar.gz",
+          "sha256": "230b823042ed437fea026ff1ae6bad69dd896da8ef02264e96ec267c720c486a",
+          "bytes": 40630443
+        }
+      ],
+      "inventory": {
+        "path": ".local/package-checks/20261014T215631.308943Z/result.json",
+        "sha256": "d33b9e965e8d566d0b020b8ddbad1f3a8f432f88ea917a2ffcbc98cc21b59a08"
+      },
+      "independent_archive_review": {
+        "path": ".local/gate5/package-independent-review-0d285d168509/review.json",
+        "sha256": "c5022379bdb3e4690127dc3fe4c2c649c028f4a46558865ad57102472a684efd"
+      },
+      "status": "inventory verified; selected reference/contact behavior passed; exploratory observation completed; complete installed qualification remains open",
+      "installed_attempts": [],
+      "whole_gate_qualified": false,
+      "publication": "not performed",
+      "complete_installed_not_run_reason": "Impaired browser sending remains a known unresolved failure under unchanged runtime/SDK inputs. Selected archived checks exercise the contact change and required exploratory capacity observation; they do not replace a matching complete installed pass.",
+      "selected_archived_diagnostics": {
+        "result": {
+          "path": ".local/gate5/package-followup-0d285d168509/selected-diagnostic.json",
+          "sha256": "e3ec1205ad1e2d7dec089051dc4d55a210e695d1c34db7f5adc3433004e03df3"
+        },
+        "summary": {
+          "path": ".local/gate5/package-followup-0d285d168509/summary.json",
+          "sha256": "c194cc96ae12fb1251bab5d101aaacadecb7ae1ab8d33f6866ce51ab65d7fc43"
+        },
+        "reference": {
+          "path": ".local/gate5/package-followup-0d285d168509/reference.json",
+          "sha256": "2a24b8970aab4957b84cde5e1049797f71b4fed97047fd42aae2e99c95f770e5"
+        },
+        "reference_ui_checks": 11,
+        "reference_av_lifecycle_checks": 13,
+        "reference_scope": "Unchanged archived checker; AV lifecycle is separate from 60-second media-profile acceptance.",
+        "contact_augmentation": {
+          "path": ".local/gate5/package-followup-0d285d168509/contact-browser/result.json",
+          "sha256": "efcd88c1236191d48548421adddead0503bb887c9353ee95f3db4041e9e0a2a1"
+        },
+        "contact_checks": 5,
+        "real_delayed_successful_responses": 2,
+        "augmentation_provenance": {
+          "path": ".local/gate5/package-reference-concurrency-runner/harness-manifest.json",
+          "sha256": "a68524ecc15eaba18a5a484cf131121e717352ed78dbd319c9b78fdc9e40b835"
+        },
+        "augmentation_scope": "Private reviewed Playwright harness serves unchanged archived UI/SDK and operates the archived normal server through the public API; exact fetched response bytes/headers delayed at browser interception boundary only.",
+        "exploratory": {
+          "path": ".local/gate5/package-followup-0d285d168509/exploratory-concurrency.json",
+          "sha256": "9f71fb4efa5f987303d25a3dd2d90a44e739b16ad54959c20cf8857c83880ac5"
+        },
+        "exploratory_scope": "60 seconds / two simultaneous native pairs, observed-only; all four >=24 fps comparison false, no capacity extension.",
+        "extracted_original_files_stable": 3049,
+        "extracted_original_directory_modes_stable": 651,
+        "selected_tool_entries_stable": 2161,
+        "reference_generated_scratch": "Allowed only under extracted source .local/gate5/reference; added artifacts retained separately, original files/modes unchanged.",
+        "leftover_owned_group_members": 0,
+        "independent_review": {
+          "path": ".local/gate5/package-followup-0d285d168509/quality-selected-review.json",
+          "sha256": "b46b7ec88c90a9718ef13c01467190a1982aaee6fd2ee2352282e285f888cdf5"
+        }
       }
     }
   ],

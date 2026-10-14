@@ -219,7 +219,24 @@
       "G5-049",
       "G5-050"
     ],
-    "implementation_sha256": "74997b30ae8511a680193bd17bef1aa259675a3367a323b8bd21257a46002cd7"
+    "implementation_sha256": "8894c418daf7ab69c813b119e46f9a3804b6fb5578ac5de9439a3deedaa2d8b5",
+    "followup_annotation": {
+      "recorded_at": "2026-10-14T22:04:13.434869+00:00",
+      "candidate_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
+      "scope": "Documentation-only annotations of selected archived reference/contact checks and exploratory concurrency; task statuses and dependencies unchanged.",
+      "tasks": [
+        "G5-016",
+        "G5-035",
+        "G5-044",
+        "G5-045",
+        "G5-048"
+      ],
+      "evidence": [
+        "docs/evidence/gate-5/local-package-qualification.json",
+        "docs/evidence/gate-5/contact-selection-repair.json",
+        "docs/evidence/gate-5/native-concurrency-observation.json"
+      ]
+    }
   },
   "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"
 }

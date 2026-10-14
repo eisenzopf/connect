@@ -389,7 +389,7 @@
         "sdk/tests/reference_client.test.mjs": "3216efd55e8344f20b88fb2b4ced26c68b9dfc6b54dbfca6b83810d84ccc32ee"
       },
       "evidence": {
-        "path": "docs/evidence/gate-5/contact-selection-repair.json",
+        "path": "docs/evidence/gate-5/contact-selection-source-0d285d168509.json",
         "sha256": "da2d2ad5297937f5816fd3b3754b57edc6de233a73e37d5b37c7da6f499b139b"
       }
     },

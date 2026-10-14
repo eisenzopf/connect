@@ -1,7 +1,7 @@
 {
   "gate": 5,
   "title": "Downloadable v0.1",
-  "revision": 3,
+  "revision": 4,
   "updated": "2026-10-14",
   "status": "not-qualified",
   "plan": "connect-gate-5-plan.html",
@@ -37,9 +37,9 @@
         "G5-046",
         "G5-049"
       ],
-      "observation": "Public setup fixtures exchange messages and files and recover history after restart. The aa31 candidate has archive-inventory and selected archived-check evidence; these automated observations do not constitute an independent developer first run.",
+      "observation": "Public setup fixtures exchange messages and files and recover history after restart. Candidate 0d285d168509 has archive-inventory and selected archived reference/contact evidence; these automated observations do not constitute an independent developer first run.",
       "remaining": [
-        "Complete a matching installed qualification after current source changes.",
+        "Complete matching installed qualification for the selected final candidate.",
         "Record the required independent fresh-user journeys; zero attempts are recorded."
       ]
     },
@@ -173,10 +173,10 @@
         "G5-046",
         "G5-049"
       ],
-      "observation": "The reference-client component record covers public-interface interaction, keyboard and desktop/narrow visual checks, plus source-backed artifact and decision continuity. The newer contact-selection repair passed all 216 SDK tests after three original regressions failed. Its actual-browser and package followup remain pending; aa31 does not contain the repair.",
+      "observation": "Candidate 0d285d168509 includes the contact-selection repair. Its archived real-browser reference check passed all 11 general checks and all 13 AV/continuity checks. A separate private augmentation passed five contact-browser checks using archived assets and the public local API. Earlier three-regression failures and the 216-test source proof remain recorded; these selected checks are not a complete installed pass.",
       "remaining": [
-        "Complete actual-browser verification of the accepted contact-selection source repair and requalify affected reference behavior in the selected candidate.",
-        "Complete matching installed reference checks and independent human walkthroughs."
+        "Complete the matching full installed envelope and independent human walkthroughs.",
+        "Requalify any later affected reference-client changes against the selected final candidate."
       ]
     },
     {
@@ -383,7 +383,8 @@
         "evidence/gate-5/reference-experience.json",
         "evidence/gate-5/app-journeys.json",
         "evidence/gate-5/audio-clock-initialization.json",
-        "evidence/gate-5/current-source-qualification.json"
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/contact-selection-repair.json"
       ],
       "implementation_items": [
         "G5-003",
@@ -397,10 +398,10 @@
         "G5-039",
         "G5-049"
       ],
-      "observation": "Component continuity binds messages, artifact bytes and attributed decisions to the original Conversation across media and restart. Source references, omissions and incomplete-transcript status remain explicit. These checks do not substitute for the unrun actual-model continuation.",
+      "observation": "The 0d285d168509 archived reference check passed all 13 AV/continuity checks, including source-backed decisions, artifact re-verification and attributed follow-up after restart in the original Conversation. Source references, omissions and incomplete-transcript status remain explicit. This does not substitute for the unrun actual-model continuation.",
       "remaining": [
-        "Requalify the affected current reference UI in the final candidate.",
-        "Complete installed continuity and actual-model exact-session follow-through; retain source attribution and omission limits."
+        "Complete the matching full installed envelope and actual-model exact-session follow-through.",
+        "Retain source attribution and omission limits when reviewing final continuity claims."
       ]
     },
     {
@@ -466,7 +467,8 @@
         "evidence/gate-5/browser-transform-control.json",
         "evidence/gate-5/browser-network-controls.json",
         "evidence/gate-5/native-terminal-repair.json",
-        "evidence/gate-5/first-run-walkthroughs.template.json"
+        "evidence/gate-5/first-run-walkthroughs.template.json",
+        "evidence/gate-5/native-concurrency-observation.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -484,7 +486,7 @@
         "G5-047",
         "G5-049"
       ],
-      "observation": "Measured operating, teardown and diagnostic records retain exact source and profile boundaries. Browser impairment remains unqualified. No independent fresh-user attempt has been recorded; the walkthrough JSON is a blank template, not evidence.",
+      "observation": "The separate 0d285d168509 exploratory 60-second two-native-pair run observed 5.10–5.32 changing fps across four participants, below the 24 fps clean-profile comparison. It does not extend the supported one-pair profile or establish capacity. Browser impairment remains unqualified. No independent fresh-user attempt is recorded; the walkthrough JSON is a blank template.",
       "remaining": [
         "Meet the unchanged approved media operating profile.",
         "Record three independent fresh users with installation and prerequisite time separated from the ten-minute local reply target.",
@@ -530,9 +532,9 @@
         "G5-048",
         "G5-049"
       ],
-      "observation": "Clean 66115d2 passed all 84 source phases; later changes have explicitly scoped composition/repair evidence. aa31 is the latest built candidate. There is no matching complete installed pass, the actual-model lane is unrun, and the contact UI repair creates a further source-to-candidate gap.",
+      "observation": "Clean 66115d2 passed all 84 source phases; later changes have explicitly scoped composition/repair evidence. Candidate 0d285d168509 includes the contact UI repair and passed selected archived reference/contact checks. There is no matching complete installed pass, and the actual-model lane is unrun. Later evidence annotations do not change the archive’s recorded source boundary.",
       "remaining": [
-        "Finish current source changes and requalify affected artifacts with reviewed composition or a new complete source run.",
+        "Reconcile the selected final source and affected artifacts using reviewed composition or a new complete source run.",
         "Obtain matching installed, media and actual-model evidence; retain every earlier failed attempt.",
         "Finish provider and independent quality review before acceptance."
       ]
@@ -580,9 +582,9 @@
         "G5-048",
         "G5-049"
       ],
-      "observation": "The aa31 local archive is built and inventory-verified with pinned source/patch and license provenance. Shipped SDKs, helper, public kits and qualification inputs have scoped tests. Archive inventory and selected checks are not a clean-machine or complete installed acceptance claim.",
+      "observation": "The 0d285d168509 local archive is built and inventory-verified with pinned source/patch and license provenance, including the contact-selection repair. Selected archived reference/contact checks passed. Inventory and selected diagnostics are not a clean-machine or complete installed acceptance claim.",
       "remaining": [
-        "Build the selected final source, including the current contact UI repair if retained.",
+        "Select the final source and preserve matching runtime, source and qualification archives; requalify any later affected changes.",
         "Complete installation and qualification using matching reproducible assets and exact provenance.",
         "Finish release/migration documentation and final contribution-surface review."
       ]
@@ -609,7 +611,7 @@
         "G5-047",
         "G5-050"
       ],
-      "observation": "This is an unsealed progress record. All 16 criteria remain not-qualified. Failed browser impairment, incomplete installed/model/human evidence and pending source changes prevent final owner handoff. No publication has been performed or authorized by this report.",
+      "observation": "This is an unsealed progress record. All 16 criteria remain not-qualified. Failed browser impairment and incomplete installed/model/human evidence prevent final owner handoff. No publication has been performed or authorized by this report.",
       "remaining": [
         "Resolve every release blocker and reconcile all acceptance and feature commitments.",
         "Obtain actual owner review of the exact candidate and compatibility claims.",
@@ -623,15 +625,16 @@
   "publication": "not-performed",
   "report": "evidence/gate-5/acceptance.html",
   "progress_boundary": {
-    "latest_built_candidate": "aa31f028151668e100e942c32013b1e46d1e8c4f",
-    "candidate_status": "Archive inventory and selected affected archived checks passed; no complete installed qualification.",
-    "source_boundary": "The accepted contact-selection source repair is beyond aa31; actual-browser and matching-package verification remain pending.",
+    "latest_built_candidate": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
+    "candidate_status": "Archive inventory and selected archived reference/contact checks passed; no complete installed qualification.",
+    "source_boundary": "Candidate 0d285d168509 includes the contact-selection repair. This progress update and the new evidence annotations are later documentation, not contents claimed to be baked into that archive.",
     "source_evidence": "Historical clean 66115d2 passed 84 source phases; subsequent source composition and repairs retain their own recorded boundaries.",
     "actual_model": "not-run",
     "human_attempts_recorded": 0,
     "independent_fresh_users_required": 3,
     "browser_impairment": "failed / unresolved under the unchanged approved profile",
     "owner_handoff": "not-ready",
-    "meaning": "Progress only. Linked records keep their own revisions, scopes and failures. This file is not a final result, final seal, owner acceptance or publication approval."
+    "meaning": "Progress only. Linked records keep their own revisions, scopes and failures. This file is not a final result, final seal, owner acceptance or publication approval.",
+    "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1–5.3 changing fps per participant. This does not extend the supported one-pair profile."
   }
 }
