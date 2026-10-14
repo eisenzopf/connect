@@ -267,5 +267,15 @@
     "path": ".local/gate5/graph33-estimator-review/result.json",
     "sha256": "4e72e8b16af2cfdbaf5a8cc6bec12d2923b441c30fe4c20bb1d6028b2a29baf7",
     "finding": "Pinned Chromium LossBWE log reports the combined target already capped by delay. Trace shows overuse reductions interspersed with recovery and a later successful probe, with no keyframe-request storm. No additional transport defect established."
+  },
+  "browser_receiver_analysis": {
+    "path": ".local/gate5/playout-review-20261014T153548Z/sealed-review.json",
+    "sha256": "da54f28594b93e4980f3485a55e12fa5c1e356ec1ac06ccc8962cc28e49190b9",
+    "finding": "Capture has no identity or codec changes, malformed fields or counter regressions; maximum gaps508/510ms. Both audio acceleration counters remainzero. Failed video cadence contradicts the fixed fit by14.8ms near sparse delivery; its sampled interval shows269.5ms average buffer waiting and0.397ms decode time. Sourcecapture remains about30fps while encoding is3\u20137fps. No newly proven implementation defect."
+  },
+  "browser_controller_comparison": {
+    "path": ".local/gate5/graph33-controller-comparison-20261014T153548Z/result.json",
+    "sha256": "8f91690039a415e8389323e4d70e91ba7cc1ff378d28818f5d20af0fd30fb507",
+    "finding": "Current impaired sender has successful initial and recovery probes but downshifts; direct Chrome also downshifts without Connect. Cadence and late corrections show no new server-specific defect. Direct topology differs and impairment includes loss,jitter and stalls, so exact cause remains unresolved."
   }
 }

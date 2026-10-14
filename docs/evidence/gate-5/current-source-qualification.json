@@ -1,0 +1,45 @@
+{
+  "status": "full source qualification incomplete",
+  "scope": "Local macOS arm64 source-only lane; not installed, model, full media or release acceptance",
+  "attempts": [
+    {
+      "source_revision": "dfe1f46011b6f8aed37e28f3b5f00b577944261e",
+      "source_dirty_at_start": false,
+      "result": {
+        "path": ".local/gate-5-checks/20261014T153945.445918Z/result.json",
+        "sha256": "3ce41b002e8ba57bededc8bbdc746730879d3091c54937b7d47c11838c57dd0d"
+      },
+      "status": "failed",
+      "passed_phases": 18,
+      "failed_phase": "source--lint",
+      "required_phases": 84,
+      "not_run_phases": 65,
+      "cause": "All96 diagnostics are clippy::unwrap_used from the two upstream QUIC fixture modules imported into the Connect integration-test target.",
+      "correction": "Add the existing repository fixture assertion allowance narrowly to those two imported test modules. No production lint rule, fixture behavior or upstream source changed.",
+      "correction_verification": "Format and focused strict Clippy pass; full84-phase rerun pending.",
+      "focused_clippy": {
+        "path": ".local/gate5/audio-clock-integration/fixture-clippy.log",
+        "sha256": "95f41dbac3e0c70c2721f05fe80f7a19f5a6c73460923bdfe476604fe40d12a3",
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "connect-server",
+          "--test",
+          "gate5_quic_transport",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "status": "passed"
+      }
+    }
+  ],
+  "remaining": [
+    "Rerun all84 source phases from a clean corrected checkpoint.",
+    "Browser impairment media remains failed and separate.",
+    "Installed package, actual-model, independent usability, provider review and owner acceptance remain unresolved."
+  ]
+}

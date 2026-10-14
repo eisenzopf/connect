@@ -57,8 +57,8 @@
       "id": "R5-06",
       "priority": 2,
       "finding": "Native generated example interruption and capture-refusal cleanup lacked process evidence",
-      "state": "implementation-in-progress",
-      "result": "Selected-binary process checker is being implemented; no runtime claim yet."
+      "state": "implemented-pending-current-runtime-qualification",
+      "result": "Selected-binary cleanup checker and guard tests are delivered in scripts/check-native-video-cleanup.py and scripts/tests/test_native_video_cleanup.py. The native-example lane selects the normal binaries and explicit FFmpeg; matching current runtime qualification remains pending."
     },
     {
       "id": "R5-07",
