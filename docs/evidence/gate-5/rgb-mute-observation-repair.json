@@ -1,0 +1,214 @@
+{
+  "status": "Scoped checker correction and fresh native-browser mute diagnostic passed; matching installed qualification pending",
+  "scope": "Local macOS arm64; exact FFmpeg RGB24 decoded-color comparison for native mute observation only. No runtime/SDK change, tolerance, mute-window adjustment or physical display claim.",
+  "whole_gate_qualified": false,
+  "source_changes": {
+    "scripts/video/decoder_observation.py": {
+      "before_sha256": "38f6a93c3ed6e9d9793cd602d68916f679cc80e966a3d0eefe81343e5cbb8be2",
+      "after_sha256": "2e5c8e5bd1caa7e68019ee8cde5eef1da78c59131df130bd3e5e1d60ab308d60"
+    },
+    "scripts/tests/test_video_measurements.py": {
+      "before_sha256": "8bfbdf312b3bbb970c4cf81450ba0d6939d47850e08a45b49c4331f95e144b82",
+      "after_sha256": "31c5f13525350d1aa2b4892c682e80e7e9db22d5c4feae1afe389c167acdffe7"
+    },
+    "scripts/check-gate-5.py": {
+      "before_sha256": "91f9a3d63911b53f055c7848649be5e5689f3bd82951db40c349a2a4e297604a",
+      "after_sha256": "af6ba3c58e1ffa46d6c362dd5b624bb019196f6e73c5257d2d92c21744e72f42"
+    }
+  },
+  "patch": {
+    "path": ".local/gate5/mute-native-browser-analysis-98ef894/rgb-mute-proposal/proposal.patch",
+    "sha256": "90776057cc39b5b3c9af9355c79eec3cfb52014b8196a744fb793fb6d55f0967"
+  },
+  "retained_failure": {
+    "report": {
+      "path": ".local/gate5/package-followup-98ef8947f5a6/mute-native-browser.json",
+      "sha256": "32a6349b8a58271dddb4b2832c3ac3374c115b74ea7e5d83665f1ec87a7a0203"
+    },
+    "status": "failed",
+    "candidate_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
+    "finding": "One native decoded hash change during browser camera mute, exactly at the first muted keyframe. The original report remains failed and unchanged."
+  },
+  "independent_pixel_decode": {
+    "report": {
+      "path": ".local/gate5/mute-native-browser-analysis-98ef894/pixel-decode/result.json",
+      "sha256": "e5afd8f0e5ac9a9fd5b5caedb456384847502f9f2393520886368b5fa7308441"
+    },
+    "input_frame_indices": [
+      253,
+      254,
+      282
+    ],
+    "pts_90000hz": [
+      771660,
+      774630,
+      861030
+    ],
+    "frames": "Predecessor, offending keyframe, next muted keyframe; exact retained IVF/live-journal mapping.",
+    "resolution": [
+      640,
+      360
+    ],
+    "all_three_rgb_frames_identical": true,
+    "rgb_nonzero_pixels_each": 0,
+    "luma_nonzero_samples_each": 0,
+    "predecessor_to_offender_chroma": {
+      "U_changed_samples": 258,
+      "U_maximum_absolute_delta": 2,
+      "V_changed_samples": 352,
+      "V_maximum_absolute_delta": 1
+    },
+    "offender_to_next_keyframe_changed_samples": 0,
+    "finding": "Raw YUV hash changes when invisible chroma residue normalizes; all full-resolution FFmpeg RGB24 bytes remain identical black. This is stronger than the earlier coarse8x8 source-identity black classification.",
+    "tested_inputs_stable": true
+  },
+  "correction": {
+    "selection": "decoded_mute_content alone requests rgb24 from decode_hash_frames; native clean-motion/recovery defaults and AV/identity observations are unchanged.",
+    "criterion": "Exactly zero RGB hash changes in the existing [mute+0.5s, unmute-0.1s) steady interval. No tolerance or resizing.",
+    "mapping": "Exact ordered decoded PTS/IVF/live-journal mapping remains required; RGB frame-byte size does not alter timestamp identity."
+  },
+  "logged_guards": {
+    "report": {
+      "path": ".local/gate5/mute-native-browser-analysis-98ef894/proof-20261014T212450.762752Z/result.json",
+      "sha256": "63088f8fe870c810820478461203689e7ec3023a5603114bcfdf9d7eccd762b7"
+    },
+    "status": "passed",
+    "selected_source_input_count": 1109,
+    "tested_source_inputs_stable": true,
+    "suites": [
+      {
+        "name": "measurement",
+        "passed": 47,
+        "failed": 0,
+        "log": {
+          "path": ".local/gate5/mute-native-browser-analysis-98ef894/proof-20261014T212450.762752Z/measurement.log",
+          "sha256": "0f5948b25e622265ae76dbec4e1d9493b9484f6bcc143f6490ad1b1fc2d08ff7"
+        }
+      },
+      {
+        "name": "driver",
+        "passed": 11,
+        "failed": 0,
+        "log": {
+          "path": ".local/gate5/mute-native-browser-analysis-98ef894/proof-20261014T212450.762752Z/driver.log",
+          "sha256": "27d36bf4dd6882f8876738301022dc76d39c1fb8d335f747c93a6667a16cf6db"
+        }
+      }
+    ],
+    "new_regressions": [
+      "RGB opt-in preserves full resolution/PTS and leaves default native hashing unchanged.",
+      "Generated full-resolution RGB fixture rejects one changed visible pixel during mute; changed IVF timestamp cannot retain the previous journal mapping."
+    ],
+    "limits": "Unit pixel fixtures inject decoder metadata; actual FFmpeg conversion is proven separately below."
+  },
+  "generated_actual_ffmpeg": {
+    "status": "passed",
+    "counterexample_raw_yuv_changes": 1,
+    "counterexample_exact_rgb_changes": 0,
+    "visible_one_pixel_rgb_changes": 1,
+    "scope": "Actual FFmpeg conversion of small generated full-resolution raw pixel fixtures; no VP8 encoder claim.",
+    "input_sha256": {
+      "generated-black.yuv": "a42fca84b690169ddcaffd6f30d8964c334df377aeed85945e9e1e5f1b6df7d8",
+      "generated-visible.rgb": "e4d0e105da30ac561222bb5c26e37a4c696a5eeff42a1893ddc00ce4855266ad"
+    },
+    "metadata_sha256": {
+      "generated-visible.md5": "a9ce2c21d1d57f4b9638d827b14ea5c1aa2ce5131e38dbf5c7122830ae31bdbe",
+      "generated-yuv.md5": "e10b17b1ebd9ac7fe904bec02c12837c279404eec61516d6d223296b7df77aaa",
+      "generated-rgb.md5": "fb853cf662d13277d1d0a43eb81fe19299635bb638d322222a6218ff3bab90b7"
+    }
+  },
+  "retained_window_reanalysis": {
+    "report": {
+      "path": ".local/gate5/mute-native-browser-analysis-98ef894/proof-20261014T212450.762752Z/retained-result.json",
+      "sha256": "e5fefab9c08becbcef23ec23d40c65d4cdcf8e2222fb1e76933d06f2755bbc2c"
+    },
+    "status": "passed-corrected-retained-window-diagnostic",
+    "original_mute_unix_seconds": 1792012490.8727,
+    "original_unmute_unix_seconds": 1792012492.8744,
+    "original_raw_yuv_changes_while_muted": 1,
+    "corrected_exact_rgb_changes_while_muted": 0,
+    "mapped_decoded_frames": 590,
+    "keyframe_recovery_seconds": 0.6316637992858887,
+    "fresh_motion_recovery_seconds": 0.6961579322814941,
+    "scope": "Byte-identical copied retained window reprocessed with corrected current helper and unchanged actual setter times. Not a new transport run and not a rewrite of the failed report."
+  },
+  "fresh_runtime_diagnostic": {
+    "phase_report": {
+      "path": ".local/gate5/mute-native-browser-analysis-98ef894/media-20261014T212507.464590Z/result.json",
+      "sha256": "5abca2da39a83dd4d4b76fb372723cba2819fdcc5f517a1c25e8c7c5f352d37a"
+    },
+    "media_report": {
+      "path": ".local/gate5/mute-native-browser-analysis-98ef894/media-20261014T212507.464590Z/media.json",
+      "sha256": "2ebc52d6bf4227ec08a53aac806bf90b0436677427d19fdee6c567894f6c4f33"
+    },
+    "status": "passed-mute-recovery",
+    "qualification_seconds": 20,
+    "candidate_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
+    "scope": "Corrected current source checker with immutable98ef894 runtime/SDK assets; separate diagnostic, not matching installed qualification.",
+    "selected_source_inputs": 1109,
+    "tested_source_inputs_stable": true,
+    "tested_media_inputs_stable": true,
+    "native_video": {
+      "changing_frames_while_muted": 0,
+      "identifiable_audio_samples_while_camera_muted": 69,
+      "independently_decoded_keyframe_after_unmute_seconds": 0.622896671295166,
+      "kind": "video",
+      "mute_unix_seconds": 1792013117.2447002,
+      "unmute_unix_seconds": 1792013119.2452002,
+      "recovery_seconds": 0.6592609882354736,
+      "counterpart_continued": true,
+      "status": "passed"
+    },
+    "native_audio": {
+      "maximum_decoded_rms_while_muted": 0.0,
+      "changing_video_fps_while_microphone_muted": 27.253819433875993,
+      "maximum_video_freshness_gap_while_microphone_muted_seconds": 0.10149812698364258,
+      "kind": "audio",
+      "mute_unix_seconds": 1792013121.2577002,
+      "unmute_unix_seconds": 1792013123.252,
+      "recovery_seconds": 0.14507484436035156,
+      "counterpart_continued": true,
+      "status": "passed"
+    },
+    "browser_video": {
+      "changing_frames_while_muted": 0,
+      "identifiable_audio_samples_while_camera_muted": 14,
+      "kind": "video",
+      "mute_unix_seconds": 1792013118.1767855,
+      "unmute_unix_seconds": 1792013120.1768181,
+      "recovery_seconds": 0.03638195991516113,
+      "counterpart_continued": true,
+      "status": "passed"
+    },
+    "browser_audio": {
+      "maximum_decoded_rms_while_muted": 0,
+      "changing_video_fps_while_microphone_muted": 28.57405920308065,
+      "maximum_video_freshness_gap_while_microphone_muted_seconds": 0.1008000373840332,
+      "kind": "audio",
+      "mute_unix_seconds": 1792013122.1771076,
+      "unmute_unix_seconds": 1792013124.1769786,
+      "recovery_seconds": 0.1504216194152832,
+      "counterpart_continued": true,
+      "status": "passed"
+    },
+    "sampled_peak_rss_bytes": 1530019840,
+    "sampled_peak_cpu_percent": 159.7,
+    "resource_limits_unchanged": true,
+    "leftover_owned_group_members": []
+  },
+  "independent_source_review": {
+    "path": ".local/gate5/mute-native-browser-analysis-98ef894/rgb-mute-proposal/quality-independent-review.json",
+    "sha256": "b9dd2dce62781f2c1b4ae0c0b55e370122f84b9461e7408d0a71baf280aed6a0"
+  },
+  "independent_execution_review": {
+    "path": ".local/gate5/mute-native-browser-analysis-98ef894/quality-final-proof-review.json",
+    "sha256": "77e105a566f894b82928a7531c50bf6a6c893eef7fb351a38e90db342122f55e",
+    "status": "accepted-scoped-proof",
+    "scope": "Read-only rehash of1109 current source inputs, tools/runtime assets,47/11 logs, generated pixel artifacts, retained copied IVF and fresh20s report; no reviewer rerun or installed qualification claim."
+  },
+  "remaining": [
+    "Matching rebuilt package and complete installed qualification.",
+    "Other unresolved impaired routes, actual-model lane, independent human walkthroughs and owner acceptance remain separate.",
+    "No publication has been performed."
+  ]
+}

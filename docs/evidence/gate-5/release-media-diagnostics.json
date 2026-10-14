@@ -1,5 +1,5 @@
 {
-  "status": "diagnostics complete; native-browser impairment passed; browser-browser impairment failed",
+  "status": "Historical7f diagnostics and subsequent98 diagnostics retained; impaired browser sending remains unresolved",
   "scope": "Local macOS arm64; immutable unpublished 7f8ae642fc54 release candidate. Separate diagnostic runs after installed qualification failed at native capture-refusal cleanup; not a resumed or passing installed qualification.",
   "source_revision": "7f8ae642fc546fb29fc138aba4928b4fc7aa948d",
   "source_lock_sha256": "76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71",
@@ -177,10 +177,182 @@
     "scope": "Retained old immutable7f8ae64 candidate diagnostic, not a whole installed pass or replacement-candidate qualification. A separate capture-refusal process-status defect remains pending repair. Native offline decoder mapping validates content against recorded live emission, not physical render/decoder completion latency."
   },
   "remaining": [
-    "Repair and requalify native capture-refusal peer terminal classification.",
-    "Resolve browser-browser impaired decoded cadence and A/V acceptance under frozen limits.",
-    "Run all nine matching decoded scenarios and complete installed qualification on the repaired candidate.",
+    "Include the reviewed canonical-path and RGB mute observer corrections in matching archives and qualification.",
+    "Resolve sparse impaired browser encoding and obtain matching complete media and installed evidence.",
     "Complete actual-model, three independent human walkthroughs and owner acceptance.",
     "Publication remains a separate action."
-  ]
+  ],
+  "candidate_followup_98ef8947": {
+    "source_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
+    "scope": "Eight separate diagnostics using verified archived98 runtime/source; not a resumed installed run or all-nine media qualification.",
+    "status": "failed",
+    "passed_cases": 6,
+    "failed_cases": 2,
+    "whole_gate_qualified": false,
+    "master": {
+      "path": ".local/gate5/package-followup-98ef8947f5a6/media-diagnostic.json",
+      "sha256": "1f90344c666fbcc8214d7df49e3edb88fee14ceaa5045484293c549564257846"
+    },
+    "independent_review": {
+      "path": ".local/gate5/package-followup-98ef8947f5a6/quality-media-review.json",
+      "sha256": "58f38f5cf0b66fb87c9e8b17a159d12feb0bf5db323866152012300cc94c594e"
+    },
+    "cases": [
+      {
+        "case": "clean-native-native",
+        "status": "passed-clean",
+        "report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/clean-native-native.json",
+          "sha256": "81a2ff9b7efb33be09f8be4916bc569539ea52e58d925ddf8ed4092fdbd9633b"
+        },
+        "log_sha256": "259971a09a75d66ee1de4b491819fdcf02adf53976e299f0e9d8ed0d2cfce0bd",
+        "tested_inputs_stable": true,
+        "no_leftover_group_members": true,
+        "resources_within_limits": true
+      },
+      {
+        "case": "clean-native-browser",
+        "status": "passed-clean",
+        "report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/clean-native-browser.json",
+          "sha256": "4f9a5d4b636c1bb4118c93e2f205a18682c95949a8d8b36c41b154d6a44da1be"
+        },
+        "log_sha256": "5fb87c1b3d566992dbc16acae14fe8fa7c5ba46f81d7dc222f6aa82de588477d",
+        "tested_inputs_stable": true,
+        "no_leftover_group_members": true,
+        "resources_within_limits": true
+      },
+      {
+        "case": "clean-browser-browser",
+        "status": "passed-clean",
+        "report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/clean-browser-browser.json",
+          "sha256": "19022a4da8e845382ca94048adaa8b3b2e24dc2119aa6474ae03c66a2c50fb6c"
+        },
+        "log_sha256": "7772d7791c017a0ef27ef6908ebc48c8aad90004655dab2841df1fad93bfbf26",
+        "tested_inputs_stable": true,
+        "no_leftover_group_members": true,
+        "resources_within_limits": true
+      },
+      {
+        "case": "mute-native-native",
+        "status": "passed-mute-recovery",
+        "report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/mute-native-native.json",
+          "sha256": "3b7b95c5ff7e617fb161615867d04ce9f2626599e6cfa78829ab0bc6a899b4d8"
+        },
+        "log_sha256": "53198138172b8a8f7725d8903d779f988c79c43a343e46f86497e2d01ddbb67b",
+        "tested_inputs_stable": true,
+        "no_leftover_group_members": true,
+        "resources_within_limits": true
+      },
+      {
+        "case": "mute-native-browser",
+        "status": "failed",
+        "report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/mute-native-browser.json",
+          "sha256": "32a6349b8a58271dddb4b2832c3ac3374c115b74ea7e5d83665f1ec87a7a0203"
+        },
+        "log_sha256": "080c1f2eb1ce255f56350d1f09b0997c93a1bbeae7f26b75695098df3bbf9938",
+        "tested_inputs_stable": true,
+        "no_leftover_group_members": true,
+        "resources_within_limits": true
+      },
+      {
+        "case": "mute-browser-browser",
+        "status": "passed-mute-recovery",
+        "report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/mute-browser-browser.json",
+          "sha256": "94aa42a40995e215e662b4448c260b6d6f2121dcf1ca7c398219c294d7bfda47"
+        },
+        "log_sha256": "f6e1e23cd9f79cfec942c8ae208be98004d0f1cc2b617bf9221ac6164515dc5d",
+        "tested_inputs_stable": true,
+        "no_leftover_group_members": true,
+        "resources_within_limits": true
+      },
+      {
+        "case": "impairment-native-native",
+        "status": "passed-impairment",
+        "report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/impairment-native-native.json",
+          "sha256": "9ff99660bc740b859750a321e2226a614e69f66fe8bc0c6aac3096b43be7ae18"
+        },
+        "log_sha256": "806df86fd7affbde023339ec6d90f5590e082d5e266b3acae250ba793745981f",
+        "tested_inputs_stable": true,
+        "no_leftover_group_members": true,
+        "resources_within_limits": true
+      },
+      {
+        "case": "impairment-native-browser",
+        "status": "failed",
+        "report": {
+          "path": ".local/gate5/package-followup-98ef8947f5a6/impairment-native-browser.json",
+          "sha256": "fdb4743aa30c2fbc8f0278f9c0880922637f3fd2d7894b9c3c3e34a861311a8f"
+        },
+        "log_sha256": "8c56fc666ede80157025cb79464f1a471a454549b948c5818f0d94aadce2b5f0",
+        "tested_inputs_stable": true,
+        "no_leftover_group_members": true,
+        "resources_within_limits": true
+      }
+    ],
+    "not_run": [
+      {
+        "case": "impairment-browser-browser",
+        "reason": "Browser/server/assets unchanged from the prior sealed7f failure; retained as failed evidence, not treated as a current pass."
+      }
+    ],
+    "impaired_native_browser": {
+      "native_receiver": {
+        "decoded_frames": 337,
+        "changing_frames": 331,
+        "video_markers": 30,
+        "audio_markers": 86,
+        "paired_markers": 30,
+        "minimum_pairs": 42,
+        "video_and_audio_calibration": "both uniquely calibrated",
+        "median_skew_ms": 34.16750000000057,
+        "p95_skew_ms": 114.6480419999989,
+        "status": "failed insufficient marker-pair count"
+      },
+      "browser_receiver": {
+        "decoded_frames": 1719,
+        "changing_frames": 1472,
+        "paired_markers": 81,
+        "median_skew_ms": 50.600000023841574,
+        "p95_skew_ms": 100.70000004768076,
+        "status": "passed"
+      },
+      "browser_sender": {
+        "capture_draws": 1818,
+        "capture_draws_per_second": 30.296061701128917,
+        "encoded_frames_in_window": 410,
+        "encoded_frames_per_second": 6.833333333333333,
+        "final_capture_fps": 30,
+        "final_encode_fps": 3,
+        "final_target_bps": 69139,
+        "final_available_outgoing_bps": 201301
+      },
+      "other_checks": "Both motion/audio and burst recovery, sampled resource limits, paired termination and durable Conversation preservation passed.",
+      "conclusion": "Actual sparse browser encoding explains limited received marker coverage at this observation boundary. It does not identify the underlying controller/transform cause. Earlier7f native-browser pass remains historical and does not erase this failure."
+    },
+    "mute_native_browser": {
+      "original_verdict": "failed: one changing native decoded-frame hash in steady camera mute; other mute/recovery observations passed",
+      "analysis": {
+        "path": ".local/gate5/mute-native-browser-analysis-98ef894/result.json",
+        "sha256": "979445cd183665a01551c7419edae1c1ea252f85ce74d551ab5a504b224f4795"
+      },
+      "pixel_decode": {
+        "path": ".local/gate5/mute-native-browser-analysis-98ef894/pixel-decode/result.json",
+        "sha256": "e5afd8f0e5ac9a9fd5b5caedb456384847502f9f2393520886368b5fa7308441"
+      },
+      "finding": "Exact predecessor, counted keyframe and next keyframe all render as identical entirely black640x360RGB. Y is zero throughout; small invisible U/V residuals normalize at the keyframe. Raw YUV hash change does not represent visible motion in this case.",
+      "correction_status": "Scoped correction and fresh 20-second diagnostic passed; original failed run remains immutable. See rgb-mute-observation-repair.json. Matching new package qualification remains open."
+    },
+    "limits": [
+      "Native decoded-content timestamps map to retained live emission, not physical render or independent live decoder completion.",
+      "The native-native impaired reliable1MiB transfer completed in127.955s and overlapped the60sAV window; full transfer containment is required only by the clean scenario and is explicitly false here.",
+      "Current matching installed qualification, actual-model, independent human walkthroughs and owner acceptance remain open."
+    ]
+  },
+  "browser_transform_control": "docs/evidence/gate-5/browser-transform-control.json"
 }

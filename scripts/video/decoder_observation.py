@@ -128,10 +128,13 @@ def decode_video(path, seconds, ffmpeg='ffmpeg', report=None, window=None):
     return observation
 
 
-def decode_hash_frames(path, ffmpeg='ffmpeg'):
+def decode_hash_frames(path, ffmpeg='ffmpeg', *, pixel_format=None):
+    if pixel_format not in (None, 'rgb24'):
+        raise ValueError('Unsupported qualification pixel hash format')
+    output_format = [] if pixel_format is None else ['-pix_fmt', pixel_format]
     result = subprocess.run([ffmpeg, '-nostdin', '-hide_banner', '-loglevel', 'warning',
         '-copyts', '-i', str(path), '-an', '-enc_time_base', '1:90000',
-        '-fps_mode', 'passthrough', '-f', 'framemd5', 'pipe:1'],
+        '-fps_mode', 'passthrough', *output_format, '-f', 'framemd5', 'pipe:1'],
         capture_output=True, text=True, timeout=45)
     retain_decoder_diagnostics(path, 'timestamped-motion', result)
     if result.returncode: raise RuntimeError('Independent timestamped VP8 decode failed')
@@ -397,8 +400,13 @@ def decoded_mute_content(video_path, audio_path, report, window, ffmpeg='ffmpeg'
     began = window.get('start_emit_seconds', window['start_arrival_seconds']); ended = began + window['seconds']
     when = lambda row: row.get('emit_seconds', row['arrival_seconds'])
     audio = [row for row in report['audio'] if began <= when(row) < ended]
-    metadata, diagnostics = decode_hash_frames(video_path, ffmpeg)
+    # Compare exact FFmpeg RGB24 decoded color: muted black VP8 keyframes may
+    # normalize invisible chroma residue while every RGB pixel stays black.
+    # No tolerance, resizing or mute-window change is applied.
+    metadata, diagnostics = decode_hash_frames(video_path, ffmpeg, pixel_format='rgb24')
     mapped, mapping = map_decoded_frames(video_path, report, window, metadata)
+    mapping = dict(mapping, pixel_hash_format='rgb24',
+                   pixel_hash_scope='exact full-resolution RGB bytes; no tolerance')
     video = [entry[0] for entry in mapped]; hashes = [entry[1] for entry in mapped]
     decoded = subprocess.run([ffmpeg, '-nostdin', '-hide_banner', '-loglevel', 'warning',
         '-f', 'mulaw', '-ar', '8000', '-ac', '1', '-i', str(audio_path), '-f', 'f32le', 'pipe:1'],

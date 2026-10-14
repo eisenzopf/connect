@@ -683,6 +683,73 @@ class MediaMeasurements(unittest.TestCase):
             ('video', True, 6), ('video', False, 8), ('audio', True, 10), ('audio', False, 12)]]
         return content, transitions
 
+    def test_mute_rgb_hash_mode_preserves_full_resolution_pts_and_native_hash_default(self):
+        metadata = self.frame_metadata([0, 3000], ['first', 'last'])
+        completed = subprocess.CompletedProcess([], 0, stdout=metadata, stderr='')
+        with patch.object(MEDIA.decoder.subprocess, 'run', return_value=completed) as run:
+            for pixel_format in (None, 'rgb24'):
+                result, diagnostic_bytes = MEDIA.decode_hash_frames(
+                    pathlib.Path('nonexistent-fixture.ivf'), pixel_format=pixel_format)
+                self.assertEqual(result, metadata)
+                self.assertEqual(diagnostic_bytes, 0)
+                command = run.call_args.args[0]
+                self.assertIn('-copyts', command)
+                self.assertEqual(command[command.index('-enc_time_base') + 1], '1:90000')
+                self.assertEqual(command[command.index('-fps_mode') + 1], 'passthrough')
+                self.assertNotIn('-vf', command)
+                self.assertNotIn('-s', command)
+                if pixel_format is None:
+                    self.assertNotIn('-pix_fmt', command)
+                else:
+                    self.assertEqual(command[command.index('-pix_fmt') + 1], 'rgb24')
+        with self.assertRaises(ValueError):
+            MEDIA.decode_hash_frames(pathlib.Path('nonexistent-fixture.ivf'), pixel_format='gray')
+
+    def test_mute_rgb_content_rejects_one_visible_pixel_and_changed_timestamp_binding(self):
+        # Generated full-resolution decoded pixels; no private captured media.
+        # The retained actual FFmpeg counterexample is separate component proof.
+        area = 640 * 360
+        black = bytes(area * 3)
+        visible = bytearray(black); visible[3 * (area // 2)] = 1
+        rgb = [black, black, black]
+        residual_yuv = bytes(area) + bytes([127]) * (area // 4) + bytes([129]) * (area // 4)
+        neutral_yuv = bytes(area) + bytes([128]) * (area // 2)
+        self.assertNotEqual(hashlib.md5(residual_yuv).digest(), hashlib.md5(neutral_yuv).digest())
+        stamps = [0, 9000, 108000]
+        rows = [{'arrival_seconds': when, 'emit_seconds': when, 'timestamp_rtp': stamp,
+                 'timestamp_ivf': stamp, 'keyframe': index > 0}
+                for index, (stamp, when) in enumerate(zip(stamps, [6.9, 7.0, 8.1]))]
+        report = {'unix_start_seconds': 0, 'video': rows, 'audio': []}
+        window = {'start_arrival_seconds': 0, 'seconds': 20}
+        def decoded_metadata(path, ffmpeg, *, pixel_format):
+            self.assertEqual(pixel_format, 'rgb24')
+            # framemd5 RGB24 reports 640*360*3 bytes, not YUV420p's1.5 bytes/pixel.
+            result = self.frame_metadata(stamps, [hashlib.md5(frame).hexdigest() for frame in rgb])
+            return result.replace(',64,', f',{area * 3},'), 0
+        with tempfile.TemporaryDirectory() as directory:
+            target = self.write_ivf(directory, stamps)
+            audio = pathlib.Path(directory) / 'not-created.pcmu'
+            with patch.object(MEDIA.decoder, 'decode_hash_frames', side_effect=decoded_metadata), \
+                    patch.object(MEDIA.decoder.subprocess, 'run',
+                                 return_value=subprocess.CompletedProcess([], 0, stdout=b'', stderr=b'')):
+                observed = MEDIA.decoded_mute_content(target, audio, report, window)
+                self.assertEqual(observed['changing_times'], [])
+                self.assertEqual(observed['decoder_mapping']['mapped_decoded_frames'], 3)
+                self.assertEqual(observed['decoder_mapping']['pixel_hash_format'], 'rgb24')
+                content, transitions = self.mute_fixture()
+                self.assertEqual(MEDIA.mute_observation(content, transitions, 440)['status'], 'passed')
+                rgb[1] = bytes(visible)
+                changed = MEDIA.decoded_mute_content(target, audio, report, window)
+                self.assertEqual(changed['changing_times'], [7.0, 8.1])
+                content['changing_times'] = sorted(set(content['changing_times'] + changed['changing_times']))
+                verdict = MEDIA.mute_observation(content, transitions, 440)
+                self.assertEqual(verdict['observations'][0]['changing_frames_while_muted'], 1)
+                self.assertEqual(verdict['status'], 'failed')
+                # A changed IVF source timestamp cannot keep the old decoded/journal mapping.
+                self.write_ivf(directory, [0, 9001, 108000])
+                with self.assertRaisesRegex(RuntimeError, 'timestamps differ'):
+                    MEDIA.decoded_mute_content(target, audio, report, window)
+
     def test_muting_requires_decoded_freeze_silence_and_fresh_recovery(self):
         content, transitions = self.mute_fixture()
         self.assertEqual(MEDIA.mute_observation(content, transitions, 440)['status'], 'passed')

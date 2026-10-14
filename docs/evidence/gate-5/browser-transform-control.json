@@ -1,0 +1,243 @@
+{
+  "scope": "Local macOS arm64 private direct-Chrome A/B/B/A diagnostic. No Connect gateway, installed qualification, provider operation or production policy change.",
+  "status": "completed diagnostic; all four original media verdicts remain failed",
+  "whole_gate_qualified": false,
+  "question": "Does removing the production SDK encoded-transform and periodic-keyframe path restore encoding cadence and coded AV under the same impairment profile?",
+  "answer": "No consistent improvement was observed. Sparse encoding and coded-AV failure occurred in both no-transform repeats as well as both production repeats.",
+  "controls": {
+    "sequence": [
+      "production",
+      "none",
+      "none",
+      "production"
+    ],
+    "seconds_per_case": 60,
+    "impaired_links": 1,
+    "random_loss": 0.03,
+    "maximum_random_delay_seconds": 0.1,
+    "burst_stalls_seconds": [
+      0.25,
+      0.25
+    ],
+    "burst_offsets_seconds": [
+      15,
+      36
+    ],
+    "capture": "Same generated coded-content source,640\u00d7360/30fps capture constraints; actual capture medians29\u201330fps.",
+    "sender": "Identical VP8 primary with matching RTX, maintain-resolution, maximum1,000,000bps and30fps. Codec/capture/sender/transform controls checked throughout diagnostics and at boundaries.",
+    "receiver": "Same decoded audio/video marker observers and unchanged qualification predicates. Local sender index feeds the opposite receiver index.",
+    "network": "Owned loopback Chrome UDP target and both selected remote proxy paths verified through every observation window; no external ICE.",
+    "intervention": "Production installs the existing SDK worker and periodic keyframe adapter. None retains exact VP8/RTX preferences but installs neither. Existing worker requirement remains failed in the none arm.",
+    "source_binding": {
+      "input_count": 138,
+      "before_after_equal": true,
+      "manifest": {
+        "path": ".local/gate5/direct-chrome-transform-control/run-20261014T212030Z/result.json",
+        "sha256": "1a4b8a27b1169625a5a94e8bb4eafffc0ad8a69c0298980d39ef179724cd0b57"
+      },
+      "authoring": {
+        "path": ".local/gate5/direct-chrome-transform-control/authoring.json",
+        "sha256": "536f3a96abbf9cd5de114728fb76ff80f56dd8f6a0ba9db6aa5fb56ed04b268f"
+      },
+      "derivation": {
+        "path": ".local/gate5/direct-chrome-transform-control/derivation.json",
+        "sha256": "84280abb246bee4293680c229ccf1ba6644fd43cf75b9577decd82b689d287cd"
+      }
+    }
+  },
+  "cases": [
+    {
+      "index": 1,
+      "transform": "production",
+      "report": {
+        "path": ".local/gate5/direct-chrome-transform-control/run-20261014T212030Z/1-production/result.json",
+        "sha256": "64cbe8664afbf2e4a386c0b65fedc552c3963914c77d2886640f69a6dd83ab60"
+      },
+      "diagnostic_valid": true,
+      "original_media_verdict": "failed",
+      "sender_encoded_fps": [
+        11.664,
+        16.38
+      ],
+      "sender_keyframes_in_window": [
+        58,
+        58
+      ],
+      "sender_target_bitrate_median_bps": [
+        60694,
+        88273
+      ],
+      "receiver_av": [
+        {
+          "status": "failed",
+          "pairs": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        },
+        {
+          "status": "failed",
+          "pairs": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        }
+      ],
+      "selected_path_samples": [
+        121,
+        121
+      ],
+      "owned_process_leftovers": []
+    },
+    {
+      "index": 2,
+      "transform": "none",
+      "report": {
+        "path": ".local/gate5/direct-chrome-transform-control/run-20261014T212030Z/2-none/result.json",
+        "sha256": "38a2ca1bb70342bfe0cecabf0656bdee9b196afce545591b9c41808b78903141"
+      },
+      "diagnostic_valid": true,
+      "original_media_verdict": "failed",
+      "sender_encoded_fps": [
+        7.332,
+        18.546
+      ],
+      "sender_keyframes_in_window": [
+        0,
+        0
+      ],
+      "sender_target_bitrate_median_bps": [
+        30000,
+        106111
+      ],
+      "receiver_av": [
+        {
+          "status": "failed",
+          "pairs": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        },
+        {
+          "status": "failed",
+          "pairs": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        }
+      ],
+      "selected_path_samples": [
+        121,
+        121
+      ],
+      "owned_process_leftovers": []
+    },
+    {
+      "index": 3,
+      "transform": "none",
+      "report": {
+        "path": ".local/gate5/direct-chrome-transform-control/run-20261014T212030Z/3-none/result.json",
+        "sha256": "a80c2eeb8cc31d373afa59ce737787597d3c566ffc79a077831a4aaf7eb00593"
+      },
+      "diagnostic_valid": true,
+      "original_media_verdict": "failed",
+      "sender_encoded_fps": [
+        6.065,
+        10.498
+      ],
+      "sender_keyframes_in_window": [
+        0,
+        0
+      ],
+      "sender_target_bitrate_median_bps": [
+        30000,
+        48301
+      ],
+      "receiver_av": [
+        {
+          "status": "failed",
+          "pairs": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        },
+        {
+          "status": "failed",
+          "pairs": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        }
+      ],
+      "selected_path_samples": [
+        121,
+        121
+      ],
+      "owned_process_leftovers": []
+    },
+    {
+      "index": 4,
+      "transform": "production",
+      "report": {
+        "path": ".local/gate5/direct-chrome-transform-control/run-20261014T212030Z/4-production/result.json",
+        "sha256": "e863f1e6df52829ae0ffd167a0e199cac145e5208751819d0dd5340185d6b79a"
+      },
+      "diagnostic_valid": true,
+      "original_media_verdict": "failed",
+      "sender_encoded_fps": [
+        16.447,
+        6.832
+      ],
+      "sender_keyframes_in_window": [
+        60,
+        55
+      ],
+      "sender_target_bitrate_median_bps": [
+        97151.0,
+        38798
+      ],
+      "receiver_av": [
+        {
+          "status": "failed",
+          "pairs": 29,
+          "median_abs_skew_ms": 63.30000007152492,
+          "p95_abs_skew_ms": 176.89999997615845
+        },
+        {
+          "status": "failed",
+          "pairs": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        }
+      ],
+      "selected_path_samples": [
+        122,
+        121
+      ],
+      "owned_process_leftovers": []
+    }
+  ],
+  "common_outcomes": {
+    "all_eight_audio_motion_source_identity_checks": "passed",
+    "coded_av_passes": 0,
+    "all_four_transform_and_selected_path_controls": "passed",
+    "owned_process_leftovers": 0
+  },
+  "interpretation_limits": [
+    "Removing worker and periodic requests together is a bundled intervention. These trials establish that the sparse symptom can occur without that path or the Connect gateway; they do not establish equivalence, exclude a transform performance contribution, or identify a particular controller defect.",
+    "Same seed is not identical packet realization when the sender emits different traffic. Two repeats per arm are a bounded diagnostic, not a statistical equivalence proof.",
+    "No-transform senders produced zero in-window keyframes; initial pre-window keyframes are outside this count. Production produced55\u201360. The intervention operated but did not restore sustained capture-rate encoding or coded AV.",
+    "Proxy final snapshots leave up to one unaccounted in-flight packet per direction in some cases; there is no exact final packet-accounting claim.",
+    "Retained packet_send_delay_seconds is cumulative, not per-packet queue latency. Chrome target/available bitrate fields are not raw delay/loss controller reconstruction.",
+    "The production worker and required keyframe interval of at most one second remain mandatory. This diagnostic does not authorize their removal or any weaker cadence, impairment, or AV thresholds.",
+    "The sealed run used the earlier decoder_observation.py hash38f6a93c3ed6e9d9793cd602d68916f679cc80e966a3d0eefe81343e5cbb8be2. An authorized later RGB decoding correction changed that separately after the run; this record makes no current full-source qualification claim."
+  ],
+  "retained_proofs": [
+    {
+      "path": ".local/gate5/direct-chrome-transform-control/run-20261014T212030Z/comparison.json",
+      "sha256": "981fe97123a33e0d80c59e8beede562e52882ba40f14d8699397b50f759b7d66"
+    },
+    {
+      "path": ".local/gate5/direct-chrome-transform-control/quality-independent-review.json",
+      "sha256": "fb5725ade3ad80e1e39541345bbfd81c8e9fcd4a1a75456353b4c9394e081d15"
+    },
+    {
+      "path": ".local/gate5/direct-chrome-transform-control/run-20261014T212030Z/quality-final-review.json",
+      "sha256": "787b87b3080eb0d1ff93c7fd0684b3a42a033981cf834857e46794967f1ecb39"
+    }
+  ]
+}
