@@ -2,7 +2,7 @@
   "profile": "connect-gate5-provider-source-audit/1",
   "recorded_at": "2026-10-14T15:21:30.769109+00:00",
   "task": "G5-043",
-  "status": "Graph33 component and normal build proofs passed; conditional provider composition review recorded; full source, browser impairment, installed and final acceptance remain open",
+  "status": "Graph34 Parley qualification composition and component proof passed; runtime content unchanged from graph33; full source, browser impairment, installed and final acceptance remain open",
   "scope": "Local source and retained public evidence only. No provider account, carrier, purchasing, key mutation, tunnel, deployment or public ingress action.",
   "source_base_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
   "source_working_tree": "Current Gate5 changes remain uncommitted. This is an exact source/provenance snapshot, not a candidate release seal.",
@@ -395,7 +395,7 @@
     "crates/connect-store/tests/connector_observation_order.rs": "07c5a4a641e834f9b17780188c159ea8caddf9be26a9e8c500b57dfc4c79ee32",
     "crates/connect-store/tests/gate3_sip_legs.rs": "2aa28b6028bc152c7e49f8888c542d5ad08f496be84120369808026a9f37ed32",
     "crates/connect-store/tests/video_binding.rs": "7e7a5173a00d3facb659549a3368b620469eb98d0966be90a37a0ba78a8d4ce0",
-    "dependencies/source-lock.json": "19687aa337cd79400faaee1486ce603ac01dd1f4e1823a67a29ef135151be8e9",
+    "dependencies/source-lock.json": "76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71",
     "docs/CONNECTORS.md": "a75141deb3e04b9f68e91fcf4e2c8442ad728a675163174abb16837594dfea97",
     "patches/quinn-proto/bbr-model-bounds.patch": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6",
     "patches/rtc-dtls/incomplete-flight-timer.patch": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845",
@@ -4438,5 +4438,24 @@
     },
     "current_qualification_status": "Graph33 normal build and component proofs passed. Two current browser impairment diagnostics failed. Third fullsource attempt passed20phases and169workspace targets, then failed initialnative diagnostics receipt;63later phases were not run. Fullsource and installed qualification remain open.",
     "limits": "Conditional review only. Historical live plus matching current local composition can support narrowly stated compatibility, but no current-candidate live execution, carrier/account readiness or new normalized-provider live claim is established. G5-043 remains open."
+  },
+  "qualification_graph34_followup": {
+    "source_lock": {
+      "path": "dependencies/source-lock.json",
+      "sha256": "76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71"
+    },
+    "prior_source_lock_sha256": "19687aa337cd79400faaee1486ce603ac01dd1f4e1823a67a29ef135151be8e9",
+    "patch_count": 34,
+    "component_evidence": "docs/evidence/gate-5/parley-qualification-graph.json",
+    "runtime_content_comparison": {
+      "path": ".local/gate5/parley-lock-integration/integration.json",
+      "sha256": "203a51935f8efee179dd61e8ae5e871b38b494d6999fbfc9ff1378c6ad9cf735"
+    },
+    "audited_source_files": 96,
+    "unchanged_audited_source_files": 95,
+    "changed_audited_source_files": [
+      "dependencies/source-lock.json"
+    ],
+    "scope": "Added recorded Parley standalone qualification patch; prepared runtime and vendored SDK file contents unchanged. Existing conditional provider claims and unresolved installed/media/full-source acceptance remain unchanged."
   }
 }

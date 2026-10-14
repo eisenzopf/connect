@@ -237,6 +237,12 @@
       "path": "patches/rvoip/webrtc-initial-source-report.patch",
       "sha256": "0bf5e4c263197df8db130394e17eccf17758d4083036c7ceedf221df5342e02e",
       "source": "Retain at most one newest initial sender report per current source track until its compatible CNAME arrives, preserving original receipt NTP and clearing pending state on replacement, domain conflict or retirement. Actual encrypted SR-before-SDES and lifecycle regressions preserve shared AV clock activation."
+    },
+    {
+      "path": "patches/parley/qualification-graph.patch",
+      "sha256": "7461cf4a71487b1700abc427f6bd8e40f10833131d4b6624efc3977a95bcb1ab",
+      "target": "parley",
+      "source": "Pin standalone Parley qualification to the prepared DTLS, interceptor and Quinn sources with locked dependency edges, and explicitly mark locally synthesized prompt frames as having no remote source-clock provenance. Preserve the original conversation regression suites."
     }
   ]
 }

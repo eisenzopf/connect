@@ -46,7 +46,7 @@ def main():
             run('git', '-C', str(dest), 'checkout', '--quiet', '--detach', source['revision'])
         if git(dest, 'rev-parse', 'HEAD') != source['revision'] or git(dest, 'remote', 'get-url', 'origin') != source['url']:
             raise SystemExit(f'{dest}: source identity mismatch; refusing to reset existing work')
-        if name == 'rvoip':
+        if any(patch.get('target', 'rvoip') == name for patch in lock['patches']):
             marker = dest / '.git/connect-prepared.json'
             if marker.exists():
                 try:
@@ -67,7 +67,7 @@ def main():
             if git(dest, 'status', '--porcelain'):
                 raise SystemExit(f'{dest}: unrecorded changes; refusing to reset')
             for patch in lock['patches']:
-                if patch.get('target', 'rvoip') != 'rvoip': continue
+                if patch.get('target', 'rvoip') != name: continue
                 run('git', '-C', str(dest), 'apply', '--check', str(ROOT / patch['path']))
                 run('git', '-C', str(dest), 'apply', str(ROOT / patch['path']))
             paths = git(dest, 'diff', '--name-only').splitlines() + git(dest, 'ls-files', '--others', '--exclude-standard').splitlines()

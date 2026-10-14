@@ -1,0 +1,69 @@
+{
+  "status": "Prepared graph34 component integration passed; full source and release qualification incomplete",
+  "scope": "Local macOS arm64 qualification graph; no provider operation or publication",
+  "source_base_revision": "9cd89e8d9cc9f262b2f8445864f2b00df4069f62",
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71"
+  },
+  "patch_count": 34,
+  "new_patch": {
+    "path": "patches/parley/qualification-graph.patch",
+    "sha256": "7461cf4a71487b1700abc427f6bd8e40f10833131d4b6624efc3977a95bcb1ab",
+    "target": "parley"
+  },
+  "cause": [
+    "Parley lock lacked the existing pinned rand0.8.8 edge added to rvoip-webrtc.",
+    "Standalone Cargo roots do not inherit dependency-root registry overrides.",
+    "Locally synthesized Parley prompt frames needed explicit absent source-clock provenance."
+  ],
+  "changes": [
+    "Record manifest and lock selection of the already prepared rtc-dtls, rtc-interceptor and quinn-proto0.11.19 sources; retain all unrelated registry versions and dependency edges.",
+    "Set source_clock=None only on locally synthesized G.711 prompt frames.",
+    "Apply existing Git patch, exact changed-file and no-reset verification to named Git sources.",
+    "Keep --locked and all three original Parley suites; verify host-filtered all-feature metadata resolves exact prepared versions and paths."
+  ],
+  "prior_failed_full_source": {
+    "path": ".local/gate-5-checks/20261014T164703.154843Z/result.json",
+    "sha256": "9872783e41794abf951453492fb865d183eca06aceeb08cdabbe0add3a2b6f1c"
+  },
+  "private_repair_summary": {
+    "path": ".local/gate5/parley-lock-repair/summary.json",
+    "sha256": "23d4e7644902832ee87960097ac2706dab0410f9405f558bd455c77b8a4a84e5"
+  },
+  "independent_source_review": {
+    "path": ".local/gate5/parley-lock-repair/quality-final-review.json",
+    "sha256": "5ba3d30cc094b92395b67a868d3906f8032d8f03243036651af8cf415b037cc7"
+  },
+  "fresh_preparation": {
+    "path": ".local/gate5/parley-lock-integration/integration.json",
+    "sha256": "203a51935f8efee179dd61e8ae5e871b38b494d6999fbfc9ff1378c6ad9cf735"
+  },
+  "fresh_component_proof": {
+    "path": ".local/gate5/parley-lock-integration/proof-20261014T174047.277651Z/result.json",
+    "sha256": "9d840e609c1c21e1a336050fb81159cfca48d19a407b28ca9a40f9d74ad79e84"
+  },
+  "results": {
+    "dependency_preparation": "passed",
+    "driver_guards": 21,
+    "package_guards": 25,
+    "archive_guards": 6,
+    "format": "passed",
+    "parley_tests": 28,
+    "failed_tests": 0,
+    "ignored_tests": 0,
+    "stable_selected_source_inputs": 1108
+  },
+  "runtime_scope": "All files in the prepared Rvoip, DTLS, interceptor, Quinn and Parley vendor trees compare exactly with preserved graph33. Connect Cargo.lock and vendored Vapi SDK are unchanged. Parley library and its standalone qualification composition change.",
+  "retained_failures": "Original locked refusal and first composed build missing source_clock are retained in the private repair summary.",
+  "remaining": [
+    "Rerun all84 source phases from a clean corrected checkpoint.",
+    "Current browser impairment remains failed.",
+    "Installed package, actual-model, independent usability and owner acceptance remain open."
+  ],
+  "independent_prepared_review": {
+    "path": ".local/gate5/parley-lock-integration/quality-prepared-review.json",
+    "sha256": "b145284576c377a7105f910965d82803f4a16d60a25d389c87cff2a975dedf31"
+  },
+  "post_component_documentation": "Corrected THIRD_PARTY_NOTICES.md to 34 patches and the graph34 source-lock digest after the 1,108-input component proof. This documentation-only edit and evidence/plan updates are to be covered by the next full-source run."
+}

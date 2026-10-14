@@ -145,6 +145,30 @@
         "inputs_stable": true,
         "limits": "Only the41 targets not passed in the retained failed run. Uses the same workspace selectors and feature unification; omits169 priorpassed targets. Diagnostic only, not a resumed or complete qualification pass."
       }
+    },
+    {
+      "source_revision": "9cd89e8d9cc9f262b2f8445864f2b00df4069f62",
+      "source_dirty_at_start": false,
+      "result": {
+        "path": ".local/gate-5-checks/20261014T164703.154843Z/result.json",
+        "sha256": "9872783e41794abf951453492fb865d183eca06aceeb08cdabbe0add3a2b6f1c"
+      },
+      "status": "failed",
+      "passed_phases": 22,
+      "failed_phase": "source--upstream-regression",
+      "required_phases": 84,
+      "not_run_phases": 61,
+      "workspace": {
+        "path": ".local/ci-workspace/20261014T164732.332133Z/result.json",
+        "sha256": "97b92c4fc01f3566cea7ebe9d484bdf2569215b5b0f39710fc863886f66d8e6a",
+        "passed_targets": 210,
+        "expected_targets": 210
+      },
+      "media_pressure": "one and four concurrent sessions,60 seconds each; passed121.16seconds",
+      "upstream_before_failure": "915 Rvoip tests passed; copied Parley lock refused under --locked before tests",
+      "cause": "The isolated Parley regression copy refuses its stale Cargo.lock under --locked. Review also found that Rvoip dependency-level registry overrides do not govern standalone Parley resolution; the check must explicitly select the prepared source graph.",
+      "correction_verification": "Freshly prepared graph34 passes28 Parley tests,21 driver guards,25 package guards,6 archive guards and formatting, with1,108 stable selected inputs. Fullsource rerun remains pending.",
+      "correction_evidence": "docs/evidence/gate-5/parley-qualification-graph.json"
     }
   ],
   "remaining": [

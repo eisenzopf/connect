@@ -51,6 +51,7 @@ GATE5_SOURCE = (
     'crates/connect-server/tests/gate5_video_transport.rs',
     'crates/connect-server/tests/gate5_quic_transport.rs',
     'scripts/lib/prepared_archive.py', 'scripts/tests/test_prepared_archive.py',
+    'scripts/check-parley.py', 'scripts/tests/test_gate5_dependency_roots.py',
     'crates/connect-server/tests/gate5_video_decode.rs',
     'crates/connect-server/tests/gate5_browser_video.rs',
     'crates/connect-server/tests/gate5_native_video.rs',
