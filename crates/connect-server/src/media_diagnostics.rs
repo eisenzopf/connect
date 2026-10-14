@@ -60,6 +60,16 @@ pub(crate) fn snapshot(value: MediaDiagnosticsSnapshot) -> MediaDiagnostics {
                 source_reset_discards: value.source_reset_discards,
             }),
         quic: value.quic.map(|value| QuicTransmissionObservation {
+            congestion_samples: value.congestion_samples,
+            minimum_sampled_rtt_us: value.minimum_sampled_rtt_us,
+            maximum_sampled_rtt_us: value.maximum_sampled_rtt_us,
+            minimum_sampled_cwnd_bytes: value.minimum_sampled_cwnd_bytes,
+            maximum_sampled_cwnd_bytes: value.maximum_sampled_cwnd_bytes,
+            maximum_sampled_connection_lost_packets: value.maximum_sampled_connection_lost_packets,
+            maximum_sampled_connection_congestion_events: value
+                .maximum_sampled_connection_congestion_events,
+            maximum_sampled_connection_sent_packets: value.maximum_sampled_connection_sent_packets,
+
             send_buffer: value
                 .send_buffer
                 .filter(|buffer| buffer.observations > 0)

@@ -87,12 +87,38 @@ export async function videoDiagnostics(peer, worker) {
             ? remoteReport
             : undefined;
         const pair = report.get(report.get(stat.transportId)?.selectedCandidatePairId);
+        // W3C WebRTC §5.6: this public method returns the current pair on
+        // which packets are sent. Consent-check stats can be transiently absent.
+        // https://www.w3.org/TR/webrtc/#dom-rtcicetransport-getselectedcandidatepair
+        let currentPair;
+        if (pair?.state !== "succeeded") {
+            try {
+                const tracks = incoming
+                    ? peer.getReceivers?.()
+                    : peer.getSenders?.();
+                const video = tracks?.filter((track) => track.track?.kind === "video");
+                const ice = video?.length === 1
+                    ? video[0].transport?.iceTransport
+                    : undefined;
+                if (ice?.state === "connected" || ice?.state === "completed")
+                    currentPair = ice.getSelectedCandidatePair();
+            }
+            catch {
+                /* An unavailable current observation stays absent. */
+            }
+        }
+        const selectedSource = pair?.state === "succeeded"
+            ? "stats"
+            : currentPair
+                ? "ice-transport"
+                : undefined;
         const remote = pair?.state === "succeeded"
             ? report.get(pair.remoteCandidateId)
-            : undefined;
+            : currentPair?.remote;
         const local = pair?.state === "succeeded"
             ? report.get(pair.localCandidateId)
-            : undefined;
+            : currentPair?.local;
+        const candidateType = selectedSource === "stats" ? remote?.candidateType : remote?.type;
         const port = (value) => typeof value === "number" &&
             Number.isInteger(value) &&
             value > 0 &&
@@ -138,13 +164,14 @@ export async function videoDiagnostics(peer, worker) {
             qualityLimit: ["none", "cpu", "bandwidth", "other"].includes(stat.qualityLimitationReason)
                 ? stat.qualityLimitationReason
                 : undefined,
+            selectedCandidatePairSource: selectedSource,
             selectedRemotePort: port(remote?.port),
             selectedLocalPort: port(local?.port),
             selectedTransport: ["udp", "tcp"].includes(remote?.protocol)
                 ? remote.protocol
                 : undefined,
-            selectedCandidateType: ["host", "srflx", "prflx", "relay"].includes(remote?.candidateType)
-                ? remote.candidateType
+            selectedCandidateType: ["host", "srflx", "prflx", "relay"].includes(candidateType)
+                ? candidateType
                 : undefined,
         });
     });

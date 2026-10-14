@@ -1,0 +1,515 @@
+--- a/crates/uctp/rvoip-quic/src/lib.rs
++++ b/crates/uctp/rvoip-quic/src/lib.rs
+@@ -31,9 +31,16 @@
+     transport.datagram_send_buffer_size(capacity);
+     // Encoded frames arrive in bounded bursts. A 100ms reorder window can put
+     // more than the default three packets ahead of an intact earlier fragment.
+-    // Retain Cubic and real loss detection, but avoid interpreting every such
++    // Retain real loss detection, but avoid interpreting every such
+     // burst as congestion. Time-based loss and PTO still bound missing packets;
+     // this does not enlarge any media queue or the 200ms local frame deadline.
+     transport.packet_threshold(64).time_threshold(4.0);
++    // A delivery-rate/RTT model avoids treating the profile's random loss as a
++    // permanent low-bandwidth link. BBR retains loss recovery, packet
++    // conservation and inflight limits. Quinn connection pacing remains active;
++    // it is derived from cwnd/RTT, not the BBR model-rate diagnostic.
++    transport.congestion_controller_factory(std::sync::Arc::new(
++        quinn::congestion::BbrConfig::default(),
++    ));
+     capacity
+ }
+--- a/crates/uctp/rvoip-quic/tests/video_budget.rs
++++ b/crates/uctp/rvoip-quic/tests/video_budget.rs
+@@ -58,7 +58,13 @@
+     let sender = sender.unwrap();
+     let maximum = sender.max_datagram_size().unwrap();
+     assert!(maximum < 1188 && maximum > 1100);
+-    assert_eq!(sender.datagram_send_buffer_space(), capacity);
++    // Quinn versions account for per-datagram metadata differently. The
++    // public API promises available payload bytes, not exact configured bytes.
++    assert!((1..=capacity).contains(&sender.datagram_send_buffer_space()));
++    assert!(sender
++        .congestion_state()
++        .into_any()
++        .is::<quinn::congestion::Bbr>());
+     let diagnostics = Arc::new(rvoip_core::media_diagnostics::MediaDiagnostics::default());
+     diagnostics.configure_quic_send_buffer(capacity);
+     let stream = QuicDatagramMediaStream::start_with_cancel(
+@@ -137,9 +143,9 @@
+         .packet_threshold(64)
+         .time_threshold(4.0);
+     assert_eq!(format!("{selected:?}"), format!("{expected:?}"));
+-    // Default upstream endpoints remain unchanged; no alternate controller is
+-    // installed by the opt-in helper. Cubic's loss response is exercised by the
+-    // separately selected actual loss/reorder transport fixture.
++    // Default upstream endpoints remain unchanged. The separately selected
++    // actual transport fixture checks the opted-in controller's runtime type,
++    // loss response and bounded delivery under sustained load.
+     assert_eq!(
+         format!("{:?}", quinn::TransportConfig::default()),
+         baseline_debug
+--- /dev/null
++++ b/crates/uctp/rvoip-quic/tests/video_sustained.rs
+@@ -0,0 +1,419 @@
++//! Sustained real QUIC transport fixture, not decoded-media qualification.
++use std::{
++    sync::{Arc, Mutex},
++    time::{Duration, Instant},
++};
++use tokio_util::sync::CancellationToken;
++const SEND_BUFFER_CAPACITY: usize = 76_032;
++const FRAMES: usize = 1800;
++const VIDEO_PACKETS: usize = FRAMES * 4;
++const AUDIO_PACKETS: usize = 3000;
++const STALLS: [(f64, f64); 2] = [(15.0, 15.25), (36.0, 36.25)];
++
++#[derive(Default, Debug)]
++struct ProxyStats {
++    received: [u64; 2],
++    random_dropped: [u64; 2],
++    stall_dropped: [u64; 2],
++    forwarded: [u64; 2],
++    peak_pending: usize,
++}
++async fn proxy(
++    front: Arc<tokio::net::UdpSocket>,
++    target: std::net::SocketAddr,
++    active: Arc<Mutex<Option<Instant>>>,
++    impaired: bool,
++    stop: CancellationToken,
++) -> ProxyStats {
++    let back = Arc::new(tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap());
++    let mut address = None;
++    let (mut a, mut b) = ([0u8; 65536], [0u8; 65536]);
++    let mut tasks: tokio::task::JoinSet<std::io::Result<usize>> = tokio::task::JoinSet::new();
++    let mut random = 511u64;
++    let mut result = ProxyStats::default();
++    loop {
++        let (data, socket, destination, direction) = tokio::select! {
++            _ = stop.cancelled() => break,
++            Some(sent) = tasks.join_next(), if !tasks.is_empty() => {
++                result.forwarded[sent.unwrap().unwrap()] += 1; continue;
++            },
++            incoming = front.recv_from(&mut a) => {
++                let (length, source) = incoming.unwrap(); address = Some(source);
++                (a[..length].to_vec(), back.clone(), target, 0)
++            },
++            incoming = back.recv_from(&mut b) => {
++                let (length, source) = incoming.unwrap(); assert_eq!(source, target);
++                (b[..length].to_vec(), front.clone(), address.unwrap(), 1)
++            },
++        };
++        result.received[direction] += 1;
++        let seconds = active.lock().unwrap().map(|t| t.elapsed().as_secs_f64());
++        if impaired && seconds.is_some_and(|s| STALLS.iter().any(|(a, b)| *a <= s && s < *b)) {
++            result.stall_dropped[direction] += 1;
++            continue;
++        }
++        random = random.wrapping_mul(6364136223846793005).wrapping_add(1);
++        if impaired && (random >> 32) % 10000 < 300 {
++            result.random_dropped[direction] += 1;
++            continue;
++        }
++        random = random.wrapping_mul(6364136223846793005).wrapping_add(1);
++        let delay = Duration::from_micros((random >> 32) % 100001);
++        assert!(tasks.len() < 512, "owned proxy queue overflow");
++        tasks.spawn(async move {
++            tokio::time::sleep(delay).await;
++            socket.send_to(&data, destination).await.map(|sent| {
++                assert_eq!(sent, data.len(), "complete UDP datagram forwarded");
++                direction
++            })
++        });
++        result.peak_pending = result.peak_pending.max(tasks.len());
++    }
++    // Every admitted UDP packet is accounted for, even when shutdown begins.
++    while let Some(sent) = tasks.join_next().await {
++        result.forwarded[sent.unwrap().unwrap()] += 1;
++    }
++    for i in 0..2 {
++        assert_eq!(
++            result.received[i],
++            result.random_dropped[i] + result.stall_dropped[i] + result.forwarded[i]
++        );
++    }
++    result
++}
++
++#[derive(Debug)]
++struct Received {
++    video: usize,
++    audio: usize,
++    complete_frames: usize,
++    recovery_seconds: [Option<f64>; 2],
++    maximum_age_ms: f64,
++}
++async fn receive(conn: quinn::Connection, start: Instant, stop: CancellationToken) -> Received {
++    let mut video = vec![false; VIDEO_PACKETS];
++    let mut audio = vec![false; AUDIO_PACKETS];
++    let mut frames = vec![0u8; FRAMES];
++    let mut result = Received {
++        video: 0,
++        audio: 0,
++        complete_frames: 0,
++        recovery_seconds: [None, None],
++        maximum_age_ms: 0.0,
++    };
++    loop {
++        let wire = tokio::select! {
++            _ = stop.cancelled() => break,
++            next = conn.read_datagram() => next.unwrap(),
++        };
++        let is_video = wire[0] == b'V';
++        assert!(is_video || wire[0] == b'A');
++        assert_eq!(wire.len(), if is_video { 1042 } else { 180 });
++        let id = u32::from_be_bytes(wire[1..5].try_into().unwrap()) as usize;
++        let emitted = u64::from_be_bytes(wire[5..13].try_into().unwrap()) as f64 / 1e6;
++        assert!(wire[13..].iter().all(|b| *b == (id % 251) as u8));
++        let now = start.elapsed().as_secs_f64();
++        result.maximum_age_ms = result.maximum_age_ms.max((now - emitted) * 1000.0);
++        let seen = if is_video { &mut video } else { &mut audio };
++        assert!(id < seen.len());
++        assert!(!seen[id]);
++        seen[id] = true;
++        if is_video {
++            result.video += 1;
++            frames[id / 4] |= 1 << (id % 4);
++            if frames[id / 4] == 15 {
++                result.complete_frames += 1;
++                for (i, (_, end)) in STALLS.iter().enumerate() {
++                    if result.recovery_seconds[i].is_none()
++                        && emitted >= *end
++                        && now - emitted <= 0.2
++                    {
++                        result.recovery_seconds[i] = Some(now - end);
++                    }
++                }
++            }
++        } else {
++            result.audio += 1;
++        }
++    }
++    result
++}
++
++#[derive(Debug)]
++struct Sent {
++    configured_capacity: usize,
++    initial_available: usize,
++    minimum_available: usize,
++    maximum_available: usize,
++    sampled_high_water: usize,
++    capacity_observations: usize,
++    video_submitted: usize,
++    audio_submitted: usize,
++    over_space: usize,
++    pressure_samples: Vec<(f64, usize, u64, u128)>,
++    minimum_cwnd: u64,
++    maximum_cwnd: u64,
++    minimum_model_rate: u64,
++    maximum_model_rate: u64,
++    path: quinn::PathStats,
++    offered_seconds: f64,
++    video_payload_bits_per_second: f64,
++    audio_payload_bits_per_second: f64,
++}
++impl Sent {
++    fn observe_buffer(&mut self, conn: &quinn::Connection) -> usize {
++        let available = conn.datagram_send_buffer_space();
++        assert!(
++            available <= self.configured_capacity,
++            "observed send-buffer capacity mismatch"
++        );
++        self.minimum_available = self.minimum_available.min(available);
++        self.maximum_available = self.maximum_available.max(available);
++        self.sampled_high_water = self
++            .sampled_high_water
++            .max(self.configured_capacity - available);
++        self.capacity_observations += 1;
++        available
++    }
++}
++async fn send(conn: quinn::Connection, start: Instant) -> Sent {
++    assert!(conn
++        .congestion_state()
++        .into_any()
++        .is::<quinn::congestion::Bbr>());
++    let mut video = tokio::time::interval(Duration::from_nanos(1_000_000_000 / 30));
++    let mut audio = tokio::time::interval(Duration::from_millis(20));
++    video.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
++    audio.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
++    let (mut frames, mut packets) = (0, 0);
++    let initial_available = conn.datagram_send_buffer_space();
++    // Quinn reserves internal metadata from this payload-space API.
++    // The configured byte bound is exact; initial usable payload is observed.
++    let mut out = Sent {
++        configured_capacity: SEND_BUFFER_CAPACITY,
++        initial_available,
++        minimum_available: initial_available,
++        maximum_available: initial_available,
++        sampled_high_water: 0,
++        capacity_observations: 1,
++        video_submitted: 0,
++        audio_submitted: 0,
++        over_space: 0,
++        pressure_samples: Vec::new(),
++        minimum_cwnd: u64::MAX,
++        maximum_cwnd: 0,
++        minimum_model_rate: u64::MAX,
++        maximum_model_rate: 0,
++        path: conn.stats().path,
++        offered_seconds: 0.0,
++        video_payload_bits_per_second: 0.0,
++        audio_payload_bits_per_second: 0.0,
++    };
++    assert!(out.initial_available <= out.configured_capacity);
++    assert!(
++        out.initial_available
++            >= conn
++                .max_datagram_size()
++                .expect("negotiated DATAGRAM support")
++    );
++    while frames < FRAMES || packets < AUDIO_PACKETS {
++        let (kind, first, count, size) = tokio::select! {
++            _ = video.tick(), if frames < FRAMES => {let first=frames*4;frames+=1;(b'V',first,4,1042)},
++            _ = audio.tick(), if packets < AUDIO_PACKETS => {let first=packets;packets+=1;(b'A',first,1,180)},
++        };
++        for id in first..first + count {
++            let mut wire = vec![(id % 251) as u8; size];
++            wire[0] = kind;
++            wire[1..5].copy_from_slice(&(id as u32).to_be_bytes());
++            wire[5..13].copy_from_slice(&(start.elapsed().as_micros() as u64).to_be_bytes());
++            let available = out.observe_buffer(&conn);
++            if available < wire.len() {
++                out.over_space += 1;
++                if out.pressure_samples.len() < 16 {
++                    let path = conn.stats().path;
++                    out.pressure_samples.push((
++                        start.elapsed().as_secs_f64(),
++                        available,
++                        path.cwnd,
++                        path.rtt.as_micros(),
++                    ));
++                }
++            }
++            conn.send_datagram(wire.into()).unwrap();
++            if kind == b'V' {
++                out.video_submitted += 1;
++            } else {
++                out.audio_submitted += 1;
++            }
++            out.observe_buffer(&conn);
++        }
++        out.path = conn.stats().path;
++        out.minimum_cwnd = out.minimum_cwnd.min(out.path.cwnd);
++        out.maximum_cwnd = out.maximum_cwnd.max(out.path.cwnd);
++        // This is the BBR model rate; Quinn separately paces from cwnd/RTT.
++        let model_rate = conn
++            .congestion_state()
++            .metrics()
++            .pacing_rate
++            .expect("BBR exposes delivery-model rate");
++        out.minimum_model_rate = out.minimum_model_rate.min(model_rate);
++        out.maximum_model_rate = out.maximum_model_rate.max(model_rate);
++    }
++    assert_eq!(out.video_submitted, VIDEO_PACKETS);
++    assert_eq!(out.audio_submitted, AUDIO_PACKETS);
++    assert_eq!(
++        out.capacity_observations,
++        1 + 2 * (VIDEO_PACKETS + AUDIO_PACKETS)
++    );
++    out.offered_seconds = start.elapsed().as_secs_f64();
++    out.video_payload_bits_per_second = (VIDEO_PACKETS * 1042 * 8) as f64 / out.offered_seconds;
++    out.audio_payload_bits_per_second = (AUDIO_PACKETS * 180 * 8) as f64 / out.offered_seconds;
++    assert!(
++        (59.5..=61.5).contains(&out.offered_seconds),
++        "offered AV duration must remain approximately sixty seconds"
++    );
++    assert!((975_000.0..=1_025_000.0).contains(&out.video_payload_bits_per_second));
++    assert!((70_000.0..=74_000.0).contains(&out.audio_payload_bits_per_second));
++    tokio::time::sleep(Duration::from_millis(400)).await;
++    out.path = conn.stats().path;
++    out
++}
++
++async fn case(impaired: bool) {
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let (cert, key) = rvoip_uctp::substrate::self_signed_for_dev(&["localhost".into()]).unwrap();
++    let mut tls = rustls::ServerConfig::builder()
++        .with_no_client_auth()
++        .with_single_cert(vec![cert.clone()], key)
++        .unwrap();
++    tls.alpn_protocols = vec![rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES.to_vec()];
++    let mut transport = quinn::TransportConfig::default();
++    assert_eq!(
++        rvoip_quic::apply_encoded_video_transport_budget(&mut transport),
++        SEND_BUFFER_CAPACITY
++    );
++    let server = rvoip_uctp::substrate::make_server_endpoint(
++        "127.0.0.1:0".parse().unwrap(),
++        Arc::new(tls),
++        transport,
++    )
++    .unwrap();
++    let front = Arc::new(tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap());
++    let proxy_addr = front.local_addr().unwrap();
++    let active = Arc::new(Mutex::new(None));
++    let stop = CancellationToken::new();
++    let forwarding = tokio::spawn(proxy(
++        front,
++        server.local_addr().unwrap(),
++        active.clone(),
++        impaired,
++        stop.clone(),
++    ));
++    let mut tls = rvoip_uctp::substrate::dev_client_config_trusting(&cert).unwrap();
++    tls.alpn_protocols = vec![rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES.to_vec()];
++    let mut config = quinn::ClientConfig::new(Arc::new(
++        quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap(),
++    ));
++    let mut transport = quinn::TransportConfig::default();
++    assert_eq!(
++        rvoip_quic::apply_encoded_video_transport_budget(&mut transport),
++        SEND_BUFFER_CAPACITY
++    );
++    config.transport_config(Arc::new(transport));
++    let client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++    let pending = client
++        .connect_with(config, proxy_addr, "localhost")
++        .unwrap();
++    let (left, right) = tokio::join!(pending, async { server.accept().await.unwrap().await });
++    let (left, right) = (left.unwrap(), right.unwrap());
++    let start = Instant::now();
++    *active.lock().unwrap() = Some(start);
++    let receive_stop = CancellationToken::new();
++    let left_read = tokio::spawn(receive(left.clone(), start, receive_stop.clone()));
++    let right_read = tokio::spawn(receive(right.clone(), start, receive_stop.clone()));
++    let reliable_left = left.clone();
++    let reliable_right = right.clone();
++    let reliable = tokio::spawn(async move {
++        let a = async move {
++            let (mut send, mut recv) = reliable_left.open_bi().await.unwrap();
++            for chunk in 0..32 {
++                send.write_all(&vec![chunk as u8; 32768]).await.unwrap();
++                tokio::time::sleep(Duration::from_millis(50)).await;
++            }
++            send.finish().unwrap();
++            let echo = recv.read_to_end(16).await.unwrap();
++            assert_eq!(echo, b"verified-1MiB");
++        };
++        let b = async move {
++            let (mut send, mut recv) = reliable_right.accept_bi().await.unwrap();
++            let bytes = recv.read_to_end(1024 * 1024).await.unwrap();
++            assert_eq!(bytes.len(), 1024 * 1024);
++            for (chunk, data) in bytes.chunks(32768).enumerate() {
++                assert!(data.iter().all(|b| *b == chunk as u8));
++            }
++            send.write_all(b"verified-1MiB").await.unwrap();
++            send.finish().unwrap();
++        };
++        tokio::join!(a, b);
++        start.elapsed()
++    });
++    let (a, b) = tokio::join!(send(left.clone(), start), send(right.clone(), start));
++    let reliable_seconds = tokio::time::timeout(Duration::from_secs(5), reliable)
++        .await
++        .unwrap()
++        .unwrap()
++        .as_secs_f64();
++    receive_stop.cancel();
++    let (received_a, received_b) = (left_read.await.unwrap(), right_read.await.unwrap());
++    // All path statistics precede connection/proxy shutdown.
++    left.close(0u32.into(), b"fixture complete");
++    right.close(0u32.into(), b"fixture complete");
++    stop.cancel();
++    let wire = forwarding.await.unwrap();
++    eprintln!("SUSTAINED_QUIC impaired={impaired} duration={} reliable_seconds={reliable_seconds} sent_left={a:?} sent_right={b:?} received_left={received_a:?} received_right={received_b:?} proxy={wire:?}",start.elapsed().as_secs_f64());
++    for received in [received_a, received_b] {
++        assert!(received.video >= VIDEO_PACKETS * 3 / 4);
++        assert!(received.audio >= AUDIO_PACKETS * 3 / 4);
++        for delay in received.recovery_seconds {
++            assert!(
++                delay.is_some_and(|d| d <= 2.0),
++                "fresh complete transport frame recovery within two seconds"
++            );
++        }
++    }
++    // The contract allows bounded local enqueue/loss. Keep sampled pressure in
++    // the report; it does not identify an actual Quinn eviction. Capacity is
++    // asserted at configuration and on every pre/post-send observation.
++    // Packet age here includes wire delay and is not local application queue age.
++    assert!(
++        reliable_seconds <= a.offered_seconds.min(b.offered_seconds),
++        "exact reliable bytes and receipt complete while both AV senders are active"
++    );
++    assert!(a.maximum_model_rate > 0 && b.maximum_model_rate > 0);
++    if impaired {
++        assert!(
++            wire.random_dropped.iter().sum::<u64>() > 0
++                && wire.stall_dropped.iter().sum::<u64>() > 0
++        );
++        assert!(a.path.lost_packets > 0 && b.path.lost_packets > 0);
++        assert!(a.path.congestion_events > 0 && b.path.congestion_events > 0);
++    } else {
++        assert_eq!(wire.random_dropped, [0, 0]);
++        assert_eq!(wire.stall_dropped, [0, 0]);
++    }
++}
++
++// Independent tests retain both transport outcomes; decoded-media qualification remains separate.
++#[tokio::test]
++async fn sustained_duplex_av_rate_reorder_only_with_reliable_bytes() {
++    tokio::time::timeout(Duration::from_secs(80), case(false))
++        .await
++        .expect("bounded sustained reorder-only case");
++}
++
++#[tokio::test]
++async fn sustained_duplex_av_rate_loss_and_stalls_with_reliable_bytes() {
++    tokio::time::timeout(Duration::from_secs(80), case(true))
++        .await
++        .expect("bounded sustained loss-and-stall case");
++}
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -402,3 +402,9 @@
+ opt-level = 3            # Keep optimization for realistic profiling
+ debug = true             # Include debug symbols for flamegraph
+ strip = false            # Don't strip symbols
++
++# Connect records the source archive and patch in its dependency lock.
++[patch.crates-io]
++rtc-dtls = { path = "../rtc-dtls" }
++rtc-interceptor = { path = "../rtc-interceptor" }
++quinn-proto = { path = "../quinn-proto" }
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5726,9 +5726,7 @@
+ 
+ [[package]]
+ name = "quinn-proto"
+-version = "0.11.16"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2f4bfc015262b9df63c8845072ce59068853ff5872180c2ce2f13038b970e560"
++version = "0.11.19"
+ dependencies = [
+  "aws-lc-rs",
+  "bytes",
+@@ -6351,8 +6349,6 @@
+ [[package]]
+ name = "rtc-dtls"
+ version = "0.20.0-alpha.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "067a19d0491fa2b09363bf9fdab2b3889447498844da092f875a1de9968750d0"
+ dependencies = [
+  "aes",
+  "aes-gcm",
+@@ -6405,8 +6401,6 @@
+ [[package]]
+ name = "rtc-interceptor"
+ version = "0.20.0-alpha.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e"
+ dependencies = [
+  "log",
+  "rand 0.9.5",

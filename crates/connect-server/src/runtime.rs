@@ -307,6 +307,9 @@ impl RunningServer {
         // Bind native transport after optional listener admission. A rejected
         // optional listener must not leave a substrate accept task holding QUIC.
         let mut transport = quinn::TransportConfig::default();
+        // Encoded-video loss detection is a physical-connection setting, so
+        // reliable control shares the same reordering tolerance. Authorization
+        // and application deadlines remain independent and unchanged.
         let datagram_capacity = rvoip_quic::apply_encoded_video_transport_budget(&mut transport);
         orchestrator
             .media_diagnostics()

@@ -1,0 +1,410 @@
+--- a/crates/webrtc/rvoip-webrtc/src/peer/source_clock.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/source_clock.rs
+@@ -16,6 +16,14 @@
+         }
+     }
+ }
++// At most one report for each of the two current negotiated tracks. RTCP
++// normally places SR before SDES; keep its receipt time until identity arrives.
++#[derive(Clone, Copy)]
++struct InitialReport {
++    ntp: u64,
++    rtp: u32,
++    local_ntp: u64,
++}
+ struct Track {
+     binding_id: u128,
+     identity: Option<Weak<dyn Send + Sync>>,
+@@ -23,6 +31,7 @@
+     rate: u32,
+     cname: Option<Vec<u8>>,
+     anchor: Option<MediaClockAnchor>,
++    initial_report: Option<InitialReport>,
+     active: bool,
+     revision: Arc<AtomicU64>,
+ }
+@@ -108,6 +117,7 @@
+             rate,
+             cname: None,
+             anchor: None,
++            initial_report: None,
+             active: false,
+             revision: Arc::new(AtomicU64::new(1)),
+         });
+@@ -208,9 +218,15 @@
+             s.offset = None;
+             for t in s.tracks.iter_mut().flatten() {
+                 t.anchor = None;
++                t.initial_report = None;
+             }
+         }
+         s.tracks[i].as_mut().unwrap().cname = Some(cname.to_vec());
++        // Conflicts above invalidate all pending reports before changing the
++        // domain. Only the first compatible CNAME may consume this binding's SR.
++        if let Some(report) = s.tracks[i].as_mut().unwrap().initial_report.take() {
++            Self::apply_report(&mut s, i, report);
++        }
+     }
+     pub(crate) fn sender_report(
+         &self,
+@@ -220,7 +236,7 @@
+         packets: u32,
+         local_ntp: u64,
+     ) -> bool {
+-        if ntp == 0 {
++        if ntp == 0 || !self.0.live.load(Ordering::Acquire) {
+             return false;
+         } // RFC3550 permits absent source wallclock.
+         let mut s = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+@@ -232,7 +248,36 @@
+             return false;
+         };
+         let t = s.tracks[i].as_ref().unwrap();
+-        if t.cname.is_none() || (!t.active && packets == 0) {
++        if (!t.active && packets == 0)
++            || t.identity
++                .as_ref()
++                .is_some_and(|identity| identity.upgrade().is_none())
++        {
++            return false;
++        }
++        let report = InitialReport {
++            ntp,
++            rtp,
++            local_ntp,
++        };
++        if t.cname.is_none() {
++            // Duplicated or reordered older reports must not replace the newest
++            // pending anchor. Preserve the selected report's own receipt NTP.
++            if t.initial_report
++                .is_none_or(|old| ntp.wrapping_sub(old.ntp) as i64 > 0)
++            {
++                s.tracks[i].as_mut().unwrap().initial_report = Some(report);
++            }
++            return false; // no usable mapping until CNAME authenticates the domain
++        }
++        Self::apply_report(&mut s, i, report)
++    }
++    fn apply_report(s: &mut State, i: usize, report: InitialReport) -> bool {
++        let t = s.tracks[i].as_ref().unwrap();
++        if t.identity
++            .as_ref()
++            .is_some_and(|identity| identity.upgrade().is_none())
++        {
+             return false;
+         }
+         if s.tracks.iter().flatten().any(|other| {
+@@ -243,6 +288,11 @@
+         }) {
+             return false;
+         }
++        let InitialReport {
++            ntp,
++            rtp,
++            local_ntp,
++        } = report;
+         let offset = *s.offset.get_or_insert_with(|| local_ntp.wrapping_sub(ntp));
+         let t = s.tracks[i].as_mut().unwrap();
+         let translated = ntp.wrapping_add(offset);
+@@ -553,3 +603,23 @@
+         assert!(c.sender_report(1, 10 << 32, 0, 0, 100 << 32));
+     }
+ }
++
++#[cfg(test)]
++impl SourceClock {
++    pub(crate) fn assert_initial_metadata(&self, ssrc: u32) {
++        let state = self.0.state.lock().unwrap();
++        let t = state
++            .tracks
++            .iter()
++            .flatten()
++            .find(|t| t.ssrc == ssrc)
++            .expect("actual RTP bound the source");
++        assert!(
++            t.cname.is_none() && t.anchor.is_none(),
++            "fixture must start before any source SR or CNAME"
++        );
++    }
++}
++
++#[cfg(test)]
++mod initial_source_report_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/peer/source_clock/initial_source_report_tests.rs
+@@ -0,0 +1,117 @@
++use super::*;
++fn clock() -> SourceClock {
++    let c = SourceClock::default();
++    c.bind(ClockTrack::Audio, 1, 48_000);
++    c.bind(ClockTrack::Video, 2, 90_000);
++    c
++}
++fn anchor(c: &SourceClock, ssrc: u32) -> Option<(u64, u32)> {
++    c.snapshot(ssrc)
++        .and_then(|s| s.anchor)
++        .map(|a| (a.ntp_time, a.rtp_time))
++}
++#[test]
++fn source_clock_initial_report_newest_preserves_original_receipt_and_shared_offset() {
++    let c = clock();
++    assert!(!c.sender_report(1, 100 << 32, 1, 1, 500 << 32));
++    assert!(!c.sender_report(1, 101 << 32, 2, 2, 503 << 32));
++    assert!(!c.sender_report(1, 100 << 32, 3, 1, 900 << 32));
++    assert!(!c.sender_report(1, 101 << 32, 4, 2, 901 << 32));
++    assert!(anchor(&c, 1).is_none());
++    c.cname(1, b"common");
++    assert_eq!(anchor(&c, 1), Some((503 << 32, 2)));
++    assert!(!c.sender_report(2, 101 << 32, 90_000, 1, 999 << 32));
++    c.cname(2, b"common");
++    assert_eq!(anchor(&c, 2), Some((503 << 32, 90_000)));
++    assert!(c.sender_report(1, 102 << 32, 48_002, 3, 1000 << 32));
++    c.cname(1, b"common");
++    assert_eq!(anchor(&c, 1), Some((504 << 32, 48_002)));
++}
++#[test]
++fn source_clock_initial_report_rejects_unknown_zero_and_invalid_cname() {
++    let c = clock();
++    assert!(!c.sender_report(999, 100 << 32, 1, 1, 500 << 32));
++    c.cname(999, b"common");
++    assert!(c.snapshot(999).is_none());
++    assert!(!c.sender_report(1, 0, 1, 1, 500 << 32));
++    assert!(!c.sender_report(1, 100 << 32, 1, 0, 500 << 32));
++    c.cname(1, b"common");
++    assert!(anchor(&c, 1).is_none());
++    assert!(!c.sender_report(2, 100 << 32, 2, 1, 500 << 32));
++    c.cname(2, b"");
++    c.cname(2, &[1; 256]);
++    assert!(anchor(&c, 2).is_none());
++    c.cname(2, b"common");
++    assert_eq!(anchor(&c, 2), Some((500 << 32, 2)));
++}
++#[test]
++fn source_clock_initial_report_zero_packet_wrap_requires_observed_media() {
++    let c = clock();
++    c.observe_rtp(1);
++    assert!(!c.sender_report(1, 100 << 32, 9, 0, 500 << 32));
++    c.cname(1, b"common");
++    assert_eq!(anchor(&c, 1), Some((500 << 32, 9)));
++}
++#[test]
++fn source_clock_initial_report_conflicting_first_cname_clears_both_pending_domains() {
++    let c = clock();
++    c.sender_report(1, 100 << 32, 1, 1, 500 << 32);
++    c.sender_report(2, 100 << 32, 2, 1, 500 << 32);
++    c.cname(1, b"A");
++    let old = c.snapshot(1).unwrap();
++    c.cname(2, b"B");
++    assert!(!(old.is_current)());
++    assert!(anchor(&c, 1).is_none() && anchor(&c, 2).is_none());
++    c.cname(1, b"B");
++    assert!(anchor(&c, 1).is_none() && anchor(&c, 2).is_none());
++    assert!(c.sender_report(2, 101 << 32, 3, 2, 600 << 32));
++    assert_eq!(anchor(&c, 2), Some((600 << 32, 3)));
++}
++#[test]
++fn source_clock_initial_report_changed_cname_discards_other_track_pending() {
++    let c = clock();
++    c.cname(1, b"A");
++    c.sender_report(2, 100 << 32, 2, 1, 500 << 32);
++    c.cname(1, b"B");
++    c.cname(2, b"B");
++    assert!(anchor(&c, 2).is_none());
++}
++#[test]
++fn source_clock_initial_report_same_identity_preserves_replacement_discards() {
++    let c = SourceClock::default();
++    let first: Arc<dyn Send + Sync> = Arc::new(());
++    let second: Arc<dyn Send + Sync> = Arc::new(());
++    c.bind_identity(ClockTrack::Audio, 1, 48000, &first);
++    c.sender_report(1, 100 << 32, 1, 1, 500 << 32);
++    c.bind_identity(ClockTrack::Audio, 1, 48000, &first);
++    c.cname(1, b"A");
++    assert_eq!(anchor(&c, 1), Some((500 << 32, 1)));
++    c.bind_identity(ClockTrack::Audio, 1, 48000, &second);
++    c.sender_report(1, 101 << 32, 2, 2, 501 << 32);
++    c.bind_identity(ClockTrack::Audio, 1, 48000, &first);
++    c.cname(1, b"A");
++    assert!(anchor(&c, 1).is_none());
++}
++#[test]
++fn source_clock_initial_report_dead_identity_lease_retirement_and_peer_retirement_discard() {
++    let c = SourceClock::default();
++    let id: Arc<dyn Send + Sync> = Arc::new(());
++    c.bind_identity(ClockTrack::Audio, 1, 48000, &id);
++    c.sender_report(1, 100 << 32, 1, 1, 500 << 32);
++    drop(id);
++    c.cname(1, b"A");
++    assert!(anchor(&c, 1).is_none());
++    c.bind(ClockTrack::Audio, 1, 48000);
++    let lease = c.lease(&[1]);
++    c.sender_report(1, 100 << 32, 2, 1, 500 << 32);
++    drop(lease);
++    c.bind(ClockTrack::Audio, 1, 48000);
++    c.cname(1, b"A");
++    assert!(anchor(&c, 1).is_none());
++    c.bind(ClockTrack::Audio, 1, 48000);
++    c.sender_report(1, 100 << 32, 3, 1, 500 << 32);
++    c.retire();
++    c.cname(1, b"A");
++    assert!(c.snapshot(1).is_none());
++    assert!(!c.sender_report(1, 101 << 32, 4, 1, 501 << 32));
++}
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1553,3 +1553,6 @@
+ 
+ #[cfg(test)]
+ mod source_clock_activation_tests;
++
++#[cfg(test)]
++mod initial_source_report_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/initial_source_report_tests.rs
+@@ -0,0 +1,146 @@
++//! Actual UDP/SRTCP -> hop interceptors -> endpoint -> callback -> SourceClock.
++use super::*;
++use rtc::rtcp::{
++    Packet,
++    reception_report::ReceptionReport,
++    sender_report::SenderReport,
++    source_description::{
++        SdesType, SourceDescription, SourceDescriptionChunk, SourceDescriptionItem,
++    },
++};
++fn chunk(ssrc: u32, cname: &str) -> SourceDescriptionChunk {
++    SourceDescriptionChunk {
++        source: ssrc,
++        items: vec![SourceDescriptionItem {
++            sdes_type: SdesType::SdesCname,
++            text: cname.as_bytes().to_vec().into(),
++        }],
++    }
++}
++fn sr(ssrc: u32, ntp: u64, rtp: u32) -> Box<dyn Packet> {
++    Box::new(SenderReport {
++        ssrc,
++        ntp_time: ntp,
++        rtp_time: rtp,
++        packet_count: 1,
++        octet_count: 160,
++        // A foreign reception report must not override the source identity.
++        reports: vec![ReceptionReport {
++            ssrc: 0xdeadbeef,
++            ..Default::default()
++        }],
++        ..Default::default()
++    })
++}
++#[tokio::test]
++async fn source_clock_initial_report_real_srtcp_sr_before_sdes_activates_both_tracks() {
++    let mut config = WebRtcConfig::loopback();
++    config.require_vp8_audio_video_profile = true;
++    let a = RvoipPeerConnection::new(&config, PeerRole::Offerer)
++        .await
++        .unwrap();
++    let b = RvoipPeerConnection::new(&config, PeerRole::Answerer)
++        .await
++        .unwrap();
++    a.add_local_audio_track().await.unwrap();
++    a.add_local_video_track().await.unwrap();
++    let offer = a.create_offer_and_gather().await.unwrap();
++    let answer = b.accept_offer_and_gather(&offer).await.unwrap();
++    a.set_remote_answer(&answer).await.unwrap();
++    tokio::try_join!(
++        a.wait_connected(Duration::from_secs(3)),
++        b.wait_connected(Duration::from_secs(3))
++    )
++    .unwrap();
++    let (audio, video) =
++        RvoipPeerConnection::prime_remote_media(&a, &b, true, Duration::from_secs(3)).await;
++    let audio_ssrc = a.local_audio_ssrc().unwrap();
++    let video_ssrc = a.local_video_ssrc().unwrap();
++    let unknown = 0xfacebeef;
++    let ntp = 4_100_000_000u64 << 32;
++    let track = a.local_audio_track().unwrap();
++    b.source_clock.assert_initial_metadata(audio_ssrc);
++    b.source_clock.assert_initial_metadata(video_ssrc);
++    // Normal compound order: the known sender report precedes its CNAME.
++    // A distinct RTP anchor proves this exact report was consumed.
++    track
++        .write_rtcp(vec![
++            sr(audio_ssrc, ntp, 48_000),
++            sr(unknown, ntp, 77),
++            Box::new(SourceDescription {
++                chunks: vec![
++                    chunk(unknown, "unrelated"),
++                    chunk(audio_ssrc, "shared-clock"),
++                ],
++            }),
++        ])
++        .await
++        .unwrap();
++    let audio_anchor = tokio::time::timeout(Duration::from_secs(2), async {
++        loop {
++            if let Some(c) = b.source_clock.snapshot(audio_ssrc) {
++                if c.anchor
++                    .is_some_and(|a| a.rtp_time == 48_000 && a.clock_rate == 48_000)
++                {
++                    break c;
++                }
++            }
++            tokio::time::sleep(Duration::from_millis(10)).await;
++        }
++    })
++    .await
++    .ok();
++    // Arrival jitter for the other track must not re-anchor the common domain.
++    tokio::time::sleep(Duration::from_millis(40)).await;
++    track
++        .write_rtcp(vec![
++            sr(video_ssrc, ntp, 90_000),
++            Box::new(SourceDescription {
++                chunks: vec![
++                    chunk(unknown, "another-unrelated"),
++                    chunk(video_ssrc, "shared-clock"),
++                ],
++            }),
++        ])
++        .await
++        .unwrap();
++    let video_anchor = tokio::time::timeout(Duration::from_secs(2), async {
++        loop {
++            if let Some(c) = b.source_clock.snapshot(video_ssrc) {
++                if c.anchor
++                    .is_some_and(|a| a.rtp_time == 90_000 && a.clock_rate == 90_000)
++                {
++                    break c;
++                }
++            }
++            tokio::time::sleep(Duration::from_millis(10)).await;
++        }
++    })
++    .await
++    .ok();
++    let unknown_bound = b.source_clock.snapshot(unknown).is_some();
++    let active = audio_anchor.as_ref().is_some_and(|c| (c.is_current)())
++        && video_anchor.as_ref().is_some_and(|c| (c.is_current)());
++    a.close().await.unwrap();
++    b.close().await.unwrap();
++    assert!(
++        audio.is_some() && video.is_some(),
++        "actual RTP must establish both negotiated source tracks"
++    );
++    assert!(
++        !unknown_bound,
++        "foreign RTCP source must not allocate a clock"
++    );
++    assert!(
++        active,
++        "authenticated source SR/SDES must reach the current clock callback"
++    );
++    let aa = audio_anchor.unwrap().anchor.unwrap();
++    let va = video_anchor.unwrap().anchor.unwrap();
++    assert_eq!((aa.clock_rate, aa.rtp_time), (48_000, 48_000));
++    assert_eq!((va.clock_rate, va.rtp_time), (90_000, 90_000));
++    assert_eq!(
++        aa.ntp_time, va.ntp_time,
++        "one fixed common offset despite later video SR arrival"
++    );
++}

@@ -1,0 +1,465 @@
+--- a/crates/webrtc/rvoip-webrtc/src/media/mod.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+@@ -1,3 +1,4 @@
++pub(crate) mod audio_reorder;
+ pub mod dtmf;
+ pub mod fixtures;
+ pub(crate) mod outbound;
+--- a/crates/webrtc/rvoip-webrtc/src/media/pump.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/pump.rs
+@@ -410,9 +410,16 @@
+         let _task_guard = task_guard;
+         let deadline = Duration::from_millis(send_deadline_ms);
+         let mut dtmf_decoder = DtmfDecoder::new(dtmf_codecs);
++        let mut reorder = super::audio_reorder::AudioReorder::default();
+         loop {
+             // Honor cancellation as well as the per-poll timeout.
+-            let poll = tokio::time::timeout(Duration::from_millis(100), track.poll());
++            let now = Instant::now();
++            let wait = reorder
++                .next_deadline()
++                .map_or(Duration::from_millis(100), |at| {
++                    at.saturating_duration_since(now)
++                });
++            let poll = tokio::time::timeout(wait, track.poll());
+             let event = match &cancel {
+                 Some(c) => tokio::select! {
+                     _ = c.notified() => break,
+@@ -420,84 +427,123 @@
+                 },
+                 None => poll.await.ok().flatten(),
+             };
+-            let Some(event) = event else { continue };
+-            match event {
+-                TrackRemoteEvent::OnRtpPacket(pkt) => {
++            let now = Instant::now();
++            let released = match event {
++                Some(TrackRemoteEvent::OnRtpPacket(packet)) => {
+                     stats.record_packet();
+-                    if dtmf_decoder.accepts_payload_type(pkt.header.payload_type) {
+-                        tracing::trace!(
+-                            payload_type = pkt.header.payload_type,
+-                            timestamp = pkt.header.timestamp,
+-                            "received negotiated WebRTC telephone-event RTP"
+-                        );
+-                        if let Some(event) = dtmf_decoder.decode_packet(
+-                            pkt.header.timestamp,
+-                            pkt.header.payload_type,
+-                            &pkt.payload,
+-                        ) {
+-                            tracing::debug!(
+-                                duration_ms = event.duration_ms,
+-                                "decoded completed WebRTC telephone-event"
+-                            );
+-                            if let Some(tx) = &dtmf_tx {
+-                                let _ = tx.send(event).await;
+-                            }
+-                        }
+-                        continue;
+-                    }
+-                    stats.record_media_payload_type(pkt.header.payload_type);
+-                    // D4 follow-up — emit codec payload bytes only (no RTP
+-                    // header). The orchestrator's `Transcoder` consumes
+-                    // codec bytes; the local outbound pump re-wraps with
+-                    // a fresh header. Preserve the timestamp in the
+-                    // `MediaFrame.timestamp_rtp` field so it survives the
+-                    // transcode pass.
+-                    let frame = MediaFrame {
+-                        stream_id: stream_id.clone(),
+-                        kind: rvoip_core::stream::StreamKind::Audio,
+-                        payload: pkt.payload.clone(),
+-                        timestamp_rtp: pkt.header.timestamp,
+-                        captured_at: Utc::now(),
+-                        // Gap plan §4.3 — carry the wire RTP payload-type
+-                        // so the cross-transport `frame_pump` can route
+-                        // RFC 4733 telephone-events (PT 101 by convention)
+-                        // distinctly from audio.
+-                        payload_type: Some(pkt.header.payload_type),
+-                    };
+-                    let collector = super::stream::media_diagnostics(&diagnostics);
++                    reorder.push(super::audio_reorder::ReceivedAudio::new(packet, now), now)
++                }
++                Some(TrackRemoteEvent::OnEnded | TrackRemoteEvent::OnError) => break,
++                _ => reorder.expire(now),
++            };
++            stats
++                .frames_dropped
++                .fetch_add(released.discarded as u64, Ordering::Relaxed);
++            let collector = super::stream::media_diagnostics(&diagnostics);
++            if let Some(collector) = collector.as_ref() {
++                collector.observe_queue(
++                    rvoip_core::media_diagnostics::QueueStage::WebRtcAudioReorder,
++                    10,
++                    released.peak_depth,
++                );
++            }
++            for received in released.packets {
++                let age = (Utc::now() - received.captured_at)
++                    .to_std()
++                    .unwrap_or_default();
++                let remaining = Duration::from_millis(200).saturating_sub(age);
++                if remaining.is_zero() {
++                    stats.frames_dropped.fetch_add(1, Ordering::Relaxed);
+                     if let Some(collector) = collector.as_ref() {
+-                        collector.observe_queue(
+-                            rvoip_core::media_diagnostics::QueueStage::WebRtcAudioIn,
+-                            frames_in_tx.max_capacity(),
+-                            frames_in_tx.max_capacity() - frames_in_tx.capacity(),
++                        collector.stale_discard(
++                            rvoip_core::media_diagnostics::QueueStage::WebRtcAudioReorder,
+                         );
+                     }
+-                    match tokio::time::timeout(deadline, frames_in_tx.send(frame)).await {
+-                        Ok(Ok(())) => {
+-                            if let Some(collector) = collector.as_ref() {
+-                                collector.observe_queue(
+-                                    rvoip_core::media_diagnostics::QueueStage::WebRtcAudioIn,
+-                                    frames_in_tx.max_capacity(),
+-                                    frames_in_tx.max_capacity() - frames_in_tx.capacity(),
+-                                );
+-                            }
++                    continue;
++                }
++                if let Some(collector) = collector.as_ref() {
++                    collector.forwarded_age(
++                        rvoip_core::media_diagnostics::QueueStage::WebRtcAudioReorder,
++                        age.as_millis() as i64,
++                    );
++                }
++                let pkt = received.packet;
++                if dtmf_decoder.accepts_payload_type(pkt.header.payload_type) {
++                    tracing::trace!(
++                        payload_type = pkt.header.payload_type,
++                        timestamp = pkt.header.timestamp,
++                        "received negotiated WebRTC telephone-event RTP"
++                    );
++                    if let Some(event) = dtmf_decoder.decode_packet(
++                        pkt.header.timestamp,
++                        pkt.header.payload_type,
++                        &pkt.payload,
++                    ) {
++                        tracing::debug!(
++                            duration_ms = event.duration_ms,
++                            "decoded completed WebRTC telephone-event"
++                        );
++                        if let Some(tx) = &dtmf_tx {
++                            let _ = tx.send(event).await;
+                         }
+-                        Ok(Err(_)) => break, // downstream dropped — stop pumping
+-                        Err(_) => {
+-                            // Slow consumer; drop the frame and count it.
+-                            let dropped = stats.frames_dropped.fetch_add(1, Ordering::Relaxed) + 1;
+-                            if dropped.is_power_of_two() {
+-                                warn!(
+-                                    dropped,
+-                                    deadline_ms = send_deadline_ms,
+-                                    "inbound media pump dropped frame (slow consumer)"
+-                                );
+-                            }
++                    }
++                    continue;
++                }
++                stats.record_media_payload_type(pkt.header.payload_type);
++                // D4 follow-up — emit codec payload bytes only (no RTP
++                // header). The orchestrator's `Transcoder` consumes
++                // codec bytes; the local outbound pump re-wraps with
++                // a fresh header. Preserve the timestamp in the
++                // `MediaFrame.timestamp_rtp` field so it survives the
++                // transcode pass.
++                let frame = MediaFrame {
++                    stream_id: stream_id.clone(),
++                    kind: rvoip_core::stream::StreamKind::Audio,
++                    payload: pkt.payload.clone(),
++                    timestamp_rtp: pkt.header.timestamp,
++                    captured_at: received.captured_at,
++                    // Gap plan §4.3 — carry the wire RTP payload-type
++                    // so the cross-transport `frame_pump` can route
++                    // RFC 4733 telephone-events (PT 101 by convention)
++                    // distinctly from audio.
++                    payload_type: Some(pkt.header.payload_type),
++                };
++                let collector = super::stream::media_diagnostics(&diagnostics);
++                if let Some(collector) = collector.as_ref() {
++                    collector.observe_queue(
++                        rvoip_core::media_diagnostics::QueueStage::WebRtcAudioIn,
++                        frames_in_tx.max_capacity(),
++                        frames_in_tx.max_capacity() - frames_in_tx.capacity(),
++                    );
++                }
++                match tokio::time::timeout(deadline.min(remaining), frames_in_tx.send(frame)).await
++                {
++                    Ok(Ok(())) => {
++                        if let Some(collector) = collector.as_ref() {
++                            collector.forwarded_age(
++                                rvoip_core::media_diagnostics::QueueStage::WebRtcAudioIn,
++                                (Utc::now() - received.captured_at).num_milliseconds(),
++                            );
++                            collector.observe_queue(
++                                rvoip_core::media_diagnostics::QueueStage::WebRtcAudioIn,
++                                frames_in_tx.max_capacity(),
++                                frames_in_tx.max_capacity() - frames_in_tx.capacity(),
++                            );
++                        }
++                    }
++                    Ok(Err(_)) => return, // downstream dropped — stop pumping
++                    Err(_) => {
++                        // Slow consumer; drop the frame and count it.
++                        let dropped = stats.frames_dropped.fetch_add(1, Ordering::Relaxed) + 1;
++                        if dropped.is_power_of_two() {
++                            warn!(
++                                dropped,
++                                deadline_ms = send_deadline_ms,
++                                "inbound media pump dropped frame (slow consumer)"
++                            );
+                         }
+                     }
+                 }
+-                TrackRemoteEvent::OnEnded | TrackRemoteEvent::OnError => break,
+-                _ => {}
+             }
+         }
+     })
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
+@@ -0,0 +1,241 @@
++//! Reorder audio before stripping RTP sequence information. Otherwise a late
++//! packet appears to the next hop as a source-clock reset and stretches time.
++//! Only gaps wait: ten packets and 100ms, preserving original capture time.
++use chrono::{DateTime, Utc};
++use rtc::rtp;
++use std::time::{Duration, Instant};
++
++const CAPACITY: usize = 10;
++const GAP_WAIT: Duration = Duration::from_millis(100);
++
++pub(super) struct ReceivedAudio {
++    pub packet: rtp::Packet,
++    pub captured_at: DateTime<Utc>,
++    inserted: Instant,
++}
++impl ReceivedAudio {
++    pub fn new(packet: rtp::Packet, now: Instant) -> Self {
++        Self {
++            packet,
++            captured_at: Utc::now(),
++            inserted: now,
++        }
++    }
++}
++#[derive(Default)]
++pub(super) struct AudioRelease {
++    pub packets: Vec<ReceivedAudio>,
++    pub peak_depth: usize,
++    pub discarded: usize,
++}
++#[derive(Default)]
++pub(super) struct AudioReorder {
++    ssrc: Option<u32>,
++    next: Option<u16>,
++    pending: Vec<ReceivedAudio>,
++}
++impl AudioReorder {
++    pub fn next_deadline(&self) -> Option<Instant> {
++        self.pending
++            .iter()
++            .map(|item| item.inserted + GAP_WAIT)
++            .min()
++    }
++    pub fn push(&mut self, packet: ReceivedAudio, now: Instant) -> AudioRelease {
++        let mut reset = 0;
++        if self.ssrc != Some(packet.packet.header.ssrc) {
++            reset = self.pending.len();
++            self.pending.clear();
++            self.ssrc = Some(packet.packet.header.ssrc);
++            self.next = Some(packet.packet.header.sequence_number);
++        }
++        let mut output = self.expire(now);
++        output.discarded += reset;
++        let sequence = packet.packet.header.sequence_number;
++        let expected = self.next.unwrap_or(sequence);
++        if (sequence.wrapping_sub(expected) as i16) < 0
++            || self
++                .pending
++                .iter()
++                .any(|item| item.packet.header.sequence_number == sequence)
++        {
++            output.discarded += 1;
++            return output;
++        }
++        if sequence == expected {
++            output.packets.push(packet);
++            self.next = Some(expected.wrapping_add(1));
++            self.drain(&mut output);
++            return output;
++        }
++        if self.pending.len() == CAPACITY {
++            let nearest = self
++                .pending
++                .iter()
++                .map(|item| item.packet.header.sequence_number.wrapping_sub(expected))
++                .min()
++                .expect("full queue");
++            if sequence.wrapping_sub(expected) < nearest {
++                // Pressure may skip a missing packet, but must never skip over
++                // this nearer input and emit it after the buffered future.
++                output.packets.push(packet);
++                self.next = Some(sequence.wrapping_add(1));
++                self.drain(&mut output);
++                return output;
++            }
++            self.advance(&mut output);
++        }
++        self.pending.push(packet);
++        output.peak_depth = output.peak_depth.max(self.pending.len());
++        self.drain(&mut output);
++        output
++    }
++    pub fn expire(&mut self, now: Instant) -> AudioRelease {
++        let mut output = AudioRelease {
++            peak_depth: self.pending.len(),
++            ..Default::default()
++        };
++        while self.next_deadline().is_some_and(|deadline| now >= deadline) {
++            self.advance(&mut output);
++        }
++        output
++    }
++    fn advance(&mut self, output: &mut AudioRelease) {
++        let Some(expected) = self.next else { return };
++        self.next = self
++            .pending
++            .iter()
++            .map(|item| item.packet.header.sequence_number)
++            .min_by_key(|sequence| sequence.wrapping_sub(expected));
++        self.drain(output);
++    }
++    fn drain(&mut self, output: &mut AudioRelease) {
++        while let Some(expected) = self.next {
++            let Some(index) = self
++                .pending
++                .iter()
++                .position(|item| item.packet.header.sequence_number == expected)
++            else {
++                break;
++            };
++            output.packets.push(self.pending.remove(index));
++            self.next = Some(expected.wrapping_add(1));
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn packet(sequence: u16, now: Instant) -> ReceivedAudio {
++        ReceivedAudio::new(
++            rtp::Packet {
++                header: rtp::Header {
++                    sequence_number: sequence,
++                    ssrc: 7,
++                    timestamp: u32::from(sequence).wrapping_mul(160),
++                    ..Default::default()
++                },
++                payload: vec![sequence as u8; 160].into(),
++            },
++            now,
++        )
++    }
++    fn sequences(output: &AudioRelease) -> Vec<u16> {
++        output
++            .packets
++            .iter()
++            .map(|item| item.packet.header.sequence_number)
++            .collect()
++    }
++    #[test]
++    fn reordered_audio_preserves_source_timestamps_and_capture_time() {
++        let now = Instant::now();
++        let mut queue = AudioReorder::default();
++        assert_eq!(sequences(&queue.push(packet(10, now), now)), [10]);
++        let later = packet(12, now);
++        let captured = later.captured_at;
++        assert!(queue.push(later, now).packets.is_empty());
++        let output = queue.push(packet(11, now), now + Duration::from_millis(80));
++        assert_eq!(sequences(&output), [11, 12]);
++        assert_eq!(output.packets[1].packet.header.timestamp, 1920);
++        assert_eq!(output.packets[1].captured_at, captured);
++        assert!(queue.next_deadline().is_none());
++    }
++    #[test]
++    fn missing_packet_expires_without_traffic_and_late_packet_cannot_reset_clock() {
++        let now = Instant::now();
++        let mut queue = AudioReorder::default();
++        queue.push(packet(65534, now), now);
++        assert!(queue.push(packet(0, now), now).packets.is_empty());
++        assert!(queue
++            .expire(now + Duration::from_millis(99))
++            .packets
++            .is_empty());
++        assert_eq!(sequences(&queue.expire(now + GAP_WAIT)), [0]);
++        let late = queue.push(packet(65535, now), now + GAP_WAIT);
++        assert!(late.packets.is_empty());
++        assert_eq!(late.discarded, 1);
++        assert_eq!(sequences(&queue.push(packet(1, now), now + GAP_WAIT)), [1]);
++    }
++    #[test]
++    fn duplicates_capacity_and_source_switch_remain_bounded() {
++        let now = Instant::now();
++        let mut queue = AudioReorder::default();
++        queue.push(packet(10, now), now);
++        queue.push(packet(12, now), now);
++        assert_eq!(queue.push(packet(12, now), now).discarded, 1);
++        for sequence in 13..23 {
++            let output = queue.push(packet(sequence, now), now);
++            assert!(output.peak_depth <= CAPACITY);
++            assert!(queue.pending.len() <= CAPACITY);
++        }
++        queue.push(packet(25, now), now);
++        let mut replacement = packet(1, now);
++        replacement.packet.header.ssrc = 9;
++        let output = queue.push(replacement, now);
++        assert_eq!(sequences(&output), [1]);
++        assert!(output.discarded > 0);
++        assert!(queue.pending.is_empty());
++    }
++    #[test]
++    fn missing_head_arriving_at_capacity_precedes_every_buffered_packet() {
++        let now = Instant::now();
++        let mut queue = AudioReorder::default();
++        queue.push(packet(10, now), now);
++        for sequence in 12..22 {
++            queue.push(packet(sequence, now), now);
++        }
++        assert_eq!(queue.pending.len(), CAPACITY);
++        let output = queue.push(packet(11, now), now);
++        assert_eq!(sequences(&output), (11..22).collect::<Vec<_>>());
++        assert!(queue.pending.is_empty());
++    }
++    #[test]
++    fn nearer_gap_fill_at_capacity_precedes_future_packets_even_across_wrap() {
++        let now = Instant::now();
++        for first in [10u16, 65530] {
++            let mut queue = AudioReorder::default();
++            queue.push(packet(first, now), now);
++            for offset in 3..13 {
++                queue.push(packet(first.wrapping_add(offset), now), now);
++            }
++            assert_eq!(queue.pending.len(), CAPACITY);
++            let nearer = first.wrapping_add(2);
++            let output = queue.push(packet(nearer, now), now);
++            assert_eq!(
++                sequences(&output),
++                (2..13)
++                    .map(|offset| first.wrapping_add(offset))
++                    .collect::<Vec<_>>()
++            );
++            assert!(output.peak_depth <= CAPACITY);
++            assert!(queue.pending.is_empty());
++            assert!(queue.expire(now + GAP_WAIT).packets.is_empty());
++            let late = queue.push(packet(first.wrapping_add(1), now), now + GAP_WAIT);
++            assert!(late.packets.is_empty());
++            assert_eq!(late.discarded, 1);
++            assert_eq!(queue.push(packet(nearer, now), now + GAP_WAIT).discarded, 1);
++        }
++    }
++}

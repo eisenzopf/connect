@@ -1,0 +1,172 @@
+{
+  "recorded_at": "2026-10-14T12:39:44.840022+00:00",
+  "scope": "Private graph26 actual asynchronous stack track initialization and publication repair; not current browser qualification",
+  "runtime_failure": ".local/gate5/repaired-media-20261014T122601Z",
+  "runtime_result": "Three native-only profiles pass; six browser profiles fail startup with ICE/DTLS connected. Original failed run retained.",
+  "production_cause": "Driver initializes a TrackRemote with no codings, publishes its receiver, invokes on_track, then adds negotiated coding. Strict AV callback cannot bind a clock from empty metadata. Concurrent discovery can freeze an empty required lease before callback initialization.",
+  "repair": "Construct only current init.ssrc coding before any publication; invoke callback without held core/transceiver locks; publish receiver after callback. Skip initial duplicate add, retain later simulcast coding updates. Document callback initialization/discovery ordering.",
+  "original": {
+    "path": ".local/gate5/track-ready-repair/original-20261014T123604/result.json",
+    "sha256": "c5553e581059e787c090003a00fc79c6dd025a86a3c2ff04f13d05a2e800ae92"
+  },
+  "original_observation": {
+    "passed": 0,
+    "failed": 2,
+    "audio": [
+      "empty_ssrcs",
+      "no_codec",
+      "receiver_discoverable_during_callback",
+      "RTP_delivered_after_release"
+    ],
+    "video": [
+      "empty_ssrcs",
+      "no_codec",
+      "receiver_discoverable_during_callback",
+      "RTP_delivered_after_release"
+    ]
+  },
+  "fixed": {
+    "path": ".local/gate5/track-ready-repair/final-bounded-20261014T123844/result.json",
+    "sha256": "3ae6d1da72db03602acf5cd9f669ca531515f813763863fc796c401f8e728be4"
+  },
+  "fixed_result": "Both actual local-UDP stack tests pass: exact primary SSRC/codec available inside callback, no receiver exposed during forced paused callback, real RTP received afterward. All polls bounded including ended/error track. Selected stack fresh compiled and all input hashes stable.",
+  "simulcast": {
+    "path": ".local/gate5/track-ready-repair/final-20261014T123745/result.json",
+    "sha256": "70ec52bf873aea5493e5ba6eed937daad1398e364dbfabf24b2f3b5a9ad63ad7"
+  },
+  "simulcast_scope": "Existing unmodified integration test passes 30 packets across three SSRCs. Production diff identical to final candidate; only subsequent test read-loop termination strengthened.",
+  "initial_fixture_compile_error": {
+    "path": ".local/gate5/track-ready-repair/original-20261014T123530/result.json",
+    "sha256": "ef8c83214e9a8871a2361846d0af79047bdbd1ed3d3a0c79d2eb90735ae8b91a"
+  },
+  "fixture_note": "First regression compile used nonexistent RTCRtpCodingParameters.payload_type; removed that field before actual original proof. This compile failure is not a reproduced production defect.",
+  "patch": {
+    "path": ".local/gate5/track-ready-repair/track-ready-before-publication.patch",
+    "sha256": "d7ddb98d9066b40372c00fc1d1dd7d1475539f7f5f6f7c906773e679d1587bd7"
+  },
+  "inventory": {
+    "path": ".local/gate5/track-ready-repair/patch-inventory.json",
+    "sha256": "6ae5e9ed61e36492b49dfd0fb7cbce6da22ffefe117148d63d6b93c8fa27a757"
+  },
+  "remaining": [
+    "Correct separate browser RTX capability/answer activation and source SR/SDES dispatch defects.",
+    "Fresh actual activation observations and unchanged nine-scenario media profile after integration.",
+    "Final stable-source/package/installed acceptance."
+  ],
+  "schema_version": 1,
+  "status": "recorded-component-and-browser-startup-verified; whole-media-profile-pending",
+  "whole_gate_qualified": false,
+  "reviews": {
+    "root": {
+      "path": ".local/gate5/track-ready-repair/root-integration-review.json",
+      "sha256": "a656375e3775775024c7968c4c1c79b25a6cfa8c9edf8e2fac4ab0f8c155dda5"
+    },
+    "journeys": {
+      "path": ".local/gate5/track-ready-repair/journeys-independent-review.json",
+      "sha256": "ab188919d8f10fa5ee41135bbbe3ff3ab011a31bec65dd310a15ae559145d8c3"
+    },
+    "scope": "Both independently reviewed source, retained proof logs and 2,776 source hashes without drift; neither reran the tests. Approved for recorded integration only."
+  },
+  "bounded_loop_correction": {
+    "scope": "Test robustness correction, not a production defect reproduction or additional passing case.",
+    "change": "After initial 2+1 passing run, the test read loop was changed to stop on None/Ended/Error rather than potentially spinning on a closed track. Final actual audio/video regression was freshly compiled and passed 2/2; production sources used by the existing simulcast proof are unchanged."
+  },
+  "recorded_integration": {
+    "source_lock_sha256": "caad4ccb33eb9a6b0279c1d9c2ad48a23d44b7d3e0ff103676f177f70427f552",
+    "patch_count": 27,
+    "patch": {
+      "path": "patches/rvoip/webrtc-track-ready-publication.patch",
+      "sha256": "d7ddb98d9066b40372c00fc1d1dd7d1475539f7f5f6f7c906773e679d1587bd7"
+    },
+    "proof": {
+      "path": ".local/gate5/track-ready-integration/proof-20261014T124055.596156Z/result.json",
+      "sha256": "255f48d9927e8688eccaab0dc8109e5196499955ba12c270a7132ace05682dc7",
+      "status": "passed",
+      "inputs_stable": true,
+      "fresh_compilation_observed": {
+        "rvoip-webrtc-stack": true
+      }
+    },
+    "guards": {
+      "path": ".local/gate5/track-ready-integration/guards.json",
+      "sha256": "b0861bf318f9817b3cee35f58e3c0e94e2310c9959b5e25f044fa311e15eb8ad"
+    },
+    "scope": "Recorded graph27 callback2 and existing simulcast1 pass, zero failed/ignored. Driver11, package25, archive6 and format guards pass. Normal build and actual browser runtime remain pending."
+  },
+  "graph27_runtime_verification": {
+    "recorded_at": "2026-10-14T12:55:19.501123+00:00",
+    "source_lock_sha256": "caad4ccb33eb9a6b0279c1d9c2ad48a23d44b7d3e0ff103676f177f70427f552",
+    "normal_build": {
+      "path": ".local/gate5/browser-clock-rtx-binaries-20261014T124126.465534Z/result.json",
+      "sha256": "813da7cd436e3a1dc0d74f1843a15b7a85c26a147f0a0a34aefdef8cb5e87f11"
+    },
+    "normal_build_status": "passed",
+    "sealed_build_inputs": 634,
+    "inputs_stable": true,
+    "media_run": {
+      "path": ".local/gate5/repaired-media-20261014T124515Z/result.json",
+      "sha256": "743660e790b2f69ae3a84e4599d3bcaca3f31b5a0dacc09dbcc217a979406906"
+    },
+    "media_status": "failed",
+    "passed_scenarios": 7,
+    "total_scenarios": 9,
+    "scenarios": [
+      {
+        "name": "impairment-native-browser",
+        "status": "failed",
+        "seconds": 66.701
+      },
+      {
+        "name": "impairment-browser-browser",
+        "status": "failed",
+        "seconds": 65.469
+      },
+      {
+        "name": "impairment-native-native",
+        "status": "passed",
+        "seconds": 134.513
+      },
+      {
+        "name": "clean-browser-browser",
+        "status": "passed",
+        "seconds": 65.02
+      },
+      {
+        "name": "clean-native-native",
+        "status": "passed",
+        "seconds": 69.271
+      },
+      {
+        "name": "clean-native-browser",
+        "status": "passed",
+        "seconds": 66.051
+      },
+      {
+        "name": "mute-native-native",
+        "status": "passed",
+        "seconds": 28.614
+      },
+      {
+        "name": "mute-native-browser",
+        "status": "passed",
+        "seconds": 25.668
+      },
+      {
+        "name": "mute-browser-browser",
+        "status": "passed",
+        "seconds": 24.955
+      }
+    ],
+    "diagnostic": {
+      "path": ".local/gate5/chrome-feedback-diagnostic-20261014T124417Z/result.json",
+      "sha256": "b6402675893fe3ee4818054475bcca8bf36235c7ad61988689213e880ca90757"
+    },
+    "findings": [
+      "Remote-track startup regression is corrected: all clean and mute browser paths pass, as do native-only scenarios.",
+      "Both browser impairment paths remain failed. Native/browser return native has4.48 changingfps and26 A/V pairs; browser half has81 pairs and passes. Browser/browser has one84-pair direction with median87.8/p95122.5ms, while sparse opposite direction cannot calibrate A/V.",
+      "Actual Chrome SDK offers exclude RTX and existing answer validation would reject RTX. Both diagnostic logs have only PT96/111 outbound; no RTX SSRC is active.",
+      "Both diagnostic logs have zero incoming relay Sender Reports. Authenticated SR/SDES are dropped at the terminal interceptor before the source-clock callback. Endpoint first-packet destination routing also requires correction."
+    ],
+    "scope": "Current stable graph27 component runtime; no final source/package/installed acceptance. Startup is corrected; browser impairment and clock/RTX runtime activation remain open."
+  }
+}

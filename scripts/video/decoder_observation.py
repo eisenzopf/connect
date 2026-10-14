@@ -33,12 +33,23 @@ def observed_rising_edges(levels, times):
     return edges
 
 
-def source_identity(pixels, expected_id, allow_muted_black=False):
+def source_identity(pixels, expected_id, allow_muted_black=False, frame_times=None, mute_transitions=()):
     """Sender identity comes from decoded pixels, independently of audio routing."""
     if expected_id not in range(4) or len(pixels) % 64:
         raise ValueError('Generated source identity requires 0..3 and complete 8×8 decoded pixels')
     counts = {str(index): 0 for index in range(4)}
     counts.update(pulse=0, black=0, unclassified=0)
+    intervals = []; admitted = 0
+    if frame_times is not None:
+        if len(frame_times) != len(pixels) // 64 or any(not math.isfinite(at) for at in frame_times):
+            raise ValueError('Decoded identity timestamps must bind every complete pixel frame')
+        events = [event for event in mute_transitions if event['kind'] == 'video']
+        if (len(events) == 2 and events[0]['muted'] is True and events[1]['muted'] is False
+                and all(math.isfinite(event['unix_seconds']) for event in events)
+                and events[0]['unix_seconds'] < events[1]['unix_seconds']):
+            # Received black pixels can follow the sender's unmute by the
+            # existing 200ms receive-to-emission ceiling, never precede mute.
+            intervals = [(events[0]['unix_seconds'], events[1]['unix_seconds'] + .2)]
     for at in range(0, len(pixels), 64):
         frame = pixels[at:at + 64]
         if min(frame) > 240: key = 'pulse'
@@ -49,15 +60,23 @@ def source_identity(pixels, expected_id, allow_muted_black=False):
             key = (str(bits[0] + 2 * bits[1]) if None not in bits
                 and bits[0] != bits[2] and bits[1] != bits[3] else 'unclassified')
         counts[key] += 1
+        if key == 'black' and frame_times is not None:
+            admitted += any(on <= frame_times[at // 64] <= off for on, off in intervals)
     expected = counts[str(expected_id)]; wrong = sum(counts[str(index)] for index in range(4) if index != expected_id)
-    unknown = counts['unclassified'] + (0 if allow_muted_black else counts['black'])
-    return {'status': 'passed' if expected > 0 and wrong == 0 and unknown == 0 else 'failed',
+    unknown = counts['unclassified'] + (counts['black'] - admitted if frame_times is not None
+        else 0 if allow_muted_black else counts['black'])
+    result = {'status': 'passed' if expected > 0 and wrong == 0 and unknown == 0 else 'failed',
         'expected_source_id': expected_id, 'recognized_expected_frames': expected,
         'recognized_wrong_source_frames': wrong, 'unclassified_frames': counts['unclassified'],
         'full_white_pulse_frames': counts['pulse'], 'black_frames': counts['black'],
         'muted_black_permitted': allow_muted_black,
         'recognized_source_counts': {str(index): counts[str(index)] for index in range(4)},
-        'method': 'independent decoded 8×8 pixels: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only'}
+        'method': 'independent decoded 8×8 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only'}
+    if frame_times is not None:
+        result.update(muted_black_permitted=bool(intervals), admitted_muted_black_frames=admitted,
+            unexcepted_black_frames=counts['black'] - admitted, actual_camera_mute_intervals=intervals,
+            maximum_post_unmute_pipeline_seconds=.2)
+    return result
 
 
 def retain_decoder_diagnostics(path, stage, result):
@@ -123,7 +142,7 @@ def decode_gray_frames(path, ffmpeg='ffmpeg'):
     # Two outputs share the independent decoder. A private descriptor separates
     # timestamp/hash metadata from diagnostic stderr and raw decoded pixels.
     with tempfile.TemporaryFile(dir=pathlib.Path(path).parent) as metadata:
-        options = ['-map', '0:v:0', '-an', '-vf', 'scale=8:8', '-pix_fmt', 'gray',
+        options = ['-map', '0:v:0', '-an', '-vf', 'scale=8:8:flags=neighbor', '-pix_fmt', 'gray',
             '-enc_time_base', '1:90000', '-fps_mode', 'passthrough']
         result = subprocess.run([ffmpeg, '-nostdin', '-hide_banner', '-loglevel', 'warning',
             '-copyts', '-i', str(path), *options, '-f', 'rawvideo', 'pipe:1',
@@ -286,7 +305,7 @@ def select_window(participant, report, seconds):
         'complete_encoded_frames': len(selected), 'maximum_complete_frame_gap_seconds': max(gaps, default=None)}
 
 
-def audiovisual_markers(video_path, audio_path, report, window, ffmpeg='ffmpeg', expected_source_id=None):
+def audiovisual_markers(video_path, audio_path, report, window, ffmpeg='ffmpeg', expected_source_id=None, mute_transitions=()):
     """Independent decoded marker content correlated with recorded receive times.
 
     Measures receive synchronization, not application renderer/playout latency.
@@ -320,7 +339,9 @@ def audiovisual_markers(video_path, audio_path, report, window, ffmpeg='ffmpeg',
     result = markers.ordinal_sync(video_edges, audio_edges, window['seconds'])
     result.update(
         time_basis='independent FFmpeg decoded white-video and PCMU gain edges correlated to actual live codec-input/file emission journal; physical speaker/display latency not measured',
-        source_identity=source_identity(pixels, expected_source_id) if expected_source_id is not None else {'status': 'unobserved'},
+        source_identity=source_identity(pixels, expected_source_id,
+            frame_times=[report.get('unix_start_seconds', 0) + when(row) for row, _, _ in mapped],
+            mute_transitions=mute_transitions) if expected_source_id is not None else {'status': 'unobserved'},
         edge_method='requires independently observed low-to-high transition; initially high cropped levels are not counted as rising edges',
         decoder_mapping=mapping, video_decoder_diagnostics_bytes=diagnostics,
         video_decoder_exit_status=0, audio_decoder_exit_status=decoded.returncode)
@@ -432,11 +453,15 @@ def mute_observation(content, transitions, expected_hz):
             audio_intervals.append((max(began, on - .2), min(ended, off + .2)))
             steady_audio = [row for row in audio if steady_start <= row['unix_seconds'] < steady_end]
             frozen = all(row['rms'] <= .003 for row in steady_audio)
-            moving = sum(steady_start <= at < steady_end for at in changing)
-            coexist = moving / (steady_end - steady_start) >= 24
+            moving_times = [at for at in changing if steady_start <= at < steady_end]
+            moving = len(moving_times)
+            boundaries = [steady_start] + moving_times + [steady_end]
+            gap = max(stop - start for start, stop in zip(boundaries, boundaries[1:]))
+            coexist = moving > 0 and gap <= 2
             resumed = next((row['unix_seconds'] for row in audio if row['unix_seconds'] >= off and audible(row)), None)
             detail = {'maximum_decoded_rms_while_muted': max((row['rms'] for row in steady_audio), default=0),
-                'changing_video_fps_while_microphone_muted': moving / (steady_end - steady_start)}
+                'changing_video_fps_while_microphone_muted': moving / (steady_end - steady_start),
+                'maximum_video_freshness_gap_while_microphone_muted_seconds': gap}
         recovery = resumed - off if resumed is not None else None
         observations.append(dict(detail, kind=kind, mute_unix_seconds=on, unmute_unix_seconds=off,
             recovery_seconds=recovery, counterpart_continued=coexist,
@@ -448,9 +473,12 @@ def mute_observation(content, transitions, expected_hz):
     unmuted_audio = [row for row in audio if not any(start <= row['unix_seconds'] < stop for start, stop in audio_intervals)]
     valid_audio = sum(audible(row) for row in unmuted_audio)
     audio_identified = valid_audio >= available_audio * 5 and valid_audio >= len(unmuted_audio) * .95
-    return {'status': 'passed' if active_fps >= 24 and audio_identified and all(row['status'] == 'passed' for row in observations) else 'failed',
+    motion = motion_observer.motion_observation(content, 'mute', transitions)
+    return {'status': 'passed' if motion['status'] == 'passed' and audio_identified and all(row['status'] == 'passed' for row in observations) else 'failed',
         'method': 'actual public sender setter timestamps compared with independently decoded changing video and audio RMS/frequency at live observation times',
         'unmuted_changing_video_fps': active_fps, 'unmuted_video_seconds': available,
         'decoder_mapping': content.get('decoder_mapping'),
         'identifiable_unmuted_audio': audio_identified,
-        'limits': {'changing_video_fps': 24, 'recovery_seconds': 2, 'silence_rms': .003}, 'observations': observations}
+        'motion_freshness': motion,
+        'limits': {'clean_60_seconds_changing_video_fps': 24, 'freshness_seconds': 2,
+            'recovery_seconds': 2, 'silence_rms': .003}, 'observations': observations}

@@ -370,3 +370,53 @@ test('video transform support rejects an expando-only sender or ignored native s
         for(const name of names){const descriptor=original.get(name);if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}
     }
 });
+
+test('video preferences retain generic RTX capability without adding another primary codec', async () => {
+    const {startVideoTransform,stopVideoWorker}=await import('../typescript/dist/browser_video_setup.js');
+    const names=['RTCRtpSender','RTCRtpScriptTransform','Worker'];
+    const originals=new Map(names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
+    const vp8=Object.freeze({mimeType:'video/VP8',clockRate:90000});
+    const rtx=Object.freeze({mimeType:'video/rtx',clockRate:90000});
+    let available=[vp8,{mimeType:'video/H264',clockRate:90000},rtx,{mimeType:'video/red',clockRate:90000}];
+    let selected;
+    const replacements={RTCRtpSender:class{static getCapabilities(){return{codecs:available};}},
+        RTCRtpScriptTransform:class{},Worker:class{terminate(){}}};
+    for(const name of names)Object.defineProperty(globalThis,name,{configurable:true,value:replacements[name]});
+    const peer={getTransceivers:()=>[{sender:{track:{kind:'video'},transform:null},setCodecPreferences(codecs){selected=codecs;}}]};
+    try {
+        const worker=startVideoTransform(peer);
+        try {assert.deepEqual(selected,[vp8,rtx]);assert.equal(selected[1],rtx);assert.equal('sdpFmtpLine' in rtx,false);}
+        finally {stopVideoWorker(worker);}
+        available=[vp8];const optional=startVideoTransform(peer);
+        try {assert.deepEqual(selected,[vp8]);} finally {stopVideoWorker(optional);}
+        available=[rtx];assert.throws(()=>startVideoTransform(peer),error=>error.code==='unsupported-media-profile');
+    } finally {
+        for(const name of names){const descriptor=originals.get(name);if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}
+    }
+});
+
+test('video answer accepts optional RTX only when its apt names negotiated VP8', () => {
+    const plain='v=0\r\na=sendrecv\r\nm=audio 9 UDP/TLS/RTP/SAVPF 0\r\na=rtpmap:0 PCMU/8000\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=rtpmap:96 VP8/90000\r\n';
+    const repaired=plain.replace('SAVPF 96','SAVPF 96 97')+'a=rtpmap:97 rtx/90000\r\na=fmtp:97 apt=96\r\n';
+    assert.doesNotThrow(()=>validateVideoAnswer(plain));
+    assert.doesNotThrow(()=>validateVideoAnswer(repaired));
+    assert.doesNotThrow(()=>validateVideoAnswer(repaired.replace('apt=96','rtx-time=200; apt=96')));
+    const bad=[
+        repaired.replace('apt=96','apt=98'),
+        repaired.replace('apt=96','apt=97'),
+        repaired.replace('apt=96','apt=0'),
+        repaired.replace('apt=96','rtx-time=200'),
+        repaired.replace('apt=96','apt=96; apt=96'),
+        repaired.replace('apt=96','apt=invalid'),
+        repaired+'a=fmtp:97 apt=96\r\n',
+        repaired+'a=rtpmap:97 rtx/90000\r\n',
+        repaired+'a=rtpmap:96 H264/90000\r\n',
+        repaired.replace('SAVPF 96 97','SAVPF 96 97 97'),
+        repaired.replace('SAVPF 96 97','SAVPF 96 097 97'),
+        repaired.replace('SAVPF 96 97','SAVPF 97'),
+        repaired.replace('rtx/90000','rtx/8000'),
+        repaired.replace('VP8/90000','H264/90000'),
+        repaired.replace('SAVPF 96 97','SAVPF 96 97 128')+'a=rtpmap:128 VP8/90000\r\n',
+    ];
+    for(const answer of bad)assert.throws(()=>validateVideoAnswer(answer),error=>error.code==='unsupported-media-profile');
+});

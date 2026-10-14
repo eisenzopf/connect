@@ -114,6 +114,18 @@ class Gate5Driver(unittest.TestCase):
         self.assertEqual({name: seconds for name, _, seconds in retained(source_only=True)},
                          {name: actual[name] for name, _, _ in retained(source_only=True)})
         self.assertNotIn('--allow-model-inference', str(source))
+        names = [step['name'] for step in source]
+        self.assertEqual(names.index('source--connected-app-public-journey'),
+                         names.index('source--current-binaries') + 1)
+        for name, filename in [('package-proof-tests', 'test_package_inventory.py'),
+                               ('connected-app-checker-tests', 'test_connected_app_checker.py')]:
+            selected = next(step for step in source if step['name'] == 'source--' + name)
+            self.assertIn(filename, selected['command'])
+        first = next(step for step in source if step['name'] == 'source--connected-app-public-journey')
+        repeated, _ = phases(['source'])
+        second = next(step for step in repeated if step['name'] == first['name'])
+        self.assertNotEqual(first['command'][first['command'].index('--output') + 1],
+                            second['command'][second['command'].index('--output') + 1])
 
     def test_gate5_profile_requires_matching_package_and_hashes(self):
         sys.path.insert(0, str(ROOT / 'scripts/live'))

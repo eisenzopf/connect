@@ -49,6 +49,8 @@ GATE5_SOURCE = (
     'examples/native-video/src/lib.rs', 'sdk/typescript/src/browser_binding.ts',
     'sdk/typescript/src/browser_video.ts', 'sdk/typescript/src/browser_deadline.ts', 'sdk/typescript/src/browser_negotiation.ts',
     'crates/connect-server/tests/gate5_video_transport.rs',
+    'crates/connect-server/tests/gate5_quic_transport.rs',
+    'scripts/lib/prepared_archive.py', 'scripts/tests/test_prepared_archive.py',
     'crates/connect-server/tests/gate5_video_decode.rs',
     'crates/connect-server/tests/gate5_browser_video.rs',
     'crates/connect-server/tests/gate5_native_video.rs',
@@ -59,6 +61,7 @@ GATE5_SOURCE = (
     'crates/connect-server/tests/gate5_support/installed_video.rs',
     'scripts/lib/media_failure_proof.py',
     'scripts/check-native-video-cleanup.py', 'scripts/tests/test_native_video_cleanup.py',
+    'scripts/lib/native_process_owner.py',
     'crates/connect-client/src/video/diagnostics.rs',
     'crates/connect-server/tests/gate5_support/video.rs',
     'crates/connect-server/tests/gate5_support/video_codec.rs',
@@ -69,23 +72,31 @@ GATE5_SOURCE = (
     'scripts/check-connector-contract.py', 'scripts/video/browser-qualify.mjs',
     'scripts/check-video-paths.py', 'scripts/video/native-processes.py',
     'scripts/video/decoder_observation.py', 'scripts/video/fixture_protocol.py',
-    'scripts/video/source_identity.mjs',
+    'scripts/video/source_identity.mjs', 'scripts/video/browser_failure.mjs',
     'scripts/video/marker_calibration.py', 'scripts/video/marker_calibration.mjs',
     'scripts/video/audio_observation.py', 'scripts/video/audio_observation.mjs',
+    'scripts/video/audio_envelope.mjs', 'scripts/tests/audio_envelope.test.mjs',
     'scripts/video/motion_observation.py', 'scripts/video/motion_observation.mjs',
     'scripts/video/encoded_worker_observation.mjs', 'scripts/video/audio_spectrum.mjs',
     'sdk/typescript/src/browser_video_stats.ts', 'sdk/typescript/src/browser_video_transform.ts',
     'sdk/typescript/src/browser_video_setup.ts', 'sdk/typescript/src/browser_voice.ts',
     'sdk/typescript/src/browser_video_keyframes.ts', 'sdk/tests/video_keyframes.test.mjs',
     'sdk/tests/browser_voice.test.mjs',
+    'sdk/tests/browser_rtx_offer.mjs',
     'sdk/tests/video_stats.test.mjs', 'sdk/tests/video_transform.test.mjs',
     'scripts/check-reference-client.mjs', 'scripts/lib/reference_inputs.mjs',
     'scripts/lib/reference_runtime.mjs', 'scripts/lib/reference_video.mjs',
+    'scripts/lib/reference_continuity.mjs',
     'scripts/video/webrtc-impairment.py', 'scripts/tests/test_video_measurements.py',
     'scripts/lib/grant_boundary.py', 'scripts/tests/test_grant_boundary.py',
     'scripts/lib/package_environment.py',
     'scripts/check-gate5-setup.py', 'scripts/check-gate5-recovery.py',
+    'scripts/lib/setup_provider_fixture.py',
+    'scripts/check-connected-app.py', 'scripts/tests/test_connected_app_checker.py',
+    'scripts/check-installed-sessions.py',
     'crates/connect-server/tests/gate5_contact_interface_parity.rs',
+    'crates/connect-server/tests/gate5_session_interface_parity.rs',
+    'sdk/tests/session_probe.py', 'sdk/tests/session_probe.mjs',
     'dependencies/recovery-baselines.json', 'scripts/build-recovery-baseline.py',
     'patches/recovery/schema1-identity-fixture.patch',
 )
@@ -197,3 +208,40 @@ def verify_baseline(binary, manifest, source, schema):
         raise ValueError(f'Schema {schema} baseline patch mismatch')
     return {'schema': schema, 'source_revision': catalog['revision'],
             'binary_sha256': manifest['binary_sha256'], 'kind': catalog['kind']}
+
+
+def copy_prepared_crate_notices(root, runtime, metadata):
+    """Retain registry provenance after a recorded crate becomes a path dependency."""
+    lock = json.loads((root / 'dependencies/source-lock.json').read_text())
+    notices = []
+    for name, source in lock['sources'].items():
+        if source.get('kind') != 'crate':
+            continue
+        package = next((p for p in metadata['packages'] if p['name'] == name and
+                        p['version'] == source['version']), None)
+        expected = (root / '.deps' / name / 'Cargo.toml').resolve()
+        if package is None or pathlib.Path(package['manifest_path']).resolve() != expected:
+            raise ValueError(f'Prepared crate missing from selected package graph: {name}')
+        identity = name + '-' + source['version']
+        texts = []
+        for path in expected.parent.iterdir():
+            if path.is_file() and path.name.upper().startswith(('LICENSE', 'LICENCE', 'COPYING', 'NOTICE', 'UNLICENSE')):
+                target = runtime / 'licenses/prepared' / identity / path.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(path, target)
+                texts.append(str(target.relative_to(runtime)))
+        for notice in source.get('license_files', []):
+            path = root / notice['path']
+            if digest(path) != notice['sha256']:
+                raise ValueError('Prepared crate license digest mismatch')
+            target = runtime / 'licenses/prepared' / identity / path.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, target)
+            texts.append(str(target.relative_to(runtime)))
+        notices.append({'package': identity, 'license': source['license'],
+                        'source': source, 'texts': sorted(texts),
+                        'patches': [p for p in lock['patches'] if p.get('target', 'rvoip') == name]})
+    target = runtime / 'licenses/prepared-index.json'
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(notices, indent=2) + '\n')
+    return notices

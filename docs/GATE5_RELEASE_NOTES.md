@@ -94,11 +94,15 @@ speaker/display latency are not observed by those counters.
 
 Connect ships the repository [MIT license](../LICENSE). The current
 [dependency source lock](../dependencies/source-lock.json) records the exact
-rvoip and Parley Git revisions, declared MIT licenses, patch paths and SHA256
-digests. Modified upstream behavior must be attributed to those recorded patches,
-not described as an unmodified upstream implementation. Their license texts
-accompany the runtime; [third-party notices](../THIRD_PARTY_NOTICES.md) explain
-the registry inventory. Thelve and Bridgefu are design provenance, not copied
+rvoip and Parley Git revisions and MIT licenses, plus the checksummed
+`rtc-dtls`, `rtc-interceptor` and `quinn-proto` crate archives with their upstream
+revision provenance and MIT OR Apache-2.0 licenses. It also records every applied
+patch and SHA256 digest. Modified upstream behavior is attributed to those
+patches rather than described as unmodified upstream code. The package notice
+builder includes both license texts for each prepared crate override as well as
+the Git and registry notices; [third-party notices](../THIRD_PARTY_NOTICES.md)
+explain these inventories. The prepared-source notice-copy rehearsal has passed;
+verification of the final archive's license inventory remains pending. Thelve and Bridgefu are design provenance, not copied
 source in this candidate.
 
 The independent Python client has [pinned dependency notices](../examples/independent-uctp-client/DEPENDENCIES.md)

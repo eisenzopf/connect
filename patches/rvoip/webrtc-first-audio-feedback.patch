@@ -1,0 +1,530 @@
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_receiver/internal.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_receiver/internal.rs
+@@ -305,27 +305,42 @@
+             };
+             let (mut codec, mut match_type) =
+                 codec_parameters_fuzzy_search(&coding.codec, &parameters.rtp_parameters.codecs);
+-            // With one negotiated camera codec and explicit FID, bind before
+-            // first media so an RTX packet can be the first accepted packet.
+-            // Multiple primary codecs retain deferred payload-type selection.
+-            if match_type == CodecMatch::None && coding.rtp_coding_parameters.rtx.is_some() {
++            // An unambiguous declared audio codec can bind transport feedback
++            // before the first authenticated packet reaches the interceptors.
++            // Otherwise endpoint codec discovery runs too late for that receipt.
++            // Keep the existing single-camera/FID prebind and defer ambiguous
++            // primary codec selection until an actual payload type is known.
++            let single_audio =
++                self.kind() == RtpCodecKind::Audio && coding.rtp_coding_parameters.rtx.is_none();
++            if match_type == CodecMatch::None
++                && (single_audio || coding.rtp_coding_parameters.rtx.is_some())
++            {
+                 let primaries: Vec<_> = parameters
+                     .rtp_parameters
+                     .codecs
+                     .iter()
+                     .filter(|codec| {
+-                        !matches!(
+-                            codec.rtp_codec.mime_type.to_ascii_lowercase().as_str(),
+-                            "video/rtx" | "video/red" | "video/ulpfec" | "video/flexfec-03"
+-                        )
++                        // RFC 4733 is supplemental in the audio profile, not
++                        // an alternative primary codec. Do not infer a media
++                        // codec when two real audio codecs are negotiated.
++                        !(single_audio
++                            && codec
++                                .rtp_codec
++                                .mime_type
++                                .eq_ignore_ascii_case("audio/telephone-event"))
++                            && !matches!(
++                                codec.rtp_codec.mime_type.to_ascii_lowercase().as_str(),
++                                "video/rtx" | "video/red" | "video/ulpfec" | "video/flexfec-03"
++                            )
+                     })
+                     .collect();
+                 if let [primary] = primaries.as_slice() {
+-                    if find_rtx_payload_type(
+-                        primary.payload_type,
+-                        &parameters.rtp_parameters.codecs,
+-                    )
+-                    .is_some()
++                    if single_audio
++                        || find_rtx_payload_type(
++                            primary.payload_type,
++                            &parameters.rtp_parameters.codecs,
++                        )
++                        .is_some()
+                     {
+                         codec = (*primary).clone();
+                         match_type = CodecMatch::Exact;
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
+@@ -438,3 +438,6 @@
+         flatten_errs(close_errs)
+     }
+ }
++
++#[cfg(test)]
++mod first_audio_feedback_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/first_audio_feedback_tests.rs
+@@ -0,0 +1,460 @@
++//! SRTP authentication -> interceptor -> endpoint, exactly as the receive pipeline.
++//! The fixture begins at the authenticated transport boundary; it does not
++//! simulate ICE or perform a DTLS handshake. Real SRTP contexts are installed
++//! using the same handshake-complete event consumed by production handlers.
++use super::*;
++use crate::media_stream::MediaStreamTrack;
++use crate::peer_connection::RTCPeerConnectionBuilder;
++use crate::peer_connection::configuration::interceptor_registry::{
++    register_default_interceptors, register_default_interceptors_with_sender_clock,
++};
++use crate::peer_connection::configuration::media_engine::MediaEngine;
++use crate::rtp_transceiver::internal::RTCRtpTransceiverInternal;
++use crate::rtp_transceiver::rtp_sender::{
++    RTCRtpCodec, RTCRtpCodecParameters, RTCRtpCodingParameters, RTCRtpEncodingParameters,
++    RtpCodecKind,
++};
++use crate::rtp_transceiver::{RTCRtpTransceiverDirection, RTCRtpTransceiverInit};
++use ::interceptor::{Registry, SenderClockHandle};
++use ::srtp::context::Context;
++use ::srtp::protection_profile::ProtectionProfile;
++use sansio::Protocol;
++use shared::TransportContext;
++use shared::marshal::Marshal;
++
++fn codec(pt: u8, name: &str, rate: u32) -> RTCRtpCodecParameters {
++    RTCRtpCodecParameters {
++        payload_type: pt,
++        rtp_codec: RTCRtpCodec {
++            mime_type: name.into(),
++            clock_rate: rate,
++            ..Default::default()
++        },
++    }
++}
++fn context() -> Context {
++    Context::new(
++        &[17; 16],
++        &[31; 14],
++        ProtectionProfile::Aes128CmHmacSha1_80,
++        Some(::srtp::option::srtp_replay_protection(64)),
++        None,
++    )
++    .unwrap()
++}
++fn receive<P: ::interceptor::Interceptor>(
++    pc: &mut RTCPeerConnection<P>,
++    bytes: bytes::BytesMut,
++    now: Instant,
++) -> shared::error::Result<usize> {
++    let mut srtp = pc.get_srtp_handler();
++    srtp.handle_read(TaggedRTCMessageInternal {
++        now,
++        transport: TransportContext::default(),
++        message: RTCMessageInternal::Rtp(RTPMessage::Raw(bytes)),
++    })?;
++    let decoded = srtp.poll_read().expect("authenticated RTP must leave SRTP");
++    drop(srtp);
++    // No endpoint lookup before this call: first packet must enter feedback here.
++    let mut interceptor = pc.get_interceptor_handler();
++    interceptor.handle_read(decoded)?;
++    let mut packets = Vec::new();
++    while let Some(p) = interceptor.poll_read() {
++        packets.push(p);
++    }
++    drop(interceptor);
++    let mut endpoint = pc.get_endpoint_handler();
++    for p in packets {
++        endpoint.handle_read(p)?;
++    }
++    let mut delivered = 0;
++    while let Some(p) = endpoint.poll_read() {
++        if matches!(
++            p.message,
++            RTCMessageInternal::Rtp(RTPMessage::TrackPacket(_))
++        ) {
++            delivered += 1;
++        }
++    }
++    Ok(delivered)
++}
++fn prove<P: ::interceptor::Interceptor>(
++    media: MediaEngine,
++    registry: Registry<P>,
++    expect_first: bool,
++    extra_codec: Option<RTCRtpCodecParameters>,
++    initial_probe: u8,
++) {
++    let ambiguous = extra_codec.as_ref().is_some_and(|c| {
++        !c.rtp_codec
++            .mime_type
++            .eq_ignore_ascii_case("audio/telephone-event")
++    });
++    let primary = codec(111, "audio/opus", 48000);
++    let mut pc = RTCPeerConnectionBuilder::new()
++        .with_media_engine(media.clone())
++        .with_interceptor_registry(registry)
++        .build()
++        .unwrap();
++    let mut transceiver = RTCRtpTransceiverInternal::new(
++        RtpCodecKind::Audio,
++        None,
++        RTCRtpTransceiverInit {
++            direction: RTCRtpTransceiverDirection::Recvonly,
++            ..Default::default()
++        },
++    );
++    transceiver.set_mid("audio-0".into()).unwrap();
++    let receiver = transceiver.receiver_mut().as_mut().unwrap();
++    let mut preferences = vec![primary];
++    preferences.extend(extra_codec);
++    receiver.set_codec_preferences(preferences);
++    let coding = RTCRtpCodingParameters {
++        ssrc: Some(1001),
++        ..Default::default()
++    };
++    receiver.set_coding_parameters(vec![coding.clone()]);
++    receiver.set_track(MediaStreamTrack::new(
++        "source".into(),
++        "audio".into(),
++        "declared audio".into(),
++        RtpCodecKind::Audio,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: coding,
++            ..Default::default()
++        }],
++    ));
++    assert!(
++        receiver
++            .track()
++            .get_codec_by_ssrc(1001)
++            .unwrap()
++            .mime_type
++            .is_empty()
++    );
++    receiver.interceptor_remote_streams_op(&media, &mut pc.interceptor, true);
++    assert!(
++        receiver
++            .track()
++            .get_codec_by_ssrc(1001)
++            .unwrap()
++            .mime_type
++            .is_empty(),
++        "feedback prebinding must not initialize the application codec"
++    );
++    assert!(
++        pc.pipeline_context
++            .endpoint_handler_context
++            .event_outs
++            .is_empty()
++    );
++    let extension = receiver
++        .get_parameters(&media)
++        .rtp_parameters
++        .header_extensions
++        .iter()
++        .find(|e| e.uri.contains("transport-wide-cc"))
++        .unwrap()
++        .id as u8;
++    pc.rtp_transceivers.push(transceiver);
++    let mut srtp = pc.get_srtp_handler();
++    srtp.handle_event(RTCEventInternal::DTLSHandshakeComplete(
++        Some(context()),
++        Some(context()),
++    ))
++    .unwrap();
++    let event = srtp.poll_event().unwrap();
++    drop(srtp);
++    pc.get_interceptor_handler().handle_event(event).unwrap();
++    let mut sender = context();
++    let now = Instant::now();
++    let mut packet = rtp::Packet::default();
++    packet.header.version = 2;
++    packet.header.ssrc = 1001;
++    packet.header.payload_type = 111;
++    packet.header.sequence_number = 400;
++    packet.header.timestamp = 960;
++    packet.payload = vec![0x55; 40].into();
++    packet
++        .header
++        .set_extension(extension, 10u16.to_be_bytes().to_vec().into())
++        .unwrap();
++    if initial_probe != 0 {
++        let mut unknown = packet.clone();
++        unknown.header.payload_type = if initial_probe == 2 { 101 } else { 127 };
++        if initial_probe == 2 {
++            unknown.header.timestamp = 160;
++            unknown.payload = vec![1, 10, 0, 80].into();
++        }
++        unknown.header.sequence_number = 399;
++        unknown
++            .header
++            .set_extension(extension, 9u16.to_be_bytes().to_vec().into())
++            .unwrap();
++        let bytes = sender.encrypt_rtp(&unknown.marshal().unwrap()).unwrap();
++        receive(&mut pc, bytes, now).unwrap();
++        let selected = pc.rtp_transceivers[0]
++            .receiver()
++            .as_ref()
++            .unwrap()
++            .track()
++            .get_codec_by_ssrc(1001)
++            .unwrap();
++        if initial_probe == 2 {
++            // Preserve the pre-existing application behavior: actual DTMF first
++            // selects DTMF, not inferred Opus. Fixing that lifetime is separate.
++            assert_eq!(selected.mime_type, "audio/telephone-event");
++            assert_eq!(selected.clock_rate, 8000);
++            assert_eq!(
++                pc.pipeline_context
++                    .endpoint_handler_context
++                    .event_outs
++                    .len(),
++                1
++            );
++        } else {
++            assert!(selected.mime_type.is_empty());
++            assert!(
++                pc.pipeline_context
++                    .endpoint_handler_context
++                    .event_outs
++                    .is_empty()
++            );
++        }
++    }
++    let encrypted = sender.encrypt_rtp(&packet.marshal().unwrap()).unwrap();
++    let mut corrupt = encrypted.clone();
++    let last = corrupt.len() - 1;
++    corrupt[last] ^= 1;
++    assert!(
++        receive(&mut pc, corrupt, now).is_err(),
++        "tampered packet must not bind or record"
++    );
++    let selected = pc.rtp_transceivers[0]
++        .receiver()
++        .as_ref()
++        .unwrap()
++        .track()
++        .get_codec_by_ssrc(1001)
++        .unwrap();
++    assert_eq!(
++        selected.mime_type,
++        if initial_probe == 2 {
++            "audio/telephone-event"
++        } else {
++            ""
++        }
++    );
++    assert_eq!(
++        receive(&mut pc, encrypted.clone(), now).unwrap(),
++        1,
++        "first authenticated audio is delivered"
++    );
++    assert_eq!(
++        pc.pipeline_context
++            .endpoint_handler_context
++            .event_outs
++            .len(),
++        1,
++        "one real audio packet opens exactly one track"
++    );
++    assert!(
++        receive(&mut pc, encrypted, now + Duration::from_millis(1)).is_err(),
++        "replay must not add a receipt"
++    );
++    if initial_probe == 2 {
++        packet.header.sequence_number = 401;
++        packet.header.timestamp = 1920;
++        packet
++            .header
++            .set_extension(extension, 11u16.to_be_bytes().to_vec().into())
++            .unwrap();
++        let next = sender.encrypt_rtp(&packet.marshal().unwrap()).unwrap();
++        assert_eq!(
++            receive(&mut pc, next, now + Duration::from_millis(20)).unwrap(),
++            1
++        );
++        let selected = pc.rtp_transceivers[0]
++            .receiver()
++            .as_ref()
++            .unwrap()
++            .track()
++            .get_codec_by_ssrc(1001)
++            .unwrap();
++        assert_eq!(
++            (selected.mime_type.as_str(), selected.clock_rate),
++            ("audio/telephone-event", 8000)
++        );
++        assert_eq!(
++            pc.pipeline_context
++                .endpoint_handler_context
++                .event_outs
++                .len(),
++            1
++        );
++    }
++    pc.get_interceptor_handler()
++        .handle_timeout(now + Duration::from_millis(101))
++        .unwrap();
++    let mut feedback = Vec::new();
++    while let Some(out) = pc.interceptor.poll_write() {
++        if let Packet::Rtcp(packets) = out.message {
++            for p in packets {
++                if let Some(t)=p.as_any().downcast_ref::<rtcp::transport_feedbacks::transport_layer_cc::TransportLayerCc>(){feedback.push((t.base_sequence_number,t.recv_deltas.len()));}
++            }
++        }
++    }
++    if initial_probe == 2 {
++        pc.get_interceptor_handler()
++            .handle_timeout(now + Duration::from_millis(1102))
++            .unwrap();
++        let mut reports = Vec::new();
++        while let Some(out) = pc.interceptor.poll_write() {
++            if let Packet::Rtcp(packets) = out.message {
++                for p in packets {
++                    if let Some(rr) = p
++                        .as_any()
++                        .downcast_ref::<rtcp::receiver_report::ReceiverReport>()
++                    {
++                        for block in &rr.reports {
++                            reports.push((
++                                block.ssrc,
++                                block.last_sequence_number,
++                                block.total_lost,
++                                block.jitter,
++                            ));
++                        }
++                    }
++                }
++            }
++        }
++        assert_eq!(
++            reports,
++            vec![(1001, 401, 0, 50)],
++            "endpoint must reset prebound RR to actual DTMF clock before timer; same existing 8kHz mapping in original and repair"
++        );
++    }
++    if ambiguous {
++        assert!(
++            feedback.is_empty(),
++            "ambiguous codecs still defer binding until payload discovery"
++        );
++        packet.header.sequence_number += 1;
++        packet
++            .header
++            .set_extension(extension, 11u16.to_be_bytes().to_vec().into())
++            .unwrap();
++        let next = sender.encrypt_rtp(&packet.marshal().unwrap()).unwrap();
++        assert_eq!(
++            receive(&mut pc, next, now + Duration::from_millis(150)).unwrap(),
++            1
++        );
++        pc.get_interceptor_handler()
++            .handle_timeout(now + Duration::from_millis(251))
++            .unwrap();
++        let mut received = Vec::new();
++        while let Some(out) = pc.interceptor.poll_write() {
++            if let Packet::Rtcp(packets) = out.message {
++                for p in packets {
++                    if let Some(t)=p.as_any().downcast_ref::<rtcp::transport_feedbacks::transport_layer_cc::TransportLayerCc>(){received.push((t.base_sequence_number,t.recv_deltas.len()));}
++                }
++            }
++        }
++        assert_eq!(
++            received,
++            vec![(11, 1)],
++            "known payload discovery must enable subsequent receipts without guessing"
++        );
++    }
++    if expect_first {
++        assert_eq!(
++            feedback,
++            if initial_probe == 2 {
++                vec![(9, 3)]
++            } else {
++                vec![(10, 1)]
++            },
++            "first authenticated declared audio packet must have exactly one TWCC receipt"
++        );
++    }
++}
++fn media() -> MediaEngine {
++    let mut m = MediaEngine::default();
++    m.register_codec(codec(111, "audio/opus", 48000), RtpCodecKind::Audio)
++        .unwrap();
++    m
++}
++#[test]
++fn first_audio_feedback_default_registry() {
++    let mut m = media();
++    let r = register_default_interceptors(Registry::new(), &mut m).unwrap();
++    prove(m, r, true, None, 0);
++}
++#[test]
++fn first_audio_feedback_clock_registry() {
++    let mut m = media();
++    let r = register_default_interceptors_with_sender_clock(
++        Registry::new(),
++        &mut m,
++        SenderClockHandle::default(),
++    )
++    .unwrap();
++    prove(m, r, true, None, 0);
++}
++#[test]
++fn first_audio_feedback_authentication_and_replay_remain_gated() {
++    let mut m = media();
++    let r = register_default_interceptors(Registry::new(), &mut m).unwrap();
++    prove(m, r, false, None, 0);
++}
++
++#[test]
++fn first_audio_feedback_ambiguous_codecs_remain_deferred() {
++    let mut m = media();
++    m.register_codec(codec(0, "audio/PCMU", 8000), RtpCodecKind::Audio)
++        .unwrap();
++    let r = register_default_interceptors(Registry::new(), &mut m).unwrap();
++    prove(m, r, false, Some(codec(0, "audio/PCMU", 8000)), 0);
++}
++
++#[test]
++fn first_audio_feedback_supplemental_codec_does_not_hide_primary() {
++    let mut m = media();
++    m.register_codec(
++        codec(101, "audio/telephone-event", 8000),
++        RtpCodecKind::Audio,
++    )
++    .unwrap();
++    let r = register_default_interceptors(Registry::new(), &mut m).unwrap();
++    prove(
++        m,
++        r,
++        true,
++        Some(codec(101, "audio/telephone-event", 8000)),
++        0,
++    );
++}
++#[test]
++fn first_audio_feedback_unknown_payload_does_not_open_track() {
++    let mut m = media();
++    let r = register_default_interceptors(Registry::new(), &mut m).unwrap();
++    prove(m, r, false, None, 1);
++}
++
++#[test]
++fn first_audio_feedback_telephone_event_first_preserves_codec_and_report_reset() {
++    let mut m = media();
++    m.register_codec(
++        codec(101, "audio/telephone-event", 8000),
++        RtpCodecKind::Audio,
++    )
++    .unwrap();
++    let r = register_default_interceptors(Registry::new(), &mut m).unwrap();
++    prove(
++        m,
++        r,
++        true,
++        Some(codec(101, "audio/telephone-event", 8000)),
++        2,
++    );
++}

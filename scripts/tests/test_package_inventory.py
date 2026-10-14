@@ -25,7 +25,7 @@ class PackageInventoryTests(unittest.TestCase):
                           'examples/independent-uctp-client', 'examples/native-video', 'crates/connect-connector-api'):
             shutil.copytree(ROOT / directory, self.source / directory,
                             ignore=shutil.ignore_patterns('target', '__pycache__', '*.pyc'))
-        for name in set(GATE5_SOURCE) | {name for name in GATE5_RUNTIME if not name.startswith(('bin/', 'sdk/typescript/dist/')) and name != 'connector-kit-source.json'} | {'Cargo.toml', 'scripts/lib/local_process.py', 'scripts/lib/qualification_process.py', 'scripts/lib/phase_supervisor.py'}:
+        for name in set(GATE5_SOURCE) | {name for name in GATE5_RUNTIME if not name.startswith(('bin/', 'sdk/typescript/dist/')) and name != 'connector-kit-source.json'} | {'Cargo.toml', 'scripts/lib/local_process.py', 'scripts/lib/qualification_process.py', 'scripts/lib/qualification_report.py', 'scripts/lib/phase_supervisor.py'}:
             if (self.source / name).is_file():
                 continue
             target = self.source / name
@@ -41,6 +41,34 @@ class PackageInventoryTests(unittest.TestCase):
             else:
                 shutil.copy2(ROOT / name, target)
         copy_gate5_assets(self.source, self.release)
+
+    def test_prepared_crate_notices_bind_selected_source_and_preserve_license_text(self):
+        from lib.package_inventory import copy_prepared_crate_notices
+        crate = self.source / '.deps/fixture'
+        crate.mkdir(parents=True)
+        (crate / 'Cargo.toml').write_text('[package]\nname="fixture"\nversion="1"\n')
+        (crate / 'LICENSE').write_text('fixture license bytes\n')
+        source = {'kind': 'crate', 'version': '1', 'license': 'MIT',
+                  'url': 'https://static.crates.io/crates/fixture/fixture-1.crate', 'sha256': 'a' * 64}
+        retained = self.source / 'LICENSE-APACHE'; retained.write_text('retained upstream text\n')
+        source['license_files'] = [{'path': 'LICENSE-APACHE', 'sha256': digest(retained), 'url': 'https://example.test/pinned/LICENSE-APACHE'}]
+        patches = [{'target': 'fixture', 'path': 'patches/fixture.patch', 'sha256': 'b' * 64}]
+        (self.source / 'dependencies').mkdir(exist_ok=True)
+        (self.source / 'dependencies/source-lock.json').write_text(json.dumps({'sources': {'fixture': source}, 'patches': patches}))
+        package = {'name': 'fixture', 'version': '1', 'manifest_path': str(crate / 'Cargo.toml'), 'source': None}
+        notices = copy_prepared_crate_notices(self.source, self.release, {'packages': [package]})
+        self.assertEqual(notices[0]['source'], source)
+        self.assertEqual(notices[0]['patches'], patches)
+        self.assertEqual((self.release / notices[0]['texts'][0]).read_text(), 'fixture license bytes\n')
+        self.assertEqual(json.loads((self.release / 'licenses/prepared-index.json').read_text()), notices)
+        self.assertEqual((self.release / notices[0]['texts'][1]).read_text(), 'retained upstream text\n')
+        retained.write_text('changed text')
+        with self.assertRaisesRegex(ValueError, 'license digest'):
+            copy_prepared_crate_notices(self.source, self.release, {'packages': [package]})
+        retained.write_text('retained upstream text\n')
+        package['manifest_path'] = str(self.source / 'unselected/Cargo.toml')
+        with self.assertRaisesRegex(ValueError, 'selected package graph'):
+            copy_prepared_crate_notices(self.source, self.release, {'packages': [package]})
 
     def test_complete_inventory_binds_public_api_and_examples(self):
         result = inventory_gate5(self.release, self.source)
@@ -259,6 +287,7 @@ class PackageInventoryTests(unittest.TestCase):
         from lib.package_gate5 import qualify
         directory = self.base / 'qualification'
         (self.release / 'bin/connect').write_bytes(b'nonexecuted installed fixture binary')
+        (self.release / 'bin/connect-example').write_bytes(b'nonexecuted installed example fixture binary')
         calls = []
         (self.base / 'selected-tool').write_bytes(b'guard-only selected tool; never executed')
         def phase(name, command, timeout, output, cwd, env):
@@ -294,21 +323,32 @@ class PackageInventoryTests(unittest.TestCase):
                     'source_revision': 'fixture-revision'}
                 (output / 'independent-control.json').write_text(json.dumps(evidence))
             if name == 'installed-public-setup':
+                from lib.setup_provider_fixture import CHECKS
                 evidence = {'status': 'passed', 'tested_inputs_stable': True,
                     'binary_sha256': digest(self.release / 'bin/connect'),
                     'candidate_schema': 18,
-                    'source_revision': 'fixture-revision'}
+                    'source_revision': 'fixture-revision',
+                    'provider_setup': {'status': 'passed',
+                        'checks': [{'name': name, 'status': 'passed'} for name in CHECKS],
+                        'provider_http_methods': ['GET'], 'provider_http_count': 2,
+                        'resource_mutations': 0, 'real_account_requests': 0,
+                        'preview_and_readiness_inputs_unchanged': True}}
                 (output / 'public-setup.json').write_text(json.dumps(evidence))
             if name == 'installed-native-example-cleanup':
                 evidence = self.native_cleanup_fixture(output / 'native-example-cleanup-state')
                 if cleanup_change:
                     cleanup_change(evidence)
                 (output / 'native-example-cleanup.json').write_text(json.dumps(evidence))
+            if name == 'installed-connected-app':
+                evidence = self.connected_app_fixture()
+                (output / 'connected-app.json').write_text(json.dumps(evidence))
+            if name == 'installed-session-controls':
+                (output / 'session-controls.json').write_text(json.dumps(self.session_controls_fixture()))
             if name == 'installed-reference-client':
                 evidence = {'result': 'passed', 'tested_inputs_stable': True,
                     'source_revision': 'fixture-revision', 'runtime_root': str(self.release),
                     'binary_sha256': digest(self.release / 'bin/connect'),
-                    'video': {'status': 'passed', 'failures': [
+                    'video': {'status': 'passed', 'continuity': self.reference_continuity_fixture(), 'failures': [
                         {'failure': 'capture-ended', 'cleanupMs': 100},
                         {'failure': 'ice-failed', 'cleanupMs': 100}]}}
                 pathlib.Path(env['CONNECT_REFERENCE_OUTPUT']).write_text(json.dumps(evidence))
@@ -320,7 +360,10 @@ class PackageInventoryTests(unittest.TestCase):
                     'selected_assets': str(self.release), 'input_sha256': {
                         str(self.release / 'bin/connect'): digest(self.release / 'bin/connect'),
                         str(self.release / 'bin/connect-video'): digest(self.release / 'bin/connect-video')},
-                    'paths': [{'path': route} for route in ('native-native', 'native-browser', 'browser-browser')],
+                    'paths': [{'path': route,
+                        'status': 'passed-mute-recovery' if '--mute-recovery' in command else 'passed-impairment' if '--impairment' in command else 'passed-clean',
+                        'qualification_seconds': int(command[command.index('--seconds') + 1])}
+                        for route in ('native-native', 'native-browser', 'browser-browser')],
                     'unresolved': []}
                 (output / (label + '.json')).write_text(json.dumps(evidence))
             return {'name': name, 'status': 'passed', 'log': log}
@@ -334,7 +377,7 @@ class PackageInventoryTests(unittest.TestCase):
         result, calls = self.installed_hook()
         self.assertEqual(result['status'], 'incomplete')
         self.assertFalse(result['whole_gate_qualified'])
-        self.assertEqual(len(result['unresolved']), 4)
+        self.assertEqual(len(result['unresolved']), 5)
         for name, command, timeout, cwd, env in calls:
             self.assertEqual(env['CONNECT_BINARY'], str(self.release / 'bin/connect'))
             self.assertEqual(cwd, self.source if (name.startswith(('native-storage-', 'source-media-', 'external-media-', 'native-example-')) or name == 'installed-media-failures') else self.release)
@@ -343,7 +386,7 @@ class PackageInventoryTests(unittest.TestCase):
                 self.assertEqual(timeout, 2400)
             elif name == 'installed-native-example-cleanup':
                 self.assertEqual(timeout, 300)
-            elif name == 'installed-public-setup':
+            elif name in ('installed-public-setup', 'installed-connected-app', 'installed-session-controls'):
                 self.assertEqual(timeout, 180)
             else:
                 self.assertEqual(timeout, 120)
@@ -397,12 +440,179 @@ class PackageInventoryTests(unittest.TestCase):
             self.installed_hook(independent=True, media=True, smoke=True)
         self.assertEqual(json.loads((self.base / 'qualification/result.json').read_text())['status'], 'failed')
 
+    def test_decoded_route_proof_rejects_partial_duplicate_and_wrong_scenarios(self):
+        import copy
+        from lib.package_gate5 import verify_decoded_routes
+        for status, seconds in [('passed-clean', 60), ('passed-impairment', 60), ('passed-mute-recovery', 20)]:
+            proof = {'status': status, 'qualification_seconds': seconds,
+                'paths': [{'path': route, 'status': status, 'qualification_seconds': seconds}
+                    for route in ('native-native', 'native-browser', 'browser-browser')]}
+            verify_decoded_routes(proof, status, seconds)
+            changes = {
+                'missing route': lambda p: p['paths'].pop(),
+                'duplicate route': lambda p: p['paths'].append(copy.deepcopy(p['paths'][0])),
+                'failed route': lambda p: p['paths'][0].__setitem__('status', 'failed'),
+                'wrong scenario': lambda p: p['paths'][0].__setitem__('status', 'passed-smoke'),
+                'short route': lambda p: p['paths'][0].__setitem__('qualification_seconds', seconds - 1),
+                'missing duration': lambda p: p['paths'][0].pop('qualification_seconds'),
+                'nonfinite route': lambda p: p['paths'][0].__setitem__('qualification_seconds', float('nan')),
+                'nonfinite aggregate': lambda p: p.__setitem__('qualification_seconds', float('inf')),
+                'boolean duration': lambda p: p['paths'][0].__setitem__('qualification_seconds', True),
+                'missing observation': lambda p: p['paths'].__setitem__(0, None),
+            }
+            for label, change in changes.items():
+                bad = copy.deepcopy(proof)
+                change(bad)
+                with self.subTest(status=status, defect=label), self.assertRaisesRegex(ValueError, 'every candidate route/input'):
+                    verify_decoded_routes(bad, status, seconds)
+
+    def test_provider_setup_proof_requires_every_read_only_case(self):
+        import copy
+        from lib.package_gate5 import verify_provider_setup
+        from lib.setup_provider_fixture import CHECKS
+        proof = {'status': 'passed', 'checks': [{'name': name, 'status': 'passed'} for name in CHECKS],
+            'provider_http_methods': ['GET'], 'provider_http_count': 2,
+            'resource_mutations': 0, 'real_account_requests': 0,
+            'preview_and_readiness_inputs_unchanged': True}
+        verify_provider_setup(proof)
+        changes = {
+            'missing case': lambda p: p['checks'].pop(),
+            'duplicate case': lambda p: p['checks'].append(copy.deepcopy(p['checks'][0])),
+            'failed case': lambda p: p['checks'][0].__setitem__('status', 'failed'),
+            'provider mutation': lambda p: p.__setitem__('resource_mutations', 1),
+            'provider account': lambda p: p.__setitem__('real_account_requests', 1),
+            'mutating HTTP': lambda p: p.__setitem__('provider_http_methods', ['GET', 'POST']),
+            'unexpected request': lambda p: p.__setitem__('provider_http_count', 3),
+            'changed input': lambda p: p.__setitem__('preview_and_readiness_inputs_unchanged', False),
+        }
+        for label, change in changes.items():
+            bad = copy.deepcopy(proof)
+            change(bad)
+            with self.subTest(defect=label), self.assertRaisesRegex(ValueError, 'provider setup proof'):
+                verify_provider_setup(bad)
+        with self.assertRaises(ValueError):
+            verify_provider_setup(None)
+
+    def connected_app_fixture(self):
+        from lib.package_gate5 import CONNECTED_APP_CHECKS, connected_app_inputs
+        for name in ('connect', 'connect-example'):
+            path = self.release / 'bin' / name
+            if not path.exists():
+                path.write_bytes(b'nonexecuted connected app verifier fixture')
+        inputs = connected_app_inputs(self.release, self.source)
+        return {'status': 'passed', 'profile': 'connected-app-public-cli/1',
+            'source_revision': 'fixture-revision',
+            'selected_binaries': {name: str((self.release / 'bin' / name).resolve()) for name in ('connect', 'connect-example')},
+            'binary_sha256': {name: digest(self.release / 'bin' / name) for name in ('connect', 'connect-example')},
+            'driver_sha256': digest(self.source / 'scripts/check-connected-app.py'),
+            'input_sha256': inputs, 'input_sha256_after': dict(inputs), 'tested_inputs_stable': True,
+            'checks': list(CONNECTED_APP_CHECKS), 'remaining_owned_processes': [],
+            'not_run': ['test-support lost-ack crash injection', 'actual-model inference', 'whole-gate qualification'],
+            'cleanup': [{'pid': pid, 'exit_code': code} for pid, code in ((1, 0), (2, 0), (3, 1))]}
+
+    def test_connected_app_proof_requires_selected_binaries_source_and_all_behavior(self):
+        import copy
+        from lib.package_gate5 import verify_connected_app
+        proof = self.connected_app_fixture()
+        verify_connected_app(proof, self.release, self.source, 'fixture-revision')
+        changes = {
+            'missing behavior': lambda p: p['checks'].pop(),
+            'duplicate behavior': lambda p: p['checks'].append(p['checks'][0]),
+            'wrong revision': lambda p: p.__setitem__('source_revision', 'wrong'),
+            'wrong binary': lambda p: p['binary_sha256'].__setitem__('connect-example', '0' * 64),
+            'changed input': lambda p: p['input_sha256_after'].__setitem__(str((self.source / 'scripts/lib/local_process.py').resolve()), '0' * 64),
+            'unstable inputs': lambda p: p.__setitem__('tested_inputs_stable', False),
+            'leaked worker': lambda p: p.__setitem__('remaining_owned_processes', [123]),
+            'missing exit': lambda p: p['cleanup'].pop(),
+            'duplicate exit': lambda p: p['cleanup'].__setitem__(1, p['cleanup'][0]),
+            'failed active worker': lambda p: p['cleanup'][0].__setitem__('exit_code', 1),
+            'cleanup failure': lambda p: p.__setitem__('cleanup_errors', [{'pid': 1, 'error_class': 'TimeoutError'}]),
+            'unaccounted omission': lambda p: p['not_run'].append('restart replay'),
+        }
+        for label, change in changes.items():
+            bad = copy.deepcopy(proof)
+            change(bad)
+            with self.subTest(defect=label), self.assertRaisesRegex(ValueError, 'connected-app proof'):
+                verify_connected_app(bad, self.release, self.source, 'fixture-revision')
+
     def test_independent_pass_for_another_binary_rejected(self):
         with self.assertRaisesRegex(ValueError, 'candidate inputs'):
             self.installed_hook(independent=True, wrong_binary=True)
         saved = json.loads((self.base / 'qualification/result.json').read_text())
         self.assertEqual(saved['status'], 'failed')
         self.assertFalse(saved['whole_gate_qualified'])
+
+
+    def session_controls_fixture(self):
+        from lib.package_gate5 import session_inputs
+        for path in (self.release / 'bin/connect', self.base / 'selected-tool'):
+            if not path.exists():
+                path.write_bytes(b'nonexecuted proof guard input')
+        inputs = session_inputs(self.release, self.source, self.base / 'selected-tool')
+        return {'status': 'passed', 'profile': 'installed-session-controls/1', 'source_revision': 'fixture-revision',
+            'selected_binary': str((self.release / 'bin/connect').resolve()), 'selected_assets': str(self.release.resolve()),
+            'input_sha256': inputs, 'input_sha256_after': dict(inputs), 'tested_inputs_stable': True,
+            'interfaces': ['CLI', 'Python native helper', 'Python HTTP', 'TypeScript native helper', 'TypeScript HTTP'],
+            'cli_seed_records': 19, 'original_scope_records': 35, 'sdk_origin_records': 16,
+            'narrowed_scope_denials': 26, 'current_authorization_enforced_on_replay': True,
+            'credential_diagnostics_redacted': True,
+            'sdk_phases': [{'name': f'session-{language}-{index}', 'status': 'passed',
+                'leftover_group_members': [], 'group_cleanup': 'signalled'} for index, language in
+                enumerate(('python', 'typescript', 'python', 'typescript', 'python', 'typescript'), 1)]}
+
+    def test_installed_session_proof_requires_sdk_origins_and_replay_authorization(self):
+        import copy
+        from lib.package_gate5 import verify_session_controls
+        proof = self.session_controls_fixture()
+        verify_session_controls(proof, self.release, self.source, self.base / 'selected-tool', 'fixture-revision')
+        changes = {
+            'wrong binary': lambda p: p.__setitem__('selected_binary', str(self.base / 'foreign')),
+            'source SDK fallback': lambda p: p.__setitem__('selected_assets', str(self.source)),
+            'missing transport': lambda p: p['interfaces'].pop(),
+            'missing SDK origin': lambda p: p.__setitem__('sdk_origin_records', 0),
+            'partial denial': lambda p: p.__setitem__('narrowed_scope_denials', 25),
+            'replay authorization': lambda p: p.__setitem__('current_authorization_enforced_on_replay', False),
+            'changed SDK': lambda p: p['input_sha256_after'].clear(),
+            'missing SDK phase': lambda p: p['sdk_phases'].pop(),
+            'leaked SDK helper': lambda p: p['sdk_phases'][0].__setitem__('leftover_group_members', [123]),
+        }
+        for label, change in changes.items():
+            bad = copy.deepcopy(proof)
+            change(bad)
+            with self.subTest(defect=label), self.assertRaisesRegex(ValueError, 'Installed Session controls'):
+                verify_session_controls(bad, self.release, self.source, self.base / 'selected-tool', 'fixture-revision')
+
+    def reference_continuity_fixture(self):
+        return {'status': 'passed', 'conversation_id': 'conversation', 'session_id': 'session',
+            'source_message_id': 'fact', 'decision_message_id': 'decision', 'decision_actor_id': 'actor',
+            'followup_message_id': 'followup', 'artifact_id': 'artifact', 'artifact_sha256': 'a' * 64,
+            'artifact_size': 100, 'artifact_bytes_reverified_after_restart': True, 'explicit_omitted_sources': 1,
+            'exact_decision_replay': True, 'one_followup': True, 'foreign_conversation_sources': 0,
+            'transcript_status': 'No transcript or derived summary was produced; AV transport supplies no ASR or model vision.'}
+
+    def test_reference_continuity_proof_requires_attribution_artifact_and_replay(self):
+        import copy
+        from lib.package_gate5 import verify_reference_continuity
+        proof = self.reference_continuity_fixture()
+        verify_reference_continuity(proof)
+        changes = {
+            'missing actor': lambda p: p.pop('decision_actor_id'),
+            'same followup': lambda p: p.__setitem__('followup_message_id', p['decision_message_id']),
+            'invalid artifact digest': lambda p: p.__setitem__('artifact_sha256', 'wrong'),
+            'unverified bytes': lambda p: p.__setitem__('artifact_bytes_reverified_after_restart', False),
+            'missing omission': lambda p: p.__setitem__('explicit_omitted_sources', 0),
+            'foreign context': lambda p: p.__setitem__('foreign_conversation_sources', 1),
+            'lost replay': lambda p: p.__setitem__('exact_decision_replay', False),
+            'repeated followup': lambda p: p.__setitem__('one_followup', False),
+            'invented transcript': lambda p: p.__setitem__('transcript_status', 'transcript generated'),
+        }
+        for label, change in changes.items():
+            bad = copy.deepcopy(proof)
+            change(bad)
+            with self.subTest(defect=label), self.assertRaisesRegex(ValueError, 'reference continuity'):
+                verify_reference_continuity(bad)
+        with self.assertRaises(ValueError):
+            verify_reference_continuity(None)
 
 
 if __name__ == '__main__':

@@ -8,7 +8,9 @@ mod signaling;
 mod timebase;
 
 use crate::{ClientError, NativeAudioFrame, Result};
-pub use assembly::{NativeVideoFrame, VideoAssemblyDiagnostics, VideoFrameAssembler};
+pub use assembly::{
+    NativeVideoFrame, VideoAssemblyDiagnostics, VideoFrameAssembler, VideoSequenceRange,
+};
 use connect_protocol::video_profile::VIDEO_QUEUE_PACKETS;
 pub use packet::NativeVideoPacket;
 use rvoip_core::{
@@ -128,6 +130,7 @@ impl NativeVideoSession {
             self.send_frame(
                 self.video.clone(),
                 MediaFrame {
+                    source_clock: None,
                     stream_id: self.video.id(),
                     kind: StreamKind::Video,
                     payload: packet.rtp.into(),
@@ -152,6 +155,7 @@ impl NativeVideoSession {
             return Ok(());
         }
         let frame = MediaFrame {
+            source_clock: None,
             stream_id: self.audio.id(),
             kind: StreamKind::Audio,
             payload: encoded.to_vec().into(),

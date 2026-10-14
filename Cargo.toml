@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-exclude = [".local", ".deps/rvoip", ".deps/parley", "examples/connector-template", "examples/connector-contribution"]
+exclude = [".local", ".deps/rvoip", ".deps/parley", ".deps/rtc-dtls", ".deps/rtc-interceptor", ".deps/quinn-proto", "examples/connector-template", "examples/connector-contribution"]
 members = ["crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "examples/native-video", "crates/connect-connectors", "crates/connect-mcp"]
 
 [workspace.package]
@@ -67,3 +67,9 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 unwrap_used = "warn"
+
+# Reproducibly prepared registry source with recorded DTLS retransmission repair.
+[patch.crates-io]
+rtc-dtls = { path = ".deps/rtc-dtls" }
+rtc-interceptor = { path = ".deps/rtc-interceptor" }
+quinn-proto = { path = ".deps/quinn-proto" }

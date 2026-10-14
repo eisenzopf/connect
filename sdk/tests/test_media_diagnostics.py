@@ -14,10 +14,14 @@ def decode(media):
         'installation_id':'fixture','schema':17,'profile':'connect-control/1','readiness':{'state':'ready','components':[],'media':media}}}}}), 'health')
 
 
+CONGESTION = {'congestion_samples': 2, 'maximum_sampled_connection_lost_packets': 11, 'maximum_sampled_connection_congestion_events': 9, 'maximum_sampled_connection_sent_packets': 496, 'minimum_sampled_rtt_us': 47000, 'maximum_sampled_rtt_us': 54000, 'minimum_sampled_cwnd_bytes': 6000, 'maximum_sampled_cwnd_bytes': 12000}
+
 class MediaDiagnostics(unittest.TestCase):
     def test_valid_sampled_scope_and_nullable_absence(self):
         self.assertTrue(valid_media(FIXTURE))
         self.assertEqual(decode(FIXTURE)['data']['readiness']['media'], FIXTURE)
+        current=copy.deepcopy(FIXTURE);current['quic'].update(CONGESTION)
+        self.assertEqual(decode(current)['data']['readiness']['media'], current)
         value=copy.deepcopy(FIXTURE)
         del value['quic']
         del value['webrtc_video_input']
@@ -36,6 +40,9 @@ class MediaDiagnostics(unittest.TestCase):
         value=copy.deepcopy(FIXTURE);value['forwarding'][0]['p50_us']=256;variants.append(value)
         value=copy.deepcopy(FIXTURE);value['webrtc_video_input']['source_packets']=True;variants.append(value)
         value=copy.deepcopy(FIXTURE);value['webrtc_video_input']['payload']='private-diagnostic-secret';variants.append(value)
+        for key, invalid in [('congestion_samples', True), ('minimum_sampled_rtt_us', 90000), ('maximum_sampled_connection_lost_packets', -1), ('minimum_sampled_cwnd_bytes', None)]:
+            value=copy.deepcopy(FIXTURE);value['quic'].update(CONGESTION);value['quic'][key]=invalid;variants.append(value)
+        value=copy.deepcopy(FIXTURE);value['quic']['congestion_samples']=1;variants.append(value)
         for value in variants:
             with self.subTest(value=value):
                 self.assertFalse(valid_media(value))

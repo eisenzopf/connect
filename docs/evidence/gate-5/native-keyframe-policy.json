@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "status": "passed-component",
+  "scope": "actual external encoder10-second source-policy proof; production native encoder arguments extracted directly from main.rs; no network/decoder-recovery qualification",
+  "captured_at_utc": "2026-10-14T11:12:44.415608+00:00",
+  "report": {
+    "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/native-gop6-cadence-20261014T111151/result.json",
+    "sha256": "16967687cd300e5d8d43d54b2266dfe05f7beb5ccfad784488819a65ee522868"
+  },
+  "source_policy": "All native inputs share a maximum6-frame VP8 GOP at30fps with unchanged640x360 and1000k target; reference-continuity gate remains active.",
+  "reference_integrity": "Incomplete frames are never promoted to complete; after a sequence gap, dependent deltas remain blocked until a fresh keyframe.",
+  "measurements": {
+    "encoded_frames": 300,
+    "source_seconds": 10,
+    "keyframes": 50,
+    "maximum_keyframe_distance_frames": 6,
+    "maximum_source_keyframe_interval_seconds": 0.2,
+    "maximum_encoded_frame_bytes": 15908,
+    "encoded_payload_bits_per_second": 1002975.2,
+    "independently_decoded_frames": 300,
+    "clean_decoder_diagnostics": true,
+    "inputs_stable": true,
+    "source_inputs_before": {
+      "/Volumes/D2-2019/Developer/Connect/examples/native-video/src/main.rs": "82f2d7197710ef38a0f50186a912a7058e9407506bcd1d3cae8f01df11c4fdc5",
+      "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/bin/ffmpeg": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e"
+    },
+    "output_sha256": "ac4d2ab1e5197fb14cb13ff248aa30eb08e15047eba4866df6619a7762ac3063"
+  },
+  "remaining_checks": [
+    "Current normal binaries actual decoded media under all9 clean/impairment/mute profiles",
+    "CPU and RSS, observed wire peaks, frame/queue bounds, AVsync marker coverage, motion freshness and teardown",
+    "Full-source and installed release qualification"
+  ],
+  "whole_gate_qualified": false,
+  "normal_binary_build": {
+    "report": {
+      "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/result.json",
+      "sha256": "fe59155ccd34447f0b637c760cb3fe32095333f98d7d84584bd0b231b48ecf22"
+    },
+    "status": "passed",
+    "inputs_stable": true,
+    "fresh_compilation_observed": {
+      "quinn-proto": true,
+      "rtc-interceptor": true,
+      "rtc-dtls": true,
+      "rvoip-quic": true,
+      "rvoip-webrtc": true,
+      "connect-server": true,
+      "connect-review-loop": true,
+      "connect-native-video": true
+    },
+    "binaries": {
+      "connect": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/normal/connect",
+        "sha256": "6c39002065d830c156086db91afdccbc8e1898f265230032a6c18224a0e64000"
+      },
+      "connect-example": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/normal/connect-example",
+        "sha256": "b0961818231a3f0cd801765ef62450aca35e9953d38569bf19926395c60eb724"
+      },
+      "connect-video": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/normal/connect-video",
+        "sha256": "5830985a1ee725b03a19cc4c03430072def73aae988b6e47e5c339454fc31831"
+      }
+    },
+    "source_lock_sha256": "9731fb7d13b62223366e407ee50aba3ae8f96609c186b3042a2c49c8f1b8747b",
+    "scope": "normal default-feature build with current compiler, qualification-helper and SDK source seal; no decoded-profile or whole-gate pass"
+  },
+  "actual_impaired_native_native": {
+    "status": "passed-impairment",
+    "qualification_seconds": 60,
+    "report": {
+      "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/repaired-media-20261014T112327Z/impairment-native-native.json",
+      "sha256": "add3ca08c7ad77d520a9fe0f533ae5397a16f43d10a46d5e7dbc6d969e0581ce"
+    },
+    "tested_inputs_stable": true,
+    "input_sha256": {
+      "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/normal/connect": "6c39002065d830c156086db91afdccbc8e1898f265230032a6c18224a0e64000",
+      "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/normal/connect-video": "5830985a1ee725b03a19cc4c03430072def73aae988b6e47e5c339454fc31831",
+      "/opt/homebrew/Cellar/ffmpeg/9.0.2_1/bin/ffmpeg": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+      "/Users/jonathaneisenzopf/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node": "9caea9deafcb0c7f22fac3206c32f0dcaf8d1f13460b0be3017fa09e7a4be4f6",
+      "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/bin/python3.14": "87d4df53fd91304be5bac391fb204643c36b7df2023c04a0953bcbc7d4fdf634",
+      "/Volumes/D2-2019/Developer/Connect/scripts/check-video-paths.py": "db517c2454ec15a42ba684ae50f6831d7a45b1b2a47b9989ca3e8f32c00961b7",
+      "/Volumes/D2-2019/Developer/Connect/scripts/lib/local_process.py": "fa4a196e595914c443c11a9761111edc412a5c00da2b9126087446a6a777306c",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/native-processes.py": "3750fa88ae670ad3b113c1132cb7d98214dad5f74f103f19bd542228400dc3c8",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/webrtc-impairment.py": "8f0425e3f08b5bb0d3396e51c6bc59cf34643a3481916c9c0d5dd4160acce0c1",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/decoder_observation.py": "38f6a93c3ed6e9d9793cd602d68916f679cc80e966a3d0eefe81343e5cbb8be2",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/fixture_protocol.py": "bd994c9eceb1e799430c37fd008dfcfbc54f789e81f3e8e25d5dbccd804ad7da",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/source_identity.mjs": "544dbd03c5d9098e7950ce785e011742e9090651120aa61697cdb0d045030c0e",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/marker_calibration.py": "41930641610536d1ff1ed26d08849a95ff0094a638b37d3930ee52c80c4249cb",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/marker_calibration.mjs": "b28c77fb97b31d05dfeaf279df08d4ae1754b9cbe018133ceb8382c2160e769a",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/audio_observation.py": "eb6fccc150c94afac44039bcb5217bb2c4a99cc91d4a15e1ee296e01edc7478b",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/audio_observation.mjs": "88cd0be74a9ea70944ff36d76f3b0ac678549a3be2d2601c5a3f3c3370a1168d",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/audio_envelope.mjs": "f7dc2406f629368404efe819657cb363e5ed6fec0271cef41ffd1ec71cf17964",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/browser_failure.mjs": "9a72b34b51c1e511f0077ab81ccae94850670df2d409471e18b287e727ab1df1",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/motion_observation.py": "3ab890cc88f3aae30ff84ddd17becfac46762e9217b1a79a77c04480b7bd7df6",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/motion_observation.mjs": "edacb21972b3d9c7d4faf8d3824579852d47f6041b4e6c5f775aceee5c9d2ef2",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/encoded_worker_observation.mjs": "1bad39438c6701069b68342891b97c3d9f68609b658921273c3221b73dc8cce7",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/audio_spectrum.mjs": "cee1893faf50aa71d5dc4cb73531b0ce71ed1f0d291b3f9bd97ab4642cfa745b",
+      "/Volumes/D2-2019/Developer/Connect/scripts/video/browser-qualify.mjs": "edcc1002e324275068ef9bdba984e75b7b7e04390d3665c84988d30c7aee0f58",
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome": "428dccc1a45819d23c5db4fb37388883f8d9ba64611cbd6c42395eac4a18b6a4",
+      "/Users/jonathaneisenzopf/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs": "a0f5715ea22354f922791a9c53dc012d5d5c067ff9cc4cd35ffb7cd272071a9f",
+      "/Users/jonathaneisenzopf/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/package.json": "ca170ec143a88ed3043ac953eb3b2377b2b97304104f4e1e23316684ce2c35af",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser.d.ts": "b76d58ae52cf4e235c6bd0ed6f07b957a54f1f0b2285575a65effd6115a209ed",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser.js": "38406c59d769c020add854c043a1d8c039d1172727cc26168ca9b08a9802b83c",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_binding.d.ts": "51c6df8829946005f05a144ee99a8c6a3008dd7c262e9f1694fe8c931d346236",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_binding.js": "2c124ff6443e8b3c63957a5097f3562eb2aed5bdc797aa1b1bfc4763544cf701",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_capture.d.ts": "a54d2163ec6d563c881fb18f87862a68027224734d0169dfaf271d7b6a721df7",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_capture.js": "18dee21d7a5f409ab62162578aff5b226d8c96234fbf1ef3b7466da5c982c37e",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_deadline.d.ts": "a180f9a3bc404d692a25caefd6ca150bfa5cfa6b934d58a0548b4fc02a169e54",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_deadline.js": "862738ad2e9f7b7085bb0427de3afbc818700a63d9a80fb715c50cb2914b0fc9",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_http.d.ts": "7030f7f0d808a4a877c1121c6c526c4c801b37d3ddbd7c339b53b78561640f9b",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_http.js": "ad7a77e48c405e73086cd726a646608e32958435086a36e4950d1f1814da7e17",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_negotiation.d.ts": "aec4f1dc436023059c147218508edaa63be9d0bd7059b0da2c43ba595736a2d3",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_negotiation.js": "d1b8af8e5a454bab25af47318eda6a9d992ee51871213f811b6fa980d0d0d48d",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video.d.ts": "914eb1b69c2523e87156cf62bd9fdc0ec589226c1efab607d6f7267fabfe9881",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video.js": "91d60c1f824bda840a45739bd0d7d73691766c1dafc3a28815865ed4f324fa8e",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video_keyframes.d.ts": "ad5bb07585033efe14ac77fca766f3292ebf743cd6cd2950fc30e1b0b0e11a3c",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video_keyframes.js": "2391985351d208a18738b34139f0d1f4ca4b8ea0696b1a8459c7f8049fc4e272",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video_setup.d.ts": "f6584a4f1830fc20464fff6f4773f4936fd43d82b4134d7eed6a07def73ea81c",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video_setup.js": "e747fb2dec78bc7f8f7c466266eefe6696fe1e355285fc7dbb157f3aa4d27b0a",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video_stats.d.ts": "f4293c347d33461a83ab2505bab0a843bba7812e700dc56b853754f9d89ceffc",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video_stats.js": "cd452106181c8b12c9affe711711da9fab9306e1756c0ad4a731a577ed3f219e",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video_transform.d.ts": "91e45252a2c03501d86a9d260fe14ce9543daeb59886e3b4318d4f0fcea618da",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_video_transform.js": "ff0415be3c9fa856007554888c25dcb9ebaa6e46595f1e32616643d98daf5dfc",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_voice.d.ts": "8e058d8571b2ffdfb29386843fedc803d424ab693dde5d023711ccd26c0c831a",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_voice.js": "57b152f0d6c5dc700598bf42a49893a11d4ff6b99f92b1be90360b9364fbe9f3",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_voice_stats.d.ts": "77200e7531b021bfcee95c809e4ff94162318ef89a858035ab368ed9c2a2cc79",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/browser_voice_stats.js": "bd93aa728c0131e20a6fa016f27b2508d2d7d5e772434d474c6bbbd8117c25ec",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/contact_validation.d.ts": "e530fb7a25930e174fabf509211a3af5d064ddfd9b22cb221ce34994e905e387",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/contact_validation.js": "4c81b0dcfa5590137b70db87884c3a957bbbd6151a81bee43951070a1079eaa1",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/contacts.d.ts": "ccdca6934872b9150b761aeca1bab1eb0943c7ee710d523b14b888af75a5dc62",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/contacts.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/errors.d.ts": "643707b2bf259af2ce7b9e2e6701516eddc7a1a091956e8d7e0a476cfee51522",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/errors.js": "50ede2771aad4bf05d643b81c667b73fef2dbf93e6102273c4a7a5cd5cea7303",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/http.d.ts": "c40b6ce1ecf9e1baf77cffb29c12a56dacae2885cfc831625c17e29fa09ac03d",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/http.js": "7516bff6000f72b9d53bfd7aca1271aae1c6b617aaa26e1b4d12c43b11c72de6",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/index.d.ts": "7a7cbb331266243b954e04d0afb79169fbfc6df7bfd46f2be478c8beb3ec6130",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/index.js": "5ad979515b09441bfc6ef504b4c6108812ad9f79b8091658f4d87cbff2d7adb6",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/media_diagnostics.d.ts": "cb4c2a664168556722173247f25518c7638bbc1144b01db1e7d6c2d220c6fc75",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/media_diagnostics.js": "b7c99561b44fc369d0cdb7110cd8aaa96bd94f63d1d858f75e1d1c046aac70e5",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/native.d.ts": "5c206744ff32914e5cab9db5eaf7614a70217cab66e02f22daa616af4c34f95e",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/native.js": "5364ae8bb52c8acb9ae46821c7cc9cf86aea8407e8b8696a3f0c0d138d79e683",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/native_audio.d.ts": "9aa25311b2ad2a56a22521f3ee3b50de23300fe8c567d4d7a369684cd63ca182",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/native_audio.js": "fd91c8d3b68bf7963269c184cea4f9a1d1053d45f0517d5e9d74f763c7faca18",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/operations.d.ts": "324c2d9902baa3f155efceb1f5c96b8f6424c8be53f442bdd1d3ba19d04bd5ec",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/operations.js": "23c089fa1257b8e0bce6bc2664100b5fb085f3d92e587ad44c671cfb83e43a4c",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/protocol.d.ts": "2b8461bdbc961db44f615e892287f5443845ff80e09c62d8c5ec94f65ca2700e",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/protocol.js": "6bb1ac6683ca5fb25be312b83e91083c021f6125e7371145eca1b1f6b92725e1",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/task_operations.d.ts": "87b1e0a7c3f83c4242980661f3c5613b0415044a405838618022659c340a50f6",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/task_operations.js": "5557dd31112f57cc5ac815e9f19d55291b171fd5c84efb14ad45e5d0854de129",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/task_protocol.d.ts": "ea1ff55d2f9b316040a18a6c90e0774813e86be36e55d6ae2eda608ac73e18b4",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/task_protocol.js": "759efff4f10a4f20bff546af3916e8c1dd448f2909e3c55a7cb2ebbc223e86e1",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/tasks.d.ts": "fd378880edc15d68f2abd32d5b3d681e3ee21cf79a235814dfe072bf280e6b76",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/tasks.js": "5bba952d286fe6910adbda28be5eabdf63cec46e90e557598cdff7e7a14a56a8",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/types.d.ts": "ec921908a85b08d99f33295db6b02c8050c3fabcb740484a6f81970c2e263ff2",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/types.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/validation.d.ts": "6c18a6a8246a0ba6393c22045eb39a0824021c648a40c49b097e17eae548096c",
+      "/Volumes/D2-2019/Developer/Connect/sdk/typescript/dist/validation.js": "29d8b2dfd38ced5f481beb91daf70c078a948032cd21b9fc2db82b00738733d9",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/README.md": "9f23b3c91abbaf80a6adac87e4374b9dde2983b03f56edeb40c43b8bf9540183",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/app.js": "b0be92f6e8b6ab399192e192dca0f20333d669c355fa4a733812d6337b10a16d",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/contacts.js": "956149ce46b3fa5af412803f6edb6042664488de6dd885ac3de5775b45b664b0",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/files.js": "ac16188a182f8692a9536c8c55a328e0e3da18685132b1c16c5611dd8ca2975a",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/index.html": "0656836e7f010b1d2871ccf0e8831cf189927682c8c19f383efe47a3198ece55",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/native_voice.py": "270e559dd13968a1afdaae700cc94dc7a555c40d3eca5e827bb65bc2e3555c51",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/pcmu.py": "2d53a2b397ca9837c5297dc7c5f44bd135206275b6bac6159c1b0f91517646d4",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/styles.css": "3dd310d3135b6f0a88c2a8a31b70b606415a537b09deda7ae524c606be3662ea",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/video.js": "3e3ee0060636498bd26953da60ae0619b4a46e611b36771459cf5a96b244cdc0",
+      "/Volumes/D2-2019/Developer/Connect/examples/conversation-client/workflow.js": "315c69fd2da26ba6d63a13302778ee3e017993e2334be7401443c06c2daaf95c"
+    },
+    "binary_build_report": {
+      "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/result.json",
+      "sha256": "fe59155ccd34447f0b637c760cb3fe32095333f98d7d84584bd0b231b48ecf22"
+    },
+    "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+    "receivers": [
+      {
+        "changing_fps": 17.05,
+        "decoder_clean": true,
+        "motion_status": "passed",
+        "av_sync": {
+          "status": "passed",
+          "paired": 67,
+          "median_abs_skew_ms": 17.56899999999817,
+          "p95_abs_skew_ms": 61.84675000000084
+        },
+        "recovery_status": "passed",
+        "maximum_codec_emission_hold_ms": 173.09370800000323,
+        "assembly": {
+          "pending_frames": 1,
+          "queued_fragments": 4,
+          "peak_pending_frames": 6,
+          "peak_queued_fragments": 39,
+          "discarded_frames": 0,
+          "expired_frames": 250,
+          "completed_frames": 1698
+        },
+        "playout": {
+          "release_delay_ms": 120,
+          "stale_deadline_ms": 200,
+          "video_frames_bound": 8,
+          "audio_frames_bound": 10,
+          "peak_video_frames": 6,
+          "peak_audio_frames": 10,
+          "dropped_video_frames": 554,
+          "dropped_audio_frames": 8,
+          "maximum_hold_ms": 173.030083
+        }
+      },
+      {
+        "changing_fps": 17.45,
+        "decoder_clean": true,
+        "motion_status": "passed",
+        "av_sync": {
+          "status": "passed",
+          "paired": 63,
+          "median_abs_skew_ms": 18.410375000001977,
+          "p95_abs_skew_ms": 53.93666700000033
+        },
+        "recovery_status": "passed",
+        "maximum_codec_emission_hold_ms": 170.0849579999968,
+        "assembly": {
+          "pending_frames": 1,
+          "queued_fragments": 0,
+          "peak_pending_frames": 4,
+          "peak_queued_fragments": 20,
+          "discarded_frames": 0,
+          "expired_frames": 216,
+          "completed_frames": 1742
+        },
+        "playout": {
+          "release_delay_ms": 120,
+          "stale_deadline_ms": 200,
+          "video_frames_bound": 8,
+          "audio_frames_bound": 10,
+          "peak_video_frames": 6,
+          "peak_audio_frames": 10,
+          "dropped_video_frames": 516,
+          "dropped_audio_frames": 6,
+          "maximum_hold_ms": 170.024958
+        }
+      }
+    ],
+    "resources": {
+      "sampled_peak_rss_bytes": 272023552,
+      "sampled_peak_cpu_percent": 128.3,
+      "within_limits": true,
+      "coverage_complete": true
+    },
+    "maximum_one_second_received_wire_bits": {
+      "to_server": 1940040,
+      "to_client": 1566808
+    },
+    "network_within_limits": true,
+    "reliable_file_status": "passed",
+    "paired_termination": {
+      "lag_seconds": 0.01862359046936035,
+      "limit_seconds": 5,
+      "first_end_reason": "deadline",
+      "second_end_reason": "peer-terminal",
+      "staggered_deadlines_seconds": [
+        66,
+        80
+      ],
+      "status": "passed"
+    },
+    "scope": "One actual current impairednative/native60s componentpass. Current9series, currentclean/mute and finalinstalled/wholegate remain separately pending; futureclock/RTX sourcechanges may require affectedretests."
+  },
+  "historical_gop30_failure": {
+    "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/repaired-media-20261014T105940Z/impairment-native-native.json",
+    "sha256": "4f73fdc05c373041f4750dafff62a28d4250ed984045e255d3cbbcdc0d28535d",
+    "status": "failed",
+    "retained": true
+  },
+  "updated_at_utc": "2026-10-14T11:31:28.259950+00:00"
+}

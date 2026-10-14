@@ -34,6 +34,8 @@ MARKER_PY = pathlib.Path(media.decoder.markers.__file__).resolve()
 MARKER_JS = pathlib.Path(__file__).parent / 'video/marker_calibration.mjs'
 AUDIO_PY = pathlib.Path(media.decoder.audio_observer.__file__).resolve()
 AUDIO_JS = pathlib.Path(__file__).parent / 'video/audio_observation.mjs'
+ENVELOPE_JS = pathlib.Path(__file__).parent / 'video/audio_envelope.mjs'
+BROWSER_FAILURE_JS = pathlib.Path(__file__).parent / 'video/browser_failure.mjs'
 MOTION_PY = pathlib.Path(media.decoder.motion_observer.__file__).resolve()
 MOTION_JS = pathlib.Path(__file__).parent / 'video/motion_observation.mjs'
 WORKER_JS = pathlib.Path(__file__).parent / 'video/encoded_worker_observation.mjs'
@@ -141,7 +143,19 @@ async def _qualify_path(args, route, work):
                 try:
                     results = await asyncio.gather(*running)
                 except BaseException:
-                    observed['resources'] = sampler.report()
+                    observed['resources'] = sampler.freeze_live()
+                    # Preserve authenticated numeric evidence while the server is
+                    # still alive, even when a participant failed validation.
+                    # A failed health probe must not replace the original failure.
+                    try:
+                        health = native_request(state, 'reviews', {'op': 'health'}, args.server_binary)
+                        observed['forwarding_diagnostics'] = media.forwarding_diagnostics(
+                            health.get('readiness', {}).get('media'), route)
+                    except Exception as diagnostic_error:
+                        observed['forwarding_diagnostics'] = {
+                            'status': 'unobserved',
+                            'reason': 'Authenticated post-failure health probe failed',
+                            'error_class': type(diagnostic_error).__name__}
                     observed['network'] = proxy.report()
                     if rtc_proxy: observed['webrtc_network'] = rtc_proxy.report()
                     browser_report = work / 'browser-result.json'
@@ -158,7 +172,7 @@ async def _qualify_path(args, route, work):
                 finally:
                     for task in running: task.cancel()
                     await asyncio.gather(*running, return_exceptions=True)
-                observed['resources'] = sampler.report()
+                observed['resources'] = sampler.freeze_live()
                 observed['resources']['limits'] = {'sampled_peak_rss_bytes': 2 * 1024**3, 'sampled_peak_cpu_percent': 800}
                 observed['resources']['within_limits'] = (observed['resources']['coverage_complete']
                     and observed['resources']['sampled_peak_rss_bytes'] <= 2 * 1024**3
@@ -191,13 +205,21 @@ async def _qualify_path(args, route, work):
                     observed['webrtc_network'] = rtc_proxy.report()
                     observed['webrtc_network']['selected_media_route'] = rtc_proxy.verify_selected_paths(results[len(participants)]['observations'])
                 native = []
+                observed['native'] = native
+                if route != 'native-native': observed['browser'] = results[len(participants)]
                 for index, (participant, result) in enumerate(zip(participants, results)):
                     video, audio, window = media.select_window(participant, result, args.seconds)
+                    transitions = []
+                    if args.mute_recovery:
+                        sender = results[1 - index] if route == 'native-native' else None
+                        transitions = ([dict(event, unix_seconds=sender['unix_start_seconds'] + event['seconds'])
+                            for event in sender['mute_transitions']] if sender else results[len(participants)]['observations'][0]['mute_transitions'])
                     native.append({'window': window,
                         'window_start_unix_seconds': result['unix_start_seconds'] + window['start_emit_seconds'],
                         'window_end_unix_seconds': result['unix_start_seconds'] + window['start_emit_seconds'] + args.seconds, 'video': media.decode_video(video, args.seconds, args.ffmpeg, result, window),
                         'audio': media.decode_audio(audio, 660 if index == 0 else 440, args.ffmpeg),
-                        'av_sync': media.audiovisual_markers(video, audio, result, window, args.ffmpeg, expected_source_id=1 if index == 0 else 0),
+                        'av_sync': media.audiovisual_markers(video, audio, result, window, args.ffmpeg,
+                            expected_source_id=1 if index == 0 else 0, mute_transitions=transitions),
                         'rtp_clocks': media.clock_observation(result), 'teardown_seconds': result['teardown_seconds'],
                         'maximum_rtp_bytes': result['maximum_rtp_bytes'],
                         'maximum_encoded_frame_bytes': result['maximum_encoded_frame_bytes'],
@@ -206,21 +228,15 @@ async def _qualify_path(args, route, work):
                         'playout': result['playout'],
                         'maximum_codec_emission_hold_ms': result['maximum_codec_emission_hold_ms'],
                         'participant_success': result['success']})
-                    transitions = []
                     if args.impairment:
                         native[-1]['recovery'] = media.decode_recovery(video, result, window,
                             rtc_proxy.bursts() if rtc_proxy else observed['network']['stall_bursts'], args.ffmpeg)
                     if args.mute_recovery:
-                        sender = results[1 - index] if route == 'native-native' else None
-                        transitions = ([dict(event, unix_seconds=sender['unix_start_seconds'] + event['seconds'])
-                            for event in sender['mute_transitions']] if sender else results[len(participants)]['observations'][0]['mute_transitions'])
                         content = media.decoded_mute_content(video, audio, result, window, args.ffmpeg)
                         native[-1]['mute'] = media.mute_observation(content, transitions, 660 if index == 0 else 440)
                     native[-1]['video']['motion_profile'] = media.decoder.motion_observer.motion_observation(
                         native[-1]['video']['motion_content'], 'mute' if args.mute_recovery else 'impairment' if args.impairment else 'clean',
                         transitions, rtc_proxy.bursts() if rtc_proxy else observed['network']['stall_bursts'])
-                observed['native'] = native
-                if route != 'native-native': observed['browser'] = results[len(participants)]
                 if args.mute_recovery and route != 'native-native':
                     browser_mute = []
                     for index, browser_observation in enumerate(observed['browser']['observations']):
@@ -243,7 +259,8 @@ async def _qualify_path(args, route, work):
                 file_containment = fixture.transfer_containment(observed['concurrent_reliable_file'], windows)
                 file_containment['required_in_this_scenario'] = not args.impairment and not args.mute_recovery
                 observed['concurrent_reliable_file']['measurement_window_containment'] = file_containment
-                # Includes independent FFmpeg decode children as well as live encoders.
+                # Operating-profile decision stays frozen before content analysis.
+                observed['postprocessing_resources'] = sampler.postprocessing_report()
                 observed['resources'] = sampler.report()
                 observed['resources']['limits'] = {'sampled_peak_rss_bytes': 2 * 1024**3, 'sampled_peak_cpu_percent': 800}
                 observed['resources']['within_limits'] = (observed['resources']['coverage_complete']
@@ -280,8 +297,13 @@ async def _qualify_path(args, route, work):
                     observed['status'] = ('passed-clean' if args.seconds >= 60 else 'passed-smoke') if passed else 'failed'
                 (work / 'result.json').write_text(json.dumps(observed, indent=2) + '\n')
         finally:
-            for participant in participants: participant.close()
-            if sampler: sampler.__exit__(None, None, None)
+            # Preserve completed measurements even when window selection or
+            # decoding fails. The outer handler retains the failed verdict.
+            try:
+                (work / 'result.json').write_text(json.dumps(observed, indent=2) + '\n')
+            finally:
+                for participant in participants: participant.close()
+                if sampler: sampler.__exit__(None, None, None)
         continuity = native_request(state, 'reviews', {'op': 'session_get', 'conversation_id': conversation,
             'session_id': session}, args.server_binary)
         if continuity['conversation_id'] != conversation: raise RuntimeError('Session conversation changed')
@@ -346,6 +368,7 @@ async def explore_native_pairs(args, work):
                 try:
                     completed = await asyncio.gather(*jobs)
                     result['concurrent_reliable_file'] = completed[-1]
+                    result['resources'] = sampler.freeze_live()
                     for index, (participant, observation) in enumerate(zip(participants, completed)):
                         video, audio, window = media.select_window(participant, observation, args.seconds)
                         decoded = media.decode_video(video, args.seconds, args.ffmpeg, observation, window)
@@ -366,6 +389,8 @@ async def explore_native_pairs(args, work):
                     for job in jobs: job.cancel()
                     await asyncio.gather(*jobs, return_exceptions=True)
                     result['resources'] = sampler.report()
+                    if hasattr(sampler, 'postprocessing_started'):
+                        result['postprocessing_resources'] = sampler.postprocessing_report()
     except BaseException as error:
         result.update(status='failed', error_class=type(error).__name__, error_frames=[{
             'file': pathlib.Path(frame.filename).name, 'line': frame.lineno, 'function': frame.name}
@@ -418,7 +443,7 @@ def main():
     # Binding includes every served public SDK/reference asset plus selected executable inputs.
     bound = [args.server_binary, args.video_binary, selected_ffmpeg, selected_node,
         pathlib.Path(sys.executable).resolve(strict=True),
-        pathlib.Path(__file__), PROCESS_HELPER, HELPER, WEBRTC_HELPER, DECODER_HELPER, FIXTURE_HELPER, VISUAL_HELPER, MARKER_PY, MARKER_JS, AUDIO_PY, AUDIO_JS, MOTION_PY, MOTION_JS, WORKER_JS, SPECTRUM_JS,
+        pathlib.Path(__file__), PROCESS_HELPER, HELPER, WEBRTC_HELPER, DECODER_HELPER, FIXTURE_HELPER, VISUAL_HELPER, MARKER_PY, MARKER_JS, AUDIO_PY, AUDIO_JS, ENVELOPE_JS, BROWSER_FAILURE_JS, MOTION_PY, MOTION_JS, WORKER_JS, SPECTRUM_JS,
         pathlib.Path(__file__).parent / 'video/browser-qualify.mjs']
     if os.environ.get('CONNECT_CHROME_BINARY'):
         bound.append(pathlib.Path(os.environ['CONNECT_CHROME_BINARY']).resolve(strict=True))

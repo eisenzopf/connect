@@ -99,9 +99,10 @@ class CleanupGuards(unittest.TestCase):
             self.assertEqual(child.poll(), 0)
             self.assertFalse(child.reaped)
             self.assertIsNone(child.child.returncode, 'Popen has not reaped the reserved leader')
-            observed = checker.os.waitid(checker.os.P_PID, child.pid,
-                checker.os.WEXITED | checker.os.WNOHANG | checker.os.WNOWAIT)
-            self.assertEqual(observed.si_pid, child.pid, 'exit status remains waitable and PID reserved')
+            receipt = child.receipt()
+            self.assertEqual(receipt['owner_pid'], child.pid)
+            self.assertNotEqual(receipt['native_pid'], child.pid)
+            self.assertEqual(receipt['exit_code'], 0)
             with patch.object(checker.os, 'killpg') as group_signal:
                 self.assertEqual(checker.cleanup_owned([peer]), [])
                 group_signal.assert_not_called()
@@ -116,6 +117,83 @@ class CleanupGuards(unittest.TestCase):
         finally:
             if not child.reaped:
                 checker.cleanup_owned([peer])
+
+    def test_waitid_unavailable_still_preserves_actual_negative_signal_status(self):
+        ready = self.work / 'native-ready'
+        program = "import pathlib,time;pathlib.Path(%r).write_text('ready');time.sleep(120)" % str(ready)
+        with patch.object(checker.os, 'waitid', side_effect=AssertionError('waitid unavailable'), create=True):
+            child = checker.OwnedChild([sys.executable, '-c', program])
+            peer = types.SimpleNamespace(process=child, close_log=lambda: None)
+            try:
+                deadline = time.monotonic() + 5
+                while not ready.exists() and time.monotonic() < deadline:
+                    time.sleep(.005)
+                self.assertTrue(ready.exists())
+                child.send_signal(checker.signal.SIGTERM)
+                while child.poll() is None and time.monotonic() < deadline:
+                    time.sleep(.005)
+                self.assertEqual(child.poll(), -checker.signal.SIGTERM)
+                self.assertIsNone(child.child.returncode)
+                self.assertEqual(checker.cleanup_owned([peer]), [])
+                self.assertEqual(child.poll(), -checker.signal.SIGTERM)
+            finally:
+                if not child.reaped:
+                    checker.cleanup_owned([peer])
+
+    def test_interrupt_goes_to_native_child_and_retains_its_exact_exit_status(self):
+        ready = self.work / 'interrupt-ready'
+        program = ("import pathlib,signal,sys,time;signal.signal(signal.SIGINT,lambda *_:sys.exit(17));"
+                   "pathlib.Path(%r).write_text('ready');time.sleep(120)") % str(ready)
+        child = checker.OwnedChild([sys.executable, '-c', program])
+        peer = types.SimpleNamespace(process=child, close_log=lambda: None)
+        try:
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(.005)
+            self.assertTrue(ready.exists())
+            child.send_signal(checker.signal.SIGINT)
+            while child.poll() is None and time.monotonic() < deadline:
+                time.sleep(.005)
+            self.assertEqual(child.poll(), 17)
+            self.assertFalse(child.reaped)
+            self.assertEqual(checker.cleanup_owned([peer]), [])
+            self.assertEqual(child.poll(), 17)
+        finally:
+            if not child.reaped:
+                checker.cleanup_owned([peer])
+
+    def test_parent_pipe_eof_retires_native_and_its_descendant_without_an_unanchored_signal(self):
+        ready = self.work / 'descendant-ready'
+        program = ("import pathlib,subprocess,sys,time;"
+                   "p=subprocess.Popen([sys.executable,'-c','import time;time.sleep(120)']);"
+                   "pathlib.Path(%r).write_text(str(p.pid));time.sleep(120)") % str(ready)
+        child = checker.OwnedChild([sys.executable, '-c', program])
+        peer = types.SimpleNamespace(process=child, close_log=lambda: None)
+        try:
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(.005)
+            self.assertTrue(ready.exists())
+            before = checker.owned_rows([peer])
+            self.assertGreaterEqual(len(before), 2)
+            self.assertNotIn(child.pid, [row['pid'] for row in before])
+            child.child.stdin.close()  # Same EOF as abrupt parent disappearance.
+            while checker.owned_rows([peer]) and time.monotonic() < deadline:
+                time.sleep(.01)
+            self.assertEqual(checker.owned_rows([peer]), [])
+            child.wait(timeout=5)
+            self.assertTrue(child.reaped)
+            self.assertIsNone(child.code, 'Forced owner loss cannot invent native exit success')
+            self.assertEqual(child.supervisor_exit_code, -checker.signal.SIGKILL)
+        finally:
+            if not child.reaped:
+                checker.cleanup_owned([peer])
+
+    def test_unknown_native_status_cannot_qualify_a_failure_report(self):
+        self.peers[0].process.poll = lambda: None
+        self.edit(0, end_reason='child-failure', success=False)
+        with self.assertRaises(RuntimeError):
+            self.observe(expected_failure=True)
 
     def test_observation_failure_cleans_anchored_groups_before_reaping_any_leader(self):
         sequence = []

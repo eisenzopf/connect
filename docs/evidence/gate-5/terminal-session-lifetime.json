@@ -1,8 +1,8 @@
 {
   "profile": "connect-gate5-terminal-session-lifetime/1",
   "recorded_at": "2026-10-14T06:16:32.398669+00:00",
-  "status": "Recorded twelve-patch graph terminal/backpressure component behavior and focused strict quality verified; integrated later graph qualification remains separate",
-  "scope": "Current Rust SDK/Store/service/recorded UCTP source plus explicitly selected normal external server; no browser, provider, decoded timing, installed package or whole Gate5 closure",
+  "status": "Terminal retirement and backpressure repairs are component verified on the recorded twelve-patch graph; current combined graph and installed qualification remain pending",
+  "scope": "Recorded twelve-patch Rust SDK/Store/service/UCTP components and explicitly selected normal external server; no current combined-graph, browser, provider, decoded-media, installed-package or whole Gate5 closure",
   "patch_sha256": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
   "source_lock_sha256": "7738c4b360752fd7bc47a15a7dbe39e7048efad97506422f1e2da5085dda2a35",
   "normal_server": {
@@ -175,7 +175,8 @@
     }
   ],
   "remaining": [
-    "Root thirteen-patch RTC feedback graph, fresh normal binaries and integrated source/installed/media/package qualification remain separate."
+    "Repeat final stable-source terminal/current-authority/revocation, saturated-queue and external failure cases on the accepted combined graph, with matching normal binaries.",
+    "Complete actual installed native lifecycle cleanup/reattachment, decoded-media and package qualification; earlier twelve-patch component results do not substitute."
   ],
   "backpressure_correction": {
     "status": "Five upstream fixtures executed and passed, including saturated wire/event/both queues and independent adapter teardown notification",
@@ -190,14 +191,14 @@
       "both queues saturated",
       "adapter teardown event independent of blocked wire"
     ],
-    "known_scope_limit": "The ordinary-channel passes remain09bac source proof; correction and current combined normal/external/package qualification have not run.",
+    "known_scope_limit": "Five saturated-queue/independent teardown fixtures and the combined normal external failure suite executed on source-lock 7731b24ad50e0f27ef11c0e95dece1a5517a5827f631f6fe11f09402b3eb13b4. Current combined dependency graph and installed package qualification remain separate.",
     "static_checks": {
       "formatting": "passed",
       "rust_syntax_format_check": "passed",
       "recorded_patch_dry_run": "passed",
-      "scope": "No compile or execution; shared prepared graph remains prior ordinary-channel graph until exclusive baseline release"
+      "scope": "Historical static checks preceding execution. Later twelve-patch execution is recorded in combined_graph_proof; these static checks alone are not runtime proof."
     },
-    "scope": "Recorded twelve-patch graph7731b24a; no thirteen-patch, decoded-media or installed-package qualification claim"
+    "scope": "Recorded twelve-patch source-lock 7731b24a only; no later graph, decoded-media or installed-package qualification claim"
   },
   "combined_graph_proof": {
     "recorded_at": "2026-10-14T07:31:24.914823+00:00",
@@ -480,5 +481,39 @@
       "Integrated source and installed checks with current inputs",
       "Decoded media, operating limits and package qualification"
     ]
-  }
+  },
+  "prior_records": [
+    {
+      "preserved_at": "2026-10-14T10:46:44.203779+00:00",
+      "reason": "Reconcile current summaries with already recorded twelve-patch component execution; no new execution or later-graph promotion",
+      "status": "Recorded twelve-patch graph terminal/backpressure component behavior and focused strict quality verified; integrated later graph qualification remains separate",
+      "scope": "Current Rust SDK/Store/service/recorded UCTP source plus explicitly selected normal external server; no browser, provider, decoded timing, installed package or whole Gate5 closure",
+      "remaining": [
+        "Root thirteen-patch RTC feedback graph, fresh normal binaries and integrated source/installed/media/package qualification remain separate."
+      ],
+      "backpressure_correction": {
+        "status": "Five upstream fixtures executed and passed, including saturated wire/event/both queues and independent adapter teardown notification",
+        "patch": "patches/rvoip/terminal-session-backpressure.patch",
+        "patch_sha256": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+        "shared_notification_deadline_seconds": 2,
+        "absolute_guard_error_deadline_seconds": 3,
+        "authored_upstream_fixture_total": 5,
+        "new_negative_cases": [
+          "outgoing queue saturated",
+          "adapter event queue saturated",
+          "both queues saturated",
+          "adapter teardown event independent of blocked wire"
+        ],
+        "known_scope_limit": "The ordinary-channel passes remain09bac source proof; correction and current combined normal/external/package qualification have not run.",
+        "static_checks": {
+          "formatting": "passed",
+          "rust_syntax_format_check": "passed",
+          "recorded_patch_dry_run": "passed",
+          "scope": "No compile or execution; shared prepared graph remains prior ordinary-channel graph until exclusive baseline release"
+        },
+        "scope": "Recorded twelve-patch graph7731b24a; no thirteen-patch, decoded-media or installed-package qualification claim"
+      }
+    }
+  ],
+  "summary_reconciled_at": "2026-10-14T10:46:44.203779+00:00"
 }

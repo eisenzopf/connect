@@ -1,0 +1,268 @@
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -442,6 +442,7 @@
+                     RTCTrackEvent::OnClose(id) => id,
+                 };
+ 
++                let mut opened_now = false;
+                 if let RTCTrackEvent::OnOpen(init) = &evt {
+                     let (id, track) = {
+                         let mut core = self.inner.core.lock().await;
+@@ -454,7 +455,17 @@
+                                     track.track_id().clone(),
+                                     track.label().clone(),
+                                     track.kind(),
+-                                    vec![],
++                                    // The callback and discovery consumers need the
++                                    // negotiated primary coding before seeing this track.
++                                    // Other simulcast layers are added on their own OnOpen.
++                                    track
++                                        .codings()
++                                        .iter()
++                                        .filter(|coding| {
++                                            coding.rtp_coding_parameters.ssrc == Some(init.ssrc)
++                                        })
++                                        .cloned()
++                                        .collect(),
+                                 )
+                             }),
+                         )
+@@ -488,6 +499,12 @@
+                                     evt_rx,
+                                 ));
+ 
++                            // Complete application initialization before publishing the
++                            // receiver to concurrent transceiver discovery. No core or
++                            // transceiver lock is held across the callback.
++                            self.inner.handler.on_track(Arc::clone(&track_remote)).await;
++                            opened_now = true;
++
+                             {
+                                 let mut rtp_transceivers = self.inner.rtp_transceivers.lock().await;
+                                 rtp_transceivers.entry(id).or_insert_with(|| {
+@@ -510,8 +527,6 @@
+                                 .lock()
+                                 .await
+                                 .insert(track_id.clone(), (evt_tx, Arc::clone(&track_remote)));
+-
+-                            self.inner.handler.on_track(track_remote).await
+                         }
+                     }
+                 }
+@@ -520,7 +535,7 @@
+                 if let Some((evt_tx, track_remote)) = track_remotes.get(track_id) {
+                     let (track_id, result) = match evt {
+                         RTCTrackEvent::OnOpen(init) => {
+-                            {
++                            if !opened_now {
+                                 let mut core = self.inner.core.lock().await;
+                                 if let Some(receiver) = core.rtp_receiver(init.receiver_id) {
+                                     for coding in
+@@ -688,3 +703,6 @@
+         false
+     }
+ }
++
++#[cfg(test)]
++mod track_ready_tests;
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -158,7 +158,9 @@
+         false
+     }
+ 
+-    /// Called when a remote track is received
++    /// Called with the first negotiated coding already present on the remote track.
++    /// The receiver becomes discoverable after this callback finishes initializing it.
++    /// Return promptly; waiting for driver-delivered RTP here prevents driver progress.
+     async fn on_track(&self, _track: Arc<dyn TrackRemote>) {}
+ }
+ 
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs
+@@ -0,0 +1,185 @@
++//! The actual asynchronous driver must publish a ready track after its callback.
++use super::*;
++use crate::media_stream::track_local::{TrackLocal, static_rtp::TrackLocalStaticRTP};
++use crate::peer_connection::{PeerConnection, PeerConnectionBuilder, PeerConnectionEventHandler};
++use rtc::peer_connection::configuration::media_engine::MediaEngine;
++use rtc::rtp_transceiver::rtp_sender::{
++    RTCRtpCodec, RTCRtpCodecParameters, RTCRtpCodingParameters, RTCRtpEncodingParameters,
++    RtpCodecKind,
++};
++use tokio::sync::{Notify, mpsc};
++use tokio::time::timeout;
++
++struct Handler {
++    gather: mpsc::Sender<()>,
++    opened: Option<mpsc::Sender<(Arc<dyn TrackRemote>, Vec<u32>, Option<RTCRtpCodec>)>>,
++    release: Arc<Notify>,
++}
++#[async_trait::async_trait]
++impl PeerConnectionEventHandler for Handler {
++    async fn on_ice_gathering_state_change(&self, state: RTCIceGatheringState) {
++        if state == RTCIceGatheringState::Complete {
++            let _ = self.gather.try_send(());
++        }
++    }
++    async fn on_track(&self, track: Arc<dyn TrackRemote>) {
++        if let Some(tx) = &self.opened {
++            let ssrcs = track.ssrcs().await;
++            let codec = if let Some(ssrc) = ssrcs.first() {
++                track.codec(*ssrc).await
++            } else {
++                None
++            };
++            tx.send((track, ssrcs, codec)).await.unwrap();
++            // Force the exact publication interval: another task queries receivers
++            // while the application callback is still initializing provenance.
++            self.release.notified().await;
++        }
++    }
++}
++fn media(codec: &RTCRtpCodecParameters, kind: RtpCodecKind) -> MediaEngine {
++    let mut m = MediaEngine::default();
++    m.register_codec(codec.clone(), kind).unwrap();
++    m
++}
++async fn exercise(kind: RtpCodecKind, mime: &str, rate: u32, pt: u8) {
++    let codec = RTCRtpCodecParameters {
++        rtp_codec: RTCRtpCodec {
++            mime_type: mime.into(),
++            clock_rate: rate,
++            ..Default::default()
++        },
++        payload_type: pt,
++    };
++    let (ag, mut agr) = mpsc::channel(1);
++    let (bg, mut bgr) = mpsc::channel(1);
++    let (opened, mut opened_rx) = mpsc::channel(1);
++    let release = Arc::new(Notify::new());
++    let a = PeerConnectionBuilder::new()
++        .with_media_engine(media(&codec, kind))
++        .with_handler(Arc::new(Handler {
++            gather: ag,
++            opened: None,
++            release: release.clone(),
++        }))
++        .with_udp_addrs(vec!["127.0.0.1:0"])
++        .build()
++        .await
++        .unwrap();
++    let b = PeerConnectionBuilder::new()
++        .with_media_engine(media(&codec, kind))
++        .with_handler(Arc::new(Handler {
++            gather: bg,
++            opened: Some(opened),
++            release: release.clone(),
++        }))
++        .with_udp_addrs(vec!["127.0.0.1:0"])
++        .build()
++        .await
++        .unwrap();
++    let ssrc = 12345;
++    let local = Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
++        "s".into(),
++        "t".into(),
++        "ready".into(),
++        kind,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: RTCRtpCodingParameters {
++                ssrc: Some(ssrc),
++                ..Default::default()
++            },
++            codec: codec.rtp_codec.clone(),
++            ..Default::default()
++        }],
++    )));
++    a.add_track(local.clone()).await.unwrap();
++    a.set_local_description(a.create_offer(None).await.unwrap())
++        .await
++        .unwrap();
++    timeout(Duration::from_secs(3), agr.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    b.set_remote_description(a.local_description().await.unwrap())
++        .await
++        .unwrap();
++    b.set_local_description(b.create_answer(None).await.unwrap())
++        .await
++        .unwrap();
++    timeout(Duration::from_secs(3), bgr.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    a.set_remote_description(b.local_description().await.unwrap())
++        .await
++        .unwrap();
++    let writes = tokio::spawn(async move {
++        for sequence in 1..=200 {
++            let packet = rtp::Packet {
++                header: rtp::Header {
++                    version: 2,
++                    ssrc,
++                    sequence_number: sequence,
++                    timestamp: u32::from(sequence) * (rate / 50),
++                    ..Default::default()
++                },
++                payload: bytes::Bytes::from_static(&[0x10, 0, 0, 0, 0]),
++            };
++            let _ = local.write_rtp(packet).await;
++            tokio::time::sleep(Duration::from_millis(10)).await;
++        }
++    });
++    let observed = timeout(Duration::from_secs(5), opened_rx.recv()).await;
++    let discoverable_during_callback = timeout(Duration::from_secs(1), b.get_receivers())
++        .await
++        .unwrap()
++        .len();
++    release.notify_one();
++    let after = if let Ok(Some((track, _, _))) = &observed {
++        timeout(Duration::from_secs(2), async {
++            loop {
++                match track.poll().await {
++                    Some(TrackRemoteEvent::OnRtpPacket(packet)) => break Some(packet.header.ssrc),
++                    None | Some(TrackRemoteEvent::OnEnded | TrackRemoteEvent::OnError) => {
++                        break None;
++                    }
++                    _ => {}
++                }
++            }
++        })
++        .await
++        .ok()
++        .flatten()
++    } else {
++        None
++    };
++    writes.abort();
++    let _ = writes.await;
++    timeout(Duration::from_secs(2), a.close())
++        .await
++        .unwrap()
++        .unwrap();
++    timeout(Duration::from_secs(2), b.close())
++        .await
++        .unwrap()
++        .unwrap();
++    let (_, ssrcs, got_codec) = observed.unwrap().unwrap();
++    assert_eq!(
++        (
++            ssrcs,
++            got_codec.map(|c| (c.mime_type, c.clock_rate)),
++            discoverable_during_callback,
++            after
++        ),
++        (vec![ssrc], Some((mime.into(), rate)), 0, Some(ssrc)),
++        "callback metadata and publication ordering must both be ready"
++    );
++}
++#[tokio::test]
++async fn track_ready_audio_callback_precedes_discovery() {
++    exercise(RtpCodecKind::Audio, "audio/PCMU", 8000, 0).await;
++}
++#[tokio::test]
++async fn track_ready_video_callback_precedes_discovery() {
++    exercise(RtpCodecKind::Video, "video/VP8", 90000, 96).await;
++}

@@ -5,6 +5,7 @@ import hashlib
 import json
 import pathlib
 import subprocess
+from lib.prepared_archive import prepare_archive
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -28,6 +29,9 @@ def main():
     directory = args.destination or ROOT / '.deps'
     directory.mkdir(exist_ok=True)
     for name, source in lock['sources'].items():
+        if source.get('kind') == 'crate':
+            prepare_archive(ROOT, directory, name, source, lock['patches'], args.cache)
+            continue
         dest = directory / name
         if not dest.exists():
             cache = args.cache / name if args.cache else None
@@ -63,6 +67,7 @@ def main():
             if git(dest, 'status', '--porcelain'):
                 raise SystemExit(f'{dest}: unrecorded changes; refusing to reset')
             for patch in lock['patches']:
+                if patch.get('target', 'rvoip') != 'rvoip': continue
                 run('git', '-C', str(dest), 'apply', '--check', str(ROOT / patch['path']))
                 run('git', '-C', str(dest), 'apply', str(ROOT / patch['path']))
             paths = git(dest, 'diff', '--name-only').splitlines() + git(dest, 'ls-files', '--others', '--exclude-standard').splitlines()

@@ -12,6 +12,18 @@ use std::{
 };
 const MAX_INCOMPLETE_FRAMES: usize = 8;
 
+/// Observed RTP packet range for one contiguous completed encoded frame.
+/// Sequence numbers wrap at 16 bits; the range includes both endpoints.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct VideoSequenceRange {
+    /// RTP source synchronization identifier observed on the frame's packets.
+    pub ssrc: u32,
+    /// Sequence number of the frame's start packet.
+    pub first: u16,
+    /// Sequence number of the frame's final marker packet.
+    pub last: u16,
+}
+
 /// Numeric assembly observations; no media, source addresses or credentials.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
 pub struct VideoAssemblyDiagnostics {
@@ -71,8 +83,16 @@ pub struct VideoFrameAssembler {
     completed: VecDeque<(u32, u32)>,
     retired: VecDeque<(u32, u32)>,
     diagnostics: VideoAssemblyDiagnostics,
+    completed_sequence: Option<VideoSequenceRange>,
 }
 impl VideoFrameAssembler {
+    /// Packet range for the frame returned by the latest [`Self::push`].
+    /// Returns `None` when that push returned no frame or an error. Applications
+    /// can retain this numeric metadata beside a frame to check decoder continuity
+    /// after their own bounded reordering and playout; it contains no media bytes.
+    pub fn completed_sequence_range(&self) -> Option<VideoSequenceRange> {
+        self.completed_sequence
+    }
     /// Observe bounded assembly usage. Historical peaks include every insertion,
     /// rather than sampling only the queue depth after a completed frame.
     pub fn diagnostics(&self) -> VideoAssemblyDiagnostics {
@@ -108,6 +128,7 @@ impl VideoFrameAssembler {
     /// Accept reordered fragments but yield only a contiguous start-to-marker
     /// frame. Callers should decode completed frames in their RTP timestamp order.
     pub fn push(&mut self, packet: &NativeVideoPacket) -> Result<Option<NativeVideoFrame>> {
+        self.completed_sequence = None;
         self.expire_stale();
         let source = (packet.ssrc, packet.timestamp_rtp);
         if self.completed.contains(&source)
@@ -213,8 +234,14 @@ impl VideoFrameAssembler {
                     .position(|p| p.source == source)
                     .ok_or(ClientError::Protocol)?;
                 let p = self.pending.remove(i).ok_or(ClientError::Protocol)?;
+                let range = VideoSequenceRange {
+                    ssrc: p.source.0,
+                    first: p.first.ok_or(ClientError::Protocol)?,
+                    last: next,
+                };
                 self.remember(source);
                 self.diagnostics.completed_frames += 1;
+                self.completed_sequence = Some(range);
                 return Ok(Some(NativeVideoFrame {
                     timestamp_rtp: packet.timestamp_rtp,
                     keyframe: p.bytes.first().is_some_and(|b| b & 1 == 0),
@@ -264,12 +291,61 @@ mod tests {
         let packets = packetize(&vec![6; 3000], 90, &mut seq, 42, 96).unwrap();
         let mut a = VideoFrameAssembler::default();
         assert!(a.push(&packets[2]).unwrap().is_none());
+        assert_eq!(a.completed_sequence_range(), None);
         assert!(a.push(&packets[0]).unwrap().is_none());
         assert!(a.push(&packets[0]).unwrap().is_none());
         assert_eq!(a.push(&packets[1]).unwrap().unwrap().encoded, vec![6; 3000]);
+        assert_eq!(
+            a.completed_sequence_range(),
+            Some(VideoSequenceRange {
+                ssrc: 42,
+                first: u16::MAX,
+                last: 1
+            })
+        );
         for packet in &packets {
             assert!(a.push(packet).unwrap().is_none());
+            assert_eq!(a.completed_sequence_range(), None);
         }
+    }
+    #[test]
+    fn sequence_metadata_uses_buffered_marker_and_clears_before_an_incomplete_or_invalid_push() {
+        let mut sequence = 100;
+        let packets = packetize(&vec![6; 3000], 90, &mut sequence, 7, 96).unwrap();
+        let mut assembler = VideoFrameAssembler::default();
+        // The packet completing assembly is the middle fragment, not the marker.
+        assert!(assembler.push(&packets[2]).unwrap().is_none());
+        assert!(assembler.push(&packets[0]).unwrap().is_none());
+        assert!(assembler.push(&packets[1]).unwrap().is_some());
+        assert_eq!(
+            assembler.completed_sequence_range(),
+            Some(VideoSequenceRange {
+                ssrc: 7,
+                first: 100,
+                last: 102,
+            })
+        );
+        let next = packetize(&vec![6; 3000], 180, &mut sequence, 7, 96).unwrap();
+        assert!(assembler.push(&next[0]).unwrap().is_none());
+        assert_eq!(assembler.completed_sequence_range(), None);
+        let complete = packetize(&[4; 100], 270, &mut sequence, 9, 96).unwrap();
+        assert!(assembler.push(&complete[0]).unwrap().is_some());
+        assert_eq!(assembler.completed_sequence_range().unwrap().ssrc, 9);
+        let mut invalid = next[1].clone();
+        invalid.rtp.clear();
+        assert!(assembler.push(&invalid).is_err());
+        assert_eq!(assembler.completed_sequence_range(), None);
+    }
+    #[test]
+    fn marker_without_a_start_packet_cannot_publish_sequence_metadata() {
+        let mut sequence = 30;
+        let packets = packetize(&vec![6; 3000], 90, &mut sequence, 7, 96).unwrap();
+        let mut assembler = VideoFrameAssembler::default();
+        for packet in packets.iter().skip(1).rev() {
+            assert!(assembler.push(packet).unwrap().is_none());
+            assert_eq!(assembler.completed_sequence_range(), None);
+        }
+        assert_eq!(assembler.diagnostics().completed_frames, 0);
     }
     #[test]
     fn a_missing_fragment_and_a_conflicting_duplicate_never_complete() {

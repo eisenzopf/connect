@@ -1,0 +1,153 @@
+{
+  "profile": "connect-gate5-upstream-reorder-review/1",
+  "reviewed_at": "2026-10-14T09:29:01.410627+00:00",
+  "status": "audio-capacity-repair-component-verified; full-source-and-media-requalification-pending",
+  "scope": "Independent review of QUIC VP8 reorder/packetizer integration, WebRTC audio reorder, route-ticket authority and recorded patch provenance. Reviewer authored only the audio capacity repair after discovering it. No live provider, device or full-candidate qualification.",
+  "findings": [
+    {
+      "id": "R5-16",
+      "priority": 2,
+      "finding": "Audio reorder at full capacity could emit a nearer new packet after farther buffered packets, defeating monotonic source sequence and recreating the downstream clock reset.",
+      "original_trace": {
+        "emitted": [
+          10
+        ],
+        "pending": [
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22
+        ],
+        "expected": 11,
+        "incoming": 12,
+        "old_immediate_output": [
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22
+        ],
+        "old_later_expiry_output": [
+          12
+        ],
+        "proof_scope": "Exact static execution trace of original push/advance/drain; no original failing compiled test claim."
+      },
+      "resolution": "Compare incoming distance against nearest pending sequence before pressure advancement. Release nearer incoming input first, retain the genuine missing-sequence hole, then drain successors.",
+      "regression": "nearer_gap_fill_at_capacity_precedes_future_packets_even_across_wrap",
+      "regression_scope": "Normal and wrapped sequence origins, original gap preserved, monotonic11-item release from10 retained packets plus active incoming input, bounded queue, late original gap and duplicate refused.",
+      "state": "recorded-source-fixed-and-five-focused-tests-passed"
+    }
+  ],
+  "quic_video_review": {
+    "result": "No newly identified release-blocking defect in the admitted fixed-source two-party path.",
+    "bounds": "64 retained packets; active packet separate; <=100ms gap wait and independent idle deadline; original captured_at preserved with <=200ms age checks before reorder and before physical send. Ready output is drained before additional queue admission. Descriptor parser requires at least one codec byte, preventing key-start indexing past payload.",
+    "late_and_duplicate": "Exact known recent duplicates retain same packetizer output; conflicting duplicates and unknown late sequences are rejected by bounded64-entry/200ms mapping. Pending duplicates retain first original work item. Tests include variable-width wrap, idle loss, late duplicate, pressure gap and nearer noncontiguous new input.",
+    "authority": "Queued PeerMediaFrame retains the original route ticket without acquiring a delivery guard. into_delivery runs after reorder release and refuses a retired generation, with guard retained through local send. No queue admission is treated as current authority. Connection cancellation remains owned by transport; bounded ready burst does not detach jobs.",
+    "source_switch_limit": "normalize_packet rewrites incoming SSRC to destination-local SSRC before Vp8Reorder and again before Vp8Packetizer, so their standalone SSRC-switch tests do not prove an integrated changed-source rollover. Gate5 native send_vp8 fixes SSRC and preserves sequence; browser capture mute toggles track enablement; the approved required profile is two-party and does not advertise active-speaker video replacement. Dynamic different-source input on one retained destination pump is not qualified by this review. If such a product path is added/admitted, use an explicit source-generation boundary with stale-ticket rejection, codec restart/keyframe gating and output clock/sequence continuity, plus integrated switch tests."
+  },
+  "audio_review": {
+    "bounds": "10 retained packets;100ms gap timeout is polled with no new traffic. Original local captured_at is retained through release; pump discards >=200ms old input and limits sink wait to remaining age budget.",
+    "duplicates_and_sources": "Wrapped late sequences and duplicates are rejected. SSRC replacement clears pending entries before anchoring new sequence. The repaired nearer-input pressure case now uses the same ordering principle as video. Authenticated TrackRemote supplies stream binding; reorder metadata does not grant policy authority.",
+    "limitations": "Pure reorder tests are not proof of downstream real decoded recovery, transport cancellation, provider behavior or final candidate compatibility."
+  },
+  "inputs_before_sha256": {
+    "patches/rvoip/quic-video-egress-reorder.patch": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+    "patches/rvoip/webrtc-audio-ingress-reorder.patch": "643fa9e066cdc2160d74731e46bcbf846fe80b6fec44376daa750327375e14cc",
+    "dependencies/source-lock.json": "70bb6353c5af9fa0aa73026e0b39e22e0ba9733068b76728ae7fbc42b4b23501",
+    ".deps/rvoip/crates/uctp/rvoip-quic/src/media_stream.rs": "049cd0e4c0a58dc4762886257a487753fafacb569cb0aacd3c901d46383ebb90",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/pump.rs": "81041f1f27f0214cebcd2f64238eaae52447c15ef5dd23363a7740c00769bcfd",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs": "9d473c7055161871e144ef87f0001d465631df61db2b7246a2bb6baf7b1d4870",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_packetizer_reorder.rs": "eb761b6e3783edffaee4caa1a3f2ee9da3271b6667ec383f60f0fce1c68217db",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_packetizer.rs": "6cbd4a48a6c031766a159973b5d6bfeba019e9abab499b3a025345fca750794b",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_bridge.rs": "7ddb38f1cfc6738ee8ab973d42e830fb816293c416eef17d9484dc71f4010427",
+    ".deps/rvoip/crates/foundation/rvoip-core-traits/src/peer_media.rs": "3d7708ef21501fd31b28cd50f519b7e8f373d2fdefca988da3e091f8b963b175"
+  },
+  "inputs_after_sha256": {
+    "patches/rvoip/quic-video-egress-reorder.patch": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+    "patches/rvoip/webrtc-audio-ingress-reorder.patch": "5d20734f650ff4f7a9a69c1c001af2688560727317315b2b501a5f694e4d122f",
+    "dependencies/source-lock.json": "b6e6301d2320e5960776303857fc7d7cfaf87d115f96902fcc95ac7232130615",
+    ".deps/rvoip/crates/uctp/rvoip-quic/src/media_stream.rs": "049cd0e4c0a58dc4762886257a487753fafacb569cb0aacd3c901d46383ebb90",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/pump.rs": "81041f1f27f0214cebcd2f64238eaae52447c15ef5dd23363a7740c00769bcfd",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs": "6901ebea2c70f32944afad1d6f16b397a8d2ed3fa73641da91236dae7e707e7c",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_packetizer_reorder.rs": "eb761b6e3783edffaee4caa1a3f2ee9da3271b6667ec383f60f0fce1c68217db",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_packetizer.rs": "6cbd4a48a6c031766a159973b5d6bfeba019e9abab499b3a025345fca750794b",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_bridge.rs": "7ddb38f1cfc6738ee8ab973d42e830fb816293c416eef17d9484dc71f4010427",
+    ".deps/rvoip/crates/foundation/rvoip-core-traits/src/peer_media.rs": "3d7708ef21501fd31b28cd50f519b7e8f373d2fdefca988da3e091f8b963b175"
+  },
+  "unchanged_video_and_authority_inputs": [
+    "patches/rvoip/quic-video-egress-reorder.patch",
+    ".deps/rvoip/crates/uctp/rvoip-quic/src/media_stream.rs",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/pump.rs",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_packetizer_reorder.rs",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_packetizer.rs",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/video_bridge.rs",
+    ".deps/rvoip/crates/foundation/rvoip-core-traits/src/peer_media.rs"
+  ],
+  "recorded_patches": [
+    {
+      "path": "patches/rvoip/quic-video-egress-reorder.patch",
+      "sha256": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+      "matches_source_lock": true
+    },
+    {
+      "path": "patches/rvoip/webrtc-audio-ingress-reorder.patch",
+      "sha256": "5d20734f650ff4f7a9a69c1c001af2688560727317315b2b501a5f694e4d122f",
+      "matches_source_lock": true
+    }
+  ],
+  "prepare": {
+    "fresh_command": "python3 scripts/prepare-dependencies.py --cache .deps --destination .local/gate5/upstream-reorder-review/prepared",
+    "result": "exit0; fresh pinned graph and all15 recorded patches prepared; prior .deps preserved then verified graph selected",
+    "log_sha256": "f6cf1feecc272ab94572c3fcb2720d94fc324a765b6363f0405b2eceaf2d4852",
+    "selected_command": "bash scripts/prepare-dependencies.sh",
+    "selected_result": "exit0; pinned sources and patch digests verified",
+    "selected_log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+  },
+  "prior_component_evidence": {
+    "path": ".local/gate5/final-fifteen-verification-20261014T090034.438933Z/result.json",
+    "sha256": "ccf8de784b434dededf7646291295ea8185307f8df7cc9a9b155a500ca12b60b",
+    "status": "passed",
+    "counts": {
+      "video_packetizer_and_reorder": 9,
+      "audio_reorder_before_repair": 4,
+      "peer_media_ticket": 3
+    },
+    "claim_limit": "Retained earlier selected-source proof. Existing4 audio tests do not cover discovered pressure case and do not qualify new audio source. Unchanged video/ticket source inspection is separate from fresh execution."
+  },
+  "interrupted_attempt": {
+    "command": "cargo test --locked --manifest-path .deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml --lib audio_reorder",
+    "exit_code": 130,
+    "reason": "Reviewer stopped own build after discovering recorded selected-feature test profile requires signaling-ws,client. No failed-behavior or passing result claimed; no orphan Cargo/rustc remained before selected rerun.",
+    "log_sha256": "4c5e6e44b6b17c2514f23d72e8a9bab8d0a5f3d624f3d4717705b9751ca1f0d3"
+  },
+  "pending": [
+    "Current source rebuild and strict checks",
+    "Affected browser audio/impairment/mute profile reruns on the repaired graph",
+    "Final installed candidate and release review"
+  ],
+  "whole_gate_qualified": false,
+  "published": false,
+  "verification": {
+    "command": "CARGO_TARGET_DIR=target/gate4-final-review CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked --manifest-path .deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml --features signaling-ws,client --lib media::audio_reorder",
+    "exit_code": 0,
+    "passed": 5,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out": 140,
+    "log_sha256": "41ce09ee513c66a1846fe2b1b97829d7b35f48c4b2972160c954920342e43659",
+    "reviewed_inputs_stable_after_test": true,
+    "claim_limit": "Focused algorithm tests execute real prepared upstream module with selected feature profile; no full upstream suite, binary media, installed, provider or candidate claim."
+  },
+  "finished_at": "2026-10-14T09:30:31.994388+00:00"
+}

@@ -126,6 +126,32 @@ before and after all two fault cases and both same-Session reattachments.
 The new hooks execute fresh public CLI setup and failure recovery against the
 installed executable, schema 1 and 16 migration plus selected current-schema
 recovery and replay with the packaged Python SDK, and decoded video using the packaged browser assets/native executable.
+Public setup also exercises twelve provider catalog, preview and readiness cases
+through the same selected executable. An owned loopback Vapi fixture serves two
+read-only discovery requests; Telnyx metadata is supplied locally. These cases
+verify exact resource reuse, incomplete/duplicate catalog and purchase refusal,
+capability and consent gaps, directional/stale readiness, explicit secret
+reference selection and redaction. They perform no live provider requests or
+resource changes, and the fixture ships in the source archive.
+The connected-app journey selects the installed `connect` and `connect-example`
+binaries and verifies both communication directions, downloaded artifact bytes,
+unauthorized and ambiguous input refusal, original business and mutation IDs
+after server/worker restart, receipt replay and one response per effect. Its
+driver and helper hashes are checked again alongside both binaries. Normal
+binary behavior remains separate from test-support lost-ack crash injection.
+Installed Session controls run the selected server/helper with the packaged
+Python and TypeScript SDKs over both native and HTTP transports. Nineteen CLI
+receipts cover AV invite/accept/end/reject/cancel, wrong actor/Conversation and
+changed-input conflicts; the SDKs originate sixteen more receipts. All thirty-five
+receipts agree across the selected clients, and narrower replacement credentials
+deny replay of all twenty-six previously successful operations. Six supervised
+SDK phases require complete helper cleanup and scan retained diagnostics against
+every issued credential. The source parity fixture exercises eight public entry points, including Rust, direct HTTP and MCP, and
+remains separately scoped source evidence.
+The installed reference check also requires its attributed AV decision and
+artifact to survive restart, exact decision replay, one follow-up, explicit
+context omissions and zero foreign-Conversation sources. No transcript or model
+vision is inferred from AV transport.
 Native Keychain library fixtures compile from the exact source archive and
 separately exercise the selected installed CLI; the report distinguishes those
 scopes. Tools and binaries are explicitly selected and hash-bound. A 60-second
@@ -150,3 +176,6 @@ routes, all three impaired 60-second routes, and a separate 20-second
 camera/microphone mute/recovery scenario on each route. Resource and measurement
 coverage gaps remain blocking. The exploratory two-call capacity rehearsal is
 reported separately and does not expand the supported two-party profile.
+Each installed media report must contain exactly one completed observation for
+each route with the expected scenario and full finite duration; an aggregate pass
+cannot substitute for a missing, duplicated, failed or shorter route.

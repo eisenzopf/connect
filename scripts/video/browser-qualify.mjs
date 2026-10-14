@@ -8,8 +8,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { ordinalSync } from "./marker_calibration.mjs";
 import { audioObservation } from "./audio_observation.mjs";
+import { combineAudioEnvelopeSync, audioVideoSyncPassed } from "./audio_envelope.mjs";
 import { motionObservation } from "./motion_observation.mjs";
 import { workerPipeline } from "./encoded_worker_observation.mjs";
+import { installPeerDiagnostics, browserFailure } from "./browser_failure.mjs";
 const moduleInput = process.env.CONNECT_PLAYWRIGHT_MODULE;
 const { chromium } = await import(moduleInput ? pathToFileURL(moduleInput).href : "playwright");
 let input = "";
@@ -36,6 +38,10 @@ if(spec.root) {
             if(request.method==="GET"&&url.pathname==="/_qualification/marker-calibration.mjs"){
                 response.writeHead(200,{"Content-Type":"text/javascript"});
                 response.end(await fs.readFile(new URL("./marker_calibration.mjs",import.meta.url)));return;
+            }
+            if(request.method==="GET"&&url.pathname==="/_qualification/audio-envelope.mjs"){
+                response.writeHead(200,{"Content-Type":"text/javascript"});
+                response.end(await fs.readFile(new URL("./audio_envelope.mjs",import.meta.url)));return;
             }
             if(request.method==="GET"&&url.pathname==="/_qualification/audio-spectrum.mjs"){
                 response.writeHead(200,{"Content-Type":"text/javascript"});
@@ -65,6 +71,7 @@ for(const tones of [spec.sourceToneHz,spec.expectedToneHz])if(tones!==undefined&
 const browser = await chromium.launch({ headless: true, executablePath: process.env.CONNECT_CHROME_BINARY,
     args: ["--autoplay-policy=no-user-gesture-required", "--disable-background-timer-throttling", "--disable-renderer-backgrounding"] });
 const contexts = [];
+const observedPages = [];
 let cleanupPromise;
 const cleanup=()=>cleanupPromise??=(async()=>{
     await Promise.allSettled(contexts.map(context=>context.close()));
@@ -76,6 +83,8 @@ try {
     const pages = await Promise.all(spec.tokens.map(async (credential,index) => {
         const context = await browser.newContext(); contexts.push(context);
         const page = await context.newPage();
+        observedPages.push(page);
+        await page.addInitScript(installPeerDiagnostics);
         await page.goto(spec.baseURL + "/examples/conversation-client/");
         await page.evaluate(async ({ url, credential, frequency, conversationId, sessionId, sourceId }) => {
             const { BrowserVideoSession } = await import("/sdk/typescript/dist/browser.js");
@@ -125,6 +134,7 @@ try {
             await session.attach(video);
             const sample=document.createElement("canvas"); sample.width=8;sample.height=8;
             const pixels=sample.getContext("2d",{willReadFrequently:true});
+            pixels.imageSmoothingEnabled=false; // Sample uniform marker centres, without neighboring background blend.
             const observation={rendered:0,changing:0,last:null,videoEdges:[],audioEdges:[],changingTimes:[],audioSamples:[],audioTicks:0,white:null,audioHigh:null,sourceIdentityCounts:{}};
             const decoded=()=>{
                 observation.rendered++;
@@ -150,8 +160,10 @@ try {
     }));
     // Initial negotiation does not count toward the clean 60-second window.
     await new Promise(resolve=>setTimeout(resolve,1500));
-    await Promise.all(pages.map(page=>page.evaluate(()=>{
+    await Promise.all(pages.map(page=>page.evaluate(async()=>{
         const f=window.videoFixture;
+        const {AudioEnvelope}=await import("/_qualification/audio-envelope.mjs");
+        f.audioEnvelope=new AudioEnvelope();
         if(f.session.remoteStream.getAudioTracks().length!==1)throw Error("No independent remote audio track");
         const source=f.audio.createMediaStreamSource(f.session.remoteStream);
         const analyser=f.audio.createAnalyser();analyser.fftSize=256;source.connect(analyser);f.analyser=analyser;
@@ -162,9 +174,8 @@ try {
         f.audioTimer=setInterval(()=>{
             const values=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(values);
             const rms=Math.sqrt(values.reduce((s,v)=>s+v*v,0)/values.length);
-            const high=rms>0.055;
-            if(high&&f.observation.audioHigh===false)f.observation.audioEdges.push(performance.now());
-            f.observation.audioHigh=high;
+            const observedAt=performance.now();
+            if(f.audioEnvelope.sample(observedAt/1000,rms))f.observation.audioEdges.push(observedAt);
             if(f.observation.audioTicks++%10===0 && f.observation.audioSamples.length<2000) {
                 const frequencySamples=new Float32Array(f.frequencyAnalyser.fftSize);
                 f.frequencyAnalyser.getFloatTimeDomainData(frequencySamples);
@@ -220,6 +231,7 @@ try {
             if(f.iceSamples.length<256)f.iceSamples.push({unix_seconds:(performance.timeOrigin+performance.now())/1000,
                 remote_port:incoming?.selectedRemotePort,local_port:incoming?.selectedLocalPort,
                 transport:incoming?.selectedTransport,candidate_type:incoming?.selectedCandidateType,
+                observation_source:incoming?.selectedCandidatePairSource,
                 decoded_keyframes:incoming?.keyframes,decoded_frames:incoming?.frames});
         };
         f.recordIce(initialStats);
@@ -242,14 +254,14 @@ try {
     })));
     await new Promise(resolve=>setTimeout(resolve,spec.seconds*1000));
     const elapsed=(performance.now()-began)/1000;
-    const final = await Promise.all(pages.map((page,index)=>page.evaluate(async({expectedSourceId,allowMutedBlack})=>{
+    const final = await Promise.all(pages.map((page,index)=>page.evaluate(async({expectedSourceId,allowMutedBlack,markerStart})=>{
         const f=window.videoFixture;clearInterval(f.iceTimer);
         f.observation.recordIdentity=false;
         const stats=await f.session.diagnostics();f.recordIce(stats);
         return {stats,sourceIdentity:f.sourceIdentityReport(f.observation.sourceIdentityCounts,expectedSourceId,allowMutedBlack),markerEndUnix:(performance.timeOrigin+performance.now())/1000,
         iceSamples:f.iceSamples,iceErrors:f.iceErrors,outboundSamples:f.outboundSamples,
         outbound:f.outboundMetadata(stats),source:{...f.sourceObservation},muteTransitions:f.muteTransitions,
-        audioSamples:f.observation.audioSamples,rendered:window.videoFixture.observation.rendered,
+        audioEnvelope:f.audioEnvelope.report(markerStart),audioSamples:f.observation.audioSamples,rendered:window.videoFixture.observation.rendered,
         changing:window.videoFixture.observation.changing,
         videoEdges:window.videoFixture.observation.videoEdges,audioEdges:window.videoFixture.observation.audioEdges,
         changingTimes:window.videoFixture.observation.changingTimes,
@@ -257,7 +269,7 @@ try {
             f.frequencyAnalyser.getFloatTimeDomainData(samples);
             const spectrum=new Float32Array(f.frequencyAnalyser.frequencyBinCount);f.frequencyAnalyser.getFloatFrequencyData(spectrum);
             return f.spectralTone(samples,spectrum,f.audio.sampleRate,f.frequencyAnalyser.fftSize);})() };
-    },{expectedSourceId:spec.expectedSourceIds?.[index]??(index===0?1:0),allowMutedBlack:Boolean(spec.muteRecovery)})));
+    },{expectedSourceId:spec.expectedSourceIds?.[index]??(index===0?1:0),allowMutedBlack:Boolean(spec.muteRecovery),markerStart:initial[index].markerStart/1000})));
     const observations=final.map((end,index)=>{
         const inbound=end.stats.find(s=>s.direction==="inbound");
         const before=initial[index].stats.find(s=>s.direction==="inbound");
@@ -270,7 +282,7 @@ try {
         const observedElapsed=end.markerEndUnix-initial[index].markerStartUnix;
         const video=end.videoEdges.filter(time=>time>=initial[index].markerStart);
         const audio=end.audioEdges.filter(time=>time>=initial[index].markerStart);
-        const sync=ordinalSync(video.map(time=>time/1000),audio.map(time=>time/1000),spec.seconds);
+        const sync=combineAudioEnvelopeSync(ordinalSync(video.map(time=>time/1000),audio.map(time=>time/1000),spec.seconds),end.audioEnvelope);
         sync.time_basis="independent decoded browser video rendering/audio gain edges on the same performance clock; no sender timing or RTP-origin inference";
         const expected=spec.expectedToneHz?.[index]??(index===0?660:440);
         const audioContent={window_start_unix_seconds:initial[index].markerStartUnix,
@@ -350,12 +362,15 @@ try {
     const passed=observations.every(o=>o.worker_pipeline.status==="passed"&&(o.motion_profile.status==="passed"||(spec.muteRecovery&&pages.length===1&&o.motion_profile.status==="requires-counterpart-setter-binding"))&&(o.audio_profile.status==="passed"||(spec.muteRecovery&&pages.length===1&&o.audio_profile.status==="requires-counterpart-setter-binding"))&&o.source_identity.status==="passed"&&o.stats_available&&o.decoded!==null&&o.codec?.toLowerCase()==="video/vp8"&&o.width===640&&o.height===360
         &&o.decoded/o.elapsed_seconds>=(spec.profileMode==="clean"?24:1)&&o.changing/o.elapsed_seconds>=(spec.profileMode==="clean"?24:1)&&o.audio_rms>0.001
         &&Math.abs(o.audio_frequency_hz-o.expected_audio_frequency_hz)<35
-        &&o.av_sync.paired>=spec.seconds*.7&&o.av_sync.median_abs_skew_ms<=80&&o.av_sync.p95_abs_skew_ms<=120
+        &&o.av_sync.status==="passed"&&audioVideoSyncPassed(o.av_sync,spec.seconds)
         &&o.recovery.every(item=>item.status==="passed"))&&teardown<5&&ended.every(Boolean)&&pairedTermination.status!=="failed";
     console.log(JSON.stringify({status:passed?"passed":"failed",profile:"connect-video-vp8/1",
         browser:browser.version(),observations,teardown_seconds:teardown,paired_termination:pairedTermination,
         ended_unix_seconds:Date.now()/1000}));
     if(!passed)process.exitCode=1;
+} catch (error) {
+    console.log(JSON.stringify(await browserFailure(observedPages, error)));
+    throw error;
 } finally {
     await cleanup();
 }

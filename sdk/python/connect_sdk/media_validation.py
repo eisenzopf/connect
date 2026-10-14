@@ -72,10 +72,25 @@ def send_buffer(value):
 
 
 
+CONGESTION = ('congestion_samples', 'maximum_sampled_connection_lost_packets', 'maximum_sampled_connection_congestion_events', 'maximum_sampled_connection_sent_packets')
+CONGESTION_NULLABLE = ('minimum_sampled_rtt_us', 'maximum_sampled_rtt_us', 'minimum_sampled_cwnd_bytes', 'maximum_sampled_cwnd_bytes')
+
+def congestion(value):
+    keys = (*CONGESTION, *CONGESTION_NULLABLE)
+    if not any(key in value for key in keys): return True
+    if not all(key in value for key in keys) or not counters(value, CONGESTION): return False
+    if value['congestion_samples'] == 0:
+        return all(value[key] is None for key in CONGESTION_NULLABLE)
+    return (all(natural(value[key]) for key in CONGESTION_NULLABLE)
+            and value['minimum_sampled_rtt_us'] <= value['maximum_sampled_rtt_us']
+            and value['minimum_sampled_cwnd_bytes'] <= value['maximum_sampled_cwnd_bytes'])
+
+
 def quic(value):
     return (
-        closed(value, (*QUIC, *NULLABLE), ("send_buffer",))
+        closed(value, (*QUIC, *NULLABLE), ("send_buffer", *CONGESTION, *CONGESTION_NULLABLE))
         and counters(value, QUIC)
+        and congestion(value)
         and ("send_buffer" not in value or send_buffer(value["send_buffer"]))
         and all(value[key] is None or natural(value[key]) for key in NULLABLE)
     )

@@ -2856,8 +2856,6 @@ dependencies = [
 [[package]]
 name = "quinn-proto"
 version = "0.11.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e750cca55fe4f0439a15d0bb529da9651e79993e8e72c61a899a36d462befbe"
 dependencies = [
  "bytes",
  "getrandom 0.4.3",
@@ -3314,8 +3312,6 @@ dependencies = [
 [[package]]
 name = "rtc-dtls"
 version = "0.20.0-alpha.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "067a19d0491fa2b09363bf9fdab2b3889447498844da092f875a1de9968750d0"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -3367,8 +3363,6 @@ dependencies = [
 [[package]]
 name = "rtc-interceptor"
 version = "0.20.0-alpha.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e"
 dependencies = [
  "log",
  "rand 0.9.5",
@@ -4180,6 +4174,7 @@ dependencies = [
  "futures",
  "hmac",
  "parking_lot",
+ "rand 0.8.8",
  "rvoip-auth-core",
  "rvoip-core",
  "rvoip-rtc",

@@ -14,6 +14,7 @@ export function referenceInputSnapshot(assets, executable, environment) {
         fileURLToPath(import.meta.url),
         fileURLToPath(new URL("./reference_runtime.mjs", import.meta.url)),
         fileURLToPath(new URL("./reference_video.mjs", import.meta.url)),
+        fileURLToPath(new URL("./reference_continuity.mjs", import.meta.url)),
     ];
     for (const relative of [
         "examples/conversation-client",
@@ -31,11 +32,16 @@ export function referenceInputSnapshot(assets, executable, environment) {
     ])
         if (environment[name]) {
             const selected = path.resolve(environment[name]);
-            if (!fs.statSync(selected).isFile()) throw Error("Select an ordinary tool/module entry file");
+            if (!fs.statSync(selected).isFile())
+                throw Error("Select an ordinary tool/module entry file");
             inputs.push(selected);
             if (name === "CONNECT_PLAYWRIGHT_MODULE") {
-                const manifest = path.join(path.dirname(selected), "package.json");
-                if (fs.existsSync(manifest) && fs.statSync(manifest).isFile()) inputs.push(manifest);
+                const manifest = path.join(
+                    path.dirname(selected),
+                    "package.json",
+                );
+                if (fs.existsSync(manifest) && fs.statSync(manifest).isFile())
+                    inputs.push(manifest);
             }
         }
     return Object.fromEntries(

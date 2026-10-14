@@ -1,0 +1,87 @@
+{
+  "updated": "2026-10-14",
+  "status": "clean-three-route-profile-passed-recovery-qualification-in-progress",
+  "whole_gate_qualified": false,
+  "source_revision_before_changes": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "corrections": [
+    {
+      "name": "declared-SSRC RTCP feedback",
+      "implementation": "patches/rvoip/declared-ssrc-feedback.patch",
+      "proof": "Two actual RR/TWCC interceptor tests pass. A 12-second browser/native rehearsal passed with both directions above 26 changing decoded fps, browser bitrate target restored to 1 Mbit/s, decoded audio and A/V alignment, contained reliable transfer and cleanup.",
+      "private_report": ".local/gate5/feedback-component-20261014T073946.917966Z/media.json",
+      "limitation": "Component rehearsal does not qualify the 60-second operating profile."
+    },
+    {
+      "name": "native codec pipe pacing",
+      "implementation": "examples/native-video/src/pacing.rs",
+      "failure": "Actual 15-second native/native participants each assembled 463 frames but emitted zero video/audio. Initial codec bursts advanced RTP clocks ahead of bounded playback deadlines. Draining before select and codec flushing alone did not fix it; failed attempts retained.",
+      "correction": "Pace both encoded readers at negotiated 30fps and 20 ms audio cadence, skip missed ticks, retain bounded capture queues and unchanged receiver budgets.",
+      "unit_proof": {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "new_pacing_tests": 2
+      },
+      "actual_rehearsal": {
+        "duration_seconds": 15,
+        "participants": [
+          {
+            "video_frames_emitted": 444,
+            "audio_frames_emitted": 742,
+            "maximum_playout_hold_ms": 163.78062500000001
+          },
+          {
+            "video_frames_emitted": 444,
+            "audio_frames_emitted": 742,
+            "maximum_playout_hold_ms": 163.022375
+          }
+        ]
+      },
+      "private_report_directory": ".local/gate5/native-pair-diagnostic-20261014T075837.107121Z",
+      "limitation": "Numeric complete-frame emission only; independent decoding, full-duration A/V and recovery remain separate."
+    },
+    {
+      "name": "decoded source-identity sampling",
+      "failure": "The 60-second browser/native run passed media motion/audio/A-V but failed source identity on 3 frames. Bicubic downscaling mixed marker pixels with surrounding content.",
+      "correction": "Sample decoded pixel centers with nearest-neighbor scaling in native observer and no canvas smoothing in browser observer. Existing 85/155/230 thresholds and rejection of unknown/wrong sources retained.",
+      "proof": "Fresh independent decode of copied retained IVF identifies 1513 correct source frames, 254 white pulses, 0 wrong and 0 unknown. All three incorrect source-ID controls fail. 30 measurement tests pass.",
+      "private_report": ".local/gate5/centre-sampler-recheck-20261014T075509.580822Z/result.json",
+      "limitation": "Original failed report remains failed; fresh integrated profile must pass."
+    },
+    {
+      "name": "bounded playout and decoder reference continuity",
+      "implementation": [
+        "examples/native-video/src/playout.rs",
+        "examples/native-video/src/decode_continuity.rs",
+        "crates/connect-client/src/video/assembly.rs"
+      ],
+      "failure": "First paced 60-second native/native profile failed: completed codec emissions could exceed 200ms and dropped reference frames corrupted decoded source markers until a new keyframe. Failed report retained.",
+      "correction": "Cap release time at local receipt plus the existing 120ms delay, write one complete IVF record per frame, and use additive SDK sequence-range metadata to suppress dependent interframes after a gap until a fresh keyframe. Evaluate continuity in timestamp release order.",
+      "unit_proof": {
+        "sdk_video_tests_passed": 13,
+        "native_example_tests_passed": 11,
+        "failed": 0,
+        "ignored": 0
+      },
+      "integrated_proof": ".local/gate5/clean-video60-continuity-20261014T081314.956562Z/media.json"
+    }
+  ],
+  "remaining": [
+    "Native impairment recovery: forwarding packetizer currently rejects reordered unseen packets; recorded upstream fix in progress",
+    "Impairment, mute, exploratory and actual native cleanup checks",
+    "Current source, installed package and model qualification"
+  ],
+  "clean_profile": {
+    "status": "passed-clean",
+    "seconds_per_route": 60,
+    "routes": [
+      "native-native",
+      "native-browser",
+      "browser-browser"
+    ],
+    "private_report": ".local/gate5/clean-video60-continuity-20261014T081314.956562Z/media.json",
+    "report_sha256": "ee6c51f981e87b9267b9f06e410fff0f47477b4dc4270eb0ca0312b88edbd00b",
+    "binary_directory": ".local/gate5/declared-feedback-build-20261014T081124.848054Z/normal",
+    "scope": "Actual generated VP8/audio, separate decode observations, concurrent reliable transfer, bounded queues, resource coverage and terminal cleanup. This pre-candidate evidence does not qualify a future patched graph or installed package."
+  }
+}

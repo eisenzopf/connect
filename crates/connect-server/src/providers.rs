@@ -143,6 +143,17 @@ impl Worker {
                             };
                             let normalized = selected
                                 .is_some_and(|(driver, _)| driver.message_extension().is_some());
+                            // An adapter response belongs only to the claimed attempt.
+                            // Do not let a malformed receipt select another durable
+                            // job. Dispatch may already have succeeded, so retain the
+                            // original ID as uncertain for read-only reconciliation.
+                            let result = result.and_then(|receipt| {
+                                if receipt.observation.mutation_id == job.id {
+                                    Ok(receipt)
+                                } else {
+                                    Err(Failure::Uncertain)
+                                }
+                            });
                             let observed = result.unwrap_or_else(|failure| {
                                 connect_connector_api::lifecycle::message_attempt(
                                     &job.id,

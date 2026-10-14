@@ -74,3 +74,53 @@ test('unresponsive or terminated workers cannot leave the diagnostics promise or
     assert.ok(performance.now()-began<1000);
     assert.equal((await videoDiagnostics(peer,{postMessage:()=>{throw Error('terminated');}}))[0].worker,undefined);
 });
+
+test('ICE diagnostics read the current public video transport when selected-pair stats are transiently absent', async () => {
+    const current = {remote:{port:23456,protocol:'udp',type:'host',address:'private-canary',candidate:'private-canary'},
+        local:{port:34567,address:'private-canary'}};
+    let calls=0;
+    const transport={iceTransport:{state:'connected',getSelectedCandidatePair:()=>{calls++;return current;}}};
+    const row={kind:'video',type:'outbound-rtp',timestamp:1};
+    const peer={getStats:async()=>new Map([['video',row]]),
+        getSenders:()=>[{track:{kind:'audio'},transport:{iceTransport:{getSelectedCandidatePair:()=>{throw Error('Wrong track');}}}},
+            {track:{kind:'video'},transport}],getReceivers:()=>[{track:{kind:'video'},transport}]};
+    const [out]=await videoDiagnostics(peer);
+    assert.equal(out.selectedRemotePort,23456);assert.equal(out.selectedLocalPort,34567);
+    assert.equal(out.selectedCandidateType,'host');assert.equal(out.selectedTransport,'udp');
+    assert.equal(out.selectedCandidatePairSource,'ice-transport');assert.equal(calls,1);
+    assert.equal(JSON.stringify(out).includes('private-canary'),false);
+    row.type='inbound-rtp';
+    assert.equal((await videoDiagnostics(peer))[0].selectedRemotePort,23456);assert.equal(calls,2);
+});
+
+test('succeeded selected-pair stats keep precedence over an unrelated current transport observation', async () => {
+    const report=new Map([['video',{kind:'video',type:'inbound-rtp',transportId:'transport',timestamp:1}],
+        ['transport',{selectedCandidatePairId:'pair'}],['pair',{state:'succeeded',remoteCandidateId:'remote',localCandidateId:'local'}],
+        ['remote',{port:45678,protocol:'udp',candidateType:'host'}],['local',{port:56789}]]);
+    const peer={getStats:async()=>report,getReceivers:()=>{throw Error('Primary stats must not query fallback');}};
+    const [observed]=await videoDiagnostics(peer);
+    assert.equal(observed.selectedRemotePort,45678);assert.equal(observed.selectedLocalPort,56789);
+    assert.equal(observed.selectedCandidatePairSource,'stats');
+});
+
+test('current ICE observations omit invalid metadata, absent pairs, closed tracks and ambiguous video transports', async () => {
+    let current={remote:{port:Infinity,protocol:'private-canary',type:'private-canary',candidate:'private-canary'},local:{port:-1}};
+    let calls=0;
+    const ice={state:'connected',getSelectedCandidatePair:()=>{calls++;return current;}};
+    const sender={track:{kind:'video'},transport:{iceTransport:ice}};
+    let senders=[sender];
+    const peer={getStats:async()=>new Map([['video',{kind:'video',type:'outbound-rtp',timestamp:1}]]),getSenders:()=>senders};
+    const [invalid]=await videoDiagnostics(peer);
+    for(const key of ['selectedRemotePort','selectedLocalPort','selectedCandidateType','selectedTransport'])assert.equal(invalid[key],undefined);
+    assert.equal(JSON.stringify(invalid).includes('private-canary'),false);
+    current=null;assert.equal((await videoDiagnostics(peer))[0].selectedCandidatePairSource,undefined);
+    const before=calls;
+    for(const state of ['new','closed','disconnected','failed']){
+        ice.state=state;assert.equal((await videoDiagnostics(peer))[0].selectedRemotePort,undefined);
+    }
+    assert.equal(calls,before);
+    ice.state='connected';senders=[sender,sender];
+    assert.equal((await videoDiagnostics(peer))[0].selectedRemotePort,undefined);assert.equal(calls,before);
+    senders=[sender];ice.getSelectedCandidatePair=()=>{throw Error('private-canary');};
+    assert.equal((await videoDiagnostics(peer))[0].selectedRemotePort,undefined);
+});

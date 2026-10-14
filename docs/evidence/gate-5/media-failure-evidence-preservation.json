@@ -1,0 +1,75 @@
+{
+  "format": 1,
+  "task_ids": [
+    "G5-014",
+    "G5-016"
+  ],
+  "status": "component-guards-passed-current-media-pending",
+  "whole_gate_qualified": false,
+  "published": false,
+  "recorded_at": "2026-10-14T10:26:39.428596+00:00",
+  "scope": "Preserve completed numeric diagnostics when a later decode or observation-window operation fails; no failed media result is promoted.",
+  "defect": "The exception handler reloaded the initial running report because _qualify_path had not persisted completed resource/file/network/forwarding measurements before later processing failed.",
+  "repair": "Register each receiver collection before decoding and persist the current observed report during cleanup. The outer handler still assigns failed status and sanitized exception information. Nested cleanup guarantees participant/sampler cleanup even if persistence itself raises.",
+  "unchanged": [
+    "Media thresholds",
+    "Window selection",
+    "Result failure on processing exceptions",
+    "Original retained failed artifacts"
+  ],
+  "source_sha256": {
+    "scripts/check-video-paths.py": "db517c2454ec15a42ba684ae50f6831d7a45b1b2a47b9989ca3e8f32c00961b7",
+    "scripts/tests/test_video_measurements.py": "25816939339c4c75e021c20d71b5dcc2b5d799dc366ded37a6f1a27dbe920da0",
+    "scripts/check-gate-5.py": "397602fe02a7410852011533bd441c59afa5884b955d98d1dd6afea2cc7e56d4"
+  },
+  "verification": {
+    "regression": "FailureEvidencePreservationTests: first window, second window, and second decode failures preserve all previously completed diagnostics and owned cleanup, but never create missing evidence or successful verdicts.",
+    "before": {
+      "log": ".local/gate5/preserve-measurements-proposal/test-before.log",
+      "result": "All three injected processing cases fail preservation on original implementation (missing resources)."
+    },
+    "after": {
+      "log": ".local/gate5/preserve-measurements-proposal/integrated-2.log",
+      "python_passed": 42,
+      "python_failed": 0,
+      "nested_javascript_passed": 12,
+      "nested_javascript_failed": 0
+    },
+    "initial_integration_failure": ".local/gate5/preserve-measurements-proposal/integrated.log"
+  },
+  "limits": [
+    "Fresh current timed media remains required.",
+    "Preservation cannot recover data that was never gathered."
+  ],
+  "participant_failure_followup": {
+    "recorded_at": "2026-10-14T13:53:03.284006+00:00",
+    "trigger": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T134813Z/impairment-browser-browser.json",
+    "finding": "Browser validation failure escaped before authenticated server health was sampled, leaving forwarding diagnostics unobserved despite completed media traffic.",
+    "repair": "Attempt authenticated health while server remains alive in the participant failure branch. Preserve original failure; report a failed health probe as unobserved with exception class only.",
+    "verification": {
+      "python_tests_passed": 45,
+      "log": ".local/gate5/outbound-rtx-integration/failure-diagnostics-tests-fixed.log",
+      "log_sha256": "dfd6be75d8d6f09754af2e2203ef4e08901dc44b4b51acafda8813a4754e55d4",
+      "cases": "Existing three processing cases plus participant failure and simultaneous participant/health failure preserve diagnostics, failed verdict, privacy and owned teardown.",
+      "initial_authoring_failure": ".local/gate5/outbound-rtx-integration/failure-diagnostics-tests.log"
+    },
+    "source_sha256": {
+      "scripts/check-video-paths.py": "19f385432890e5e0e6e29c76d870d609e7507dc145cc56785ab80eed09040211",
+      "scripts/tests/test_video_measurements.py": "8bfbdf312b3bbb970c4cf81450ba0d6939d47850e08a45b49c4331f95e144b82"
+    },
+    "limits": [
+      "Fresh runtime capture remains pending.",
+      "Historical failed runs are not upgraded."
+    ],
+    "runtime_verification": {
+      "report": {
+        "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T141147Z/impairment-browser-browser.json",
+        "sha256": "958f144c519e9b3bd21f691777e30f258e9b444cab03273836d34a1bf2a1b5e5"
+      },
+      "media_status": "failed",
+      "authenticated_forwarding_status": "measured",
+      "policy_observation_retained": true,
+      "limits": "Actual failed browser run retains authenticated numeric diagnostics; no media or whole-gate pass."
+    }
+  }
+}

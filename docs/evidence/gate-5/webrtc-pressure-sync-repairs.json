@@ -1,0 +1,282 @@
+{
+  "format": 1,
+  "recorded_at": "2026-10-14T10:31:32.882582+00:00",
+  "task_ids": [
+    "G5-014",
+    "G5-016"
+  ],
+  "status": "component-reproduced-and-repaired-runtime-pending",
+  "whole_gate_qualified": false,
+  "published": false,
+  "repairs": [
+    {
+      "patch": "patches/rvoip/webrtc-video-reorder-pressure.patch",
+      "defect": "A full64-packet reorder queue advanced to buffered future packets before considering an incoming nearer packet, discarding useful sequencing progress.",
+      "regression": "Exact full-queue expected packet and nearer packet behind a genuine gap, with16-bit wrap; capacity remains64.",
+      "original": "Original regression fails: returns13..76 instead of11.",
+      "current": "video boundary/reorder phase9tests passes including new regression.",
+      "causality_limit": "No evidence that the failed timed browser attempt reached capacity64; maximum actual application reorder depth must be captured before attributing that failure to this defect."
+    },
+    {
+      "patch": "patches/rvoip/webrtc-shared-av-sync-identity.patch",
+      "defect": "Generated local audio and video tracks used distinct stream IDs, which upstream SDP uses for CNAME; this fails to declare their common synchronization group.",
+      "repair": "Random128-bit per-peer shared stream identity; stable across offers and creation order, distinct between independent peers; track IDs remain distinct.",
+      "original": "Actual generated SDP regression fails with2CNAME groups.",
+      "current": "Actual generated SDP regression1test passes; peers close before assertions.",
+      "causality_limit": "Declaring a correct synchronization group is required behavior, but does not prove sender-report clocks or measured end-to-end AV skew qualify."
+    }
+  ],
+  "original_evidence": {
+    "scope": "Preserved source-lock16 prepared from recorded patches via prepare-dependencies, then regression tests only; actual upstream crate generated SDP and reorder implementation.",
+    "results": [
+      {
+        "name": "original-video-pressure",
+        "command": [
+          "cargo",
+          "test",
+          "--manifest-path",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate5/webrtc-recovery-repairs/before-deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml",
+          "--features",
+          "signaling-ws,client",
+          "--lib",
+          "video_reorder_pressure_preserves_nearer_input_and_real_gap_across_wrap",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1200,
+        "log": "original-video-pressure.log",
+        "status": "failed",
+        "exit_code": 101,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 159.757
+      },
+      {
+        "name": "original-av-cname",
+        "command": [
+          "cargo",
+          "test",
+          "--manifest-path",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate5/webrtc-recovery-repairs/before-deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml",
+          "--features",
+          "signaling-ws,client",
+          "--lib",
+          "local_audio_video_sdp_shares_one_private_per_peer_sync_identity",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1200,
+        "log": "original-av-cname.log",
+        "status": "failed",
+        "exit_code": 101,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.487
+      }
+    ],
+    "sha256": {
+      "baseline-preparation/dependencies/source-lock.json": "c2303f175b9ab19530295388f48b03578696f7733ce815dcd2c9b7ca0a72f8e3",
+      "prepare-original.log": "94f22b54c81c77f0916654479b1deef4f932a99def359131e1f12192a6a3de02",
+      "original-video-pressure.log": "b311bdbaa3363346701351a5affb412e1e5267d9fc1d91f53d255ea5423e7dee",
+      "original-av-cname.log": "9d3c8b73be2df40f4e708c671a19c8bf0b2414644f5ccf3281f534c8e252e824",
+      "webrtc-video-reorder-pressure.test-only.patch": "f5fd2c21c02e22afc451e394a3b057a1d25b270da56a35b4f75f1ff4282c2cd9",
+      "webrtc-shared-av-sync-identity.test-only.patch": "21fd248e987b0d0c5ff0c18d55b6a0f6531a3b5185c9c077f2676002e6ca8f8a"
+    },
+    "cargo_lock": {
+      "path": ".local/gate5/webrtc-recovery-repairs/before-deps/rvoip/Cargo.lock",
+      "sha256": "4453fc0e82891068dba7ba993a000e3052bb4bac6371ba48d65dba95ce1c850a",
+      "prepared_manifest_sha256": null,
+      "git_head_sha256": "4453fc0e82891068dba7ba993a000e3052bb4bac6371ba48d65dba95ce1c850a",
+      "unchanged_from_prepared": true,
+      "locked_flag_used": false,
+      "packages": [
+        {
+          "name": "quinn",
+          "version": "0.11.11",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "0c1a41e437b6bbd489372cd4971de128e85c855f56c57f283d20ff016cf7c0a8"
+        },
+        {
+          "name": "quinn-proto",
+          "version": "0.11.16",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "2f4bfc015262b9df63c8845072ce59068853ff5872180c2ce2f13038b970e560"
+        },
+        {
+          "name": "rtc-dtls",
+          "version": "0.20.0-alpha.1",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "067a19d0491fa2b09363bf9fdab2b3889447498844da092f875a1de9968750d0"
+        },
+        {
+          "name": "rtc-interceptor",
+          "version": "0.20.0-alpha.1",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e"
+        },
+        {
+          "name": "rvoip-rtc",
+          "version": "0.3.12",
+          "source": null,
+          "checksum": null
+        }
+      ]
+    }
+  },
+  "current_evidence": {
+    "directory": ".local/gate5/quic-bbr-authoring/candidate-tests-20261014T102946",
+    "selected_phases": [
+      {
+        "name": "webrtc-video",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          ".deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml",
+          "--features",
+          "signaling-ws,client",
+          "--lib",
+          "media::video_"
+        ],
+        "timeout_seconds": 1800,
+        "log": "webrtc-video.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 7.428,
+        "rust_tests": {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      {
+        "name": "webrtc-sync",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          ".deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml",
+          "--features",
+          "signaling-ws,client",
+          "--lib",
+          "local_audio_video_sdp_shares_one_private_per_peer_sync_identity"
+        ],
+        "timeout_seconds": 1800,
+        "log": "webrtc-sync.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.369,
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      }
+    ],
+    "aggregate_report_status_at_read": "running",
+    "aggregate_status_not_inferred": true,
+    "source_lock_sha256": "46bce29c89c6a7d386fbad6a4ecfbf613f1a17a232c43852394a29f378528703",
+    "root_cargo_lock_sha256": "7c1f6609b8a7762a6f556cb679e4147bf642d98679d7401ca5f0c178fce408d1",
+    "patch_sha256": {
+      "patches/rvoip/webrtc-video-reorder-pressure.patch": "b63d5681fa669e6da10d87271f9bf8802d5688a2412eca4ed045ce5bd2807cbd",
+      "patches/rvoip/webrtc-shared-av-sync-identity.patch": "5d150309469e34cfcb1822ba781e6f0845599536e0f5e2c26ba32237461f1874"
+    },
+    "log_sha256": {
+      ".local/gate5/quic-bbr-authoring/candidate-tests-20261014T102946/webrtc-video.log": "5cdb4a7e179d224c5da8bade70651dad8d5cc5af9d91fcba22ee4a6ebac573a8",
+      ".local/gate5/quic-bbr-authoring/candidate-tests-20261014T102946/webrtc-sync.log": "1be71e74366e03a2e588c01ad60315794d74a85b9ef86038b69ff8061be22a15"
+    }
+  },
+  "limits": [
+    "Component passes do not replace fresh current native/browser profiles, source driver, or installed qualification.",
+    "Original fixture used unchanged upstreamCargo.lock; root runtime uses the workspaceCargo.lock.",
+    "Retained prior failed media attempts remain failures."
+  ],
+  "subsequent_normal_build_failure": {
+    "recorded_at": "2026-10-14T10:32:04.522426+00:00",
+    "status": "repair-pending-requalification",
+    "finding": "The shared CNAME source used rand::random, but rand was available only under dev-dependencies. Unit tests compiled while the production library failed.",
+    "required_repair": "Promote existing workspace rand dependency into production dependencies, update recorded patch20 digest/source-lock, prepare dependencies, and compile the production targets. Release agent owns this adjustment.",
+    "scope": "Existing9+1 component logs remain historical proof at their recorded source; they are not production build evidence."
+  },
+  "prepared_graph_verification": {
+    "recorded_at": "2026-10-14T10:48:11.118788+00:00",
+    "scope": "Focused tests against the final formatted recorded patches in prepared graph22; full runtime/source/installed qualification remains separate",
+    "source_lock_sha256": "f3232e9c20e265526385831a0767adb4950a1fe6eddbde0fd5ab38656b89449b",
+    "root_cargo_lock_sha256": "2f3abc14b06ba9335d01ce1cc99910f99ab48293731a80d0c50e6fa5ab9d4957",
+    "report": ".local/gate5/quic-bbr-authoring/candidate22-tests-20261014T104605/result.json",
+    "report_sha256": "416a4ec5a21d5d096b7f6250ef76adf2545b7843f3507c8cd9d33ab3715d3201",
+    "inputs_stable": true,
+    "fresh_selected_compile_checked": true,
+    "steps": [
+      {
+        "name": "webrtc-video",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          ".deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml",
+          "--features",
+          "signaling-ws,client",
+          "--lib",
+          "media::video_"
+        ],
+        "timeout_seconds": 1800,
+        "log": "webrtc-video.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 9.688,
+        "rust_tests": {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log_sha256": "a1c388bf115155be270f0488298b2f9ee798e0f22c9c2720a155ec463495848c"
+      },
+      {
+        "name": "webrtc-sync",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          ".deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml",
+          "--features",
+          "signaling-ws,client",
+          "--lib",
+          "local_audio_video_sdp_shares_one_private_per_peer_sync_identity"
+        ],
+        "timeout_seconds": 1800,
+        "log": "webrtc-sync.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.309,
+        "rust_tests": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log_sha256": "13b0ce1a920b86562428070dfe13c23a1c4909098e8926d545b8b1f1dd2538d5"
+      }
+    ],
+    "workspace_compile": {
+      "status": "passed",
+      "log_sha256": "f74f2d6e9db5d65c8353e8f7fee39799dce75d8d77b261c4805a5d91e635d603",
+      "scope": "Exact root-lock sustained-transport test executable compiled; not workspace suite execution"
+    }
+  }
+}

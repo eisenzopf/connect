@@ -20,6 +20,7 @@ import time
 import traceback
 
 from lib.local_process import Server
+from lib.native_process_owner import OwnedChild
 
 SCRIPT = pathlib.Path(__file__).resolve()
 FIXTURE = SCRIPT.parent / 'video/fixture_protocol.py'
@@ -56,47 +57,10 @@ def owned_rows(peers):
         if len(fields) != 5:
             continue
         pid, parent, group = map(int, fields[:3])
-        if group in groups and not fields[3].startswith('Z'):
+        if group in groups and pid != group and not fields[3].startswith('Z'):
             rows.append({'pid': pid, 'parent_pid': parent, 'owned_group': group,
                 'executable': fields[4]})
     return rows
-
-
-class OwnedChild:
-    """Reserve the leader PID/PGID until every group signal has finished.
-
-    Popen.poll/send_signal may reap an exited leader. waitid(WNOWAIT) observes
-    terminal status without releasing that anchor; only cleanup calls wait().
-    """
-    def __init__(self, command, **kwargs):
-        self.child = subprocess.Popen(command, start_new_session=True, **kwargs)
-        self.pid = self.child.pid
-        self.reaped = False
-        self.code = None
-
-    def poll(self):
-        if self.reaped:
-            return self.code
-        status = os.waitid(os.P_PID, self.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
-        if status is None:
-            return None
-        self.code = status.si_status if status.si_code == os.CLD_EXITED else -status.si_status
-        return self.code
-
-    def send_signal(self, selected):
-        if self.reaped or self.poll() is not None:
-            raise ProcessLookupError('Owned child is already terminal')
-        os.kill(self.pid, selected)
-
-    def kill_group(self):
-        if self.reaped:
-            raise RuntimeError('Cannot signal an owned group after its leader was reaped')
-        os.killpg(self.pid, signal.SIGKILL)
-
-    def wait(self, timeout):
-        self.code = self.child.wait(timeout=timeout)
-        self.reaped = True
-        return self.code
 
 
 class Peer:
@@ -177,6 +141,8 @@ def exits(peers, began, work, expected_failure=False, interrupted_slot=0):
         time.sleep(.01)
     # Save partial exit state before any recovery can change the evidence.
     progress = [{'slot': index, 'exit_code': peer.process.poll(),
+        'native_pid': getattr(peer.process, 'native_pid', None),
+        'owned_group': getattr(peer.process, 'pid', None),
         'trigger_to_exit_seconds': None if peer.exit_at is None else peer.exit_at - began}
         for index, peer in enumerate(peers)]
     remaining = owned_rows(peers)
@@ -192,6 +158,8 @@ def exits(peers, began, work, expected_failure=False, interrupted_slot=0):
             'success': observed['success'], 'teardown_seconds': observed['teardown_seconds'],
             'report_sha256': digest(peer.report), 'incoming_ivf_sha256': digest(peer.video)}
         observations.append(row)
+        if type(row['exit_code']) is not int:
+            raise RuntimeError('Actual native exit status is unavailable')
         if not 0 <= row['teardown_seconds'] <= 5:
             raise RuntimeError('Native reported teardown exceeded 5 seconds')
         if expected_failure and index == 0:
@@ -344,7 +312,8 @@ def inputs(args):
         pathlib.Path(media.decoder.__file__), pathlib.Path(media.decoder.markers.__file__),
         args.server_binary, args.video_binary, args.ffmpeg, pathlib.Path(sys.executable).resolve(), pathlib.Path('/bin/ps'),
         SCRIPT.parent / 'tests/test_native_video_cleanup.py',
-        SCRIPT.parent / 'lib/qualification_process.py', SCRIPT.parent / 'lib/phase_supervisor.py']
+        SCRIPT.parent / 'lib/qualification_process.py', SCRIPT.parent / 'lib/phase_supervisor.py',
+        SCRIPT.parent / 'lib/native_process_owner.py']
     # Bind the complete qualification helper family, including identity and
     # coded/CDF marker observers even though this checker only consumes the
     # bounded live-keyframe readiness observer. Binding is not execution proof.

@@ -1,5 +1,5 @@
 {
-  "status": "upstream regression passed; Chrome integration and profile qualification pending",
+  "status": "upstream regression and current clean three-route profile passed; recovery and installed qualification pending",
   "tasks": [
     "G5-004",
     "G5-005",
@@ -31,8 +31,8 @@
   },
   "independent_static_review": "setup_experience reviewed disjoint field borrowing, once-only binding and actual feedback tests; no blocker found",
   "not_run": [
-    "Chrome feedback/bitrate recovery with the new graph",
-    "Full decoded-route and installed profile qualification"
+    "Complete loss/recovery and installed profile qualification"
   ],
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "integration_evidence": "media-corrections.json"
 }

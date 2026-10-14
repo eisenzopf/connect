@@ -1,5 +1,6 @@
 """Named executable Gate 5 lanes. Existing child deadlines stay immutable."""
 import sys
+import uuid
 
 from .gate4_phases import HOST_TESTS, phases as gate4_phases
 from .local_process import ROOT
@@ -14,17 +15,35 @@ EXTERNAL_MEDIA_TESTS = {
     'native_process_and_browser_decode_duplex_av_through_public_interfaces': 'gate5_native_browser_video',
 }
 UPSTREAM_MEDIA_TEST_COUNTS = {
-    'upstream-video-datagram-budget': 1,
+    'upstream-video-datagram-budget': 3,
+    'workspace-quic-sustained-transport': 5,
     'upstream-webrtc-preallocation': 1,
     'upstream-webrtc-session-selection': 1,
-    'upstream-media-diagnostics': 6,
-    'upstream-video-packetizer': 3,
+    'upstream-media-diagnostics': 7,
+    'upstream-video-packetizer': 9,
+    'upstream-peer-media-ticket': 3,
     'native-media-diagnostics': 1,
-    'upstream-webrtc-video-boundaries': 8,
+    'upstream-webrtc-video-boundaries': 9,
+    'upstream-webrtc-av-sync-identity': 1,
+    'upstream-dtls-flight-retransmission': 2,
+    'upstream-receiver-report-accounting': 16,
+    'upstream-bbr-model-bounds': 9,
     'external-runtime-media-failures': 7,
     'upstream-terminal-session-retirement': 5,
     'upstream-legacy-revocation-guard': 1,
     'upstream-declared-ssrc-feedback': 2,
+    'upstream-audio-reorder': 5,
+    'upstream-repair-clock-interceptors': 134,
+    'upstream-repair-clock-rtc': 210,
+    'upstream-source-clock-reports': 56,
+    'upstream-source-clock-traits': 2,
+    'upstream-source-clock-routes': 5,
+    'upstream-source-clock-webrtc': 22,
+    'upstream-source-clock-activation': 3,
+    'upstream-vp8-repair-profile': 7,
+    'upstream-outbound-rtx-wire': 4,
+    'upstream-track-ready-publication': 2,
+    'upstream-track-ready-simulcast': 1,
 }
 
 
@@ -54,6 +73,22 @@ def phases(lanes, codex_binary=None, candidate=None, runtime=None, qualification
                                '-s', 'scripts/tests', '-p', 'test_grant_boundary.py'], 120))
             selected.insert(3, ('video-measurement-tests', [sys.executable, '-m', 'unittest', 'discover',
                                '-s', 'scripts/tests', '-p', 'test_video_measurements.py'], 120))
+            selected.insert(4, ('package-proof-tests', [sys.executable, '-m', 'unittest', 'discover',
+                               '-s', 'scripts/tests', '-p', 'test_package_inventory.py'], 120))
+            selected.insert(5, ('prepared-archive-tests', [sys.executable, '-m', 'unittest', 'discover',
+                               '-s', 'scripts/tests', '-p', 'test_prepared_archive.py'], 120))
+            selected.insert(6, ('connected-app-checker-tests', [sys.executable, '-m', 'unittest', 'discover',
+                               '-s', 'scripts/tests', '-p', 'test_connected_app_checker.py'], 120))
+            # Run the delivered app commands immediately after the ordinary
+            # binaries are built. Preserve every attempt across driver reruns.
+            app_evidence = ROOT / '.local/gate5/connected-app-public' / uuid.uuid4().hex
+            at = next(i for i, row in enumerate(selected) if row[0] == 'current-binaries') + 1
+            selected.insert(at, ('connected-app-public-journey', [sys.executable,
+                'scripts/check-connected-app.py', '--source-revision', str(source_revision),
+                '--server-binary', str(ROOT / 'target/debug/connect'),
+                '--example-binary', str(ROOT / 'target/debug/connect-example'),
+                '--work-root', str(app_evidence / 'work'),
+                '--output', str(app_evidence / 'result.json')], 120))
             upstream = ['cargo', 'test', '--locked', '--manifest-path']
             webrtc = '.deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml'
             selected += [
@@ -71,20 +106,59 @@ def phases(lanes, codex_binary=None, candidate=None, runtime=None, qualification
                     '--', '--ignored', '--nocapture', '--test-threads=1'], 1200),
                 ('typescript-public-media-tests', ['node', '--test', '--test-reporter=tap',
                     *[str(path.relative_to(ROOT)) for path in sorted((ROOT / 'sdk/tests').glob('*.test.mjs'))]], 300),
+                ('workspace-quic-sustained-transport', [*cargo, '--test', 'gate5_quic_transport',
+                    '--', '--nocapture', '--test-threads=1'], 1200),
                 ('upstream-video-datagram-budget', [*upstream,
                     '.deps/rvoip/crates/uctp/rvoip-quic/Cargo.toml', '--test', 'video_budget'], 1200),
                 ('upstream-webrtc-preallocation', [*upstream, webrtc,
                     '--features', 'signaling-ws,client', '--test', 'selected_session_admission'], 1200),
                 ('upstream-webrtc-session-selection', [*upstream, webrtc,
                     '--features', 'signaling-ws,client', '--lib', 'selected_av_offer'], 1200),
+                ('upstream-bbr-model-bounds', [*upstream,
+                    '.deps/quinn-proto/Cargo.toml', '--lib', 'congestion::bbr'], 1200),
+                ('upstream-receiver-report-accounting', [*upstream,
+                    '.deps/rtc-interceptor/Cargo.toml', '--lib', 'report::receiver_stream'], 1200),
+                ('upstream-repair-clock-interceptors', [*upstream,
+                    '.deps/rvoip/Cargo.toml', '-p', 'rtc-interceptor', '--lib'], 1200),
+                ('upstream-repair-clock-rtc', [*upstream,
+                    '.deps/rvoip/crates/webrtc/rvoip-rtc/Cargo.toml', '--lib'], 1200),
+                ('upstream-source-clock-reports', [*upstream,
+                    '.deps/rvoip/Cargo.toml', '-p', 'rtc-interceptor', '--lib', 'report::'], 1200),
+                ('upstream-source-clock-traits', [*upstream,
+                    '.deps/rvoip/crates/foundation/rvoip-core-traits/Cargo.toml', '--lib', 'source_clock'], 1200),
+                ('upstream-source-clock-routes', [*upstream,
+                    '.deps/rvoip/crates/foundation/rvoip-core/Cargo.toml', '--lib', 'source_clock'], 1200),
+                ('upstream-source-clock-webrtc', [*upstream, webrtc,
+                    '--features', 'signaling-ws,client', '--lib', 'source_clock'], 1200),
+                ('upstream-source-clock-activation', [*upstream,
+                    '.deps/rvoip/Cargo.toml', '-p', 'rvoip-rtc', '--lib', 'source_clock_activation'], 1200),
+                ('upstream-vp8-repair-profile', [*upstream, webrtc,
+                    '--features', 'signaling-ws,client', '--lib', 'vp8'], 1200),
+                ('upstream-outbound-rtx-wire', [*upstream,
+                    '.deps/rvoip/Cargo.toml', '-p', 'rvoip-webrtc-stack', '--lib', 'outbound_rtx'], 1200),
+                ('upstream-track-ready-publication', [*upstream,
+                    '.deps/rvoip/Cargo.toml', '-p', 'rvoip-webrtc-stack', '--lib', 'track_ready_'], 1200),
+                ('upstream-track-ready-simulcast', [*upstream,
+                    '.deps/rvoip/Cargo.toml', '-p', 'rvoip-webrtc-stack',
+                    '--test', 'simulcast_rtc_to_webrtc_interop'], 1200),
+                ('upstream-dtls-flight-retransmission', [*upstream,
+                    '.deps/rtc-dtls/Cargo.toml', '--lib', 'connect_retransmission_tests'], 1200),
+                ('upstream-webrtc-av-sync-identity', [*upstream, webrtc,
+                    '--features', 'signaling-ws,client', '--lib',
+                    'local_audio_video_sdp_shares_one_private_per_peer_sync_identity'], 1200),
                 ('upstream-webrtc-video-boundaries', [*upstream, webrtc,
                     '--features', 'signaling-ws,client', '--lib', 'media::video_'], 1200),
+                ('upstream-audio-reorder', [*upstream, webrtc,
+                    '--features', 'signaling-ws,client', '--lib', 'media::audio_reorder'], 1200),
                 ('upstream-media-diagnostics', [*upstream,
                     '.deps/rvoip/crates/foundation/rvoip-core-traits/Cargo.toml',
                     '--lib', 'media_diagnostics'], 1200),
                 ('upstream-video-packetizer', [*upstream,
                     '.deps/rvoip/crates/foundation/rvoip-core/Cargo.toml',
                     '--lib', 'video_packetizer'], 1200),
+                ('upstream-peer-media-ticket', [*upstream,
+                    '.deps/rvoip/crates/foundation/rvoip-core-traits/Cargo.toml',
+                    '--lib', 'peer_media::tests'], 1200),
             ]
             selected += [('connector-template-cold-build', ['cargo', 'build', '--locked', '--manifest-path',
                          'examples/connector-template/Cargo.toml', '--target-dir', '.local/gate5/connector-template-target'], 1200),
@@ -185,6 +259,9 @@ def phases(lanes, codex_binary=None, candidate=None, runtime=None, qualification
                      '--', '--ignored', '--test-threads=1', '--nocapture'], 600)]
                 selected += [('reference-client-browser', [str(media_tools['node']),
                     'scripts/check-reference-client.mjs'], 180)]
+                selected += [('browser-rtx-codec-offer', [str(media_tools['node']),
+                    'sdk/tests/browser_rtx_offer.mjs', str(runtime / 'sdk/typescript/dist'),
+                    str(ROOT / '.local/gate5/browser-rtx-offer' / uuid.uuid4().hex / 'result.json')], 120)]
                 media = [sys.executable, 'scripts/check-video-paths.py', '--runtime', str(runtime),
                     '--source-revision', source_revision, '--work-root', '.local/gate5/media-operating',
                     '--node', str(media_tools['node']), '--ffmpeg', str(media_tools['ffmpeg'])]

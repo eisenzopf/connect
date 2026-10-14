@@ -33,7 +33,13 @@ source_identity = decoder.source_identity
 
 
 def digest(path):
-    return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+    # Qualification hashes large executable inputs in the same process whose
+    # RSS is measured. Never materialize an executable-sized temporary buffer.
+    value = hashlib.sha256()
+    with pathlib.Path(path).open('rb') as source:
+        while chunk := source.read(1024 * 1024):
+            value.update(chunk)
+    return value.hexdigest()
 
 
 def forwarding_diagnostics(snapshot, route):
@@ -41,8 +47,8 @@ def forwarding_diagnostics(snapshot, route):
     if not isinstance(snapshot, dict):
         return {'status': 'unobserved', 'reason': 'Selected runtime did not expose authenticated media diagnostics'}
     queues = snapshot.get('queues', []); forwarding = snapshot.get('forwarding', [])
-    required_age = {'native-native': ['quic-video-egress'],
-        'native-browser': ['quic-video-ingress', 'quic-video-egress', 'webrtc-video-ingress', 'webrtc-video-egress', 'webrtc-video-reorder'],
+    required_age = {'native-native': ['quic-video-egress', 'quic-video-reorder'],
+        'native-browser': ['quic-video-ingress', 'quic-video-egress', 'quic-video-reorder', 'webrtc-video-ingress', 'webrtc-video-egress', 'webrtc-video-reorder'],
         'browser-browser': ['webrtc-video-ingress', 'webrtc-video-egress', 'webrtc-video-reorder']}[route]
     by_stage = {row['stage']: row for row in queues}
     missing_age = [stage for stage in required_age if by_stage.get(stage, {}).get('max_forwarded_frame_age_ms') is None]
@@ -104,14 +110,14 @@ def native_sdk_diagnostics(snapshot):
         return {'status': 'unobserved', 'reason': 'Selected native example did not expose its public SDK snapshot'}
     queues = {row['stage']: row for row in snapshot.get('queues', [])}
     expected = {'quic-audio-ingress': 10, 'quic-audio-egress': 10,
-        'quic-video-ingress': 64, 'quic-video-egress': 64}
+        'quic-video-ingress': 64, 'quic-video-egress': 64, 'quic-video-reorder': 64}
     observed = all(stage in queues and queues[stage].get('observations', 0) > 0
         and queues[stage].get('capacity_packets') == capacity
         and 0 <= queues[stage].get('sampled_high_water_packets', -1) <= capacity
         for stage, capacity in expected.items())
     age = all(queues.get(stage, {}).get('max_forwarded_frame_age_ms') is not None
         and 0 <= queues[stage]['max_forwarded_frame_age_ms'] <= 200
-        for stage in ['quic-video-ingress', 'quic-video-egress'])
+        for stage in ['quic-video-ingress', 'quic-video-egress', 'quic-video-reorder'])
     quic = snapshot.get('quic') or {}; buffer = quic.get('send_buffer') or {}
     budget = (quic.get('video_budget_observations', 0) > 0 and quic.get('accepted_datagrams', 0) > 0
         and 0 < (quic.get('min_video_rtp_budget_bytes') or 0) <= (quic.get('max_video_rtp_budget_bytes') or 0) <= 1180)
@@ -194,10 +200,26 @@ class ResourceSampler:
         self.stop.set(); self.worker.join(timeout=3)
         if self.worker.is_alive(): raise RuntimeError('Resource sampler did not terminate')
 
-    def report(self):
-        now = time.monotonic(); values = list(self.samples); span = now - self.started
+    def freeze_live(self):
+        self.live_observation = self.report()
+        self.postprocessing_started = time.monotonic()
+        self.live_observation['scope'] += '; live call through participant teardown, before independent post-run content analysis'
+        return self.live_observation
+
+    def postprocessing_report(self):
+        if not hasattr(self, 'postprocessing_started'):
+            raise RuntimeError('Live resources must be frozen before independent content analysis')
+        result = self.report(since=self.postprocessing_started)
+        result['scope'] += '; separate independent post-run content analysis, not the live operating-profile decision'
+        return result
+
+    def report(self, since=None):
+        if since is None and getattr(self, 'live_observation', None) is not None:
+            return self.live_observation
+        now = time.monotonic(); began = self.started if since is None else since
+        values = [row for row in list(self.samples) if row['seconds'] >= began]; span = now - began
         gaps = [b['seconds'] - a['seconds'] for a, b in zip(values, values[1:])]
-        first_lag = values[0]['seconds'] - self.started if values else span
+        first_lag = values[0]['seconds'] - began if values else span
         last_age = now - values[-1]['seconds'] if values else span
         observed = values[-1]['seconds'] - values[0]['seconds'] if len(values) >= 2 else 0
         coverage = observed / span if span else 0

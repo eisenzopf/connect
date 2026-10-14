@@ -1,6 +1,7 @@
 # Repeat the actual-agent acceptance journey
 
-This is the separately invoked G4-034 model acceptance procedure. The checked-in
+This is the separately invoked actual-model acceptance procedure for G4-034
+and G5-038. The checked-in
 [runner](../scripts/live/agent-journey.py) uses the selected **installed** Connect
 binary, Python SDK, MCP tools and skill. It creates an isolated local server and
 synthetic reviewer; it does not use Telnyx, Vapi, SMS, a handset, public ingress
@@ -27,11 +28,21 @@ python3 scripts/live/agent-journey.py /absolute/path/to/candidate-runtime \
   --allow-model-inference
 ```
 
+For Gate 5, first build a disposable integration candidate through the documented
+local packaging path and finish its scripted loopback host/package qualification.
+Select its runtime and matching passing report with the same command plus
+`--profile gate5-local`. This integration candidate is separate from the final
+G5-044 release candidate. A Gate 4 report, source test pass or scripted host result
+cannot substitute for the matching Gate 5 package report. Missing authentication,
+host compatibility or candidate qualification leaves the actual-model lane
+unresolved; do not synthesize a passing package report to start inference.
+
 Paths are explicit; no developer-specific application path or private harness
 is required. The runner checks every installed file against its manifest and
 requires that exact manifest in the passing package report before setup or
 inference. It imports the installed Python client, not the checkout's SDK.
-Its new private run directory is printed under `.local/gate4-agent-access/`.
+Its new private run directory is printed under `.local/gate4-agent-access/`
+or `.local/gate5-agent-access/` according to the selected profile.
 Credentials, model output, prompts, generated drafts and full observations stay
 there. Do not commit those files or publish raw model transcripts.
 

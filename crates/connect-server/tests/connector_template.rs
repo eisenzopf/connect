@@ -727,3 +727,134 @@ async fn receive_only_manifest_retains_ingress_but_fails_outbound_before_claim_o
     client.close().await;
     server.shutdown().await.unwrap();
 }
+
+/// Deliberately return a valid receipt for a different, already completed job.
+/// The host must bind a response to the attempt it dispatched before Store admission.
+struct WrongAttemptReceipt {
+    provider: Arc<LocalProvider>,
+    old: connect_connector_api::lifecycle::MessageReceipt,
+}
+#[async_trait::async_trait]
+impl Connector for WrongAttemptReceipt {
+    fn name(&self) -> &'static str {
+        self.provider.name()
+    }
+    fn descriptor(&self) -> connect_connector_api::Descriptor {
+        self.provider.descriptor()
+    }
+    fn manifest(&self) -> connect_connector_api::manifest::Manifest {
+        Connector::manifest(self.provider.as_ref())
+    }
+    fn configuration(&self) -> std::collections::BTreeMap<String, String> {
+        Connector::configuration(self.provider.as_ref())
+    }
+    fn message_extension(&self) -> Option<&dyn connect_connector_api::lifecycle::MessageExtension> {
+        self.provider.message_extension()
+    }
+    async fn deliver(
+        &self,
+        request: &connect_connector_api::DeliveryRequest,
+    ) -> Result<connect_connector_api::Completion, connect_connector_api::Failure> {
+        self.provider.deliver(request).await
+    }
+    async fn deliver_observed(
+        &self,
+        mutation_id: &str,
+        request: &connect_connector_api::DeliveryRequest,
+    ) -> Result<connect_connector_api::lifecycle::MessageReceipt, connect_connector_api::Failure>
+    {
+        let _actual = self.provider.deliver_observed(mutation_id, request).await?;
+        let mut wrong = self.old.clone();
+        wrong.observation.event_id = "wrong-attempt-binding".into();
+        wrong.reply = None;
+        wrong.reply_sources.clear();
+        Ok(wrong)
+    }
+}
+#[tokio::test]
+async fn wrong_attempt_receipt_preserves_original_uncertainty_and_exact_id_reconciliation() {
+    use connect_connector_api::lifecycle::{Apply, MessageState, State, Verification};
+    let (_tmp, server, mut client, cid, provider) = fixture().await;
+    let first_worker =
+        Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    client
+        .send("first-attempt", &cid, "First answer")
+        .await
+        .unwrap();
+    let first = delivery(&mut client, &cid, "delivered").await;
+    first_worker.shutdown().await.unwrap();
+    let old = server
+        .store
+        .connector_receipt(&first, provider.name())
+        .unwrap();
+    let worker = Worker::with_drivers(
+        server.service.clone(),
+        vec![Arc::new(WrongAttemptReceipt {
+            provider: provider.clone(),
+            old: old.clone(),
+        })],
+    )
+    .unwrap();
+    let operation = Operation::Send {
+        request_id: "second-attempt".into(),
+        conversation_id: cid.clone(),
+        body: "Second answer".into(),
+    };
+    let sent = client.request(operation.clone()).await.unwrap();
+    let second = delivery(&mut client, &cid, "uncertain").await;
+    assert_ne!(first, second);
+    assert_eq!(provider.effects(&first), 1);
+    assert_eq!(provider.effects(&second), 1);
+    assert_eq!(
+        server
+            .store
+            .connector_receipt(&first, provider.name())
+            .unwrap(),
+        old
+    );
+    let uncertain = server
+        .store
+        .connector_receipt(&second, provider.name())
+        .unwrap();
+    assert_eq!(uncertain.observation.mutation_id, second);
+    assert_eq!(
+        uncertain.observation.state,
+        State::Message(MessageState::Uncertain)
+    );
+    assert_eq!(
+        uncertain.observation.verification,
+        Verification::LocalAttempt
+    );
+    assert!(uncertain.reply.is_none());
+    // Replaying the business request and restarting the worker cannot send again.
+    assert_eq!(client.request(operation).await.unwrap(), sent);
+    worker.shutdown().await.unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    assert_eq!(delivery(&mut client, &cid, "uncertain").await, second);
+    assert_eq!(
+        Worker::reconcile(server.service.as_ref(), provider.as_ref(), &second)
+            .await
+            .unwrap(),
+        Apply::Applied
+    );
+    assert_eq!(
+        server
+            .store
+            .connector_receipt(&second, provider.name())
+            .unwrap()
+            .observation
+            .state,
+        State::Message(MessageState::Delivered)
+    );
+    assert_eq!(provider.effects(&second), 1);
+    assert_eq!(
+        server
+            .store
+            .connector_receipt(&first, provider.name())
+            .unwrap(),
+        old
+    );
+    worker.shutdown().await.unwrap();
+    drop(client);
+    server.shutdown().await.unwrap();
+}

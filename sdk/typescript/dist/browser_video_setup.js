@@ -33,8 +33,10 @@ export async function constrainVideoCapture(stream, timeoutMs) {
 }
 /** Owned encoded transform; its keyframe feedback is separate from capture. */
 export function startVideoTransform(peer) {
-    const codecs = RTCRtpSender.getCapabilities("video")?.codecs.filter((codec) => codec.mimeType.toLowerCase() === "video/vp8");
-    if (!codecs?.length)
+    // Capabilities contain one generic RTX entry without an apt parameter.
+    // Preserve it so the browser can associate repair with the selected VP8 PT.
+    const codecs = RTCRtpSender.getCapabilities("video")?.codecs.filter((codec) => ["video/vp8", "video/rtx"].includes(codec.mimeType.toLowerCase()));
+    if (!codecs?.some((codec) => codec.mimeType.toLowerCase() === "video/vp8"))
         throw new ConnectError("unsupported-media-profile", "This browser does not support VP8");
     const transceiver = peer
         .getTransceivers()

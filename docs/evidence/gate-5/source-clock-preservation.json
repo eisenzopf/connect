@@ -1,0 +1,655 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-14T12:15:43.523539+00:00",
+  "status": "actual-runtime-clock-activation-observed; full-media-open",
+  "scope": "Strict VP8 audio+video browser relay source-clock preservation; no native wire extension or whole Gate5 closure.",
+  "whole_gate_qualified": false,
+  "finding": "Relay sender reports remapped preserved source RTP timestamps onto per-track packet arrival times. Independent audio/video arrival jitter therefore changed the reported source clock relation.",
+  "original_evidence": {
+    "pinned_crate": {
+      "name": "rtc-interceptor",
+      "version": "0.20.0-alpha.1",
+      "archive": "https://static.crates.io/crates/rtc-interceptor/rtc-interceptor-0.20.0-alpha.1.crate",
+      "sha256": "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a"
+    },
+    "counterexample": {
+      "path": ".local/gate5/sender-clock-analysis/result.json",
+      "sha256": "6610a3f4d8aef274b8e8ed625e7dd5ac9e6798bd73f143ca207cfb1149d2a431"
+    },
+    "result": "Actual production SenderStream methods with test-only additions: one diagnostic passes and one synchronization invariant fails. Delays bounded by 100 ms create +90 ms then -100 ms reported intertrack skew (190 ms swing). Fresh selected compilation and unchanged locked dependency graph are recorded.",
+    "production_sender_stream_sha256": "a3cbb8e8710845ca6cc79cb75b0d18d27fe3a56e51643b41a38f7275c06dea23",
+    "counterexample_log": {
+      "path": ".local/gate5/sender-clock-analysis/counterexample.log",
+      "sha256": "5fa2ca6514e4a8ae75f4e2d9ec319876a9a216f7b18165d6da639f79020b0184"
+    },
+    "chrome_review": {
+      "path": ".local/gate5/sender-clock-analysis/chrome-independent-review.json",
+      "sha256": "770d01381cc95d62402a555c68924950e48ba3bf679a8d91b5df6056ec2a2de3"
+    },
+    "chrome_result": "Preserved RTP timestamps identify opposite-peer source reports. Independent raw-RTCP comparison finds impaired-source video relay mapping offsets ranging from 37.927 to 394.368 ms; clean-source video ranges from 2.331 to 5.818 ms. This corroborates mapping variability, not sole causality for failed AV markers or congestion control.",
+    "cname_observation_limit": "Chrome event logging removes SDES before serialization. Absence of CNAME in those logs is not evidence of absence on the authenticated wire. Runtime authoritative-anchor activation remains to be observed.",
+    "chrome_filter_source": {
+      "path": ".local/gate5/chrome-eventlog-research/rtcp-filter-sources.json",
+      "sha256": "7ae9f24e9421346cb73dcc554bc96ac2c4797f38d6f78c8a5469bd995bfdc0f9"
+    }
+  },
+  "repair": {
+    "authoritative_ingress": "Authenticated SR plus SDES CNAME for actual negotiated primary audio/video TrackRemote bindings; two source slots only. NTP0 and zero-packet pre-source SR are non-authoritative. RTP0 and active sender packet-count wrap remain valid.",
+    "clock_translation": "Choose one common source NTP to relay local NTP offset from first authoritative SR under one peer mutex. Keep it fixed across later/intertrack arrival jitter. Preserve per-track actual SR pair; regenerate outgoing SR with local NTP and mapped RTP.",
+    "provenance": "Per-frame source binding/generation plus weak source/route/current peer ticket lifetimes; wrapping RTP offset carried separately from anchor age; unsupported transform retains provenance but suppresses SR.",
+    "egress": "Serialized RTP driver event validates before write; applies clock mode only after successful RTP write before report poll. Pending/retired/unsupported cannot become local fallback.",
+    "lifecycle": "Weak actual TrackRemote identity; repeated identical binding preserves clock, replacement retires old snapshots; late old tasks cannot lease/activate new SSRC binding. Strict profile configuration stays required after retirement. Source peer close, track exit, route abort/cutover invalidate queued snapshots.",
+    "native_boundary": "Native and generic voice remain unconfigured. No wire change; local sender mapping after media remains original. All sender streams now suppress pre-first-RTP reports.",
+    "dtmf_boundary": "Negotiated strict ingress telephone events are decoded into events before MediaFrame creation and do not replace primary source binding. Direct supplemental egress preserves installed report mode; subsequent primary audio applies exact allocator offset. Pre-existing generic PT101 passthrough is outside this repair."
+  },
+  "primary_sources": [
+    "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.4.1",
+    "https://www.rfc-editor.org/rfc/rfc3550.html#section-7.2",
+    "https://www.rfc-editor.org/rfc/rfc8079.html#section-3.3"
+  ],
+  "policy_inference": "The shared fixed offset is an explicit coherent local-clock regeneration policy; the RFCs do not prescribe this estimator. It is not an estimate of true one-way network delay.",
+  "review_failures_retained": {
+    "lifecycle_counterexamples": {
+      "path": ".local/gate5/sender-clock-repair/review-original/result.json",
+      "sha256": "fcd32e017d9735091ca4023d1d226eec8247b242ac8b87d5dd05a91e6bce67b5"
+    },
+    "result": "Two test-only regressions fail in the earlier private candidate: same-SSRC replacement lets an old lease retire the new track; a lease acquired after retirement becomes optional. Both are corrected and covered by the final 13 WebRTC tests.",
+    "additional_review_corrections": [
+      "First cross-track CNAME mismatch invalidates the shared generation.",
+      "Weak actual TrackRemote identity avoids cycles and stale same-SSRC leases.",
+      "Binding-aware source activation rejects the capture/observe replacement race.",
+      "Identical complete sender bindings preserve report and NACK history; changed bindings reset the chain.",
+      "Negotiated supplemental telephone events do not replace or activate the primary source clock."
+    ],
+    "initial_core_fixture": {
+      "path": ".local/gate5/sender-clock-repair/core-proof-20261014T115039.016541Z/result.json",
+      "sha256": "7ac275c22f345dec00099308ca387c6b317c939fa751c2aa8b7b066cdfd4af91"
+    },
+    "fixture_result": "Traits 2/2 passed; core completed four tests then the new transcode fixture waited before its route activation commands were committed. The owned process group was stopped. A snapshot activation barrier and 2-second bounds corrected the fixture; PCMU payload size was already valid.",
+    "corrected_core_fixture": {
+      "path": ".local/gate5/sender-clock-repair/core-warm-proof-20261014T115604.548170Z/result.json",
+      "sha256": "01a37799ee339fc6ca7ed4914a8981b97fa8a319df0dea165cad4727d3ad6807"
+    },
+    "corrected_result": "Core 5/5 passed with fresh compilation and stable source; later full component run also passed traits 2 and core 5. Earlier failed attempts remain unchanged."
+  },
+  "component_proofs": [
+    {
+      "path": ".local/gate5/sender-clock-repair/clock-proof-20261014T120340.278844Z/result.json",
+      "counts": {
+        "report": 56,
+        "webrtc_source_clock": 12,
+        "core_traits": 2,
+        "core": 5
+      },
+      "inputs_stable": true,
+      "sha256": "b311e898697f5940a15290cfd01373e99c457dd67f4c2abbb1135d95ed2d3cb5"
+    },
+    {
+      "path": ".local/gate5/sender-clock-repair/clock-proof-20261014T120650.140548Z/result.json",
+      "counts": {
+        "webrtc_source_clock": 13
+      },
+      "inputs_stable": true,
+      "scope": "adds binding-aware activation race regression",
+      "sha256": "7e1530dd743570c7c4af5e9fd772a214c43a8ed41d1ede976abff0e97a3e9083"
+    },
+    {
+      "path": ".local/gate5/sender-clock-repair/clock-proof-20261014T120806.045054Z/result.json",
+      "counts": {
+        "webrtc_source_clock": 13
+      },
+      "inputs_stable": true,
+      "scope": "exact minimized final private source",
+      "sha256": "b7c7c3685408f9ee275220dbb76b14860ebef4fa0b1955bbe97291a4217bdb4f"
+    }
+  ],
+  "accepted_private_patches": {
+    "rvoip": {
+      "path": ".local/gate5/sender-clock-repair/rvoip-source-clock.patch",
+      "sha256": "d581eb231dae451ebe2acb37cfb10bfb5d196ed6ec8d259e2a575cff85f6758b"
+    },
+    "rtc-interceptor": {
+      "path": ".local/gate5/sender-clock-repair/rtc-interceptor-source-clock.patch",
+      "sha256": "a6041b26cbd462688d9d2b8c8151b0c8a23f9e4a3dd92f91138c575fbba9af4c"
+    }
+  },
+  "private_file_inventory": {
+    "path": ".local/gate5/sender-clock-repair/patch-inventory.json",
+    "sha256": "795560c56bff61f7aad7227f4728f566dd738030eaea23948a30d6ef8ea9d3cc"
+  },
+  "independent_review": {
+    "root": {
+      "path": ".local/gate5/sender-clock-repair/root-integration-review.json",
+      "sha256": "de8cdac7f3f5c461561d3e7e4527e9a0defd3ef825b6ec1fcea783e3ee69b3b6"
+    },
+    "root_result": "Approved recorded integration after source review and independent rehash of 2,773 sealed files with no drift. This is not an independent test execution or runtime pass.",
+    "journeys": {
+      "path": ".local/gate5/sender-clock-repair/journeys-independent-review.json",
+      "sha256": "0e93049b5e453da88214a014fcab7ff02f778ea80beb2e2c240815797d69dda7"
+    },
+    "journeys_result": "Final read-only review closes J1\u2013J4 at component source scope. Independently rehashed 78 changed inventory files and both patches without drift and checked final 13-test result/log. No independent test execution or runtime claim."
+  },
+  "recorded_candidate": {
+    "patch_count": 26,
+    "source_lock": {
+      "path": "dependencies/source-lock.json",
+      "sha256": "f8b196a81c9ea8a545cf867dd25e2ae8fc60f5260c40aa46e09bd953fe3e7974"
+    },
+    "patches": [
+      {
+        "path": "patches/rvoip/webrtc-source-clock-provenance.patch",
+        "sha256": "0b9acc7f33a6687bebf9d4815c9a256d9cfbd63337e19db0af88d22fd88db5be"
+      },
+      {
+        "path": "patches/rtc-interceptor/source-clock-provenance.patch",
+        "sha256": "9c980316f443c0289a769954daafb9e3403cdd886655d4ace7b3a7fa43f81864"
+      }
+    ],
+    "scope": "Recorded graph26 combined components and fresh normal build pass with stable inputs. Runtime reveals an untested track-callback initialization ordering defect; all six browser scenarios fail before measurement. Component evidence does not close runtime acceptance."
+  },
+  "limits": [
+    "No native wire extension. Unconfigured local sender mapping after media remains unchanged; pre-first-RTP reports are now suppressed for every sender stream.",
+    "No new RTT measurement claim; upstream peer RTT statistics remain unobserved.",
+    "General cross-codec/rate clock translation and pre-existing generic PT101 passthrough are outside this repair. Unsupported transforms retain provenance and suppress invented source reports.",
+    "No prior failed media run is reclassified. Component correctness does not establish repaired browser AV or congestion behavior."
+  ],
+  "remaining": [
+    "Browser impairment recovery and prospective unchanged full nine-scenario media qualification.",
+    "Final stable-source, package, installed and model acceptance lanes."
+  ],
+  "graph26_runtime_verification": {
+    "recorded_at": "2026-10-14T12:34:06.005137+00:00",
+    "combined_components": {
+      "status": "passed",
+      "report": ".local/gate5/browser-clock-rtx-composition/proof-20261014T121542.567468Z/result.json",
+      "report_sha256": "6a037f2af5a04d472d248f99f100c44e9c69686bd7ca630d7d9eb2840abc3b25",
+      "source_lock_sha256": "f8b196a81c9ea8a545cf867dd25e2ae8fc60f5260c40aa46e09bd953fe3e7974",
+      "inputs_stable": true,
+      "fresh_compilation_observed": {
+        "rtc-interceptor": true,
+        "rvoip-core-traits": true,
+        "rvoip-core": true,
+        "rvoip-rtc": true,
+        "rvoip-webrtc-stack": true,
+        "rvoip-webrtc": true
+      },
+      "suites": [
+        {
+          "name": "interceptor-all",
+          "passed": 133,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "5adad13e231759d1cf82bf6d826325aa3dad3384efb5797fe75abb92bdcb1876"
+        },
+        {
+          "name": "rtc-all",
+          "passed": 187,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "f2c038167c238808b49a0abf36be182df91cbd2914f0d1649e73b59f46c7fc28"
+        },
+        {
+          "name": "source-clock-reports",
+          "passed": 56,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "e6a2b51c3e34d7d984ab482a31d3b34e738ae2e231d1d726a69f91922ee32c32"
+        },
+        {
+          "name": "source-clock-traits",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "fdac373fd31ccb6992965d9316406f8441b14a5d27e85d2d0a5d5ca738805d83"
+        },
+        {
+          "name": "source-clock-routes",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "0403ceeca58a0b64cac3fa746f102615eda4ef5deda0bdb0e1b3508aa0a3d6e8"
+        },
+        {
+          "name": "source-clock-webrtc",
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "a9a9968b467926266d85fd661736315cec5c6e77ad95ecf622117ceffc7db797"
+        },
+        {
+          "name": "vp8-repair-profile",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "2a25a39aea3e6797a4de9f09f0f99e88fab9b9894f12938985e5dd33eba8c1cc"
+        }
+      ],
+      "scope": "recorded prepared26 source composition; no decoded-media, whole-source or installed release qualification"
+    },
+    "normal_build": {
+      "path": ".local/gate5/browser-clock-rtx-binaries-20261014T122301.521593Z/result.json",
+      "sha256": "47f4baa86c125f39f9b336c80bfeeb6ba51f459dc9e34dd71353198d39ab5405"
+    },
+    "normal_build_status": "passed",
+    "source_inputs_stable": true,
+    "sealed_build_inputs": 633,
+    "fresh_compilation_observed": {
+      "quinn-proto": true,
+      "rtc-interceptor": true,
+      "rtc-dtls": true,
+      "rvoip-quic": true,
+      "rvoip-webrtc": true,
+      "rvoip-webrtc-stack": true,
+      "rvoip-rtc": true,
+      "rvoip-core": true,
+      "rvoip-core-traits": true,
+      "connect-server": true,
+      "connect-review-loop": true,
+      "connect-native-video": true
+    },
+    "media_run": {
+      "path": ".local/gate5/repaired-media-20261014T122601Z/result.json",
+      "sha256": "923d171d5f88842e62f7b87d7a55a99d340b52e2312c6e57915d2250cc630c4e"
+    },
+    "media_status": "failed",
+    "passed_scenarios": 3,
+    "total_scenarios": 9,
+    "scenarios": [
+      {
+        "name": "impairment-native-browser",
+        "status": "failed",
+        "seconds": 33.03
+      },
+      {
+        "name": "impairment-browser-browser",
+        "status": "failed",
+        "seconds": 17.685
+      },
+      {
+        "name": "impairment-native-native",
+        "status": "passed",
+        "seconds": 153.066
+      },
+      {
+        "name": "clean-browser-browser",
+        "status": "failed",
+        "seconds": 17.153
+      },
+      {
+        "name": "clean-native-native",
+        "status": "passed",
+        "seconds": 69.293
+      },
+      {
+        "name": "clean-native-browser",
+        "status": "failed",
+        "seconds": 31.155
+      },
+      {
+        "name": "mute-native-native",
+        "status": "passed",
+        "seconds": 28.585
+      },
+      {
+        "name": "mute-native-browser",
+        "status": "failed",
+        "seconds": 30.995
+      },
+      {
+        "name": "mute-browser-browser",
+        "status": "failed",
+        "seconds": 17.17
+      }
+    ],
+    "finding": "All three native-only scenarios pass. All six browser scenarios fail before measured receive windows: browser/browser playback startup fails despite connected ICE/DTLS; native/browser receive readiness expires. Read-only review finds the stack invokes on_track while its coding list is empty, before adding negotiated coding. Strict source-clock binding therefore finds no primary SSRC and required ingress leases reject media. A separate publication race can expose a receiver before its binding callback. Repair and driver-boundary regressions are pending.",
+    "scope": "Stable prepared graph26 normal component binaries, unchanged profile; not final source/package/installed or whole-gate qualification."
+  },
+  "prior_records": [
+    {
+      "status": "combined-components-passed; runtime-failed-browser-track-startup",
+      "independent_review": {
+        "root": {
+          "path": ".local/gate5/sender-clock-repair/root-integration-review.json",
+          "sha256": "de8cdac7f3f5c461561d3e7e4527e9a0defd3ef825b6ec1fcea783e3ee69b3b6"
+        },
+        "root_result": "Approved recorded integration after source review and independent rehash of 2,773 sealed files with no drift. This is not an independent test execution or runtime pass.",
+        "journeys": {
+          "path": ".local/gate5/sender-clock-repair/journeys-independent-review.json",
+          "sha256": "0e93049b5e453da88214a014fcab7ff02f778ea80beb2e2c240815797d69dda7"
+        },
+        "journeys_result": "Final read-only review closes J1\u2013J4 at component source scope. Independently rehashed 78 changed inventory files and both patches without drift and checked final 13-test result/log. No independent test execution or runtime claim."
+      },
+      "remaining": [
+        "Correct and test initialized remote-track publication before clock binding and discovery; preserve the failing graph26 runtime.",
+        "Fresh normal workspace binaries and unchanged nine-scenario decoded media qualification after correction.",
+        "Runtime authoritative source-clock activation and coherent relayed SR mapping; actual negotiated RTX receipts.",
+        "Final stable-source, package, installed and model acceptance lanes; whole Gate5 remains open."
+      ]
+    },
+    {
+      "recorded_before_runtime_mapping_update": {
+        "status": "authenticated-component-activation-tested; browser-clock-runtime-pending",
+        "remaining": [
+          "Forward authenticated source SR/SDES through interceptor and current-source endpoint routing; prove actual source clock activation.",
+          "Correct SDK RTX activation and run fresh normal binaries with unchanged nine-scenario profile.",
+          "Final stable-source, package, installed and model acceptance lanes."
+        ]
+      }
+    }
+  ],
+  "combined_component_proof": {
+    "path": ".local/gate5/browser-clock-rtx-composition/proof-20261014T121542.567468Z/result.json",
+    "sha256": "6a037f2af5a04d472d248f99f100c44e9c69686bd7ca630d7d9eb2840abc3b25",
+    "counts": {
+      "interceptor_all": 133,
+      "rtc_all": 187,
+      "report_subset": 56,
+      "traits": 2,
+      "core_routes": 5,
+      "webrtc_source_clock": 13,
+      "vp8": 7
+    },
+    "scope": "All selectors pass with zero failed/ignored, stable broad inputs and fresh compilation of six affected packages. Report 56 overlaps interceptor 133; counts must not be added as distinct tests."
+  },
+  "runtime_followup": {
+    "path": ".local/gate5/repaired-media-20261014T122601Z",
+    "result": "Fresh sealed graph26 completes 3/9: native-only scenarios pass, browser scenarios fail startup. Component correctness did not cover actual on_track publication order. Driver constructed empty-coding TrackRemote, invoked the clock-binding callback, then populated coding; required clock lease consequently lacks binding. Independent review also finds receiver discovery before callback completion can freeze an empty lease. Private actual-driver fail-before/pass-after regression and narrow ordering repair are in progress; no repaired-runtime pass claimed."
+  },
+  "graph27_runtime_verification": {
+    "recorded_at": "2026-10-14T12:55:19.501123+00:00",
+    "source_lock_sha256": "caad4ccb33eb9a6b0279c1d9c2ad48a23d44b7d3e0ff103676f177f70427f552",
+    "normal_build": {
+      "path": ".local/gate5/browser-clock-rtx-binaries-20261014T124126.465534Z/result.json",
+      "sha256": "813da7cd436e3a1dc0d74f1843a15b7a85c26a147f0a0a34aefdef8cb5e87f11"
+    },
+    "normal_build_status": "passed",
+    "sealed_build_inputs": 634,
+    "inputs_stable": true,
+    "media_run": {
+      "path": ".local/gate5/repaired-media-20261014T124515Z/result.json",
+      "sha256": "743660e790b2f69ae3a84e4599d3bcaca3f31b5a0dacc09dbcc217a979406906"
+    },
+    "media_status": "failed",
+    "passed_scenarios": 7,
+    "total_scenarios": 9,
+    "scenarios": [
+      {
+        "name": "impairment-native-browser",
+        "status": "failed",
+        "seconds": 66.701
+      },
+      {
+        "name": "impairment-browser-browser",
+        "status": "failed",
+        "seconds": 65.469
+      },
+      {
+        "name": "impairment-native-native",
+        "status": "passed",
+        "seconds": 134.513
+      },
+      {
+        "name": "clean-browser-browser",
+        "status": "passed",
+        "seconds": 65.02
+      },
+      {
+        "name": "clean-native-native",
+        "status": "passed",
+        "seconds": 69.271
+      },
+      {
+        "name": "clean-native-browser",
+        "status": "passed",
+        "seconds": 66.051
+      },
+      {
+        "name": "mute-native-native",
+        "status": "passed",
+        "seconds": 28.614
+      },
+      {
+        "name": "mute-native-browser",
+        "status": "passed",
+        "seconds": 25.668
+      },
+      {
+        "name": "mute-browser-browser",
+        "status": "passed",
+        "seconds": 24.955
+      }
+    ],
+    "diagnostic": {
+      "path": ".local/gate5/chrome-feedback-diagnostic-20261014T124417Z/result.json",
+      "sha256": "b6402675893fe3ee4818054475bcca8bf36235c7ad61988689213e880ca90757"
+    },
+    "findings": [
+      "Remote-track startup regression is corrected: all clean and mute browser paths pass, as do native-only scenarios.",
+      "Both browser impairment paths remain failed. Native/browser return native has4.48 changingfps and26 A/V pairs; browser half has81 pairs and passes. Browser/browser has one84-pair direction with median87.8/p95122.5ms, while sparse opposite direction cannot calibrate A/V.",
+      "Actual Chrome SDK offers exclude RTX and existing answer validation would reject RTX. Both diagnostic logs have only PT96/111 outbound; no RTX SSRC is active.",
+      "Both diagnostic logs have zero incoming relay Sender Reports. Authenticated SR/SDES are dropped at the terminal interceptor before the source-clock callback. Endpoint first-packet destination routing also requires correction."
+    ],
+    "scope": "Current stable graph27 component runtime; no final source/package/installed acceptance. Startup is corrected; browser impairment and clock/RTX runtime activation remain open."
+  },
+  "runtime_activation_analysis": {
+    "path": ".local/gate5/source-clock-activation-analysis-20261014T124417Z/result.json",
+    "sha256": "424db356d760a63fe6ba45ec0d670f889b069c453f98d8fd3524f610b059c09c"
+  },
+  "authenticated_rtcp_activation": {
+    "schema_version": 1,
+    "recorded_at": "2026-10-14T13:00:58.306803+00:00",
+    "status": "component-fixed-and-reviewed; recorded-graph-and-runtime-pending",
+    "scope": "Authenticated SR/SDES dispatch to already active negotiated browser sources; no SDP CNAME fallback, controller changes or media threshold changes.",
+    "whole_gate_qualified": false,
+    "runtime_observation": {
+      "path": ".local/gate5/source-clock-activation-analysis-20261014T124417Z/result.json",
+      "sha256": "424db356d760a63fe6ba45ec0d670f889b069c453f98d8fd3524f610b059c09c"
+    },
+    "finding": "Both graph27 browser eventlogs have zero incoming relay SRs despite 62/80 outgoing original SRs. Authenticated adapter cloned only PLI/FIR; terminal Noop consumed SR/SDES before application callback. Endpoint also routed whole compounds from only the first destination, and its generic remote lookup accepted inactive sources.",
+    "repair": [
+      "Clone individual authenticated SR, SDES, PLI and FIR packets toward endpoint while passing the complete unchanged vector to hop interceptors exactly once.",
+      "Resolve SR by its own source SSRC, SDES by a known active source chunk; require populated remote codec plus desired/current receive direction and non-stopped transceiver.",
+      "Route each packet independently. Unknown source or reception-report target cannot allocate/open a source or substitute for its identity.",
+      "SourceClock continues to validate every chunk against current binding; existing first-zero-packet SR, CNAME, lifetime and common-offset rules remain unchanged."
+    ],
+    "original": {
+      "path": ".local/gate5/rtcp-clock-activation/original-20261014T125536/result.json",
+      "sha256": "6dd385060f86ef5f5fe7bd85093e652686a6669b4845d9b66f457c3bf2599003"
+    },
+    "original_counts": {
+      "rtc": {
+        "passed": 0,
+        "failed": 3
+      },
+      "webrtc_selected": {
+        "passed": 1,
+        "failed": 1
+      }
+    },
+    "original_scope": "Three new actual-handler tests fail; real UDP/SRTCP strict AV test connects and receives RTP but source anchor activation fails. The one passing upper test is the pre-existing activation-race regression selected by name.",
+    "repaired": {
+      "path": ".local/gate5/rtcp-clock-activation/repaired-20261014T125850/result.json",
+      "sha256": "1075e80f8cb6806c4f0e13ac56c754af0d0fc4fb0619788129b703f02f2cc1e3"
+    },
+    "repaired_counts": {
+      "rtc": 3,
+      "webrtc_selected": 2
+    },
+    "regression": {
+      "path": ".local/gate5/rtcp-clock-activation/regression-20261014T125958/result.json",
+      "sha256": "4db947b87b3d8bd5470add804bc729da4cd3259b06d21c3d6e0561827cbacf71"
+    },
+    "regression_counts": {
+      "rtc_all": 190,
+      "webrtc_source_clock": 14
+    },
+    "proof_limits": "All passing counts have zero failures and ignored tests with stable source inventories. Selected packages were freshly compiled after clean in original and repaired runs. The full regression reuses the identical freshly compiled candidate. Counts overlap and must not be summed as distinct tests.",
+    "actual_network_proof": "Two strict RvoipPeerConnections over authenticated local UDP/SRTCP deliver a compound with leading empty RR, unknown SR, SDES with unknown first chunk and current source chunk, and SR carrying a foreign report block. Exact handcrafted current audio/video RTP/rate anchors activate; same source NTP maps to exactly equal relay NTP despite later video arrival. Unknown source obtains no clock.",
+    "hop_proof": "Recording wrapper verifies original compound packet types/order/count [201,200,202,200] traverses hop ownership once; endpoint emits known SDES+SR once and cannot open sources.",
+    "patch": {
+      "path": ".local/gate5/rtcp-clock-activation/rtcp-source-clock-activation.patch",
+      "sha256": "5cc0ec2eaf415711269f818572976df54661f0f77976346143f6a5a7ac8536b0"
+    },
+    "inventory": {
+      "path": ".local/gate5/rtcp-clock-activation/patch-inventory.json",
+      "sha256": "690f77b2f2adaf2341d65e6360312352248b35b814ce6d402c19a6964207149b"
+    },
+    "independent_review": {
+      "path": ".local/gate5/rtcp-clock-activation/release-independent-review.json",
+      "sha256": "c821887a6570f6e223cc690dbea421328682e99ba50e5376573b58d43a7ba447"
+    },
+    "remaining": [
+      "Recorded patch28 preparation and full RTC190/source_clock14 proof",
+      "Fresh normal build and prospective browser diagnostic showing relay SR activation plus common AV clock mapping",
+      "Unchanged full nine-profile media and final source/package/installed qualification"
+    ],
+    "root_independent_review": {
+      "path": ".local/gate5/rtcp-clock-activation/root-integration-review.json",
+      "sha256": "327c724a5fcf4117609b9975e4e885cbcd4671747da7818826e31206a9fffd73"
+    }
+  },
+  "recorded_graph28_verification": {
+    "recorded_at": "2026-10-14T13:03:26.812484+00:00",
+    "source_lock_sha256": "dae61d19fc49a97a42912794ce2d9e33fb81a06e5a04135443c148a45cee78d0",
+    "patch_count": 28,
+    "patch": {
+      "path": "patches/rvoip/webrtc-source-clock-rtcp-activation.patch",
+      "sha256": "5cc0ec2eaf415711269f818572976df54661f0f77976346143f6a5a7ac8536b0"
+    },
+    "proof": {
+      "path": ".local/gate5/rtcp-clock-integration/proof-20261014T130145.994011Z/result.json",
+      "sha256": "9b4eff2b919ef71742b2101c512b5fcd9eadcd99cdab52d16071399d8189f66f",
+      "status": "passed",
+      "inputs_stable": true,
+      "counts": {
+        "RTC": 190,
+        "WebRTC_source_clock": 14
+      },
+      "fresh_compilation_observed": {
+        "rvoip-rtc": true,
+        "rvoip-webrtc-stack": true,
+        "rvoip-webrtc": true
+      }
+    },
+    "guards": {
+      "path": ".local/gate5/rtcp-clock-integration/guards.json",
+      "sha256": "b82e8d924c00d19a0536d8082426826114af78081743f7ec0a12cd4c9173fb76"
+    },
+    "installed_sdk_fixture": {
+      "path": "sdk/tests/browser_rtx_offer.mjs",
+      "sha256": "42dd205726a67b75e5976aa721fa72eb4185934ae4c98c5daa795b7eac6bfc25",
+      "lane": "operating",
+      "timeout_seconds": 120,
+      "scope": "Real Chrome codec/FID negotiation against explicitly selected installed SDK assets; asset and tool hashes bound before/after; no strict-server wire claim."
+    },
+    "remaining": "Fresh combined normal binaries, actual strict-server Chrome RTX/SR activation and unchanged media profile; final source/package/installed lanes."
+  },
+  "graph28_runtime_clock_activation": {
+    "recorded_at": "2026-10-14T13:15:17.884070+00:00",
+    "status": "actual-runtime-clock-activation-observed; full-media-open",
+    "diagnostic": {
+      "path": ".local/gate5/chrome-feedback-diagnostic-20261014T130542Z/result.json",
+      "sha256": "b0bec7f8a23e4de668f0e80a30046db246a0232f05276496ee73f00ec18280f7"
+    },
+    "analysis": {
+      "path": ".local/gate5/source-clock-mapping-20261014T130542Z/summary.json",
+      "sha256": "5823c68300383e88c6ebf6a7e6ce5cec2b5edc94154d279b02e463e8db7cb96e"
+    },
+    "exact_arithmetic_witnesses": {
+      "path": ".local/gate5/source-clock-mapping-20261014T130542Z/common-offset-result.json",
+      "sha256": "b2a51e2cd03197c82aea519400c90cba777057caaa3690a26969ee18a5af09aa"
+    },
+    "method": "For each received nonzero-packet relay SR, enumerate original same-source-track SRs logged no later than receipt. Each defines a half-open interval for fixed C under exact integer NTP->RTP extrapolation at negotiated 48kHz audio/90kHz video, with signed modulo32 RTP delta. Intersect the union of allowed intervals for every report across both tracks. The first surviving interval midpoint predicts each relay RTP exactly; witnesses retain a matching preceding original SR. This is an observational consistency proof, not direct internal state telemetry or uniquely identified per-report source-anchor selection. Browser logger omits SDES; no wire-CNAME text claim.",
+    "findings": [
+      {
+        "source_log": "event_log_20261014_0605_7_1.log.decoded.json",
+        "receiver_log": "event_log_20261014_0605_10_1.log.decoded.json",
+        "audio_reports": 14,
+        "video_reports": 18,
+        "common_offset_intervals": [
+          {
+            "lower_ms_exclusive": 0.3591246693084637,
+            "upper_ms_inclusive": 0.36069416656262343,
+            "width_us": 1.5694972541597154
+          }
+        ],
+        "all_relay_rtp_exactly_predicted": true,
+        "chosen_witness_source_anchors_nondecreasing_per_track": true
+      },
+      {
+        "source_log": "event_log_20261014_0605_10_1.log.decoded.json",
+        "receiver_log": "event_log_20261014_0605_7_1.log.decoded.json",
+        "audio_reports": 15,
+        "video_reports": 20,
+        "common_offset_intervals": [
+          {
+            "lower_ms_exclusive": 32.751708297555645,
+            "upper_ms_inclusive": 32.75222287037306,
+            "width_us": 0.5145728174183104
+          }
+        ],
+        "all_relay_rtp_exactly_predicted": true,
+        "chosen_witness_source_anchors_nondecreasing_per_track": true
+      }
+    ],
+    "primary_rtp_timestamp_identity": [
+      {
+        "source_log": "event_log_20261014_0605_7_1.log.decoded.json",
+        "receiving_log": "event_log_20261014_0605_10_1.log.decoded.json",
+        "pt": 111,
+        "distinct_received_rtp_times": 1004,
+        "exactly_matching_received_rtp_times": 1004,
+        "nonmatching_received_rtp_times": 0
+      },
+      {
+        "source_log": "event_log_20261014_0605_7_1.log.decoded.json",
+        "receiving_log": "event_log_20261014_0605_10_1.log.decoded.json",
+        "pt": 96,
+        "distinct_received_rtp_times": 620,
+        "exactly_matching_received_rtp_times": 620,
+        "nonmatching_received_rtp_times": 0
+      },
+      {
+        "source_log": "event_log_20261014_0605_10_1.log.decoded.json",
+        "receiving_log": "event_log_20261014_0605_7_1.log.decoded.json",
+        "pt": 111,
+        "distinct_received_rtp_times": 982,
+        "exactly_matching_received_rtp_times": 982,
+        "nonmatching_received_rtp_times": 0
+      },
+      {
+        "source_log": "event_log_20261014_0605_10_1.log.decoded.json",
+        "receiving_log": "event_log_20261014_0605_7_1.log.decoded.json",
+        "pt": 96,
+        "distinct_received_rtp_times": 183,
+        "exactly_matching_received_rtp_times": 183,
+        "nonmatching_received_rtp_times": 0
+      }
+    ],
+    "total_received_sender_reports": 67,
+    "exact_relay_rtp_predictions": 67,
+    "limits": [
+      "A shared fixed offset is consistent with every observed report, but runtime internal C values and selected individual source anchors are not directly logged. Matching original source anchors precede receipt, not necessarily relay emission; source-to-relay arrival timestamps are unavailable.",
+      "Chrome eventlog strips SDES, so no direct wire CNAME text claim. Given strict source-clock suppression/activation policy in the reviewed graph, nonzero incoming SRs plus exact shared-C consistency support authoritative runtime activation.",
+      "No inference that clock repair resolves GCC collapse, sparse video, AV marker calibration, or whole Gate5. Existing diagnostic sparse direction has no AV marker pairs.",
+      "Common offset contains initial arrival timing; its absolute value is not a network-delay estimate or media latency.",
+      "Older graph27 no-SR diagnostic and every failed profile remain unchanged."
+    ],
+    "current_full_nine_scenario_evidence": {
+      "graph": 27,
+      "passed": 7,
+      "total": 9,
+      "status": "failed",
+      "report": {
+        "path": ".local/gate5/repaired-media-20261014T124515Z/result.json",
+        "sha256": "743660e790b2f69ae3a84e4599d3bcaca3f31b5a0dacc09dbcc217a979406906"
+      }
+    },
+    "remaining": [
+      "Browser impairment recovery and prospective unchanged full nine-scenario media qualification.",
+      "Final stable-source, package, installed and model acceptance lanes."
+    ],
+    "whole_gate_qualified": false
+  }
+}

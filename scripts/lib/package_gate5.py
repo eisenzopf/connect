@@ -16,6 +16,110 @@ from .package_inventory import digest, inventory_gate5
 from .qualification_process import run_phase
 from .media_failure_proof import verify_external_failures
 from .qualification_report import environment, check_test_results
+from .setup_provider_fixture import CHECKS as PROVIDER_SETUP_CHECKS
+
+CONNECTED_APP_CHECKS = (
+    'normal example excludes test-support crash controls',
+    'outgoing artifact bytes, owner, conversation and draft digest',
+    'concurrent worker cannot own original ledger',
+    'unbound, wrong-conversation and unauthorized decisions cannot select a record',
+    'both directions retain their original conversation mapping',
+    'app checkpoint and original business effect identities persisted',
+    'original mutation and business IDs survive server and worker restart',
+    'same reviewer mutation replays exact accepted receipt',
+    'late decision and semantic duplicates preserve original effects',
+    'one public response for review_recorded', 'one public response for draft_received',
+    'unauthorized contact receives no business response',
+    'selected normal binary hashes unchanged', 'selected driver and tools unchanged',
+)
+
+
+def connected_app_inputs(release, source):
+    paths = [source / name for name in ('scripts/check-connected-app.py',
+        'scripts/lib/local_process.py', 'scripts/lib/qualification_report.py')]
+    paths += [pathlib.Path(sys.executable), release / 'bin/connect', release / 'bin/connect-example']
+    return {str(path.resolve(strict=True)): digest(path) for path in paths}
+
+
+def verify_connected_app(observed, release, source, revision):
+    expected = connected_app_inputs(release, source)
+    binaries = {name: str((release / 'bin' / name).resolve(strict=True)) for name in ('connect', 'connect-example')}
+    if (not isinstance(observed, dict) or observed.get('status') != 'passed'
+            or observed.get('profile') != 'connected-app-public-cli/1'
+            or observed.get('source_revision') != revision
+            or observed.get('selected_binaries') != binaries
+            or observed.get('binary_sha256') != {name: expected[path] for name, path in binaries.items()}
+            or observed.get('driver_sha256') != digest(source / 'scripts/check-connected-app.py')
+            or observed.get('input_sha256') != expected or observed.get('input_sha256_after') != expected
+            or observed.get('tested_inputs_stable') is not True
+            or observed.get('checks') != list(CONNECTED_APP_CHECKS)
+            or observed.get('not_run') != ['test-support lost-ack crash injection',
+                'actual-model inference', 'whole-gate qualification']
+            or observed.get('remaining_owned_processes') != []
+            or 'cleanup_error' in observed or observed.get('cleanup_errors')):
+        raise ValueError('Installed connected-app proof omitted required behavior or changed selected inputs')
+    cleanup = observed.get('cleanup')
+    if (not isinstance(cleanup, list) or len(cleanup) != 3
+            or any(not isinstance(row, dict) or type(row.get('pid')) is not int or row['pid'] <= 0
+                   or type(row.get('exit_code')) is not int for row in cleanup)
+            or len({row['pid'] for row in cleanup}) != 3
+            or sum(row['exit_code'] == 0 for row in cleanup) != 2):
+        raise ValueError('Installed connected-app proof omitted the three expected worker exits')
+    return observed
+
+
+def session_inputs(release, source, node):
+    paths = [release / 'bin/connect', pathlib.Path(node), pathlib.Path(sys.executable),
+        source / 'scripts/check-installed-sessions.py', source / 'scripts/lib/local_process.py',
+        source / 'scripts/lib/qualification_report.py', source / 'sdk/tests/session_probe.py',
+        source / 'scripts/lib/qualification_process.py', source / 'scripts/lib/phase_supervisor.py',
+        source / 'sdk/tests/session_probe.mjs']
+    for folder in ('sdk/python/connect_sdk', 'sdk/typescript/dist'):
+        paths += [path for path in (release / folder).rglob('*') if path.is_file()
+            and path.suffix not in ('.pyc', '.pyo') and '__pycache__' not in path.parts]
+    return {str(path.resolve(strict=True)): digest(path) for path in paths}
+
+
+def verify_session_controls(observed, release, source, node, revision):
+    expected = session_inputs(release, source, node)
+    if (not isinstance(observed, dict) or observed.get('status') != 'passed'
+            or observed.get('profile') != 'installed-session-controls/1'
+            or observed.get('source_revision') != revision
+            or observed.get('selected_binary') != str((release / 'bin/connect').resolve(strict=True))
+            or observed.get('selected_assets') != str(release.resolve(strict=True))
+            or observed.get('input_sha256') != expected or observed.get('input_sha256_after') != expected
+            or observed.get('tested_inputs_stable') is not True
+            or observed.get('interfaces') != ['CLI', 'Python native helper', 'Python HTTP', 'TypeScript native helper', 'TypeScript HTTP']
+            or any(type(observed.get(name)) is not int or observed[name] != count for name, count in
+                [('cli_seed_records', 19), ('original_scope_records', 35), ('sdk_origin_records', 16), ('narrowed_scope_denials', 26)])
+            or observed.get('current_authorization_enforced_on_replay') is not True
+            or observed.get('credential_diagnostics_redacted') is not True):
+        raise ValueError('Installed Session controls omitted selected inputs, SDK origins or current-authority replay')
+    phases = observed.get('sdk_phases')
+    expected_names = [f'session-{language}-{index}' for index, language in
+        enumerate(('python', 'typescript', 'python', 'typescript', 'python', 'typescript'), 1)]
+    if (not isinstance(phases, list) or len(phases) != 6
+            or any(not isinstance(phase, dict) for phase in phases)
+            or [phase.get('name') for phase in phases] != expected_names
+            or any(phase.get('status') != 'passed' or phase.get('leftover_group_members') != []
+                or phase.get('group_cleanup') != 'signalled' or 'error' in phase or 'cleanup_error' in phase for phase in phases)):
+        raise ValueError('Installed Session controls lack six owned SDK phases with complete cleanup')
+    return observed
+
+
+def verify_reference_continuity(observed):
+    ids = ('conversation_id', 'session_id', 'source_message_id', 'decision_message_id',
+        'decision_actor_id', 'followup_message_id', 'artifact_id')
+    if (not isinstance(observed, dict) or observed.get('status') != 'passed'
+            or any(not isinstance(observed.get(name), str) or not observed[name] for name in ids)
+            or len({observed[name] for name in ('source_message_id', 'decision_message_id', 'followup_message_id')}) != 3
+            or not isinstance(observed.get('artifact_sha256'), str)
+            or re.fullmatch('[0-9a-f]{64}', observed['artifact_sha256']) is None
+            or any(type(observed.get(name)) is not int or observed[name] <= 0 for name in ('artifact_size', 'explicit_omitted_sources'))
+            or type(observed.get('foreign_conversation_sources')) is not int or observed['foreign_conversation_sources'] != 0
+            or any(observed.get(name) is not True for name in ('artifact_bytes_reverified_after_restart', 'exact_decision_replay', 'one_followup'))
+            or observed.get('transcript_status') != 'No transcript or derived summary was produced; AV transport supplies no ASR or model vision.'):
+        raise ValueError('Installed reference continuity lacks attributed decision, artifact or replay proof')
 
 
 def native_cleanup_inputs(release, source, ffmpeg):
@@ -25,6 +129,7 @@ def native_cleanup_inputs(release, source, ffmpeg):
         script / 'video/native-processes.py', script / 'video/decoder_observation.py',
         script / 'video/marker_calibration.py', script / 'lib/local_process.py',
         script / 'lib/qualification_process.py', script / 'lib/phase_supervisor.py',
+        script / 'lib/native_process_owner.py',
         script / 'tests/test_native_video_cleanup.py', release / 'bin/connect',
         release / 'bin/connect-video', pathlib.Path(ffmpeg), pathlib.Path(sys.executable), pathlib.Path('/bin/ps')]
     for directory in [script / 'video'] + [source / name for name in ('examples/native-video', 'crates', 'contracts')]:
@@ -163,6 +268,35 @@ def verify_native_cleanup(observed, release, source, ffmpeg, revision, work_root
     return observed
 
 
+def verify_decoded_routes(observed, expected_status, seconds):
+    """Require every route's completed scenario, not only an aggregate label."""
+    def duration(value):
+        return type(value) in (int, float) and math.isfinite(value) and value >= seconds
+
+    routes = observed.get('paths')
+    if (not duration(observed.get('qualification_seconds'))
+            or not isinstance(routes, list) or len(routes) != 3
+            or any(not isinstance(route, dict) for route in routes)
+            or {route.get('path') for route in routes}
+            != {'native-native', 'native-browser', 'browser-browser'}
+            or any(route.get('status') != expected_status
+                   or not duration(route.get('qualification_seconds')) for route in routes)):
+        raise ValueError('Installed decoded paths did not complete every candidate route/input scenario')
+
+
+def verify_provider_setup(observed):
+    """Installed setup must include every supplied-metadata/loopback case."""
+    if (not isinstance(observed, dict) or observed.get('status') != 'passed'
+            or observed.get('checks') != [{'name': name, 'status': 'passed'} for name in PROVIDER_SETUP_CHECKS]
+            or observed.get('provider_http_methods') != ['GET']
+            or type(observed.get('provider_http_count')) is not int
+            or observed['provider_http_count'] != 2
+            or any(type(observed.get(name)) is not int or observed[name] != 0
+                   for name in ('resource_mutations', 'real_account_requests'))
+            or observed.get('preview_and_readiness_inputs_unchanged') is not True):
+        raise ValueError('Installed provider setup proof omitted a required read-only loopback/metadata case')
+
+
 def qualify(release, source, manifest, directory, independent_python=None, media_tools=None,
             baselines=None):
     inventory_gate5(release, source)
@@ -240,7 +374,27 @@ def qualify(release, source, manifest, directory, independent_python=None, media
                 or observed.get('candidate_schema') != manifest['schema']
                 or observed.get('source_revision') != manifest['source_revision']):
             raise ValueError('Installed first-run proof did not bind candidate inputs')
+        verify_provider_setup(observed.get('provider_setup'))
         report['public_setup'] = observed
+        output = directory / 'connected-app.json'
+        phase('installed-connected-app', [sys.executable, str(source / 'scripts/check-connected-app.py'),
+            '--server-binary', str(release / 'bin/connect'),
+            '--example-binary', str(release / 'bin/connect-example'),
+            '--source-revision', manifest['source_revision'],
+            '--work-root', str(directory / 'connected-app-state'), '--output', str(output)], 180, release)
+        report['connected_app'] = verify_connected_app(json.loads(output.read_text()),
+            release, source, manifest['source_revision'])
+        if not media_tools or not media_tools.get('node'):
+            report['unresolved'].append({'check': 'installed-session-controls',
+                'reason': 'Explicit selected Node required for packaged TypeScript native/HTTP Session probes'})
+        else:
+            output = directory / 'session-controls.json'
+            phase('installed-session-controls', [sys.executable, str(source / 'scripts/check-installed-sessions.py'),
+                '--binary', str(release / 'bin/connect'), '--assets', str(release),
+                '--node', str(media_tools['node']), '--source-revision', manifest['source_revision'],
+                '--work-root', str(directory / 'session-control-state'), '--output', str(output)], 180, release)
+            report['session_controls'] = verify_session_controls(json.loads(output.read_text()),
+                release, source, media_tools['node'], manifest['source_revision'])
         # Native Keychain library behavior and installed CLI operations have
         # separate scope. A source-built test executable never becomes an
         # installed server substitute via CARGO_BIN_EXE_connect.
@@ -335,6 +489,7 @@ def qualify(release, source, manifest, directory, independent_python=None, media
                            or not math.isfinite(row['cleanupMs']) or not 0 <= row['cleanupMs'] < 5000
                            for row in failures)):
                 raise ValueError('Installed browser failure cleanup proof is incomplete')
+            verify_reference_continuity(video.get('continuity'))
             report['reference_client'] = reference
             for label, flag, seconds, expected_status in (
                 ('decoded-video', None, 60, 'passed-clean'),
@@ -351,16 +506,14 @@ def qualify(release, source, manifest, directory, independent_python=None, media
                     command.append(flag)
                 phase('installed-' + label, command, 600, release)
                 observed = json.loads(output.read_text())
+                verify_decoded_routes(observed, expected_status, seconds)
                 bound = observed.get('input_sha256', {})
                 if (observed.get('status') != expected_status or not observed.get('tested_inputs_stable')
-                        or observed.get('qualification_seconds', 0) < seconds
                         or observed.get('source_revision') != manifest['source_revision']
                         or observed.get('selected_runtime') != str(release)
                         or observed.get('selected_assets') != str(release)
                         or bound.get(str(release / 'bin/connect')) != report['installed_binary_sha256']
-                        or bound.get(str(release / 'bin/connect-video')) != report['installed_video_sha256']
-                        or {route.get('path') for route in observed.get('paths', [])}
-                        != {'native-native', 'native-browser', 'browser-browser'}):
+                        or bound.get(str(release / 'bin/connect-video')) != report['installed_video_sha256']):
                     raise ValueError('Installed decoded paths did not bind every candidate route/input')
                 known_checks = {
                     'credential revocation, restart, cancellation and ICE/QUIC failure cases outside this checker',

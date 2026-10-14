@@ -1,0 +1,717 @@
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -204,7 +204,7 @@
+ // Re-export derive macros for creating custom interceptors
+ // - `Interceptor` derive macro: marks a struct as an interceptor with #[next] field
+ // - `interceptor` attribute macro: generates Protocol and Interceptor trait implementations
+-pub use interceptor_derive::{Interceptor, interceptor};
++pub use interceptor_derive::{interceptor, Interceptor};
+ 
+ /// RTP/RTCP Packet
+ ///
+@@ -425,5 +425,6 @@
+     }
+ }
+ 
++pub use report::sender_clock::{SenderClockAnchor, SenderClockHandle, SenderClockUpdate};
+ mod rtx;
+ pub use rtx::{RtxReceiverBuilder, RtxReceiverInterceptor};
+--- a/src/report/mod.rs
++++ b/src/report/mod.rs
+@@ -54,3 +54,5 @@
+ pub(crate) mod receiver_stream;
+ pub(crate) mod sender;
+ pub(crate) mod sender_stream;
++
++pub(crate) mod sender_clock;
+--- a/src/report/sender.rs
++++ b/src/report/sender.rs
+@@ -1,5 +1,6 @@
+ //! Sender Report Interceptor - Filters hop-by-hop RTCP feedback.
+ 
++use super::sender_clock::{SenderClockHandle, SenderClockSelection};
+ use super::sender_stream::SenderStream;
+ use crate::stream_info::StreamInfo;
+ use crate::{Interceptor, Packet, TaggedPacket, interceptor};
+@@ -38,6 +39,7 @@
+     interval: Duration,
+     /// Whether to always use the latest packet, even if out-of-order.
+     use_latest_packet: bool,
++    clock: SenderClockHandle,
+     _phantom: PhantomData<P>,
+ }
+ 
+@@ -46,6 +48,7 @@
+         Self {
+             interval: Duration::from_secs(1),
+             use_latest_packet: false,
++            clock: SenderClockHandle::default(),
+             _phantom: PhantomData,
+         }
+     }
+@@ -112,8 +115,15 @@
+     /// let registry = Registry::new()
+     ///     .with(SenderReportBuilder::new().build());
+     /// ```
++    pub fn with_clock_handle(mut self, clock: SenderClockHandle) -> Self {
++        self.clock = clock;
++        self
++    }
++
+     pub fn build(self) -> impl FnOnce(P) -> SenderReportInterceptor<P> {
+-        move |inner| SenderReportInterceptor::new(inner, self.interval, self.use_latest_packet)
++        move |inner| {
++            SenderReportInterceptor::new(inner, self.interval, self.use_latest_packet, self.clock)
++        }
+     }
+ }
+ 
+@@ -148,6 +158,8 @@
+     use_latest_packet: bool,
+ 
+     streams: HashMap<u32, SenderStream>,
++    clock: SenderClockHandle,
++    bindings: HashMap<u32, StreamInfo>,
+ 
+     read_queue: VecDeque<TaggedPacket>,
+     write_queue: VecDeque<TaggedPacket>,
+@@ -155,7 +167,12 @@
+ 
+ impl<P> SenderReportInterceptor<P> {
+     /// Create a new SenderReportInterceptor.
+-    fn new(inner: P, interval: Duration, use_latest_packet: bool) -> Self {
++    fn new(
++        inner: P,
++        interval: Duration,
++        use_latest_packet: bool,
++        clock: SenderClockHandle,
++    ) -> Self {
+         Self {
+             inner,
+ 
+@@ -164,7 +181,9 @@
+ 
+             use_latest_packet,
+ 
++            bindings: HashMap::new(),
+             streams: HashMap::new(),
++            clock,
+ 
+             read_queue: VecDeque::new(),
+             write_queue: VecDeque::new(),
+@@ -219,8 +238,18 @@
+         if self.eto <= now {
+             self.eto = now + self.interval;
+ 
+-            for stream in self.streams.values_mut() {
+-                let rr = stream.generate_report(now);
++            for (ssrc, stream) in &mut self.streams {
++                if !stream.started() {
++                    continue;
++                }
++                let mut rr = stream.generate_report(now);
++                match self.clock.selection(*ssrc) {
++                    SenderClockSelection::Local => {}
++                    SenderClockSelection::Pending | SenderClockSelection::Retired => continue,
++                    SenderClockSelection::Source(anchor) => {
++                        rr.rtp_time = anchor.rtp_at(rr.ntp_time)
++                    }
++                }
+                 self.write_queue.push_back(TaggedPacket {
+                     now,
+                     transport: TransportContext::default(),
+@@ -245,8 +274,17 @@
+ 
+     #[overrides]
+     fn bind_local_stream(&mut self, info: &StreamInfo) {
++        if self.bindings.get(&info.ssrc) == Some(info) {
++            return;
++        }
++        if let Some(old) = self.bindings.get(&info.ssrc) {
++            self.inner.unbind_local_stream(old);
++        }
++        self.clock.unbind(info.ssrc);
++        self.bindings.insert(info.ssrc, info.clone());
+         let stream = SenderStream::new(info.ssrc, info.clock_rate, self.use_latest_packet);
+         self.streams.insert(info.ssrc, stream);
++        self.clock.bind(info.ssrc, info.clock_rate);
+ 
+         self.inner.bind_local_stream(info);
+     }
+@@ -254,6 +292,8 @@
+     #[overrides]
+     fn unbind_local_stream(&mut self, info: &StreamInfo) {
+         self.streams.remove(&info.ssrc);
++        self.bindings.remove(&info.ssrc);
++        self.clock.unbind(info.ssrc);
+ 
+         self.inner.unbind_local_stream(info);
+     }
+@@ -641,3 +681,245 @@
+         assert!(timeout.is_some());
+     }
+ }
++
++#[cfg(test)]
++mod source_clock_report_tests {
++    use super::*;
++    use crate::{Registry, SenderClockAnchor, SenderClockUpdate};
++    use sansio::Protocol;
++    use std::sync::{
++        Arc,
++        atomic::{AtomicBool, Ordering},
++    };
++    #[test]
++    fn source_clock_real_interceptor_preserves_mapping_counts_and_suppresses_retired() {
++        let handle = SenderClockHandle::default();
++        let mut chain = Registry::new()
++            .with(
++                SenderReportBuilder::new()
++                    .with_clock_handle(handle.clone())
++                    .build(),
++            )
++            .build();
++        let info = StreamInfo {
++            ssrc: 99,
++            clock_rate: 90_000,
++            ..Default::default()
++        };
++        chain.bind_local_stream(&info);
++        let now = Instant::now();
++        chain.handle_timeout(now).unwrap();
++        assert!(chain.poll_write().is_none());
++        let alive = Arc::new(AtomicBool::new(true));
++        let live = alive.clone();
++        let update = SenderClockUpdate {
++            source_id: 1,
++            generation: 1,
++            anchor: None,
++            rtp_offset: 0,
++            supported: true,
++            is_current: Arc::new(move || live.load(Ordering::Acquire)),
++        };
++        let packet = TaggedPacket {
++            now,
++            transport: Default::default(),
++            message: Packet::Rtp(rtp::Packet {
++                header: rtp::Header {
++                    ssrc: 99,
++                    sequence_number: 1,
++                    timestamp: 10,
++                    ..Default::default()
++                },
++                payload: vec![1, 2, 3].into(),
++            }),
++        };
++        chain.handle_write(packet).unwrap();
++        chain.poll_write();
++        handle.apply_after_rtp(99, Some(update.clone()));
++        chain.handle_timeout(now + Duration::from_secs(2)).unwrap();
++        assert!(chain.poll_write().is_none());
++        let anchor = SenderClockAnchor {
++            ntp_time: chain
++                .streams
++                .get_mut(&99)
++                .unwrap()
++                .generate_report(now)
++                .ntp_time,
++            rtp_time: 900_000,
++            clock_rate: 90_000,
++        };
++        let mut update = update;
++        update.anchor = Some(anchor);
++        update.rtp_offset = 7;
++        handle.apply_after_rtp(99, Some(update));
++        chain.bind_local_stream(&info); // benign SDP rebind must retain source clock and counters
++        chain.handle_timeout(now + Duration::from_secs(4)).unwrap();
++        let Packet::Rtcp(packets) = chain.poll_write().unwrap().message else {
++            panic!()
++        };
++        let sr = packets[0]
++            .as_any()
++            .downcast_ref::<rtcp::sender_report::SenderReport>()
++            .unwrap();
++        assert_eq!(sr.rtp_time, anchor.rtp_at(sr.ntp_time).wrapping_add(7));
++        assert_eq!((sr.packet_count, sr.octet_count), (1, 3));
++        let mut changed = info.clone();
++        changed.clock_rate = 8000;
++        chain.bind_local_stream(&changed);
++        assert_eq!(handle.selection(99), SenderClockSelection::Local);
++        assert!(!chain.streams.get(&99).unwrap().started());
++        alive.store(false, Ordering::Release);
++        chain.handle_timeout(now + Duration::from_secs(6)).unwrap();
++        assert!(chain.poll_write().is_none());
++    }
++}
++#[cfg(test)]
++mod source_clock_end_to_end_tests {
++    use super::*;
++    use crate::{
++        NackResponderBuilder, RTCPFeedback, Registry, SenderClockAnchor, SenderClockUpdate,
++    };
++    use sansio::Protocol;
++    use std::sync::Arc;
++    fn rtp(now: Instant, ssrc: u32, seq: u16, timestamp: u32) -> TaggedPacket {
++        TaggedPacket {
++            now,
++            transport: Default::default(),
++            message: Packet::Rtp(rtp::Packet {
++                header: rtp::Header {
++                    ssrc,
++                    sequence_number: seq,
++                    timestamp,
++                    ..Default::default()
++                },
++                payload: vec![42].into(),
++            }),
++        }
++    }
++    fn nack(ssrc: u32) -> TaggedPacket {
++        TaggedPacket {
++            now: Instant::now(),
++            transport: Default::default(),
++            message: Packet::Rtcp(vec![Box::new(
++                rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack {
++                    sender_ssrc: 900,
++                    media_ssrc: ssrc,
++                    nacks: vec![rtcp::transport_feedbacks::transport_layer_nack::NackPair {
++                        packet_id: 1,
++                        lost_packets: 0,
++                    }],
++                },
++            )]),
++        }
++    }
++    #[test]
++    fn source_clock_identical_binding_preserves_real_nack_history_changed_binding_resets_it() {
++        let mut chain = Registry::new()
++            .with(NackResponderBuilder::new().build())
++            .with(SenderReportBuilder::new().build())
++            .build();
++        let info = StreamInfo {
++            ssrc: 99,
++            clock_rate: 90000,
++            rtcp_feedback: vec![RTCPFeedback {
++                typ: "nack".into(),
++                parameter: String::new(),
++            }],
++            ..Default::default()
++        };
++        chain.bind_local_stream(&info);
++        chain.handle_write(rtp(Instant::now(), 99, 1, 90)).unwrap();
++        chain.poll_write();
++        chain.bind_local_stream(&info);
++        chain.handle_read(nack(99)).unwrap();
++        let retry = chain
++            .poll_write()
++            .expect("identical binding must retain cached RTP");
++        assert!(
++            matches!(retry.message,Packet::Rtp(ref p) if p.header.sequence_number==1&&p.payload.as_ref()==[42])
++        );
++        let mut changed = info;
++        changed.clock_rate = 8000;
++        chain.bind_local_stream(&changed);
++        chain.handle_read(nack(99)).unwrap();
++        assert!(chain.poll_write().is_none());
++    }
++    #[test]
++    fn source_clock_actual_reports_remove_the_original_190ms_arrival_jitter_counterexample() {
++        let clock = SenderClockHandle::default();
++        let mut chain = Registry::new()
++            .with(
++                SenderReportBuilder::new()
++                    .with_clock_handle(clock.clone())
++                    .build(),
++            )
++            .build();
++        for (ssrc, rate) in [(1, 90000), (2, 8000)] {
++            chain.bind_local_stream(&StreamInfo {
++                ssrc,
++                clock_rate: rate,
++                ..Default::default()
++            });
++        }
++        let base = Instant::now();
++        let ntp = chain
++            .streams
++            .get_mut(&1)
++            .unwrap()
++            .generate_report(base)
++            .ntp_time;
++        for (cycle, vd, ad) in [(1, 100u64, 10u64), (2, 0, 100)] {
++            for (ssrc, rate, origin, delay) in
++                [(1, 90000u32, 1_000_000u32, vd), (2, 8000, 2_000_000, ad)]
++            {
++                let now = base + Duration::from_millis(cycle * 1000 + delay);
++                chain
++                    .handle_write(rtp(now, ssrc, cycle as u16, origin + cycle as u32 * rate))
++                    .unwrap();
++                chain.poll_write();
++                let update = SenderClockUpdate {
++                    source_id: ssrc as u128,
++                    generation: 1,
++                    anchor: Some(SenderClockAnchor {
++                        ntp_time: ntp,
++                        rtp_time: origin,
++                        clock_rate: rate,
++                    }),
++                    rtp_offset: 0,
++                    supported: true,
++                    is_current: Arc::new(|| true),
++                };
++                assert!(clock.apply_after_rtp(ssrc, Some(update)));
++            }
++            let now = base + Duration::from_millis(cycle * 1000 + 200);
++            chain.handle_timeout(now).unwrap();
++            let mut capture_times = Vec::new();
++            while let Some(packet) = chain.poll_write() {
++                if let Packet::Rtcp(packets) = packet.message {
++                    for packet in packets {
++                        if let Some(sr) = packet
++                            .as_any()
++                            .downcast_ref::<rtcp::sender_report::SenderReport>()
++                        {
++                            let (origin, rate) = if sr.ssrc == 1 {
++                                (1_000_000u32, 90000u64)
++                            } else {
++                                (2_000_000, 8000)
++                            };
++                            capture_times.push(sr.ntp_time.wrapping_sub(
++                                ((sr.rtp_time.wrapping_sub(origin) as u64) << 32) / rate,
++                            ));
++                            assert_eq!(sr.packet_count, cycle as u32);
++                        }
++                    }
++                }
++            }
++            assert_eq!(capture_times.len(), 2);
++            let delta = capture_times[0].wrapping_sub(capture_times[1]) as i64;
++            assert!(
++                delta.unsigned_abs() <= (1u64 << 32) / 8000,
++                "source clock skew must remain within one audio tick, got {delta} NTP ticks"
++            );
++        }
++    }
++}
+--- /dev/null
++++ b/src/report/sender_clock.rs
+@@ -0,0 +1,306 @@
++//! Explicit, bounded clock overrides for relayed sender streams.
++//! Native/local streams retain their original report mode until explicitly set.
++use std::collections::HashMap;
++use std::sync::{Arc, Mutex};
++
++/// One RTP sample paired with the relay's local NTP domain. The source adapter
++/// applies one common domain translation for all synchronized source tracks.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct SenderClockAnchor {
++    pub ntp_time: u64,
++    pub rtp_time: u32,
++    pub clock_rate: u32,
++}
++impl SenderClockAnchor {
++    pub fn rtp_at(&self, ntp_time: u64) -> u32 {
++        // Signed modular NTP delta handles the NTP era boundary. Accepted
++        // anchors are in the current source generation, not arbitrary eras.
++        let delta = ntp_time.wrapping_sub(self.ntp_time) as i64;
++        let ticks = i128::from(delta) * i128::from(self.clock_rate) / (1_i128 << 32);
++        self.rtp_time.wrapping_add(ticks as u32)
++    }
++    pub fn translated_rtp(self, source_packet: u32, wire_packet: u32) -> Self {
++        Self {
++            rtp_time: self
++                .rtp_time
++                .wrapping_add(wire_packet.wrapping_sub(source_packet)),
++            ..self
++        }
++    }
++}
++
++/// Kept separate from the anchor: absent authoritative SR must never look like
++/// a native stream, and a retired route must never resume generated timing.
++#[derive(Clone)]
++pub struct SenderClockUpdate {
++    pub source_id: u128,
++    pub generation: u64,
++    pub anchor: Option<SenderClockAnchor>,
++    /// Current source-to-wire translation, distinct from the source SR age.
++    pub rtp_offset: u32,
++    pub supported: bool,
++    /// Source and route lifetime/current-authority predicate. It must be cheap,
++    /// synchronous, and remain false once the represented route is retired.
++    pub is_current: Arc<dyn Fn() -> bool + Send + Sync>,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(crate) enum SenderClockSelection {
++    Local,
++    Pending,
++    Retired,
++    Source(SenderClockAnchor),
++}
++struct Slot {
++    rate: u32,
++    external: Option<SenderClockUpdate>,
++}
++/// Shared only with the owning peer driver. Applying updates must occur in the
++/// same serialized core event as the corresponding successful RTP write.
++#[derive(Clone, Default)]
++pub struct SenderClockHandle(Arc<Mutex<HashMap<u32, Slot>>>);
++impl SenderClockHandle {
++    pub(crate) fn bind(&self, ssrc: u32, rate: u32) {
++        let mut slots = self.0.lock().unwrap_or_else(|p| p.into_inner());
++        if slots.get(&ssrc).is_some_and(|s| s.rate == rate) {
++            return;
++        }
++        slots.insert(
++            ssrc,
++            Slot {
++                rate,
++                external: None,
++            },
++        );
++    }
++    pub(crate) fn unbind(&self, ssrc: u32) {
++        self.0
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .remove(&ssrc);
++    }
++    /// Preflight before writing any associated RTP. The driver repeats the
++    /// lifetime check when applying the successful write's mapping.
++    pub fn permits(&self, ssrc: u32, update: Option<&SenderClockUpdate>) -> bool {
++        let slots = self.0.lock().unwrap_or_else(|p| p.into_inner());
++        let Some(slot) = slots.get(&ssrc) else {
++            return false;
++        };
++        update.is_none_or(|u| {
++            (u.is_current)()
++                && (!u.supported
++                    || u.anchor
++                        .is_none_or(|a| a.clock_rate != 0 && a.clock_rate == slot.rate))
++        })
++    }
++    /// Unknown SSRCs never allocate slots. None is an explicit new local/native
++    /// write, not a fallback for pending or invalid external metadata.
++    pub fn apply_after_rtp(&self, ssrc: u32, update: Option<SenderClockUpdate>) -> bool {
++        let mut slots = self.0.lock().unwrap_or_else(|p| p.into_inner());
++        let Some(slot) = slots.get_mut(&ssrc) else {
++            return false;
++        };
++        let Some(mut update) = update else {
++            slot.external = None;
++            return true;
++        };
++        if !(update.is_current)() {
++            if !slot.external.as_ref().is_some_and(|old| (old.is_current)()) {
++                slot.external = Some(update);
++            }
++            return false;
++        }
++        if let Some(anchor) = update.anchor.filter(|_| update.supported) {
++            if anchor.clock_rate == 0 || anchor.clock_rate != slot.rate {
++                return false;
++            }
++        }
++        if let Some(old) = slot.external.as_ref() {
++            if (old.is_current)()
++                && old.source_id == update.source_id
++                && old.generation == update.generation
++            {
++                if let Some(previous) = old.anchor {
++                    // Queued older frames may carry an earlier SR from the
++                    // same clock. Retain the newer authoritative pair.
++                    if update.anchor.is_none_or(|next| {
++                        next.ntp_time.wrapping_sub(previous.ntp_time) as i64 <= 0
++                    }) {
++                        update.anchor = Some(previous);
++                    }
++                }
++            }
++        }
++        slot.external = Some(update);
++        true
++    }
++    pub(crate) fn selection(&self, ssrc: u32) -> SenderClockSelection {
++        let slots = self.0.lock().unwrap_or_else(|p| p.into_inner());
++        let Some(slot) = slots.get(&ssrc) else {
++            return SenderClockSelection::Retired;
++        };
++        match &slot.external {
++            None => SenderClockSelection::Local,
++            Some(update) if !(update.is_current)() => SenderClockSelection::Retired,
++            Some(update) if !update.supported => SenderClockSelection::Pending,
++            Some(update) => update.anchor.map_or(SenderClockSelection::Pending, |a| {
++                SenderClockSelection::Source(SenderClockAnchor {
++                    rtp_time: a.rtp_time.wrapping_add(update.rtp_offset),
++                    ..a
++                })
++            }),
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::sync::atomic::{AtomicBool, Ordering};
++    fn update(
++        anchor: Option<SenderClockAnchor>,
++        live: Arc<AtomicBool>,
++        generation: u64,
++    ) -> SenderClockUpdate {
++        SenderClockUpdate {
++            source_id: 4,
++            generation,
++            anchor,
++            rtp_offset: 0,
++            supported: true,
++            is_current: Arc::new(move || live.load(Ordering::Acquire)),
++        }
++    }
++    fn anchor(ntp_time: u64, rtp_time: u32) -> SenderClockAnchor {
++        SenderClockAnchor {
++            ntp_time,
++            rtp_time,
++            clock_rate: 90_000,
++        }
++    }
++    #[test]
++    fn zero_rtp_signed_time_and_both_wraps_are_preserved() {
++        let a = anchor(u64::MAX - (1 << 31) + 1, u32::MAX - 44_999);
++        assert_eq!(a.rtp_at(0), 0);
++        assert_eq!(anchor(10 << 32, 90_000).rtp_at(9 << 32), 0);
++        assert_eq!(anchor(10 << 32, 0).translated_rtp(u32::MAX, 0).rtp_time, 1);
++    }
++    #[test]
++    fn pending_retired_and_explicit_native_fallback_are_distinct() {
++        let h = SenderClockHandle::default();
++        h.bind(1, 90_000);
++        let live = Arc::new(AtomicBool::new(true));
++        assert_eq!(h.selection(1), SenderClockSelection::Local);
++        assert!(h.apply_after_rtp(1, Some(update(None, live.clone(), 1))));
++        assert_eq!(h.selection(1), SenderClockSelection::Pending);
++        live.store(false, Ordering::Release);
++        assert_eq!(h.selection(1), SenderClockSelection::Retired);
++        assert!(h.apply_after_rtp(1, None));
++        assert_eq!(h.selection(1), SenderClockSelection::Local);
++        h.unbind(1);
++        assert_eq!(h.selection(1), SenderClockSelection::Retired);
++    }
++    #[test]
++    fn unknown_wrong_rate_or_retired_updates_cannot_install_mapping() {
++        let h = SenderClockHandle::default();
++        h.bind(1, 90_000);
++        let live = Arc::new(AtomicBool::new(true));
++        assert!(!h.apply_after_rtp(2, Some(update(Some(anchor(1 << 32, 0)), live.clone(), 1))));
++        let mut a = anchor(1 << 32, 0);
++        a.clock_rate = 48_000;
++        assert!(!h.apply_after_rtp(1, Some(update(Some(a), live.clone(), 1))));
++        live.store(false, Ordering::Release);
++        assert!(!h.apply_after_rtp(1, Some(update(None, live, 1))));
++        assert_eq!(h.selection(1), SenderClockSelection::Retired);
++        assert_eq!(h.0.lock().unwrap().len(), 1);
++    }
++    #[test]
++    fn same_source_anchor_accepts_serialized_audio_rebasing() {
++        let h = SenderClockHandle::default();
++        h.bind(1, 90_000);
++        let live = Arc::new(AtomicBool::new(true));
++        let a = anchor(12 << 32, 100);
++        let first = update(Some(a), live.clone(), 1);
++        assert!(h.permits(1, Some(&first)));
++        assert!(h.apply_after_rtp(1, Some(first)));
++        let mut rebased = update(Some(anchor(11 << 32, 50)), live, 1);
++        rebased.rtp_offset = u32::MAX;
++        assert!(h.apply_after_rtp(1, Some(rebased)));
++        assert_eq!(
++            h.selection(1),
++            SenderClockSelection::Source(anchor(12 << 32, 99))
++        );
++    }
++    #[test]
++    fn old_same_generation_anchor_cannot_replace_new_but_new_source_can() {
++        let h = SenderClockHandle::default();
++        h.bind(1, 90_000);
++        let live = Arc::new(AtomicBool::new(true));
++        let newer = anchor(12 << 32, 200);
++        assert!(h.apply_after_rtp(1, Some(update(Some(newer), live.clone(), 1))));
++        assert!(h.apply_after_rtp(
++            1,
++            Some(update(Some(anchor(11 << 32, 100)), live.clone(), 1))
++        ));
++        assert_eq!(h.selection(1), SenderClockSelection::Source(newer));
++        assert!(h.apply_after_rtp(1, Some(update(None, live.clone(), 2))));
++        assert_eq!(h.selection(1), SenderClockSelection::Pending);
++        let restarted = anchor(1 << 32, 0);
++        assert!(h.apply_after_rtp(1, Some(update(Some(restarted), live, 2))));
++        assert_eq!(h.selection(1), SenderClockSelection::Source(restarted));
++    }
++}
++
++impl std::fmt::Debug for SenderClockHandle {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("SenderClockHandle")
++    }
++}
++impl std::fmt::Debug for SenderClockUpdate {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("SenderClockUpdate")
++            .field("generation", &self.generation)
++            .field("anchor", &self.anchor)
++            .field("rtp_offset", &self.rtp_offset)
++            .field("supported", &self.supported)
++            .finish_non_exhaustive()
++    }
++}
++#[cfg(test)]
++mod lifecycle_regressions {
++    use super::*;
++    use std::sync::atomic::{AtomicBool, Ordering};
++    fn update(live: Arc<AtomicBool>, anchor: Option<SenderClockAnchor>) -> SenderClockUpdate {
++        SenderClockUpdate {
++            source_id: 1,
++            generation: 1,
++            anchor,
++            rtp_offset: 0,
++            supported: true,
++            is_current: Arc::new(move || live.load(Ordering::Acquire)),
++        }
++    }
++    #[test]
++    fn source_clock_old_retired_cannot_suppress_current_and_replacement_does_not_keep_old_anchor() {
++        let h = SenderClockHandle::default();
++        h.bind(1, 8000);
++        let old = Arc::new(AtomicBool::new(true));
++        let current = Arc::new(AtomicBool::new(true));
++        let a = SenderClockAnchor {
++            ntp_time: 1 << 32,
++            rtp_time: 0,
++            clock_rate: 8000,
++        };
++        h.apply_after_rtp(1, Some(update(old.clone(), Some(a))));
++        old.store(false, Ordering::Release);
++        h.apply_after_rtp(1, Some(update(current.clone(), None)));
++        assert_eq!(h.selection(1), SenderClockSelection::Pending);
++        h.apply_after_rtp(1, Some(update(current.clone(), Some(a))));
++        assert!(!h.permits(1, Some(&update(old.clone(), None))));
++        assert!(!h.apply_after_rtp(1, Some(update(old, None))));
++        assert_eq!(h.selection(1), SenderClockSelection::Source(a));
++        let mut unsupported = update(current, None);
++        unsupported.supported = false;
++        h.apply_after_rtp(1, Some(unsupported));
++        assert_eq!(h.selection(1), SenderClockSelection::Pending);
++    }
++}
+--- a/src/report/sender_stream.rs
++++ b/src/report/sender_stream.rs
+@@ -69,6 +69,10 @@
+         // Always count packets and octets regardless of order
+         self.counters.increment_packets();
+         self.counters.count_octets(pkt.payload.len());
++    }
++
++    pub(crate) fn started(&self) -> bool {
++        self.started
+     }
+ 
+     pub(crate) fn generate_report(&mut self, now: Instant) -> rtcp::sender_report::SenderReport {

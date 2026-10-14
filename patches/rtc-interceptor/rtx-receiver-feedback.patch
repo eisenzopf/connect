@@ -1,0 +1,530 @@
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -424,3 +424,6 @@
+         chain.unbind_remote_stream(&info);
+     }
+ }
++
++mod rtx;
++pub use rtx::{RtxReceiverBuilder, RtxReceiverInterceptor};
+--- /dev/null
++++ b/src/rtx.rs
+@@ -0,0 +1,388 @@
++//! RFC 4588 receive normalization. Install inside transport feedback and outside
++//! primary-stream NACK/reports. SRTP authenticates the separate repair SSRC first.
++use crate::{Interceptor, Packet, StreamInfo, TaggedPacket, interceptor};
++use shared::error::Error;
++use std::{collections::HashMap, marker::PhantomData};
++
++pub struct RtxReceiverBuilder<P>(PhantomData<P>);
++impl<P> Default for RtxReceiverBuilder<P> {
++    fn default() -> Self {
++        Self(PhantomData)
++    }
++}
++impl<P> RtxReceiverBuilder<P> {
++    pub fn new() -> Self {
++        Self::default()
++    }
++    pub fn build(self) -> impl FnOnce(P) -> RtxReceiverInterceptor<P> {
++        |inner| RtxReceiverInterceptor {
++            inner,
++            streams: HashMap::new(),
++            primaries: HashMap::new(),
++        }
++    }
++}
++#[derive(Clone)]
++struct RepairStream {
++    ssrc: u32,
++    primary_pt: u8,
++    repair_pt: u8,
++}
++#[derive(Interceptor)]
++pub struct RtxReceiverInterceptor<P> {
++    #[next]
++    inner: P,
++    // Exactly one entry per currently bound primary stream; no per-packet state.
++    streams: HashMap<u32, RepairStream>,
++    primaries: HashMap<u32, u8>,
++}
++#[interceptor]
++impl<P: Interceptor> RtxReceiverInterceptor<P> {
++    #[overrides]
++    fn bind_remote_stream(&mut self, info: &StreamInfo) {
++        self.streams.remove(&info.ssrc);
++        self.primaries.insert(info.ssrc, info.payload_type);
++        if let (Some(ssrc), Some(repair_pt)) = (info.ssrc_rtx, info.payload_type_rtx) {
++            if ssrc != info.ssrc && repair_pt != info.payload_type {
++                self.streams.insert(
++                    info.ssrc,
++                    RepairStream {
++                        ssrc,
++                        primary_pt: info.payload_type,
++                        repair_pt,
++                    },
++                );
++            }
++        }
++        self.inner.bind_remote_stream(info);
++    }
++    #[overrides]
++    fn unbind_remote_stream(&mut self, info: &StreamInfo) {
++        self.streams.remove(&info.ssrc);
++        self.primaries.remove(&info.ssrc);
++        self.inner.unbind_remote_stream(info);
++    }
++    #[overrides]
++    fn handle_read(&mut self, mut msg: TaggedPacket) -> Result<(), Self::Error> {
++        if let Packet::Rtp(ref mut packet) = msg.message {
++            if self.primaries.get(&packet.header.ssrc) == Some(&packet.header.payload_type) {
++                return self.inner.handle_read(msg);
++            }
++            let mut matches = self.streams.iter().filter(|(_, stream)| {
++                stream.ssrc == packet.header.ssrc && stream.repair_pt == packet.header.payload_type
++            });
++            if let Some((&primary, stream)) = matches.next() {
++                if matches.next().is_some() {
++                    return Err(Error::Other("ambiguous RTX association".into()));
++                }
++                // Padding-only repair probes still count for outer TWCC, but are not media.
++                if packet.header.padding && packet.payload.is_empty() {
++                    return Ok(());
++                }
++                if packet.payload.len() < 2 {
++                    return Err(Error::Other("short RTX original sequence number".into()));
++                }
++                let original = u16::from_be_bytes([packet.payload[0], packet.payload[1]]);
++                packet.header.ssrc = primary;
++                packet.header.payload_type = stream.primary_pt;
++                packet.header.sequence_number = original;
++                packet.header.padding = false;
++                packet.payload = packet.payload.slice(2..);
++            } else if self
++                .streams
++                .values()
++                .any(|stream| stream.ssrc == packet.header.ssrc)
++            {
++                return Err(Error::Other("unnegotiated RTX association".into()));
++            }
++        }
++        self.inner.handle_read(msg)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::{
++        NackGeneratorBuilder, RTCPFeedback, RTPHeaderExtension, ReceiverReportBuilder, Registry,
++        TwccReceiverBuilder,
++    };
++    use sansio::Protocol;
++    use shared::TransportContext;
++    use std::time::{Duration, Instant};
++    fn info(primary: u32, repair: u32) -> StreamInfo {
++        StreamInfo {
++            ssrc: primary,
++            ssrc_rtx: Some(repair),
++            payload_type: 96,
++            payload_type_rtx: Some(97),
++            mime_type: "video/VP8".into(),
++            clock_rate: 90000,
++            rtp_header_extensions: vec![RTPHeaderExtension {
++                uri: "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
++                    .into(),
++                id: 3,
++            }],
++            rtcp_feedback: vec![RTCPFeedback {
++                typ: "nack".into(),
++                parameter: String::new(),
++            }],
++            ..Default::default()
++        }
++    }
++    fn packet(
++        now: Instant,
++        ssrc: u32,
++        pt: u8,
++        seq: u16,
++        transport: u16,
++        payload: &[u8],
++    ) -> TaggedPacket {
++        let mut packet = rtp::Packet::default();
++        packet.header.ssrc = ssrc;
++        packet.header.payload_type = pt;
++        packet.header.sequence_number = seq;
++        packet.header.timestamp = 90000;
++        packet.header.marker = true;
++        packet
++            .header
++            .set_extension(3, transport.to_be_bytes().to_vec().into())
++            .unwrap();
++        packet.payload = payload.to_vec().into();
++        TaggedPacket {
++            now,
++            transport: TransportContext::default(),
++            message: Packet::Rtp(packet),
++        }
++    }
++    #[test]
++    fn exact_association_restores_original_fields_and_first_rtx_packet() {
++        let mut chain = Registry::new()
++            .with(RtxReceiverBuilder::new().build())
++            .build();
++        chain.bind_remote_stream(&info(1001, 2002));
++        let now = Instant::now();
++        chain
++            .handle_read(packet(now, 2002, 97, 400, 4, &[0, 11, 0x10, 7]))
++            .unwrap();
++        let Packet::Rtp(received) = chain.poll_read().unwrap().message else {
++            panic!()
++        };
++        assert_eq!(
++            (
++                received.header.ssrc,
++                received.header.payload_type,
++                received.header.sequence_number
++            ),
++            (1001, 96, 11)
++        );
++        assert_eq!(received.header.timestamp, 90000);
++        assert!(received.header.marker);
++        assert_eq!(received.payload.as_ref(), &[0x10, 7]);
++        assert_eq!(received.header.get_extension(3).unwrap().as_ref(), &[0, 4]);
++    }
++    #[test]
++    fn rejects_short_wrong_payload_and_ambiguous_association() {
++        let mut chain = Registry::new()
++            .with(RtxReceiverBuilder::new().build())
++            .build();
++        chain.bind_remote_stream(&info(1001, 2002));
++        let now = Instant::now();
++        for bad in [
++            packet(now, 2002, 97, 400, 4, &[0]),
++            packet(now, 2002, 98, 400, 4, &[0, 11, 0x10]),
++        ] {
++            assert!(chain.handle_read(bad).is_err());
++            assert!(chain.poll_read().is_none());
++        }
++        chain.bind_remote_stream(&info(1002, 2002));
++        assert!(
++            chain
++                .handle_read(packet(now, 2002, 97, 400, 4, &[0, 11, 0x10]))
++                .is_err()
++        );
++    }
++    #[test]
++    fn binding_lifetime_and_primary_packet_preserve_original_media() {
++        let mut chain = Registry::new()
++            .with(RtxReceiverBuilder::new().build())
++            .build();
++        let old = info(1001, 2002);
++        chain.bind_remote_stream(&old);
++        let now = Instant::now();
++        chain
++            .handle_read(packet(now, 1001, 96, 11, 1, &[0x10, 7]))
++            .unwrap();
++        let Packet::Rtp(p) = chain.poll_read().unwrap().message else {
++            panic!()
++        };
++        assert_eq!(p.payload.as_ref(), &[0x10, 7]);
++        assert_eq!(p.header.sequence_number, 11);
++        chain.unbind_remote_stream(&old);
++        assert!(chain.streams.is_empty());
++        chain.bind_remote_stream(&info(1001, 3003));
++        chain
++            .handle_read(packet(now, 2002, 97, 400, 4, &[0, 11, 0x10]))
++            .unwrap();
++        let Packet::Rtp(stale) = chain.poll_read().unwrap().message else {
++            panic!()
++        };
++        assert_eq!(
++            stale.header.ssrc, 2002,
++            "stale repair cannot be promoted to primary"
++        );
++    }
++    #[test]
++    fn primary_ownership_wins_over_other_stream_repair_payload_type() {
++        let mut chain = Registry::new()
++            .with(RtxReceiverBuilder::new().build())
++            .build();
++        chain.bind_remote_stream(&info(1001, 2002));
++        let other = StreamInfo {
++            ssrc: 3003,
++            payload_type: 97,
++            ..Default::default()
++        };
++        chain.bind_remote_stream(&other);
++        let now = Instant::now();
++        chain
++            .handle_read(packet(now, 3003, 97, 5, 1, &[0x10]))
++            .unwrap();
++        let Packet::Rtp(p) = chain.poll_read().unwrap().message else {
++            panic!()
++        };
++        assert_eq!(
++            (
++                p.header.ssrc,
++                p.header.payload_type,
++                p.header.sequence_number
++            ),
++            (3003, 97, 5)
++        );
++        assert_eq!(p.payload.as_ref(), &[0x10]);
++        chain.bind_remote_stream(&StreamInfo {
++            ssrc: 2002,
++            payload_type: 97,
++            ..Default::default()
++        });
++        chain
++            .handle_read(packet(now, 2002, 97, 6, 2, &[0x11]))
++            .unwrap();
++        let Packet::Rtp(p) = chain.poll_read().unwrap().message else {
++            panic!()
++        };
++        assert_eq!(p.header.ssrc, 2002);
++    }
++    #[test]
++    fn wire_feedback_observes_rtx_before_primary_nack_and_report_recovery() {
++        let mut chain = Registry::new()
++            .with(
++                NackGeneratorBuilder::new()
++                    .with_interval(Duration::from_millis(10))
++                    .build(),
++            )
++            .with(
++                ReceiverReportBuilder::new()
++                    .with_interval(Duration::from_millis(50))
++                    .build(),
++            )
++            .with(RtxReceiverBuilder::new().build())
++            .with(TwccReceiverBuilder::new().build())
++            .build();
++        chain.bind_remote_stream(&info(1001, 2002));
++        let now = Instant::now();
++        chain
++            .handle_read(packet(now, 1001, 96, 10, 1, &[0x10, 7]))
++            .unwrap();
++        chain
++            .handle_read(packet(
++                now + Duration::from_millis(1),
++                1001,
++                96,
++                12,
++                2,
++                &[0x10, 8],
++            ))
++            .unwrap();
++        chain
++            .handle_timeout(now + Duration::from_millis(20))
++            .unwrap();
++        let mut requested = false;
++        while let Some(p) = chain.poll_write() {
++            if let Packet::Rtcp(ps) = p.message {
++                for p in ps {
++                    if let Some(n)=p.as_any().downcast_ref::<rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack>() {assert_eq!(n.media_ssrc,1001);requested=true;}
++                }
++            }
++        }
++        assert!(requested);
++        chain
++            .handle_read(packet(
++                now + Duration::from_millis(21),
++                2002,
++                97,
++                400,
++                3,
++                &[0, 11, 0x10, 9],
++            ))
++            .unwrap();
++        chain
++            .handle_timeout(now + Duration::from_millis(100))
++            .unwrap();
++        let mut reports = 0;
++        let mut twcc = 0;
++        while let Some(p) = chain.poll_write() {
++            if let Packet::Rtcp(ps) = p.message {
++                for p in ps {
++                    assert!(!p.as_any().is::<rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack>());
++                    if let Some(rr) = p
++                        .as_any()
++                        .downcast_ref::<rtcp::receiver_report::ReceiverReport>()
++                    {
++                        for r in &rr.reports {
++                            assert_eq!(r.ssrc, 1001);
++                            assert_eq!(r.total_lost, 0);
++                            assert_eq!(r.last_sequence_number, 12);
++                            reports += 1;
++                        }
++                    }
++                    if let Some(t)=p.as_any().downcast_ref::<rtcp::transport_feedbacks::transport_layer_cc::TransportLayerCc>() {assert_eq!(t.base_sequence_number,1);assert_eq!(t.packet_status_count,3);assert_eq!(t.recv_deltas.len(),3);twcc+=1;}
++                }
++            }
++        }
++        assert_eq!((reports, twcc), (1, 1));
++        let mut media = Vec::new();
++        while let Some(p) = chain.poll_read() {
++            if let Packet::Rtp(p) = p.message {
++                media.push(p.header.sequence_number);
++            }
++        }
++        assert_eq!(media, [10, 12, 11]);
++    }
++    #[test]
++    fn repair_padding_is_transport_receipt_without_media() {
++        let mut chain = Registry::new()
++            .with(RtxReceiverBuilder::new().build())
++            .with(TwccReceiverBuilder::new().build())
++            .build();
++        chain.bind_remote_stream(&info(1001, 2002));
++        let now = Instant::now();
++        let mut p = packet(now, 2002, 97, 400, 1, &[]);
++        if let Packet::Rtp(ref mut p) = p.message {
++            p.header.padding = true;
++        }
++        chain.handle_read(p).unwrap();
++        assert!(chain.poll_read().is_none());
++        chain
++            .handle_timeout(now + Duration::from_millis(100))
++            .unwrap();
++        let Packet::Rtcp(ps) = chain.poll_write().unwrap().message else {
++            panic!()
++        };
++        let t = ps[0]
++            .as_any()
++            .downcast_ref::<rtcp::transport_feedbacks::transport_layer_cc::TransportLayerCc>()
++            .unwrap();
++        assert_eq!(t.recv_deltas.len(), 1);
++    }
++}
+--- a/src/stream_info.rs
++++ b/src/stream_info.rs
+@@ -32,7 +32,7 @@
+ /// | `urn:ietf:params:rtp-hdrext:toffset` | Transmission time offset |
+ /// | `http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time` | Absolute send time |
+ /// | `http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01` | TWCC sequence number |
+-#[derive(Default, Debug, Clone)]
++#[derive(Default, Debug, Clone, PartialEq, Eq)]
+ pub struct RTPHeaderExtension {
+     /// URI identifying the extension type (e.g., "urn:ietf:params:rtp-hdrext:ssrc-audio-level")
+     pub uri: String,
+@@ -57,7 +57,7 @@
+ /// | `transport-cc` | (empty) | Transport-wide CC feedback | draft-holmer |
+ ///
+ /// See: <https://draft.ortc.org/#dom-rtcrtcpfeedback>
+-#[derive(Default, Debug, Clone)]
++#[derive(Default, Debug, Clone, PartialEq, Eq)]
+ pub struct RTCPFeedback {
+     /// Type of feedback mechanism.
+     ///
+@@ -102,7 +102,7 @@
+ ///     ..Default::default()
+ /// };
+ /// ```
+-#[derive(Default, Debug, Clone)]
++#[derive(Default, Debug, Clone, PartialEq, Eq)]
+ pub struct StreamInfo {
+     /// Synchronization Source identifier (SSRC) of the stream.
+     ///
+--- a/src/twcc/receiver.rs
++++ b/src/twcc/receiver.rs
+@@ -87,6 +87,7 @@
+ 
+     /// Remote stream state per SSRC.
+     streams: HashMap<u32, RemoteStream>,
++    bindings: HashMap<u32, (u8, Option<u32>)>,
+ 
+     /// Queue for feedback packets.
+     write_queue: VecDeque<TaggedPacket>,
+@@ -103,8 +104,22 @@
+             start_time: None,
+             recorder: None,
+             streams: HashMap::new(),
++            bindings: HashMap::new(),
+             write_queue: VecDeque::new(),
+             next_timeout: None,
++        }
++    }
++
++    fn rebuild_streams(&mut self) {
++        self.streams.clear();
++        for (id, repair) in self.bindings.values() {
++            if let Some(ssrc) = repair {
++                self.streams.insert(*ssrc, RemoteStream { hdr_ext_id: *id });
++            }
++        }
++        // An independently bound primary owns its own negotiated extension ID.
++        for (ssrc, (id, _)) in &self.bindings {
++            self.streams.insert(*ssrc, RemoteStream { hdr_ext_id: *id });
+         }
+     }
+ 
+@@ -197,24 +212,60 @@
+ 
+     #[overrides]
+     fn bind_remote_stream(&mut self, info: &StreamInfo) {
+-        if let Some(hdr_ext_id) = stream_supports_twcc(info) {
+-            // Don't track if ID is 0 (invalid)
+-            if hdr_ext_id != 0 {
+-                self.streams.insert(info.ssrc, RemoteStream { hdr_ext_id });
+-            }
+-        }
++        self.bindings.remove(&info.ssrc);
++        if let Some(hdr_ext_id) = stream_supports_twcc(info).filter(|id| *id != 0) {
++            let repair = info
++                .ssrc_rtx
++                .filter(|ssrc| *ssrc != info.ssrc && info.payload_type_rtx.is_some());
++            self.bindings.insert(info.ssrc, (hdr_ext_id, repair));
++        }
++        self.rebuild_streams();
+         self.inner.bind_remote_stream(info);
+     }
+ 
+     #[overrides]
+     fn unbind_remote_stream(&mut self, info: &StreamInfo) {
+-        self.streams.remove(&info.ssrc);
++        self.bindings.remove(&info.ssrc);
++        self.rebuild_streams();
+         self.inner.unbind_remote_stream(info);
+     }
+ }
+ 
+ #[cfg(test)]
+ mod tests {
++    #[test]
++    fn replacing_repair_binding_removes_stale_ssrc_and_extension() {
++        let mut chain = crate::Registry::new()
++            .with(super::TwccReceiverBuilder::new().build())
++            .build();
++        let mut info = crate::StreamInfo {
++            ssrc: 1001,
++            ssrc_rtx: Some(2002),
++            payload_type: 96,
++            payload_type_rtx: Some(97),
++            rtp_header_extensions: vec![crate::RTPHeaderExtension {
++                uri: "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
++                    .into(),
++                id: 3,
++            }],
++            ..Default::default()
++        };
++        chain.bind_remote_stream(&info);
++        for repair in 3000..3100 {
++            info.ssrc_rtx = Some(repair);
++            info.rtp_header_extensions[0].id = 7;
++            chain.bind_remote_stream(&info);
++            assert_eq!(chain.streams.len(), 2);
++            assert_eq!(chain.bindings.len(), 1);
++            assert!(!chain.streams.contains_key(&2002));
++            assert_eq!(chain.streams[&repair].hdr_ext_id, 7);
++        }
++        info.rtp_header_extensions.clear();
++        chain.bind_remote_stream(&info);
++        assert!(chain.streams.is_empty());
++        chain.unbind_remote_stream(&info);
++        assert!(chain.bindings.is_empty());
++    }
+     use super::*;
+     use crate::Registry;
+     use crate::stream_info::RTPHeaderExtension;

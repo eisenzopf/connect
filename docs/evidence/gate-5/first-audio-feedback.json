@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-14T14:45:42.056833+00:00",
+  "status": "singleton-component-verified; actual-multicodec-first-receipt-and-media-open",
+  "scope": "Local declared single-primary audio transport feedback. No sustained-media, complete source or installed qualification.",
+  "production_patch_count": 31,
+  "source_lock_sha256": "e7d7de983468d6edf230c7f1bc8cf940dd02560bf7d1f85fef3c9f46c82c9868",
+  "patch": {
+    "path": "patches/rvoip/webrtc-first-audio-feedback.patch",
+    "sha256": "388dda0c29f6a46630f183900ac7df8a4c5cb0e05628391d5f9c5a984d3defd6"
+  },
+  "finding": "The receive pipeline authenticates SRTP, processes interceptors, then selects endpoint codec. Deferred declared-audio binding misses the first authenticated packet in transport feedback.",
+  "repair": "Bind declared single-primary audio before packets arrive, excluding exactly audio/telephone-event as supplemental. Preserve ambiguous real-codec selection and existing video/FID behavior. Actual endpoint codec and media publication still follow valid packets.",
+  "private_summary": {
+    "path": ".local/gate5/first-audio-feedback/summary.json",
+    "sha256": "3e9b49710679d8a02cd4c400c99897b582921026528c2250185ec6da436fed8f"
+  },
+  "independent_review": {
+    "path": ".local/gate5/first-audio-feedback/quality-independent-review.json",
+    "sha256": "4bbf08cfc8e360fb0bd68ccc484ea7f984aea5b00bbee2f086f46db023624f18"
+  },
+  "original": {
+    "path": ".local/gate5/first-audio-feedback/original-final-timer-20261014T144150/result.json",
+    "sha256": "7a0471cfdf087cad199988643b28b86952885738dc862865951461918ba6a2a8"
+  },
+  "repaired": {
+    "path": ".local/gate5/first-audio-feedback/repaired-final-seven-20261014T144210/result.json",
+    "sha256": "0ab6952999942b4d7e0068700bc32e1a4f62ec37170b9cb07cd4494f5ab53e51"
+  },
+  "regression": {
+    "path": ".local/gate5/first-audio-feedback/final-regression-20261014T144249/result.json",
+    "sha256": "4eee4996b76311a3c9836747e783cdda876241b166c12a6c29deac334f56e0e5"
+  },
+  "counts": {
+    "original_passed": 3,
+    "original_failed": 4,
+    "repaired_passed": 7,
+    "rtc_passed": 200,
+    "interceptor_passed": 134
+  },
+  "inputs_stable": true,
+  "tests_cover": [
+    "Real encrypted SRTP -> interceptor -> endpoint receive order with ordinary and sender-clock registries.",
+    "Tampered authentication and replay rejection.",
+    "Singleton Opus with supplemental telephone-event; ambiguous Opus/PCMU remains deferred.",
+    "Renegotiation and unnegotiated payload media rejection.",
+    "Telephone-event-first keeps existing actual8k codec, one opening event and identical post-endpoint receiver report; the new first transport receipt is the intended difference."
+  ],
+  "limitations": [
+    "The fixture installs handshake-complete SRTP contexts; it does not claim a real ICE/DTLS handshake.",
+    "The pre-existing telephone-event-first track classification lifecycle is unchanged; later primary-codec switching is not repaired here.",
+    "Five startup dispatched packets were not proven authenticated in the earlier runtime. This repair does not attribute all missing startup feedback or prove sustained bitrate recovery.",
+    "Experimental100ms feedback grace remains private and is not part of production graph31."
+  ],
+  "whole_gate_qualified": false,
+  "prepared_verification": {
+    "report": {
+      "path": ".local/gate5/first-audio-integration/proof-20261014T144555.221437Z/result.json",
+      "sha256": "5eafe20bcac240590c50c5a080ef19bf0b67776b80b02e5d79e8a39b0950ca16"
+    },
+    "counts": {
+      "interceptor": 134,
+      "rtc": 200,
+      "stack": 11
+    },
+    "inputs_stable": true,
+    "fresh_compilation_observed": {
+      "rvoip-rtc": true,
+      "rvoip-webrtc-stack": true,
+      "rtc-interceptor": true
+    },
+    "driver": {
+      "status": "passed",
+      "tests": 11,
+      "log": {
+        "path": ".local/gate5/first-audio-integration/driver.log",
+        "sha256": "deeffa76563cd936da737ff3eb73e9b126a5abf58531905c738bb7e2d8efe360"
+      }
+    },
+    "format": {
+      "status": "passed",
+      "log": {
+        "path": ".local/gate5/first-audio-integration/format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "preparation": {
+      "status": "passed",
+      "log": {
+        "path": ".local/gate5/first-audio-integration/prepare-preserved.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      },
+      "initial_attempt": "Refused changed lock before mutation; prior graph30 prepared tree preserved and fresh graph31 prepared successfully."
+    },
+    "source_phase_count": 84
+  },
+  "normal_build": {
+    "path": ".local/gate5/browser-clock-rtx-binaries-20261014T144620.273614Z/result.json",
+    "sha256": "74ae59fc8c49d8543d1b68de839f0b0ccd12f9fdaf2a05237e420c52fbd39ed1",
+    "status": "passed",
+    "source_inputs": 638,
+    "fresh_compilation_observed": {
+      "quinn-proto": true,
+      "rtc-interceptor": true,
+      "rtc-dtls": true,
+      "rvoip-quic": true,
+      "rvoip-webrtc": true,
+      "rvoip-webrtc-stack": true,
+      "rvoip-rtc": true,
+      "rvoip-core": true,
+      "rvoip-core-traits": true,
+      "connect-server": true,
+      "connect-review-loop": true,
+      "connect-native-video": true
+    },
+    "inputs_stable": true
+  },
+  "runtime_diagnostic": {
+    "recorded_at": "2026-10-14T14:52:51.958710+00:00",
+    "status": "failed",
+    "diagnostic_valid": true,
+    "run": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T144949Z/result.json",
+      "sha256": "7609f46dad0d76fe331f26e47426445e0fc7b3ab7b4c0e25d22524de809d4c08"
+    },
+    "report": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T144949Z/impairment-browser-browser.json",
+      "sha256": "e507eb2d5ae3e048fe8ec0e28955fd7c51c43607cae97db1f1999a653b97935c"
+    },
+    "negotiation": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T144949Z/audio-negotiation.json",
+      "sha256": "195de1975f16a6b5ed877c42842d768cfed01cf391565ec0a89b380460f55c48"
+    },
+    "trace": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T144949Z/rtp-dispatch.json",
+      "sha256": "fd70e6f7c69020219b113257d49b02a9487e18eeffaf4998f4caf16c463c28a9"
+    },
+    "source_lock_sha256": "e7d7de983468d6edf230c7f1bc8cf940dd02560bf7d1f85fef3c9f46c82c9868",
+    "production_patch_count": 31,
+    "observations": [
+      {
+        "changing": 950,
+        "decoded": 1088,
+        "elapsed_seconds": 60.010600090026855,
+        "changing_fps": 15.830536581451053,
+        "audio": "passed",
+        "motion": "passed",
+        "av": {
+          "status": "failed",
+          "video_markers": 59,
+          "audio_markers": 83,
+          "paired": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null,
+          "video_calibration": "calibrated",
+          "audio_calibration": "missing-proof"
+        }
+      },
+      {
+        "changing": 1422,
+        "decoded": 1747,
+        "elapsed_seconds": 60.01139998435974,
+        "changing_fps": 23.69549786158303,
+        "audio": "passed",
+        "motion": "passed",
+        "av": {
+          "status": "failed",
+          "video_markers": 83,
+          "audio_markers": 83,
+          "paired": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null,
+          "video_calibration": "missing-proof",
+          "audio_calibration": "missing-proof"
+        }
+      }
+    ],
+    "teardown_seconds": 0.6302639170000038,
+    "sampled_peak_rss_bytes": 2056241152,
+    "forwarding_diagnostics": "measured",
+    "sampled_queue_bounds_satisfied": true,
+    "actual_negotiated_audio": [
+      "Opus48k",
+      "PCMU8k",
+      "PCMA8k",
+      "telephone-event48k",
+      "telephone-event8k"
+    ],
+    "repair_coverage": "Singleton prebinding intentionally does not activate for this actual multicodec negotiation. No runtime first-audio repair claim.",
+    "logging_limitation": "Driver error logging was enabled, but SRTP errors are handled as warnings in rtc::peer_connection::handler. Absence of retained driver errors does not establish authenticated acceptance.",
+    "whole_gate_qualified": false,
+    "summary": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T144949Z/root-media-summary.json",
+      "sha256": "3e948f010c1b044afb34727643cfc7fd7dce1004c667afa999e63826aa1c646b"
+    },
+    "av_review": {
+      "path": ".local/gate5/av-calibration-review-20261014T144949Z/sealed-review.json",
+      "sha256": "0581245ba2b92349bdb967268ced9f82e2e2b0422f11fe7b30fd1f9965372ecf",
+      "findings": [
+        "One10.7ms near-threshold audio excursion is a possible false marker and is retained.",
+        "Early decoded audio delay changes by roughly330ms while source cadence remains stable.",
+        "A late video marker coincides with the injected network stall."
+      ],
+      "scope": "Read-only failure localization with unchanged150ms unique ordinal calibration,80ms median/120ms p95 limits. No retrospective rescue or observer change."
+    }
+  }
+}

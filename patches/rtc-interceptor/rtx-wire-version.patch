@@ -1,0 +1,73 @@
+--- a/src/nack/responder.rs
++++ b/src/nack/responder.rs
+@@ -149,6 +149,9 @@
+ 
+                 rtp::Packet {
+                     header: rtp::header::Header {
++                        // A newly constructed repair packet is RTP v2. Do not
++                        // inherit padding: the cached payload has no wire padding.
++                        version: 2,
+                         ssrc: ssrc_rtx,
+                         payload_type: pt_rtx,
+                         sequence_number: rtx_seq,
+@@ -579,4 +582,59 @@
+         // No more packets
+         assert!(chain.poll_write().is_none());
+     }
+-}
++    #[test]
++    fn outbound_rtx_serialized_header_is_version_two_without_inherited_padding() {
++        use shared::marshal::Marshal;
++        let mut chain = Registry::new()
++            .with(NackResponderBuilder::new().build())
++            .build();
++        chain.bind_local_stream(&StreamInfo {
++            ssrc: 1,
++            ssrc_rtx: Some(2),
++            payload_type: 96,
++            payload_type_rtx: Some(97),
++            clock_rate: 90000,
++            rtcp_feedback: vec![RTCPFeedback {
++                typ: "nack".into(),
++                parameter: String::new(),
++            }],
++            ..Default::default()
++        });
++        let mut original = make_rtp_packet(1, 11, &[0x10, 9]);
++        if let Packet::Rtp(packet) = &mut original.message {
++            packet.header.version = 2;
++            packet.header.padding = true;
++            packet.header.marker = true;
++            packet.header.timestamp = 33000;
++        }
++        chain.handle_write(original).unwrap();
++        chain.poll_write().unwrap();
++        chain
++            .handle_read(make_nack_packet(999, 1, vec![(11, 0)]))
++            .unwrap();
++        let Packet::Rtp(repair) = chain.poll_write().unwrap().message else {
++            panic!("expected repair RTP")
++        };
++        let bytes = repair.marshal().unwrap();
++        assert_eq!(
++            bytes[0] >> 6,
++            2,
++            "RTP demux must recognize encrypted repair after decryption"
++        );
++        assert_eq!(
++            bytes[0] & 0x20,
++            0,
++            "cached payload excludes original wire padding"
++        );
++        assert_eq!(bytes[1], 0x80 | 97);
++        assert_eq!(
++            (
++                repair.header.ssrc,
++                repair.header.sequence_number,
++                repair.header.timestamp
++            ),
++            (2, 0, 33000)
++        );
++        assert_eq!(repair.payload.as_ref(), &[0, 11, 0x10, 9]);
++    }
++}

@@ -10,6 +10,60 @@
       "url": "https://github.com/eisenzopf/parley.git",
       "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
       "license": "MIT"
+    },
+    "rtc-dtls": {
+      "kind": "crate",
+      "version": "0.20.0-alpha.1",
+      "url": "https://static.crates.io/crates/rtc-dtls/rtc-dtls-0.20.0-alpha.1.crate",
+      "sha256": "067a19d0491fa2b09363bf9fdab2b3889447498844da092f875a1de9968750d0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "repository_path": "rtc-dtls",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+        }
+      ]
+    },
+    "rtc-interceptor": {
+      "kind": "crate",
+      "version": "0.20.0-alpha.1",
+      "url": "https://static.crates.io/crates/rtc-interceptor/rtc-interceptor-0.20.0-alpha.1.crate",
+      "sha256": "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "repository_path": "rtc-interceptor",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+        }
+      ]
+    },
+    "quinn-proto": {
+      "kind": "crate",
+      "version": "0.11.19",
+      "url": "https://static.crates.io/crates/quinn-proto/quinn-proto-0.11.19.crate",
+      "sha256": "0e750cca55fe4f0439a15d0bb529da9651e79993e8e72c61a899a36d462befbe",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/quinn-rs/quinn",
+      "revision": "8192ed399a26a6e8f0aba43d10ec8badaa5b905e",
+      "repository_path": "quinn-proto"
     }
   },
   "patches": [
@@ -77,6 +131,112 @@
       "path": "patches/rvoip/declared-ssrc-feedback.patch",
       "sha256": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
       "source": "Bind negotiated receiver-report and transport-wide congestion feedback when the first RTP packet resolves an SDP-declared SSRC codec; preserve per-stream loss history and reject unnegotiated codec binding."
+    },
+    {
+      "path": "patches/rvoip/quic-video-egress-reorder.patch",
+      "sha256": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+      "source": "Reorder bounded native VP8 source packets before variable-width peer-budget sequence expansion; preserve original capture age, genuine loss gaps, idle deadlines and current speaker-generation delivery admission. Add numeric video/audio reorder diagnostic stages."
+    },
+    {
+      "path": "patches/rvoip/webrtc-audio-ingress-reorder.patch",
+      "sha256": "5d20734f650ff4f7a9a69c1c001af2688560727317315b2b501a5f694e4d122f",
+      "source": "Reorder bounded WebRTC audio RTP before stripping source sequence information, preserving original capture timestamps and genuine loss gaps; late or duplicate packets cannot be mistaken for a source-clock handoff. Ten packets, 100ms gap wait, 200ms total local age bound. Capacity pressure releases a nearer noncontiguous packet before buffered future input, including sequence wrap."
+    },
+    {
+      "path": "patches/rvoip/quic-video-loss-tolerance.patch",
+      "sha256": "0820429577a589a63d75e098eda1b19a8962b8dea1fa7969f0b8dfc512df52b1",
+      "source": "Opt-in encoded-video QUIC reordering tolerance with Cubic and bounded buffers unchanged; sample physical-path loss/congestion/cwnd/RTT extrema without fabricated aggregate loss. Actual bounded UDP reorder and loss fixture, exact config opt-in and counter semantics guards."
+    },
+    {
+      "path": "patches/rvoip/quic-video-delivery-controller.patch",
+      "sha256": "6d4a39125931ca38b9750baf50db21bf9c5a0930cc278eea86721c20a2f33297",
+      "source": "Opt-in Quinn BBR delivery-rate/RTT congestion controller; retain packet conservation, loss recovery, pacing, bounded byte/age queues. Sustained exact-workspace duplex AV-rate and reliable-byte transport fixture; not decoded-media qualification. Sustained fixtures assert configured/observed byte capacity, exact submission/proxy accounting and reliable completion within active AV offered windows; sampled pressure remains diagnostic under the existing bounded-enqueue/loss contract. The initial capacity guard reads the retained observation field; no assertion or threshold changed."
+    },
+    {
+      "path": "patches/rtc-dtls/incomplete-flight-timer.patch",
+      "sha256": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845",
+      "source": "Preserve pending DTLS retransmission deadline for incomplete or duplicate flights; cancel on success or terminal error. Real serialized lost-flight completion and terminal-error regressions.",
+      "target": "rtc-dtls"
+    },
+    {
+      "path": "patches/rvoip/webrtc-video-reorder-pressure.patch",
+      "sha256": "b63d5681fa669e6da10d87271f9bf8802d5688a2412eca4ed045ce5bd2807cbd",
+      "source": "Preserve nearer incoming video packet before releasing future buffered data at capacity, including wrap; retain real gaps and bounded age/capacity."
+    },
+    {
+      "path": "patches/rvoip/webrtc-shared-av-sync-identity.patch",
+      "sha256": "b4b2d064c5889e955506ca10985697cbed2444139bc7ec95402f8b0103e75fbb",
+      "source": "Use one private random synchronization identity per PeerConnection for local audio and video tracks while preserving distinct track IDs; actual SDP same-peer/shared and cross-peer/distinct checks."
+    },
+    {
+      "path": "patches/rtc-interceptor/late-loss-accounting.patch",
+      "sha256": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+      "source": "Correct current receiver-report interval and cumulative loss after unique in-horizon late packets; reject stale bitmap aliases and duplicates while preserving jitter and genuine gaps. Sixteen actual crate tests.",
+      "target": "rtc-interceptor"
+    },
+    {
+      "path": "patches/quinn-proto/bbr-model-bounds.patch",
+      "sha256": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6",
+      "target": "quinn-proto",
+      "source": "Correct BBRv1 bandwidth-sample eligibility/window aging and startup current-window-versus-target comparison. Preserve loss recovery, packet conservation, gain settings and Quinn connection pacing. Nine focused actual-crate tests."
+    },
+    {
+      "path": "patches/rtc-interceptor/rtx-receiver-feedback.patch",
+      "sha256": "3c010485d1282fcbcb40ffb6b5574ee5ada368c66197e042db3ccbb9f78d41b1",
+      "source": "Restore negotiated RTX OSN/primary ownership after transport feedback, with bounded binding state, padding/short-packet guards and real primary RR/NACK history preservation.",
+      "target": "rtc-interceptor"
+    },
+    {
+      "path": "patches/rvoip/webrtc-rtx-binding.patch",
+      "sha256": "8df1917e898f946b1649917c349a76903c695c1489873474c678a3f28f3c6e0b",
+      "source": "Bind negotiated repair SSRCs once to their primary track, prune removed bindings, advertise exact VP8 apt repair codecs, and preserve TWCC receipts before RTX restoration and primary RR/NACK accounting."
+    },
+    {
+      "path": "patches/rtc-interceptor/source-clock-provenance.patch",
+      "sha256": "9c980316f443c0289a769954daafb9e3403cdd886655d4ace7b3a7fa43f81864",
+      "source": "Explicit bounded sender-report source clocks preserve authoritative RTP/NTP correspondence and actual wire counters. Pending, unsupported and retired clocks suppress reports; identical stream rebinds retain NACK history, changed bindings retire old state.",
+      "target": "rtc-interceptor"
+    },
+    {
+      "path": "patches/rvoip/webrtc-source-clock-provenance.patch",
+      "sha256": "0b9acc7f33a6687bebf9d4815c9a256d9cfbd63337e19db0af88d22fd88db5be",
+      "source": "Carry authenticated per-frame source clock provenance through qualified same-codec AV routes; translate a common source-peer clock into local NTP, retain RTP offsets and retire track/route leases. Unsupported transforms suppress source reports; native fallback and protocol wire remain unchanged. Includes actual clock-aware RTX registry composition regression."
+    },
+    {
+      "path": "patches/rvoip/webrtc-track-ready-publication.patch",
+      "sha256": "d7ddb98d9066b40372c00fc1d1dd7d1475539f7f5f6f7c906773e679d1587bd7",
+      "source": "Initialize the first negotiated remote-track coding before on_track, then publish the receiver after callback initialization. Preserve later simulcast coding updates and exact track identity; actual audio/video peer regressions cover metadata and concurrent discovery ordering."
+    },
+    {
+      "path": "patches/rvoip/webrtc-source-clock-rtcp-activation.patch",
+      "sha256": "5cc0ec2eaf415711269f818572976df54661f0f77976346143f6a5a7ac8536b0",
+      "source": "Preserve authenticated SR and SDES through hop interceptors for current known receiving tracks, routing by sender/chunk source rather than reception-report targets. Keep original hop RTCP intact, reject stopped/uninitialized/unknown sources without allocation, and prove actual SRTCP delivery into strict shared AV source clocks."
+    },
+    {
+      "path": "patches/rtc-interceptor/rtx-wire-version.patch",
+      "sha256": "0e0674ad92ba8f284122b9459d44cdfef3a5efd515b2b4a13d3c1891a1e5e195",
+      "source": "Emit valid RTP version2 for generated RFC4588 retransmissions without copying padding; serialized-header and actual encrypted receiver regressions cover the previously discarded repair packets.",
+      "target": "rtc-interceptor"
+    },
+    {
+      "path": "patches/rvoip/webrtc-outbound-rtx-binding.patch",
+      "sha256": "7d61f9b02b6fd24945cd2d9797c50b586b50545b74847b5793feb293b65c3525",
+      "source": "Bind outgoing interceptors to the current negotiated send encodings advertised in SDP and invalidate stale RTX/FEC parameter caches. Prove encrypted ordinary/clock-aware RTX, declined/noRTX fallback, and stop/rebind cleanup."
+    },
+    {
+      "path": "patches/rvoip/webrtc-first-audio-feedback.patch",
+      "sha256": "388dda0c29f6a46630f183900ac7df8a4c5cb0e05628391d5f9c5a984d3defd6",
+      "source": "Bind declared single-primary audio feedback before the first authenticated packet, excluding only supplemental telephone-event from primary selection. Real SRTP/interceptor/endpoint-order tests preserve authentication, replay rejection, ambiguous codec deferral, renegotiation and DTMF report behavior."
+    },
+    {
+      "path": "patches/rvoip/webrtc-payload-audio-feedback.patch",
+      "sha256": "aa1c642109f5e47083f0ecad3374b65025a86cdcf83cb8b942eea9d7c891c932",
+      "source": "Prepare first authenticated declared audio feedback using exact negotiated receive payload and consistent merged metadata before endpoint selection. Reject ambiguous ownership, repair aliases and stale mappings; preserve application codec lifecycle and count the initial DTMF sample at its actual clock."
+    },
+    {
+      "path": "patches/rvoip/webrtc-initial-source-report.patch",
+      "sha256": "0bf5e4c263197df8db130394e17eccf17758d4083036c7ceedf221df5342e02e",
+      "source": "Retain at most one newest initial sender report per current source track until its compatible CNAME arrives, preserving original receipt NTP and clearing pending state on replacement, domain conflict or retirement. Actual encrypted SR-before-SDES and lifecycle regressions preserve shared AV clock activation."
     }
   ]
 }

@@ -1,0 +1,169 @@
+{
+  "schema": "connect.gate5.dtls-retransmission.v1",
+  "recorded_at": "2026-10-14T10:30:27.160210+00:00",
+  "status": "focused-repair-verified",
+  "scope": "Local dependency regression; no live provider; not decoded-media or release qualification",
+  "source": {
+    "kind": "crate",
+    "version": "0.20.0-alpha.1",
+    "url": "https://static.crates.io/crates/rtc-dtls/rtc-dtls-0.20.0-alpha.1.crate",
+    "sha256": "067a19d0491fa2b09363bf9fdab2b3889447498844da092f875a1de9968750d0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/webrtc-rs/rtc",
+    "revision": "b808b74f712ed379312a114b848ede133880d58a",
+    "repository_path": "rtc-dtls",
+    "license_files": [
+      {
+        "path": "dependencies/licenses/rtc/LICENSE-MIT",
+        "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+        "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d"
+      },
+      {
+        "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+        "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      }
+    ]
+  },
+  "patch": {
+    "path": "patches/rtc-dtls/incomplete-flight-timer.patch",
+    "sha256": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845"
+  },
+  "observed_failure": {
+    "source_report": ".local/gate5/quic-observer-profiles-20261014T100853Z/impairment-native-browser.json",
+    "phase": "startup negotiation",
+    "ice": "connected",
+    "dtls": "connecting until unchanged 15-second deadline",
+    "proxy_to_client_dtls_received": 2,
+    "proxy_to_client_dtls_random_dropped": 1,
+    "proxy_to_server_dtls_received": 6,
+    "proxy_to_server_dtls_random_dropped": 0,
+    "srtp_observed": false
+  },
+  "diagnosis": "DTLSConn::wait canceled the outgoing flight deadline on any handshake input before parsing. A duplicate or incomplete prior flight returns Err((None,None)) and leaves Waiting with no timeout, so a lost server response can never be retransmitted.",
+  "repair": "Preserve the existing deadline only for Err((None,None)); cancel it on successful advancement or any alert/error as before. Existing retry limits and timers remain unchanged.",
+  "original_regression": {
+    "status": "expected-failure-reproduced",
+    "exit_code": 101,
+    "passed": 1,
+    "failed": 1,
+    "ignored": 0,
+    "original_source_manifest_stable": true,
+    "failing_test": "lost_server_flight_duplicate_client_hello_retains_retransmission_and_completes",
+    "expected_failure": "incomplete/old handshake input clears pending server deadline to None",
+    "passing_test": "terminal_parse_alert_or_error_cancels_timer_without_key_completion",
+    "log_sha256": "a26d765199359801b37ea631c58dfd3d1bdbd34aec21616eb2781817c339b9bd",
+    "private_directory": ".local/gate5/dtls-retransmission/original-proof",
+    "test_patch_sha256": "b124269fd772ebf05ed9aa2cfc140446ff12c0e3b5449d1e87e4456a9485dbd7"
+  },
+  "independent_source_review": {
+    "reviewer": "root agent",
+    "status": "no remaining source-review blocker",
+    "findings_resolved": [
+      "Preserve preexisting timer cancellation for alert-only, error-only, and combined terminal parse results."
+    ],
+    "runtime_validation_pending": false
+  },
+  "repaired_regression": {
+    "name": "dtls",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--manifest-path",
+      ".deps/rtc-dtls/Cargo.toml",
+      "--lib",
+      "connect_retransmission_tests",
+      "--",
+      "--nocapture"
+    ],
+    "timeout_seconds": 1800,
+    "log": "dtls.log",
+    "status": "passed",
+    "exit_code": 0,
+    "leftover_group_members": [],
+    "group_cleanup": "signalled",
+    "seconds": 1.408,
+    "rust_tests": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    "private_directory": ".local/gate5/quic-bbr-authoring/candidate-tests-20261014T102946",
+    "log_sha256": "9ef237b102ef930e434b2098a25f28b6c6d8827bf1ce67348d567b88c5812835",
+    "fresh_compilation_observed": "Compiling rtc-dtls v0.20.0-alpha.1 (.deps/rtc-dtls)",
+    "prepared_file_manifest_stable_after_test": true,
+    "source_input_sha256": {
+      "Cargo.toml": "104578cf124f5dcc8a3be0222cfff67d340261e59d8c5283ab910c501f7262e2",
+      "Cargo.lock": "7c1f6609b8a7762a6f556cb679e4147bf642d98679d7401ca5f0c178fce408d1",
+      "dependencies/source-lock.json": "46bce29c89c6a7d386fbad6a4ecfbf613f1a17a232c43852394a29f378528703",
+      "scripts/lib/prepared_archive.py": "7f2a910213328a4ff1207636e51fa43c96ad5cf36aa6059070cdcf46155b6c55",
+      "scripts/prepare-dependencies.py": "3dab270a088acfdcd01a7c412722539ea9261fb9c62c41d2cc558e8cadb2a535",
+      "patches/rtc-dtls/incomplete-flight-timer.patch": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845"
+    },
+    "checks": [
+      "Lost real serialized server flight followed by duplicate client hello retains original server deadline.",
+      "Original deadline fires retransmission, both DTLS endpoints complete, and encrypted application data is delivered.",
+      "Fatal-only, error-only and combined parse results retain cancellation; old deadline produces no transmission and no completed keys."
+    ]
+  },
+  "qualification_limits": [
+    "This is a focused local dependency regression, not final source, installed-package or decoded-media qualification.",
+    "Original and repaired endpoint tests use deterministic serialized PSK DTLS packet transfer and forced existing timer deadlines; they do not replace actual WebRTC browser checks.",
+    "Fresh native-browser impairment run remains required with the unchanged 15-second negotiation deadline and impairment parameters."
+  ],
+  "retained_attempts": [
+    {
+      "directory": ".local/gate5/quic-bbr-authoring/candidate-tests-20261014T102903",
+      "outcome": "failed; Cargo reused previously compiled original-source unit-test artifact without recompiling repaired source",
+      "resolution": "Targeted rtc-dtls cargo clean removed 33 files (27.1 MiB); genuine repaired compilation and both passing tests recorded separately.",
+      "qualification": false
+    }
+  ],
+  "prepared_graph_verification": {
+    "recorded_at": "2026-10-14T10:48:11.118522+00:00",
+    "scope": "Focused tests against the final formatted recorded patches in prepared graph22; full runtime/source/installed qualification remains separate",
+    "source_lock_sha256": "f3232e9c20e265526385831a0767adb4950a1fe6eddbde0fd5ab38656b89449b",
+    "root_cargo_lock_sha256": "2f3abc14b06ba9335d01ce1cc99910f99ab48293731a80d0c50e6fa5ab9d4957",
+    "report": ".local/gate5/quic-bbr-authoring/candidate22-tests-20261014T104605/result.json",
+    "report_sha256": "416a4ec5a21d5d096b7f6250ef76adf2545b7843f3507c8cd9d33ab3715d3201",
+    "inputs_stable": true,
+    "fresh_selected_compile_checked": true,
+    "steps": [
+      {
+        "name": "dtls",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          ".deps/rtc-dtls/Cargo.toml",
+          "--lib",
+          "connect_retransmission_tests",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1800,
+        "log": "dtls.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 1.757,
+        "rust_tests": {
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log_sha256": "d1b6ce299cd42ec19a8467488f3bc9643a257d2cf40870373bf93fce60feac3b"
+      }
+    ],
+    "workspace_compile": {
+      "status": "passed",
+      "log_sha256": "f74f2d6e9db5d65c8353e8f7fee39799dce75d8d77b261c4805a5d91e635d603",
+      "scope": "Exact root-lock sustained-transport test executable compiled; not workspace suite execution"
+    }
+  }
+}

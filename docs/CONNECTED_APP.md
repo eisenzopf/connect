@@ -67,6 +67,41 @@ question **message ID** as `reply_to`. The typed body is:
 {"action":"review_decision","draft_id":"draft-002","decision":"approved","note":"Ready for publication."}
 ```
 
+For the preset, copy the outgoing question's `message.id` and
+`message.conversation_id` from the inbox result into the placeholders below.
+Read the artifact first; its ID, size and hash come from that question's JSON
+body. These are public IDs, never the credential in a client configuration.
+Use the selected installed executable in place of `./target/debug/connect`.
+
+```sh
+./target/debug/connect request --config .local/connected-app/agent.toml <<'JSON'
+{"op":"artifact_get","conversation_id":"OUTGOING_CONVERSATION_ID","artifact_id":"ARTIFACT_ID_FROM_QUESTION","offset":0,"limit":32768}
+JSON
+```
+
+Decode `data.data` from base64 and compare its byte count and SHA-256 with
+`data.artifact.size` and `data.artifact.sha256` and the original question's
+artifact reference. The example's JSON draft is bounded to 32 KiB; a larger
+public artifact requires following chunk offsets until `eof` is true.
+After reviewing those bytes, send the complete operation below. Replace the two
+public IDs and use the actual draft ID if you edited the preset policy. The
+`body` is a JSON **string** inside the operation, so its quotation marks are escaped.
+
+```sh
+./target/debug/connect request --config .local/connected-app/agent.toml \
+  --task-address connect:reviews@local <<'JSON'
+{"op":"task","request":{"task_profile":"connect-task/1","command":{"action":"reply","request_id":"review-approval-1","conversation_id":"OUTGOING_CONVERSATION_ID","reply_to":"QUESTION_MESSAGE_ID","body":"{\"action\":\"review_decision\",\"draft_id\":\"draft-002\",\"decision\":\"approved\",\"note\":\"Reviewed the delivered draft.\"}"}}}
+JSON
+```
+
+`--task-address` negotiates the app's task profile using the same reviewer
+credential; it does not issue authority. The reply resolves the task from the
+attributed question; it does **not** take
+an arbitrary task ID. Keep the complete request and `review-approval-1` unchanged
+if an acknowledgement is lost. An accepted receipt is not yet the app's business
+result: inspect the worker ledger and read the outgoing conversation history
+with the operation shown below after the worker processes it.
+
 `changes_requested` and `rejected` are the other supported decisions. A plain
 `Send` containing identical text stays unassigned; its sender or draft ID cannot
 select a task. Connect's authoritative reply record must match the original
@@ -79,6 +114,44 @@ then `Send` in that conversation with this typed body:
 ```json
 {"action":"submit_draft","request_id":"submission-001","draft":{"id":"incoming-001","title":"Community update","body":"The actual draft to receive."}}
 ```
+
+To perform that independent contact through the CLI, copy only `identity_id`
+from `.local/connected-app/reviews.toml` into `APP_IDENTITY_ID`. Create a new
+conversation as the allowed `agent` participant:
+
+```sh
+./target/debug/connect request --config .local/connected-app/agent.toml <<'JSON'
+{"op":"create","request_id":"independent-intake-1","participants":["APP_IDENTITY_ID"]}
+JSON
+```
+
+Copy the returned `data.id` into `INCOMING_CONVERSATION_ID`, then send the full
+submission operation:
+
+```sh
+./target/debug/connect request --config .local/connected-app/agent.toml <<'JSON'
+{"op":"send","request_id":"incoming-wire-1","conversation_id":"INCOMING_CONVERSATION_ID","body":"{\"action\":\"submit_draft\",\"request_id\":\"submission-001\",\"draft\":{\"id\":\"incoming-001\",\"title\":\"Community update\",\"body\":\"The actual draft to receive.\"}}"}
+JSON
+```
+
+Read the independently initiated conversation to find the app's
+`draft_received` response. Use the outgoing conversation ID instead to find the
+review outcome. Wait for the worker to process the input, then repeat this
+read-only request if its response is not present yet:
+
+```sh
+./target/debug/connect request --config .local/connected-app/agent.toml <<'JSON'
+{"op":"history","conversation_id":"INCOMING_CONVERSATION_ID","after":null,"limit":100}
+JSON
+./target/debug/connect-example app-inspect --state .local/connected-app/business.sqlite3
+```
+
+For these fresh examples the history fits one page; otherwise follow `data.next`
+as `after`. Retain the create, send and business request IDs across uncertainty.
+After stopping only your worker and server with Ctrl-C, restart both with their
+original commands and state paths, and repeat history/inspection. The original
+approved review and received ticket must remain; replaying the saved exact
+review reply must not create another business result.
 
 The app uses the sender's conversation unchanged and creates its own task anchored
 to the incoming journal event. Its response has `action: draft_received`, a ticket
@@ -164,3 +237,33 @@ idempotent local communication operations. Cloned app databases, arbitrary
 external business effects, publication, provider delivery and detached worker
 supervision require their own contracts and are not qualified here. Test-only
 crash controls are compiled only with `test-support`.
+
+## Repeat the Gate 5 public-interface journey
+
+After building normal binaries or selecting an installed candidate, run the
+public CLI observer against those exact executables:
+
+```sh
+python3 scripts/check-connected-app.py \
+  --source-revision RECORDED_SOURCE_REVISION \
+  --server-binary /absolute/path/to/runtime/bin/connect \
+  --example-binary /absolute/path/to/runtime/bin/connect-example \
+  --output .local/gate5/app-journey-new-attempt.json
+```
+
+Use a fresh output path for each attempt. The runner creates isolated private
+state, reads the delivered draft bytes, starts both outgoing review and incoming
+submission flows, checks unauthorized and ambiguous input, rejects a concurrent
+worker, and restarts the server and worker with the original business IDs and
+checkpoint. Duplicate input and a late second decision must preserve the original
+results and produce only one public response per business effect. It records
+selected binary/tool hashes before and after execution and cleans up its owned
+processes. It never opens Connect's database.
+
+The separate `test-support` integration suites exercise lost upload, task,
+consume and response acknowledgements, deleted source files and revoked app
+credentials. Those controls are absent from normal distribution binaries.
+[Gate 5 app evidence](evidence/gate-5/app-journeys.json) keeps these source and
+selected-binary observations separate from final installed qualification.
+Actual inference uses the [agent journey](AGENT_JOURNEY_QUALIFICATION.md);
+independent fresh-user walkthroughs remain a separate acceptance requirement.

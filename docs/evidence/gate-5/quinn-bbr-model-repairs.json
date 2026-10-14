@@ -1,0 +1,301 @@
+{
+  "format": 1,
+  "recorded_at": "2026-10-14T10:44:02.688611+00:00",
+  "task_ids": [
+    "G5-014",
+    "G5-016"
+  ],
+  "status": "prepared-graph-focused-tests-passed-runtime-qualification-pending",
+  "whole_gate_qualified": false,
+  "published": false,
+  "scope": "Two narrow pinned Quinn BBR model repairs; component results do not qualify actual sustained media, congestion behavior or decoded AV timing.",
+  "source": {
+    "name": "quinn-proto",
+    "version": "0.11.19",
+    "archive_url": "https://static.crates.io/crates/quinn-proto/quinn-proto-0.11.19.crate",
+    "archive_sha256": "0e750cca55fe4f0439a15d0bb529da9651e79993e8e72c61a899a36d462befbe",
+    "repository": "https://github.com/quinn-rs/quinn",
+    "revision": "8192ed399a26a6e8f0aba43d10ec8badaa5b905e",
+    "repository_path": "quinn-proto"
+  },
+  "patch": {
+    "private_path": ".local/gate5/quinn-bbr-repair/repaired.patch",
+    "sha256": "c47dc5dd385d8525a96958dfb29d1129c1c70d61131d1f66853a0f5f4123964b",
+    "historical_integration_note": "Root accepted for graph22; release agent owns preparation, Cargo mappings, locks and runtime build.",
+    "recorded_path": "patches/quinn-proto/bbr-model-bounds.patch",
+    "recorded_sha256": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6"
+  },
+  "primary_design_reference": {
+    "url": "https://datatracker.ietf.org/doc/html/draft-cardwell-iccrg-bbr-congestion-control-00",
+    "status": "Historical experimental BBRv1 design draft; not a current IETF standard.",
+    "sections": [
+      "4.1.1.5",
+      "4.2.3.6"
+    ],
+    "interpretation": "The bandwidth filter admits every network-limited sample, plus application-limited samples at least as high as its estimate. Startup growth compares the current congestion window with its target, while retaining the initial-delivery exception."
+  },
+  "defects": [
+    {
+      "source": "src/congestion/bbr/bw_estimation.rs",
+      "finding": "The original AND and strict-increase predicate excluded all application-limited samples and stopped lower eligible samples from aging the maximum.",
+      "repair": "Use non-app-limited OR sample>=estimate; retain the existing bounded ten-round filter."
+    },
+    {
+      "source": "src/congestion/bbr/mod.rs",
+      "finding": "The startup branch compared dimensionless cwnd_gain with target bytes rather than current cwnd bytes.",
+      "repair": "Compare current cwnd with target_window; preserve initial-delivery growth, full-bandwidth clamp, recovery and minimum-window behavior."
+    }
+  ],
+  "original_sustained_failure": {
+    "report": ".local/gate5/quic-bbr-authoring/workspace-sustained-20261014T103532/result.json",
+    "status": "failed-retained",
+    "sha256": "335332dea42f75c7a5e0d59e8002f21257952381fe5d8b07c66cbdc4c94641c7",
+    "observations": "The graph20 sustained test failed its positive BBR model-rate assertion; one direction reported model rate0 with a congestion window of about7.77MiB. The assertion is unchanged and this run remains failed."
+  },
+  "tests": {
+    "original": {
+      "passed": 3,
+      "failed": 6,
+      "ignored": 0
+    },
+    "repaired": {
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    "existing_tests": 1,
+    "new_regressions": 8,
+    "selector": "--lib congestion::bbr",
+    "cases": [
+      "Higher application-limited samples initialize and increase the estimate",
+      "Lower application-limited samples cannot lower or age the estimate",
+      "Lower network-limited samples age the maximum after its window",
+      "Equal application-limited samples refresh the maximum timestamp",
+      "Startup at target stops ACK-driven growth after initial delivery",
+      "Startup below target and initial-delivery exception retain intended growth",
+      "Full-pipe congestion window remains capped by its target",
+      "Application-limited delivery establishes a positive BBR model pacing rate"
+    ],
+    "execution": [
+      {
+        "name": "original-crate",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate5/quinn-bbr-repair/original-deps/quinn-proto/Cargo.toml",
+          "--lib",
+          "congestion::bbr",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1200,
+        "log": "original-crate.log",
+        "status": "failed",
+        "exit_code": 101,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 14.597,
+        "scoped_clean": {
+          "name": "original-clean",
+          "command": [
+            "cargo",
+            "clean",
+            "--locked",
+            "--manifest-path",
+            "/Volumes/D2-2019/Developer/Connect/.local/gate5/quinn-bbr-repair/original-deps/quinn-proto/Cargo.toml",
+            "-p",
+            "quinn-proto"
+          ],
+          "timeout_seconds": 120,
+          "log": "original-clean.log",
+          "status": "passed",
+          "exit_code": 0,
+          "leftover_group_members": [],
+          "group_cleanup": "signalled",
+          "seconds": 0.423
+        },
+        "fresh_selected_compile": true,
+        "cargo_lock_sha256_before": "2024eb87f6e9c73a1f53a3ca286c280c6443c58143c20313b0ca4934d9b2cf30",
+        "cargo_lock_sha256_after": "2024eb87f6e9c73a1f53a3ca286c280c6443c58143c20313b0ca4934d9b2cf30",
+        "source_sha256": "465954d54b9ea6866b5ad5be9945ab13dae5bf30ac4ce3b8b1871d83f3ae3c66",
+        "log_sha256": "449124fd02d7f3274c5e78e49f150fa90ec2dc4becd4f756dc2654a051071871"
+      },
+      {
+        "name": "repaired-crate",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate5/quinn-bbr-repair/repaired-deps/quinn-proto/Cargo.toml",
+          "--lib",
+          "congestion::bbr",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1200,
+        "log": "repaired-crate.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.532,
+        "scoped_clean": {
+          "name": "repaired-clean",
+          "command": [
+            "cargo",
+            "clean",
+            "--locked",
+            "--manifest-path",
+            "/Volumes/D2-2019/Developer/Connect/.local/gate5/quinn-bbr-repair/repaired-deps/quinn-proto/Cargo.toml",
+            "-p",
+            "quinn-proto"
+          ],
+          "timeout_seconds": 120,
+          "log": "repaired-clean.log",
+          "status": "passed",
+          "exit_code": 0,
+          "leftover_group_members": [],
+          "group_cleanup": "signalled",
+          "seconds": 0.128
+        },
+        "fresh_selected_compile": true,
+        "cargo_lock_sha256_before": "2024eb87f6e9c73a1f53a3ca286c280c6443c58143c20313b0ca4934d9b2cf30",
+        "cargo_lock_sha256_after": "2024eb87f6e9c73a1f53a3ca286c280c6443c58143c20313b0ca4934d9b2cf30",
+        "source_sha256": "4dd73516817a5b6ae109c47421bf2cb26b9266e41e47484aabb09750afdca4cf",
+        "log_sha256": "84226154290126ac4ad9405ba79350abf18094115c23048f4c73e4ab1b6b860c"
+      }
+    ],
+    "cache_isolation": "Scoped clean of quinn-proto before each actual crate run; exact selected private source compiled both times.",
+    "lock_scope": "Both --locked runs retain archive Cargo.lock SHA2024eb87f6e9c73a1f53a3ca286c280c6443c58143c20313b0ca4934d9b2cf30; workspace runtime still needs separate qualification."
+  },
+  "source_sha256": {
+    "src/congestion/bbr/bw_estimation.rs": {
+      "before_sha256": "02eed27edb40e4c12f992f7f683fac238ced0dd153ecb87fdd689654bfb36eb7",
+      "after_sha256": "341d3f65af21cc63f8b31fe94951a1b91a32f9fe3cf6276b85e2005f95799b7b"
+    },
+    "src/congestion/bbr/mod.rs": {
+      "before_sha256": "60cf8196e8c17b1ef5228128615c0d0df31cd76cafa47c3c9198ee4b5d0fa9fd",
+      "after_sha256": "4dd73516817a5b6ae109c47421bf2cb26b9266e41e47484aabb09750afdca4cf"
+    }
+  },
+  "evidence_sha256": {
+    "original.patch": "381cfe8edfcad8cd91d114d5928aa54b65b92bfde163175972b10a9beb86a83d",
+    "repaired.patch": "c47dc5dd385d8525a96958dfb29d1129c1c70d61131d1f66853a0f5f4123964b",
+    "original-prepare.log": "b57e1ce2e0feb81a276ca5fc5efec6dfb7edf79ad214424051f9e31b1ee8d7da",
+    "repaired-prepare.log": "1360349729cde20bf61a476df235d5c879fdfbbfb632641b205f2067acbbf76f",
+    "original-clean.log": "e825eaff08b753108dc74e4ce42d0f16115a02da69df7f2997c47cbaa18b0ab9",
+    "repaired-clean.log": "173f570db309eef5af46e1e2a287fcd2150304f646f4079b668801d39a01e9d8",
+    "original-crate.log": "449124fd02d7f3274c5e78e49f150fa90ec2dc4becd4f756dc2654a051071871",
+    "repaired-crate.log": "84226154290126ac4ad9405ba79350abf18094115c23048f4c73e4ab1b6b860c"
+  },
+  "independent_root_review": {
+    "path": ".local/gate5/quic-bbr-authoring/root-independent-bbr-review.json",
+    "sha256": "cfa29fffaf42e29cdec69c520924e84aa8f08d4ec19df87f73530a9039efca0f",
+    "content": {
+      "scope": "Independent root read-only review of pinned Quinn BBR source and primary BBRv1 design; no runtime pass claimed",
+      "recorded_at": "2026-10-14T10:42:50.781779+00:00",
+      "reference": "https://datatracker.ietf.org/doc/html/draft-cardwell-iccrg-bbr-congestion-control-00",
+      "reference_status": "Historical experimental BBRv1 design draft; not a current IETF standard",
+      "findings": [
+        {
+          "source": "src/congestion/bbr/bw_estimation.rs",
+          "finding": "AND plus strict-increase-only filtering discards higher application-limited samples and prevents eligible lower samples aging the max filter.",
+          "design_section": "4.1.1.5",
+          "repair": "Admit sample when non-app-limited OR bandwidth >= current estimate; max filter remains bounded ten-round window."
+        },
+        {
+          "source": "src/congestion/bbr/mod.rs",
+          "finding": "Startup growth compares dimensionless cwnd_gain with target bytes, so ordinary positive target grows even when current cwnd already meets target.",
+          "design_section": "4.2.3.6",
+          "repair": "Compare current cwnd bytes with target bytes; preserve initial-delivery exception and full-bandwidth branch."
+        }
+      ],
+      "pacing_boundary": "src/connection/pacing.rs uses 1.25*cwnd/smoothedRTT for token refill. BBR metrics.pacing_rate is a model diagnostic, not a direct pacer input. Positive model rate proves learning only; actual media and control behavior require separate sustained/runtime tests.",
+      "source_sha256": {
+        "src/congestion/bbr/bw_estimation.rs": "02eed27edb40e4c12f992f7f683fac238ced0dd153ecb87fdd689654bfb36eb7",
+        "src/congestion/bbr/mod.rs": "60cf8196e8c17b1ef5228128615c0d0df31cd76cafa47c3c9198ee4b5d0fa9fd",
+        "src/congestion/bbr/min_max.rs": "06eb1be36b8700cc4b8a2df07a3d87253f0ef8184cec670928ebd27ecebda935",
+        "src/connection/pacing.rs": "0154f8f81187e11782bfe014be38165c41e74d0fbd4be2a54acc262102775c86"
+      },
+      "whole_gate_qualified": false
+    }
+  },
+  "limits": [
+    "The root review identifies BBR metrics.pacing_rate as a model diagnostic. The current transport pacer uses congestion window and smoothed RTT, so positive model rate alone does not prove paced output.",
+    "Fresh combined runtime sustained tests and decoded native/browser impairment profiles remain necessary.",
+    "Application queue64/76032-byte bounds,200ms stale discard, reliable-control assertions and all frozen media thresholds are unchanged.",
+    "Previous failed component and sustained artifacts remain retained; no retrospective pass."
+  ],
+  "recorded_candidate": {
+    "recorded_at": "2026-10-14T10:45:51.008398+00:00",
+    "status": "integrated-candidate; final-prepared-graph-component-and-runtime-verification-pending",
+    "source_lock_path": "dependencies/source-lock.json",
+    "source_lock_sha256": "f3232e9c20e265526385831a0767adb4950a1fe6eddbde0fd5ab38656b89449b",
+    "recorded_patch_count": 22,
+    "recorded_patch_path": "patches/quinn-proto/bbr-model-bounds.patch",
+    "recorded_patch_sha256": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6",
+    "source_metadata": {
+      "kind": "crate",
+      "version": "0.11.19",
+      "url": "https://static.crates.io/crates/quinn-proto/quinn-proto-0.11.19.crate",
+      "sha256": "0e750cca55fe4f0439a15d0bb529da9651e79993e8e72c61a899a36d462befbe",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/quinn-rs/quinn",
+      "revision": "8192ed399a26a6e8f0aba43d10ec8badaa5b905e",
+      "repository_path": "quinn-proto"
+    },
+    "root_cargo_mapping": ".deps/quinn-proto",
+    "upstream_rvoip_cargo_mapping": "../quinn-proto",
+    "scope": "Release confirmed these final staged digests for this attempt. Preparation, actual combined-graph component tests and runtime/sustained qualification remain separate from the retained private fixture evidence.",
+    "formatting_boundary": "Final recorded patch was rustfmt formatted after the retained private9-test proof, including import ordering. Private patch SHA remains c47dc5dd385d8525a96958dfb29d1129c1c70d61131d1f66853a0f5f4123964b; final recorded patch requires its own prepared-graph9-test result.",
+    "snapshot_note": "This dated integration snapshot preceded the passing prepared_graph_verification appended below; its pending wording is retained as history."
+  },
+  "prepared_graph_verification": {
+    "recorded_at": "2026-10-14T10:48:11.117548+00:00",
+    "scope": "Focused tests against the final formatted recorded patches in prepared graph22; full runtime/source/installed qualification remains separate",
+    "source_lock_sha256": "f3232e9c20e265526385831a0767adb4950a1fe6eddbde0fd5ab38656b89449b",
+    "root_cargo_lock_sha256": "2f3abc14b06ba9335d01ce1cc99910f99ab48293731a80d0c50e6fa5ab9d4957",
+    "report": ".local/gate5/quic-bbr-authoring/candidate22-tests-20261014T104605/result.json",
+    "report_sha256": "416a4ec5a21d5d096b7f6250ef76adf2545b7843f3507c8cd9d33ab3715d3201",
+    "inputs_stable": true,
+    "fresh_selected_compile_checked": true,
+    "steps": [
+      {
+        "name": "bbr",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          ".deps/quinn-proto/Cargo.toml",
+          "--lib",
+          "congestion::bbr",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1800,
+        "log": "bbr.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 2.52,
+        "rust_tests": {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log_sha256": "c7f5162e2e72137755307cab837da7fa30898fc69975696bcca4e37aa965ab1c"
+      }
+    ],
+    "workspace_compile": {
+      "status": "passed",
+      "log_sha256": "f74f2d6e9db5d65c8353e8f7fee39799dce75d8d77b261c4805a5d91e635d603",
+      "scope": "Exact root-lock sustained-transport test executable compiled; not workspace suite execution"
+    }
+  }
+}

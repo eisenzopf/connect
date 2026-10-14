@@ -46,6 +46,24 @@ pub struct MediaForwardObservation {
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QuicTransmissionObservation {
+    /// Samples at media sends; connection counters below are maxima across
+    /// sampled physical connections, never sums or measured network-loss rates.
+    #[serde(default)]
+    pub congestion_samples: u64,
+    #[serde(default)]
+    pub minimum_sampled_rtt_us: Option<u64>,
+    #[serde(default)]
+    pub maximum_sampled_rtt_us: Option<u64>,
+    #[serde(default)]
+    pub minimum_sampled_cwnd_bytes: Option<u64>,
+    #[serde(default)]
+    pub maximum_sampled_cwnd_bytes: Option<u64>,
+    #[serde(default)]
+    pub maximum_sampled_connection_lost_packets: u64,
+    #[serde(default)]
+    pub maximum_sampled_connection_congestion_events: u64,
+    #[serde(default)]
+    pub maximum_sampled_connection_sent_packets: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub send_buffer: Option<QuicSendBufferObservation>,
     pub samples: u64,

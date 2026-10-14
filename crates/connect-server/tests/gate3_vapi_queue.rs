@@ -207,9 +207,9 @@ async fn exercise_saturated_teardown(server_shutdown: bool) {
         }
         loop {
             match audio.receive(std::time::Duration::from_secs(1)).await {
-                // Ending the durable Session revokes its physical media peer.
-                // A normal provider hangup has its separate MediaEnded proof.
-                Err(connect_client::ClientError::Transport) => break,
+                // A current-authorized durable end retires this Session's
+                // media while preserving the physical application peer.
+                Err(connect_client::ClientError::MediaEnded) => break,
                 Ok(_) => continue, // Frames already delivered before cancellation.
                 result => panic!("terminal event missing after cancellation: {result:?}"),
             }
@@ -224,10 +224,17 @@ async fn exercise_saturated_teardown(server_shutdown: bool) {
     );
     assert!(matches!(
         audio.send_pcmu(&[0x39; 160]).await,
-        Err(connect_client::ClientError::Transport)
+        Err(connect_client::ClientError::MediaEnded)
     ));
-    client.close().await;
-    let mut client = ConnectClient::open(app).await.unwrap();
+    // Prove continuity on the SAME native control peer, without reconnecting.
+    client
+        .send(
+            "after-end-control",
+            &conversation.id,
+            "Control survives Session end.",
+        )
+        .await
+        .unwrap();
     assert_eq!(
         client
             .session_get(&conversation.id, &session.id)
@@ -240,6 +247,7 @@ async fn exercise_saturated_teardown(server_shutdown: bool) {
     for body in [
         "The release canary is cobalt-seven.",
         "Control still works.",
+        "Control survives Session end.",
     ] {
         assert_eq!(
             history
@@ -250,6 +258,20 @@ async fn exercise_saturated_teardown(server_shutdown: bool) {
             1
         );
     }
+    // The separate application control connection rechecks current authority
+    // even after media retirement; revocation cannot retain history access.
+    // Live native media revocation has its separate physical Transport proof.
+    let actor = server.store.authenticate(&operator.token).unwrap();
+    server.store.revoke(&actor, &app_key.id).unwrap();
+    assert!(matches!(
+        tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            client.history(&conversation.id, None, 100)
+        )
+        .await
+        .unwrap(),
+        Err(connect_client::ClientError::Application(error)) if error.code == "unauthorized"
+    ));
     client.close().await;
     tokio::time::timeout(std::time::Duration::from_secs(5), server.shutdown())
         .await

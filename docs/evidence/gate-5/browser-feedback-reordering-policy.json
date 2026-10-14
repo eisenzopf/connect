@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "status": "private-experiment-runtime-failed; not-adopted",
+  "recorded_at": "2026-10-14T13:36:35.186658+00:00",
+  "scope": "Local macOS arm64 Chrome155 strict VP8 jitter compatibility investigation. No product policy integrated or media qualification claimed.",
+  "gateway_trace": {
+    "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T131829Z/root-media-summary.json",
+    "sha256": "18d76266ec120a1839e5dbde10b00de35e982683f2c4f27737e879ac6f88a639"
+  },
+  "direct_browser_comparison": {
+    "report": {
+      "path": ".local/gate5/direct-chrome-baseline/run-20261014T133319Z/result.json",
+      "sha256": "c02d9afbfe7899502b4571dc98560f80b37e289187d972b591e327b0fd1e0445"
+    },
+    "analysis": {
+      "path": ".local/gate5/direct-chrome-baseline/run-20261014T133319Z/controller-comparison.json",
+      "sha256": "dc412e87c800cb22ae15bb17c0bf8b6cd1f59965eb6302b759709c6f51816a97"
+    },
+    "diagnostic_valid": true,
+    "inputs_stable": true,
+    "selected_paths_status": "passed",
+    "status": "failed",
+    "topology": "One owned bidirectional loopback UDP proxy between two actual Chrome peers; both selected remote candidate paths verified throughout60s. Production capture/sender/encoded transform limits and generated source/observers reused. No Connect service.",
+    "observations": [
+      {
+        "changing_frames": 336,
+        "elapsed_seconds": 60.01080012321472,
+        "av": {
+          "status": "failed",
+          "paired": 26,
+          "median_abs_skew_ms": 73.20000004768445,
+          "p95_abs_skew_ms": 159.90000009536942
+        },
+        "audio": "passed",
+        "motion": "passed"
+      },
+      {
+        "changing_frames": 743,
+        "elapsed_seconds": 60.01070022583008,
+        "av": {
+          "status": "passed",
+          "paired": 52,
+          "median_abs_skew_ms": 36.10000002384339,
+          "p95_abs_skew_ms": 104.69999992847079
+        },
+        "audio": "passed",
+        "motion": "passed"
+      }
+    ],
+    "finding": "Sparse video and failed A/V marker evidence also occur without the gateway. Different topology, load and actual drop realization prevent a claim of identical performance or a complete isolated cause."
+  },
+  "gateway_feedback_bookkeeping": {
+    "sent_matched": 4371,
+    "proxy_dispatched": 4229,
+    "proxy_dropped": 142,
+    "provisional_missing": 774,
+    "later_positive_and_dispatched": 621,
+    "later_positive_after_finalized_loss_observation": 208,
+    "scope": "Source-derived loss observation bookkeeping, not a full pinned GCC estimator replay or exact field-trial proof."
+  },
+  "counterfactual_gap_bookkeeping": {
+    "path": ".local/gate5/twcc-gap-grace-study/result.json",
+    "sha256": "ea99ad05f4212aae7a5b92d520b0b82d407efeb4054860a2a2aafdbd336fe627"
+  },
+  "experimental_policy": {
+    "scope": "Opt in only for the strict100ms-jitter profile; retain generic default behavior.",
+    "proposal": "Immediately report a contiguous received prefix. Hold a missing sequence and following statuses for at most100ms from the first higher-sequence arrival, then report truthful missing/received status with original arrival times. Every gap retains its original deadline; late corrections remain possible.",
+    "receiver_hold_bound_note": "A100ms grace plus100ms reporting cadence yields at most200ms nominal receiver scheduling delay under serviced timers; this excludes reverse-path delay and does not promise an end-to-end200ms bound.",
+    "invariants": [
+      "Never fabricate receipts, suppress real loss indefinitely, alter arrival times or bypass congestion control.",
+      "Keep NACK, RR, media queues and acceptance thresholds unchanged.",
+      "Bound pending metadata, status batches, output queue and work; explicitly test overload behavior."
+    ],
+    "required_before_adoption": [
+      "Original counterexample and deterministic gap/deadline/wrap/late/real-loss/pressure tests.",
+      "Current default regression suites and strict-profile-only wiring.",
+      "Actual Chrome impairment plus capacity-reduction response evidence.",
+      "Fresh unchanged full media and final source/installed qualification."
+    ]
+  },
+  "references": [
+    {
+      "url": "https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01",
+      "scope": "Expired experimental draft describing TWCC receipt semantics, not a requirement or endorsement of this100ms policy."
+    }
+  ],
+  "whole_gate_qualified": false,
+  "private_component_review": {
+    "recorded_at": "2026-10-14T13:55:37.610125+00:00",
+    "review": {
+      "path": ".local/gate5/twcc-gap-grace-candidate/release-independent-review.json",
+      "sha256": "8b75f91532a7c31fab9f915ac381eb507a15a5edda68800c15d81e5caf0f252b"
+    },
+    "scope": "Private policy and numeric runtime observability approved for controlled experiment only; not integrated into root prepared graph.",
+    "tests": "150 interceptor tests and one numeric collector test passed; rvoip WebRTC wiring check passed. Subsequent composed graph30 checks are recorded below.",
+    "review_corrections": [
+      "Hard64 feedback batch bound includes timestamp-delta packet splits and retains cursor.",
+      "Half-range/reset or unresolved eviction increments incomplete-metadata evidence; no invented missing sequence reports.",
+      "Numeric collector exposes policy coverage, received packets, generated batches, maximum batch, blocked output and incomplete metadata; generic default remains unchanged."
+    ],
+    "required_before_adoption": [
+      "Private composed graph30 candidate and SDK compatibility tests.",
+      "Unchanged media profile and real capacity-reduction response guard with actual offered-load precondition.",
+      "Observed runtime policy coverage with no incomplete metadata.",
+      "Full final source, package and installed qualification remain separate."
+    ],
+    "sdk_overlay_review": {
+      "path": ".local/gate5/twcc-gap-grace-candidate/release-sdk-overlay-review.json",
+      "sha256": "bafc646a765e10275909162ce7846881ba365be5ea624e8e5315bb682557cdcf"
+    },
+    "candidate_summary": {
+      "path": ".local/gate5/twcc-gap-grace-candidate/summary.json",
+      "sha256": "4a64cac4fb5c866a6ce3ebb04362ba3fd2758d732d6417c2148f0c3ef9919b70"
+    },
+    "sdk_status": "Composed private Python26/26 and TypeScript212/212 suites pass; generated SDK reproduces byte for byte with232 source/fixture and559 compiler/tool inputs stable. Initial compiler-path failure is retained. Subsequent Rust composition and failed runtime checks are recorded below.",
+    "composed_sdk_suite": {
+      "path": ".local/gate5/twcc-gap-grace-candidate/composed-full-sdk-20261014T140413/result.json",
+      "sha256": "e08624196408cb3e999fd87eb2d186f3db158947fc52262f37638fdd61a487d6",
+      "status": "passed",
+      "python_tests": 26,
+      "typescript_tests": 212,
+      "source_fixture_inputs": 232,
+      "compiler_tool_inputs": 559,
+      "generated_dist_reproduced": true,
+      "inputs_stable": true
+    }
+  },
+  "private_composed_candidate": {
+    "recorded_at": "2026-10-14T14:12:17.910685+00:00",
+    "status": "component-and-build-passed; runtime-failed; not-adopted",
+    "build": {
+      "path": ".local/gate5/twcc-gap-grace-experimental-workspace/result.json",
+      "sha256": "f4f3b6d6b6889517a518d04025316fd65a79ae3062a9ddf71ef9fc5059d68c29"
+    },
+    "composed_interceptor": {
+      "path": ".local/gate5/twcc-gap-grace-experimental-workspace/interceptor-composed-proof/result.json",
+      "sha256": "3ee249c1aa650a4b795da2e4e954a8b44bab88a020e73865a2ea5c130efe2127"
+    },
+    "sdk": {
+      "path": ".local/gate5/twcc-gap-grace-candidate/composed-full-sdk-20261014T140413/result.json",
+      "sha256": "e08624196408cb3e999fd87eb2d186f3db158947fc52262f37638fdd61a487d6"
+    },
+    "private_patch_count": 32,
+    "root_patch_count": 30,
+    "tests": {
+      "interceptor": 151,
+      "protocol_optional_wire": 1,
+      "server_numeric_mapping": 1,
+      "python_sdk": 26,
+      "typescript_sdk": 212
+    },
+    "source_inputs": 1093,
+    "prepared_interceptor_proof_inputs": 3859,
+    "inputs_stable": true,
+    "root_sources_unchanged": true,
+    "scope": "Private isolated graph30 plus explicit feedback policy and numeric diagnostics; no adoption into production source or full gate qualification."
+  },
+  "private_runtime_diagnostic": {
+    "recorded_at": "2026-10-14T14:14:12.138525+00:00",
+    "status": "failed",
+    "diagnostic_valid": true,
+    "run": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T141147Z/result.json",
+      "sha256": "ebc719123a6705f1b7a9b9aff37e67c3d66298906dd6eb2280bd90a9328ecacd"
+    },
+    "report": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T141147Z/impairment-browser-browser.json",
+      "sha256": "958f144c519e9b3bd21f691777e30f258e9b444cab03273836d34a1bf2a1b5e5"
+    },
+    "trace": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T141147Z/rtp-dispatch.json",
+      "sha256": "155400f7d3ad0784e7b173ee9ec5f10d9080a0d803e4e06df2aa08d6e8f422ae"
+    },
+    "policy_observation": {
+      "status": "observed",
+      "counters": {
+        "policy_instances": 2,
+        "received_packets": 11002,
+        "feedback_batches": 1211,
+        "generated_feedback_packets": 1211,
+        "maximum_batch_packets": 1,
+        "blocked_output_events": 0,
+        "incomplete_metadata_events": 0
+      },
+      "scope": "Authenticated opt-in policy activity with no observed output-backpressure events. Counters do not measure feedback deadlines or end-to-end latency; historical private reports retain their original field name.",
+      "no_output_backpressure_observed": true
+    },
+    "observations": [
+      {
+        "changing": 1465,
+        "decoded": 1741,
+        "elapsed_seconds": 60.00880002975464,
+        "changing_fps": 24.413086068603228,
+        "av": {
+          "status": "failed",
+          "paired": 83,
+          "median_abs_skew_ms": 58.39999997615841,
+          "p95_abs_skew_ms": 128.0000000000001
+        },
+        "audio": "passed",
+        "motion": "passed",
+        "last_outgoing_available_bitrate": 97299
+      },
+      {
+        "changing": 365,
+        "decoded": 401,
+        "elapsed_seconds": 60.00909996032715,
+        "changing_fps": 6.082410838377956,
+        "av": {
+          "status": "failed",
+          "paired": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        },
+        "audio": "passed",
+        "motion": "passed",
+        "last_outgoing_available_bitrate": 2816023
+      }
+    ],
+    "findings": [
+      "Policy was actually active with2 instances,11002 received packets,1211 one-packet feedback batches, zero blocked output and zero incomplete metadata.",
+      "Impaired sender bitrate still collapses; opposite receiver has365 changing frames and no calibrated AV pairs. Other receiver has83 pairs but128ms p95 exceeds120ms.",
+      "Both audio and motion profiles pass; these do not override AV failure.",
+      "No production policy adoption; capacity response and detailed feedback analysis remain separate."
+    ],
+    "whole_gate_qualified": false
+  },
+  "private_capacity_diagnostic": {
+    "recorded_at": "2026-10-14T14:18:02.073410+00:00",
+    "run": {
+      "path": ".local/gate5/capacity-reduction-diagnostic/run-20261014T141332Z/result.json",
+      "sha256": "87d12dc570b3c6f2060c9d2e054d690d40d44e9162b4364bbd59c713d2f1b522"
+    },
+    "analysis": {
+      "path": ".local/gate5/capacity-reduction-diagnostic/run-20261014T141332Z/sealed-analysis.json",
+      "sha256": "df32726f329011fa2fdea7144389d150cd604e5b783d319e63b2d07bdc406fad"
+    },
+    "status": "inconclusive",
+    "diagnostic_valid": false,
+    "reasons": [
+      "Missing sender sample coverage",
+      "Sustained initial allocation of at least700kbps was not established",
+      "Actual pre-step offered capacity input did not reach512kbps over the final5seconds"
+    ],
+    "pre_step_available_bps_range": [
+      84725,
+      106401
+    ],
+    "pre_step_actual_offered_bps": 114076.8,
+    "packet_and_byte_conservation": "passed",
+    "dispatch_stage_envelopes": "passed",
+    "queue_max_actual_sojourn_seconds": 0.20003824995364994,
+    "queue_sojourn_limit_seconds": 0.2,
+    "policy_observation": {
+      "status": "observed",
+      "counters": {
+        "policy_instances": 2,
+        "received_packets": 15525,
+        "feedback_batches": 1789,
+        "generated_feedback_packets": 1789,
+        "maximum_batch_packets": 1,
+        "blocked_output_events": 0,
+        "incomplete_metadata_events": 0
+      },
+      "scope": "Authenticated opt-in policy activity with no observed output-backpressure events. Counters do not measure feedback deadlines or end-to-end latency; historical private reports retain their original field name.",
+      "no_output_backpressure_observed": true
+    },
+    "scope": "The predeclared starting load was not reached; no congestion-response or media qualification. The measured return-time overrun remains a diagnostic failure.",
+    "production_policy_adopted": false
+  },
+  "runtime_counter_interpretation": "Historical private reports named the no-blocked-output predicate latency_bounds_complete. It establishes only the absence of observed output-backpressure events, not measured feedback deadlines or end-to-end latency. Future reader output uses no_output_backpressure_observed; historical reports remain unchanged. Component deadline tests and actual runtime latency are distinct.",
+  "private_runtime_analysis": {
+    "recorded_at": "2026-10-14T14:33:57.081269+00:00",
+    "report": {
+      "path": ".local/gate5/twcc-gap-grace-runtime-analysis-20261014T141147Z/sealed-summary.json",
+      "sha256": "fab451255489aa16c33e928f75cd45bf551bc3cf2da980639ccaf7dc1f5663af"
+    },
+    "observed_missing_then_positive": 0,
+    "unique_missing": 142,
+    "actual_proxy_drops_matching_missing": 137,
+    "startup_dispatched_without_proven_authenticated_acceptance": 5,
+    "timestamp_alignment": {
+      "scope": "Residual after one unknown clock offset; no absolute one-way latency claim.",
+      "clean_received_samples": 6807,
+      "clean_p95_residual_ms": 1.491,
+      "clean_max_residual_ms": 5.26,
+      "impaired_received_samples": 3895,
+      "impaired_p95_residual_ms": 0.363,
+      "impaired_max_residual_ms": 2.648
+    },
+    "conclusions": [
+      "Observed grace feedback has no missing-to-positive corrections;142 unresolved negatives comprise137 actual proxy drops and five startup dispatched packets without proven authenticated acceptance.",
+      "Received timestamps closely follow actual dispatch up to a constant, not feedback generation delay.",
+      "No impaired-sender probe result is logged. Silent count/byte eligibility gates exist in the pinned Chrome estimator; exact probe membership and route overhead are not available, so causal replay is not claimed.",
+      "Real first-audio interceptor registration order is separately being tested by release; no causal recovery claim follows until its proof and prospective runtime.",
+      "Both media and subsequent capacity experiments failed their applicable guards. No thresholds were changed and no policy adoption is supported."
+    ],
+    "production_policy_adopted": false,
+    "wire_review": {
+      "report": {
+        "path": ".local/gate5/twcc-gap-grace-runtime-analysis-20261014T141147Z/wire-review.json",
+        "sha256": "c72db5ca0516923922fb1e64ce8273f3af3c0d6e852610130121b0b7abb5b58a"
+      },
+      "incoming_twcc_packets_reparsed": 1169,
+      "finding": "No invalid lengths, reserved symbols, truncated deltas, unknown transport sequences or contradictory repeated positive timestamps found. Signed250us delta and64ms reference serialization is coherent; no timestamp/status repair proposed.",
+      "scope": "Observed feedback encoding only; no media qualification or causal congestion-control proof."
+    }
+  }
+}

@@ -1,0 +1,581 @@
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -146,6 +146,7 @@
+ pub mod vcon;
+ pub mod video_bridge;
+ pub mod video_packetizer;
++pub mod video_packetizer_reorder;
+ pub mod virtual_publisher;
+ 
+ pub use adapter::{
+diff --git a/crates/foundation/rvoip-core/src/video_packetizer.rs b/crates/foundation/rvoip-core/src/video_packetizer.rs
+--- a/crates/foundation/rvoip-core/src/video_packetizer.rs
++++ b/crates/foundation/rvoip-core/src/video_packetizer.rs
+@@ -107,7 +107,7 @@
+         Some(packets)
+     }
+ }
+-fn descriptor_len(payload: &[u8]) -> Option<usize> {
++pub(crate) fn descriptor_len(payload: &[u8]) -> Option<usize> {
+     let first = *payload.first()?;
+     if first & 0x40 != 0 || first & 0x0f > 8 {
+         return None;
+diff --git a/crates/foundation/rvoip-core/src/video_packetizer_reorder.rs b/crates/foundation/rvoip-core/src/video_packetizer_reorder.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/video_packetizer_reorder.rs
+@@ -0,0 +1,154 @@
++//! Bounded source-packet reordering before variable-width VP8 sequence expansion.
++//! Original work values (including capture time and route tickets) stay attached.
++use bytes::Bytes;
++use std::time::{Duration, Instant};
++
++pub const CAPACITY: usize = 64;
++pub const GAP_WAIT: Duration = Duration::from_millis(100);
++
++pub struct Reordered<T> {
++    pub packet: Bytes,
++    pub value: T,
++}
++struct Pending<T> {
++    item: Reordered<T>,
++    sequence: u16,
++    inserted: Instant,
++}
++/// Ordered traffic is released immediately. A missing source packet waits at
++/// most 100ms; advancing past a loss preserves its sequence hole in the mapper.
++/// Startup waits for a partition-zero key start rather than anchoring on a
++/// reordered continuation. Pending storage never exceeds 64 packets.
++pub struct Vp8Reorder<T> {
++    ssrc: Option<u32>,
++    next: Option<u16>,
++    pending: Vec<Pending<T>>,
++}
++impl<T> Default for Vp8Reorder<T> {
++    fn default() -> Self {
++        Self {
++            ssrc: None,
++            next: None,
++            pending: Vec::new(),
++        }
++    }
++}
++impl<T> Vp8Reorder<T> {
++    pub fn len(&self) -> usize {
++        self.pending.len()
++    }
++    pub fn is_empty(&self) -> bool {
++        self.pending.is_empty()
++    }
++    /// Deadline must be polled even when the input channel becomes idle.
++    pub fn deadline(&self) -> Option<Instant> {
++        self.pending.iter().map(|p| p.inserted + GAP_WAIT).min()
++    }
++    pub fn push(&mut self, packet: Bytes, value: T, now: Instant) -> Vec<Reordered<T>> {
++        if packet.len() > crate::video_bridge::MAX_VIDEO_RTP_BYTES
++            || packet.len() <= 13
++            || packet[0] != 0x80
++        {
++            return Vec::new();
++        }
++        let Some(descriptor) = super::video_packetizer::descriptor_len(&packet[12..]) else {
++            return Vec::new();
++        };
++        let source = u16::from_be_bytes([packet[2], packet[3]]);
++        let ssrc = u32::from_be_bytes(packet[8..12].try_into().expect("checked RTP header"));
++        if self.ssrc != Some(ssrc) {
++            self.ssrc = Some(ssrc);
++            self.next = None;
++            self.pending.clear();
++        }
++        if self.pending.iter().any(|p| p.sequence == source) {
++            return Vec::new();
++        }
++        let key_start = packet[12] & 0x1f == 0x10 && packet[12 + descriptor] & 1 == 0;
++        if self.next.is_none() && key_start {
++            self.next = Some(source);
++            self.pending
++                .retain(|p| (p.sequence.wrapping_sub(source) as i16) >= 0);
++        }
++        if self
++            .next
++            .is_some_and(|next| (source.wrapping_sub(next) as i16) < 0)
++        {
++            // The packetizer alone knows whether this is an exact recent
++            // duplicate. Unknown late input cannot rewrite an emitted map.
++            return vec![Reordered { packet, value }];
++        }
++        let mut ready = Vec::new();
++        // Never insert a 65th retained packet. At pressure, prefer a newly
++        // arrived nearer gap-fill over advancing past it to old queued input.
++        if self.pending.len() == CAPACITY && self.next != Some(source) {
++            if let Some(next) = self.next {
++                let nearest = self
++                    .pending
++                    .iter()
++                    .map(|p| p.sequence.wrapping_sub(next))
++                    .min()
++                    .expect("full queue");
++                if source.wrapping_sub(next) < nearest {
++                    self.next = Some(source);
++                } else {
++                    self.advance();
++                }
++                ready.extend(self.drain());
++            } else {
++                self.pending.remove(0);
++            }
++        }
++        if self.next == Some(source) {
++            // The active packet is separate from the at-most-64 queued items.
++            ready.push(Reordered { packet, value });
++            self.next = Some(source.wrapping_add(1));
++            ready.extend(self.drain());
++        } else {
++            self.pending.push(Pending {
++                item: Reordered { packet, value },
++                sequence: source,
++                inserted: now,
++            });
++        }
++        ready.extend(self.expire(now));
++        ready
++    }
++    pub fn expire(&mut self, now: Instant) -> Vec<Reordered<T>> {
++        if !self.deadline().is_some_and(|deadline| deadline <= now) {
++            return Vec::new();
++        }
++        if self.next.is_none() {
++            self.pending
++                .retain(|p| now.saturating_duration_since(p.inserted) < GAP_WAIT);
++            return Vec::new();
++        }
++        self.advance();
++        self.drain()
++    }
++    fn advance(&mut self) {
++        if let Some(next) = self.next {
++            if let Some(p) = self
++                .pending
++                .iter()
++                .min_by_key(|p| p.sequence.wrapping_sub(next))
++            {
++                self.next = Some(p.sequence);
++            }
++        }
++    }
++    fn drain(&mut self) -> Vec<Reordered<T>> {
++        let mut ready = Vec::new();
++        while let Some(next) = self.next {
++            let Some(index) = self.pending.iter().position(|p| p.sequence == next) else {
++                break;
++            };
++            ready.push(self.pending.remove(index).item);
++            self.next = Some(next.wrapping_add(1));
++        }
++        ready
++    }
++}
++#[cfg(test)]
++#[path = "video_packetizer_reorder_tests.rs"]
++mod tests;
+diff --git a/crates/foundation/rvoip-core/src/video_packetizer_reorder_tests.rs b/crates/foundation/rvoip-core/src/video_packetizer_reorder_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/video_packetizer_reorder_tests.rs
+@@ -0,0 +1,143 @@
++use super::*;
++use crate::video_packetizer::Vp8Packetizer;
++fn packet(seq: u16, key: bool, size: usize) -> Bytes {
++    let mut p = vec![0x80, 0xe0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 7, 0x10];
++    p[2..4].copy_from_slice(&seq.to_be_bytes());
++    p.extend(vec![if key { 0 } else { 1 }; size]);
++    p.into()
++}
++fn sequences<T>(items: &[Reordered<T>]) -> Vec<u16> {
++    items
++        .iter()
++        .map(|p| u16::from_be_bytes([p.packet[2], p.packet[3]]))
++        .collect()
++}
++#[test]
++fn reordered_variable_width_inputs_preserve_every_fragment_and_original_value() {
++    let now = Instant::now();
++    let mut q = Vp8Reorder::default();
++    let mut map = Vp8Packetizer::default();
++    let first = q.push(packet(65534, true, 1167), 10, now);
++    assert_eq!(
++        map.packetize(first[0].packet.clone(), 1178).unwrap().len(),
++        2
++    );
++    assert!(q.push(packet(0, false, 8), 30, now).is_empty());
++    let ready = q.push(
++        packet(65535, false, 1167),
++        20,
++        now + Duration::from_millis(90),
++    );
++    assert_eq!(sequences(&ready), vec![65535, 0]);
++    assert_eq!(
++        ready.iter().map(|p| p.value).collect::<Vec<_>>(),
++        vec![20, 30]
++    );
++    let output: Vec<_> = ready
++        .into_iter()
++        .flat_map(|p| map.packetize(p.packet, 1178).unwrap())
++        .collect();
++    assert_eq!(
++        output
++            .iter()
++            .map(|p| u16::from_be_bytes([p[2], p[3]]))
++            .collect::<Vec<_>>(),
++        vec![0, 1, 2]
++    );
++}
++#[test]
++fn idle_deadline_preserves_loss_and_late_duplicate_cannot_rewrite_expansion() {
++    let now = Instant::now();
++    let mut q = Vp8Reorder::default();
++    let mut map = Vp8Packetizer::default();
++    let key = packet(100, true, 1167);
++    let output = map
++        .packetize(q.push(key.clone(), (), now).remove(0).packet, 1178)
++        .unwrap();
++    assert!(q.push(packet(102, false, 8), (), now).is_empty());
++    assert_eq!(q.deadline(), Some(now + GAP_WAIT));
++    assert!(q
++        .expire(now + GAP_WAIT - Duration::from_nanos(1))
++        .is_empty());
++    let ready = q.expire(now + GAP_WAIT);
++    assert_eq!(
++        map.packetize(ready[0].packet.clone(), 1178).unwrap()[0][2..4],
++        103u16.to_be_bytes()
++    );
++    assert!(map
++        .packetize(
++            q.push(packet(101, false, 8), (), now).remove(0).packet,
++            1178
++        )
++        .is_none());
++    assert_eq!(
++        map.packetize(q.push(key, (), now).remove(0).packet, 1178)
++            .unwrap(),
++        output
++    );
++}
++#[test]
++fn startup_continuations_wait_for_real_key_start_and_malformed_input_cannot_anchor() {
++    let now = Instant::now();
++    let mut q = Vp8Reorder::default();
++    let mut marker = packet(12, false, 8).to_vec();
++    marker[12] = 0;
++    assert!(q.push(marker.into(), 12, now).is_empty());
++    assert!(q.push(packet(11, false, 8), 11, now).is_empty());
++    let ready = q.push(packet(10, true, 8), 10, now);
++    assert_eq!(sequences(&ready), vec![10, 11, 12]);
++    let mut fresh = Vp8Reorder::default();
++    assert!(fresh.push(Bytes::from_static(&[0x80]), (), now).is_empty());
++    assert!(fresh.push(packet(1, false, 8), (), now).is_empty());
++    assert!(fresh.expire(now + GAP_WAIT).is_empty());
++    assert!(fresh.is_empty());
++}
++#[test]
++fn capacity_gap_fill_drains_before_pressure_and_duplicates_keep_original() {
++    let now = Instant::now();
++    let mut q = Vp8Reorder::default();
++    q.push(packet(0, true, 8), 0, now);
++    for seq in 2..=65 {
++        assert!(q.push(packet(seq, false, 8), seq, now).is_empty());
++    }
++    assert_eq!(q.len(), CAPACITY);
++    assert!(q.push(packet(2, false, 9), 999, now).is_empty());
++    let ready = q.push(packet(1, false, 8), 1, now);
++    assert_eq!(ready.len(), 65);
++    assert_eq!(ready[1].value, 2);
++    assert!(q.is_empty());
++}
++#[test]
++fn pressure_preserves_source_hole_and_source_switch_drops_old_pending() {
++    let now = Instant::now();
++    let mut q = Vp8Reorder::default();
++    q.push(packet(0, true, 8), (), now);
++    for seq in 2..=65 {
++        q.push(packet(seq, false, 8), (), now);
++    }
++    assert_eq!(
++        sequences(&q.push(packet(66, false, 8), (), now)),
++        (2..=66).collect::<Vec<_>>()
++    );
++    q.push(packet(68, false, 8), (), now);
++    let mut switched = packet(100, true, 8).to_vec();
++    switched[11] = 8;
++    assert_eq!(sequences(&q.push(switched.into(), (), now)), vec![100]);
++    assert!(q.is_empty());
++}
++
++#[test]
++fn capacity_pressure_keeps_nearer_noncontiguous_new_input_before_queued_future() {
++    let now = Instant::now();
++    let mut q = Vp8Reorder::default();
++    q.push(packet(0, true, 8), (), now);
++    for seq in 3..=66 {
++        assert!(q.push(packet(seq, false, 8), (), now).is_empty());
++    }
++    assert_eq!(q.len(), CAPACITY);
++    assert_eq!(
++        sequences(&q.push(packet(2, false, 8), (), now)),
++        (2..=66).collect::<Vec<_>>()
++    );
++    assert!(q.is_empty());
++}
+diff --git a/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs b/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
+--- a/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
++++ b/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
+@@ -29,6 +29,8 @@
+     WebRtcVideoOut,
+     WebRtcVideoRaw,
+     WebRtcVideoReorder,
++    QuicVideoReorder,
++    WebRtcAudioReorder,
+ }
+ impl QueueStage {
+     pub fn quic(kind: StreamKind) -> Option<(Self, Self, Self)> {
+@@ -67,6 +69,8 @@
+             Self::WebRtcVideoOut => "webrtc-video-egress",
+             Self::WebRtcVideoRaw => "webrtc-video-raw-events",
+             Self::WebRtcVideoReorder => "webrtc-video-reorder",
++            Self::QuicVideoReorder => "quic-video-reorder",
++            Self::WebRtcAudioReorder => "webrtc-audio-reorder",
+         }
+     }
+     pub fn unit(self) -> &'static str {
+@@ -81,12 +85,13 @@
+             | Self::QuicAudioOut
+             | Self::QuicAudioPeerOut
+             | Self::WebRtcAudioIn
+-            | Self::WebRtcAudioOut => "audio",
++            | Self::WebRtcAudioOut
++            | Self::WebRtcAudioReorder => "audio",
+             _ => "video",
+         }
+     }
+ }
+-const QUEUE_STAGES: [QueueStage; 12] = [
++const QUEUE_STAGES: [QueueStage; 14] = [
+     QueueStage::QuicAudioIn,
+     QueueStage::QuicAudioOut,
+     QueueStage::QuicAudioPeerOut,
+@@ -99,6 +104,8 @@
+     QueueStage::WebRtcVideoOut,
+     QueueStage::WebRtcVideoRaw,
+     QueueStage::WebRtcVideoReorder,
++    QueueStage::QuicVideoReorder,
++    QueueStage::WebRtcAudioReorder,
+ ];
+ #[derive(Clone, Copy, Debug)]
+ #[repr(usize)]
+@@ -256,7 +263,7 @@
+     }
+ }
+ struct State {
+-    queues: [QueueObservation; 12],
++    queues: [QueueObservation; 14],
+     forward: [ForwardHistogram; 2],
+     ingress: VecDeque<(FrameKey, Instant)>,
+     quic: QuicTransmissionObservation,
+diff --git a/crates/foundation/rvoip-core-traits/src/peer_media.rs b/crates/foundation/rvoip-core-traits/src/peer_media.rs
+--- a/crates/foundation/rvoip-core-traits/src/peer_media.rs
++++ b/crates/foundation/rvoip-core-traits/src/peer_media.rs
+@@ -12,6 +12,11 @@
+ impl PeerMediaFrame {
+     pub fn new(frame: MediaFrame, ticket: PeerRouteTicket) -> Self {
+         Self { frame, ticket }
++    }
++
++    /// Inspect queued metadata without acquiring a speaker-generation delivery guard.
++    pub fn frame(&self) -> &MediaFrame {
++        &self.frame
+     }
+ 
+     /// Called by the transport after dequeueing. Stale entries are discarded.
+@@ -39,6 +44,16 @@
+         }
+     }
+ 
++    #[test]
++    fn inspecting_buffered_metadata_does_not_block_generation_commit() {
++        let old = PeerRouteTicket::initial();
++        let next = old.stage().unwrap();
++        let queued = PeerMediaFrame::new(frame(), old.clone());
++        assert_eq!(queued.frame().payload.as_ref(), b"audio");
++        assert!(next.commit_from(&old));
++        assert!(queued.into_delivery().is_none());
++    }
++
+     #[tokio::test]
+     async fn queued_old_frame_is_rejected_after_commit() {
+         let old = PeerRouteTicket::initial();
+diff --git a/crates/uctp/rvoip-quic/src/media_stream.rs b/crates/uctp/rvoip-quic/src/media_stream.rs
+--- a/crates/uctp/rvoip-quic/src/media_stream.rs
++++ b/crates/uctp/rvoip-quic/src/media_stream.rs
+@@ -10,7 +10,10 @@
+ use rvoip_core_traits::peer_media::PeerMediaFrame;
+ use std::sync::Arc;
+ use std::sync::Mutex as StdMutex;
+-use std::{collections::HashSet, num::NonZeroU16};
++use std::{
++    collections::{HashSet, VecDeque},
++    num::NonZeroU16,
++};
+ 
+ use async_trait::async_trait;
+ use chrono::Utc;
+@@ -29,6 +32,35 @@
+ use tokio::sync::mpsc;
+ use tokio_util::sync::CancellationToken;
+ use tracing::{debug, trace_span, warn};
++
++// A queued route ticket does not hold the speaker-generation delivery lock.
++// Acquire that lock only after the bounded reorder queue releases this item.
++enum OutboundFrame {
++    Normal(MediaFrame),
++    Peer(PeerMediaFrame),
++}
++impl OutboundFrame {
++    fn frame(&self) -> &MediaFrame {
++        match self {
++            Self::Normal(frame) => frame,
++            Self::Peer(frame) => frame.frame(),
++        }
++    }
++    fn into_delivery(
++        self,
++    ) -> Option<(
++        MediaFrame,
++        Option<rvoip_core_traits::peer_switch::PeerDeliveryGuard>,
++        bool,
++    )> {
++        match self {
++            Self::Normal(frame) => Some((frame, None, false)),
++            Self::Peer(frame) => frame
++                .into_delivery()
++                .map(|(frame, guard)| (frame, Some(guard), true)),
++        }
++    }
++}
+ 
+ /// Local media queue options; this does not change UCTP wire framing.
+ #[derive(Clone)]
+@@ -160,25 +192,98 @@
+             let mut seq: u32 = 0;
+             let mut rtp_seq: u16 = 0;
+             let mut video_packetizer = rvoip_core::video_packetizer::Vp8Packetizer::default();
++            let mut reorder = rvoip_core::video_packetizer_reorder::Vp8Reorder::default();
++            let mut ready = VecDeque::new();
+             'pump: loop {
+-                let (frame, _delivery_guard, from_peer) = tokio::select! {
+-                    _ = pump_cancel.cancelled() => break,
+-                    frame = out_rx.recv() => match frame {
+-                        Some(frame) => (frame, None, false),
+-                        None => break,
+-                    },
+-                    frame = peer_out_rx.recv() => match frame {
+-                        Some(frame) => match frame.into_delivery() {
+-                            Some((frame, guard)) => (frame, Some(guard), true),
+-                            None => continue,
+-                        },
+-                        None => break,
+-                    },
+-                };
+                 let diagnostics = pump_diagnostics
+                     .lock()
+                     .unwrap_or_else(|p| p.into_inner())
+                     .clone();
++                let reorder_stage = rvoip_core::media_diagnostics::QueueStage::QuicVideoReorder;
++                let input = if let Some(input) = ready.pop_front() {
++                    input
++                } else {
++                    let deadline = reorder.deadline();
++                    let input = tokio::select! {
++                        biased;
++                        _ = pump_cancel.cancelled() => break,
++                        _ = async {
++                            match deadline {
++                                Some(at) => tokio::time::sleep_until(at.into()).await,
++                                None => std::future::pending::<()>().await,
++                            }
++                        } => {
++                            ready.extend(reorder.expire(std::time::Instant::now()).into_iter().map(|p| p.value));
++                            if let Some(diagnostics) = diagnostics.as_ref() {
++                                diagnostics.observe_queue(reorder_stage, rvoip_core::video_packetizer_reorder::CAPACITY, reorder.len());
++                            }
++                            continue;
++                        },
++                        frame = out_rx.recv() => match frame { Some(frame) => OutboundFrame::Normal(frame), None => break },
++                        frame = peer_out_rx.recv() => match frame { Some(frame) => OutboundFrame::Peer(frame), None => break },
++                    };
++                    if kind == StreamKind::Video {
++                        let frame = input.frame();
++                        let age = (Utc::now() - frame.captured_at).num_milliseconds();
++                        if frame.kind != kind || age > 200 {
++                            if age > 200 {
++                                if let Some(diagnostics) = diagnostics.as_ref() {
++                                    diagnostics.stale_discard(reorder_stage);
++                                }
++                            }
++                            continue;
++                        }
++                        let Some(payload_type) = frame.payload_type.or(default_payload_type) else {
++                            continue;
++                        };
++                        let Some(packet) =
++                            rvoip_core::video_bridge::normalize_packet(frame, ssrc, payload_type)
++                        else {
++                            continue;
++                        };
++                        ready.extend(
++                            reorder
++                                .push(packet, input, std::time::Instant::now())
++                                .into_iter()
++                                .map(|p| p.value),
++                        );
++                        if let Some(diagnostics) = diagnostics.as_ref() {
++                            diagnostics.observe_queue(
++                                reorder_stage,
++                                rvoip_core::video_packetizer_reorder::CAPACITY,
++                                reorder.len(),
++                            );
++                        }
++                        match ready.pop_front() {
++                            Some(input) => input,
++                            None => continue,
++                        }
++                    } else {
++                        input
++                    }
++                };
++                if kind == StreamKind::Video {
++                    if let Some(diagnostics) = diagnostics.as_ref() {
++                        diagnostics.observe_queue(
++                            reorder_stage,
++                            rvoip_core::video_packetizer_reorder::CAPACITY,
++                            reorder.len() + ready.len(),
++                        );
++                    }
++                }
++                let Some((frame, _delivery_guard, from_peer)) = input.into_delivery() else {
++                    continue;
++                };
++                if kind == StreamKind::Video {
++                    let age = (Utc::now() - frame.captured_at).num_milliseconds();
++                    if let Some(diagnostics) = diagnostics.as_ref() {
++                        if age > 200 {
++                            diagnostics.stale_discard(reorder_stage);
++                        } else {
++                            diagnostics.forwarded_age(reorder_stage, age);
++                        }
++                    }
++                }
+                 let stage = rvoip_core::media_diagnostics::QueueStage::quic(kind)
+                     .map(|(_, normal, peer)| if from_peer { peer } else { normal });
+                 if let (Some(diagnostics), Some(stage)) = (diagnostics.as_ref(), stage) {

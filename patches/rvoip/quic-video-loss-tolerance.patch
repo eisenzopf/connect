@@ -1,0 +1,328 @@
+diff --git a/crates/uctp/rvoip-quic/src/lib.rs b/crates/uctp/rvoip-quic/src/lib.rs
+--- a/crates/uctp/rvoip-quic/src/lib.rs
++++ b/crates/uctp/rvoip-quic/src/lib.rs
+@@ -29,5 +29,11 @@
+ pub fn apply_encoded_video_transport_budget(transport: &mut quinn::TransportConfig) -> usize {
+     let capacity = 64 * (rvoip_core::video_bridge::MAX_VIDEO_RTP_BYTES + 8);
+     transport.datagram_send_buffer_size(capacity);
++    // Encoded frames arrive in bounded bursts. A 100ms reorder window can put
++    // more than the default three packets ahead of an intact earlier fragment.
++    // Retain Cubic and real loss detection, but avoid interpreting every such
++    // burst as congestion. Time-based loss and PTO still bound missing packets;
++    // this does not enlarge any media queue or the 200ms local frame deadline.
++    transport.packet_threshold(64).time_threshold(4.0);
+     capacity
+ }
+diff --git a/crates/uctp/rvoip-quic/src/media_stream.rs b/crates/uctp/rvoip-quic/src/media_stream.rs
+--- a/crates/uctp/rvoip-quic/src/media_stream.rs
++++ b/crates/uctp/rvoip-quic/src/media_stream.rs
+@@ -414,10 +414,18 @@
+                             conn_for_pump.datagram_send_buffer_space(),
+                             bytes.len(),
+                         );
++                        let path = conn_for_pump.stats().path;
+                         diagnostics.quic_path(
+                             conn_for_pump.max_datagram_size(),
+-                            conn_for_pump.stats().path.current_mtu,
++                            path.current_mtu,
+                             bytes.len(),
++                        );
++                        diagnostics.quic_congestion(
++                            path.rtt,
++                            path.cwnd,
++                            path.lost_packets,
++                            path.congestion_events,
++                            path.sent_packets,
+                         );
+                     }
+                     let send_result = conn_for_pump.send_datagram(bytes);
+diff --git a/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs b/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
+--- a/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
++++ b/crates/foundation/rvoip-core-traits/src/media_diagnostics.rs
+@@ -152,6 +152,16 @@
+ }
+ #[derive(Clone, Debug, Default)]
+ pub struct QuicTransmissionObservation {
++    /// Samples at media sends; connection counters below are maxima across
++    /// sampled physical connections, never sums or measured network-loss rates.
++    pub congestion_samples: u64,
++    pub minimum_sampled_rtt_us: Option<u64>,
++    pub maximum_sampled_rtt_us: Option<u64>,
++    pub minimum_sampled_cwnd_bytes: Option<u64>,
++    pub maximum_sampled_cwnd_bytes: Option<u64>,
++    pub maximum_sampled_connection_lost_packets: u64,
++    pub maximum_sampled_connection_congestion_events: u64,
++    pub maximum_sampled_connection_sent_packets: u64,
+     pub send_buffer: Option<QuicSendBufferObservation>,
+     pub samples: u64,
+     pub min_max_datagram_size_bytes: Option<usize>,
+@@ -397,6 +407,27 @@
+                 .send_exceeded_sampled_available_bytes
+                 .saturating_add(1);
+         }
++    }
++    /// Observe cumulative Quinn path counters without summing the same
++    /// connection repeatedly or inventing aggregate loss across physical peers.
++    pub fn quic_congestion(&self, rtt: Duration, cwnd: u64, lost: u64, events: u64, sent: u64) {
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        let value = &mut state.quic;
++        let rtt = rtt.as_micros().min(u64::MAX as u128) as u64;
++        value.congestion_samples = value.congestion_samples.saturating_add(1);
++        value.minimum_sampled_rtt_us = Some(value.minimum_sampled_rtt_us.unwrap_or(rtt).min(rtt));
++        value.maximum_sampled_rtt_us = Some(value.maximum_sampled_rtt_us.unwrap_or(rtt).max(rtt));
++        value.minimum_sampled_cwnd_bytes =
++            Some(value.minimum_sampled_cwnd_bytes.unwrap_or(cwnd).min(cwnd));
++        value.maximum_sampled_cwnd_bytes =
++            Some(value.maximum_sampled_cwnd_bytes.unwrap_or(cwnd).max(cwnd));
++        value.maximum_sampled_connection_lost_packets =
++            value.maximum_sampled_connection_lost_packets.max(lost);
++        value.maximum_sampled_connection_congestion_events = value
++            .maximum_sampled_connection_congestion_events
++            .max(events);
++        value.maximum_sampled_connection_sent_packets =
++            value.maximum_sampled_connection_sent_packets.max(sent);
+     }
+     pub fn quic_path(&self, max_datagram: Option<usize>, path_mtu: u16, attempted_bytes: usize) {
+         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+diff --git a/crates/foundation/rvoip-core-traits/src/media_diagnostics_tests.rs b/crates/foundation/rvoip-core-traits/src/media_diagnostics_tests.rs
+--- a/crates/foundation/rvoip-core-traits/src/media_diagnostics_tests.rs
++++ b/crates/foundation/rvoip-core-traits/src/media_diagnostics_tests.rs
+@@ -109,3 +109,21 @@
+     assert_eq!(buffer.capacity_mismatch_observations, 1);
+     assert_eq!(buffer.observations, 4);
+ }
++
++#[test]
++fn congestion_samples_preserve_extrema_without_summing_connection_counters() {
++    let collector = MediaDiagnostics::default();
++    collector.quic_path(Some(1186), 1200, 1188);
++    collector.quic_congestion(Duration::from_millis(80), 12000, 8, 3, 40);
++    collector.quic_congestion(Duration::from_millis(100), 6000, 8, 3, 40);
++    collector.quic_congestion(Duration::from_millis(20), 24000, 2, 1, 10);
++    let value = collector.snapshot().quic.unwrap();
++    assert_eq!(value.congestion_samples, 3);
++    assert_eq!(value.minimum_sampled_rtt_us, Some(20000));
++    assert_eq!(value.maximum_sampled_rtt_us, Some(100000));
++    assert_eq!(value.minimum_sampled_cwnd_bytes, Some(6000));
++    assert_eq!(value.maximum_sampled_cwnd_bytes, Some(24000));
++    assert_eq!(value.maximum_sampled_connection_lost_packets, 8);
++    assert_eq!(value.maximum_sampled_connection_congestion_events, 3);
++    assert_eq!(value.maximum_sampled_connection_sent_packets, 40);
++}
+diff --git a/crates/uctp/rvoip-quic/tests/video_budget.rs b/crates/uctp/rvoip-quic/tests/video_budget.rs
+--- a/crates/uctp/rvoip-quic/tests/video_budget.rs
++++ b/crates/uctp/rvoip-quic/tests/video_budget.rs
+@@ -10,7 +10,9 @@
+ fn frame(sequence: u16, body: usize) -> MediaFrame {
+     let mut rtp = vec![0x80, 0xe0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 1, 0x10];
+     rtp[2..4].copy_from_slice(&sequence.to_be_bytes());
+-    rtp.extend(vec![0x33; body]);
++    // The bounded egress reorder stage anchors only on a keyframe start.
++    // This framing fixture must not claim an interframe is its initial key.
++    rtp.extend(vec![0x32; body]);
+     MediaFrame {
+         stream_id: StreamId::from_string("budget-camera"),
+         kind: StreamKind::Video,
+@@ -91,7 +93,7 @@
+         .iter()
+         .flat_map(|packet| packet.rtp.packet().payload[1..].iter().copied())
+         .collect();
+-    assert_eq!(body, vec![0x33; 1167]);
++    assert_eq!(body, vec![0x32; 1167]);
+     assert_eq!(packets[0].rtp.packet().header.sequence_number, 42);
+     assert_eq!(packets[1].rtp.packet().header.sequence_number, 43);
+     stream.frames_out().send(frame(44, 1)).await.unwrap();
+@@ -119,3 +121,193 @@
+     server.close(0u32.into(), b"done");
+     client.close(0u32.into(), b"done");
+ }
++
++#[test]
++fn encoded_video_loss_tolerance_is_explicit_and_preserves_other_transport_settings() {
++    let baseline = quinn::TransportConfig::default();
++    let baseline_debug = format!("{baseline:?}");
++    assert!(baseline_debug.contains("packet_threshold: 3,"));
++    assert!(baseline_debug.contains("time_threshold: 1.125,"));
++    let mut selected = quinn::TransportConfig::default();
++    let capacity = apply_encoded_video_transport_budget(&mut selected);
++    assert_eq!(capacity, 64 * 1188);
++    let mut expected = baseline;
++    expected
++        .datagram_send_buffer_size(capacity)
++        .packet_threshold(64)
++        .time_threshold(4.0);
++    assert_eq!(format!("{selected:?}"), format!("{expected:?}"));
++    // Default upstream endpoints remain unchanged; no alternate controller is
++    // installed by the opt-in helper. Cubic's loss response is exercised by the
++    // separately selected actual loss/reorder transport fixture.
++    assert_eq!(
++        format!("{:?}", quinn::TransportConfig::default()),
++        baseline_debug
++    );
++}
++
++/// Actual encrypted UDP reordering and loss, independent of codec assembly.
++/// These fixture thresholds establish transport behavior only, not the media
++/// qualification profile. The proxy preserves the configured 100ms delay bound.
++#[tokio::test]
++async fn encoded_video_transport_reorders_and_still_detects_real_loss() {
++    for drop_every in [0_u64, 33] {
++        let _ = rustls::crypto::ring::default_provider().install_default();
++        let (cert, key) =
++            rvoip_uctp::substrate::self_signed_for_dev(&["localhost".into()]).unwrap();
++        let mut tls = rustls::ServerConfig::builder()
++            .with_no_client_auth()
++            .with_single_cert(vec![cert.clone()], key)
++            .unwrap();
++        tls.alpn_protocols = vec![rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES.to_vec()];
++        let mut transport = quinn::TransportConfig::default();
++        apply_encoded_video_transport_budget(&mut transport);
++        let server = rvoip_uctp::substrate::make_server_endpoint(
++            "127.0.0.1:0".parse().unwrap(),
++            Arc::new(tls),
++            transport,
++        )
++        .unwrap();
++        let front = Arc::new(tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap());
++        let back = Arc::new(tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap());
++        let proxy_address = front.local_addr().unwrap();
++        let target = server.local_addr().unwrap();
++        let cancel = tokio_util::sync::CancellationToken::new();
++        let proxy_cancel = cancel.clone();
++        let proxy = tokio::spawn(async move {
++            let mut client_address = None;
++            let mut a = [0u8; 65536];
++            let mut b = [0u8; 65536];
++            let mut pending: tokio::task::JoinSet<std::io::Result<(usize, usize)>> =
++                tokio::task::JoinSet::new();
++            let mut counts = [0u64; 2];
++            let mut drops = [0u64; 2];
++            let mut forwarded = [0u64; 2];
++            let mut peak = 0;
++            let mut random = 511_u64;
++            loop {
++                let (data, socket, destination, direction) = tokio::select! {
++                    _ = proxy_cancel.cancelled() => break,
++                    Some(result) = pending.join_next(), if !pending.is_empty() => {
++                        let (direction, _) = result.unwrap().unwrap();
++                        forwarded[direction] += 1; continue;
++                    },
++                    incoming = front.recv_from(&mut a) => {
++                        let (length, address) = incoming.unwrap();
++                        client_address = Some(address);
++                        (a[..length].to_vec(), back.clone(), target, 0)
++                    },
++                    incoming = back.recv_from(&mut b) => {
++                        let (length, address) = incoming.unwrap();
++                        assert_eq!(address, target);
++                        (b[..length].to_vec(), front.clone(), client_address.unwrap(), 1)
++                    }
++                };
++                counts[direction] += 1;
++                if drop_every > 0 && counts[direction] % drop_every == 0 {
++                    drops[direction] += 1;
++                    continue;
++                }
++                random = random.wrapping_mul(6364136223846793005).wrapping_add(1);
++                let delay = Duration::from_micros((random >> 32) % 100_001);
++                assert!(pending.len() < 512, "proxy queue must remain bounded");
++                pending.spawn(async move {
++                    tokio::time::sleep(delay).await;
++                    socket
++                        .send_to(&data, destination)
++                        .await
++                        .map(|bytes| (direction, bytes))
++                });
++                peak = peak.max(pending.len());
++            }
++            // Stop admitting new UDP input, then dispatch every already-owned
++            // packet before evaluating realized loss. Shutdown drops are zero.
++            while let Some(result) = pending.join_next().await {
++                let (direction, _) = result.unwrap().unwrap();
++                forwarded[direction] += 1;
++            }
++            (counts, drops, forwarded, peak)
++        });
++        let mut tls = rvoip_uctp::substrate::dev_client_config_trusting(&cert).unwrap();
++        tls.alpn_protocols = vec![rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES.to_vec()];
++        let mut config = quinn::ClientConfig::new(Arc::new(
++            quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap(),
++        ));
++        let mut transport = quinn::TransportConfig::default();
++        apply_encoded_video_transport_budget(&mut transport);
++        config.transport_config(Arc::new(transport));
++        let client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++        let connecting = client
++            .connect_with(config, proxy_address, "localhost")
++            .unwrap();
++        let (sender, receiver) = tokio::time::timeout(Duration::from_secs(10), async {
++            tokio::join!(connecting, async { server.accept().await.unwrap().await })
++        })
++        .await
++        .unwrap();
++        let sender = sender.unwrap();
++        let receiver = receiver.unwrap();
++        let reader_stop = tokio_util::sync::CancellationToken::new();
++        let reader_cancel = reader_stop.clone();
++        let reader = tokio::spawn(async move {
++            let mut seen = std::collections::HashSet::new();
++            loop {
++                let wire = tokio::select! {
++                    _ = reader_cancel.cancelled() => break,
++                    wire = receiver.read_datagram() => match wire {Ok(wire) => wire, Err(_) => break},
++                };
++                assert_eq!(wire.len(), 900);
++                let id = u32::from_be_bytes(wire[..4].try_into().unwrap());
++                assert!(id < 480);
++                assert!(wire[4..].iter().all(|byte| *byte == (id % 251) as u8));
++                assert!(seen.insert(id), "duplicate application datagram");
++            }
++            seen.len()
++        });
++        let mut cadence = tokio::time::interval(Duration::from_nanos(1_000_000_000 / 30));
++        cadence.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
++        let mut over_space = 0;
++        for frame in 0..120 {
++            cadence.tick().await;
++            for fragment in 0..4 {
++                let id = frame * 4 + fragment;
++                let mut wire = vec![(id % 251) as u8; 900];
++                wire[..4].copy_from_slice(&(id as u32).to_be_bytes());
++                if sender.datagram_send_buffer_space() < wire.len() {
++                    over_space += 1;
++                }
++                sender.send_datagram(wire.into()).unwrap();
++            }
++        }
++        tokio::time::sleep(Duration::from_millis(400)).await;
++        // Loss/congestion counters are sampled before any shutdown, after a
++        // drain four times longer than the maximum proxy delay.
++        let stats = sender.stats();
++        reader_stop.cancel();
++        sender.close(0u32.into(), b"fixture complete");
++        let received = tokio::time::timeout(Duration::from_secs(5), reader)
++            .await
++            .unwrap()
++            .unwrap();
++        cancel.cancel();
++        let (counts, drops, forwarded, peak) = proxy.await.unwrap();
++        for direction in 0..2 {
++            assert_eq!(counts[direction], drops[direction] + forwarded[direction]);
++        }
++        eprintln!("QUIC reorder fixture drop_every={drop_every} sent=480 received={received} over_space={over_space} udp={counts:?} dropped={drops:?} forwarded={forwarded:?} peak={peak} path={:?}", stats.path);
++        // Deep reordering must not collapse useful delivery. The actual-loss
++        // case must remain observably lossy and congestion-controlled.
++        assert!(
++            received >= 360,
++            "at least75% exact datagrams must survive the bounded profile"
++        );
++        if drop_every == 0 {
++            assert_eq!(drops, [0, 0]);
++        } else {
++            assert!(drops.iter().sum::<u64>() > 0);
++            assert!(stats.path.lost_packets > 0);
++            assert!(stats.path.congestion_events > 0);
++            assert!(received < 480);
++        }
++    }
++}

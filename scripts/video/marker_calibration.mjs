@@ -49,6 +49,8 @@ export function ordinalSync(videoEdges,audioEdges,seconds){
     const result={status:"failed",program:markerProgram,
         method:"independently decoded low-to-high edges uniquely calibrated against nonperiodic cadence; only equal source ordinals are paired, never nearest periodic edges",
         video_markers:videoEdges.length,audio_markers:audioEdges.length,video_calibration:video,audio_calibration:audio,
+        video_edge_seconds:videoEdges.length<=maxMarkers&&videoEdges.every(Number.isFinite)?[...videoEdges]:[],
+        audio_edge_seconds:audioEdges.length<=maxMarkers&&audioEdges.every(Number.isFinite)?[...audioEdges]:[],
         paired:0,marker_pairs:[],median_abs_skew_ms:null,p95_abs_skew_ms:null,calibration_tolerance_seconds:tolerance,
         limits:{median_abs_skew_ms:80,p95_abs_skew_ms:120},quantile_method:"median averages the two middle values; p95 uses nearest rank"};
     if(video.status!=="calibrated"||audio.status!=="calibrated")return result;

@@ -1,0 +1,740 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
+@@ -176,6 +176,8 @@
+             &mut self.pipeline_context.interceptor_handler_context,
+             &mut self.interceptor,
+             &mut self.pipeline_context.stats,
++            &mut self.rtp_transceivers,
++            &self.media_engine,
+         )
+     }
+ 
+@@ -441,3 +443,6 @@
+ 
+ #[cfg(test)]
+ mod first_audio_feedback_tests;
++
++#[cfg(test)]
++mod payload_audio_feedback_tests;
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
+@@ -1,7 +1,10 @@
++use crate::peer_connection::configuration::media_engine::MediaEngine;
+ use crate::peer_connection::event::RTCEventInternal;
+ use crate::peer_connection::message::internal::{
+     RTCMessageInternal, RTPMessage, TaggedRTCMessageInternal,
+ };
++use crate::rtp_transceiver::internal::RTCRtpTransceiverInternal;
++use crate::rtp_transceiver::rtp_sender::RtpCodecKind;
+ use crate::statistics::accumulator::RTCStatsAccumulator;
+ use interceptor::{Interceptor, Packet, TaggedPacket};
+ use log::{debug, trace};
+@@ -33,6 +36,8 @@
+     ctx: &'a mut InterceptorHandlerContext,
+     interceptor: &'a mut I,
+     stats: &'a mut RTCStatsAccumulator,
++    rtp_transceivers: &'a mut [RTCRtpTransceiverInternal<I>],
++    media_engine: &'a MediaEngine,
+ }
+ 
+ impl<'a, I> InterceptorHandler<'a, I>
+@@ -43,16 +48,116 @@
+         ctx: &'a mut InterceptorHandlerContext,
+         interceptor: &'a mut I,
+         stats: &'a mut RTCStatsAccumulator,
++        rtp_transceivers: &'a mut [RTCRtpTransceiverInternal<I>],
++        media_engine: &'a MediaEngine,
+     ) -> Self {
+         InterceptorHandler {
+             ctx,
+             interceptor,
+             stats,
++            rtp_transceivers,
++            media_engine,
+         }
+     }
+ 
+     pub(crate) fn name(&self) -> &'static str {
+         "InterceptorHandler"
++    }
++
++    /// Prepare hop feedback for the first authenticated declared audio packet.
++    /// Codec selection uses its negotiated payload type, never a preferred-codec
++    /// guess. Application codec assignment and OnOpen remain endpoint-owned.
++    fn prebind_declared_audio_feedback(&mut self, header: &rtp::Header) {
++        // A primary binding must not overwrite another stream's repair alias.
++        if self.rtp_transceivers.iter().any(|t| {
++            t.receiver().as_ref().is_some_and(|receiver| {
++                receiver.get_coding_parameters().iter().any(|coding| {
++                    coding
++                        .rtx
++                        .as_ref()
++                        .is_some_and(|repair| repair.ssrc == header.ssrc)
++                        || coding
++                            .fec
++                            .as_ref()
++                            .is_some_and(|repair| repair.ssrc == header.ssrc)
++                })
++            })
++        }) {
++            return;
++        }
++        // Endpoint's declared-primary lookup considers all receiver codings.
++        // Reject ambiguity even if a competing owner is stopped/nonreceiving,
++        // rather than bind feedback to a different receiver than endpoint.
++        let mut owners = self.rtp_transceivers.iter().enumerate().filter(|(_, t)| {
++            t.receiver().as_ref().is_some_and(|receiver| {
++                receiver
++                    .get_coding_parameters()
++                    .iter()
++                    .any(|coding| coding.ssrc == Some(header.ssrc))
++            })
++        });
++        let Some((index, _)) = owners.next() else {
++            return;
++        };
++        if owners.next().is_some() {
++            return;
++        }
++        let owner = &self.rtp_transceivers[index];
++        if owner.stopped()
++            || owner.kind() != RtpCodecKind::Audio
++            || !owner.direction().has_recv()
++            || !owner.current_direction().has_recv()
++        {
++            return;
++        }
++        let Some(receiver) = self.rtp_transceivers[index].receiver_mut() else {
++            return;
++        };
++        if !receiver
++            .track()
++            .get_codec_by_ssrc(header.ssrc)
++            .is_some_and(|codec| codec.mime_type.is_empty())
++        {
++            return;
++        }
++        // Endpoint disambiguates the wire payload from actual receive
++        // preferences. A media-engine/local codec identity alone is not enough.
++        let mut negotiated = receiver.get_codec_preferences().iter().filter(|codec| {
++            codec.payload_type == header.payload_type
++                && codec
++                    .rtp_codec
++                    .mime_type
++                    .to_ascii_lowercase()
++                    .starts_with("audio/")
++                && codec.rtp_codec.clock_rate != 0
++        });
++        let Some(codec) = negotiated.next().cloned() else {
++            return;
++        };
++        if negotiated.next().is_some() {
++            return;
++        }
++        // Merge hop feedback only when the current metadata agrees with that
++        // exact negotiated identity; inconsistent/stale mappings defer to the
++        // unchanged endpoint rather than guessing a local payload or clock.
++        let parameters = receiver.get_parameters(self.media_engine).clone();
++        let mut merged = parameters.rtp_parameters.codecs.iter().filter(|candidate| {
++            candidate.payload_type == codec.payload_type
++                && candidate
++                    .rtp_codec
++                    .mime_type
++                    .eq_ignore_ascii_case(&codec.rtp_codec.mime_type)
++                && candidate.rtp_codec.clock_rate == codec.rtp_codec.clock_rate
++                && candidate.rtp_codec.channels == codec.rtp_codec.channels
++                && candidate.rtp_codec.sdp_fmtp_line == codec.rtp_codec.sdp_fmtp_line
++        });
++        let Some(merged_codec) = merged.next() else {
++            return;
++        };
++        if merged.next().is_some() {
++            return;
++        }
++        receiver.bind_remote_codec(self.interceptor, header.ssrc, merged_codec, &parameters);
+     }
+ 
+     /// Process incoming RTCP packets and update stats
+@@ -184,6 +289,7 @@
+             && let RTCMessageInternal::Rtp(RTPMessage::Packet(packet)) = msg.message
+         {
+             if let Packet::Rtp(rtp_packet) = &packet {
++                self.prebind_declared_audio_feedback(&rtp_packet.header);
+                 let ssrc = rtp_packet.header.ssrc;
+                 let payload_bytes = rtp_packet.payload.len();
+                 self.stats
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/first_audio_feedback_tests.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/first_audio_feedback_tests.rs
+@@ -22,7 +22,7 @@
+ use shared::TransportContext;
+ use shared::marshal::Marshal;
+ 
+-fn codec(pt: u8, name: &str, rate: u32) -> RTCRtpCodecParameters {
++pub(super) fn codec(pt: u8, name: &str, rate: u32) -> RTCRtpCodecParameters {
+     RTCRtpCodecParameters {
+         payload_type: pt,
+         rtp_codec: RTCRtpCodec {
+@@ -32,7 +32,7 @@
+         },
+     }
+ }
+-fn context() -> Context {
++pub(super) fn context() -> Context {
+     Context::new(
+         &[17; 16],
+         &[31; 14],
+@@ -105,6 +105,7 @@
+         },
+     );
+     transceiver.set_mid("audio-0".into()).unwrap();
++    transceiver.set_current_direction(RTCRtpTransceiverDirection::Recvonly);
+     let receiver = transceiver.receiver_mut().as_mut().unwrap();
+     let mut preferences = vec![primary];
+     preferences.extend(extra_codec);
+@@ -328,17 +329,19 @@
+                 }
+             }
+         }
++        // Actual-PT preflight records the first DTMF packet at its real 8kHz
++        // rate. The prior singleton guess was reset by endpoint and lost that
++        // first RR sample. At (RTP,time)=(160,0),(960,0),(1920,20ms), the
++        // RFC3550 recurrence yields 50 then 96.875 (reported integer 96).
++        // Application selection still stays DTMF; no endpoint policy changes.
+         assert_eq!(
+             reports,
+-            vec![(1001, 401, 0, 50)],
+-            "endpoint must reset prebound RR to actual DTMF clock before timer; same existing 8kHz mapping in original and repair"
++            vec![(1001, 401, 0, 96)],
++            "RR includes first authenticated packet with actual DTMF clock"
+         );
+     }
+     if ambiguous {
+-        assert!(
+-            feedback.is_empty(),
+-            "ambiguous codecs still defer binding until payload discovery"
+-        );
++        assert_eq!(feedback, vec![(10, 1)], "multiple codecs defer until the authenticated payload is known, before hop feedback");
+         packet.header.sequence_number += 1;
+         packet
+             .header
+@@ -409,7 +412,7 @@
+ }
+ 
+ #[test]
+-fn first_audio_feedback_ambiguous_codecs_remain_deferred() {
++fn first_audio_feedback_multiple_codecs_use_authenticated_payload() {
+     let mut m = media();
+     m.register_codec(codec(0, "audio/PCMU", 8000), RtpCodecKind::Audio)
+         .unwrap();
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/source_clock_activation_tests.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/source_clock_activation_tests.rs
+@@ -197,7 +197,9 @@
+     ctx.is_dtls_handshake_complete = true;
+     let mut chain = RecordingHop::default();
+     let mut stats = RTCStatsAccumulator::new();
+-    let mut h = InterceptorHandler::new(&mut ctx, &mut chain, &mut stats);
++    let mut transceivers = Vec::new();
++    let media_engine = crate::peer_connection::configuration::media_engine::MediaEngine::default();
++    let mut h = InterceptorHandler::new(&mut ctx, &mut chain, &mut stats, &mut transceivers, &media_engine);
+     h.handle_read(msg(vec![
+         Box::new(ReceiverReport::default()),
+         unknown_source_with_known_report_target(),
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/payload_audio_feedback_tests.rs
+@@ -0,0 +1,496 @@
++//! Authenticated declared audio metadata preflight; no ICE/DTLS handshake claim.
++use super::first_audio_feedback_tests::{codec, context};
++use super::*;
++use crate::media_stream::MediaStreamTrack;
++use crate::peer_connection::RTCPeerConnectionBuilder;
++use crate::peer_connection::configuration::interceptor_registry::{
++    register_default_interceptors, register_default_interceptors_with_sender_clock,
++};
++use crate::peer_connection::configuration::media_engine::MediaEngine;
++use crate::rtp_transceiver::internal::RTCRtpTransceiverInternal;
++use crate::rtp_transceiver::rtp_sender::{
++    RTCRtpCodecParameters, RTCRtpCodingParameters, RTCRtpEncodingParameters, RtpCodecKind,
++};
++use crate::rtp_transceiver::{RTCRtpTransceiverDirection, RTCRtpTransceiverInit};
++use ::interceptor::{Registry, SenderClockHandle, StreamInfo, TaggedPacket};
++use ::srtp::context::Context;
++use sansio::Protocol;
++use shared::TransportContext;
++use shared::marshal::Marshal;
++
++fn codecs() -> Vec<RTCRtpCodecParameters> {
++    let mut values = vec![
++        codec(111, "audio/opus", 48000),
++        codec(0, "audio/PCMU", 8000),
++        codec(8, "audio/PCMA", 8000),
++        codec(110, "audio/telephone-event", 48000),
++        codec(126, "audio/telephone-event", 8000),
++    ];
++    for c in &mut values {
++        c.rtp_codec.channels = if c.payload_type == 111 { 2 } else { 1 };
++    }
++    values
++}
++fn media() -> MediaEngine {
++    let mut m = MediaEngine::default();
++    for c in codecs() {
++        m.register_codec(c, RtpCodecKind::Audio).unwrap();
++    }
++    m
++}
++fn receiver<P: ::interceptor::Interceptor>(
++    preferences: Vec<RTCRtpCodecParameters>,
++) -> RTCRtpTransceiverInternal<P> {
++    declared_receiver(preferences, RtpCodecKind::Audio)
++}
++fn declared_receiver<P: ::interceptor::Interceptor>(
++    preferences: Vec<RTCRtpCodecParameters>,
++    kind: RtpCodecKind,
++) -> RTCRtpTransceiverInternal<P> {
++    let mut t = RTCRtpTransceiverInternal::new(
++        kind,
++        None,
++        RTCRtpTransceiverInit {
++            direction: RTCRtpTransceiverDirection::Recvonly,
++            ..Default::default()
++        },
++    );
++    t.set_current_direction(RTCRtpTransceiverDirection::Recvonly);
++    t.set_mid("audio-0".into()).unwrap();
++    let r = t.receiver_mut().as_mut().unwrap();
++    r.set_codec_preferences(preferences);
++    let c = RTCRtpCodingParameters {
++        ssrc: Some(1001),
++        ..Default::default()
++    };
++    r.set_coding_parameters(vec![c.clone()]);
++    r.set_track(MediaStreamTrack::new(
++        "stream".into(),
++        "audio".into(),
++        "declared".into(),
++        kind,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: c,
++            ..Default::default()
++        }],
++    ));
++    t
++}
++struct Fixture<P: ::interceptor::Interceptor> {
++    pc: RTCPeerConnection<P>,
++    sender: Context,
++    now: Instant,
++    ext: u8,
++}
++impl<P: ::interceptor::Interceptor> Fixture<P> {
++    fn new(m: MediaEngine, registry: Registry<P>) -> Self {
++        let mut pc = RTCPeerConnectionBuilder::new()
++            .with_media_engine(m.clone())
++            .with_interceptor_registry(registry)
++            .build()
++            .unwrap();
++        let mut t = receiver(codecs());
++        let r = t.receiver_mut().as_mut().unwrap();
++        r.interceptor_remote_streams_op(&m, &mut pc.interceptor, true);
++        let ext = r
++            .get_parameters(&m)
++            .rtp_parameters
++            .header_extensions
++            .iter()
++            .find(|e| e.uri.contains("transport-wide-cc"))
++            .unwrap()
++            .id as u8;
++        pc.rtp_transceivers.push(t);
++        let mut h = pc.get_srtp_handler();
++        h.handle_event(RTCEventInternal::DTLSHandshakeComplete(
++            Some(context()),
++            Some(context()),
++        ))
++        .unwrap();
++        let evt = h.poll_event().unwrap();
++        drop(h);
++        pc.get_interceptor_handler().handle_event(evt).unwrap();
++        Self {
++            pc,
++            sender: context(),
++            now: Instant::now(),
++            ext,
++        }
++    }
++    fn packet(&mut self, pt: u8, seq: u16, ssrc: u32) -> bytes::BytesMut {
++        let mut p = rtp::Packet::default();
++        p.header.version = 2;
++        p.header.ssrc = ssrc;
++        p.header.payload_type = pt;
++        p.header.sequence_number = seq;
++        p.header.timestamp = u32::from(seq) * 160;
++        p.payload = vec![1, 0, 0, 80].into();
++        p.header
++            .set_extension(self.ext, seq.to_be_bytes().to_vec().into())
++            .unwrap();
++        self.sender.encrypt_rtp(&p.marshal().unwrap()).unwrap()
++    }
++    fn preflight(
++        &mut self,
++        bytes: bytes::BytesMut,
++    ) -> shared::error::Result<Vec<TaggedRTCMessageInternal>> {
++        let mut h = self.pc.get_srtp_handler();
++        h.handle_read(TaggedRTCMessageInternal {
++            now: self.now,
++            transport: TransportContext::default(),
++            message: RTCMessageInternal::Rtp(RTPMessage::Raw(bytes)),
++        })?;
++        let decoded = h.poll_read().unwrap();
++        drop(h);
++        let RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtp(ref p))) = decoded.message
++        else {
++            panic!()
++        };
++        let original = p.marshal().unwrap();
++        let mut h = self.pc.get_interceptor_handler();
++        h.handle_read(decoded)?;
++        let mut out = Vec::new();
++        while let Some(p) = h.poll_read() {
++            assert_eq!(p.now, self.now);
++            if let RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtp(ref pkt))) = p.message {
++                assert_eq!(
++                    pkt.marshal().unwrap(),
++                    original,
++                    "preflight cannot change bytes"
++                );
++            }
++            out.push(p);
++        }
++        Ok(out)
++    }
++    fn finish(&mut self, packets: Vec<TaggedRTCMessageInternal>) {
++        let mut h = self.pc.get_endpoint_handler();
++        for p in packets {
++            h.handle_read(p).unwrap();
++        }
++        while h.poll_read().is_some() {}
++    }
++    fn ingest(&mut self, pt: u8, seq: u16) {
++        let wire = self.packet(pt, seq, 1001);
++        let out = self.preflight(wire).unwrap();
++        self.finish(out);
++    }
++    fn selected(&self) -> (String, u32) {
++        let c = self.pc.rtp_transceivers[0]
++            .receiver()
++            .as_ref()
++            .unwrap()
++            .track()
++            .get_codec_by_ssrc(1001)
++            .unwrap();
++        (c.mime_type.clone(), c.clock_rate)
++    }
++    fn unopened(&self) {
++        assert!(self.selected().0.is_empty());
++        assert!(
++            self.pc
++                .pipeline_context
++                .endpoint_handler_context
++                .event_outs
++                .is_empty()
++        );
++    }
++    fn feedback(&mut self) -> Vec<u16> {
++        self.now += Duration::from_millis(101);
++        self.pc
++            .get_interceptor_handler()
++            .handle_timeout(self.now)
++            .unwrap();
++        let mut out = Vec::new();
++        while let Some(p) = self.pc.interceptor.poll_write() {
++            if let Packet::Rtcp(ps) = p.message {
++                for p in ps {
++                    if let Some(t) = p.as_any().downcast_ref::<rtcp::transport_feedbacks::transport_layer_cc::TransportLayerCc>() {
++                        use rtcp::transport_feedbacks::transport_layer_cc::{PacketStatusChunk, SymbolTypeTcc};
++                        let mut symbols = Vec::new();
++                        for chunk in &t.packet_chunks {
++                            match chunk {
++                                PacketStatusChunk::RunLengthChunk(c) => symbols.extend(std::iter::repeat_n(c.packet_status_symbol, c.run_length as usize)),
++                                PacketStatusChunk::StatusVectorChunk(c) => symbols.extend(c.symbol_list.iter().copied()),
++                            }
++                        }
++                        symbols.truncate(t.packet_status_count as usize);
++                        let received: Vec<_> = symbols.iter().enumerate()
++                            .filter(|(_, symbol)| **symbol != SymbolTypeTcc::PacketNotReceived)
++                            .map(|(index, _)| t.base_sequence_number.wrapping_add(index as u16)).collect();
++                        assert_eq!(received.len(), t.recv_deltas.len());
++                        out.extend(received);
++                    }
++                }
++            }
++        }
++        out
++    }
++}
++fn default_fixture() -> Fixture<impl ::interceptor::Interceptor> {
++    let mut m = media();
++    let r = register_default_interceptors(Registry::new(), &mut m).unwrap();
++    Fixture::new(m, r)
++}
++fn positive<P: ::interceptor::Interceptor>(mut f: Fixture<P>, pt: u8, mime: &str, rate: u32) {
++    f.unopened();
++    let wire = f.packet(pt, 10, 1001);
++    let out = f.preflight(wire).unwrap();
++    f.unopened();
++    f.finish(out);
++    assert_eq!(f.selected(), (mime.into(), rate));
++    assert_eq!(
++        f.pc.pipeline_context
++            .endpoint_handler_context
++            .event_outs
++            .len(),
++        1
++    );
++    assert_eq!(
++        f.feedback(),
++        vec![10],
++        "first actual negotiated payload receipt must survive preflight"
++    );
++}
++#[test]
++fn payload_audio_feedback_opus_actual_multicodec_answer() {
++    positive(default_fixture(), 111, "audio/opus", 48000);
++}
++#[test]
++fn payload_audio_feedback_pcmu_actual_multicodec_answer() {
++    positive(default_fixture(), 0, "audio/PCMU", 8000);
++}
++#[test]
++fn payload_audio_feedback_pcma_actual_multicodec_answer() {
++    positive(default_fixture(), 8, "audio/PCMA", 8000);
++}
++#[test]
++fn payload_audio_feedback_clock_registry_actual_multicodec_answer() {
++    let mut m = media();
++    let r = register_default_interceptors_with_sender_clock(
++        Registry::new(),
++        &mut m,
++        SenderClockHandle::default(),
++    )
++    .unwrap();
++    positive(Fixture::new(m, r), 111, "audio/opus", 48000);
++}
++#[test]
++fn payload_audio_feedback_telephone_first_keeps_application_timing() {
++    let mut f = default_fixture();
++    let wire = f.packet(126, 9, 1001);
++    let out = f.preflight(wire).unwrap();
++    f.unopened();
++    f.finish(out);
++    assert_eq!(f.selected(), ("audio/telephone-event".into(), 8000));
++    f.ingest(111, 10);
++    assert_eq!(f.selected(), ("audio/telephone-event".into(), 8000));
++    assert_eq!(
++        f.pc.pipeline_context
++            .endpoint_handler_context
++            .event_outs
++            .len(),
++        1
++    );
++    assert_eq!(f.feedback(), vec![9, 10]);
++}
++#[test]
++fn payload_audio_feedback_authentication_and_replay() {
++    let mut f = default_fixture();
++    let wire = f.packet(111, 10, 1001);
++    let mut bad = wire.clone();
++    let n = bad.len();
++    bad[n - 1] ^= 1;
++    assert!(f.preflight(bad).is_err());
++    f.unopened();
++    assert!(f.feedback().is_empty());
++    let out = f.preflight(wire.clone()).unwrap();
++    f.unopened();
++    f.finish(out);
++    assert!(f.preflight(wire).is_err());
++    assert_eq!(f.feedback(), vec![10]);
++}
++#[test]
++fn payload_audio_feedback_preflight_rejects_ineligible_ownership() {
++    for case in [
++        "pre-dtls",
++        "stopped",
++        "requested-sendonly",
++        "current-inactive",
++        "unknown-pt",
++        "local-pt-not-negotiated",
++        "unknown-ssrc",
++        "duplicate-owner",
++        "cross-kind-owner",
++        "stopped-owner-first",
++        "inactive-owner-first",
++        "video-primary",
++        "video-repair-pt",
++        "rtx-alias-owner",
++        "fec-alias-owner",
++    ] {
++        let mut f = default_fixture();
++        let mut pt = 111;
++        let mut ssrc = 1001;
++        match case {
++            "pre-dtls" => f.pc.pipeline_context.interceptor_handler_context = Default::default(),
++            "stopped" => {
++                f.pc.rtp_transceivers[0]
++                    .stop(&f.pc.media_engine, &mut f.pc.interceptor)
++                    .unwrap();
++            }
++            "requested-sendonly" => {
++                f.pc.rtp_transceivers[0].set_direction(RTCRtpTransceiverDirection::Sendonly)
++            }
++            "current-inactive" => {
++                f.pc.rtp_transceivers[0].set_current_direction(RTCRtpTransceiverDirection::Inactive)
++            }
++            "unknown-pt" => pt = 127,
++            "local-pt-not-negotiated" => f.pc.rtp_transceivers[0]
++                .receiver_mut()
++                .as_mut()
++                .unwrap()
++                .set_codec_preferences(vec![
++                    codec(112, "audio/opus", 48000),
++                    codec(0, "audio/PCMU", 8000),
++                ]),
++            "unknown-ssrc" => ssrc = 9999,
++            "duplicate-owner" => f.pc.rtp_transceivers.push(receiver(codecs())),
++            "rtx-alias-owner" | "fec-alias-owner" => {
++                let mut other =
++                    declared_receiver(vec![codec(96, "video/VP8", 90000)], RtpCodecKind::Video);
++                let r = other.receiver_mut().as_mut().unwrap();
++                let mut coding = r.get_coding_parameters()[0].clone();
++                coding.ssrc = Some(2002);
++                if case == "rtx-alias-owner" {
++                    coding.rtx = Some(crate::rtp_transceiver::rtp_sender::RTCRtpRtxParameters {
++                        ssrc: 1001,
++                    });
++                } else {
++                    coding.fec = Some(crate::rtp_transceiver::rtp_sender::RTCRtpFecParameters {
++                        ssrc: 1001,
++                    });
++                }
++                r.set_coding_parameters(vec![coding.clone()]);
++                r.set_track(MediaStreamTrack::new(
++                    "stream".into(),
++                    "video".into(),
++                    "other".into(),
++                    RtpCodecKind::Video,
++                    vec![RTCRtpEncodingParameters {
++                        rtp_coding_parameters: coding,
++                        ..Default::default()
++                    }],
++                ));
++                f.pc.rtp_transceivers.push(other);
++            }
++            "cross-kind-owner" => f.pc.rtp_transceivers.push(declared_receiver(
++                vec![codec(96, "video/VP8", 90000)],
++                RtpCodecKind::Video,
++            )),
++            "stopped-owner-first" | "inactive-owner-first" => {
++                let mut stale = receiver(codecs());
++                if case == "stopped-owner-first" {
++                    stale
++                        .stop(&f.pc.media_engine, &mut f.pc.interceptor)
++                        .unwrap();
++                } else {
++                    stale.set_current_direction(RTCRtpTransceiverDirection::Inactive);
++                }
++                f.pc.rtp_transceivers.insert(0, stale);
++            }
++            "video-primary" | "video-repair-pt" => {
++                f.pc.rtp_transceivers[0] = declared_receiver(
++                    vec![codec(96, "video/VP8", 90000), codec(97, "video/rtx", 90000)],
++                    RtpCodecKind::Video,
++                );
++                pt = if case == "video-primary" { 96 } else { 97 };
++            }
++            _ => unreachable!(),
++        }
++        let wire = f.packet(pt, 10, ssrc);
++        let _ = f.preflight(wire).unwrap();
++        f.unopened();
++        assert!(f.feedback().is_empty(), "{case} must not bind metadata");
++    }
++}
++#[test]
++fn payload_audio_feedback_replacement_uses_current_codec_set() {
++    let mut f = default_fixture();
++    f.ingest(111, 10);
++    let _ = f.feedback();
++    f.pc.rtp_transceivers[0]
++        .stop(&f.pc.media_engine, &mut f.pc.interceptor)
++        .unwrap();
++    f.pc.rtp_transceivers[0] = receiver(
++        codecs()
++            .into_iter()
++            .filter(|codec| codec.payload_type == 0 || codec.payload_type == 8)
++            .collect(),
++    );
++    f.pc.pipeline_context
++        .endpoint_handler_context
++        .event_outs
++        .clear();
++    f.now += Duration::from_millis(200);
++    let wire = f.packet(111, 11, 1001);
++    let _ = f.preflight(wire).unwrap();
++    f.unopened();
++    assert!(f.feedback().is_empty());
++    let wire = f.packet(0, 12, 1001);
++    let out = f.preflight(wire).unwrap();
++    f.unopened();
++    f.finish(out);
++    assert_eq!(f.selected(), ("audio/PCMU".into(), 8000));
++    assert_eq!(f.feedback(), vec![12]);
++}
++#[test]
++fn payload_audio_feedback_initialized_track_is_not_rebound() {
++    let mut f = default_fixture();
++    f.ingest(111, 10);
++    f.ingest(0, 11);
++    assert_eq!(f.selected(), ("audio/opus".into(), 48000));
++    assert_eq!(
++        f.pc.pipeline_context
++            .endpoint_handler_context
++            .event_outs
++            .len(),
++        1
++    );
++}
++
++#[derive(::interceptor::Interceptor)]
++struct ObserveBindings<P> {
++    #[next]
++    inner: P,
++    seen: std::sync::Arc<std::sync::Mutex<Vec<::interceptor::StreamInfo>>>,
++}
++#[::interceptor::interceptor]
++impl<P: ::interceptor::Interceptor> ObserveBindings<P> {
++    #[overrides]
++    fn bind_remote_stream(&mut self, info: &::interceptor::StreamInfo) {
++        self.seen.lock().unwrap().push(info.clone());
++        self.inner.bind_remote_stream(info);
++    }
++}
++#[test]
++fn payload_audio_feedback_initialized_metadata_is_not_rebound() {
++    let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
++    let clone = seen.clone();
++    let mut m = media();
++    let r = register_default_interceptors(Registry::new(), &mut m)
++        .unwrap()
++        .with(move |inner| ObserveBindings { inner, seen: clone });
++    let mut f = Fixture::new(m, r);
++    assert!(seen.lock().unwrap().is_empty());
++    f.ingest(111, 10);
++    f.ingest(0, 11);
++    f.ingest(126, 12);
++    let rows = seen.lock().unwrap();
++    assert_eq!(
++        rows.len(),
++        1,
++        "initialized track metadata must not rebind from other payloads"
++    );
++    assert_eq!((rows[0].payload_type, rows[0].clock_rate), (111, 48000));
++}

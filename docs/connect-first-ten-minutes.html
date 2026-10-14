@@ -185,6 +185,35 @@ Verification:      send → receive → continue</code></pre>
 </tbody></table></div>
 </section>
 
+<section id="gate5-walkthrough"><div class="section-head"><span class="number">G5</span><div><h2>Record a fresh-user walkthrough.</h2><p class="intro">October 14, 2026 · The Gate 5 D5-05 protocol below uses the delivered local interfaces. The earlier product sketches remain design history.</p></div></div>
+<p>Recruit at least three people who did not author these instructions or implement this flow. Give each the same candidate and public documentation, a fresh private state directory, and a supported macOS arm64 machine. Record any prior Connect experience and every hint from an observer. A script, author rehearsal, or automated agent run cannot stand in for an independent human. Keep each attempt, including abandoned attempts; a repair gets a new attempt ID linked to the original.</p>
+<ol>
+<li><strong>Identify and install.</strong> Use <a href="LOCAL_RELEASE.md">the local candidate runbook</a> and <a href="GATE5_PACKAGE.md">Gate 5 package instructions</a>. Record the source revision, SHA-256 of the runtime archive and installed manifest, package-check report hash/result, operating-system version, architecture and explicitly selected tools. Measure download, unpacking/checksum verification, and installation separately. Stop on a checksum mismatch. Do not reuse author credentials or state.</li>
+<li><strong>Measure the local reply.</strong> Start the ten-minute clock after installation, when the participant opens <a href="SETUP.md">Local first run</a>; include reading, initialization, errors and retries. Select the installed executable and run the documented <code>setup demo</code> in a new directory. Stop when the participant can identify the successful local message and reply in its result. Record seconds and whether the result is understood. This deterministic, account-free exchange establishes the local target; it does not establish actual-model behavior. Record the separate manual reference conversation below as well.</li>
+<li><strong>Give an agent presence.</strong> Record host installation, account authentication and model preparation time separately, with no secret values. Follow <a href="AGENT_JOURNEY_QUALIFICATION.md">the actual-agent journey</a> on the matching installed candidate and selected authenticated host. The participant must observe both artifact-backed questions, restart, exact saved-session continuation, one correlated follow-up and the independent incoming request. Record the full journey duration, report hash, any confusing step, model/tool failure and assistance. A missing account or unsuccessful turn is an unresolved attempt, not a pass.</li>
+<li><strong>Make the app reachable.</strong> Follow <a href="CONNECTED_APP.md">the connected-app walkthrough</a>, substituting the selected installed <code>connect</code> and <code>connect-example</code> paths for source-build paths. Measure outgoing draft review, independently initiated submission, attributed business result, worker restart and cursor recovery. Record conversation/receipt IDs, the app-owned outcome and all failed attempts without exporting credentials. The automated checker may corroborate effects but cannot replace the participant's experience.</li>
+<li><strong>Use the reference client.</strong> Follow <a href="../examples/conversation-client/README.md">the reference-client guide</a> with two authorized local participants. Independently send and reply, upload and download a real file, inspect context, invite/reject and invite/accept audio plus video, join and leave, and continue in the same conversation. State a fact in the file, record a decision during the call, restart the owned server, and send a follow-up citing the retained decision and file. Observe legibility, scrolling, status/permission errors, device controls and post-call cleanup. Record physical camera/microphone permission or device failures separately; generated-media automation is not physical-device evidence. No transcript or model vision is implied.</li>
+</ol>
+<p>Store raw notes, paths, screenshots and logs privately under <code>.local/</code>. Publish a redacted record for every attempt in <code>docs/evidence/gate-5/first-run-walkthroughs.json</code>; use pseudonymous participant IDs and exclude credentials, account identities and raw model transcripts. The observer records start/end timestamps using one clock, elapsed seconds, steps needing help, restarts, unclear instructions, and the exact failure before retrying. A ten-minute miss requires a documented fix and repeat or an explicit owner-reviewed claim change. Do not mark G5-046 complete until three independent records and all unresolved outcomes have been reviewed.</p>
+<details><summary>Copyable per-attempt recording template</summary><pre><code>{
+  "attempt_id": "unique-id", "participant_id": "anonymous-id",
+  "independent_of_implementation": true, "prior_experience": "",
+  "candidate": {"source_revision": "", "runtime_archive_sha256": "",
+    "installed_manifest_sha256": "", "package_report_sha256": "",
+    "package_report_result": ""},
+  "machine": {"macos_version": "", "architecture": "arm64", "tools": {}},
+  "started_at": "", "ended_at": "", "supersedes_attempt": null,
+  "preparation_seconds": {"download": null, "installation": null,
+    "host_installation": null, "account_authentication": null, "model_preparation": null},
+  "local_reply": {"started_at": "", "ended_at": "", "seconds": null,
+    "within_600_seconds": null, "participant_understood_result": null, "report_sha256": ""},
+  "agent": {"seconds": null, "result": "not-run", "report_sha256": ""},
+  "app": {"seconds": null, "result": "not-run", "evidence": []},
+  "reference": {"seconds": null, "result": "not-run", "physical_devices": "not-run",
+    "visual_observations": [], "evidence": []},
+  "failures_and_restarts": [], "unclear_steps": [], "observer_assistance": [],
+  "blocking_instruction_fixes": [], "unresolved": [], "overall_result": "not-run"
+}</code></pre></details></section>
 <section id="evidence"><div class="section-head"><span class="number">08</span><div><h2>Build toward visible proof.</h2><p class="intro">The walkthrough is a target experience. The roadmap should deliver parts of it that people can run and evaluate along the way.</p></div></div>
 <div class="table-wrap"><table><thead><tr><th>Proposed gate</th><th>Working result</th><th>Evidence to retain</th></tr></thead><tbody>
 <tr><td>1 · Reachable identity</td><td>One server and independent SDK clients initiate and receive messages over UCTP/QUIC.</td><td>Fresh install, identity resolution, authenticated incoming conversation, and restart demonstration.</td></tr>

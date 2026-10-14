@@ -43,7 +43,9 @@ impl ConnectClient {
         )
         .map_err(|_| ClientError::Transport)?;
         // Bound the physical peer's shared DATAGRAM byte queue independently of
-        // the audio/video application packet queues. Reliable control is unaffected.
+        // the audio/video application packet queues. The encoded-video opt-in
+        // also adjusts connection-wide loss detection, including reliable control;
+        // application authorization and operation deadlines remain unchanged.
         let mut transport = quinn::TransportConfig::default();
         transport.max_idle_timeout(Some(
             Duration::from_secs(30)

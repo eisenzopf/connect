@@ -1,0 +1,601 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
+@@ -193,25 +193,26 @@
+             }
+ 
+             if let Packet::Rtcp(packets) = &packet {
+-                // The terminal NoopInterceptor intentionally drops RTCP. Expose
+-                // only authenticated source-keyframe feedback to the endpoint;
+-                // transport reports/NACK remain owned by their hop interceptors.
++                // The terminal NoopInterceptor consumes hop RTCP. Preserve
++                // authenticated source timing and source-keyframe feedback for
++                // application routing, while reports/NACK/TWCC still traverse
++                // their owning hop interceptors below. Separate packets so an
++                // unrelated first compound member cannot hide a valid source.
+                 self.process_read_rtcp_for_stats(packets, msg.now);
+-                let feedback: Vec<_> = packets
+-                    .iter()
+-                    .filter(|packet| {
+-                        packet.as_any().is::<PictureLossIndication>()
+-                            || packet.as_any().is::<FullIntraRequest>()
+-                    })
+-                    .cloned()
+-                    .collect();
+-                if !feedback.is_empty() {
++                for packet in packets.iter().filter(|packet| {
++                    packet.as_any().is::<PictureLossIndication>()
++                        || packet.as_any().is::<FullIntraRequest>()
++                        || packet.as_any().is::<SenderReport>()
++                        || packet
++                            .as_any()
++                            .is::<rtcp::source_description::SourceDescription>()
++                }) {
+                     self.ctx.read_outs.push_back(TaggedRTCMessageInternal {
+                         now: msg.now,
+                         transport: msg.transport.clone(),
+-                        message: RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtcp(
+-                            feedback,
+-                        ))),
++                        message: RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtcp(vec![
++                            packet.clone(),
++                        ]))),
+                     });
+                 }
+             }
+@@ -334,3 +335,6 @@
+         self.interceptor.close()
+     }
+ }
++
++#[cfg(test)]
++mod source_clock_activation_tests;
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/endpoint.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/endpoint.rs
+@@ -287,40 +287,66 @@
+     ) -> Result<()> {
+         debug!("handle_rtcp_message {}", transport_context.peer_addr);
+ 
+-        let rtcp_ssrc = if let Some(rtcp_packet) = rtcp_packets.first() {
+-            rtcp_packet.destination_ssrc().first().cloned()
+-        } else {
+-            None
+-        };
+-
+-        if let Some(rtcp_ssrc) = rtcp_ssrc {
+-            // Receiver feedback targets a local sender SSRC. Looking only at
+-            // remote receiver tracks discarded authenticated PLI/FIR before
+-            // async applications could route them back to the camera source.
+-            let track_id = self.find_track_id(rtcp_ssrc, None).or_else(|| {
+-                self.rtp_transceivers
++        for packet in rtcp_packets {
++            // Source timing belongs to the authenticated remote source, not to
++            // the receiver-report blocks optionally carried in its SR. Never
++            // create a track or fire OnOpen from RTCP source metadata.
++            let track_id = if let Some(sr) = packet
++                .as_any()
++                .downcast_ref::<rtcp::sender_report::SenderReport>()
++            {
++                self.find_active_remote_rtcp_track(sr.ssrc)
++            } else if let Some(sdes) = packet
++                .as_any()
++                .downcast_ref::<rtcp::source_description::SourceDescription>()
++            {
++                sdes.chunks
+                     .iter()
+-                    .filter_map(|transceiver| transceiver.sender().as_ref())
+-                    .find(|sender| sender.track().ssrcs().any(|ssrc| ssrc == rtcp_ssrc))
+-                    .map(|sender| sender.track().track_id().clone())
+-            });
++                    .find_map(|chunk| self.find_active_remote_rtcp_track(chunk.source))
++            } else {
++                packet.destination_ssrc().into_iter().find_map(|ssrc| {
++                    self.find_track_id(ssrc, None).or_else(|| {
++                        self.rtp_transceivers
++                            .iter()
++                            .filter_map(|transceiver| transceiver.sender().as_ref())
++                            .find(|sender| sender.track().ssrcs().any(|known| known == ssrc))
++                            .map(|sender| sender.track().track_id().clone())
++                    })
++                })
++            };
+             if let Some(track_id) = track_id {
+                 self.ctx.read_outs.push_back(TaggedRTCMessageInternal {
+                     now,
+-                    transport: transport_context,
++                    transport: transport_context.clone(),
+                     message: RTCMessageInternal::Rtp(RTPMessage::TrackPacket(TrackPacket {
+                         track_id,
+-                        packet: Packet::Rtcp(rtcp_packets),
++                        packet: Packet::Rtcp(vec![packet]),
+                     })),
+                 });
+             } else {
+-                debug!("drop rtcp packet ssrc = {}", rtcp_ssrc);
+-            }
+-        } else {
+-            debug!("drop rtcp packet due to empty ssrc");
++                debug!("drop rtcp packet without a current known source or target");
++            }
+         }
+ 
+         Ok(())
++    }
++
++    fn find_active_remote_rtcp_track(&self, ssrc: SSRC) -> Option<MediaStreamTrackId> {
++        self.rtp_transceivers
++            .iter()
++            .filter(|transceiver| {
++                !transceiver.stopped()
++                    && transceiver.direction().has_recv()
++                    && transceiver.current_direction().has_recv()
++            })
++            .filter_map(|transceiver| transceiver.receiver().as_ref())
++            .find(|receiver| {
++                receiver
++                    .track()
++                    .get_codec_by_ssrc(ssrc)
++                    .is_some_and(|codec| !codec.mime_type.is_empty())
++            })
++            .map(|receiver| receiver.track().track_id().clone())
+     }
+ 
+     fn handle_datachannel_open(
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1550,3 +1550,6 @@
+         }
+     }
+ }
++
++#[cfg(test)]
++mod source_clock_activation_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/source_clock_activation_tests.rs
+@@ -0,0 +1,297 @@
++//! Actual protocol handlers, with authenticated transport boundary explicit.
++use super::*;
++use crate::media_stream::MediaStreamTrack;
++use crate::peer_connection::configuration::media_engine::MediaEngine;
++use crate::peer_connection::handler::endpoint::{EndpointHandler, EndpointHandlerContext};
++use crate::rtp_transceiver::rtp_sender::{
++    RTCRtpCodec, RTCRtpCodingParameters, RTCRtpEncodingParameters, RtpCodecKind,
++};
++use crate::rtp_transceiver::{
++    RTCRtpTransceiverDirection, RTCRtpTransceiverInit, internal::RTCRtpTransceiverInternal,
++};
++use ::interceptor::NoopInterceptor;
++use rtcp::{
++    reception_report::ReceptionReport,
++    source_description::{
++        SdesType, SourceDescription, SourceDescriptionChunk, SourceDescriptionItem,
++    },
++};
++use sansio::Protocol;
++use shared::TransportContext;
++#[derive(Default)]
++struct RecordingHop {
++    inner: NoopInterceptor,
++    seen: Vec<Vec<u8>>,
++}
++impl Protocol<TaggedPacket, TaggedPacket, ()> for RecordingHop {
++    type Rout = TaggedPacket;
++    type Wout = TaggedPacket;
++    type Eout = ();
++    type Error = Error;
++    type Time = Instant;
++    fn handle_read(&mut self, msg: TaggedPacket) -> Result<()> {
++        if let Packet::Rtcp(packets) = &msg.message {
++            self.seen.push(
++                packets
++                    .iter()
++                    .map(|p| p.header().packet_type as u8)
++                    .collect(),
++            );
++        }
++        self.inner.handle_read(msg)
++    }
++    fn poll_read(&mut self) -> Option<TaggedPacket> {
++        self.inner.poll_read()
++    }
++    fn handle_write(&mut self, msg: TaggedPacket) -> Result<()> {
++        self.inner.handle_write(msg)
++    }
++    fn poll_write(&mut self) -> Option<TaggedPacket> {
++        self.inner.poll_write()
++    }
++    fn handle_event(&mut self, e: ()) -> Result<()> {
++        self.inner.handle_event(e)
++    }
++    fn poll_event(&mut self) -> Option<()> {
++        self.inner.poll_event()
++    }
++    fn handle_timeout(&mut self, t: Instant) -> Result<()> {
++        self.inner.handle_timeout(t)
++    }
++    fn poll_timeout(&mut self) -> Option<Instant> {
++        self.inner.poll_timeout()
++    }
++    fn close(&mut self) -> Result<()> {
++        self.inner.close()
++    }
++}
++impl Interceptor for RecordingHop {
++    fn bind_local_stream(&mut self, i: &::interceptor::StreamInfo) {
++        self.inner.bind_local_stream(i)
++    }
++    fn unbind_local_stream(&mut self, i: &::interceptor::StreamInfo) {
++        self.inner.unbind_local_stream(i)
++    }
++    fn bind_remote_stream(&mut self, i: &::interceptor::StreamInfo) {
++        self.inner.bind_remote_stream(i)
++    }
++    fn unbind_remote_stream(&mut self, i: &::interceptor::StreamInfo) {
++        self.inner.unbind_remote_stream(i)
++    }
++}
++fn cname(source: u32) -> SourceDescriptionChunk {
++    SourceDescriptionChunk {
++        source,
++        items: vec![SourceDescriptionItem {
++            sdes_type: SdesType::SdesCname,
++            text: b"same".to_vec().into(),
++        }],
++    }
++}
++fn source_report(source: u32, foreign_report: bool) -> Box<dyn rtcp::Packet> {
++    Box::new(SenderReport {
++        ssrc: source,
++        ntp_time: 100 << 32,
++        rtp_time: 48000,
++        packet_count: 1,
++        reports: if foreign_report {
++            vec![ReceptionReport {
++                ssrc: 999,
++                ..Default::default()
++            }]
++        } else {
++            vec![]
++        },
++        ..Default::default()
++    })
++}
++fn unknown_source_with_known_report_target() -> Box<dyn rtcp::Packet> {
++    Box::new(SenderReport {
++        ssrc: 999,
++        reports: vec![ReceptionReport {
++            ssrc: 11,
++            ..Default::default()
++        }],
++        ..Default::default()
++    })
++}
++fn source_description() -> Box<dyn rtcp::Packet> {
++    Box::new(SourceDescription {
++        chunks: vec![cname(999), cname(11)],
++    })
++}
++fn msg(packets: Vec<Box<dyn rtcp::Packet>>) -> TaggedRTCMessageInternal {
++    TaggedRTCMessageInternal {
++        now: Instant::now(),
++        transport: TransportContext::default(),
++        message: RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtcp(packets))),
++    }
++}
++fn active() -> RTCRtpTransceiverInternal<NoopInterceptor> {
++    let mut t = RTCRtpTransceiverInternal::new(
++        RtpCodecKind::Audio,
++        None,
++        RTCRtpTransceiverInit {
++            direction: RTCRtpTransceiverDirection::Recvonly,
++            ..Default::default()
++        },
++    );
++    t.set_current_direction(RTCRtpTransceiverDirection::Recvonly);
++    let r = t.receiver_mut().as_mut().unwrap();
++    r.set_coding_parameters(vec![RTCRtpCodingParameters {
++        ssrc: Some(11),
++        ..Default::default()
++    }]);
++    r.set_track(MediaStreamTrack::new(
++        "s".into(),
++        "source".into(),
++        "active".into(),
++        RtpCodecKind::Audio,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: RTCRtpCodingParameters {
++                ssrc: Some(11),
++                ..Default::default()
++            },
++            codec: RTCRtpCodec {
++                mime_type: "audio/opus".into(),
++                clock_rate: 48000,
++                ..Default::default()
++            },
++            ..Default::default()
++        }],
++    ));
++    t
++}
++fn drain_endpoint(
++    ctx: &mut EndpointHandlerContext,
++    tracks: &mut Vec<RTCRtpTransceiverInternal<NoopInterceptor>>,
++    messages: Vec<TaggedRTCMessageInternal>,
++) -> Vec<u8> {
++    let mut chain = NoopInterceptor::default();
++    let media = MediaEngine::default();
++    let mut stats = RTCStatsAccumulator::new();
++    let mut handler = EndpointHandler::new(ctx, tracks, &media, &mut chain, &mut stats);
++    for message in messages {
++        handler.handle_read(message).unwrap();
++    }
++    let mut result = vec![];
++    while let Some(m) = handler.poll_read() {
++        if let RTCMessageInternal::Rtp(RTPMessage::TrackPacket(p)) = m.message {
++            assert_eq!(p.track_id.to_string(), "source");
++            if let Packet::Rtcp(packets) = p.packet {
++                for packet in packets {
++                    result.push(packet.header().packet_type as u8);
++                }
++            }
++        }
++    }
++    assert!(
++        handler.poll_event().is_none(),
++        "RTCP cannot open or allocate a track"
++    );
++    result
++}
++#[test]
++fn source_clock_activation_authenticated_handlers_preserve_source_metadata_once() {
++    let mut ctx = InterceptorHandlerContext::default();
++    ctx.is_dtls_handshake_complete = true;
++    let mut chain = RecordingHop::default();
++    let mut stats = RTCStatsAccumulator::new();
++    let mut h = InterceptorHandler::new(&mut ctx, &mut chain, &mut stats);
++    h.handle_read(msg(vec![
++        Box::new(ReceiverReport::default()),
++        unknown_source_with_known_report_target(),
++        source_description(),
++        source_report(11, true),
++    ]))
++    .unwrap();
++    let mut messages = vec![];
++    while let Some(m) = h.poll_read() {
++        messages.push(m);
++    }
++    let mut endpoint = EndpointHandlerContext::default();
++    let mut tracks = vec![active()];
++    assert_eq!(
++        drain_endpoint(&mut endpoint, &mut tracks, messages),
++        vec![202, 200]
++    );
++    assert_eq!(
++        chain.seen,
++        vec![vec![201, 200, 202, 200]],
++        "the complete original compound traverses hop ownership once"
++    );
++    assert!(
++        chain.poll_read().is_none(),
++        "terminal hop still consumes RTCP"
++    );
++}
++#[test]
++fn source_clock_activation_endpoint_mixed_compound_uses_source_not_report_targets() {
++    let mut ctx = EndpointHandlerContext::default();
++    let mut tracks = vec![active()];
++    let got = drain_endpoint(
++        &mut ctx,
++        &mut tracks,
++        vec![msg(vec![
++            Box::new(ReceiverReport::default()),
++            unknown_source_with_known_report_target(),
++            source_description(),
++            source_report(11, true),
++        ])],
++    );
++    assert_eq!(got, vec![202, 200]);
++}
++#[test]
++fn source_clock_activation_endpoint_rejects_stopped_and_nonreceiving_sources() {
++    let mut ctx = EndpointHandlerContext::default();
++    let mut tracks = vec![active()];
++    assert_eq!(
++        drain_endpoint(
++            &mut ctx,
++            &mut tracks,
++            vec![msg(vec![source_report(11, false)])]
++        ),
++        vec![200]
++    );
++    tracks[0].set_current_direction(RTCRtpTransceiverDirection::Inactive);
++    assert!(
++        drain_endpoint(
++            &mut ctx,
++            &mut tracks,
++            vec![msg(vec![
++                source_report(11, false),
++                source_description(),
++                source_report(999, false)
++            ])]
++        )
++        .is_empty()
++    );
++    tracks[0].set_current_direction(RTCRtpTransceiverDirection::Recvonly);
++    tracks[0]
++        .stop(&MediaEngine::default(), &mut NoopInterceptor::default())
++        .unwrap();
++    assert!(
++        drain_endpoint(
++            &mut ctx,
++            &mut tracks,
++            vec![msg(vec![source_report(11, false), source_description()])]
++        )
++        .is_empty()
++    );
++    tracks = vec![active()];
++    tracks[0]
++        .receiver_mut()
++        .as_mut()
++        .unwrap()
++        .track_mut()
++        .set_codec_by_ssrc(RTCRtpCodec::default(), 11);
++    assert!(
++        drain_endpoint(
++            &mut ctx,
++            &mut tracks,
++            vec![msg(vec![source_report(11, false), source_description()])]
++        )
++        .is_empty(),
++        "declared but unopened source must not be activated by RTCP"
++    );
++}
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/source_clock_activation_tests.rs
+@@ -0,0 +1,147 @@
++//! Actual UDP/SRTCP -> hop interceptors -> endpoint -> callback -> SourceClock.
++use super::*;
++use rtc::rtcp::{
++    Packet,
++    receiver_report::ReceiverReport,
++    reception_report::ReceptionReport,
++    sender_report::SenderReport,
++    source_description::{
++        SdesType, SourceDescription, SourceDescriptionChunk, SourceDescriptionItem,
++    },
++};
++fn chunk(ssrc: u32, cname: &str) -> SourceDescriptionChunk {
++    SourceDescriptionChunk {
++        source: ssrc,
++        items: vec![SourceDescriptionItem {
++            sdes_type: SdesType::SdesCname,
++            text: cname.as_bytes().to_vec().into(),
++        }],
++    }
++}
++fn sr(ssrc: u32, ntp: u64, rtp: u32) -> Box<dyn Packet> {
++    Box::new(SenderReport {
++        ssrc,
++        ntp_time: ntp,
++        rtp_time: rtp,
++        packet_count: 1,
++        octet_count: 160,
++        // A foreign reception report must not override the source identity.
++        reports: vec![ReceptionReport {
++            ssrc: 0xdeadbeef,
++            ..Default::default()
++        }],
++        ..Default::default()
++    })
++}
++#[tokio::test]
++async fn source_clock_activation_real_srtcp_compound_reaches_current_audio_video_source() {
++    let mut config = WebRtcConfig::loopback();
++    config.require_vp8_audio_video_profile = true;
++    let a = RvoipPeerConnection::new(&config, PeerRole::Offerer)
++        .await
++        .unwrap();
++    let b = RvoipPeerConnection::new(&config, PeerRole::Answerer)
++        .await
++        .unwrap();
++    a.add_local_audio_track().await.unwrap();
++    a.add_local_video_track().await.unwrap();
++    let offer = a.create_offer_and_gather().await.unwrap();
++    let answer = b.accept_offer_and_gather(&offer).await.unwrap();
++    a.set_remote_answer(&answer).await.unwrap();
++    tokio::try_join!(
++        a.wait_connected(Duration::from_secs(3)),
++        b.wait_connected(Duration::from_secs(3))
++    )
++    .unwrap();
++    let (audio, video) =
++        RvoipPeerConnection::prime_remote_media(&a, &b, true, Duration::from_secs(3)).await;
++    let audio_ssrc = a.local_audio_ssrc().unwrap();
++    let video_ssrc = a.local_video_ssrc().unwrap();
++    let unknown = 0xfacebeef;
++    let ntp = 4_100_000_000u64 << 32;
++    let track = a.local_audio_track().unwrap();
++    // Leading empty RR and unknown source metadata cannot poison later known
++    // source members. SDES is deliberately not the first compound member.
++    track
++        .write_rtcp(vec![
++            Box::new(ReceiverReport::default()),
++            sr(unknown, ntp, 77),
++            Box::new(SourceDescription {
++                chunks: vec![
++                    chunk(unknown, "unrelated"),
++                    chunk(audio_ssrc, "shared-clock"),
++                ],
++            }),
++            sr(audio_ssrc, ntp, 48_000),
++        ])
++        .await
++        .unwrap();
++    let audio_anchor = tokio::time::timeout(Duration::from_secs(2), async {
++        loop {
++            if let Some(c) = b.source_clock.snapshot(audio_ssrc) {
++                if c.anchor
++                    .is_some_and(|a| a.rtp_time == 48_000 && a.clock_rate == 48_000)
++                {
++                    break c;
++                }
++            }
++            tokio::time::sleep(Duration::from_millis(10)).await;
++        }
++    })
++    .await
++    .ok();
++    // Arrival jitter for the other track must not re-anchor the common domain.
++    tokio::time::sleep(Duration::from_millis(40)).await;
++    track
++        .write_rtcp(vec![
++            Box::new(ReceiverReport::default()),
++            Box::new(SourceDescription {
++                chunks: vec![
++                    chunk(unknown, "another-unrelated"),
++                    chunk(video_ssrc, "shared-clock"),
++                ],
++            }),
++            sr(video_ssrc, ntp, 90_000),
++        ])
++        .await
++        .unwrap();
++    let video_anchor = tokio::time::timeout(Duration::from_secs(2), async {
++        loop {
++            if let Some(c) = b.source_clock.snapshot(video_ssrc) {
++                if c.anchor
++                    .is_some_and(|a| a.rtp_time == 90_000 && a.clock_rate == 90_000)
++                {
++                    break c;
++                }
++            }
++            tokio::time::sleep(Duration::from_millis(10)).await;
++        }
++    })
++    .await
++    .ok();
++    let unknown_bound = b.source_clock.snapshot(unknown).is_some();
++    let active = audio_anchor.as_ref().is_some_and(|c| (c.is_current)())
++        && video_anchor.as_ref().is_some_and(|c| (c.is_current)());
++    a.close().await.unwrap();
++    b.close().await.unwrap();
++    assert!(
++        audio.is_some() && video.is_some(),
++        "actual RTP must establish both negotiated source tracks"
++    );
++    assert!(
++        !unknown_bound,
++        "foreign RTCP source must not allocate a clock"
++    );
++    assert!(
++        active,
++        "authenticated source SR/SDES must reach the current clock callback"
++    );
++    let aa = audio_anchor.unwrap().anchor.unwrap();
++    let va = video_anchor.unwrap().anchor.unwrap();
++    assert_eq!((aa.clock_rate, aa.rtp_time), (48_000, 48_000));
++    assert_eq!((va.clock_rate, va.rtp_time), (90_000, 90_000));
++    assert_eq!(
++        aa.ntp_time, va.ntp_time,
++        "one fixed common offset despite later video SR arrival"
++    );
++}

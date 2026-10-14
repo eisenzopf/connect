@@ -80,20 +80,42 @@ export function validateVideoAnswer(sdp: string): void {
         )
             fail();
         if (kind[0] === "m=video") {
+            const tokens = kind.slice(3);
+            const payloads = tokens.map(Number);
             if (
-                kind.length < 4 ||
-                !kind
-                    .slice(3)
-                    .every(
-                        (pt) =>
-                            /^\d+$/.test(pt) &&
-                            new RegExp(
-                                `^a=rtpmap:${pt} VP8/90000\\r?$`,
-                                "im",
-                            ).test(section),
-                    )
+                !tokens.length ||
+                tokens.some((pt) => !/^\d+$/.test(pt) || Number(pt) > 127) ||
+                new Set(payloads).size !== payloads.length
             )
                 fail();
+            const codecs = new Map<number, string>();
+            for (const match of section.matchAll(
+                /^a=rtpmap:(\d+)[ \t]+([^\n]+)$/gim,
+            )) {
+                const pt = Number(match[1]);
+                if (!payloads.includes(pt)) continue;
+                if (codecs.has(pt)) fail();
+                codecs.set(pt, match[2].trim().toLowerCase());
+            }
+            const primary = payloads.filter(
+                (pt) => codecs.get(pt) === "vp8/90000",
+            );
+            if (!primary.length) fail();
+            for (const pt of payloads) {
+                if (primary.includes(pt)) continue;
+                if (codecs.get(pt) !== "rtx/90000") fail();
+                const parameters = [
+                    ...section.matchAll(/^a=fmtp:(\d+)[ \t]+([^\n]+)$/gim),
+                ].filter((match) => Number(match[1]) === pt);
+                if (parameters.length !== 1) fail();
+                const associations = parameters[0][2]
+                    .split(";")
+                    .map((value) => value.trim())
+                    .filter((value) => /^apt(?:\s*=|$)/i.test(value));
+                if (associations.length !== 1) fail();
+                const apt = /^apt\s*=\s*(\d+)$/i.exec(associations[0]);
+                if (!apt || !primary.includes(Number(apt[1]))) fail();
+            }
         }
     }
 }

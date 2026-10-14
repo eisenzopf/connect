@@ -1,0 +1,83 @@
+{
+  "format": 1,
+  "task_ids": [
+    "G5-042",
+    "G5-045"
+  ],
+  "scope": "Qualification harness bounded-input hashing; media profile and resource acceptance thresholds unchanged",
+  "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "source_dirty": true,
+  "whole_gate_qualified": false,
+  "files": {
+    "scripts/video/native-processes.py": "3750fa88ae670ad3b113c1132cb7d98214dad5f74f103f19bd542228400dc3c8",
+    "scripts/tests/test_video_measurements.py": "e4ded85aa70e6d72d3d0dd5a1184f9a1b39cb89c28b30987852b922c36ce37d0",
+    "scripts/check-gate-5.py": "ba097490ca9dc62dbe72e1640afc4244a7add0ce2c10e5b85009abdbadf08521"
+  },
+  "finding": "Previous hash helper loaded each complete executable into the measured Python checker, retaining executable-sized allocator RSS before media observations. Per-process resource diagnosis identified about432MB checker RSS.",
+  "change": "SHA256 now consumes at most1MiB per read rather than executable-sized read_bytes; no viewport, duration, participant isolation or resource-limit changes.",
+  "guard": {
+    "command": "python3 -m unittest discover -s scripts/tests -p test_video_measurements.py -q",
+    "passed": 38,
+    "failed": 0,
+    "new_test": "test_executable_digest_uses_bounded_reads_and_preserves_exact_sha256",
+    "checks": [
+      "Path.read_bytes forbidden",
+      "Every requested read is positive and at most1MiB",
+      "Exact SHA256 agrees for empty input and multi-chunk input with partial tail",
+      "Read count includes EOF and matches bounded chunk count"
+    ]
+  },
+  "runtime_rerun": {
+    "status": "passed-clean",
+    "tested_inputs_stable": true,
+    "report": ".local/gate5/browser-memory-streaming-20261014T093919Z/media.json",
+    "report_sha256": "e7b8a2a28afb7a5d2c4e4ddaa768c46494376914c065d676a0533863cc447ebf",
+    "qualification_seconds": 60,
+    "paths": [
+      {
+        "path": "browser-browser",
+        "status": "passed-clean",
+        "resources": {
+          "sampled_peak_rss_bytes": 2035712000,
+          "sampled_peak_processes": 15,
+          "sampled_peak_cpu_percent": 176.79999999999998,
+          "samples": 126,
+          "interval_seconds": 0.5,
+          "interval_note": "configured cadence; actual gaps and coverage reported separately",
+          "sampling_errors": {
+            "count": 0,
+            "classes": {}
+          },
+          "measurement_span_seconds": 63.67389037506655,
+          "observed_time_seconds": 63.31087754108012,
+          "observed_time_coverage": 0.9942988745960373,
+          "first_sample_lag_seconds": 0.016400541993789375,
+          "last_sample_age_seconds": 0.346612291992642,
+          "maximum_sampling_gap_seconds": 0.5137448749737814,
+          "coverage_complete": true,
+          "coverage_requirements": {
+            "minimum_time_fraction": 0.9,
+            "minimum_expected_sample_fraction": 0.9,
+            "maximum_gap_seconds": 1.25
+          },
+          "scope": "owned checker/server/native/browser launcher PIDs and descendants, including FFmpeg and Chrome; sampled, not exact kernel high-water; live call through participant teardown, before independent post-run content analysis",
+          "metric_note": "ps CPU is its platform process-average percentage; not a hardware instantaneous CPU counter",
+          "limits": {
+            "sampled_peak_rss_bytes": 2147483648,
+            "sampled_peak_cpu_percent": 800
+          },
+          "within_limits": true
+        }
+      }
+    ],
+    "scope": "Actual browser-browser clean60 route only; other routes/scenarios and final installed candidate remain separate"
+  },
+  "baseline_private_diagnostic": ".local/gate5/browser-memory-original-20261014T093019Z/cpu-diagnostic.json",
+  "previous_failure": {
+    "sampled_peak_rss_bytes": 2328084480,
+    "rss_limit_bytes": 2147483648,
+    "scope": "Original whole-file-hash checker; failed browser-browser clean60 resource ceiling",
+    "diagnostic": ".local/gate5/browser-memory-original-20261014T093019Z/cpu-diagnostic.json",
+    "diagnostic_sha256": "19a58792a9845a9ffdbb2ad58c2d4ad16599b88104036017d1a6f34db46b6d4e"
+  }
+}

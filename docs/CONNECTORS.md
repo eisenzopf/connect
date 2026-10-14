@@ -59,7 +59,9 @@ The export flattens workspace metadata only; it retains exact public Rust source
    projection and sends under the durable job ID. Override it when you need to
    retain additional host envelope fields, as Prism does. The host persists the
    entire receipt, actual reply source IDs and lifecycle projection with the reply
-   in one transaction. Existing `deliver_attempt`/`deliver` adapters retain their
+   in one transaction. A dispatch receipt must echo that exact durable job ID;
+   a mismatched ID leaves the original attempt uncertain for reconciliation and
+   cannot select another job. Existing `deliver_attempt`/`deliver` adapters retain their
    single-attempt compatibility path. The template rejects legacy `deliver`
    because it cannot invent a trustworthy ID.
 4. Keep `DeliveryRequest::context` separate from `body`. Use the public API-only

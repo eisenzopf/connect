@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "task_ids": [
+    "G5-038"
+  ],
+  "status": "actual-model lane unresolved; runner prerequisites inspected",
+  "whole_gate_qualified": false,
+  "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "source_dirty": true,
+  "scope": "Read-only selected Codex host/version/auth readiness and source runner tests; no model inference or communication provider operation in this record.",
+  "selected_host": {
+    "version": "codex-cli 0.162.0-alpha.17.2",
+    "sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+    "login_status": "Logged in using ChatGPT",
+    "compatibility_qualified": false,
+    "note": "Readiness is not evidence of successful installed exact-session model execution."
+  },
+  "runner": {
+    "path": "scripts/live/agent-journey.py",
+    "profile": "gate5-local",
+    "source_sha256": {
+      "scripts/live/agent-journey.py": "217c2dc877c63df72be9e7f20382eceb95b7639b975890bfdac3bf947a85112e",
+      "scripts/live/agent_journey/__init__.py": "73698a2ecce91d85a27401607de8af3ba50fa6b1756f2c9535775750d2754fb7",
+      "scripts/live/agent_journey/cli.py": "f615e5a2139a55833d782d640b27cf2c718fb16c672c55e2a6e7edae40bb69b1",
+      "scripts/live/agent_journey/common.py": "9e748da65846317e3f82db4da57ce8a53dd60401537a94ebc8323d0eaed6cf54",
+      "scripts/live/agent_journey/model.py": "47739d2a31d52b2903c458701edae881f1f66e9f523b4d6a36f093e389e96a98",
+      "scripts/live/agent_journey/observe.py": "26b7a93e0538a50f3106915b646cf6c1c4ae193709808d468c91d7bdedb3166e",
+      "scripts/live/agent_journey/runtime.py": "13753bcc0c35dc97e53ef85b1d3ce8ed4e0b5b0a6bb46c288e8055fe3e4dbf88",
+      "scripts/live/agent_journey/scenario.py": "654f8ba2e0217c3e7c656faac5147cb81e158357e88999f7ab693aa55c60024a"
+    }
+  },
+  "offline_checks": [
+    {
+      "command": "python3 -m unittest discover -s scripts/tests -p test_live_agent_journey.py",
+      "passed": 14,
+      "failed": 0,
+      "private_log": ".local/gate5/agent-journey-unit-20261014T0920.log",
+      "sha256": "b287d0d1d60d3c3d4629e9139a735eefeb89b6d695d48d00e70404daa6a8692a"
+    },
+    {
+      "command": "PYTHONPATH=sdk/python python3 -m unittest discover -s examples/agent-presence/tests -p 'test_incoming*.py'",
+      "passed": 15,
+      "failed": 0,
+      "private_log": ".local/gate5/agent-incoming-unit-20261014T0920-corrected.log",
+      "sha256": "a2dc3c137a58e07b1fd7b3c8f9e51920dcf77b1e278bedb9dc1292f27cdb7160"
+    }
+  ],
+  "retained_failed_attempts": [
+    {
+      "private_log": ".local/gate5/agent-incoming-unit-20261014T0920.log",
+      "sha256": "66cfde32ef4edc1c3f3279dec9302c2e72ff376a7425893668c88f3908cd86c2",
+      "reason": "Direct unittest command omitted documented SDK PYTHONPATH; import failed before scenario. Corrected environment rerun passed15."
+    }
+  ],
+  "required_actual_inference": [
+    "Matching passing Gate5 disposable installed candidate report and manifest",
+    "Scripted loopback host qualification on selected actual host",
+    "Separate explicit actual-model runner selection with --profile gate5-local --allow-model-inference",
+    "Retain actual receipts, source/artifact attribution and unchanged normal credential across two conversations",
+    "Explicit exact saved host session resume after restart; consume one bound reply and answer independent contact; no duplicate effects or cross-conversation leakage"
+  ],
+  "unresolved": [
+    "Current Gate5 passing package report/runtime not yet available; source and scripted results cannot count as actual inference",
+    "G5-046 needs three independent fresh-user participants and records; an author or automated agent scripted pass does not meet independence",
+    "Final owner review and publication authorization remain separate"
+  ]
+}

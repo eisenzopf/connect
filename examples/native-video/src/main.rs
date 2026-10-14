@@ -1,6 +1,8 @@
 //! Capture/encode outside Connect; participate through the public native SDK.
 mod audio;
+mod decode_continuity;
 mod markers;
+mod pacing;
 mod playout;
 mod preview;
 mod report;
@@ -117,7 +119,15 @@ async fn main() -> Result<()> {
                 ",drawbox=x=0:y=0:w=iw:h=ih:color=white:t=fill:enable='{marker_expression}'",
             ));
         }
-        encoder.args(["-re", "-f", "lavfi", "-i", &generated]);
+        encoder.args([
+            "-re",
+            "-readrate_initial_burst",
+            "0",
+            "-f",
+            "lavfi",
+            "-i",
+            &generated,
+        ]);
     } else if let Some(camera) = a.input.strip_prefix("camera:") {
         encoder.args([
             "-f",
@@ -130,7 +140,7 @@ async fn main() -> Result<()> {
             camera,
         ]);
     } else {
-        encoder.args(["-re", "-i", &a.input]);
+        encoder.args(["-re", "-readrate_initial_burst", "0", "-i", &a.input]);
     }
     encoder
         .args([
@@ -145,10 +155,14 @@ async fn main() -> Result<()> {
             "8",
             "-b:v",
             "1000k",
+            // Native QUIC has no negotiated keyframe feedback. Bound the
+            // dependency chain to six frames (200ms at this 30fps encoder).
             "-g",
-            "30",
+            "6",
             "-lag-in-frames",
             "0",
+            "-flush_packets",
+            "1",
             "-f",
             "ivf",
             "pipe:1",
@@ -205,7 +219,9 @@ async fn main() -> Result<()> {
     let (tx, mut rx) = mpsc::channel(2);
     let reader = tokio::spawn(async move {
         read_header(&mut encoded).await?;
+        let mut cadence = pacing::capture_cadence(Duration::from_nanos(1_000_000_000 / 30));
         while let Some(frame) = read_frame(&mut encoded).await? {
+            cadence.tick().await;
             if tx.send(frame).await.is_err() {
                 break;
             }
@@ -297,7 +313,9 @@ async fn main() -> Result<()> {
                         Ok(NativeAvFrame::Video(packet)) => {
                             measurements.packet(packet.rtp.len());
                             if let Some(frame) = assembler.push(&packet)? {
-                                playout.video(frame, std::time::Instant::now());
+                                let range = assembler.completed_sequence_range()
+                                    .context("Completed frame must retain its RTP sequence range")?;
+                                playout.video(frame, range, std::time::Instant::now());
                             }
                         },
                         Ok(NativeAvFrame::Audio(frame)) => {

@@ -1,0 +1,121 @@
+{
+  "format": 1,
+  "task_ids": [
+    "G5-003",
+    "G5-045"
+  ],
+  "scope": "Candidate-selectable public CLI and SDK Session runner implemented; current sealed source binary/source SDK behavior only, no installed archive qualification",
+  "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "source_dirty": true,
+  "status": "passed",
+  "whole_gate_qualified": false,
+  "published": false,
+  "files": {
+    "scripts/check-installed-sessions.py": "cba7878175d9143b7bdf30e2f8784d47166b7dd7f6c95a7e51c2a0396004bca7",
+    "scripts/lib/package_gate5.py": "811fbd468ef4ab3a52e12e59544efa3b96785d8aaadff9df1f2f92c7c27c2539",
+    "scripts/lib/package_inventory.py": "ab50c6b17f747c2bc629d8399ee4b861164593b5229d6c315e0bc1f5e73bab62",
+    "scripts/tests/test_package_inventory.py": "074c757b07d93cbf930abf1a2f63dee4ef71714688f498b681a93a140a62fb48",
+    "sdk/tests/session_probe.py": "2e86f4851fc52acf455ba60efc864a31bb7c34dce985d7141b48c49f6f6fa1e3",
+    "sdk/tests/session_probe.mjs": "1256c9c83d209a9c4aeb6cb470c5102778e1181483570c7d23976062b4c527af"
+  },
+  "selected_binary_sha256": "2a0ebfe6e1050a6746027296e063e28a76aee56a23b4f4f64f2d5c50c9ad5b3d",
+  "tested_inputs_stable": true,
+  "interfaces": [
+    "CLI",
+    "Python native helper",
+    "Python HTTP",
+    "TypeScript native helper",
+    "TypeScript HTTP"
+  ],
+  "cli_seed_records": 19,
+  "sdk_origin_records": 16,
+  "original_scope_records": 35,
+  "narrowed_scope_denials": 26,
+  "current_authorization_enforced_on_replay": true,
+  "credential_diagnostics_redacted": true,
+  "sdk_phases": [
+    {
+      "name": "session-python-1",
+      "status": "passed",
+      "leftover_group_members": [],
+      "group_cleanup": "signalled"
+    },
+    {
+      "name": "session-typescript-2",
+      "status": "passed",
+      "leftover_group_members": [],
+      "group_cleanup": "signalled"
+    },
+    {
+      "name": "session-python-3",
+      "status": "passed",
+      "leftover_group_members": [],
+      "group_cleanup": "signalled"
+    },
+    {
+      "name": "session-typescript-4",
+      "status": "passed",
+      "leftover_group_members": [],
+      "group_cleanup": "signalled"
+    },
+    {
+      "name": "session-python-5",
+      "status": "passed",
+      "leftover_group_members": [],
+      "group_cleanup": "signalled"
+    },
+    {
+      "name": "session-typescript-6",
+      "status": "passed",
+      "leftover_group_members": [],
+      "group_cleanup": "signalled"
+    }
+  ],
+  "command": "python3 scripts/check-installed-sessions.py --binary <selected-connect> --assets <selected-runtime-or-source-SDK-root> --node <selected-node> --source-revision <revision> --work-root <private-state> --output <private-report>",
+  "private_report": ".local/gate5/installed-session-attempt6.json",
+  "private_report_sha256": "33924ae1f28ee3726a47bb374654686983e1d0971ecb7092a7372722fe5fc110",
+  "previous_attempts": [
+    {
+      "report": ".local/gate5/installed-session-attempt1.json",
+      "sha256": "b137f3554ab6c0543f2e5d034ac6c8c2ee4e4df8cc7d2ce0e96ce4c60b5226a8",
+      "status": "failed"
+    },
+    {
+      "report": ".local/gate5/installed-session-attempt2.json",
+      "sha256": "9ee39e48686dac71ba694e3d2b8deadb4b75d7d96e90db17b4dd5226024a7a2c",
+      "status": "failed"
+    },
+    {
+      "report": ".local/gate5/installed-session-attempt3.json",
+      "sha256": "d7b4b85c87d29bfb6c4da90bcfbe29f24c73f1f5de453fc7ac955a9616e1e49d",
+      "status": "failed"
+    },
+    {
+      "report": ".local/gate5/installed-session-attempt4.json",
+      "sha256": "b78139f7d34810550cc1dfe70f70a8dcf833ad415445f8e6cb019e5ffb3debef",
+      "status": "passed"
+    },
+    {
+      "report": ".local/gate5/installed-session-attempt5.json",
+      "sha256": "4fd90c32bad3c1eb8b4399f81f11c0ec4eb777cfa1e676c82ab73ac336ab3ba0",
+      "status": "passed"
+    }
+  ],
+  "repairs": [
+    "Correct standard Rust Result CLI envelope parsing",
+    "Issue explicit communications credentials because review-loop initial credentials are messaging-only",
+    "Use existing unrelated operator identity for recipient narrowing",
+    "Run each SDK probe under owned supervisor for native helper cleanup",
+    "Scan all retained CLI/server/SDK diagnostics against all initial, operator and later issued credentials"
+  ],
+  "package_guard_tests": {
+    "passed": 24,
+    "failed": 0,
+    "command": "python3 -m unittest discover -s scripts/tests -p test_package_inventory.py -q"
+  },
+  "not_run": [
+    "Final extracted gate5-local candidate qualification",
+    "Installed Rust/MCP parity; seven-interface source fixture remains separately scoped",
+    "AV media acquisition or live provider/model operation"
+  ]
+}

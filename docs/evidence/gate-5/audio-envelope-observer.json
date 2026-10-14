@@ -1,0 +1,109 @@
+{
+  "format": 1,
+  "task_ids": [
+    "G5-014",
+    "G5-016"
+  ],
+  "status": "component-guards-passed-runtime-recheck-pending",
+  "whole_gate_qualified": false,
+  "published": false,
+  "recorded_at": "2026-10-14T10:03:35.194120+00:00",
+  "scope": "Online decoded audio envelope observer and fail-closed browser verdict; no fresh timed media qualification claimed",
+  "source_sha256": {
+    "scripts/video/audio_envelope.mjs": "9096c4ccadd919d2564b32b1f5121a45a5a4a20d68ae967454acdd85d72a9a11",
+    "scripts/video/browser-qualify.mjs": "edcc1002e324275068ef9bdba984e75b7b7e04390d3665c84988d30c7aee0f58",
+    "scripts/tests/audio_envelope.test.mjs": "40ac36915d0af91b86915c7fa8dae71db20bd4f394842c39108adc2dd19d98c6",
+    "scripts/tests/test_video_measurements.py": "5955cc11831ef59d68ede50dc647e4ecbf95cac01331e1d971ccf27d1f731b2f",
+    "scripts/check-video-paths.py": "4dc47461dc5a4b05753ce60d010baf1f9a7e5cfde229305341c403c11bcb2a6b",
+    "scripts/check-gate-5.py": "295f51cb0d1aea7861fb5312c0434991cbd8160f9aa4a4af7c8e114502b101fe"
+  },
+  "failed_prior_attempt": {
+    "report": ".local/gate5/current-repairs-profiles-20261014T094523Z/clean-browser-browser.json",
+    "status": "failed-retained",
+    "observation": "Receiver 0 had two rising observations 106.1ms apart at 16.6516 and 16.7577 seconds, despite source minimum pulse interval 500ms. Either edge removal fit the ordinal programme diagnostically, so the retained evidence cannot identify the true edge or qualify that run.",
+    "classification": "Ambiguous decoded-envelope observation, not proof of sustained transport drift and not retroactively repaired."
+  },
+  "design": {
+    "source_pulse_ms": 100,
+    "minimum_source_interval_ms": 500,
+    "rising_rms_above": 0.055,
+    "low_rms_at_most": 0.045,
+    "continuous_low_rearm_ms": 200,
+    "maximum_envelope_ms": 200,
+    "maximum_observed_sample_gap_ms": 50,
+    "rationale": "200ms low rearm uses half the fixed 400ms minimum quiet interval. The 200ms envelope bound permits the fixed 100ms pulse plus at most 100ms configured network delay variation; exceeding it invalidates the observer. Initial high samples never establish a rising edge. Edges are accepted online without consulting cadence.",
+    "bounded_raw_evidence": "2048 threshold transitions with RMS, timestamps, acceptance and gap details; 512 accepted edges; 64 invalid reasons. Invalid input or overflow fails closed. Warmup ambiguity remains visible."
+  },
+  "unchanged_timing_limits": {
+    "median_abs_skew_ms": 80,
+    "p95_abs_skew_ms": 120,
+    "ordinal_calibration_residual_ms": 150
+  },
+  "integration_defect_repaired": {
+    "finding": "A combined invalid-observer status could be ignored by a numeric-only final predicate.",
+    "repair": "The final browser predicate explicitly requires passed AV status and a pure verdict helper requires observer-valid, passed status, finite nonnegative in-limit metrics and sufficient integer pairs.",
+    "regression": "Actual passing ordinal metrics combined with an actual invalid sampled envelope remain available diagnostically but fail the final verdict."
+  },
+  "verification": {
+    "python_measurement_tests": {
+      "passed": 41,
+      "failed": 0,
+      "nested_node_audio_envelope_tests": 12
+    },
+    "javascript_syntax": "passed",
+    "git_diff_check": "passed",
+    "private_logs_sha256": {
+      ".local/gate5/envelope-detector-proposal/final-integration-guards.log": "6480dd1ae5bc545631058fa9bcaac3fcfc25b5fa7178a71779fee6093fd9705e",
+      ".local/gate5/envelope-detector-proposal/final-node-guards.log": "866ad7115d7d270210e548cdab908375947d8a45c177da06411da31a41a94772"
+    },
+    "adversarial_cases": [
+      "500ms cadence with unchanged first-high timestamps",
+      "initial high crop",
+      "within-pulse dip and short rebound",
+      "coded programme retains calibration and skew limits",
+      "independent extra pulse fails calibration",
+      "missing pulse remains explicit",
+      "progressive drift and one-second offset fail",
+      "sampling gaps, invalid samples and bounded-buffer overflow fail closed",
+      "ambiguous oversized rebound invalidates observer",
+      "oversized sustained high invalidates observer",
+      "clean and bounded bounce envelope stays valid",
+      "invalid observer cannot pass browser verdict despite valid ordinal metrics"
+    ]
+  },
+  "remaining": [
+    "Fresh clean and impaired browser media runs using this observer and exact current helper/input seals",
+    "Current source and installed candidate qualification",
+    "No prior failed media run is promoted by these component tests"
+  ],
+  "subsequent_revisions": [
+    {
+      "recorded_at": "2026-10-14T10:28:32.250594+00:00",
+      "profile": "connect-decoded-audio-envelope/2",
+      "corrected_assumption": "The fixed source pulse plus network jitter does not bound lossy decoded PCMU PLC duration. Extended high amplitude alone cannot invalidate a first onset already established after continuous low.",
+      "behavior": "Keep first qualified onset, suppress subsequent rises until200ms continuous low, and retain bounded extended-envelope diagnostics with RMS/time. Invalid inputs, unobserved intervals inside an envelope, and evidence overflow still invalidate observation.",
+      "component_results": {
+        "javascript_passed": 13,
+        "python_passed": 42,
+        "failed": 0,
+        "ignored": 0,
+        "logs": [
+          ".local/gate5/envelope-detector-proposal/onset-node.log",
+          ".local/gate5/envelope-detector-proposal/onset-guards.log"
+        ]
+      },
+      "source_sha256": {
+        "scripts/video/audio_envelope.mjs": "f7dc2406f629368404efe819657cb363e5ed6fec0271cef41ffd1ec71cf17964",
+        "scripts/tests/audio_envelope.test.mjs": "67a05b4a655cbb438cc9506a01aadf2be896279138f73ecb3d558d70fbbcb989",
+        "scripts/tests/test_video_measurements.py": "fe6ed8c4fab0642f99e204614317227de061516c79f1265f5ae680ecef5bab03"
+      },
+      "regressions": [
+        "Prolonged PLC high retains exact first onset and numeric diagnostics",
+        "Stuck high emits only one edge and fails unchanged AV proof",
+        "Spurious rebounds are retained as raw transitions and suppressed until continuous low",
+        "Actual invalid observer with valid ordinal metrics still fails final browser verdict"
+      ],
+      "unchanged": "Rising threshold,200ms continuous-low rearm, unique ordinal calibration150ms, paired count, median80ms and p95120ms limits. Old failed runs remain failures; fresh current runtime required."
+    }
+  ]
+}

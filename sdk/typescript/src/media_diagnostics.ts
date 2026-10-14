@@ -65,6 +65,16 @@ export interface MediaForwardObservation {
     handoff_timeouts: number;
 }
 export interface QuicTransmissionObservation {
+    /** Sampled physical connection extrema; cumulative counters are maxima, not sums. */
+    congestion_samples?: number;
+    maximum_sampled_connection_lost_packets?: number;
+    maximum_sampled_connection_congestion_events?: number;
+    maximum_sampled_connection_sent_packets?: number;
+    minimum_sampled_rtt_us?: number | null;
+    maximum_sampled_rtt_us?: number | null;
+    minimum_sampled_cwnd_bytes?: number | null;
+    maximum_sampled_cwnd_bytes?: number | null;
+
     send_buffer?: QuicSendBufferObservation;
     samples: number;
     min_max_datagram_size_bytes: number | null;
@@ -180,9 +190,44 @@ const counters = (value: Record<string, unknown>, keys: string[]) =>
 const bounded = (value: unknown, valid: (item: unknown) => boolean) =>
     Array.isArray(value) && value.length <= 128 && value.every(valid);
 
+const congestionCounters = [
+    "congestion_samples",
+    "maximum_sampled_connection_lost_packets",
+    "maximum_sampled_connection_congestion_events",
+    "maximum_sampled_connection_sent_packets",
+];
+const congestionNullable = [
+    "minimum_sampled_rtt_us",
+    "maximum_sampled_rtt_us",
+    "minimum_sampled_cwnd_bytes",
+    "maximum_sampled_cwnd_bytes",
+];
+function validCongestion(value: Record<string, unknown>): boolean {
+    const keys = [...congestionCounters, ...congestionNullable];
+    if (!keys.some((key) => key in value)) return true;
+    if (
+        !keys.every((key) => key in value) ||
+        !counters(value, congestionCounters)
+    )
+        return false;
+    if (value.congestion_samples === 0)
+        return congestionNullable.every((key) => value[key] === null);
+    return (
+        congestionNullable.every((key) => natural(value[key])) &&
+        Number(value.minimum_sampled_rtt_us) <=
+            Number(value.maximum_sampled_rtt_us) &&
+        Number(value.minimum_sampled_cwnd_bytes) <=
+            Number(value.maximum_sampled_cwnd_bytes)
+    );
+}
 function validQuic(value: unknown): boolean {
     return (
-        closed(value, [...quicCounters, ...quicNullable], ["send_buffer"]) &&
+        closed(
+            value,
+            [...quicCounters, ...quicNullable],
+            ["send_buffer", ...congestionCounters, ...congestionNullable],
+        ) &&
+        validCongestion(value) &&
         counters(value, quicCounters) &&
         (!("send_buffer" in value) || validSendBuffer(value.send_buffer)) &&
         quicNullable.every((key) => value[key] === null || natural(value[key]))

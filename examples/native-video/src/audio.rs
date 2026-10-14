@@ -29,6 +29,8 @@ impl AudioCapture {
             }
             command.args([
                 "-re",
+                "-readrate_initial_burst",
+                "0",
                 "-f",
                 "lavfi",
                 "-i",
@@ -54,6 +56,8 @@ impl AudioCapture {
                 "1",
                 "-c:a",
                 "pcm_mulaw",
+                "-flush_packets",
+                "1",
                 "-f",
                 "mulaw",
                 "pipe:1",
@@ -68,12 +72,14 @@ impl AudioCapture {
         let mut output = child.stdout.take().context("Audio capture stdout")?;
         let (tx, frames) = mpsc::channel(2);
         let reader = tokio::spawn(async move {
+            let mut cadence = crate::pacing::capture_cadence(std::time::Duration::from_millis(20));
             loop {
                 let mut frame = [0u8; 160];
                 output
                     .read_exact(&mut frame)
                     .await
                     .context("Audio capture ended")?;
+                cadence.tick().await;
                 if tx.send(frame).await.is_err() {
                     return Ok(());
                 }

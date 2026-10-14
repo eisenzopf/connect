@@ -4,10 +4,13 @@ import { test } from 'node:test';
 import { decodeResponse } from '../typescript/dist/protocol.js';
 import { validMediaDiagnostics } from '../typescript/dist/media_diagnostics.js';
 const fixture=JSON.parse(readFileSync(new URL('../../contracts/fixtures/media-diagnostics-v1.json', import.meta.url),'utf8'));
+const congestion={"congestion_samples": 2, "maximum_sampled_connection_lost_packets": 11, "maximum_sampled_connection_congestion_events": 9, "maximum_sampled_connection_sent_packets": 496, "minimum_sampled_rtt_us": 47000, "maximum_sampled_rtt_us": 54000, "minimum_sampled_cwnd_bytes": 6000, "maximum_sampled_cwnd_bytes": 12000};
 const decode=media=>decodeResponse({profile:'connect-control/1',result:{Ok:{kind:'health',data:{installation_id:'fixture',schema:17,profile:'connect-control/1',readiness:{state:'ready',components:[],media}}}}},'health');
 test('health validates bounded diagnostics without treating bucket percentiles as exact latency',()=>{
     assert.equal(validMediaDiagnostics(fixture),true);
     assert.deepEqual(decode(fixture).data.readiness.media,fixture);
+    const current=structuredClone(fixture);Object.assign(current.quic,congestion);
+    assert.deepEqual(decode(current).data.readiness.media,current);
     const noQuic=structuredClone(fixture);delete noQuic.quic;
     assert.equal(validMediaDiagnostics(noQuic),true);
     delete noQuic.webrtc_video_input;
@@ -31,6 +34,10 @@ test('malformed counters, unbounded samples and extra sensitive diagnostic field
         value=>{value.webrtc_video_input.source_packets=true;},
         value=>{value.webrtc_video_input.payload='private-diagnostic-secret';},
     ]) {const copy=structuredClone(fixture);change(copy);variants.push(copy);}
+    for (const [key,bad] of [['congestion_samples',true],['minimum_sampled_rtt_us',90000],['maximum_sampled_connection_lost_packets',-1],['minimum_sampled_cwnd_bytes',null]]) {
+        const copy=structuredClone(fixture);Object.assign(copy.quic,congestion);copy.quic[key]=bad;variants.push(copy);
+    }
+    const partial=structuredClone(fixture);partial.quic.congestion_samples=1;variants.push(partial);
     for(const value of variants) {
         assert.equal(validMediaDiagnostics(value),false);
         assert.throws(()=>decode(value), error=>error.code==='protocol'&&!error.message.includes('private-diagnostic-secret'));

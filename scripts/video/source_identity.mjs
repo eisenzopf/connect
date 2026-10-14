@@ -21,5 +21,5 @@ export function sourceIdentityReport(counts,expectedId,allowMutedBlack=false) {
         unclassified_frames:counts.unclassified??0,full_white_pulse_frames:counts.pulse??0,
         black_frames:counts.black??0,muted_black_permitted:allowMutedBlack,
         recognized_source_counts:Object.fromEntries([0,1,2,3].map(id=>[String(id),counts[String(id)]??0])),
-        method:"independent decoded 8×8 pixels: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"};
+        method:"independent decoded 8×8 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"};
 }

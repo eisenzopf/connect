@@ -70,6 +70,13 @@ camera/microphone muting. Capture, signaling failure and hangup release owned
 tracks. The configured accepted video route admits only its current members;
 ordinary audio routes keep their original exact-credential policy.
 
+The strict VP8 browser profile may negotiate RFC 4588 retransmission (RTX) on
+this hop, using a separate authenticated, replay-protected SSRC and an explicit
+payload-type association. Transport feedback observes the wire receipt before
+the receiver restores the original sequence number, primary SSRC and payload
+type. Forwarded media remains ordinary VP8 RTP, with native payload type 96;
+RTX adds no public Connect stream or native wire format.
+
 A video `MediaFrame` is validated and rewritten at an RTP hop boundary. Source
 extensions and CSRCs are removed; negotiated payload type and the destination
 SSRC replace hop-specific fields. Native source sequence and RTP marker are retained. Oversized browser VP8
@@ -184,6 +191,30 @@ remain unobservable through this API (`evictions_observed` and
 await beyond its owned pump; congestion may produce bounded local enqueue/loss
 rather than invisible unbounded buffering. The actual decoded envelopes remain
 required to qualify the resulting loss/recovery behavior.
+
+The encoded-video transport helper also selects a 64-packet QUIC loss-detection
+reordering threshold and a four-RTT time threshold, with Quinn’s BBR congestion controller and the recorded bandwidth-sample
+eligibility and startup window-bound corrections. Its delivery-rate/RTT model, loss recovery, packet
+conservation and inflight limits remain active. Quinn separately paces packets
+from congestion window and smoothed RTT; BBR’s reported model-rate diagnostic
+is not a direct pacer setting. PTO recovery, the shared
+byte buffer and application queue/age bounds remain in place. This opt-in applies to the entire Connect physical QUIC connection,
+including reliable control and audio-only traffic; it can change retransmission
+timing. It does not change authorization checks or application operation deadlines.
+The unchanged media loss/jitter and decoded-recovery profile still requires actual
+qualification, together with control and revocation regressions.
+
+`quic.congestion_samples` counts media-send snapshots of Quinn path state.
+`minimum_sampled_rtt_us` / `maximum_sampled_rtt_us` and the corresponding
+`minimum_sampled_cwnd_bytes` / `maximum_sampled_cwnd_bytes` are sampled extrema.
+`maximum_sampled_connection_lost_packets`,
+`maximum_sampled_connection_congestion_events`, and
+`maximum_sampled_connection_sent_packets` retain the largest cumulative value
+observed on any sampled physical connection. They are not sums across peers,
+network loss rates, exact lifetime totals, or measured send-buffer evictions.
+Quinn's declared packet loss may include reordering mistaken for loss; it is
+separate from the impairment proxy's exact drop/forward counters. Older payloads
+omit these additive fields, which deserialize to zero samples and absent ranges.
 
 An opt-in upstream host admission callback checks current authority before any
 server PeerConnection/UDP media allocation on a new WebSocket offer. Connect

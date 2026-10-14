@@ -26,6 +26,8 @@ export interface VideoDiagnostics {
     /** Bounded owned-worker metadata; absent if the 250ms snapshot is unavailable. */
     worker?: VideoWorkerDiagnostics;
     /** Selected ICE ports for local path diagnosis; no addresses or credentials. */
+    /** Current observation source; transport fallback never caches a previous pair. */
+    selectedCandidatePairSource?: "stats" | "ice-transport";
     selectedRemotePort?: number;
     selectedLocalPort?: number;
     selectedTransport?: "udp" | "tcp";

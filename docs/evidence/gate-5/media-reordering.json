@@ -1,0 +1,44 @@
+{
+  "updated": "2026-10-14",
+  "status": "implemented-fresh-preparation-verified-tests-pending",
+  "whole_gate_qualified": false,
+  "source_revision_before_changes": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "scope": "Local generated media, no provider operations or publication",
+  "recorded_patches": [
+    {
+      "path": "patches/rvoip/quic-video-egress-reorder.patch",
+      "sha256": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+      "source": "Reorder bounded native VP8 source packets before variable-width peer-budget sequence expansion; preserve original capture age, genuine loss gaps, idle deadlines and current speaker-generation delivery admission. Add numeric video/audio reorder diagnostic stages."
+    },
+    {
+      "path": "patches/rvoip/webrtc-audio-ingress-reorder.patch",
+      "sha256": "643fa9e066cdc2160d74731e46bcbf846fe80b6fec44376daa750327375e14cc",
+      "source": "Reorder bounded WebRTC audio RTP before stripping source sequence information, preserving original capture timestamps and genuine loss gaps; late or duplicate packets cannot be mistaken for a source-clock handoff. Ten packets, 100ms gap wait, 200ms total local age bound."
+    }
+  ],
+  "source_lock_sha256": "70bb6353c5af9fa0aa73026e0b39e22e0ba9733068b76728ae7fbc42b4b23501",
+  "findings": [
+    {
+      "component": "QUIC destination VP8 budget adaptation",
+      "failure": "Unknown reordered RTP packets were discarded before the variable-width sequence mapper. Fragmented moving keyframes rarely completed under the seeded 3% loss / 0\u2013100ms jitter profile.",
+      "change": "Bounded packet reordering before expansion; 64 pending packets, 100ms gap wait, idle timer, original capture times and delivery-ticket validation. Genuine missing source sequences remain missing."
+    },
+    {
+      "component": "WebRTC audio ingress",
+      "failure": "Stripping RTP sequence information on arrival made reordered audio timestamps appear to the outbound writer as source-clock resets, stretching the timeline.",
+      "change": "Reorder at most ten packets before stripping sequence metadata; retain original capture times, expire gaps after 100ms and preserve genuine source timestamp gaps. Late or duplicate packets cannot reset the clock; local retained age stays bounded at 200ms."
+    }
+  ],
+  "fresh_dependency_preparation": {
+    "status": "passed",
+    "modified_files_matched": 65,
+    "command": "python3 scripts/prepare-dependencies.py --destination .local/gate5/deps-reorder-final --cache .deps",
+    "private_log": ".local/gate5/deps-reorder-final-prepare.log",
+    "follow_up": "Fresh sources replaced .deps only after matching every expected modified file; prior sources preserved. Standard prepare-dependencies verification passed."
+  },
+  "required_follow_up": [
+    "Targeted upstream regressions and combined build",
+    "Actual clean, impaired and mute route profiles on the new graph",
+    "Full source and installed candidate qualification"
+  ]
+}

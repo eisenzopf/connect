@@ -1,0 +1,108 @@
+{
+  "profile": "connect-gate5-session-interface-source-evidence/1",
+  "recorded_at": "2026-10-14T09:44:38.317782+00:00",
+  "task_ids": [
+    "G5-036"
+  ],
+  "status": "passed-source-audio-video-session-control-parity; installed and full candidate qualification separate",
+  "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "worktree_changes": true,
+  "platform": "local macOS arm64",
+  "scope": "Public control methods and durable outcomes for audio+video Sessions across eight entry points: Rust native client, direct HTTP JSON, JSON CLI, ordinary MCP, Python native helper/HTTP, and TypeScript native helper/HTTP. No decoded media or provider operations.",
+  "source_inputs_sha256": {
+    "crates/connect-server/tests/gate5_session_interface_parity.rs": "504c46e74c65f6e70e1c2a3e65f319c5f68c9f358f0b11d9e496812502218978",
+    "crates/connect-server/tests/support/agent_mcp_fixture.rs": "c2fc9c5bd03c52f7080f4470821a26ee4a5855b4c2531a36de7e6c5319a5ea60",
+    "crates/connect-server/tests/support/agent_mcp_client.rs": "a7f1e8b28eff650acf0a85913e96e89bc1be0c4aa0043c79140ee69e189c20db",
+    "sdk/tests/session_probe.py": "2e86f4851fc52acf455ba60efc864a31bb7c34dce985d7141b48c49f6f6fa1e3",
+    "sdk/tests/session_probe.mjs": "1256c9c83d209a9c4aeb6cb470c5102778e1181483570c7d23976062b4c527af",
+    "sdk/python/connect_sdk/operations.py": "f54f15ad92def4c7d4d42a9fd4d46322c6609aa6b74bb28616b37744b5af0ae5",
+    "sdk/typescript/src/operations.ts": "49ad3c6181f8ab534ff6a49bbdeec4e31b9094ec707224d4eaeeecdeea53fd8e",
+    "sdk/typescript/dist/operations.js": "23c089fa1257b8e0bce6bc2664100b5fb085f3d92e587ad44c671cfb83e43a4c",
+    "dependencies/source-lock.json": "b6e6301d2320e5960776303857fc7d7cfaf87d115f96902fcc95ac7232130615",
+    "Cargo.lock": "84f7ac268fbb4439b2380dd90957b62096773c26c336f9d1fef3762d7bdb5bfb"
+  },
+  "selected_input_seal": {
+    "files": 381,
+    "before": ".local/gate5/session-interface-parity/inputs-before.json",
+    "before_sha256": "b4701fd50db9036aefab47a27060b672d2f2dc108ff69a32f93513838927eca8",
+    "after": ".local/gate5/session-interface-parity/inputs-after.json",
+    "after_sha256": "b4701fd50db9036aefab47a27060b672d2f2dc108ff69a32f93513838927eca8",
+    "stable": true
+  },
+  "executables": {
+    "source_fixture": {
+      "path": "target/gate4-final-review/debug/deps/gate5_session_interface_parity-4a207b54f001d918",
+      "sha256": "7a925d38645fec07675ad9695b01b36075d6abe61631d4f2411f887d1805e09a",
+      "scope": "Embedded selected source server; not installed runtime proof"
+    },
+    "native_helper_and_cli": {
+      "path": "target/gate4-final-review/debug/connect",
+      "sha256": "eaf077c1deaecbcd8429a2e2f4b948d0eedd7b26b88476c540d021ecd12cab14",
+      "features": "all features; test-support source fixture; no installed/default claim"
+    }
+  },
+  "checks": [
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "result": "passed",
+      "raw_log": ".local/gate5/session-interface-parity/prepare.log",
+      "log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=target/gate4-final-review CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-server --all-features --test gate5_session_interface_parity -- --nocapture --test-threads=1",
+      "result": "passed",
+      "tests": 1,
+      "failed": 0,
+      "ignored": 0,
+      "raw_log": ".local/gate5/session-interface-parity/test-attempt-2.log",
+      "log_sha256": "a08663ee29960a4e77344bed64af5e7e6010dccf28732ba265b8fa6aea6ae6be"
+    },
+    {
+      "command": "python3 -m py_compile sdk/tests/session_probe.py; node --check sdk/tests/session_probe.mjs",
+      "result": "passed; syntax only"
+    },
+    {
+      "command": "bash scripts/format.sh; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "verified_behavior": [
+    "19 initial exact rows cover AV invite, accept, get, end, reject and cancel with media/state/reason checks, immutable replay after terminal state, wrong-actor and cross-conversation denial, and same-ID different-payload conflict. Those same rows replay through every named public interface.",
+    "Both Python and TypeScript originate one AV lifecycle through native helper and one through HTTP, yielding eight required rows per language. Exact opposite-transport replay, Rust/CLI/MCP/direct-HTTP comparison, and TypeScript replay of Python rows verify real SDK writes.",
+    "35 total rows include 26 successful historical outcomes. Revoke both original credentials, issue current replacement credentials with no recipient authority, and assert all26 historical outcomes/reads are forbidden through every named public interface. The replacement credentials remain valid identities; no receipt bypasses current resource authority.",
+    "Credentials enter SDK probes by stdin and stay out of argv; actual helper diagnostic output and all child stdout/stderr are checked for credential leakage.",
+    "No optional task or provider authority is granted; ordinary communication scopes admit the controls."
+  ],
+  "not_run": [
+    "Installed-package server/helper/SDK parity (separate lane)",
+    "Decoded audio/video, camera/screen, resource and timing qualification",
+    "Complete stable-source strict regression and final candidate/owner review",
+    "Provider/carrier operations and publication"
+  ],
+  "whole_gate_qualified": false,
+  "published": false,
+  "retained_failed_attempt": {
+    "raw_log": ".local/gate5/session-interface-parity/test-attempt-1.log",
+    "log_sha256": "d553c2d2bb5abe5549309b0e8cbdf49962b39ba164edeab984a2ab4cab68ac10",
+    "inputs": ".local/gate5/session-interface-parity/inputs-attempt-1.json",
+    "inputs_sha256": "aa39b3a8e2da4d86a5dcb8cf79698883be89679cbdc37f97c0008c893a8b5044",
+    "cause": "New fixture attempted to overwrite original protected configuration with replacement credentials. private_write correctly refused; use distinct replacement files. Positive interface and SDK-origin checks had completed, but this failed attempt is not a pass."
+  },
+  "interface_count": 8,
+  "interfaces": [
+    "Rust native client",
+    "Direct HTTP JSON",
+    "JSON CLI",
+    "Ordinary MCP",
+    "Python native helper",
+    "Python HTTP",
+    "TypeScript native helper",
+    "TypeScript HTTP"
+  ],
+  "post_execution_label_correction": {
+    "change": "Renamed test function from all_seven_public_interfaces to eight_public_entry_points; no assertion, input, operation or product source changed. Earlier test execution/input seal remains exact and unmodified.",
+    "tested_test_source_sha256": "504c46e74c65f6e70e1c2a3e65f319c5f68c9f358f0b11d9e496812502218978",
+    "current_test_source_sha256": "7586a97e30f048d7b4ba9b6b8485a2eb79aa94cac821eda781ce62910a23d387",
+    "rerun": "Final source regression will execute the corrected function name; no focused rerun for label-only correction."
+  }
+}

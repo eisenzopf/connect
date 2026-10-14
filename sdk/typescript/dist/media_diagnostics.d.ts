@@ -47,6 +47,15 @@ export interface MediaForwardObservation {
     handoff_timeouts: number;
 }
 export interface QuicTransmissionObservation {
+    /** Sampled physical connection extrema; cumulative counters are maxima, not sums. */
+    congestion_samples?: number;
+    maximum_sampled_connection_lost_packets?: number;
+    maximum_sampled_connection_congestion_events?: number;
+    maximum_sampled_connection_sent_packets?: number;
+    minimum_sampled_rtt_us?: number | null;
+    maximum_sampled_rtt_us?: number | null;
+    minimum_sampled_cwnd_bytes?: number | null;
+    maximum_sampled_cwnd_bytes?: number | null;
     send_buffer?: QuicSendBufferObservation;
     samples: number;
     min_max_datagram_size_bytes: number | null;

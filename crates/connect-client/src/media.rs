@@ -72,6 +72,7 @@ impl NativeAudioSession {
             return Err(ClientError::Protocol);
         }
         let frame = MediaFrame {
+            source_clock: None,
             stream_id: self.stream.id(),
             kind: StreamKind::Audio,
             payload: payload.to_vec().into(),

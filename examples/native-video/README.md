@@ -82,8 +82,24 @@ Full-white synchronization pulses are excluded only from source identification,
 while moving-frame and A/V checks remain unchanged. The reliable-file checker
 waits for actual receive-window readiness and records transfer start/end times;
 a clean proof requires the complete transfer inside every receiver's window.
+The codec readers pace buffered output at 30 video frames per second and one
+20 ms audio frame per tick. Missed ticks are skipped, so codec startup or stalls
+cannot turn buffered frames into a burst of future RTP timestamps. Capture
+queues retain their two-frame bound.
+
+All native inputs use a maximum six-frame VP8 GOP (200 ms at 30 fps), retaining
+the 1 Mbps target and existing frame and queue bounds. More frequent independent
+frames shorten the reference chain after packet loss; a received keyframe can
+still be lost, so this source policy does not promise 200 ms receiver recovery.
+Native QUIC uses periodic keyframes rather than negotiated keyframe feedback.
+
 The native participant orders complete received frames and writes them live to IVF
-and PCMU, recording actual arrival and emission times. The automated checker
+and PCMU, recording actual arrival and emission times. Its intended local playout
+hold is capped at 120 ms from receipt; the separate 200 ms stale-frame deadline
+still applies. After a gap in completed RTP sequences, it suppresses dependent
+VP8 interframes until a fresh keyframe rather than feeding a broken reference
+chain into the decoder. The SDK exposes completed sequence ranges without
+changing the existing encoded-frame interface. The automated checker
 independently decodes that retained media with FFmpeg **after the run**. It binds
 each decoded video PTS exactly to the real IVF presentation timestamp and live
 complete-frame journal; skipped decoder inputs are counted, and unknown or

@@ -1,6 +1,7 @@
 """Decoder/audio marker qualification must reject static content and bad skew."""
 import array
 import asyncio
+import contextlib
 import hashlib
 import importlib.util
 import math
@@ -24,6 +25,45 @@ FIXTURE = importlib.util.module_from_spec(FIXTURE_SPEC); FIXTURE_SPEC.loader.exe
 
 
 class MediaMeasurements(unittest.TestCase):
+    def test_decoded_audio_envelope_runs_all_thirteen_adversarial_guards(self):
+        script = pathlib.Path(__file__).with_name('audio_envelope.test.mjs')
+        result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'),
+            '--test', '--test-reporter=tap', str(script)], capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for count in ('# tests 13', '# pass 13', '# fail 0', '# cancelled 0', '# skipped 0'):
+            self.assertIn(count + '\n', result.stdout)
+
+    def test_executable_digest_uses_bounded_reads_and_preserves_exact_sha256(self):
+        import builtins
+        reads = []
+        test = self
+
+        class BoundedReader:
+            def __init__(self, path, mode):
+                self.stream = builtins.open(path, mode)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                self.stream.close()
+
+            def read(self, size=-1):
+                test.assertGreater(size, 0, 'Whole-file reads inflate measured checker RSS')
+                test.assertLessEqual(size, 1024 * 1024, 'Hash buffer must stay bounded')
+                reads.append(size)
+                return self.stream.read(size)
+
+        with tempfile.TemporaryDirectory() as directory:
+            for content in (b'', bytes(range(256)) * 8192 + b'nonaligned-tail'):
+                path = pathlib.Path(directory) / 'executable-input'
+                path.write_bytes(content)
+                reads.clear()
+                with patch.object(pathlib.Path, 'read_bytes', side_effect=AssertionError('Whole-file allocation forbidden')), \
+                        patch.object(pathlib.Path, 'open', lambda path, mode: BoundedReader(path, mode)):
+                    self.assertEqual(MEDIA.digest(path), hashlib.sha256(content).hexdigest())
+                self.assertEqual(len(reads), math.ceil(len(content) / (1024 * 1024)) + 1)
+
     def write_ivf(self, directory, stamps):
         target = pathlib.Path(directory) / 'received.ivf'
         header = b'DKIF\x00\x00\x20\x00VP80' + struct.pack('<HHIIII', 640, 360, 90000, 1, 0, 0)
@@ -35,9 +75,10 @@ class MediaMeasurements(unittest.TestCase):
     def diagnostic_fixture(self):
         return {'scope': 'server-process', 'queue_depth_observation': 'sampled-at-enqueue-and-pump-poll',
             'forwarding_boundary': 'adapter-frame-publication-to-core-destination-queue-handoff',
-            'queues': [{'stage': 'quic-video-egress', 'kind': 'video', 'unit': 'frame-packets',
+            'queues': [{'stage': stage, 'kind': 'video', 'unit': 'frame-packets',
                 'observations': 200, 'capacity_packets': 64, 'sampled_high_water_packets': 8,
-                'max_forwarded_frame_age_ms': 100, 'frame_age_boundary': 'dequeue-before-handoff-or-write'}],
+                'max_forwarded_frame_age_ms': 100, 'frame_age_boundary': 'dequeue-before-handoff-or-write'}
+                for stage in ['quic-video-egress', 'quic-video-reorder']],
             'forwarding': [{'stage': 'core-video-fanout', 'samples': 200, 'p50_us': 127, 'p95_us': 511,
                 'max_us': 400, 'percentile_method': 'log2-bucket-upper-bound'}],
             'quic': {'samples': 200, 'accepted_datagrams': 200, 'video_budget_observations': 200,
@@ -56,12 +97,30 @@ class MediaMeasurements(unittest.TestCase):
         client.update(scope='native-session-handle', queue_depth_observation='sampled-at-sdk-send-receive-and-pump-poll',
             ingress_age_boundary='client-adapter-local-receipt-to-sdk-receive', egress_age_boundary='dequeue-before-handoff-or-write')
         client['queues'] = [dict(client['queues'][0], stage=stage, capacity_packets=capacity, sampled_high_water_packets=1)
-            for stage, capacity in [('quic-audio-ingress', 10), ('quic-audio-egress', 10), ('quic-video-ingress', 64), ('quic-video-egress', 64)]]
+            for stage, capacity in [('quic-audio-ingress', 10), ('quic-audio-egress', 10), ('quic-video-ingress', 64), ('quic-video-egress', 64), ('quic-video-reorder', 64)]]
         client['quic']['send_buffer'] = {'observations': 2, 'capacity_bytes': 76032,
             'minimum_available_bytes': 100, 'maximum_available_bytes': 76032, 'sampled_high_water_bytes': 75932}
         self.assertEqual(MEDIA.native_sdk_diagnostics(client)['status'], 'measured')
         client['queues'].pop()
         self.assertEqual(MEDIA.native_sdk_diagnostics(client)['status'], 'failed')
+
+    def test_quic_reorder_requires_observed_bounded_age_instead_of_inactive_queue_acknowledgment(self):
+        for route in ['native-native', 'native-browser']:
+            snapshot = self.diagnostic_fixture()
+            if route == 'native-browser':
+                snapshot['forwarding'][0]['stage'] = 'core-video-bridge'
+                snapshot['queues'] += [dict(snapshot['queues'][0], stage=stage) for stage in
+                    ['quic-video-ingress', 'webrtc-video-ingress', 'webrtc-video-egress', 'webrtc-video-reorder']]
+            self.assertEqual(MEDIA.forwarding_diagnostics(snapshot, route)['status'], 'measured')
+            snapshot['queues'][1]['max_forwarded_frame_age_ms'] = None
+            missing = MEDIA.forwarding_diagnostics(snapshot, route)
+            self.assertEqual(missing['status'], 'failed')
+            self.assertEqual(missing['required_application_video_age_unobserved_stages'], ['quic-video-reorder'])
+            self.assertNotIn('quic-video-reorder', missing['acknowledged_queue_age_unobserved_stages'])
+            snapshot['queues'][1]['max_forwarded_frame_age_ms'] = 201
+            self.assertEqual(MEDIA.forwarding_diagnostics(snapshot, route)['status'], 'failed')
+            snapshot['queues'][1].update(max_forwarded_frame_age_ms=100, sampled_high_water_packets=65)
+            self.assertEqual(MEDIA.forwarding_diagnostics(snapshot, route)['status'], 'failed')
 
     def test_forwarding_diagnostics_preserve_typed_outcomes_without_invented_drop_targets(self):
         self.assertEqual(MEDIA.forwarding_diagnostics(None, 'native-native')['status'], 'unobserved')
@@ -118,6 +177,29 @@ class MediaMeasurements(unittest.TestCase):
             observed = MEDIA.decode_audio('unused', 440)
         self.assertFalse(observed['identifiable_tone'])
 
+    def test_independent_postprocessing_cpu_cannot_overwrite_frozen_live_operating_samples(self):
+        sampler = MEDIA.ResourceSampler([]); sampler.started = 0
+        row = lambda at, cpu: {'seconds': at, 'rss_bytes': 10, 'cpu_percent': cpu, 'processes': 1}
+        sampler.samples = [row(index / 2, 200) for index in range(20)]
+        with patch.object(MEDIA.time, 'monotonic', return_value=10):
+            live = sampler.freeze_live()
+        self.assertTrue(live['coverage_complete'])
+        sampler.samples += [row(10 + index / 2, 1200) for index in range(4)]
+        with patch.object(MEDIA.time, 'monotonic', return_value=12):
+            after = sampler.postprocessing_report()
+            self.assertIs(sampler.report(), live)
+        self.assertEqual(live['sampled_peak_cpu_percent'], 200)
+        self.assertEqual(live['samples'], 20)
+        self.assertEqual(after['sampled_peak_cpu_percent'], 1200)
+        self.assertEqual(after['samples'], 4)
+        self.assertIn('before independent post-run', live['scope'])
+        self.assertIn('separate independent post-run', after['scope'])
+
+    def test_postprocessing_without_a_prior_live_measurement_freeze_fails_closed(self):
+        sampler = MEDIA.ResourceSampler([]); sampler.started = 0; sampler.samples = []
+        with self.assertRaisesRegex(RuntimeError, 'must be frozen before'):
+            sampler.postprocessing_report()
+
     def test_wrong_tone_cannot_pass_expected_frequency(self):
         values = array.array('f', [.1 * math.sin(2 * math.pi * 660 * i / 8000) for i in range(16000)]).tobytes()
         with patch.object(MEDIA.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, values, b'')):
@@ -130,6 +212,35 @@ class MediaMeasurements(unittest.TestCase):
             observed = MEDIA.decode_video('unused', 60)
         self.assertEqual(observed['decoded_frames'], 2)
         self.assertEqual(observed['changing_frames'], 0)
+
+    def test_native_black_identity_requires_actual_camera_setters_and_exact_decoded_time(self):
+        frame = bytearray([100] * 64)
+        for index, value in zip([0, 1, 8, 9], [40, 40, 200, 200]): frame[index] = value
+        pixels = frame + bytes(64) + frame
+        events = [{'kind': 'video', 'muted': True, 'unix_seconds': 10},
+            {'kind': 'video', 'muted': False, 'unix_seconds': 12}]
+        observed = MEDIA.source_identity(pixels, 0, frame_times=[9, 12.2, 13], mute_transitions=events)
+        self.assertEqual(observed['status'], 'passed')
+        self.assertEqual(observed['admitted_muted_black_frames'], 1)
+        for when in [9.999, 12.201, 15]:
+            observed = MEDIA.source_identity(pixels, 0, frame_times=[9, when, 16], mute_transitions=events)
+            self.assertEqual(observed['status'], 'failed')
+            self.assertEqual(observed['unexcepted_black_frames'], 1)
+        for wrong in [1, 2, 3]:
+            self.assertEqual(MEDIA.source_identity(pixels, wrong, frame_times=[9, 11, 13], mute_transitions=events)['status'], 'failed')
+        for absent in [[], events[:1], [dict(events[0], muted=False), events[1]]]:
+            self.assertEqual(MEDIA.source_identity(pixels, 0, frame_times=[9, 11, 13], mute_transitions=absent)['status'], 'failed')
+        with self.assertRaises(ValueError): MEDIA.source_identity(pixels, 0, frame_times=[9, 11])
+
+    def test_failed_marker_calibration_preserves_bounded_numeric_edges_without_changing_verdict(self):
+        video = [index * .13 for index in range(20)]; audio = [index * .17 for index in range(30)]
+        observed = MEDIA.decoder.markers.ordinal_sync(video, audio, 20)
+        self.assertEqual(observed['status'], 'failed')
+        self.assertEqual(observed['video_edge_seconds'], video)
+        self.assertEqual(observed['audio_edge_seconds'], audio)
+        excessive = MEDIA.decoder.markers.ordinal_sync(list(range(513)), audio, 20)
+        self.assertEqual(excessive['status'], 'failed')
+        self.assertEqual(excessive['video_edge_seconds'], [])
 
     def test_independent_visual_identity_rejects_video_only_swap_loopback_unknown_and_white(self):
         def frame(identity):
@@ -289,6 +400,21 @@ class MediaMeasurements(unittest.TestCase):
             self.assertLess(tone['rms'], .001)
             self.assertEqual(tone['frequency_hz'], 0)
 
+    def test_actual_dark_boundary_marker_rejects_blended_unknown_without_lowering_identity_threshold(self):
+        # Actual failed decoded cells near a dark moving background blended the
+        # fourth high cell down to154. Strict classification must still reject
+        # these values; the sampler must read the marker interior instead.
+        contaminated = bytearray([80] * 64)
+        for at, value in zip([0, 1, 8, 9], [189, 55, 55, 154]): contaminated[at] = value
+        self.assertEqual(MEDIA.source_identity(contaminated, 1)['status'], 'failed')
+        centres = bytearray([80] * 64)
+        for at, value in zip([0, 1, 8, 9], [200, 40, 40, 200]): centres[at] = value
+        self.assertEqual(MEDIA.source_identity(centres, 1)['status'], 'passed')
+        for wrong in [0, 2, 3]: self.assertEqual(MEDIA.source_identity(centres, wrong)['status'], 'failed')
+        for value in [100, 154, 231]:
+            unclassified = centres.copy(); unclassified[9] = value
+            self.assertEqual(MEDIA.source_identity(unclassified, 1)['status'], 'failed')
+
     def audio_content_fixture(self):
         return {'window_start_unix_seconds': 0, 'window_end_unix_seconds': 20,
             'samples': [{'unix_seconds': index / 10, 'rms': .05, 'frequency_hz': 660} for index in range(201)]}
@@ -347,6 +473,88 @@ class MediaMeasurements(unittest.TestCase):
             input=json.dumps(rows), text=True, capture_output=True, check=True)
         for row, browser in zip(rows, json.loads(result.stdout)):
             self.assertEqual(browser, observe(row['content'], 660, row['mode'], row.get('events', []), row.get('bursts', [])))
+
+    def test_audio_burst_recovery_waits_for_delayed_attenuation_and_retains_samples(self):
+        observe = MEDIA.decoder.audio_observer.audio_observation
+        content = self.audio_content_fixture()
+        bursts = [{'start_unix_seconds': 5, 'end_unix_seconds': 5.25},
+            {'start_unix_seconds': 12, 'end_unix_seconds': 12.25}]
+        # The retained failed run's two actual post-burst timing/RMS patterns;
+        # shifted into a synthetic window, without claiming runtime rescue.
+        firsts = [5.25 + .003963947296142578, 12.25 + .001463890075683594]
+        lows = [5.25 + .10386395454406738, 12.25 + .10076403617858887]
+        returns = [5.25 + .2010641098022461, 12.25 + .20176410675048828]
+        for index, first, low, resumed, rms in zip([53, 123], firsts, lows, returns, [.00053704287, .000322908426]):
+            content['samples'][index]['unix_seconds'] = first
+            content['samples'][index + 1].update(unix_seconds=low, rms=rms, frequency_hz=0)
+            content['samples'][index + 2]['unix_seconds'] = resumed
+        result = observe(content, 660, 'impairment', bursts=bursts)
+        self.assertEqual(result['status'], 'passed')
+        self.assertEqual(result['observed_bad_samples'], 2)
+        self.assertEqual(result['excepted_attenuation_samples'], 2)
+        self.assertEqual(result['bad_unexcepted_samples'], 0)
+        for check, first, low, stable in zip(result['observed_exceptions'], firsts, lows, returns):
+            self.assertEqual(check['first_identified_after_burst_unix_seconds'], first)
+            self.assertEqual(check['last_attenuation_unix_seconds'], low)
+            self.assertEqual(check['observed_identified_recovery_unix_seconds'], stable)
+            self.assertGreaterEqual(check['identified_continuation_witness_unix_seconds'], stable + .2)
+            self.assertEqual(check['attenuated_samples'][0]['unix_seconds'], low)
+
+    def stable_audio_recovery_cases(self):
+        import copy
+        base = self.audio_content_fixture()
+        bursts = [{'start_unix_seconds': 5, 'end_unix_seconds': 5.2}]
+        rows = []
+        def case(name, changes=(), expected='failed', mode='impairment', selected=bursts):
+            content = copy.deepcopy(base)
+            for at, rms, hz in changes: content['samples'][round(at * 10)].update(rms=rms, frequency_hz=hz)
+            row = {'name': name, 'content': content, 'bursts': selected, 'mode': mode, 'expected': expected}
+            rows.append(row); return row
+        case('delayed-attenuation', [(5.4, 0, 0)], 'passed')
+        case('wrong-tone-during-burst', [(5.1, .05, 440)])
+        case('wrong-tone-after-first-positive', [(5.4, .05, 440)])
+        case('wrong-tone-before-stable-return', [(5.4, 0, 0), (5.5, .05, 440)])
+        case('late-silence', [(7.3, 0, 0)])
+        case('late-wrong-tone', [(7.3, .05, 440)])
+        case('outside-burst', [(4.9, 0, 0)])
+        case('no-burst', [(5.4, 0, 0)], selected=[])
+        case('clean-silence', [(5.4, 0, 0)], mode='clean')
+        case('negative-rms', [(5.4, -.01, 0)])
+        case('missing-return', [(at / 10, 0, 0) for at in range(52, 73)])
+        case('deadline-return', [(at / 10, 0, 0) for at in range(52, 72)], 'passed')
+        case('overlapping-budgets', selected=bursts + [{'start_unix_seconds': 6, 'end_unix_seconds': 6.2}])
+        row = case('truncated-aftermath'); row['content']['window_end_unix_seconds'] = 6
+        row = case('coverage-gap'); del row['content']['samples'][53:57]
+        row = case('unordered'); row['content']['samples'][54]['unix_seconds'] = 5.3
+        row = case('overflow'); row['content']['samples'] *= 11
+        return rows
+
+    def test_audio_stable_recovery_preserves_identity_deadline_and_coverage_failures(self):
+        observe = MEDIA.decoder.audio_observer.audio_observation
+        for row in self.stable_audio_recovery_cases():
+            with self.subTest(row['name']):
+                result = observe(row['content'], 660, row['mode'], bursts=row['bursts'])
+                self.assertEqual(result['status'], row['expected'])
+        for field in ['rms', 'frequency_hz']:
+            content = self.audio_content_fixture(); content['samples'][54][field] = math.nan
+            self.assertEqual(observe(content, 660, 'impairment', bursts=[
+                {'start_unix_seconds': 5, 'end_unix_seconds': 5.2}])['status'], 'failed')
+
+    def test_audio_stable_recovery_matches_browser_for_all_adversarial_cases(self):
+        observe = MEDIA.decoder.audio_observer.audio_observation
+        rows = self.stable_audio_recovery_cases()
+        module = (pathlib.Path(__file__).parents[1] / 'video/audio_observation.mjs').resolve().as_uri()
+        code = """import{audioObservation}from MODULE;let text='';for await(const chunk of process.stdin)text+=chunk;
+            console.log(JSON.stringify(JSON.parse(text).map(row=>audioObservation(row.content,660,row.mode,[],row.bursts))));""".replace('MODULE', json.dumps(module))
+        result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'), '--input-type=module', '-e', code],
+            input=json.dumps(rows), text=True, capture_output=True, check=True)
+        actual = json.loads(result.stdout)
+        self.assertEqual(len(actual), len(rows))
+        for row, browser in zip(rows, actual):
+            with self.subTest(row['name']):
+                host = observe(row['content'], 660, row['mode'], bursts=row['bursts'])
+                self.assertEqual(browser, host)
+                self.assertEqual(browser['status'], row['expected'])
 
     def marker_fixture(self, skew):
         seconds = 12
@@ -497,8 +705,50 @@ class MediaMeasurements(unittest.TestCase):
         content, transitions = self.mute_fixture()
         self.assertEqual(MEDIA.mute_observation(content, transitions[:2], 440)['status'], 'failed')
 
+    def test_mute_freshness_is_separate_from_clean60_fps_and_rejects_frozen_stale_content(self):
+        content, transitions = self.mute_fixture()
+        content['changing_times'] = [index / 10 for index in range(1, 200) if not 6 <= index / 10 < 8]
+        observed = MEDIA.mute_observation(content, transitions, 440)
+        self.assertEqual(observed['status'], 'passed')
+        self.assertLess(observed['unmuted_changing_video_fps'], 24)
+        self.assertEqual(observed['limits']['clean_60_seconds_changing_video_fps'], 24)
+        for excluded in [(10.5, 11.9), (13, 16), (0, 20)]:
+            copied = dict(content, changing_times=[at for at in content['changing_times'] if not excluded[0] <= at < excluded[1]])
+            self.assertEqual(MEDIA.mute_observation(copied, transitions, 440)['status'], 'failed')
+        bad = dict(content, audio_samples=[dict(row, frequency_hz=660) for row in content['audio_samples']])
+        self.assertEqual(MEDIA.mute_observation(bad, transitions, 440)['status'], 'failed')
+
 
 class DatagramProxy(unittest.IsolatedAsyncioTestCase):
+    async def test_signaling_proxy_preserves_authentication_and_negotiated_protocol(self):
+        for value in ['', 'rvoip.webrtc.v1', 'rvoip.webrtc.v1, token.ok\r\nInjected: yes',
+                      'rvoip.webrtc.v1, token.ok, token.other']:
+            with self.assertRaises(ValueError): RTC.signaling_protocols({'sec-websocket-protocol': value})
+        seen = asyncio.get_running_loop().create_future()
+        async def selected_server(reader, writer):
+            request = await reader.readuntil(b'\r\n\r\n')
+            seen.set_result(b'Sec-WebSocket-Protocol: rvoip.webrtc.v1, token.private-fixture\r\n' in request)
+            writer.write(b'HTTP/1.1 101 Switching Protocols\r\nSec-WebSocket-Protocol: rvoip.webrtc.v1\r\n\r\n')
+            await writer.drain()
+            await reader.read()
+            writer.close(); await writer.wait_closed()
+        server = await asyncio.start_server(selected_server, '127.0.0.1', 0)
+        try:
+            port = server.sockets[0].getsockname()[1]
+            async with RTC.WebRtcImpairment(f'ws://127.0.0.1:{port}', 100, MEDIA.DatagramImpairment, 4) as proxy:
+                reader, writer = await asyncio.open_connection('127.0.0.1', proxy.server.sockets[0].getsockname()[1])
+                writer.write(b'GET / HTTP/1.1\r\nSec-WebSocket-Key: Zml4dHVyZQ==\r\n'
+                    b'Sec-WebSocket-Protocol: rvoip.webrtc.v1, token.private-fixture\r\n\r\n')
+                await writer.drain()
+                response = await asyncio.wait_for(reader.readuntil(b'\r\n\r\n'), 2)
+                self.assertTrue(await seen)
+                self.assertIn(b'Sec-WebSocket-Protocol: rvoip.webrtc.v1\r\n', response)
+                self.assertNotIn(b'private-fixture', response)
+                writer.close(); await writer.wait_closed()
+                self.assertNotIn('private-fixture', json.dumps(proxy.report()))
+        finally:
+            server.close(); await server.wait_closed()
+
     def selected_fixture(self, ports):
         from types import SimpleNamespace
         relay = RTC.WebRtcImpairment('ws://127.0.0.1:3000', 100, MEDIA.DatagramImpairment, 4)
@@ -592,6 +842,208 @@ class SelectedModuleInputs(unittest.TestCase):
             self.assertEqual(before[str(manifest)], after[str(manifest)])
             with self.assertRaisesRegex(ValueError, 'module entry file'):
                 driver.playwright_inputs(directory)
+
+
+class PeerFailureTelemetryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_packet_diagnostics_preserve_seeded_loss_and_never_export_payload(self):
+        from time import monotonic, time
+        class Sink:
+            def __init__(self): self.payloads = []
+            def sendto(self, data, destination): self.payloads.append(data)
+        observed_type = RTC.diagnostic_datagram_class(MEDIA.DatagramImpairment)
+        plain = MEDIA.DatagramImpairment(('127.0.0.1', 9), seed=515, maximum_delay=0)
+        observed = observed_type(('127.0.0.1', 9), seed=515, maximum_delay=0)
+        for relay in (plain, observed):
+            relay.start = monotonic(); relay.start_unix = time()
+        sinks = [Sink(), Sink()]
+        secret = b'private-fixture-credential-and-payload'
+        packets = [b'\x00\x01\x00\x00\x21\x12\xa4\x42' + b'\0' * 12 + secret,
+                   b'\x16\xfe\xfd' + b'\0' * 10 + secret,
+                   b'\x80\x60' + b'\0' * 10 + secret, b'other-' + secret]
+        self.assertEqual([RTC.packet_class(p) for p in packets], ['stun', 'dtls', 'rtp_or_rtcp', 'other'])
+        self.assertEqual(RTC.packet_class(b'\x16'), 'other')
+        for index in range(240):
+            for relay, sink in zip((plain, observed), sinks):
+                relay.schedule(packets[index % 4], 'to_server', sink, ('127.0.0.1', 9))
+        await asyncio.sleep(.01)
+        self.assertEqual(sinks[0].payloads, sinks[1].payloads)
+        for key in ('received', 'dropped', 'random_dropped', 'forwarded', 'random_drop_decisions'):
+            self.assertEqual(plain.counters['to_server'].get(key), observed.counters['to_server'].get(key))
+        report = observed.report()
+        self.assertEqual(sum(row['received'] for row in report['packet_classes']['to_server'].values()), 240)
+        self.assertEqual(sum(row['random_dropped'] for row in report['packet_classes']['to_server'].values()),
+                         observed.counters['to_server']['random_dropped'])
+        self.assertNotIn(secret.decode(), json.dumps(report))
+        self.assertEqual(observed.pending, 0)
+
+    async def test_peer_failure_report_is_bounded_and_excludes_descriptions_and_error_text(self):
+        helper = pathlib.Path(__file__).parents[1] / 'video/browser_failure.mjs'
+        code = r'''
+import assert from 'node:assert/strict';
+const {installPeerDiagnostics,browserFailure}=await import(process.argv[1]);
+class Peer extends EventTarget {
+ constructor(){super();this.connectionState='new';this.iceConnectionState='new';this.iceGatheringState='new';this.signalingState='stable';this.localDescription=null;this.remoteDescription=null;}
+ getTransceivers(){return [];}
+}
+globalThis.RTCPeerConnection=Peer;
+installPeerDiagnostics();
+const peers=Array.from({length:5},()=>new RTCPeerConnection());
+peers[0].localDescription={sdp:'private-secret-sdp'};
+peers[0].remoteDescription={sdp:'private-secret-credential'};
+peers[0].connectionState='connecting';peers[0].iceConnectionState='checking';
+for(let i=0;i<140;i++)peers[0].dispatchEvent(new Event('connectionstatechange'));
+const result=await browserFailure([{evaluate:async callback=>callback()}],new Error('private-secret-error'));
+assert.equal(result.status,'failed');
+const proof=result.peer_diagnostics[0];assert.equal(proof.omitted_peers,1);assert.equal(proof.peers.length,4);
+assert.equal(proof.peers[0].events.length,128);assert.equal(proof.peers[0].omitted_events,13);
+assert.equal(proof.peers[0].current.ice,'checking');assert.equal(proof.peers[0].current.remote_description_set,true);
+assert(!JSON.stringify(result).includes('private-secret'));
+console.log('bounded peer-state privacy guard passed');
+'''
+        result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'), '--input-type=module',
+            '-e', code, helper.resolve().as_uri()], capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('bounded peer-state privacy guard passed', result.stdout)
+
+
+
+
+class FailureEvidencePreservationTests(unittest.TestCase):
+
+    def test_processing_failure_preserves_measurements_and_cleanup(self):
+        import types
+        spec = importlib.util.spec_from_file_location('failure_preservation_checker', pathlib.Path(__file__).parents[1] / 'check-video-paths.py')
+        CHECK = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(CHECK)
+        for fail_at in ('first-window', 'second-window', 'second-decode', 'participant', 'participant-and-health'):
+            with self.subTest(fail_at=fail_at), tempfile.TemporaryDirectory() as directory, contextlib.ExitStack() as stack:
+                work = pathlib.Path(directory) / 'attempt'
+                closed = []
+                exited = []
+                calls = []
+                args = types.SimpleNamespace(server_binary=pathlib.Path('server'), video_binary=pathlib.Path('video'), seconds=60, impairment=False, mute_recovery=False, ffmpeg='ffmpeg')
+                results = [{'unix_start_seconds': 100, 'elapsed_seconds': 60, 'end_reason': 'deadline' if n == 0 else 'peer-terminal', 'teardown_seconds': 0.2, 'maximum_rtp_bytes': 1180, 'maximum_encoded_frame_bytes': 99, 'assembly': {}, 'playout': {}, 'maximum_codec_emission_hold_ms': 1, 'success': True} for n in range(2)]
+
+                def prepare(work, binary):
+                    state = work / 'state'
+                    state.mkdir()
+                    for name in ('reviews', 'agent'):
+                        (state / (name + '.toml')).write_text('endpoint = "127.0.0.1:1"\n')
+                    return (state, {'reviews': 'r', 'agent': 'a'}, {n: {'endpoint': '127.0.0.1:1'} for n in ('reviews', 'agent')}, 'c', 's', 'ws://test')
+
+                class Server:
+                    process = types.SimpleNamespace(pid=1)
+
+                    def __init__(self, *a, **k):
+                        pass
+
+                    def __enter__(self):
+                        return self
+
+                    def __exit__(self, *a):
+                        exited.append('server')
+
+                class Proxy:
+                    address = ('127.0.0.1', 2)
+
+                    def __init__(self, *a, **k):
+                        pass
+
+                    async def __aenter__(self):
+                        return self
+
+                    async def __aexit__(self, *a):
+                        exited.append('proxy')
+
+                    def report(self):
+                        return {'errors': [], 'stall_bursts': [], 'received_wire_bitrate_bits_per_second': {'to': 123}, 'maximum_one_second_received_wire_bits': {'to': 456}}
+
+                class Participant:
+                    process = types.SimpleNamespace(pid=2)
+
+                    def __init__(self, *a, **k):
+                        self.index = len(calls)
+                        calls.append(self)
+                        self.report = work / ('absent-report-' + str(self.index))
+
+                    async def wait(self, *a):
+                        if fail_at.startswith('participant'):
+                            raise ValueError('private participant error')
+                        return results[self.index]
+
+                    def close(self):
+                        closed.append(self.index)
+
+                class Sampler:
+
+                    def __init__(self, *a):
+                        pass
+
+                    def __enter__(self):
+                        return self
+
+                    def __exit__(self, *a):
+                        exited.append('sampler')
+
+                    def freeze_live(self):
+                        return {'coverage_complete': True, 'sampled_peak_rss_bytes': 1234, 'sampled_peak_cpu_percent': 12}
+
+                async def readiness(*a):
+                    return {}
+
+                async def transfer(*a):
+                    await a[-1]
+                    return {'status': 'passed', 'sha256': 'f' * 64, 'bytes': 1048576}
+
+                def window(p, result, seconds):
+                    if p.index == (0 if fail_at == 'first-window' else 1) and fail_at != 'second-decode':
+                        raise RuntimeError('private error must not be copied')
+                    return (str(p.index), 'audio', {'start_emit_seconds': 0})
+
+                def decode(video, *a):
+                    if video == '1' and fail_at == 'second-decode':
+                        raise ValueError('private decode detail')
+                    return {'motion_content': [], 'changing_fps': 25}
+                def health_request(*a):
+                    if fail_at == 'participant-and-health':
+                        raise TimeoutError('private health error')
+                    return {'readiness': {'media': {'sentinel': 17}}}
+
+                replacements = [(CHECK, 'prepare', prepare), (CHECK, 'Server', Server), (CHECK, 'native_request', health_request), (CHECK, 'concurrent_file', transfer), (CHECK, 'measurement_readiness', readiness), (CHECK.media, 'MediaProcess', Participant), (CHECK.media, 'ResourceSampler', Sampler), (CHECK.media, 'DatagramImpairment', Proxy), (CHECK.media, 'forwarding_diagnostics', lambda *a: {'status': 'measured', 'sentinel': 17}), (CHECK.media, 'select_window', window), (CHECK.media, 'decode_video', decode), (CHECK.media, 'decode_audio', lambda *a: {}), (CHECK.media, 'audiovisual_markers', lambda *a, **k: {'status': 'passed'}), (CHECK.media, 'clock_observation', lambda *a: {}), (CHECK.media, 'native_sdk_diagnostics', lambda *a: {}), (CHECK.media.decoder.motion_observer, 'motion_observation', lambda *a: {})]
+                for obj, name, value in replacements:
+                    stack.enter_context(patch.object(obj, name, value))
+                observed = asyncio.run(CHECK.qualify_path(args, 'native-native', work))
+                self.assertEqual(observed['status'], 'failed')
+                self.assertEqual(observed['resources']['sampled_peak_rss_bytes'], 1234)
+                if fail_at.startswith('participant'):
+                    self.assertEqual(observed['error_class'], 'ValueError')
+                    self.assertEqual(observed['native_partial'], [])
+                    self.assertNotIn('private participant', json.dumps(observed))
+                    self.assertNotIn('private health', json.dumps(observed))
+                    if fail_at == 'participant-and-health':
+                        self.assertEqual(observed['forwarding_diagnostics']['status'], 'unobserved')
+                        self.assertEqual(observed['forwarding_diagnostics']['error_class'], 'TimeoutError')
+                    else:
+                        self.assertEqual(observed['forwarding_diagnostics']['sentinel'], 17)
+                    self.assertEqual(closed, [0, 1])
+                    self.assertIn('server', exited)
+                    self.assertIn('proxy', exited)
+                    self.assertIn('sampler', exited)
+                    self.assertEqual(json.loads((work / 'result.json').read_text()), observed)
+                    continue
+                self.assertEqual(observed['concurrent_reliable_file']['bytes'], 1048576)
+                self.assertEqual(observed['forwarding_diagnostics']['sentinel'], 17)
+                self.assertEqual(observed['network']['received_wire_bitrate_bits_per_second'], {'to': 123})
+                self.assertEqual(observed['paired_termination']['status'], 'passed')
+                self.assertEqual(len(observed['native']), 0 if fail_at == 'first-window' else 1)
+                self.assertNotIn('durable_conversation_preserved', observed)
+                self.assertEqual(closed, [0, 1])
+                self.assertIn('sampler', exited)
+                self.assertIn('server', exited)
+                self.assertIn('proxy', exited)
+                self.assertEqual(json.loads((work / 'result.json').read_text()), observed)
+                self.assertNotIn('private error', json.dumps(observed))
+                self.assertNotIn('private decode', json.dumps(observed))
 
 
 if __name__ == '__main__': unittest.main()

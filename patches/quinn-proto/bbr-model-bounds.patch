@@ -1,0 +1,172 @@
+--- a/src/congestion/bbr/bw_estimation.rs
++++ b/src/congestion/bbr/bw_estimation.rs
+@@ -62,7 +62,9 @@
+         };
+ 
+         let bandwidth = send_rate.min(ack_rate);
+-        if !app_limited && self.max_filter.get() < bandwidth {
++        // BBRv1 4.1.1.5: always admit network-limited samples so the
++        // window can age; app-limited samples qualify when they match or raise it.
++        if !app_limited || bandwidth >= self.max_filter.get() {
+             self.max_filter.update_max(round, bandwidth);
+         }
+     }
+@@ -99,3 +101,68 @@
+         )
+     }
+ }
++
++#[cfg(test)]
++mod connect_bbr_regressions {
++    use super::*;
++    fn sample(
++        est: &mut BandwidthEstimation,
++        start: Instant,
++        tick: u64,
++        bytes: u64,
++        round: u64,
++        limited: bool,
++    ) {
++        let sent = start + Duration::from_millis(tick * 10);
++        est.on_sent(sent, bytes);
++        est.on_ack(
++            sent + Duration::from_millis(50),
++            sent,
++            bytes,
++            round,
++            limited,
++        );
++    }
++    #[test]
++    fn higher_app_limited_samples_establish_and_raise_bandwidth() {
++        let mut est = BandwidthEstimation::default();
++        let now = Instant::now();
++        sample(&mut est, now, 0, 1000, 0, true);
++        sample(&mut est, now, 1, 1000, 1, true);
++        assert_eq!(est.get_estimate(), 100_000);
++        sample(&mut est, now, 2, 2000, 2, true);
++        assert_eq!(est.get_estimate(), 200_000);
++    }
++    #[test]
++    fn lower_app_limited_sample_does_not_age_or_reduce_bandwidth() {
++        let mut est = BandwidthEstimation::default();
++        let now = Instant::now();
++        sample(&mut est, now, 0, 1000, 0, false);
++        sample(&mut est, now, 1, 1000, 1, false);
++        sample(&mut est, now, 2, 100, 100, true);
++        assert_eq!(est.get_estimate(), 100_000);
++    }
++    #[test]
++    fn lower_non_app_limited_samples_age_the_windowed_maximum() {
++        let mut est = BandwidthEstimation::default();
++        let now = Instant::now();
++        sample(&mut est, now, 0, 1000, 0, false);
++        sample(&mut est, now, 1, 1000, 1, false);
++        for round in 2..=12 {
++            sample(&mut est, now, round, 100, round, false);
++        }
++        assert_eq!(est.get_estimate(), 10_000);
++    }
++    #[test]
++    fn equal_app_limited_sample_refreshes_the_maximum_timestamp() {
++        let mut est = BandwidthEstimation::default();
++        let now = Instant::now();
++        sample(&mut est, now, 0, 1000, 0, false);
++        sample(&mut est, now, 1, 1000, 1, false);
++        sample(&mut est, now, 2, 1000, 9, true);
++        sample(&mut est, now, 3, 100, 12, false);
++        assert_eq!(est.get_estimate(), 100_000);
++        sample(&mut est, now, 4, 100, 20, false);
++        assert_eq!(est.get_estimate(), 10_000);
++    }
++}
+--- a/src/congestion/bbr/mod.rs
++++ b/src/congestion/bbr/mod.rs
+@@ -5,13 +5,13 @@
+ use rand::{RngExt, SeedableRng};
+ use rand_pcg::Pcg32;
+ 
+-use crate::congestion::ControllerMetrics;
+ use crate::congestion::bbr::bw_estimation::BandwidthEstimation;
+ use crate::congestion::bbr::min_max::MinMax;
++use crate::congestion::ControllerMetrics;
+ use crate::connection::RttEstimator;
+ use crate::{Duration, Instant};
+ 
+-use super::{BASE_DATAGRAM_SIZE, Controller, ControllerFactory};
++use super::{Controller, ControllerFactory, BASE_DATAGRAM_SIZE};
+ 
+ mod bw_estimation;
+ mod min_max;
+@@ -324,7 +324,7 @@
+         // time.
+         if self.is_at_full_bandwidth {
+             self.cwnd = target_window.min(self.cwnd + bytes_acked);
+-        } else if (self.cwnd_gain < target_window as f32) || (self.acked_bytes < self.init_cwnd) {
++        } else if (self.cwnd < target_window) || (self.acked_bytes < self.init_cwnd) {
+             // If the connection is not yet out of startup phase, do not decrease
+             // the window.
+             self.cwnd += bytes_acked;
+@@ -649,3 +649,62 @@
+ 
+ const PROBE_RTT_BASED_ON_BDP: bool = true;
+ const DRAIN_TO_TARGET: bool = true;
++
++#[cfg(test)]
++mod connect_bbr_regressions {
++    use super::*;
++    #[test]
++    fn startup_at_target_stops_ack_driven_cwnd_growth_after_initial_delivery() {
++        let mut bbr = Bbr::new(Arc::new(BbrConfig::default()), 1200);
++        bbr.acked_bytes = bbr.init_cwnd;
++        let initial = bbr.cwnd;
++        assert_eq!(initial, bbr.get_target_cwnd(bbr.cwnd_gain));
++        for _ in 0..1000 {
++            bbr.calculate_cwnd(1200, 0);
++        }
++        assert_eq!(
++            bbr.cwnd, initial,
++            "startup must compare current cwnd bytes with target bytes"
++        );
++    }
++    #[test]
++    fn startup_below_target_and_initial_delivery_still_allow_growth() {
++        let mut bbr = Bbr::new(Arc::new(BbrConfig::default()), 1200);
++        bbr.acked_bytes = bbr.init_cwnd;
++        bbr.cwnd = bbr.init_cwnd - 1200;
++        bbr.calculate_cwnd(1200, 0);
++        assert_eq!(bbr.cwnd, bbr.init_cwnd);
++        bbr.acked_bytes = bbr.init_cwnd - 1;
++        bbr.calculate_cwnd(1200, 0);
++        assert_eq!(bbr.cwnd, bbr.init_cwnd + 1200);
++        bbr.acked_bytes = bbr.init_cwnd;
++        bbr.calculate_cwnd(1200, 0);
++        assert_eq!(
++            bbr.cwnd,
++            bbr.init_cwnd + 1200,
++            "startup does not shrink an existing excess but must not keep growing it"
++        );
++    }
++    #[test]
++    fn full_pipe_cwnd_remains_bounded_by_current_target() {
++        let mut bbr = Bbr::new(Arc::new(BbrConfig::default()), 1200);
++        bbr.is_at_full_bandwidth = true;
++        bbr.cwnd = bbr.init_cwnd * 4;
++        bbr.calculate_cwnd(1200, 0);
++        assert_eq!(bbr.cwnd, bbr.get_target_cwnd(bbr.cwnd_gain));
++    }
++    #[test]
++    fn application_limited_delivery_establishes_positive_pacing() {
++        let mut bbr = Bbr::new(Arc::new(BbrConfig::default()), 1200);
++        let now = Instant::now();
++        for tick in 0..2 {
++            let sent = now + Duration::from_millis(tick * 10);
++            bbr.max_bandwidth.on_sent(sent, 1200);
++            bbr.max_bandwidth
++                .on_ack(sent + Duration::from_millis(50), sent, 1200, tick, true);
++        }
++        bbr.min_rtt = Duration::from_millis(50);
++        bbr.calculate_pacing_rate();
++        assert!(bbr.pacing_rate > 0);
++    }
++}

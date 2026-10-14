@@ -7,7 +7,7 @@ mod media;
 #[path = "support/native_tasks.rs"]
 mod native_tasks;
 mod support;
-use connect_client::{tasks::*, ConnectClient};
+use connect_client::{tasks::*, ClientError, ConnectClient};
 use connect_protocol::{Operation, Outcome};
 use gate3_support::wire_audio::WireAudioPeer;
 use media::Fixture;
@@ -80,20 +80,19 @@ async fn current_grant_revoke_cancel_and_expiry_close_actual_task_audio_peers() 
             }
             _ => unreachable!(),
         }
-        tokio::time::timeout(Duration::from_secs(6), wire.peer.connection.closed())
+        if cause == "session-end" {
+            tokio::time::timeout(Duration::from_secs(6), async {
+                f.binding(&grant.grant.id, "ended").await;
+                assert!(matches!(
+                    audio.receive(Duration::from_secs(5)).await,
+                    Err(ClientError::MediaEnded)
+                ));
+            })
             .await
             .unwrap();
-        f.binding(&grant.grant.id, "ended").await;
-        assert!(
-            wire.peer
-                .connection
-                .send_datagram(vec![0; 8].into())
-                .is_err(),
-            "{cause}"
-        );
-        if cause == "session-end" {
-            let mut continued = ConnectClient::open(config).await.unwrap();
-            continued.negotiate_task(&f.task.id).await.unwrap();
+            assert!(wire.peer.connection.close_reason().is_none());
+            // Session retirement preserves existing task control authority.
+            let continued = &mut setup;
             let denied = continued
                 .open_native_audio(&f.h.cid, &session.id, &f.h.peer_id)
                 .await;
@@ -113,8 +112,19 @@ async fn current_grant_revoke_cancel_and_expiry_close_actual_task_audio_peers() 
             assert!(
                 matches!(result,TaskOutcome::Tool(TaskToolResult::Completed {outcome,..}) if matches!(*outcome,Outcome::Accepted {..}))
             );
-            continued.close().await;
+            assert!(wire.peer.connection.close_reason().is_none());
         } else {
+            tokio::time::timeout(Duration::from_secs(6), wire.peer.connection.closed())
+                .await
+                .unwrap();
+            f.binding(&grant.grant.id, "ended").await;
+            assert!(
+                wire.peer
+                    .connection
+                    .send_datagram(vec![0; 8].into())
+                    .is_err(),
+                "{cause}"
+            );
             assert!(ConnectClient::open(config).await.is_err(), "{cause}");
             f.h.peer.close_native_audio(&audio).await.unwrap();
         }

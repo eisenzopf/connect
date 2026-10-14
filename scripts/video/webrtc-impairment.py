@@ -47,12 +47,61 @@ def owned_udp_ports(pid):
         if line.startswith('n') for match in [re.search(r':(\d+)(?:->|$)', line)] if match}
 
 
+def signaling_protocols(headers):
+    """Preserve the authenticated public handshake without exporting its token."""
+    value = headers.get('sec-websocket-protocol', '')
+    parts = [part.strip() for part in value.split(',')]
+    if (len(parts) != 2 or parts[0] != 'rvoip.webrtc.v1'
+            or not re.fullmatch(r'token\.[A-Za-z0-9._~-]{1,4096}', parts[1])):
+        raise ValueError('Qualification requires the public authenticated signaling protocols')
+    return ', '.join(parts)
+
+
+def packet_class(data):
+    """Header-only RFC 7983 demultiplexing; never retain payload or identifiers."""
+    if len(data) >= 20 and data[0] < 4 and data[4:8] == b'\x21\x12\xa4\x42': return 'stun'
+    if len(data) >= 13 and 20 <= data[0] <= 63: return 'dtls'
+    if len(data) >= 12 and 128 <= data[0] <= 191: return 'rtp_or_rtcp'
+    return 'other'
+
+
+def diagnostic_datagram_class(base):
+    class ObservedDatagram(base):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.packet_classes = {direction: {kind: {'received': 0, 'random_dropped': 0,
+                'stall_dropped': 0, 'closed_dropped': 0, 'queue_overflow': 0}
+                for kind in ('stun', 'dtls', 'rtp_or_rtcp', 'other')}
+                for direction in ('to_server', 'to_client')}
+
+        def receive(self, data, name):
+            self.packet_classes[name][packet_class(data)]['received'] += 1
+            return super().receive(data, name)
+
+        def schedule(self, data, name, transport, destination, received_at=None):
+            kinds = ('random_dropped', 'stall_dropped', 'closed_dropped', 'queue_overflow')
+            before = {kind: self.counters[name].get(kind, 0) for kind in kinds}
+            super().schedule(data, name, transport, destination, received_at)
+            counts = self.packet_classes[name][packet_class(data)]
+            for kind in kinds:
+                counts[kind] += self.counters[name].get(kind, 0) - before[kind]
+
+        def report(self):
+            result = super().report()
+            result['packet_classes'] = self.packet_classes
+            result['packet_class_scope'] = ('header-only STUN/DTLS/RTP-or-RTCP classification, '
+                'received and synchronous scheduled-drop counts; no decryption, packet contents, '
+                'addresses or claim of receiver arrival; backend/startup overflow remains in aggregate counters')
+            return result
+    return ObservedDatagram
+
+
 class WebRtcImpairment:
     def __init__(self, signaling, server_pid, datagram_class, seconds):
         selected = urlparse(signaling)
         if selected.scheme != 'ws' or selected.hostname != '127.0.0.1' or selected.query or selected.fragment:
             raise ValueError('Select an isolated loopback signaling server')
-        self.selected = selected; self.server_pid = server_pid; self.datagram_class = datagram_class
+        self.selected = selected; self.server_pid = server_pid; self.datagram_class = diagnostic_datagram_class(datagram_class)
         self.seconds = seconds; self.relays = {}; self.connections = set(); self.errors = []; self.tasks = set()
         self.relay_peers = {}; self.peer_count = 0
 
@@ -105,15 +154,22 @@ class WebRtcImpairment:
             rows = request.decode('ascii').split('\r\n')
             headers = {key.lower(): value.strip() for line in rows[1:] if ':' in line for key, value in [line.split(':', 1)]}
             key = headers['sec-websocket-key']
+            protocols = signaling_protocols(headers)
             upstream_reader, upstream_writer = await asyncio.open_connection('127.0.0.1', self.selected.port)
             upstream_key = base64.b64encode(os.urandom(16)).decode()
             upstream_writer.write((f'GET {self.selected.path or "/"} HTTP/1.1\r\nHost: 127.0.0.1:{self.selected.port}\r\n'
                 'Upgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\n'
+                f'Sec-WebSocket-Protocol: {protocols}\r\n'
                 f'Sec-WebSocket-Key: {upstream_key}\r\n\r\n').encode()); await upstream_writer.drain()
             response = await asyncio.wait_for(upstream_reader.readuntil(b'\r\n\r\n'), 5)
             if not response.startswith(b'HTTP/1.1 101 '): raise ValueError('Selected signaling upgrade rejected')
+            response_headers = {key.lower(): value.strip() for line in response.decode('ascii').split('\r\n')[1:]
+                if ':' in line for key, value in [line.split(':', 1)]}
+            if response_headers.get('sec-websocket-protocol') != 'rvoip.webrtc.v1':
+                raise ValueError('Selected signaling server did not negotiate the public protocol')
             accept = base64.b64encode(hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()
             writer.write(('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n'
+                'Sec-WebSocket-Protocol: rvoip.webrtc.v1\r\n'
                 f'Sec-WebSocket-Accept: {accept}\r\n\r\n').encode()); await writer.drain()
             async def pump(source, destination, masked, rewrite):
                 while True:

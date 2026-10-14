@@ -20,6 +20,7 @@ import traceback
 
 from lib.local_process import ROOT, Server
 from lib.qualification_report import environment
+from lib.setup_provider_fixture import provider_setup
 
 
 def digest(path):
@@ -162,16 +163,17 @@ def main():
     work = args.work_root / datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
     work.mkdir(parents=True, mode=0o700)
     inputs = [binary, pathlib.Path(__file__).resolve(), ROOT / 'scripts/lib/local_process.py',
-        ROOT / 'scripts/lib/qualification_report.py']
+        ROOT / 'scripts/lib/qualification_report.py', ROOT / 'scripts/lib/setup_provider_fixture.py']
     hashes = {str(path): digest(path) for path in inputs}
     report = {'status': 'running', 'source_revision': args.source_revision, 'binary_sha256': hashes[str(binary)],
-        'input_sha256': hashes, 'scope': 'disposable local public CLI, no provider/device/model operations',
+        'input_sha256': hashes, 'scope': 'disposable local public CLI and read-only loopback provider fixtures; no live provider/device/model operations',
         'whole_gate_qualified': False, 'native_keychain_qualified': False}
     try:
         cli = PublicCli(binary, dict(environment(), CONNECT_BINARY=str(binary), CONNECT_TEST_BINARY=str(binary)))
         report['first_run'] = first_run(cli, work)
         report['candidate_schema'] = report['first_run']['candidate_schema']
         report['failures'] = failures(cli, work)
+        report['provider_setup'] = provider_setup(cli, work / 'provider-setup')
         report['tested_inputs_stable'] = all(digest(path) == hashes[str(path)] for path in inputs)
         assert report['tested_inputs_stable']
         report['status'] = 'passed'

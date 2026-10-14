@@ -1,5 +1,5 @@
 //! Application-owned, bounded audio/video release before codec/renderer input.
-use connect_client::{NativeAudioFrame, NativeVideoFrame};
+use connect_client::{NativeAudioFrame, NativeVideoFrame, VideoSequenceRange};
 use std::time::{Duration, Instant};
 
 const DELAY: Duration = Duration::from_millis(120);
@@ -58,7 +58,10 @@ impl<T> Track<T> {
         self.queue.push(Queued {
             ticks,
             received,
-            due: source_time + DELAY,
+            // A sender clock jump must not extend this receiver's hold budget.
+            // Keep timestamp ordering, but cap the local release delay from
+            // actual receipt so downstream codec/file work retains headroom.
+            due: (source_time + DELAY).min(received + DELAY),
             frame,
         });
         self.queue.sort_by_key(|item| item.ticks);
@@ -71,9 +74,14 @@ impl<T> Track<T> {
         self.dropped += before - self.queue.len();
     }
     fn next(&self) -> Option<Instant> {
+        // Only the timestamp-ordered head can be released. A later frame can
+        // have an earlier local due time after reordered arrival; waking on
+        // that blocked frame would repeatedly select an already-past timer.
         self.queue
-            .iter()
-            .map(|item| item.due.min(item.received + STALE))
+            .first()
+            .map(|item| item.due)
+            .into_iter()
+            .chain(self.queue.iter().map(|item| item.received + STALE))
             .min()
     }
     fn due(&self, now: Instant) -> Option<Instant> {
@@ -95,7 +103,8 @@ pub enum Ready {
 }
 pub struct Playout {
     audio: Track<NativeAudioFrame>,
-    video: Track<NativeVideoFrame>,
+    video: Track<(NativeVideoFrame, VideoSequenceRange)>,
+    continuity: crate::decode_continuity::DecodeContinuity,
     pub maximum_hold_ms: f64,
     presentation_origin: Option<i64>,
 }
@@ -104,6 +113,7 @@ impl Playout {
         Self {
             audio: Track::new(8000, 10),
             video: Track::new(90000, 8),
+            continuity: crate::decode_continuity::DecodeContinuity::default(),
             maximum_hold_ms: 0.0,
             presentation_origin: None,
         }
@@ -111,8 +121,9 @@ impl Playout {
     pub fn audio(&mut self, frame: NativeAudioFrame, received: Instant) {
         self.audio.push(frame.timestamp_rtp, frame, received);
     }
-    pub fn video(&mut self, frame: NativeVideoFrame, received: Instant) {
-        self.video.push(frame.timestamp_rtp, frame, received);
+    pub fn video(&mut self, frame: NativeVideoFrame, range: VideoSequenceRange, received: Instant) {
+        self.video
+            .push(frame.timestamp_rtp, (frame, range), received);
     }
     pub fn next_deadline(&self) -> Option<Instant> {
         self.audio.next().into_iter().chain(self.video.next()).min()
@@ -132,12 +143,20 @@ impl Playout {
                 }
                 (_, Some(_)) => {
                     let item = self.video.pop();
+                    let (frame, range) = item.frame;
+                    // Losing even a complete VP8 reference frame invalidates
+                    // dependent interframes. Check after timestamp reordering,
+                    // so normal reordered arrival does not look like loss.
+                    if !self.continuity.accept(frame.keyframe, range) {
+                        self.video.dropped += 1;
+                        continue;
+                    }
                     self.maximum_hold_ms = self
                         .maximum_hold_ms
                         .max(now.duration_since(item.received).as_secs_f64() * 1000.0);
                     let base = *self.presentation_origin.get_or_insert(item.ticks);
                     result.push(Ready::Video(
-                        item.frame,
+                        frame,
                         item.received,
                         (item.ticks - base) as u64,
                     ));
@@ -196,6 +215,43 @@ mod tests {
         track.expire(start + STALE);
         assert!(track.queue.is_empty());
         assert_eq!(track.dropped, 100);
+    }
+    #[test]
+    fn future_sender_clock_cannot_extend_the_local_release_delay() {
+        let start = Instant::now();
+        let mut track = Track::new(90000, 8);
+        track.push(0, 1, start);
+        track.push(90000, 2, start + Duration::from_millis(33));
+        assert_eq!(track.pop().frame, 1);
+        assert_eq!(
+            track.next(),
+            Some(start + Duration::from_millis(33) + DELAY)
+        );
+        let now = start + Duration::from_millis(33) + DELAY;
+        track.expire(now);
+        assert!(track.due(now).is_some());
+        assert_eq!(track.pop().frame, 2);
+        assert_eq!(track.dropped, 0);
+    }
+    #[test]
+    fn reordered_due_times_wait_for_the_head_or_an_actual_expiry() {
+        let start = Instant::now();
+        let mut track = Track::new(1000, 8);
+        track.push(0, 0, start);
+        track.push(200, 2, start + Duration::from_millis(10));
+        track.push(100, 1, start + Duration::from_millis(100));
+        assert_eq!(track.pop().frame, 0);
+        // Frame 2 is locally due at 130ms, but frame 1 cannot release until
+        // 220ms. Its expiry at 210ms is the first event that can change state.
+        let now = start + Duration::from_millis(130);
+        assert!(track.due(now).is_none());
+        assert_eq!(track.next(), Some(start + Duration::from_millis(210)));
+        track.expire(start + Duration::from_millis(210));
+        assert_eq!(track.dropped, 1);
+        assert_eq!(track.next(), Some(start + Duration::from_millis(220)));
+        assert!(track.due(start + Duration::from_millis(220)).is_some());
+        assert_eq!(track.pop().frame, 1);
+        assert_eq!(track.next(), None);
     }
     #[test]
     fn audio_and_video_use_same_release_delay_with_distinct_rtp_origins() {

@@ -1,0 +1,654 @@
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/internal.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/internal.rs
+@@ -354,13 +354,17 @@
+     /// * `is_rtx_enabled` - Whether to enable RTX
+     /// * `is_fec_enabled` - Whether to enable FEC
+     pub(crate) fn configure_rtx_and_fec(&mut self, is_rtx_enabled: bool, is_fec_enabled: bool) {
++        let mut changed = false;
+         for encoding in self.send_encodings.iter_mut() {
+-            if !is_rtx_enabled {
+-                encoding.rtp_coding_parameters.rtx = None;
++            if !is_rtx_enabled && encoding.rtp_coding_parameters.rtx.take().is_some() {
++                changed = true;
+             }
+-            if !is_fec_enabled {
+-                encoding.rtp_coding_parameters.fec = None;
++            if !is_fec_enabled && encoding.rtp_coding_parameters.fec.take().is_some() {
++                changed = true;
+             }
++        }
++        if changed {
++            self.last_returned_parameters = None;
+         }
+     }
+ 
+@@ -372,7 +376,9 @@
+     ) {
+         let parameters = self.get_parameters(media_engine).clone();
+ 
+-        for coding in self.track().codings() {
++        // SDP advertises these negotiated encodings. The original track can
++        // have no RTX coding even when negotiation assigned a repair SSRC.
++        for coding in &self.send_encodings {
+             let (codec, match_type) =
+                 codec_parameters_fuzzy_search(&coding.codec, &parameters.rtp_parameters.codecs);
+             if let Some(&ssrc) = coding.rtp_coding_parameters.ssrc.as_ref()
+@@ -526,3 +532,6 @@
+         assert_eq!(dtmf_info.mime_type, MIME_TYPE_TELEPHONE_EVENT);
+     }
+ }
++
++#[cfg(test)]
++mod outbound_rtx_binding_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/internal/outbound_rtx_binding_tests.rs
+@@ -0,0 +1,202 @@
++use super::*;
++use crate::rtp_transceiver::rtp_sender::RTCRtpCodec;
++use crate::rtp_transceiver::rtp_sender::{RTCRtpCodingParameters, RTCRtpRtxParameters};
++use interceptor::{Interceptor, NoopInterceptor, StreamInfo, TaggedPacket, interceptor};
++use std::result::Result;
++use std::sync::{Arc, Mutex};
++
++#[derive(Interceptor)]
++struct Bindings<P: Interceptor> {
++    #[next]
++    inner: P,
++    records: Arc<Mutex<Vec<(bool, StreamInfo)>>>,
++}
++#[interceptor]
++impl<P: Interceptor> Bindings<P> {
++    #[overrides]
++    fn bind_local_stream(&mut self, info: &StreamInfo) {
++        self.records.lock().unwrap().push((true, info.clone()));
++        self.inner.bind_local_stream(info);
++    }
++    #[overrides]
++    fn unbind_local_stream(&mut self, info: &StreamInfo) {
++        self.records.lock().unwrap().push((false, info.clone()));
++        self.inner.unbind_local_stream(info);
++    }
++}
++fn sender<P: Interceptor>() -> RTCRtpSenderInternal<P> {
++    let primary = RTCRtpCodec {
++        mime_type: "video/VP8".into(),
++        clock_rate: 90000,
++        rtcp_feedback: vec![crate::rtp_transceiver::rtp_sender::RTCPFeedback {
++            typ: "nack".into(),
++            parameter: String::new(),
++        }],
++        ..Default::default()
++    };
++    let encoding = RTCRtpEncodingParameters {
++        rtp_coding_parameters: RTCRtpCodingParameters {
++            ssrc: Some(1001),
++            ..Default::default()
++        },
++        codec: primary.clone(),
++        ..Default::default()
++    };
++    let track = MediaStreamTrack::new(
++        "s".into(),
++        "t".into(),
++        "video".into(),
++        RtpCodecKind::Video,
++        vec![encoding.clone()],
++    );
++    let mut negotiated = encoding;
++    negotiated.rtp_coding_parameters.rtx = Some(RTCRtpRtxParameters { ssrc: 2002 });
++    let mut sender =
++        RTCRtpSenderInternal::new(RtpCodecKind::Video, track, vec![], vec![negotiated]);
++    sender.set_codec_preferences(vec![
++        RTCRtpCodecParameters {
++            payload_type: 96,
++            rtp_codec: primary,
++        },
++        RTCRtpCodecParameters {
++            payload_type: 97,
++            rtp_codec: RTCRtpCodec {
++                mime_type: "video/rtx".into(),
++                clock_rate: 90000,
++                sdp_fmtp_line: "apt=96".into(),
++                ..Default::default()
++            },
++        },
++    ]);
++    sender
++}
++fn fixture() -> (
++    RTCRtpSenderInternal<Bindings<NoopInterceptor>>,
++    Bindings<NoopInterceptor>,
++) {
++    (
++        sender(),
++        Bindings {
++            inner: NoopInterceptor::new(),
++            records: Arc::default(),
++        },
++    )
++}
++
++#[test]
++fn outbound_rtx_binding_uses_negotiated_identity_and_symmetric_stop() {
++    let (mut sender, mut chain) = fixture();
++    let media = MediaEngine::default();
++    assert!(
++        sender.track().codings()[0]
++            .rtp_coding_parameters
++            .rtx
++            .is_none()
++    );
++    sender.interceptor_local_streams_op(&media, &mut chain, true);
++    sender.set_sent();
++    sender.stop(&media, &mut chain).unwrap();
++    let records = chain.records.lock().unwrap();
++    assert_eq!(records.len(), 2);
++    assert!(records[0].0);
++    assert!(!records[1].0);
++    assert_eq!(records[0].1, records[1].1);
++    assert_eq!(
++        (
++            records[0].1.ssrc,
++            records[0].1.ssrc_rtx,
++            records[0].1.payload_type_rtx
++        ),
++        (1001, Some(2002), Some(97))
++    );
++}
++#[test]
++fn outbound_rtx_cached_offer_cannot_restore_disabled_negotiated_encoding() {
++    let (mut sender, mut chain) = fixture();
++    let media = MediaEngine::default();
++    assert_eq!(
++        sender.get_parameters(&media).encodings[0]
++            .rtp_coding_parameters
++            .rtx
++            .as_ref()
++            .unwrap()
++            .ssrc,
++        2002
++    );
++    sender.configure_rtx_and_fec(false, false);
++    assert!(
++        sender.get_parameters(&media).encodings[0]
++            .rtp_coding_parameters
++            .rtx
++            .is_none(),
++        "a cached offer must not advertise disabled RTX"
++    );
++    sender.interceptor_local_streams_op(&media, &mut chain, true);
++    sender.set_sent();
++    sender.stop(&media, &mut chain).unwrap();
++    let records = chain.records.lock().unwrap();
++    assert_eq!(records[0].1.ssrc_rtx, None);
++    assert_eq!(records[0].1, records[1].1);
++}
++
++#[test]
++fn outbound_rtx_stop_discards_cached_repairs_before_new_encoding_binds() {
++    use interceptor::{NackResponderBuilder, Packet, Registry};
++    use rtcp::transport_feedbacks::transport_layer_nack::{NackPair, TransportLayerNack};
++    use sansio::Protocol;
++    use std::time::Instant;
++    let mut chain = Registry::new()
++        .with(NackResponderBuilder::new().build())
++        .build();
++    let mut sender = sender();
++    let media = MediaEngine::default();
++    sender.interceptor_local_streams_op(&media, &mut chain, true);
++    let packet = |seq| TaggedPacket {
++        now: Instant::now(),
++        transport: Default::default(),
++        message: Packet::Rtp(rtp::Packet {
++            header: rtp::Header {
++                version: 2,
++                ssrc: 1001,
++                payload_type: 96,
++                sequence_number: seq,
++                ..Default::default()
++            },
++            payload: bytes::Bytes::from_static(&[0x10, 7]),
++        }),
++    };
++    let nack = |seq| TaggedPacket {
++        now: Instant::now(),
++        transport: Default::default(),
++        message: Packet::Rtcp(vec![Box::new(TransportLayerNack {
++            sender_ssrc: 999,
++            media_ssrc: 1001,
++            nacks: vec![NackPair {
++                packet_id: seq,
++                lost_packets: 0,
++            }],
++        })]),
++    };
++    chain.handle_write(packet(11)).unwrap();
++    chain.poll_write().unwrap();
++    chain.handle_read(nack(11)).unwrap();
++    let old = chain.poll_write().unwrap();
++    assert!(matches!(old.message, Packet::Rtp(ref p) if p.header.ssrc == 2002));
++    sender.set_sent();
++    sender.stop(&media, &mut chain).unwrap();
++    chain.handle_read(nack(11)).unwrap();
++    assert!(chain.poll_write().is_none());
++    // A replacement negotiated encoding uses its own repair identity; old history
++    // must not survive the stop/rebind boundary on the same primary SSRC.
++    sender.send_encodings[0].rtp_coding_parameters.rtx = Some(RTCRtpRtxParameters { ssrc: 3003 });
++    sender.last_returned_parameters = None;
++    sender.interceptor_local_streams_op(&media, &mut chain, true);
++    chain.handle_read(nack(11)).unwrap();
++    assert!(chain.poll_write().is_none());
++    chain.handle_write(packet(12)).unwrap();
++    chain.poll_write().unwrap();
++    chain.handle_read(nack(12)).unwrap();
++    assert!(
++        matches!(chain.poll_write().unwrap().message, Packet::Rtp(ref p) if p.header.ssrc == 3003 && p.header.payload_type == 97)
++    );
++}
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -706,3 +706,6 @@
+ 
+ #[cfg(test)]
+ mod track_ready_tests;
++
++#[cfg(test)]
++mod outbound_rtx_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/outbound_rtx_tests.rs
+@@ -0,0 +1,395 @@
++//! Exercise negotiated repair through real loopback ICE/DTLS/SRTP/SRTCP peers.
++use super::*;
++use crate::media_stream::track_local::{TrackLocal, static_rtp::TrackLocalStaticRTP};
++use crate::peer_connection::{
++    PeerConnection, PeerConnectionBuilder, PeerConnectionEventHandler, RTCPeerConnectionState,
++};
++use rtc::interceptor::{Packet, Registry, StreamInfo, TaggedPacket, interceptor};
++use rtc::peer_connection::configuration::{
++    interceptor_registry::{
++        register_default_interceptors, register_default_interceptors_with_sender_clock,
++    },
++    media_engine::MediaEngine,
++};
++use rtc::rtp_transceiver::rtp_sender::{
++    RTCRtpCodec, RTCRtpCodecParameters, RTCRtpCodingParameters, RTCRtpEncodingParameters,
++    RtpCodecKind,
++};
++use rtc::sansio;
++use std::result::Result;
++use std::sync::Mutex;
++use tokio::{sync::mpsc, time::timeout};
++
++#[derive(Interceptor)]
++struct WireProbe<P: Interceptor> {
++    #[next]
++    inner: P,
++    drop_first: bool,
++    received: Arc<Mutex<Vec<rtp::Packet>>>,
++}
++#[interceptor]
++impl<P: Interceptor> WireProbe<P> {
++    #[overrides]
++    fn handle_read(&mut self, msg: TaggedPacket) -> std::result::Result<(), Self::Error> {
++        if let Packet::Rtp(packet) = &msg.message {
++            self.received.lock().unwrap().push(packet.clone());
++        }
++        self.inner.handle_read(msg)
++    }
++    #[overrides]
++    fn poll_write(&mut self) -> Option<Self::Wout> {
++        loop {
++            let msg = self.inner.poll_write()?;
++            if let Packet::Rtp(packet) = &msg.message {
++                if self.drop_first
++                    && packet.header.payload_type == 96
++                    && packet.header.sequence_number == 11
++                {
++                    // Discard only after the real NACK responder cached this packet,
++                    // before SRTP encryption. The repair still traverses encrypted UDP.
++                    self.drop_first = false;
++                    continue;
++                }
++            }
++            if let Packet::Rtp(packet) = &msg.message {
++                self.received.lock().unwrap().push(packet.clone());
++            }
++            return Some(msg);
++        }
++    }
++}
++struct Handler {
++    gather: mpsc::Sender<()>,
++    connected: mpsc::Sender<()>,
++    opened: Option<mpsc::Sender<Arc<dyn TrackRemote>>>,
++}
++#[async_trait::async_trait]
++impl PeerConnectionEventHandler for Handler {
++    async fn on_ice_gathering_state_change(&self, state: RTCIceGatheringState) {
++        if state == RTCIceGatheringState::Complete {
++            let _ = self.gather.try_send(());
++        }
++    }
++    async fn on_connection_state_change(&self, state: RTCPeerConnectionState) {
++        if state == RTCPeerConnectionState::Connected {
++            let _ = self.connected.try_send(());
++        }
++    }
++    async fn on_track(&self, track: Arc<dyn TrackRemote>) {
++        if let Some(tx) = &self.opened {
++            tx.send(track).await.unwrap();
++        }
++    }
++}
++fn media(rtx: bool) -> (MediaEngine, RTCRtpCodecParameters) {
++    let primary = RTCRtpCodecParameters {
++        payload_type: 96,
++        rtp_codec: RTCRtpCodec {
++            mime_type: "video/VP8".into(),
++            clock_rate: 90000,
++            ..Default::default()
++        },
++    };
++    let mut media = MediaEngine::default();
++    media
++        .register_codec(primary.clone(), RtpCodecKind::Video)
++        .unwrap();
++    if rtx {
++        media
++            .register_codec(
++                RTCRtpCodecParameters {
++                    payload_type: 97,
++                    rtp_codec: RTCRtpCodec {
++                        mime_type: "video/rtx".into(),
++                        clock_rate: 90000,
++                        sdp_fmtp_line: "apt=96".into(),
++                        ..Default::default()
++                    },
++                },
++                RtpCodecKind::Video,
++            )
++            .unwrap();
++    }
++    (media, primary)
++}
++async fn exercise<P: Interceptor>(
++    offer_rtx: bool,
++    accept_rtx: bool,
++    configure: impl Fn(&mut MediaEngine) -> Registry<P>,
++) {
++    let rtx = offer_rtx && accept_rtx;
++    let (mut am, codec) = media(offer_rtx);
++    let (mut bm, _) = media(accept_rtx);
++    let raw = Arc::new(Mutex::new(Vec::new()));
++    let outbound = Arc::new(Mutex::new(Vec::new()));
++    let ar = configure(&mut am).with(|inner| WireProbe {
++        inner,
++        drop_first: true,
++        received: outbound.clone(),
++    });
++    let br = configure(&mut bm).with(|inner| WireProbe {
++        inner,
++        drop_first: false,
++        received: raw.clone(),
++    });
++    let (ag, mut agr) = mpsc::channel(1);
++    let (bg, mut bgr) = mpsc::channel(1);
++    let (ac, mut acr) = mpsc::channel(1);
++    let (bc, mut bcr) = mpsc::channel(1);
++    let (opened, mut opened_rx) = mpsc::channel(1);
++    let a = PeerConnectionBuilder::new()
++        .with_media_engine(am)
++        .with_interceptor_registry(ar)
++        .with_handler(Arc::new(Handler {
++            gather: ag,
++            connected: ac,
++            opened: None,
++        }))
++        .with_udp_addrs(vec!["127.0.0.1:0"])
++        .build()
++        .await
++        .unwrap();
++    let b = PeerConnectionBuilder::new()
++        .with_media_engine(bm)
++        .with_interceptor_registry(br)
++        .with_handler(Arc::new(Handler {
++            gather: bg,
++            connected: bc,
++            opened: Some(opened),
++        }))
++        .with_udp_addrs(vec!["127.0.0.1:0"])
++        .build()
++        .await
++        .unwrap();
++    let ssrc = 12345;
++    let local = Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
++        "s".into(),
++        "t".into(),
++        "repair".into(),
++        RtpCodecKind::Video,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: RTCRtpCodingParameters {
++                ssrc: Some(ssrc),
++                ..Default::default()
++            },
++            codec: codec.rtp_codec,
++            ..Default::default()
++        }],
++    )));
++    a.add_track(local.clone()).await.unwrap();
++    a.set_local_description(a.create_offer(None).await.unwrap())
++        .await
++        .unwrap();
++    timeout(Duration::from_secs(3), agr.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    let offer = a.local_description().await.unwrap();
++    let repair_ssrc = offer.sdp.lines().find_map(|line| {
++        line.strip_prefix("a=ssrc-group:FID 12345 ")
++            .and_then(|v| v.trim().parse::<u32>().ok())
++    });
++    assert_eq!(
++        repair_ssrc.is_some(),
++        offer_rtx,
++        "the real offer must negotiate the repair encoding"
++    );
++    if offer_rtx {
++        assert!(offer.sdp.contains("a=fmtp:97 apt=96"));
++    }
++    b.set_remote_description(offer).await.unwrap();
++    b.set_local_description(b.create_answer(None).await.unwrap())
++        .await
++        .unwrap();
++    timeout(Duration::from_secs(3), bgr.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    let answer = b.local_description().await.unwrap();
++    assert_eq!(
++        answer.sdp.contains("a=fmtp:97 apt=96"),
++        rtx,
++        "the actual answer controls whether repair is accepted"
++    );
++    a.set_remote_description(answer).await.unwrap();
++    timeout(Duration::from_secs(5), acr.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    timeout(Duration::from_secs(5), bcr.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    for seq in [10, 11, 12] {
++        local
++            .write_rtp(rtp::Packet {
++                header: rtp::Header {
++                    version: 2,
++                    payload_type: 96,
++                    ssrc,
++                    sequence_number: seq,
++                    timestamp: u32::from(seq) * 3000,
++                    marker: true,
++                    ..Default::default()
++                },
++                payload: bytes::Bytes::from(vec![0x10, seq as u8, 42]),
++            })
++            .await
++            .unwrap();
++    }
++    let track = timeout(Duration::from_secs(3), opened_rx.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    if !rtx {
++        // The generic fallback is also available to applications that issue NACK
++        // explicitly, independently of negotiated automatic repair generation.
++        tokio::time::sleep(Duration::from_millis(50)).await;
++        use rtc::rtcp::transport_feedbacks::transport_layer_nack::{NackPair, TransportLayerNack};
++        track
++            .write_rtcp(vec![Box::new(TransportLayerNack {
++                sender_ssrc: 8888,
++                media_ssrc: ssrc,
++                nacks: vec![NackPair {
++                    packet_id: 11,
++                    lost_packets: 0,
++                }],
++            })])
++            .await
++            .unwrap();
++    }
++    let observed = timeout(Duration::from_secs(3), async {
++        let mut packets = Vec::new();
++        loop {
++            match track.poll().await {
++                Some(TrackRemoteEvent::OnRtpPacket(packet)) => {
++                    packets.push(packet);
++                    if packets.iter().any(|p| p.header.sequence_number == 11) {
++                        break packets;
++                    }
++                }
++                None | Some(TrackRemoteEvent::OnEnded | TrackRemoteEvent::OnError) => {
++                    panic!("track ended before encrypted repair")
++                }
++                _ => {}
++            }
++        }
++    })
++    .await;
++    // Allow any accidental duplicate delivery to become visible, with a bounded drain.
++    let mut packets = observed.unwrap_or_default();
++    let _ = timeout(Duration::from_millis(150), async {
++        loop {
++            match track.poll().await {
++                Some(TrackRemoteEvent::OnRtpPacket(p)) => packets.push(p),
++                None => break,
++                _ => {}
++            }
++        }
++    })
++    .await;
++    timeout(Duration::from_secs(2), a.close())
++        .await
++        .unwrap()
++        .unwrap();
++    timeout(Duration::from_secs(2), b.close())
++        .await
++        .unwrap()
++        .unwrap();
++    let raw = raw.lock().unwrap();
++    let outbound = outbound.lock().unwrap();
++    assert!(
++        outbound.iter().all(|p| p.header.version == 2),
++        "all emitted primary and repair packets must be RTP v2"
++    );
++    let repair: Vec<_> = raw
++        .iter()
++        .filter(|p| {
++            if rtx {
++                p.header.payload_type == 97
++            } else {
++                p.header.sequence_number == 11
++            }
++        })
++        .collect();
++    assert_eq!(
++        repair.len(),
++        1,
++        "one encrypted repair packet; raw headers: {:?}",
++        raw.iter()
++            .map(|p| (
++                p.header.ssrc,
++                p.header.payload_type,
++                p.header.sequence_number
++            ))
++            .collect::<Vec<_>>()
++    );
++    let repair = repair[0];
++    if rtx {
++        assert_eq!(repair.header.ssrc, repair_ssrc.unwrap());
++        assert_ne!(repair.header.ssrc, ssrc);
++        assert_ne!(repair.header.sequence_number, 11);
++        assert_eq!(repair.payload.as_ref(), &[0, 11, 0x10, 11, 42]);
++        assert_eq!(
++            raw.iter()
++                .filter(|p| p.header.ssrc == ssrc && p.header.sequence_number == 11)
++                .count(),
++            0,
++            "repair cannot repeat the primary wire identity"
++        );
++    } else {
++        assert_eq!((repair.header.ssrc, repair.header.payload_type), (ssrc, 96));
++    }
++    assert_eq!(
++        (repair.header.timestamp, repair.header.marker),
++        (33000, true)
++    );
++    let delivered: Vec<_> = packets
++        .iter()
++        .filter(|p| p.header.sequence_number == 11)
++        .collect();
++    assert_eq!(
++        delivered.len(),
++        1,
++        "public receiver must restore the missing primary once"
++    );
++    assert_eq!(
++        (delivered[0].header.ssrc, delivered[0].header.payload_type),
++        (ssrc, 96)
++    );
++    assert_eq!(delivered[0].payload.as_ref(), &[0x10, 11, 42]);
++}
++#[tokio::test]
++async fn outbound_rtx_encrypted_default_registry() {
++    exercise(true, true, |m| {
++        register_default_interceptors(Registry::new(), m).unwrap()
++    })
++    .await;
++}
++#[tokio::test]
++async fn outbound_rtx_encrypted_clock_registry() {
++    exercise(true, true, |m| {
++        register_default_interceptors_with_sender_clock(
++            Registry::new(),
++            m,
++            rtc::interceptor::SenderClockHandle::default(),
++        )
++        .unwrap()
++    })
++    .await;
++}
++#[tokio::test]
++async fn outbound_rtx_encrypted_non_rtx_fallback() {
++    exercise(false, false, |m| {
++        register_default_interceptors(Registry::new(), m).unwrap()
++    })
++    .await;
++}
++
++#[tokio::test]
++async fn outbound_rtx_encrypted_declined_repair_uses_primary_fallback() {
++    exercise(true, false, |m| {
++        register_default_interceptors(Registry::new(), m).unwrap()
++    })
++    .await;
++}

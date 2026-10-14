@@ -54,8 +54,10 @@ def run_plan(steps, report, directory, env, minimum_free_bytes=4 * 1024 ** 3,
                     allowed_ignored=IGNORED | {'isolated_native_keychain', 'native_keychain_child'}
                     | set(EXTERNAL_MEDIA_TESTS) | EXTERNAL_FAILURE_TESTS)
                 expected = {'gate5-driver-tests': 11, 'independent-vector-tests': 6,
-                            'video-measurement-tests': 29, 'grant-boundary-tests': 6,
-                            'native-example-cleanup-guards': 9}.get(result['name'])
+                            'video-measurement-tests': 45, 'grant-boundary-tests': 6,
+                            'native-example-cleanup-guards': 13, 'package-proof-tests': 25,
+                            'prepared-archive-tests': 6,
+                            'connected-app-checker-tests': 3}.get(result['name'])
                 text = (directory / result['log']).read_text(errors='replace')
                 if result['status'] == 'passed' and expected is not None:
                     if re.findall(r'^Ran (\d+) tests? in ', text, re.M) != [str(expected)] or '\nOK\n' not in text or 'skipped=' in text:
@@ -73,7 +75,7 @@ def run_plan(steps, report, directory, env, minimum_free_bytes=4 * 1024 ** 3,
                 if result['status'] == 'passed' and result['name'] == 'typescript-public-media-tests':
                     totals = {name: int(value) for name, value in re.findall(
                         r'^# (tests|pass|fail|cancelled|skipped|todo) (\d+)$', text, re.M)}
-                    if (totals.get('tests', 0) < 203 or totals.get('pass') != totals['tests']
+                    if (totals.get('tests', 0) < 206 or totals.get('pass') != totals['tests']
                             or any(totals.get(name) != 0 for name in ('fail', 'cancelled', 'skipped', 'todo'))):
                         raise ValueError('Public SDK media/lifecycle/authority suites did not all execute')
                     result['typescript_tests'] = totals

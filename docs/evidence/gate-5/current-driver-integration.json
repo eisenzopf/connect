@@ -1,0 +1,659 @@
+{
+  "profile": "gate5-current-driver-integration/1",
+  "updated": "2026-10-14T12:26:02.750538+00:00",
+  "whole_gate_qualified": false,
+  "scope": "source-lane coverage wiring and focused regressions; no full-source or installed qualification",
+  "changes": [
+    "Run public connected-app CLI journey immediately after normal current-binaries build, with a fresh preserved report path per invocation.",
+    "Require 25 package proof guards, 6 prepared archive guards, 3 connected-app cleanup guards and 45 video measurement guards as explicit source phases.",
+    "Require explicit pinned BBR9, receiver-report16, DTLS2, shared A/V identity1, WebRTC video9 and workspace sustained transport5 test counts; upstream audio reorder5 remains covered.",
+    "Require combined recorded clock/RTX graph phases with exact counts: interceptor133, RTC187, sender reports56, clock traits2, route lifetimes5, WebRTC source clocks13 and VP8 repair profile7. The RTC suite includes both ordinary and clock-aware registry RTX/TWCC/RR composition checks."
+  ],
+  "verification": [
+    {
+      "command": "python3 -m unittest discover -s scripts/tests -p 'test_gate5*.py'",
+      "passed": 11,
+      "failed": 0,
+      "scope": "Driver guards rerun after final phase command/count changes; captured tool output confirmed success. No separate log file was saved for this rerun. Full source lane remains pending."
+    }
+  ],
+  "source_sha256": {
+    "scripts/lib/gate5_phases.py": "7c16f178a59f8f63708f238f47c35c4e761710dc863d2fc66b3bbecd257ed7eb",
+    "scripts/check-gate-5.py": "f26b18b6f2ffab01d9a5222155450de1958423bfc1be6a6ef4a980878e737e38",
+    "scripts/tests/test_gate5_driver.py": "a84ea13ada8b428eb3e7e5d9466f6f093d76e6ac1be6769f3e44c1875c45cedf"
+  },
+  "limitations": [
+    "Focused driver guards do not substitute for full source, installed, media, actual-model or independent usability qualification.",
+    "Earlier exact-input records are retained as historical snapshots.",
+    "Combined component suites overlap (report56 is contained in interceptor133); their counts are not a distinct-test total or a decoded media qualification."
+  ],
+  "combined_component_verification": {
+    "status": "passed",
+    "report": ".local/gate5/browser-clock-rtx-composition/proof-20261014T121542.567468Z/result.json",
+    "report_sha256": "6a037f2af5a04d472d248f99f100c44e9c69686bd7ca630d7d9eb2840abc3b25",
+    "source_lock_sha256": "f8b196a81c9ea8a545cf867dd25e2ae8fc60f5260c40aa46e09bd953fe3e7974",
+    "inputs_stable": true,
+    "fresh_compilation_observed": {
+      "rtc-interceptor": true,
+      "rvoip-core-traits": true,
+      "rvoip-core": true,
+      "rvoip-rtc": true,
+      "rvoip-webrtc-stack": true,
+      "rvoip-webrtc": true
+    },
+    "suites": [
+      {
+        "name": "interceptor-all",
+        "passed": 133,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "5adad13e231759d1cf82bf6d826325aa3dad3384efb5797fe75abb92bdcb1876"
+      },
+      {
+        "name": "rtc-all",
+        "passed": 187,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "f2c038167c238808b49a0abf36be182df91cbd2914f0d1649e73b59f46c7fc28"
+      },
+      {
+        "name": "source-clock-reports",
+        "passed": 56,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "e6a2b51c3e34d7d984ab482a31d3b34e738ae2e231d1d726a69f91922ee32c32"
+      },
+      {
+        "name": "source-clock-traits",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "fdac373fd31ccb6992965d9316406f8441b14a5d27e85d2d0a5d5ca738805d83"
+      },
+      {
+        "name": "source-clock-routes",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "0403ceeca58a0b64cac3fa746f102615eda4ef5deda0bdb0e1b3508aa0a3d6e8"
+      },
+      {
+        "name": "source-clock-webrtc",
+        "passed": 13,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "a9a9968b467926266d85fd661736315cec5c6e77ad95ecf622117ceffc7db797"
+      },
+      {
+        "name": "vp8-repair-profile",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "log_sha256": "2a25a39aea3e6797a4de9f09f0f99e88fab9b9894f12938985e5dd33eba8c1cc"
+      }
+    ],
+    "scope": "recorded prepared26 source composition; no decoded-media, whole-source or installed release qualification",
+    "normal_build_and_decoded_media_status": "Fresh normal build passed; decoded media failed3/9, browser startup regression under repair."
+  },
+  "prior_records": [
+    {
+      "profile": "gate5-current-driver-integration/1",
+      "updated": "2026-10-14T09:30:45.810547+00:00",
+      "whole_gate_qualified": false,
+      "scope": "source-lane coverage wiring and focused regressions; no full-source or installed qualification",
+      "changes": [
+        "Run public connected-app CLI journey immediately after normal current-binaries build, with a fresh preserved report path per invocation.",
+        "Run 22 package proof guards and 3 connected-app cleanup guards as explicit source phases.",
+        "Require 5 upstream audio reorder regressions after capacity repair."
+      ],
+      "verification": [
+        {
+          "command": "python3 -m unittest discover -s scripts/tests -p 'test_gate5*.py'",
+          "passed": 11,
+          "failed": 0,
+          "log_sha256": "27d36bf4dd6882f8876738301022dc76d39c1fb8d335f747c93a6667a16cf6db"
+        }
+      ],
+      "source_sha256": {
+        "scripts/lib/gate5_phases.py": "a8d8abb31cff24909f926e10ef73d588e293ecac2e488d880decd21ab3ffe32e",
+        "scripts/check-gate-5.py": "ae70180363a540e231568d4c31d30ed6d8cc2c570de2286f61298ec04d798299",
+        "scripts/tests/test_gate5_driver.py": "a84ea13ada8b428eb3e7e5d9466f6f093d76e6ac1be6769f3e44c1875c45cedf"
+      },
+      "limitations": [
+        "The earlier aggregate204 Python test run predates final driver-only assertion additions and is not an exact final-candidate test seal.",
+        "Full source, installed, media, actual-model and independent usability remain separate."
+      ]
+    },
+    {
+      "profile": "gate5-current-driver-integration/1",
+      "updated": "2026-10-14T11:20:50.850075+00:00",
+      "whole_gate_qualified": false,
+      "scope": "source-lane coverage wiring and focused regressions; no full-source or installed qualification",
+      "changes": [
+        "Run public connected-app CLI journey immediately after normal current-binaries build, with a fresh preserved report path per invocation.",
+        "Require 25 package proof guards, 6 prepared archive guards, 3 connected-app cleanup guards and 45 video measurement guards as explicit source phases.",
+        "Require explicit pinned BBR9, receiver-report16, DTLS2, shared A/V identity1, WebRTC video9 and workspace sustained transport5 test counts; upstream audio reorder5 remains covered."
+      ],
+      "verification": [
+        {
+          "command": "python3 -m unittest discover -s scripts/tests -p 'test_gate5*.py'",
+          "passed": 11,
+          "failed": 0,
+          "log_sha256": "163a7d6957f82305867d11b90fb55fa52dfe49375f63b41e0df19d63d8b67fe4",
+          "scope": "Current driver guards only; named phase counts are requirements, not an assertion those complete lanes were run here."
+        }
+      ],
+      "source_sha256": {
+        "scripts/lib/gate5_phases.py": "f15fc33ebab22a68ff22b8f24e73ce013a2bc00a352096ce15b51a961fc01775",
+        "scripts/check-gate-5.py": "f26b18b6f2ffab01d9a5222155450de1958423bfc1be6a6ef4a980878e737e38",
+        "scripts/tests/test_gate5_driver.py": "a84ea13ada8b428eb3e7e5d9466f6f093d76e6ac1be6769f3e44c1875c45cedf"
+      },
+      "limitations": [
+        "Focused driver guards do not substitute for full source, installed, media, actual-model or independent usability qualification.",
+        "Earlier exact-input records are retained as historical snapshots."
+      ]
+    }
+  ],
+  "graph26_runtime_verification": {
+    "recorded_at": "2026-10-14T12:34:06.005137+00:00",
+    "combined_components": {
+      "status": "passed",
+      "report": ".local/gate5/browser-clock-rtx-composition/proof-20261014T121542.567468Z/result.json",
+      "report_sha256": "6a037f2af5a04d472d248f99f100c44e9c69686bd7ca630d7d9eb2840abc3b25",
+      "source_lock_sha256": "f8b196a81c9ea8a545cf867dd25e2ae8fc60f5260c40aa46e09bd953fe3e7974",
+      "inputs_stable": true,
+      "fresh_compilation_observed": {
+        "rtc-interceptor": true,
+        "rvoip-core-traits": true,
+        "rvoip-core": true,
+        "rvoip-rtc": true,
+        "rvoip-webrtc-stack": true,
+        "rvoip-webrtc": true
+      },
+      "suites": [
+        {
+          "name": "interceptor-all",
+          "passed": 133,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "5adad13e231759d1cf82bf6d826325aa3dad3384efb5797fe75abb92bdcb1876"
+        },
+        {
+          "name": "rtc-all",
+          "passed": 187,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "f2c038167c238808b49a0abf36be182df91cbd2914f0d1649e73b59f46c7fc28"
+        },
+        {
+          "name": "source-clock-reports",
+          "passed": 56,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "e6a2b51c3e34d7d984ab482a31d3b34e738ae2e231d1d726a69f91922ee32c32"
+        },
+        {
+          "name": "source-clock-traits",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "fdac373fd31ccb6992965d9316406f8441b14a5d27e85d2d0a5d5ca738805d83"
+        },
+        {
+          "name": "source-clock-routes",
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "0403ceeca58a0b64cac3fa746f102615eda4ef5deda0bdb0e1b3508aa0a3d6e8"
+        },
+        {
+          "name": "source-clock-webrtc",
+          "passed": 13,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "a9a9968b467926266d85fd661736315cec5c6e77ad95ecf622117ceffc7db797"
+        },
+        {
+          "name": "vp8-repair-profile",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "log_sha256": "2a25a39aea3e6797a4de9f09f0f99e88fab9b9894f12938985e5dd33eba8c1cc"
+        }
+      ],
+      "scope": "recorded prepared26 source composition; no decoded-media, whole-source or installed release qualification"
+    },
+    "normal_build": {
+      "path": ".local/gate5/browser-clock-rtx-binaries-20261014T122301.521593Z/result.json",
+      "sha256": "47f4baa86c125f39f9b336c80bfeeb6ba51f459dc9e34dd71353198d39ab5405"
+    },
+    "normal_build_status": "passed",
+    "source_inputs_stable": true,
+    "sealed_build_inputs": 633,
+    "fresh_compilation_observed": {
+      "quinn-proto": true,
+      "rtc-interceptor": true,
+      "rtc-dtls": true,
+      "rvoip-quic": true,
+      "rvoip-webrtc": true,
+      "rvoip-webrtc-stack": true,
+      "rvoip-rtc": true,
+      "rvoip-core": true,
+      "rvoip-core-traits": true,
+      "connect-server": true,
+      "connect-review-loop": true,
+      "connect-native-video": true
+    },
+    "media_run": {
+      "path": ".local/gate5/repaired-media-20261014T122601Z/result.json",
+      "sha256": "923d171d5f88842e62f7b87d7a55a99d340b52e2312c6e57915d2250cc630c4e"
+    },
+    "media_status": "failed",
+    "passed_scenarios": 3,
+    "total_scenarios": 9,
+    "scenarios": [
+      {
+        "name": "impairment-native-browser",
+        "status": "failed",
+        "seconds": 33.03
+      },
+      {
+        "name": "impairment-browser-browser",
+        "status": "failed",
+        "seconds": 17.685
+      },
+      {
+        "name": "impairment-native-native",
+        "status": "passed",
+        "seconds": 153.066
+      },
+      {
+        "name": "clean-browser-browser",
+        "status": "failed",
+        "seconds": 17.153
+      },
+      {
+        "name": "clean-native-native",
+        "status": "passed",
+        "seconds": 69.293
+      },
+      {
+        "name": "clean-native-browser",
+        "status": "failed",
+        "seconds": 31.155
+      },
+      {
+        "name": "mute-native-native",
+        "status": "passed",
+        "seconds": 28.585
+      },
+      {
+        "name": "mute-native-browser",
+        "status": "failed",
+        "seconds": 30.995
+      },
+      {
+        "name": "mute-browser-browser",
+        "status": "failed",
+        "seconds": 17.17
+      }
+    ],
+    "finding": "All three native-only scenarios pass. All six browser scenarios fail before measured receive windows: browser/browser playback startup fails despite connected ICE/DTLS; native/browser receive readiness expires. Read-only review finds the stack invokes on_track while its coding list is empty, before adding negotiated coding. Strict source-clock binding therefore finds no primary SSRC and required ingress leases reject media. A separate publication race can expose a receiver before its binding callback. Repair and driver-boundary regressions are pending.",
+    "scope": "Stable prepared graph26 normal component binaries, unchanged profile; not final source/package/installed or whole-gate qualification."
+  },
+  "graph27_runtime_verification": {
+    "recorded_at": "2026-10-14T12:55:19.501123+00:00",
+    "source_lock_sha256": "caad4ccb33eb9a6b0279c1d9c2ad48a23d44b7d3e0ff103676f177f70427f552",
+    "normal_build": {
+      "path": ".local/gate5/browser-clock-rtx-binaries-20261014T124126.465534Z/result.json",
+      "sha256": "813da7cd436e3a1dc0d74f1843a15b7a85c26a147f0a0a34aefdef8cb5e87f11"
+    },
+    "normal_build_status": "passed",
+    "sealed_build_inputs": 634,
+    "inputs_stable": true,
+    "media_run": {
+      "path": ".local/gate5/repaired-media-20261014T124515Z/result.json",
+      "sha256": "743660e790b2f69ae3a84e4599d3bcaca3f31b5a0dacc09dbcc217a979406906"
+    },
+    "media_status": "failed",
+    "passed_scenarios": 7,
+    "total_scenarios": 9,
+    "scenarios": [
+      {
+        "name": "impairment-native-browser",
+        "status": "failed",
+        "seconds": 66.701
+      },
+      {
+        "name": "impairment-browser-browser",
+        "status": "failed",
+        "seconds": 65.469
+      },
+      {
+        "name": "impairment-native-native",
+        "status": "passed",
+        "seconds": 134.513
+      },
+      {
+        "name": "clean-browser-browser",
+        "status": "passed",
+        "seconds": 65.02
+      },
+      {
+        "name": "clean-native-native",
+        "status": "passed",
+        "seconds": 69.271
+      },
+      {
+        "name": "clean-native-browser",
+        "status": "passed",
+        "seconds": 66.051
+      },
+      {
+        "name": "mute-native-native",
+        "status": "passed",
+        "seconds": 28.614
+      },
+      {
+        "name": "mute-native-browser",
+        "status": "passed",
+        "seconds": 25.668
+      },
+      {
+        "name": "mute-browser-browser",
+        "status": "passed",
+        "seconds": 24.955
+      }
+    ],
+    "diagnostic": {
+      "path": ".local/gate5/chrome-feedback-diagnostic-20261014T124417Z/result.json",
+      "sha256": "b6402675893fe3ee4818054475bcca8bf36235c7ad61988689213e880ca90757"
+    },
+    "findings": [
+      "Remote-track startup regression is corrected: all clean and mute browser paths pass, as do native-only scenarios.",
+      "Both browser impairment paths remain failed. Native/browser return native has4.48 changingfps and26 A/V pairs; browser half has81 pairs and passes. Browser/browser has one84-pair direction with median87.8/p95122.5ms, while sparse opposite direction cannot calibrate A/V.",
+      "Actual Chrome SDK offers exclude RTX and existing answer validation would reject RTX. Both diagnostic logs have only PT96/111 outbound; no RTX SSRC is active.",
+      "Both diagnostic logs have zero incoming relay Sender Reports. Authenticated SR/SDES are dropped at the terminal interceptor before the source-clock callback. Endpoint first-packet destination routing also requires correction."
+    ],
+    "scope": "Current stable graph27 component runtime; no final source/package/installed acceptance. Startup is corrected; browser impairment and clock/RTX runtime activation remain open."
+  },
+  "recorded_graph28_verification": {
+    "recorded_at": "2026-10-14T13:03:26.812484+00:00",
+    "source_lock_sha256": "dae61d19fc49a97a42912794ce2d9e33fb81a06e5a04135443c148a45cee78d0",
+    "patch_count": 28,
+    "patch": {
+      "path": "patches/rvoip/webrtc-source-clock-rtcp-activation.patch",
+      "sha256": "5cc0ec2eaf415711269f818572976df54661f0f77976346143f6a5a7ac8536b0"
+    },
+    "proof": {
+      "path": ".local/gate5/rtcp-clock-integration/proof-20261014T130145.994011Z/result.json",
+      "sha256": "9b4eff2b919ef71742b2101c512b5fcd9eadcd99cdab52d16071399d8189f66f",
+      "status": "passed",
+      "inputs_stable": true,
+      "counts": {
+        "RTC": 190,
+        "WebRTC_source_clock": 14
+      },
+      "fresh_compilation_observed": {
+        "rvoip-rtc": true,
+        "rvoip-webrtc-stack": true,
+        "rvoip-webrtc": true
+      }
+    },
+    "guards": {
+      "path": ".local/gate5/rtcp-clock-integration/guards.json",
+      "sha256": "b82e8d924c00d19a0536d8082426826114af78081743f7ec0a12cd4c9173fb76"
+    },
+    "installed_sdk_fixture": {
+      "path": "sdk/tests/browser_rtx_offer.mjs",
+      "sha256": "42dd205726a67b75e5976aa721fa72eb4185934ae4c98c5daa795b7eac6bfc25",
+      "lane": "operating",
+      "timeout_seconds": 120,
+      "scope": "Real Chrome codec/FID negotiation against explicitly selected installed SDK assets; asset and tool hashes bound before/after; no strict-server wire claim."
+    },
+    "remaining": "Fresh combined normal binaries, actual strict-server Chrome RTX/SR activation and unchanged media profile; final source/package/installed lanes."
+  },
+  "graph28_header_trace_diagnostic": {
+    "recorded_at": "2026-10-14T13:24:23.307948+00:00",
+    "scope": "60-second private diagnostic with header tracing; not a full nine-scenario or final installed qualification",
+    "runner": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T131829Z/result.json",
+      "sha256": "28c0cef403b4f3eff3286ba139b67024357c8579d676c7fc498af970d1f4f587"
+    },
+    "qualification": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T131829Z/impairment-browser-browser.json",
+      "sha256": "b3a6a789cc07f9e4425d929bdc48db169295060f6fec4c6d2894744ebf73592d"
+    },
+    "trace": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T131829Z/rtp-dispatch.json",
+      "sha256": "3690cd0b76cf5b4e66d762c7f4165ca8acdfd9020a2d6512bd30338c60f0d184"
+    },
+    "status": "failed",
+    "diagnostic_valid": true,
+    "inputs_stable": true,
+    "observations": [
+      {
+        "changing": 423,
+        "decoded": 455,
+        "elapsed_seconds": 60.007400035858154,
+        "changing_fps": 7.049130603012815,
+        "av": {
+          "status": "failed",
+          "paired": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        },
+        "audio_status": "passed",
+        "motion_status": "passed",
+        "recovery_seconds": [
+          0.13521313667297363,
+          0.08551287651062012
+        ]
+      },
+      {
+        "changing": 1462,
+        "decoded": 1754,
+        "elapsed_seconds": 60.00730013847351,
+        "changing_fps": 24.363702359984078,
+        "av": {
+          "status": "failed",
+          "paired": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        },
+        "audio_status": "failed",
+        "motion_status": "passed",
+        "recovery_seconds": [
+          0.1366128921508789,
+          0.15201306343078613
+        ]
+      }
+    ],
+    "source_clock_analysis": {
+      "path": ".local/gate5/av-failure-analysis-20261014T131829Z/result.json",
+      "sha256": "944f7154c2c46ebb149d7e4ca733dc60f13a98c0b0a7d449ebfb2f47170194d4"
+    },
+    "source_clock_reports_exactly_predicted": 225,
+    "findings": [
+      "No overflow, malformed header or extension truncation in24278 header rows. Dispatch is not receiver acceptance.",
+      "Source-clock translation remains coherent but decoded cadence/audio-content proof fails.",
+      "Server-to-browser negotiated RTX is inactive: repair fallback repeats primary identity. Relay1 has1958 additional primary copies across1921 groups; relay2 has124 across123. Both emit zeroPT97. A narrow outgoing binding correction is under investigation."
+    ]
+  },
+  "recorded_graph30_verification": {
+    "recorded_at": "2026-10-14T13:49:03.390364+00:00",
+    "source_lock_sha256": "f1c4a0006810013b6b9f645571dd0ab35002cc95f64fd7987809875e63c6734f",
+    "patch_count": 30,
+    "patches": [
+      {
+        "path": "patches/rtc-interceptor/rtx-wire-version.patch",
+        "sha256": "0e0674ad92ba8f284122b9459d44cdfef3a5efd515b2b4a13d3c1891a1e5e195"
+      },
+      {
+        "path": "patches/rvoip/webrtc-outbound-rtx-binding.patch",
+        "sha256": "7d61f9b02b6fd24945cd2d9797c50b586b50545b74847b5793feb293b65c3525"
+      }
+    ],
+    "prepared_proof": {
+      "path": ".local/gate5/outbound-rtx-integration/proof-20261014T134031.907579Z/result.json",
+      "sha256": "e29738c3ef235f4cc2ec2a174c12dc66915bb111a3a68d2199e5dd1fe81a9c16"
+    },
+    "counts": {
+      "interceptor-all": 134,
+      "rtc-all": 193,
+      "stack-all": 11
+    },
+    "guards": {
+      "path": ".local/gate5/outbound-rtx-integration/guards.json",
+      "sha256": "82e4c81375e9401069bcd56a6bf2d35b6fb745ca160cb0515a4b627ac4d74586"
+    },
+    "source_phase_count": 84,
+    "normal_build": {
+      "path": ".local/gate5/browser-clock-rtx-binaries-20261014T134126.527098Z/result.json",
+      "sha256": "d6a5201d6afa16c97fb48a5a4c7442a746c86e11621538dded3c079cf72c2cc4"
+    },
+    "normal_build_inputs": 637,
+    "fresh_compilation_observed": {
+      "quinn-proto": true,
+      "rtc-interceptor": true,
+      "rtc-dtls": true,
+      "rvoip-quic": true,
+      "rvoip-webrtc": true,
+      "rvoip-webrtc-stack": true,
+      "rvoip-rtc": true,
+      "rvoip-core": true,
+      "rvoip-core-traits": true,
+      "connect-server": true,
+      "connect-review-loop": true,
+      "connect-native-video": true
+    },
+    "inputs_stable": true,
+    "scope": "Recorded component repair and normal binaries; browser runtime, full media, complete source and installed qualification remain separate."
+  },
+  "graph30_header_trace_diagnostic": {
+    "recorded_at": "2026-10-14T13:52:16.534718+00:00",
+    "status": "failed",
+    "diagnostic_valid": true,
+    "runner": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T134813Z/result.json",
+      "sha256": "953ffe668a3f7e3dbbfc004c2899b0b196694009c892704b2dfdfbc5c1d9f914"
+    },
+    "trace": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T134813Z/rtp-dispatch.json",
+      "sha256": "d4f964c17d8abd6217feccbfe1d83ad5d6731143186693b5708f579450cad78c"
+    },
+    "browser": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T134813Z/impairment-browser-browser/20261014T134813.487146Z/browser-browser/browser-result.json",
+      "sha256": "5b9fa4200a46874f7a2b13a1d5cbbc3e9f5717a79f698a2b8c0b6a212cf964ad"
+    },
+    "report": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T134813Z/impairment-browser-browser.json",
+      "sha256": "1a2c4e18d2777f7656ed1f31f575cb66f85c36d72512d85219b8a0775c785c48"
+    },
+    "observations": [
+      {
+        "changing": 1450,
+        "decoded": 1732,
+        "elapsed_seconds": 60.0096001625061,
+        "changing_fps": 24.16280055313479,
+        "av_sync": {
+          "status": "passed",
+          "paired": 83,
+          "median_abs_skew_ms": 34.90000009536942,
+          "p95_abs_skew_ms": 84.49999999999935
+        },
+        "audio": "passed",
+        "motion": "passed",
+        "recovery": [
+          {
+            "status": "passed",
+            "fresh_decoded_content_after_end_seconds": 0.16754889488220215
+          },
+          {
+            "status": "passed",
+            "fresh_decoded_content_after_end_seconds": 0.0816488265991211
+          }
+        ]
+      },
+      {
+        "changing": 428,
+        "decoded": 470,
+        "elapsed_seconds": 60.00939989089966,
+        "changing_fps": 7.132215965800811,
+        "av_sync": {
+          "status": "failed",
+          "paired": 37,
+          "median_abs_skew_ms": 44.600000023841346,
+          "p95_abs_skew_ms": 98.19999992846817
+        },
+        "audio": "passed",
+        "motion": "passed",
+        "recovery": [
+          {
+            "status": "passed",
+            "fresh_decoded_content_after_end_seconds": 0.3363490104675293
+          },
+          {
+            "status": "passed",
+            "fresh_decoded_content_after_end_seconds": 0.4850490093231201
+          }
+        ]
+      }
+    ],
+    "headers": [
+      {
+        "relay": 1,
+        "direction": "to_client",
+        "counts_by_payload_type": {
+          "111": 2974,
+          "96": 956
+        },
+        "primary_duplicate_groups": 141,
+        "additional_primary_copies": 142
+      },
+      {
+        "relay": 1,
+        "direction": "to_server",
+        "counts_by_payload_type": {
+          "97": 15,
+          "96": 3767,
+          "111": 3128
+        },
+        "primary_duplicate_groups": 0,
+        "additional_primary_copies": 0
+      },
+      {
+        "relay": 2,
+        "direction": "to_client",
+        "counts_by_payload_type": {
+          "111": 3120,
+          "96": 3761,
+          "97": 1893
+        },
+        "primary_duplicate_groups": 3,
+        "additional_primary_copies": 3
+      },
+      {
+        "relay": 2,
+        "direction": "to_server",
+        "counts_by_payload_type": {
+          "97": 689,
+          "96": 834,
+          "111": 3109
+        },
+        "primary_duplicate_groups": 0,
+        "additional_primary_copies": 0
+      }
+    ],
+    "findings": [
+      "Outgoing RTX is active on relay2 (1893 traced PT97 packets). Relay1 has no PT97, but all18 primary sequences requested in Chrome NACKs were absent from every primary egress trace; none of141 duplicate groups matches a requested sequence. This does not establish a remaining binding defect; cache misses and upstream normalized duplicates remain plausible. No exact repair OSN or SDP claim.",
+      "Both receivers pass audio, motion and burst recovery. One receiver has37 paired AV markers, below42 required; other has83 pairs with84.5ms p95.",
+      "Browser validation failure prevented authenticated server diagnostics collection in this historical run. Helper now captures best-effort authenticated health on failure; this run is not retrospectively upgraded."
+    ],
+    "whole_gate_qualified": false,
+    "outgoing_rtx_review": {
+      "path": ".local/gate5/chrome-rtp-dispatch-diagnostic-20261014T134813Z/outbound-rtx-asymmetry-review.json",
+      "sha256": "d0513c9cf140069ca642ace51e1d13bc5774433d720eb333ca4f316850dff5f6"
+    }
+  }
+}

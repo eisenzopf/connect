@@ -1,0 +1,90 @@
+--- a/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs
+@@ -67,6 +67,22 @@
+             output.duplicate_or_conflicting += 1;
+         } else {
+             if self.pending.len() == REORDER_LIMIT {
++                let nearest = self
++                    .pending
++                    .iter()
++                    .map(|item| item.packet.header.sequence_number.wrapping_sub(expected))
++                    .min()
++                    .unwrap();
++                if (distance as u16) < nearest {
++                    // The new packet is earlier than every retained packet.
++                    // Release it directly without growing the bounded queue or
++                    // skipping it when pressure advances across a genuine hole.
++                    self.next = Some(sequence.wrapping_add(1));
++                    output.packets.push(packet);
++                    self.drain(&mut output);
++                    output.depth = self.pending.len();
++                    return output;
++                }
+                 self.advance(&mut output);
+             }
+             self.pending.push(packet);
+@@ -187,3 +203,64 @@
+         assert_eq!(sequences(switched), [3]);
+     }
+ }
++
++#[cfg(test)]
++mod pressure_regressions {
++    use super::*;
++    fn packet(sequence: u16, now: Instant) -> ReceivedPacket {
++        ReceivedPacket::new(
++            rtp::Packet {
++                header: rtp::Header {
++                    version: 2,
++                    ssrc: 7,
++                    sequence_number: sequence,
++                    ..Default::default()
++                },
++                payload: vec![0x10, 1].into(),
++            },
++            now,
++        )
++    }
++    #[test]
++    fn video_reorder_pressure_preserves_nearer_input_and_real_gap_across_wrap() {
++        for base in [10_u16, 65530] {
++            for incoming_offset in [1_u16, 2] {
++                let now = Instant::now();
++                let mut reorder = PacketReorder::default();
++                assert_eq!(reorder.push(packet(base, now), now).packets.len(), 1);
++                for offset in 3..=66 {
++                    assert!(
++                        reorder
++                            .push(packet(base.wrapping_add(offset), now), now)
++                            .packets
++                            .is_empty()
++                    );
++                }
++                assert_eq!(reorder.pending.len(), REORDER_LIMIT);
++                let released = reorder.push(packet(base.wrapping_add(incoming_offset), now), now);
++                let actual: Vec<_> = released
++                    .packets
++                    .iter()
++                    .map(|p| p.packet.header.sequence_number)
++                    .collect();
++                let expected: Vec<_> = if incoming_offset == 2 {
++                    (2..=66).map(|n| base.wrapping_add(n)).collect()
++                } else {
++                    vec![base.wrapping_add(1)]
++                };
++                assert_eq!(actual, expected);
++                assert!(released.depth <= REORDER_LIMIT);
++                if incoming_offset == 1 {
++                    assert_eq!(released.depth, REORDER_LIMIT);
++                    let tail = reorder.push(packet(base.wrapping_add(2), now), now);
++                    assert_eq!(tail.packets.len(), 65);
++                    assert_eq!(
++                        tail.packets[0].packet.header.sequence_number,
++                        base.wrapping_add(2)
++                    );
++                }
++                assert!(reorder.pending.is_empty());
++            }
++        }
++    }
++}

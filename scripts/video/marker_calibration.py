@@ -70,6 +70,8 @@ def ordinal_sync(video_edges, audio_edges, seconds):
     result = {'status': 'failed', 'program': PROGRAM,
         'method': 'independently decoded low-to-high edges uniquely calibrated against nonperiodic cadence; only equal source ordinals are paired, never nearest periodic edges',
         'video_markers': len(video_edges), 'audio_markers': len(audio_edges),
+        'video_edge_seconds': list(video_edges) if len(video_edges) <= MAX_MARKERS and all(math.isfinite(at) for at in video_edges) else [],
+        'audio_edge_seconds': list(audio_edges) if len(audio_edges) <= MAX_MARKERS and all(math.isfinite(at) for at in audio_edges) else [],
         'video_calibration': video, 'audio_calibration': audio, 'paired': 0,
         'marker_pairs': [], 'median_abs_skew_ms': None, 'p95_abs_skew_ms': None,
         'calibration_tolerance_seconds': CALIBRATION_TOLERANCE_SECONDS,

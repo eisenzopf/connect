@@ -26,17 +26,36 @@ export function audioObservation(content,expectedHz,mode="clean",transitions=[],
             valid=Boolean(muted.length)&&muted.every(row=>row.rms<=.003);exceptions.push([silence,resumed]);}
         checks.push({kind:"actual-microphone-mute",mute_unix_seconds:on,unmute_unix_seconds:off,
             observed_silence_start_unix_seconds:silence??null,observed_identified_recovery_unix_seconds:resumed??null,status:valid?"passed":"failed"});
-    }else if(mode==="impairment")for(const burst of bursts){
-        const start=burst.start_unix_seconds,stop=burst.end_unix_seconds;
+    }else if(mode==="impairment"){
+      let previousDeadline=-Infinity;
+      for(const burst of bursts){
+        const start=burst.start_unix_seconds,stop=burst.end_unix_seconds,deadline=stop+2;
         const before=samples.filter(row=>row.unix_seconds<start).at(-1);
-        const resumed=samples.find(row=>row.unix_seconds>=stop&&identified(row))?.unix_seconds;
-        const valid=began<=start&&start<stop&&stop<ended&&before&&identified(before)&&start-before.unix_seconds<=.2
-            &&resumed!==undefined&&resumed-stop<=2;
+        const aftermath=samples.filter(row=>row.unix_seconds>=start&&row.unix_seconds<=deadline);
+        const lows=aftermath.filter(attenuated),lastLow=lows.at(-1)?.unix_seconds;
+        const first=aftermath.find(row=>row.unix_seconds>=stop&&identified(row))?.unix_seconds;
+        const resumed=aftermath.find(row=>row.unix_seconds>=stop&&(lastLow===undefined||row.unix_seconds>lastLow)&&identified(row))?.unix_seconds;
+        const witness=samples.find(row=>resumed!==undefined&&row.unix_seconds>=resumed+.2&&identified(row))?.unix_seconds;
+        const valid=began<=start&&start<stop&&deadline<=ended&&start>previousDeadline
+            &&before&&identified(before)&&start-before.unix_seconds<=.2
+            &&resumed!==undefined&&resumed<=deadline&&witness!==undefined
+            &&aftermath.every(row=>identified(row)||attenuated(row))
+            &&samples.filter(row=>row.unix_seconds>=resumed&&row.unix_seconds<=witness).every(identified);
+        previousDeadline=deadline;
         if(valid)exceptions.push([start,resumed]);
         checks.push({kind:"observed-network-burst",start_unix_seconds:start,end_unix_seconds:stop,
-            observed_identified_recovery_unix_seconds:resumed??null,status:valid?"passed":"failed"});
+            recovery_deadline_unix_seconds:deadline,first_identified_after_burst_unix_seconds:first??null,
+            last_attenuation_unix_seconds:lastLow??null,attenuated_samples:lows,
+            observed_identified_recovery_unix_seconds:resumed??null,
+            identified_continuation_witness_unix_seconds:witness??null,status:valid?"passed":"failed"});
+      }
     }
-    const bad=samples.filter(row=>!exceptions.some(([start,stop])=>row.unix_seconds>=start&&row.unix_seconds<stop)&&!identified(row));
+    function attenuated(row){return Number.isFinite(row.rms)&&row.rms>=0&&row.rms<=.001&&Number.isFinite(row.frequency_hz);}
+    const excepted=row=>exceptions.some(([start,stop])=>row.unix_seconds>=start&&row.unix_seconds<stop)&&(mode!=="impairment"||attenuated(row));
+    const bad=samples.filter(row=>!excepted(row)&&!identified(row));
+    if(mode==="impairment")Object.assign(result,{observed_bad_samples:samples.filter(row=>!identified(row)).length,
+        excepted_attenuation_samples:samples.filter(excepted).length,
+        recovery_method:"last finite near-silence in the observed two-second aftermath, then identified return and covered continuation; wrong tone is never excepted"});
     Object.assign(result,{observed_exceptions:checks,bad_unexcepted_samples:bad.length,
         status:!bad.length&&checks.every(row=>row.status==="passed")?"passed":"failed"});
     return result;

@@ -1,0 +1,79 @@
+{
+  "format": 1,
+  "status": "independent-source-review-complete-current-graph-qualification-pending",
+  "whole_gate_qualified": false,
+  "published": false,
+  "recorded_at": "2026-10-14T10:05:28.112918+00:00",
+  "scope": "Read-only independent review of recorded patch16 and its actual encrypted UDP fixture; no independent build performed",
+  "source_sha256": {
+    "patches/rvoip/quic-video-loss-tolerance.patch": "0820429577a589a63d75e098eda1b19a8962b8dea1fa7969f0b8dfc512df52b1",
+    "dependencies/source-lock.json": "6a4983b9aa34386eef7c2917b74c6edde1c23f7a818c5c82b4ee8d12477c8374",
+    "crates/connect-protocol/src/media_diagnostics.rs": "7fa3e67fd694a4715ae5abd05dc6a37b125200c85b4c3cdbe883fb37283f3f8d",
+    "crates/connect-server/src/media_diagnostics.rs": "2d9b2b04e345c542bf9fc80b0c1723ab2bde8cf45252bc8230064f197b5b5018",
+    "crates/connect-client/src/client.rs": "566976a3d07b145ee2717dd989db8a2d1d6f5740e1f0a1d347e61a17290c7d1f"
+  },
+  "source_lock_patch_digest_matches": true,
+  "observed_component_evidence": {
+    "result": ".local/gate5/quic-loss-tolerance-authoring/attempt-20261014T100335/result.json",
+    "result_sha256": "6245defae8fd91b59d88d1431953b505bfa152baaa78f270d0af71992cb535cd",
+    "log": ".local/gate5/quic-loss-tolerance-authoring/attempt-20261014T100335/video-budget.log",
+    "log_sha256": "8008b215250d97dbe49aa3714ec20b2dbaa705e7c22239c018d6fc05d2c3b1cc",
+    "video_budget_tests_passed": 3,
+    "diagnostic_tests_passed": 7,
+    "zero_proxy_loss": {
+      "sent": 480,
+      "exact_unique_received": 480,
+      "send_over_space": 0,
+      "quinn_declared_lost_packets": 11,
+      "quinn_congestion_events": 9
+    },
+    "real_proxy_loss": {
+      "sent": 480,
+      "exact_unique_received": 465,
+      "proxy_dropped_directional": [
+        15,
+        13
+      ],
+      "send_over_space": 0,
+      "quinn_declared_lost_packets": 19,
+      "quinn_congestion_events": 18
+    },
+    "dependency_boundary": {
+      "fixture_upstream_lock_sha256": "4453fc0e82891068dba7ba993a000e3052bb4bac6371ba48d65dba95ce1c850a",
+      "fixture_quinn": "0.11.11",
+      "fixture_quinn_proto": "0.11.16",
+      "workspace_quinn": "0.11.12",
+      "workspace_quinn_proto": "0.11.19",
+      "scope": "Focused fixture uses pinned upstream lock. Workspace-lock runtime/media/control verification remains separate and pending."
+    }
+  },
+  "findings": [
+    {
+      "severity": "scope-correction",
+      "finding": "Connection-wide packet/time loss thresholds affect reliable control retransmission timing and audio-only QUIC connections too. Existing client comment saying reliable control is unaffected requires correction.",
+      "disposition": "Patch owner corrected client comment to explicitly identify connection-wide reliable control loss-detection impact. Independent source read confirmed the correction; final current-graph control/revocation/failure-recovery qualification remains required."
+    },
+    {
+      "severity": "evidence-boundary",
+      "finding": "Zero-proxy-loss still produces sampled Quinn loss and congestion events. The actual fixture demonstrates improved delivery under reordering, not elimination of all false loss declarations."
+    },
+    {
+      "severity": "evidence-boundary",
+      "finding": "200ms application stale admission checks and64packet/76032byte capacities are unchanged. This does not establish a200ms residence bound within Quinn downstream byte buffering."
+    }
+  ],
+  "reviewed_invariants": [
+    "No authority admission or delivery-guard changes in patch16; current authorization and application cancellation paths are preserved.",
+    "Path statistics are sampled once before each media send and recorded as RTT/cwnd extrema and maximum sampled cumulative connection counters; they are neither aggregate counts nor loss rates.",
+    "Proxy uses copied whole UDP payloads, one send per nondropped admitted packet, and drains every admitted pending task; each direction asserts admitted equals intentional drops plus successful forwards.",
+    "The proxy shutdown invariant covers admitted input, not unread kernel socket packets. Reader cancellation after400ms can undercount late application delivery; it cannot fabricate unique received datagrams.",
+    "Received datagrams validate full900byte length, unique ID in0..479 and all payload bytes.",
+    "The75percent delivery guard is explicitly a transport component criterion, not the unchanged media qualification profile."
+  ],
+  "remaining": [
+    "Fresh current-graph clean, impaired and mute media qualification",
+    "Current-graph reliable control and authorization/revocation failure-recovery regression",
+    "Final source and installed candidate sealing; earlier graph15 evidence remains scoped"
+  ],
+  "implementation_evidence": "docs/evidence/gate-5/quic-loss-tolerance.json"
+}

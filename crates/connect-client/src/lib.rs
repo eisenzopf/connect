@@ -32,7 +32,7 @@ mod task_operations;
 mod video;
 pub use video::{
     NativeAvFrame, NativeVideoFrame, NativeVideoPacket, NativeVideoSession,
-    VideoAssemblyDiagnostics, VideoFrameAssembler,
+    VideoAssemblyDiagnostics, VideoFrameAssembler, VideoSequenceRange,
 };
 
 pub use client::ConnectClient;

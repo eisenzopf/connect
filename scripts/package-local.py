@@ -12,7 +12,7 @@ import subprocess
 import tarfile
 import tomllib
 from lib.local_process import ROOT
-from lib.package_inventory import source_inventory, copy_gate5_assets, verify_baseline
+from lib.package_inventory import source_inventory, copy_gate5_assets, verify_baseline, copy_prepared_crate_notices
 from lib.package_environment import fixture_environment
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -146,6 +146,7 @@ for package in metadata['packages']:
             texts.append(str(destination.relative_to(runtime)))
     notices.append({'package': identity, 'license': package.get('license'), 'source': package['source'], 'texts': sorted(texts)})
 (runtime/'licenses/registry-index.json').write_text(json.dumps(notices, indent=2)+'\n')
+copy_prepared_crate_notices(ROOT, runtime, metadata)
 files = {str(p.relative_to(runtime)): digest(p) for p in sorted(runtime.rglob('*')) if p.is_file()}
 ensure_source_unchanged()
 manifest = {'candidate': candidate, 'version': version, 'source_revision': revision,

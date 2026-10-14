@@ -1,0 +1,134 @@
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -58,6 +58,8 @@
+ pub struct RvoipPeerConnection {
+     pc: Arc<dyn PeerConnection>,
+     role: PeerRole,
++    // One random synchronization identity for all local tracks on this peer.
++    local_stream_id: String,
+     gather_rx: Arc<AsyncMutex<mpsc::Receiver<()>>>,
+     connected_rx: Arc<AsyncMutex<mpsc::Receiver<()>>>,
+     connected_flag: Arc<AtomicBool>,
+@@ -125,6 +127,7 @@
+         Ok(Arc::new(Self {
+             pc,
+             role,
++            local_stream_id: format!("rvoip-stream-{:032x}", rand::random::<u128>()),
+             gather_rx: Arc::new(AsyncMutex::new(receivers.gather_complete)),
+             connected_rx: Arc::new(AsyncMutex::new(receivers.connected)),
+             connected_flag,
+@@ -403,7 +406,7 @@
+             dtmf_ssrcs_by_clock.insert(codec.clock_rate_hz, ssrc);
+         }
+         let track = Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
+-            format!("rvoip-stream-{ssrc}"),
++            self.local_stream_id.clone(),
+             format!("rvoip-track-{ssrc}"),
+             "rvoip-audio".into(),
+             RtpCodecKind::Audio,
+@@ -662,7 +665,7 @@
+         };
+         let ssrc = rand_ssrc();
+         let track = Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
+-            format!("rvoip-vstream-{ssrc}"),
++            self.local_stream_id.clone(),
+             format!("rvoip-vtrack-{ssrc}"),
+             "rvoip-video".into(),
+             RtpCodecKind::Video,
+@@ -1465,3 +1468,78 @@
+ 
+     Ok((offerer, answerer))
+ }
++
++#[cfg(test)]
++mod av_sync_identity_tests {
++    use super::*;
++    #[tokio::test]
++    async fn local_audio_video_sdp_shares_one_private_per_peer_sync_identity() {
++        let config = WebRtcConfig::loopback();
++        let mut identities = std::collections::HashSet::new();
++        for video_first in [false, true] {
++            let peer = RvoipPeerConnection::new(&config, PeerRole::Offerer)
++                .await
++                .unwrap();
++            if video_first {
++                peer.add_local_video_track().await.unwrap();
++            }
++            peer.add_local_audio_track().await.unwrap();
++            peer.add_local_video_track().await.unwrap();
++            let first = sdp_to_string(&peer.pc.create_offer(None).await.unwrap()).unwrap();
++            let second = sdp_to_string(&peer.pc.create_offer(None).await.unwrap()).unwrap();
++            // Close the actual peer before asserting; no UDP owner survives a failure.
++            peer.close().await.unwrap();
++            let cname_set = |sdp: &str| -> std::collections::HashSet<String> {
++                sdp.lines()
++                    .filter(|line| line.starts_with("a=ssrc:"))
++                    .filter_map(|line| {
++                        line.split_once(" cname:")
++                            .map(|(_, cname)| cname.trim().to_owned())
++                    })
++                    .collect()
++            };
++            assert_eq!(
++                first
++                    .lines()
++                    .filter(|line| line.starts_with("m=audio "))
++                    .count(),
++                1
++            );
++            assert_eq!(
++                first
++                    .lines()
++                    .filter(|line| line.starts_with("m=video "))
++                    .count(),
++                1
++            );
++            let names = cname_set(&first);
++            assert_eq!(
++                names.len(),
++                1,
++                "audio and video must identify one synchronization source group"
++            );
++            assert_eq!(
++                names,
++                cname_set(&second),
++                "offer generation must retain the peer identity"
++            );
++            let name = names.into_iter().next().unwrap();
++            assert!(name.starts_with("rvoip-stream-"));
++            assert_eq!(name.len(), "rvoip-stream-".len() + 32);
++            assert!(
++                identities.insert(name),
++                "independent peers must not share a fixed CNAME"
++            );
++            let track_ids: std::collections::HashSet<_> = first
++                .lines()
++                .filter_map(|line| line.strip_prefix("a=msid:"))
++                .filter_map(|line| line.split_whitespace().nth(1))
++                .collect();
++            assert_eq!(
++                track_ids.len(),
++                2,
++                "audio/video track identity remains distinct"
++            );
++        }
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/Cargo.toml
++++ b/crates/webrtc/rvoip-webrtc/Cargo.toml
+@@ -81,6 +81,7 @@
+ hmac = { workspace = true }
+ sha2 = { workspace = true }
+ base64 = { workspace = true }
++rand = { workspace = true }
+ 
+ rvoip-quic = { workspace = true, optional = true }
+ rvoip-uctp = { workspace = true, optional = true }
+@@ -143,7 +144,6 @@
+ rvoip-sip = { path = "../../sip/rvoip-sip" }
+ rvoip-harness = { workspace = true }
+ rvoip-rtp-core.workspace = true
+-rand = { workspace = true }
+ tokio-util.workspace = true
+ turn-server = { package = "turn", version = "0.11.0" }
+ webrtc-util = { version = "0.12.0", features = ["conn", "vnet"] }

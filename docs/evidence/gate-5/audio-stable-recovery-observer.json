@@ -1,0 +1,119 @@
+{
+  "format": 1,
+  "task_ids": [
+    "G5-014",
+    "G5-016"
+  ],
+  "recorded_at": "2026-10-14T11:14:37.235951+00:00",
+  "status": "component-guards-passed-prospective-runtime-pending",
+  "whole_gate_qualified": false,
+  "published": false,
+  "scope": "Bounded decoded-audio impairment recovery observation in Python and JavaScript. No transport/controller change, no A/V marker calibration change, and no retrospective qualification.",
+  "failed_prior_attempt": {
+    "report": {
+      "path": ".local/gate5/repaired-media-20261014T105940Z/impairment-native-browser.json",
+      "sha256": "dd2d49a164594005a05adff31ac612ead63ed7d3630c0ddc45bf0d09e91dda88"
+    },
+    "status": "failed-retained",
+    "observed_bad_samples": 2,
+    "sampling_coverage_complete": true,
+    "first_identified_after_burst_end_ms": [
+      3.963947296142578,
+      1.4638900756835938
+    ],
+    "subsequent_attenuation_after_burst_end_ms": [
+      103.86395454406738,
+      100.76403617858887
+    ],
+    "attenuation_rms": [
+      0.00053704287,
+      0.000322908426
+    ],
+    "attenuation_frequency_hz": [
+      0,
+      0
+    ],
+    "next_identified_after_burst_end_ms": [
+      201.0641098022461,
+      201.76410675048828
+    ],
+    "interpretation": "A single residual identified sample prematurely ended the old recovery exception before decoded attenuation. The records prove near-silence and later identified return, but do not prove decoder/PLC internals or outgoing source packet timing.",
+    "private_analysis": {
+      "path": ".local/gate5/repaired-media-20261014T105940Z/audio-impairment-native-browser-independent-analysis.json",
+      "sha256": "b4fa838bca39fe8f70d80981d44ec4746f28573b4589e3e3fb54d9bdbb9d1183"
+    }
+  },
+  "design": {
+    "recovery_budget_seconds": 2,
+    "identified_rms_above": 0.001,
+    "frequency_error_below_hz": 35,
+    "maximum_sampling_gap_seconds": 0.2,
+    "minimum_expected_sample_fraction": 0.9,
+    "maximum_samples": 2000,
+    "algorithm": [
+      "Inspect the complete aftermath through the existing two-second burst recovery deadline, retaining every finite near-silence sample (0<=RMS<=.001).",
+      "Choose the first identified sample at or after burst end and strictly after the final attenuation in that aftermath. The chosen return must be within the original deadline.",
+      "Require an identified continuation witness at least the existing maximum sampling gap (200ms) after return, with all intervening samples identified. The witness may follow the deadline; the recovery instant may not.",
+      "Exempt only near-silence between the actual burst start and chosen return. Retain all-window bad count, excepted attenuation count, numeric attenuated samples, first positive, last attenuation, stable return, deadline and witness.",
+      "Require actual bounded, ordered, non-overlapping burst aftermaths, identified immediately preceding audio, and complete sampling coverage. Any bad sample beyond the deadline remains unexcepted."
+    ],
+    "explicit_strengthening": "The previous blanket burst exception could hide an above-threshold wrong tone during a burst. Wrong/ambiguous above-threshold tone, nonfinite values and negative RMS now fail even inside a network-burst interval. This does not apply to or alter mute handling.",
+    "unchanged": "Clean/mute verdicts; actual burst boundaries; RMS/frequency identity thresholds; two-second return limit; all coverage bounds; unique ordinal A/V calibration; paired count and80/120ms limits."
+  },
+  "verification": {
+    "original_helpers": {
+      "command_scope": "Two final source regression methods executed against exact HEAD original Python helper via importlib substitution; JS original proof separately preserved in initial3-test log. No copied algorithm.",
+      "selectors": [
+        "test_audio_burst_recovery_waits_for_delayed_attenuation_and_retains_samples",
+        "test_audio_stable_recovery_preserves_identity_deadline_and_coverage_failures"
+      ],
+      "run": 2,
+      "failures": 5,
+      "errors": 0,
+      "original_python_sha256": "4a51db5e5676d9973f47afe78bf8242da3264c205a2ede1b2b6790ecafe0954a",
+      "original_javascript_sha256": "54050399eb73737f9f1fd0a80ea1597ec6a95177739f7ea2e3fa19f18b1aa94b",
+      "test_source_sha256": "fbe24f85baaf604d1962fd89594ab6564661f6c7dbe908951c9862dc5d60fee6"
+    },
+    "original_final_regression_log": {
+      "path": ".local/gate5/audio-stable-recovery-proof/final-regressions-original.log",
+      "sha256": "3ef924db2292f29caf9288734b225a951e1f228e424c79344dd68008414df9c5"
+    },
+    "initial_original_three_guard_log": {
+      "path": ".local/gate5/repaired-media-20261014T105940Z/audio-stable-recovery-original.log",
+      "sha256": "45da0e3c7b5dda5f224479f4af853df3bd0e0b67442ac5ae4330ef3238712703"
+    },
+    "repaired_full_suite": {
+      "command": "python3 -m unittest scripts.tests.test_video_measurements",
+      "tests": 45,
+      "passed": 45,
+      "failed": 0,
+      "log": {
+        "path": ".local/gate5/repaired-media-20261014T105940Z/audio-stable-recovery-full45.log",
+        "sha256": "aff82f53ca594309a43f71185d7773f5eeef77e97810af5d5ce6c782111e3d24"
+      },
+      "nested_audio_envelope_javascript_guards": 13,
+      "new_audio_recovery_python_guards": 3,
+      "python_javascript_exact_output_parity_cases": 17
+    },
+    "additional_checks": [
+      "node --check scripts/video/audio_observation.mjs",
+      "git diff --check on changed source and test files"
+    ],
+    "new_regression_scope": [
+      "Two retained timing/RMS patterns shifted into a synthetic waveform; preserved bad and excepted counts and stable return/witness.",
+      "Wrong tone during burst, after first positive, before stable return; late silence/wrong tone; absence of burst; clean silence; negative/nonfinite RMS or frequency; deadline success vs late return failure; overlapping budgets; truncated aftermath; coverage gap, unordered samples and overflow.",
+      "Exact full-output Python/JavaScript parity across17 positive/adversarial cases; existing clean/mute parity and negatives remain passing."
+    ]
+  },
+  "source_sha256": {
+    "scripts/video/audio_observation.py": "eb6fccc150c94afac44039bcb5217bb2c4a99cc91d4a15e1ee296e01edc7478b",
+    "scripts/video/audio_observation.mjs": "88cd0be74a9ea70944ff36d76f3b0ac678549a3be2d2601c5a3f3c3370a1168d",
+    "scripts/tests/test_video_measurements.py": "fbe24f85baaf604d1962fd89594ab6564661f6c7dbe908951c9862dc5d60fee6",
+    "scripts/check-gate-5.py": "f26b18b6f2ffab01d9a5222155450de1958423bfc1be6a6ef4a980878e737e38"
+  },
+  "remaining": [
+    "Fresh prospective timed media after source freeze; none claimed by this component report.",
+    "Independent browser sender starvation/video cadence failures remain unresolved; this audio observer repair does not address those failures.",
+    "All old failed reports and their original verifier scope remain unchanged."
+  ]
+}

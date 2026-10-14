@@ -66,6 +66,7 @@ fn normalized_video_strips_source_extensions_and_keeps_rtp_marker_and_sequence()
         42, 0, 0, 0x10, 1,
     ];
     let frame = rvoip_core::stream::MediaFrame {
+        source_clock: None,
         stream_id: rvoip_core::ids::StreamId::new(),
         kind: rvoip_core::stream::StreamKind::Video,
         payload: wire.into(),

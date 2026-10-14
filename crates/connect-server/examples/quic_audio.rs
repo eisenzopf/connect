@@ -71,6 +71,7 @@ async fn probe() -> Result<()> {
         incoming.clone(),
     );
     let frame = |stream: &QuicDatagramMediaStream| MediaFrame {
+        source_clock: None,
         stream_id: stream.id(),
         kind: StreamKind::Audio,
         payload: vec![0xff; 160].into(),

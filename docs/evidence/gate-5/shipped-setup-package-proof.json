@@ -1,0 +1,177 @@
+{
+  "format": 1,
+  "task_ids": [
+    "G5-030",
+    "G5-031",
+    "G5-044",
+    "G5-045"
+  ],
+  "scope": "Shipped public CLI setup fixture behavior on explicitly selected sealed source binary; package proof guards and source inventory only",
+  "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "source_dirty": true,
+  "whole_gate_qualified": false,
+  "release_candidate_created": false,
+  "published": false,
+  "files": {
+    "scripts/check-gate5-setup.py": "2febce39e1906ed65ade785d684318a1aaf7c6116e1e6b4541863d530b19d400",
+    "scripts/lib/setup_provider_fixture.py": "1bb027d46f1b465e1593e8439dfc3de886b9b41ed790498182b64465a5adfda6",
+    "scripts/lib/package_gate5.py": "811fbd468ef4ab3a52e12e59544efa3b96785d8aaadff9df1f2f92c7c27c2539",
+    "scripts/lib/package_inventory.py": "ab50c6b17f747c2bc629d8399ee4b861164593b5229d6c315e0bc1f5e73bab62",
+    "scripts/tests/test_package_inventory.py": "074c757b07d93cbf930abf1a2f63dee4ef71714688f498b681a93a140a62fb48",
+    "docs/GATE5_PACKAGE.md": "fe51e272a47a77dc37c0500c99a0ab3783862fa87b0c2c54e33531a40a8e2e68",
+    "scripts/check-connected-app.py": "41a4e84e80ae9fa7a704aa5689b3bec0e8624398a36c57b8a034c38c3baf7483",
+    "scripts/tests/test_connected_app_checker.py": "f6b241fa755fde555445dfc1651f48ebe1b8da7868c258fb9302347ddbf651e4",
+    "scripts/check-installed-sessions.py": "cba7878175d9143b7bdf30e2f8784d47166b7dd7f6c95a7e51c2a0396004bca7"
+  },
+  "public_setup": {
+    "command": "python3 scripts/check-gate5-setup.py --binary <sealed-source-normal-connect> --source-revision <HEAD> --work-root <private-state> --output <private-report>",
+    "status": "passed",
+    "binary_sha256": "4246ade1e1969cf2b683310f1f429e2780809b23b72456dba808d572cbc0d63e",
+    "candidate_schema": 18,
+    "tested_inputs_stable": true,
+    "first_run": {
+      "candidate_schema": 18,
+      "ordinary_identities": true,
+      "messages_and_files_each_direction": true,
+      "history_independently_observed_after_restart": true,
+      "pairing_revocation_enforced_on_replay": true,
+      "pairing_never_supplies_sms_consent": true,
+      "private_modes": true,
+      "port_released": true
+    },
+    "failures": {
+      "occupied_port_preserved": true,
+      "partial_and_interrupted_state_preserved": true,
+      "permissive_modes_denied": true,
+      "explicit_references_prevent_ambient_fallback": true,
+      "environment_reference_rotation_denied": true
+    },
+    "provider_setup": {
+      "status": "passed",
+      "checks": [
+        {
+          "name": "selected-vapi-loopback-catalog",
+          "status": "passed"
+        },
+        {
+          "name": "exact-selected-reuse",
+          "status": "passed"
+        },
+        {
+          "name": "unknown-capability-remains-gap",
+          "status": "passed"
+        },
+        {
+          "name": "partial-catalog-cannot-approve-create",
+          "status": "passed"
+        },
+        {
+          "name": "supplied-telnyx-metadata-consent-and-rtp-gaps",
+          "status": "passed"
+        },
+        {
+          "name": "number-purchase-refused",
+          "status": "passed"
+        },
+        {
+          "name": "duplicate-metadata-refused",
+          "status": "passed"
+        },
+        {
+          "name": "rejected-authentication-refused",
+          "status": "passed"
+        },
+        {
+          "name": "missing-selected-telnyx-ref-denied-before-http",
+          "status": "passed"
+        },
+        {
+          "name": "rejected-loopback-api-redacts-provider-body",
+          "status": "passed"
+        },
+        {
+          "name": "directional-callback-stale-auth-readiness",
+          "status": "passed"
+        },
+        {
+          "name": "ambiguous-readiness-refused",
+          "status": "passed"
+        }
+      ],
+      "provider_http_methods": [
+        "GET"
+      ],
+      "provider_http_count": 2,
+      "resource_mutations": 0,
+      "real_account_requests": 0,
+      "preview_and_readiness_inputs_unchanged": true,
+      "scope": "public CLI with read-only Vapi loopback and supplied Telnyx metadata; no live account or provisioning effects"
+    },
+    "private_report": ".local/gate5/setup-positive-shipped-result.json",
+    "private_report_sha256": "1ecc38e8cfdb38cfca376d2f310d30692def1ea216454b3b72005e198a4bdce6",
+    "boundary": "Selected sealed source binary is not an extracted final gate5-local runtime; final installed candidate remains pending"
+  },
+  "package_guard_tests": {
+    "command": "python3 -m unittest discover -s scripts/tests -p test_package_inventory.py -v",
+    "passed": 24,
+    "failed": 0,
+    "scope": "Proof verifier guards with nonexecuted synthetic artifacts/process reports; not installed behavior"
+  },
+  "new_guard_coverage": [
+    "Every clean/impairment/mute route must appear exactly once with matching pass status and complete finite duration",
+    "Every provider fixture case must be present and passed; no live account or mutation counts accepted",
+    "Installed connected-app proof binds both packaged binaries, source revision, driver/helpers and complete14 checks before/after, requiring three distinct expected exits and rejecting missing behavior, unexplained omissions or surviving workers"
+  ],
+  "source_inventory_rehearsal": {
+    "result": "source-inventory-verified",
+    "candidate_created": false,
+    "behavior_qualified": false,
+    "additional_required_assets": [
+      "crates/connect-server/tests/gate5_session_interface_parity.rs",
+      "sdk/tests/session_probe.py",
+      "sdk/tests/session_probe.mjs",
+      "scripts/lib/reference_continuity.mjs"
+    ]
+  },
+  "not_run": [
+    "Final release compilation and archive creation",
+    "Final installed gate5-local behavior",
+    "Independent fresh-user walkthroughs",
+    "Final owner review"
+  ],
+  "connected_app_installed_hook": {
+    "status": "implemented-not-run",
+    "phase": "installed-connected-app",
+    "timeout_seconds": 180,
+    "source_evidence": "docs/evidence/gate-5/app-journeys.json",
+    "boundary": "Final extracted candidate qualification is still required; source journey evidence is separately owned and recorded",
+    "source_proof_validation": {
+      "status": "passed",
+      "report": ".local/gate5/app-journey-attempt9.json",
+      "report_sha256": "0b09b4ce82cdf43ca0d6e5af930daca5682007c60c2e72013f407b114debdaa8",
+      "checks": 14,
+      "scope": "Real source report accepted by installed verifier using temporary path adapter to same sealed source binaries; no installed candidate claim"
+    }
+  },
+  "connected_app_cleanup_guards": {
+    "command": "python3 -m unittest discover -s scripts/tests -p test_connected_app_checker.py -v",
+    "passed": 3,
+    "failed": 0,
+    "coverage": [
+      "Earlier worker exit failure never skips later owned worker cleanup",
+      "Changed input during cleanup cannot pass",
+      "Missing input after cleanup cannot pass"
+    ],
+    "scope": "Synthetic process guards, separate from real14-check source journey"
+  },
+  "installed_session_controls": {
+    "scope": "candidate-selectable implementation; executed source-selected rehearsal only",
+    "evidence": "docs/evidence/gate-5/installed-session-controls.json"
+  },
+  "installed_reference_continuity": {
+    "guard": "attributed AV decision/artifact and exact one-followup replay required",
+    "actual_source_report": ".local/gate5/reference-continuity-20261014T094452.363274Z/reference.json",
+    "source_report_verified": true,
+    "candidate_run": "pending"
+  }
+}

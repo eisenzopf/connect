@@ -1,0 +1,878 @@
+{
+  "schema_version": 1,
+  "status": "failed-component-candidate",
+  "scope": "Local macOS arm64 real QUIC transport component; not decoded-media, final installed or whole Gate5 qualification",
+  "captured_at_utc": "2026-10-14T10:41:37.989328+00:00",
+  "candidate_patch_count": 20,
+  "selected_quinn": "0.11.12",
+  "selected_quinn_proto": "0.11.19",
+  "selected_controller": "stock BBR as explicitly downcast-asserted on each peer",
+  "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "source_dirty": true,
+  "tested_inputs_stable": true,
+  "tested_inputs_sha256": {
+    "Cargo.toml": "104578cf124f5dcc8a3be0222cfff67d340261e59d8c5283ab910c501f7262e2",
+    "Cargo.lock": "e97749c552459792c747713ae36115a59d0664216ab67f7857be343e1a96b29a",
+    "dependencies/source-lock.json": "fa68fa6c7394ba593b917d9553c1af266725b13fc2c056ccdb462412705242aa",
+    "crates/connect-server/tests/gate5_quic_transport.rs": "9cfd7f2c701d1a36def2216efbc3029ccf7651cf032df0ce0e56750f7b946431",
+    "patches/rvoip/parley-conference.patch": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+    "patches/rvoip/connect-quic-application.patch": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+    "patches/rvoip/connect-session-context.patch": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+    "patches/rvoip/external-session-projection.patch": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+    "patches/rvoip/sip-terminal-media-race.patch": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+    "patches/rvoip/audio-queue-policy.patch": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+    "patches/rvoip/transport-audio-queues.patch": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+    "patches/rvoip/authenticated-envelope-guard.patch": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+    "patches/rvoip/vapi-call-admission.patch": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+    "patches/rvoip/encoded-video-transport.patch": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+    "patches/rvoip/terminal-session-resource-lifetime.patch": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+    "patches/rvoip/terminal-session-backpressure.patch": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+    "patches/rvoip/declared-ssrc-feedback.patch": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
+    "patches/rvoip/quic-video-egress-reorder.patch": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+    "patches/rvoip/webrtc-audio-ingress-reorder.patch": "5d20734f650ff4f7a9a69c1c001af2688560727317315b2b501a5f694e4d122f",
+    "patches/rvoip/quic-video-loss-tolerance.patch": "0820429577a589a63d75e098eda1b19a8962b8dea1fa7969f0b8dfc512df52b1",
+    "patches/rvoip/quic-video-delivery-controller.patch": "5ff63f3ef95b7d0d499190c05617d6e133a62472b7d859acbc2637a4110a5ea6",
+    "patches/rtc-dtls/incomplete-flight-timer.patch": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845",
+    "patches/rvoip/webrtc-video-reorder-pressure.patch": "b63d5681fa669e6da10d87271f9bf8802d5688a2412eca4ed045ce5bd2807cbd",
+    "patches/rvoip/webrtc-shared-av-sync-identity.patch": "b4b2d064c5889e955506ca10985697cbed2444139bc7ec95402f8b0103e75fbb"
+  },
+  "report": {
+    "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/workspace-sustained-20261014T103532/result.json",
+    "sha256": "335332dea42f75c7a5e0d59e8002f21257952381fe5d8b07c66cbdc4c94641c7"
+  },
+  "private_log": {
+    "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/workspace-sustained-20261014T103532/sustained.log",
+    "sha256": "8fa6157b1cc175456000110b5687bb104e9196da9494bb55c18384ea2894ff17"
+  },
+  "tests": {
+    "passed": 3,
+    "failed": 1,
+    "ignored": 0
+  },
+  "zero_loss_jitter_case": {
+    "offered_seconds": [
+      59.9813875,
+      59.98139275
+    ],
+    "video_payload_bits_per_second": [
+      1000630.4038898734,
+      1000630.3163075519
+    ],
+    "audio_payload_bits_per_second": [
+      72022.34193065307,
+      72022.33562674318
+    ],
+    "offered_video_packets_per_direction": 7200,
+    "offered_audio_packets_per_direction": 3000,
+    "received_video_packets": [
+      7186,
+      7178
+    ],
+    "received_audio_packets": [
+      2997,
+      2992
+    ],
+    "complete_transport_frames": [
+      1793,
+      1789
+    ],
+    "over_sampled_send_space": [
+      0,
+      0
+    ],
+    "reliable_1MiB_seconds": 1.764060459,
+    "proxy_random_or_stall_drops": 0,
+    "proxy_received_forwarded_per_direction": [
+      18007,
+      19324
+    ],
+    "fresh_complete_transport_frame_after_nominal_stall_times_seconds": [
+      [
+        0.099671125,
+        0.114473875
+      ],
+      [
+        0.100297167,
+        0.068871334
+      ]
+    ],
+    "maximum_sampled_cwnd_bytes": [
+      315732,
+      7758754
+    ],
+    "maximum_reported_bbr_model_rate_bits_per_second": [
+      212719800,
+      0
+    ],
+    "declared_quic_lost_packets": [
+      2247,
+      2953
+    ],
+    "inflight_observed": false
+  },
+  "failure": "Both BBR delivery models must initialize a nonzero reported pacing rate; one model remained zero while its congestion window continued to grow. Assertion preserved.",
+  "not_run": [
+    "3 percent loss and two250ms stall case (first case assertion stopped test)",
+    "decoded-media qualification of candidate20",
+    "normal candidate20 sealed build",
+    "final installed qualification"
+  ],
+  "analysis": {
+    "zero_model": "Pinned BBR bandwidth estimator excludes every application-limited sample, even first or higher samples.",
+    "unbounded_startup_growth": "Pinned BBR startup growth compares the dimensionless cwnd_gain with target window bytes instead of comparing current cwnd.",
+    "distinction": "Quinn packet pacing itself uses congestion window/RTT; model metric zero does not establish absence of packet pacing. Declared QUIC losses are not actual proxy drops.",
+    "primary_algorithm": "https://datatracker.ietf.org/doc/html/draft-cardwell-iccrg-bbr-congestion-control-00",
+    "repair_status": "Narrow recorded-source regressions and repair under review; no repaired result claimed."
+  },
+  "whole_gate_qualified": false,
+  "historical_initial_candidate": true,
+  "current_candidate_patch_count": 22,
+  "subsequent_attempts": [
+    {
+      "candidate_patch_count": 22,
+      "status": "failed",
+      "case": "zero-loss-jitter",
+      "report": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/workspace-sustained-20261014T104733/result.json",
+        "sha256": "bb0fb17876f6ccd06343a58cec31aee3989b437163085b09ab1145c51c4ba7db"
+      },
+      "private_log": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/workspace-sustained-20261014T104733/sustained.log",
+        "sha256": "7d30877d5128030f686d6dfa2d46f972292bf0110221ac0eba9f22c17eb495a2"
+      },
+      "tested_inputs_stable": true,
+      "tested_inputs_sha256": {
+        "Cargo.toml": "65befc28b49b7ed3777e4d6f7476edb288c539359ae41e3643da6c60f4be93fc",
+        "Cargo.lock": "2f3abc14b06ba9335d01ce1cc99910f99ab48293731a80d0c50e6fa5ab9d4957",
+        "dependencies/source-lock.json": "f3232e9c20e265526385831a0767adb4950a1fe6eddbde0fd5ab38656b89449b",
+        "crates/connect-server/tests/gate5_quic_transport.rs": "9cfd7f2c701d1a36def2216efbc3029ccf7651cf032df0ce0e56750f7b946431",
+        "patches/rvoip/parley-conference.patch": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+        "patches/rvoip/connect-quic-application.patch": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+        "patches/rvoip/connect-session-context.patch": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+        "patches/rvoip/external-session-projection.patch": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+        "patches/rvoip/sip-terminal-media-race.patch": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+        "patches/rvoip/audio-queue-policy.patch": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+        "patches/rvoip/transport-audio-queues.patch": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+        "patches/rvoip/authenticated-envelope-guard.patch": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+        "patches/rvoip/vapi-call-admission.patch": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+        "patches/rvoip/encoded-video-transport.patch": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+        "patches/rvoip/terminal-session-resource-lifetime.patch": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+        "patches/rvoip/terminal-session-backpressure.patch": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+        "patches/rvoip/declared-ssrc-feedback.patch": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
+        "patches/rvoip/quic-video-egress-reorder.patch": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+        "patches/rvoip/webrtc-audio-ingress-reorder.patch": "5d20734f650ff4f7a9a69c1c001af2688560727317315b2b501a5f694e4d122f",
+        "patches/rvoip/quic-video-loss-tolerance.patch": "0820429577a589a63d75e098eda1b19a8962b8dea1fa7969f0b8dfc512df52b1",
+        "patches/rvoip/quic-video-delivery-controller.patch": "4de582ae65a59351bce9bd74f8d492eabb547a096a57c1ac714d11dfb52f03cf",
+        "patches/rtc-dtls/incomplete-flight-timer.patch": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845",
+        "patches/rvoip/webrtc-video-reorder-pressure.patch": "b63d5681fa669e6da10d87271f9bf8802d5688a2412eca4ed045ce5bd2807cbd",
+        "patches/rvoip/webrtc-shared-av-sync-identity.patch": "b4b2d064c5889e955506ca10985697cbed2444139bc7ec95402f8b0103e75fbb",
+        "patches/rtc-interceptor/late-loss-accounting.patch": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+        "patches/quinn-proto/bbr-model-bounds.patch": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6"
+      },
+      "tests": {
+        "passed": 3,
+        "failed": 1,
+        "ignored": 0
+      },
+      "failure": "Strict component over_space == 0 assertion failed; original assertion retained. Assertions after this failure were not reached.",
+      "metrics": {
+        "over_space": [
+          45,
+          0
+        ],
+        "minimum_cwnd": [
+          4800,
+          241200
+        ],
+        "maximum_cwnd": [
+          277486,
+          475734
+        ],
+        "minimum_model_rate": [
+          0,
+          0
+        ],
+        "maximum_model_rate": [
+          222961320,
+          890763224
+        ],
+        "offered_seconds": [
+          59.9810605,
+          59.981068083
+        ],
+        "video_payload_bits_per_second": [
+          1000635.8590475406,
+          1000635.7325439294
+        ],
+        "audio_payload_bits_per_second": [
+          72022.73457635849,
+          72022.72547101219
+        ],
+        "video": [
+          7196,
+          7155
+        ],
+        "audio": [
+          2999,
+          2986
+        ],
+        "complete_frames": [
+          1798,
+          1779
+        ],
+        "maximum_age_ms": [
+          104.22937499999563,
+          649.1614579999947
+        ],
+        "congestion_events": [
+          509,
+          935
+        ],
+        "lost_packets": [
+          1421,
+          3354
+        ],
+        "sent_packets": [
+          15020,
+          19831
+        ],
+        "duration_seconds": 60.383643625,
+        "reliable_1MiB_seconds": 2.061724375,
+        "recovery_seconds": [
+          [
+            0.11081316699999988,
+            0.11988041699999741
+          ],
+          [
+            0.11080754199999987,
+            0.0790964580000022
+          ]
+        ],
+        "proxy": {
+          "received": [
+            15022,
+            19830
+          ],
+          "random_dropped": [
+            0,
+            0
+          ],
+          "stall_dropped": [
+            0,
+            0
+          ],
+          "forwarded": [
+            15022,
+            19830
+          ],
+          "peak_pending": 144
+        }
+      },
+      "remaining_owned_processes": [],
+      "decoded_media_qualified": false
+    },
+    {
+      "candidate_patch_count": 22,
+      "status": "failed",
+      "case": "three-percent-loss-jitter-two-stalls",
+      "report": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/workspace-impaired-20261014T105213/result.json",
+        "sha256": "8990b652830289b49615c52a617fe3662eadd4255db33d77fd559bd697cd8eee"
+      },
+      "private_log": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/workspace-impaired-20261014T105213/sustained.log",
+        "sha256": "6daaebc04753acca970e08521d799ee71c061a7d71350ec8cebfd753707893a8"
+      },
+      "tested_inputs_stable": true,
+      "tested_inputs_sha256": {
+        "Cargo.toml": "65befc28b49b7ed3777e4d6f7476edb288c539359ae41e3643da6c60f4be93fc",
+        "Cargo.lock": "2f3abc14b06ba9335d01ce1cc99910f99ab48293731a80d0c50e6fa5ab9d4957",
+        "dependencies/source-lock.json": "bea0d661dcd901b5ed9cc8baab2f95e7c8a0f78865ce34cde6b635a4d7cffb0b",
+        "crates/connect-server/tests/gate5_quic_transport.rs": "9cfd7f2c701d1a36def2216efbc3029ccf7651cf032df0ce0e56750f7b946431",
+        "patches/rvoip/parley-conference.patch": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+        "patches/rvoip/connect-quic-application.patch": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+        "patches/rvoip/connect-session-context.patch": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+        "patches/rvoip/external-session-projection.patch": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+        "patches/rvoip/sip-terminal-media-race.patch": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+        "patches/rvoip/audio-queue-policy.patch": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+        "patches/rvoip/transport-audio-queues.patch": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+        "patches/rvoip/authenticated-envelope-guard.patch": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+        "patches/rvoip/vapi-call-admission.patch": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+        "patches/rvoip/encoded-video-transport.patch": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+        "patches/rvoip/terminal-session-resource-lifetime.patch": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+        "patches/rvoip/terminal-session-backpressure.patch": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+        "patches/rvoip/declared-ssrc-feedback.patch": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
+        "patches/rvoip/quic-video-egress-reorder.patch": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+        "patches/rvoip/webrtc-audio-ingress-reorder.patch": "5d20734f650ff4f7a9a69c1c001af2688560727317315b2b501a5f694e4d122f",
+        "patches/rvoip/quic-video-loss-tolerance.patch": "0820429577a589a63d75e098eda1b19a8962b8dea1fa7969f0b8dfc512df52b1",
+        "patches/rvoip/quic-video-delivery-controller.patch": "acc0f57301633f50e4ab1b1c79f2d37aa3de165d63c92f53729c2685752d32f8",
+        "patches/rtc-dtls/incomplete-flight-timer.patch": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845",
+        "patches/rvoip/webrtc-video-reorder-pressure.patch": "b63d5681fa669e6da10d87271f9bf8802d5688a2412eca4ed045ce5bd2807cbd",
+        "patches/rvoip/webrtc-shared-av-sync-identity.patch": "b4b2d064c5889e955506ca10985697cbed2444139bc7ec95402f8b0103e75fbb",
+        "patches/rtc-interceptor/late-loss-accounting.patch": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+        "patches/quinn-proto/bbr-model-bounds.patch": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6"
+      },
+      "tests": {
+        "passed": 0,
+        "failed": 1,
+        "ignored": 0
+      },
+      "failure": "Strict component over_space == 0 assertion failed; original assertion retained. Assertions after this failure were not reached.",
+      "metrics": {
+        "over_space": [
+          18,
+          0
+        ],
+        "minimum_cwnd": [
+          5556,
+          241200
+        ],
+        "maximum_cwnd": [
+          241200,
+          478187
+        ],
+        "minimum_model_rate": [
+          0,
+          0
+        ],
+        "maximum_model_rate": [
+          180973264,
+          265435480
+        ],
+        "offered_seconds": [
+          59.981375167,
+          59.981398375
+        ],
+        "video_payload_bits_per_second": [
+          1000630.6096333184,
+          1000630.2224693674
+        ],
+        "audio_payload_bits_per_second": [
+          72022.3567394423,
+          72022.32887255524
+        ],
+        "video": [
+          6914,
+          6922
+        ],
+        "audio": [
+          2876,
+          2894
+        ],
+        "complete_frames": [
+          1575,
+          1562
+        ],
+        "maximum_age_ms": [
+          106.37675000000257,
+          640.9334169999994
+        ],
+        "congestion_events": [
+          595,
+          1103
+        ],
+        "lost_packets": [
+          1664,
+          3556
+        ],
+        "sent_packets": [
+          13634,
+          18285
+        ],
+        "duration_seconds": 60.386095167,
+        "reliable_1MiB_seconds": 2.346470959,
+        "recovery_seconds": [
+          [
+            0.06370787500000041,
+            0.15387650000000264
+          ],
+          [
+            0.9388290419999983,
+            0.31584562500000146
+          ]
+        ],
+        "proxy": {
+          "received": [
+            13634,
+            18284
+          ],
+          "random_dropped": [
+            431,
+            539
+          ],
+          "stall_dropped": [
+            34,
+            102
+          ],
+          "forwarded": [
+            13169,
+            17643
+          ],
+          "peak_pending": 171
+        },
+        "first_pressure_samples": [
+          [
+            27.601522334,
+            678.0,
+            8642.0,
+            66071.0
+          ],
+          [
+            27.601527625,
+            678.0,
+            8642.0,
+            66071.0
+          ],
+          [
+            27.668576334,
+            466.0,
+            8642.0,
+            61048.0
+          ],
+          [
+            27.668579042,
+            466.0,
+            8642.0,
+            61048.0
+          ],
+          [
+            27.70096075,
+            42.0,
+            8642.0,
+            61048.0
+          ],
+          [
+            27.700963042,
+            42.0,
+            8642.0,
+            61048.0
+          ],
+          [
+            27.700964125,
+            466.0,
+            8642.0,
+            61048.0
+          ],
+          [
+            27.700964959,
+            466.0,
+            8642.0,
+            61048.0
+          ],
+          [
+            27.835323625,
+            678.0,
+            9370.0,
+            58705.0
+          ],
+          [
+            27.835329042,
+            678.0,
+            9370.0,
+            58705.0
+          ],
+          [
+            27.835330917,
+            678.0,
+            9370.0,
+            58705.0
+          ],
+          [
+            27.868911584,
+            466.0,
+            9370.0,
+            69401.0
+          ],
+          [
+            27.86891425,
+            466.0,
+            9370.0,
+            69401.0
+          ],
+          [
+            27.900489959,
+            466.0,
+            9370.0,
+            71348.0
+          ],
+          [
+            27.900492709,
+            466.0,
+            9370.0,
+            71348.0
+          ],
+          [
+            27.900494334,
+            466.0,
+            9370.0,
+            71348.0
+          ]
+        ],
+        "pressure_sample_columns": [
+          "elapsed_seconds",
+          "available_bytes",
+          "cwnd_bytes",
+          "rtt_microseconds"
+        ]
+      },
+      "remaining_owned_processes": [],
+      "decoded_media_qualified": false
+    }
+  ],
+  "acceptance_scope_review": {
+    "report": {
+      "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/transport-acceptance-scope-review.json",
+      "sha256": "cc24a0b350a6f049343e635ce854b66a53aae955d36d060a2cae632c3821e6f9"
+    },
+    "review": {
+      "recorded_at": "2026-10-14T10:54:41.851096+00:00",
+      "scope": "Root and independent quality reviewer reconciliation of the transport-only fixture with the frozen product contract; no runtime pass declared",
+      "reviewers": [
+        "root",
+        "quality_finish"
+      ],
+      "sources": [
+        "contracts/connect-media-vp8-v1.md:175",
+        "docs/decisions/011-gate-5-profile.md",
+        ".deps/rvoip/crates/uctp/rvoip-quic/src/media_stream.rs",
+        "crates/connect-client/src/video/diagnostics.rs"
+      ],
+      "finding": "The strict over_space == 0 assertion is an additional fixture gate, not a frozen product requirement. The documented contract allows bounded enqueue/loss; sampled pressure is not observed eviction. No arbitrary replacement numerical limit is justified.",
+      "age_boundary": "Raw fixture send-to-read age includes the opaque QUIC buffer and wire delay. Application ingress sets captured_at to arrival and bounds local queue/reorder/dequeue age at200ms; raw649ms does not by itself prove a local-age violation. It remains an important latency diagnostic.",
+      "preserved_failures": [
+        "workspace-sustained-20261014T104733/result.json",
+        "workspace-impaired-20261014T105213/result.json"
+      ],
+      "required_before_runtime_suitability": [
+        "All9 selected current decoded profiles at unchanged quality/recovery/sync/mute/resource/teardown limits",
+        "Current-graph public reliable bytes, authority and replay, revocation, durable end, restart and peer-loss regressions",
+        "Observed application queue capacities and local-age diagnostics"
+      ],
+      "decision": "Keep original strict failures and all diagnostics. Build the current recorded graph diagnostically to obtain actual public-client decoded evidence; do not change congestion control from aggregate pressure alone.",
+      "whole_gate_qualified": false
+    }
+  },
+  "current_status": "Contract-aligned sustained transport fixture passed5/0/0 with stable inputs. Historical strict-pressure failures remain recorded. No current decoded-media or full-source/installed release pass follows; actual impaired profiles remain blockers pending nativeGOP/audio-observer repairs.",
+  "updated_at_utc": "2026-10-14T10:59:49.522648+00:00",
+  "full_source_qualified": false,
+  "diagnostic_normal_build": {
+    "report": {
+      "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-dtls-binaries-20261014T105630.919440Z/result.json",
+      "sha256": "3a2ee6854dd2848e18d5bc26eafc76c2e81e8617b0cb6ecce8e01ffaccb365d5"
+    },
+    "status": "passed",
+    "inputs_stable": true,
+    "fresh_compilation_observed": {
+      "quinn-proto": true,
+      "rtc-interceptor": true,
+      "rtc-dtls": true,
+      "rvoip-quic": true,
+      "rvoip-webrtc": true,
+      "connect-server": true,
+      "connect-review-loop": true,
+      "connect-native-video": true
+    },
+    "binaries": {
+      "connect": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-dtls-binaries-20261014T105630.919440Z/normal/connect",
+        "sha256": "6c39002065d830c156086db91afdccbc8e1898f265230032a6c18224a0e64000"
+      },
+      "connect-example": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-dtls-binaries-20261014T105630.919440Z/normal/connect-example",
+        "sha256": "b0961818231a3f0cd801765ef62450aca35e9953d38569bf19926395c60eb724"
+      },
+      "connect-video": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-dtls-binaries-20261014T105630.919440Z/normal/connect-video",
+        "sha256": "e1101fad147e727da2d987e57e85348d1d0cd9b5b7da2554a274ec3397926997"
+      }
+    },
+    "source_lock_sha256": "bea0d661dcd901b5ed9cc8baab2f95e7c8a0f78865ce34cde6b635a4d7cffb0b",
+    "qualification_scope": "default-feature component build only; no full-source, decoded-media or installed qualification pass"
+  },
+  "contract_aligned_fixture_revision": {
+    "status": "passed-component",
+    "source_lock_sha256": "9731fb7d13b62223366e407ee50aba3ae8f96609c186b3042a2c49c8f1b8747b",
+    "patch17_sha256": "68cc0a27a31a22330808f093b900b9774f1bafa555ead145f9654427713795aa",
+    "review": "Root accepted correction against existing contract; retained historical strict failures are not relabeled as passes.",
+    "assertions": "Exact configured76032-byte bound; observed payload-space range with Quinn metadata reservation; every pre/post-send sample bounded; exact7200video/3000audio submissions per direction and full UDP forwarding/accounting; reliable1MiB and receipt complete during both active offered windows. Original rates/delivery/recovery/loss/model guards retained.",
+    "pressure": "Count and first16samples remain diagnostic; no arbitrary replacement pressure ceiling.",
+    "source_test_count": 5,
+    "report": {
+      "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/workspace-contract-sustained-20261014T111506/result.json",
+      "sha256": "92001af4cb1ab8c46ede797893cf1540f38948bfb70bfcd1fa48408edc6051a8"
+    },
+    "private_log": {
+      "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-bbr-authoring/workspace-contract-sustained-20261014T111506/sustained.log",
+      "sha256": "e28ea8c7fc5bd11a2ca846bd4a267819f53f0c71c18f800b3708e21ebabc2059"
+    },
+    "tests": {
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    "tested_inputs_stable": true,
+    "tested_inputs_sha256": {
+      "Cargo.toml": "65befc28b49b7ed3777e4d6f7476edb288c539359ae41e3643da6c60f4be93fc",
+      "Cargo.lock": "2f3abc14b06ba9335d01ce1cc99910f99ab48293731a80d0c50e6fa5ab9d4957",
+      "dependencies/source-lock.json": "9731fb7d13b62223366e407ee50aba3ae8f96609c186b3042a2c49c8f1b8747b",
+      "crates/connect-server/tests/gate5_quic_transport.rs": "9cfd7f2c701d1a36def2216efbc3029ccf7651cf032df0ce0e56750f7b946431",
+      "patches/rvoip/parley-conference.patch": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+      "patches/rvoip/connect-quic-application.patch": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+      "patches/rvoip/connect-session-context.patch": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+      "patches/rvoip/external-session-projection.patch": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+      "patches/rvoip/sip-terminal-media-race.patch": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+      "patches/rvoip/audio-queue-policy.patch": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+      "patches/rvoip/transport-audio-queues.patch": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+      "patches/rvoip/authenticated-envelope-guard.patch": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+      "patches/rvoip/vapi-call-admission.patch": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+      "patches/rvoip/encoded-video-transport.patch": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+      "patches/rvoip/terminal-session-resource-lifetime.patch": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+      "patches/rvoip/terminal-session-backpressure.patch": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+      "patches/rvoip/declared-ssrc-feedback.patch": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
+      "patches/rvoip/quic-video-egress-reorder.patch": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+      "patches/rvoip/webrtc-audio-ingress-reorder.patch": "5d20734f650ff4f7a9a69c1c001af2688560727317315b2b501a5f694e4d122f",
+      "patches/rvoip/quic-video-loss-tolerance.patch": "0820429577a589a63d75e098eda1b19a8962b8dea1fa7969f0b8dfc512df52b1",
+      "patches/rvoip/quic-video-delivery-controller.patch": "68cc0a27a31a22330808f093b900b9774f1bafa555ead145f9654427713795aa",
+      "patches/rtc-dtls/incomplete-flight-timer.patch": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845",
+      "patches/rvoip/webrtc-video-reorder-pressure.patch": "b63d5681fa669e6da10d87271f9bf8802d5688a2412eca4ed045ce5bd2807cbd",
+      "patches/rvoip/webrtc-shared-av-sync-identity.patch": "b4b2d064c5889e955506ca10985697cbed2444139bc7ec95402f8b0103e75fbb",
+      "patches/rtc-interceptor/late-loss-accounting.patch": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+      "patches/quinn-proto/bbr-model-bounds.patch": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6"
+    },
+    "cases": [
+      {
+        "impaired": true,
+        "duration_seconds": 60.383149292,
+        "reliable_1MiB_seconds": 7.911665625,
+        "configured_capacity": [
+          76032,
+          76032
+        ],
+        "initial_available": [
+          76000,
+          76000
+        ],
+        "minimum_available": [
+          42,
+          71492
+        ],
+        "maximum_available": [
+          76000,
+          76000
+        ],
+        "sampled_high_water": [
+          75990,
+          4540
+        ],
+        "capacity_observations": [
+          20401,
+          20401
+        ],
+        "video_submitted": [
+          7200,
+          7200
+        ],
+        "audio_submitted": [
+          3000,
+          3000
+        ],
+        "over_space": [
+          191,
+          0
+        ],
+        "minimum_cwnd": [
+          5304,
+          241200
+        ],
+        "maximum_cwnd": [
+          306322,
+          478990
+        ],
+        "maximum_model_rate": [
+          512048184,
+          240376904
+        ],
+        "offered_seconds": [
+          59.980340458,
+          59.980349875
+        ],
+        "video_payload_bits_per_second": [
+          1000647.8713142219,
+          1000647.7142110869
+        ],
+        "audio_payload_bits_per_second": [
+          72023.59918288545,
+          72023.58787507823
+        ],
+        "video": [
+          6916,
+          6787
+        ],
+        "audio": [
+          2879,
+          2865
+        ],
+        "complete_frames": [
+          1578,
+          1508
+        ],
+        "maximum_age_ms": [
+          105.2800830000038,
+          658.7095420000004
+        ],
+        "congestion_events": [
+          439,
+          1066
+        ],
+        "lost_packets": [
+          909,
+          3056
+        ],
+        "recovery_seconds": [
+          [
+            0.08620995799999953,
+            0.11086012500000209
+          ],
+          [
+            0.5785514579999997,
+            0.3779609999999991
+          ]
+        ]
+      },
+      {
+        "impaired": false,
+        "duration_seconds": 60.383119042,
+        "reliable_1MiB_seconds": 1.751411042,
+        "configured_capacity": [
+          76032,
+          76032
+        ],
+        "initial_available": [
+          76000,
+          76000
+        ],
+        "minimum_available": [
+          22568,
+          71492
+        ],
+        "maximum_available": [
+          76000,
+          76000
+        ],
+        "sampled_high_water": [
+          53464,
+          4540
+        ],
+        "capacity_observations": [
+          20401,
+          20401
+        ],
+        "video_submitted": [
+          7200,
+          7200
+        ],
+        "audio_submitted": [
+          3000,
+          3000
+        ],
+        "over_space": [
+          0,
+          0
+        ],
+        "minimum_cwnd": [
+          4800,
+          241200
+        ],
+        "maximum_cwnd": [
+          284920,
+          477840
+        ],
+        "maximum_model_rate": [
+          309482696,
+          826241928
+        ],
+        "offered_seconds": [
+          59.981371375,
+          59.981387584
+        ],
+        "video_payload_bits_per_second": [
+          1000630.6728928136,
+          1000630.4024885561
+        ],
+        "audio_payload_bits_per_second": [
+          72022.36129266892,
+          72022.34182979052
+        ],
+        "video": [
+          7199,
+          7193
+        ],
+        "audio": [
+          3000,
+          2999
+        ],
+        "complete_frames": [
+          1799,
+          1796
+        ],
+        "maximum_age_ms": [
+          104.11004200000207,
+          477.1737090000023
+        ],
+        "congestion_events": [
+          445,
+          893
+        ],
+        "lost_packets": [
+          1566,
+          3045
+        ],
+        "recovery_seconds": [
+          [
+            0.1002052090000003,
+            0.11320937499999673
+          ],
+          [
+            0.10599083399999998,
+            0.11235433400000261
+          ]
+        ]
+      }
+    ],
+    "remaining_owned_processes": []
+  },
+  "contract_gop6_normal_build": {
+    "report": {
+      "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/result.json",
+      "sha256": "fe59155ccd34447f0b637c760cb3fe32095333f98d7d84584bd0b231b48ecf22"
+    },
+    "status": "passed",
+    "inputs_stable": true,
+    "fresh_compilation_observed": {
+      "quinn-proto": true,
+      "rtc-interceptor": true,
+      "rtc-dtls": true,
+      "rvoip-quic": true,
+      "rvoip-webrtc": true,
+      "connect-server": true,
+      "connect-review-loop": true,
+      "connect-native-video": true
+    },
+    "binaries": {
+      "connect": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/normal/connect",
+        "sha256": "6c39002065d830c156086db91afdccbc8e1898f265230032a6c18224a0e64000"
+      },
+      "connect-example": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/normal/connect-example",
+        "sha256": "b0961818231a3f0cd801765ef62450aca35e9953d38569bf19926395c60eb724"
+      },
+      "connect-video": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/contract-gop6-binaries-20261014T111859.658532Z/normal/connect-video",
+        "sha256": "5830985a1ee725b03a19cc4c03430072def73aae988b6e47e5c339454fc31831"
+      }
+    },
+    "source_lock_sha256": "9731fb7d13b62223366e407ee50aba3ae8f96609c186b3042a2c49c8f1b8747b",
+    "scope": "normal default-feature build with current compiler, qualification-helper and SDK source seal; no decoded-profile or whole-gate pass"
+  }
+}

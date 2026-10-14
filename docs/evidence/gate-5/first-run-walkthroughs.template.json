@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "record_kind": "blank_template_not_evidence",
+  "status": "not_started",
+  "requirement": "G5-046 / D5-05",
+  "required_independent_fresh_users": 3,
+  "target_seconds": 600,
+  "protocol": "docs/gate-5-walkthrough-protocol.html",
+  "candidate": {
+    "source_revision": null,
+    "archive_sha256": null,
+    "installed_manifest_sha256": null,
+    "passing_package_report_sha256": null
+  },
+  "attempt_template": {
+    "attempt_id": null,
+    "participant_label": null,
+    "independent_of_implementation": null,
+    "prior_exposure": null,
+    "platform": null,
+    "primary_journey": null,
+    "installation": {
+      "started_at": null,
+      "completed_at": null,
+      "seconds": null,
+      "method": null
+    },
+    "prerequisites": [],
+    "all_prerequisites_ready_at": null,
+    "journey_started_at": null,
+    "first_message_sent_at": null,
+    "first_reply_observed_at": null,
+    "wall_seconds_since_installation": null,
+    "ready_journey_seconds": null,
+    "pauses": [],
+    "agent_journey_result": null,
+    "app_journey_result": null,
+    "conversation_continuity_observed": null,
+    "reference_client_observations": [],
+    "facilitator_interventions": [],
+    "failures": [],
+    "restarts": [],
+    "private_evidence_references": [],
+    "cleanup_result": null,
+    "outcome": null,
+    "supersedes_attempt_id": null
+  },
+  "attempts": [],
+  "qualified_participant_count": 0,
+  "whole_gate_qualified": false
+}

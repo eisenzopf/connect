@@ -1,0 +1,766 @@
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/interceptor_registry.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/interceptor_registry.rs
+@@ -94,7 +94,7 @@
+ use crate::rtp_transceiver::{PayloadType, SSRC};
+ use interceptor::{
+     Interceptor, NackGeneratorBuilder, NackResponderBuilder, ReceiverReportBuilder, Registry,
+-    SenderReportBuilder, TwccReceiverBuilder, TwccSenderBuilder,
++    RtxReceiverBuilder, SenderReportBuilder, TwccReceiverBuilder, TwccSenderBuilder,
+ };
+ use shared::error::Result;
+ 
+@@ -141,6 +141,8 @@
+     let registry = configure_nack(registry, media_engine);
+ 
+     let registry = configure_rtcp_reports(registry);
++    // Incoming order: transport TWCC -> RTX restoration -> primary RR/NACK.
++    let registry = registry.with(RtxReceiverBuilder::new().build());
+ 
+     configure_simulcast_extension_headers(media_engine)?;
+ 
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/endpoint/rtx_feedback_tests.rs
+@@ -0,0 +1,180 @@
++//! Negotiated repair SSRCs are hop-local and must reach primary media once restored.
++use super::*;
++use crate::media_stream::MediaStreamTrack;
++use crate::peer_connection::configuration::interceptor_registry::register_default_interceptors;
++use crate::rtp_transceiver::rtp_sender::{
++    RTCRtpCodec, RTCRtpCodecParameters, RTCRtpEncodingParameters, RTCRtpRtxParameters,
++};
++use crate::rtp_transceiver::{RTCRtpTransceiverDirection, RTCRtpTransceiverInit};
++use interceptor::{Registry, TaggedPacket};
++use sansio::Protocol;
++use std::time::Duration;
++
++#[test]
++fn declared_rtx_first_packet_reaches_primary_track_without_feedback_reset() {
++    let primary = RTCRtpCodecParameters {
++        rtp_codec: RTCRtpCodec {
++            mime_type: "video/VP8".into(),
++            clock_rate: 90000,
++            ..Default::default()
++        },
++        payload_type: 96,
++    };
++    let repair = RTCRtpCodecParameters {
++        rtp_codec: RTCRtpCodec {
++            mime_type: "video/rtx".into(),
++            clock_rate: 90000,
++            sdp_fmtp_line: "apt=96".into(),
++            ..Default::default()
++        },
++        payload_type: 97,
++    };
++    let mut media = MediaEngine::default();
++    media
++        .register_codec(primary.clone(), RtpCodecKind::Video)
++        .unwrap();
++    media
++        .register_codec(repair.clone(), RtpCodecKind::Video)
++        .unwrap();
++    let mut chain = register_default_interceptors(Registry::new(), &mut media)
++        .unwrap()
++        .build();
++    let mut transceiver = RTCRtpTransceiverInternal::new(
++        RtpCodecKind::Video,
++        None,
++        RTCRtpTransceiverInit {
++            direction: RTCRtpTransceiverDirection::Recvonly,
++            ..Default::default()
++        },
++    );
++    transceiver.set_mid("video-0".into()).unwrap();
++    let receiver = transceiver.receiver_mut().as_mut().unwrap();
++    receiver.set_codec_preferences(vec![primary, repair]);
++    let coding = RTCRtpCodingParameters {
++        ssrc: Some(1001),
++        rtx: Some(RTCRtpRtxParameters { ssrc: 2002 }),
++        ..Default::default()
++    };
++    receiver.set_coding_parameters(vec![coding.clone()]);
++    receiver.set_track(MediaStreamTrack::new(
++        "source".into(),
++        "video".into(),
++        "declared video".into(),
++        RtpCodecKind::Video,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: coding,
++            ..Default::default()
++        }],
++    ));
++    receiver.interceptor_remote_streams_op(&media, &mut chain, true);
++    let ext = receiver
++        .get_parameters(&media)
++        .rtp_parameters
++        .header_extensions
++        .iter()
++        .find(|e| e.uri.contains("transport-wide-cc"))
++        .unwrap()
++        .id as u8;
++    let mut transceivers = vec![transceiver];
++    let mut context = EndpointHandlerContext::default();
++    let mut stats = RTCStatsAccumulator::new();
++    let now = Instant::now();
++    let mut output = Vec::new();
++    let mut losses = Vec::new();
++    let mut twcc_receipts = 0;
++    for (index, (ssrc, pt, seq, payload)) in [
++        (2002, 97, 400, vec![0, 10, 0x10, 7]),
++        (1001, 96, 12, vec![0x10, 8]),
++        (2002, 97, 401, vec![0, 11, 0x10, 9]),
++    ]
++    .into_iter()
++    .enumerate()
++    {
++        let mut packet = rtp::Packet::default();
++        packet.header.ssrc = ssrc;
++        packet.header.payload_type = pt;
++        packet.header.sequence_number = seq;
++        packet.header.timestamp = 90000;
++        packet
++            .header
++            .set_extension(ext, ((index + 1) as u16).to_be_bytes().to_vec().into())
++            .unwrap();
++        packet.payload = payload.into();
++        let at = now + Duration::from_millis(index as u64 * 1100);
++        chain
++            .handle_read(TaggedPacket {
++                now: at,
++                transport: TransportContext::default(),
++                message: Packet::Rtp(packet),
++            })
++            .unwrap();
++        let mut decoded = Vec::new();
++        while let Some(p) = chain.poll_read() {
++            decoded.push(p);
++        }
++        for p in decoded {
++            let mut endpoint = EndpointHandler::new(
++                &mut context,
++                &mut transceivers,
++                &media,
++                &mut chain,
++                &mut stats,
++            );
++            endpoint
++                .handle_read(TaggedRTCMessageInternal {
++                    now: p.now,
++                    transport: p.transport,
++                    message: RTCMessageInternal::Rtp(RTPMessage::Packet(p.message)),
++                })
++                .unwrap();
++        }
++        while let Some(p) = context.read_outs.pop_front() {
++            if let RTCMessageInternal::Rtp(RTPMessage::TrackPacket(p)) = p.message {
++                assert_eq!(p.track_id, "video");
++                let Packet::Rtp(p) = p.packet else { panic!() };
++                assert_eq!(p.header.ssrc, 1001);
++                assert_eq!(p.header.payload_type, 96);
++                assert_eq!(p.payload[0], 0x10);
++                output.push(p.header.sequence_number);
++            }
++        }
++        chain
++            .handle_timeout(at + Duration::from_millis(1001))
++            .unwrap();
++        while let Some(p) = chain.poll_write() {
++            if let Packet::Rtcp(ps) = p.message {
++                for p in ps {
++                    if let Some(rr) = p
++                        .as_any()
++                        .downcast_ref::<rtcp::receiver_report::ReceiverReport>()
++                    {
++                        for r in &rr.reports {
++                            assert_eq!(r.ssrc, 1001);
++                            losses.push(r.total_lost);
++                        }
++                    }
++                    if let Some(t)=p.as_any().downcast_ref::<rtcp::transport_feedbacks::transport_layer_cc::TransportLayerCc>() {twcc_receipts+=t.recv_deltas.len();}
++                }
++            }
++        }
++    }
++    assert_eq!(
++        output,
++        [10, 12, 11],
++        "RTX must restore OSN and primary ownership before public media"
++    );
++    assert_eq!(
++        losses,
++        [0, 1, 0],
++        "first-track transition must not reset prebound RR history"
++    );
++    assert_eq!(
++        twcc_receipts, 3,
++        "both wire SSRCs must contribute actual transport receipts"
++    );
++    assert_eq!(
++        context.event_outs.len(),
++        1,
++        "RTX-first opens the primary track only once"
++    );
++}
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/endpoint.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/endpoint.rs
+@@ -423,6 +423,14 @@
+                     .ssrcs()
+                     .any(|track_ssrc| track_ssrc == ssrc)
+             {
++                if rtp_header.is_some_and(|header| {
++                    receiver.get_codec_preferences().iter().any(|codec| {
++                        codec.payload_type == header.payload_type
++                            && codec.rtp_codec.mime_type.eq_ignore_ascii_case("video/rtx")
++                    })
++                }) {
++                    return None;
++                }
+                 let (is_track_codec_empty, track_id) = (
+                     receiver
+                         .track()
+@@ -433,10 +441,10 @@
+ 
+                 let track_codec = if is_track_codec_empty
+                     && let Some(rtp_header) = rtp_header
+-                    && let Some(codec) = receiver
+-                        .get_codec_preferences()
+-                        .iter()
+-                        .find(|codec| codec.payload_type == rtp_header.payload_type)
++                    && let Some(codec) = receiver.get_codec_preferences().iter().find(|codec| {
++                        codec.payload_type == rtp_header.payload_type
++                            && !codec.rtp_codec.mime_type.eq_ignore_ascii_case("video/rtx")
++                    })
+                 //TODO: what about RTX/FEC stream?
+                 {
+                     Some(codec.clone())
+@@ -449,15 +457,8 @@
+                     // RTP payload type is known. Bind hop feedback at that same
+                     // transition, just as the RID/undeclared paths do. Binding
+                     // on every packet would reset receiver loss/report state.
+-                    let parameters = receiver.get_parameters(self.media_engine);
+-                    RTCRtpReceiverInternal::interceptor_remote_stream_op(
+-                        self.interceptor,
+-                        true,
+-                        ssrc,
+-                        codec.payload_type,
+-                        &codec.rtp_codec,
+-                        &parameters.rtp_parameters.header_extensions,
+-                    );
++                    let parameters = receiver.get_parameters(self.media_engine).clone();
++                    receiver.bind_remote_codec(self.interceptor, ssrc, &codec, &parameters);
+                     // Set valid Codec for track when received the first RTP packet for such ssrc stream
+                     // assert not inserting new entry
+                     let new_entry = receiver
+@@ -558,7 +559,10 @@
+                 && let Some(codec) = receiver
+                     .get_codec_preferences()
+                     .iter()
+-                    .find(|codec| codec.payload_type == rtp_header.payload_type) //TODO: what about RTX/FEC stream?
++                    .find(|codec| {
++                        codec.payload_type == rtp_header.payload_type
++                            && !codec.rtp_codec.mime_type.eq_ignore_ascii_case("video/rtx")
++                    }) //TODO: what about RTX/FEC stream?
+                     .cloned()
+             {
+                 if !rrid.is_empty() {
+@@ -642,7 +646,10 @@
+         let codec = receiver
+             .get_codec_preferences()
+             .iter()
+-            .find(|codec| codec.payload_type == rtp_header.payload_type)
++            .find(|codec| {
++                codec.payload_type == rtp_header.payload_type
++                    && !codec.rtp_codec.mime_type.eq_ignore_ascii_case("video/rtx")
++            })
+             .cloned()?;
+ 
+         let mut receive_codings = receiver.get_coding_parameters().to_vec();
+@@ -904,3 +911,6 @@
+ 
+ #[cfg(test)]
+ mod declared_feedback_tests;
++
++#[cfg(test)]
++mod rtx_feedback_tests;
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/internal.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/internal.rs
+@@ -798,6 +798,11 @@
+                         incoming_track.kind,
+                         vec![], // Defer receiver's track's codec until received the first RTP packet with payload_type in endpoint handler
+                     ));
++                    receiver.interceptor_remote_streams_op(
++                        &self.media_engine,
++                        &mut self.interceptor,
++                        true,
++                    );
+                 } else {
+                     return Err(Error::ErrRTPReceiverForSSRCTrackStreamNotFound);
+                 }
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_receiver/internal.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_receiver/internal.rs
+@@ -18,6 +18,7 @@
+ use crate::rtp_transceiver::{PayloadType, SSRC};
+ use interceptor::Interceptor;
+ use shared::error::Result;
++use std::collections::{HashMap, HashSet};
+ use std::marker::PhantomData;
+ use std::time::Duration;
+ 
+@@ -46,6 +47,7 @@
+ 
+     last_returned_parameters: Option<RTCRtpReceiveParameters>,
+ 
++    bound_remote_streams: HashMap<SSRC, interceptor::StreamInfo>,
+     _phantom: PhantomData<I>,
+ }
+ 
+@@ -64,6 +66,7 @@
+ 
+             receive_codecs: vec![],
+             last_returned_parameters: None,
++            bound_remote_streams: HashMap::new(),
+             _phantom: PhantomData,
+         }
+     }
+@@ -229,6 +232,59 @@
+         }
+     }
+ 
++    /// Bind declared wire/repair metadata once, without resetting report state
++    /// when the first media packet later opens the track.
++    pub(crate) fn bind_remote_codec(
++        &mut self,
++        interceptor: &mut I,
++        ssrc: SSRC,
++        codec: &RTCRtpCodecParameters,
++        parameters: &RTCRtpReceiveParameters,
++    ) {
++        // Bind the negotiated codec, including media-engine feedback. Codec
++        // preferences used by first-packet routing omit that merged metadata.
++        let codec = parameters
++            .rtp_parameters
++            .codecs
++            .iter()
++            .find(|candidate| {
++                candidate.payload_type == codec.payload_type
++                    && candidate
++                        .rtp_codec
++                        .mime_type
++                        .eq_ignore_ascii_case(&codec.rtp_codec.mime_type)
++            })
++            .unwrap_or(codec);
++        let coding = self
++            .track()
++            .codings()
++            .iter()
++            .find(|coding| coding.rtp_coding_parameters.ssrc == Some(ssrc));
++        let repair = coding
++            .and_then(|coding| coding.rtp_coding_parameters.rtx.as_ref())
++            .map(|rtx| rtx.ssrc);
++        let repair_pt =
++            find_rtx_payload_type(codec.payload_type, &parameters.rtp_parameters.codecs);
++        let info = create_stream_info(
++            ssrc,
++            repair.filter(|_| repair_pt.is_some()),
++            None,
++            codec.payload_type,
++            repair_pt.filter(|_| repair.is_some()),
++            None,
++            &codec.rtp_codec,
++            &parameters.rtp_parameters.header_extensions,
++        );
++        if self.bound_remote_streams.get(&ssrc) == Some(&info) {
++            return;
++        }
++        if let Some(previous) = self.bound_remote_streams.remove(&ssrc) {
++            interceptor.unbind_remote_stream(&previous);
++        }
++        interceptor.bind_remote_stream(&info);
++        self.bound_remote_streams.insert(ssrc, info);
++    }
++
+     pub(crate) fn interceptor_remote_streams_op(
+         &mut self,
+         media_engine: &MediaEngine,
+@@ -236,49 +292,258 @@
+         is_binding: bool,
+     ) {
+         let parameters = self.get_parameters(media_engine).clone();
+-
+-        for coding in self.track().codings() {
+-            let (codec, match_type) =
++        if !is_binding {
++            for (_, info) in self.bound_remote_streams.drain() {
++                interceptor.unbind_remote_stream(&info);
++            }
++        }
++        let mut desired = HashSet::new();
++        let codings: Vec<_> = self.track().codings().to_vec();
++        for coding in codings {
++            let Some(ssrc) = coding.rtp_coding_parameters.ssrc else {
++                continue;
++            };
++            let (mut codec, mut match_type) =
+                 codec_parameters_fuzzy_search(&coding.codec, &parameters.rtp_parameters.codecs);
+-            if let Some(&ssrc) = coding.rtp_coding_parameters.ssrc.as_ref()
+-                && match_type != CodecMatch::None
+-            {
+-                RTCRtpReceiverInternal::interceptor_remote_stream_op(
++            // With one negotiated camera codec and explicit FID, bind before
++            // first media so an RTX packet can be the first accepted packet.
++            // Multiple primary codecs retain deferred payload-type selection.
++            if match_type == CodecMatch::None && coding.rtp_coding_parameters.rtx.is_some() {
++                let primaries: Vec<_> = parameters
++                    .rtp_parameters
++                    .codecs
++                    .iter()
++                    .filter(|codec| {
++                        !matches!(
++                            codec.rtp_codec.mime_type.to_ascii_lowercase().as_str(),
++                            "video/rtx" | "video/red" | "video/ulpfec" | "video/flexfec-03"
++                        )
++                    })
++                    .collect();
++                if let [primary] = primaries.as_slice() {
++                    if find_rtx_payload_type(
++                        primary.payload_type,
++                        &parameters.rtp_parameters.codecs,
++                    )
++                    .is_some()
++                    {
++                        codec = (*primary).clone();
++                        match_type = CodecMatch::Exact;
++                    }
++                }
++            }
++            if match_type == CodecMatch::None {
++                continue;
++            }
++            if is_binding {
++                desired.insert(ssrc);
++                self.bind_remote_codec(interceptor, ssrc, &codec, &parameters);
++            } else {
++                // Also release streams bound by legacy RID/undeclared paths.
++                Self::interceptor_remote_stream_op(
+                     interceptor,
+-                    is_binding,
++                    false,
+                     ssrc,
+                     codec.payload_type,
+                     &codec.rtp_codec,
+                     &parameters.rtp_parameters.header_extensions,
+                 );
+-
+-                if let Some(rtx) = coding.rtp_coding_parameters.rtx.as_ref() {
+-                    RTCRtpReceiverInternal::interceptor_remote_stream_op(
+-                        interceptor,
+-                        is_binding,
+-                        rtx.ssrc,
+-                        find_rtx_payload_type(
+-                            codec.payload_type,
+-                            &parameters.rtp_parameters.codecs,
+-                        )
+-                        .unwrap_or_default(),
+-                        &codec.rtp_codec,
+-                        &parameters.rtp_parameters.header_extensions,
+-                    );
++            }
++            if let Some(fec) = coding.rtp_coding_parameters.fec.as_ref() {
++                Self::interceptor_remote_stream_op(
++                    interceptor,
++                    is_binding,
++                    fec.ssrc,
++                    find_fec_payload_type(&parameters.rtp_parameters.codecs).unwrap_or_default(),
++                    &codec.rtp_codec,
++                    &parameters.rtp_parameters.header_extensions,
++                );
++            }
++        }
++        if is_binding {
++            let stale: Vec<_> = self
++                .bound_remote_streams
++                .keys()
++                .filter(|ssrc| !desired.contains(ssrc))
++                .copied()
++                .collect();
++            for ssrc in stale {
++                if let Some(info) = self.bound_remote_streams.remove(&ssrc) {
++                    interceptor.unbind_remote_stream(&info);
+                 }
+-
+-                if let Some(fec) = coding.rtp_coding_parameters.fec.as_ref() {
+-                    RTCRtpReceiverInternal::interceptor_remote_stream_op(
+-                        interceptor,
+-                        is_binding,
+-                        fec.ssrc,
+-                        find_fec_payload_type(&parameters.rtp_parameters.codecs)
+-                            .unwrap_or_default(),
+-                        &codec.rtp_codec,
+-                        &parameters.rtp_parameters.header_extensions,
+-                    );
+-                }
+             }
+         }
+     }
+ }
++
++#[cfg(test)]
++mod repair_binding_tests {
++    use super::*;
++    use crate::rtp_transceiver::rtp_sender::{RTCRtpEncodingParameters, RTCRtpRtxParameters};
++    use interceptor::{Packet, Registry, RtxReceiverBuilder, TaggedPacket};
++    use sansio::Protocol;
++    #[test]
++    fn replacing_primary_and_removing_or_unmatching_codings_prunes_old_binding() {
++        let mut chain = Registry::new()
++            .with(RtxReceiverBuilder::new().build())
++            .build();
++        let mut receiver = RTCRtpReceiverInternal::new(RtpCodecKind::Video, vec![]);
++        let codec = RTCRtpCodecParameters {
++            rtp_codec: RTCRtpCodec {
++                mime_type: "video/VP8".into(),
++                clock_rate: 90000,
++                ..Default::default()
++            },
++            payload_type: 96,
++        };
++        let repair = RTCRtpCodecParameters {
++            rtp_codec: RTCRtpCodec {
++                mime_type: "video/rtx".into(),
++                clock_rate: 90000,
++                sdp_fmtp_line: "apt=96".into(),
++                ..Default::default()
++            },
++            payload_type: 97,
++        };
++        let mut media = MediaEngine::default();
++        media
++            .register_codec(codec.clone(), RtpCodecKind::Video)
++            .unwrap();
++        media
++            .register_codec(repair.clone(), RtpCodecKind::Video)
++            .unwrap();
++        receiver.set_codec_preferences(vec![codec.clone(), repair]);
++        for primary in [1001, 1002] {
++            let coding = RTCRtpCodingParameters {
++                ssrc: Some(primary),
++                rtx: Some(RTCRtpRtxParameters {
++                    ssrc: primary + 1000,
++                }),
++                ..Default::default()
++            };
++            receiver.set_track(MediaStreamTrack::new(
++                "source".into(),
++                "video".into(),
++                "video".into(),
++                RtpCodecKind::Video,
++                vec![RTCRtpEncodingParameters {
++                    rtp_coding_parameters: coding,
++                    codec: codec.rtp_codec.clone(),
++                    ..Default::default()
++                }],
++            ));
++            receiver.interceptor_remote_streams_op(&media, &mut chain, true);
++            assert_eq!(receiver.bound_remote_streams.len(), 1);
++            assert!(receiver.bound_remote_streams.contains_key(&primary));
++        }
++        let mut p = rtp::Packet::default();
++        p.header.ssrc = 2001;
++        p.header.payload_type = 97;
++        p.payload = vec![0, 11, 0x10].into();
++        chain
++            .handle_read(TaggedPacket {
++                now: std::time::Instant::now(),
++                transport: Default::default(),
++                message: Packet::Rtp(p),
++            })
++            .unwrap();
++        let Packet::Rtp(p) = chain.poll_read().unwrap().message else {
++            panic!()
++        };
++        assert_eq!(p.header.ssrc, 2001, "removed primary must not be restored");
++        receiver.set_codec_preferences(vec![RTCRtpCodecParameters {
++            rtp_codec: RTCRtpCodec {
++                mime_type: "video/VP9".into(),
++                clock_rate: 90000,
++                ..Default::default()
++            },
++            payload_type: 98,
++        }]);
++        receiver.interceptor_remote_streams_op(&media, &mut chain, true);
++        assert!(receiver.bound_remote_streams.is_empty());
++        receiver.set_track(MediaStreamTrack::new(
++            "source".into(),
++            "video".into(),
++            "video".into(),
++            RtpCodecKind::Video,
++            vec![],
++        ));
++        receiver.interceptor_remote_streams_op(&media, &mut chain, true);
++        assert!(receiver.bound_remote_streams.is_empty());
++    }
++    #[test]
++    fn changed_fid_payload_and_extension_replace_old_binding() {
++        let mut chain = Registry::new()
++            .with(RtxReceiverBuilder::new().build())
++            .build();
++        let mut receiver = RTCRtpReceiverInternal::new(RtpCodecKind::Video, vec![]);
++        let codec = RTCRtpCodecParameters {
++            rtp_codec: RTCRtpCodec {
++                mime_type: "video/VP8".into(),
++                clock_rate: 90000,
++                ..Default::default()
++            },
++            payload_type: 96,
++        };
++        let mut parameters = RTCRtpReceiveParameters::default();
++        parameters.rtp_parameters.codecs = vec![
++            codec.clone(),
++            RTCRtpCodecParameters {
++                rtp_codec: RTCRtpCodec {
++                    mime_type: "video/rtx".into(),
++                    clock_rate: 90000,
++                    sdp_fmtp_line: "apt=96".into(),
++                    ..Default::default()
++                },
++                payload_type: 97,
++            },
++        ];
++        for (repair, pt, ext) in [(2002, 97, 3), (3003, 98, 7)] {
++            parameters.rtp_parameters.codecs[1].payload_type = pt;
++            parameters.rtp_parameters.header_extensions = vec![RTCRtpHeaderExtensionParameters {
++                uri: "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
++                    .into(),
++                id: ext,
++                encrypted: false,
++            }];
++            let coding = RTCRtpCodingParameters {
++                ssrc: Some(1001),
++                rtx: Some(RTCRtpRtxParameters { ssrc: repair }),
++                ..Default::default()
++            };
++            receiver.set_track(MediaStreamTrack::new(
++                "source".into(),
++                "video".into(),
++                "video".into(),
++                RtpCodecKind::Video,
++                vec![RTCRtpEncodingParameters {
++                    rtp_coding_parameters: coding,
++                    ..Default::default()
++                }],
++            ));
++            receiver.bind_remote_codec(&mut chain, 1001, &codec, &parameters);
++            assert_eq!(receiver.bound_remote_streams.len(), 1);
++            let bound = &receiver.bound_remote_streams[&1001];
++            assert_eq!(bound.ssrc_rtx, Some(repair));
++            assert_eq!(bound.payload_type_rtx, Some(pt));
++            assert_eq!(bound.rtp_header_extensions[0].id, ext as u16);
++        }
++        for (ssrc, pt, expected) in [(2002, 97, 2002), (3003, 98, 1001)] {
++            let mut p = rtp::Packet::default();
++            p.header.ssrc = ssrc;
++            p.header.payload_type = pt;
++            p.payload = vec![0, 11, 0x10].into();
++            chain
++                .handle_read(TaggedPacket {
++                    now: std::time::Instant::now(),
++                    transport: Default::default(),
++                    message: Packet::Rtp(p),
++                })
++                .unwrap();
++            let Packet::Rtp(p) = chain.poll_read().unwrap().message else {
++                panic!()
++            };
++            assert_eq!(p.header.ssrc, expected);
++        }
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/src/peer/builder.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/builder.rs
+@@ -2,8 +2,8 @@
+ 
+ use rtc::interceptor::Registry;
+ use rtc::peer_connection::configuration::interceptor_registry::register_default_interceptors;
++pub use rtc::peer_connection::configuration::media_engine::MIME_TYPE_TELEPHONE_EVENT;
+ use rtc::peer_connection::configuration::media_engine::MediaEngine;
+-pub use rtc::peer_connection::configuration::media_engine::MIME_TYPE_TELEPHONE_EVENT;
+ use rtc::peer_connection::configuration::setting_engine::SettingEngine;
+ use rtc::peer_connection::configuration::{
+     RTCConfiguration, RTCConfigurationBuilder, RTCIceServer, RTCIceTransportPolicy,
+@@ -16,7 +16,7 @@
+ };
+ use rvoip_core::capability::CapabilityDescriptor;
+ use std::collections::HashSet;
+-use std::sync::{atomic::AtomicUsize, Arc};
++use std::sync::{Arc, atomic::AtomicUsize};
+ 
+ // G6 — RTP header extension URIs. Registered explicitly so that interop SDPs
+ // (Chrome / Safari / Firefox) round-trip the right `extmap:` IDs.
+@@ -248,6 +248,23 @@
+         RtpCodecKind::Video,
+     )?;
+ 
++    if vp8_only {
++        // RFC 4588 repair remains hop-local; the public encoded stream stays VP8.
++        media_engine.register_codec(
++            RTCRtpCodecParameters {
++                rtp_codec: RTCRtpCodec {
++                    mime_type: "video/rtx".into(),
++                    clock_rate: 90_000,
++                    sdp_fmtp_line: format!("apt={VP8_PAYLOAD_TYPE}"),
++                    ..Default::default()
++                },
++                payload_type: 97,
++                ..Default::default()
++            },
++            RtpCodecKind::Video,
++        )?;
++    }
++
+     if !vp8_only {
+         let vp9 = RTCRtpCodec {
+             mime_type: MIME_TYPE_VP9.to_owned(),
+@@ -473,10 +490,43 @@
+             peer.add_local_video_track().await?;
+             let offer = peer.create_offer_and_gather().await?;
+             assert!(offer.contains("VP8/90000"));
++            assert_eq!(offer.contains("rtx/90000"), strict);
+             assert_eq!(offer.contains("VP9/90000"), !strict);
+             assert_eq!(offer.contains("H264/90000"), !strict);
+             peer.close().await?;
+         }
++        Ok(())
++    }
++
++    #[tokio::test]
++    async fn vp8_rtx_offer_answer_keeps_hop_repair_and_primary_codec_association() -> Result<()> {
++        let config = WebRtcConfig {
++            require_vp8_audio_video_profile: true,
++            ..WebRtcConfig::loopback()
++        };
++        let offerer =
++            crate::peer::RvoipPeerConnection::new(&config, crate::peer::PeerRole::Offerer).await?;
++        let answerer =
++            crate::peer::RvoipPeerConnection::new(&config, crate::peer::PeerRole::Answerer).await?;
++        offerer.add_local_video_track().await?;
++        answerer.add_local_video_track().await?;
++        let offer = offerer.create_offer_and_gather().await?;
++        let answer = answerer.accept_offer_and_gather(&offer).await?;
++        for sdp in [&offer, &answer] {
++            assert!(sdp.contains("a=rtpmap:96 VP8/90000"));
++            assert!(
++                sdp.contains("a=rtpmap:97 rtx/90000"),
++                "RTX codec must survive real offer/answer"
++            );
++            assert!(sdp.contains("a=fmtp:97 apt=96"));
++            assert!(
++                sdp.contains("a=ssrc-group:FID "),
++                "repair SSRC association is explicit"
++            );
++            assert!(!sdp.contains("VP9/90000") && !sdp.contains("H264/90000"));
++        }
++        offerer.close().await?;
++        answerer.close().await?;
+         Ok(())
+     }
+ 

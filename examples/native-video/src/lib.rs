@@ -72,11 +72,13 @@ pub async fn write_frame_at(
     if frame.encoded.is_empty() || frame.encoded.len() > MAX_VIDEO_FRAME_BYTES {
         bail!("Invalid assembled frame size");
     }
-    output
-        .write_all(&(frame.encoded.len() as u32).to_le_bytes())
-        .await?;
-    output.write_all(&presentation_ticks.to_le_bytes()).await?;
-    output.write_all(&frame.encoded).await?;
+    // A single bounded write avoids separate filesystem handoffs for each
+    // tiny header field while keeping the complete IVF record unchanged.
+    let mut record = Vec::with_capacity(12 + frame.encoded.len());
+    record.extend_from_slice(&(frame.encoded.len() as u32).to_le_bytes());
+    record.extend_from_slice(&presentation_ticks.to_le_bytes());
+    record.extend_from_slice(&frame.encoded);
+    output.write_all(&record).await?;
     Ok(())
 }
 
@@ -84,6 +86,22 @@ pub async fn write_frame_at(
 mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
+    #[tokio::test]
+    async fn frame_record_preserves_exact_presentation_and_encoded_bytes() {
+        let frame = NativeVideoFrame {
+            timestamp_rtp: u32::MAX,
+            keyframe: true,
+            encoded: vec![0, 1, 2, 3],
+        };
+        let mut output = Vec::new();
+        write_frame_at(&mut output, &frame, 90001).await.unwrap();
+        assert_eq!(&output[..4], &4u32.to_le_bytes());
+        assert_eq!(&output[4..12], &90001u64.to_le_bytes());
+        assert_eq!(
+            read_frame(&mut output.as_slice()).await.unwrap(),
+            Some(frame.encoded)
+        );
+    }
     #[tokio::test]
     async fn clean_eof_and_truncated_or_oversized_input_are_distinct() {
         assert!(read_frame(&mut &b""[..]).await.unwrap().is_none());

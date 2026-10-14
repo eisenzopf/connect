@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { ReferenceContinuity } from "./reference_continuity.mjs";
 
 async function generatedCapture(page, frequency) {
     await page.addInitScript((frequency) => {
@@ -245,6 +246,14 @@ export async function qualifyReferenceVideo({
         conversation,
         "Written AV context: the chosen color is violet.",
     );
+    const continuity = new ReferenceContinuity(
+        client,
+        peerClient,
+        conversation,
+        config.identity_id,
+        peer.identity_id,
+    );
+    await continuity.establish();
     const pages = [];
     try {
         pages.push(
@@ -294,6 +303,7 @@ export async function qualifyReferenceVideo({
         const initial = await Promise.all(
             pages.map((page, index) => decoded(page, index === 0 ? 660 : 440)),
         );
+        await continuity.decide(accepted);
         for (const page of pages) {
             await page.locator("#mute-camera").click();
             assert.equal(
@@ -447,6 +457,7 @@ export async function qualifyReferenceVideo({
                     "Continuing the violet decision after AV and restart.",
             ),
         );
+        const continuityProof = await continuity.afterRestart(next.id);
         for (const [index, page] of pages.entries()) {
             await page.locator("#credential").fill("");
             await page.screenshot({
@@ -474,8 +485,11 @@ export async function qualifyReferenceVideo({
                 "attributed message, artifact and terminal Session context survive server restart",
                 "capture loss and ICE failure release both legs within five seconds",
                 "all owned tracks stopped",
+                "source-backed decision during decoded AV supports one attributed follow-up after restart",
+                "artifact bytes reverified after restart and wrong-conversation access denied",
             ],
             initial,
+            continuity: continuityProof,
             rejoined,
             failures,
         };

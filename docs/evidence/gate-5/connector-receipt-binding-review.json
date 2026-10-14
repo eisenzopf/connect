@@ -1,0 +1,128 @@
+{
+  "profile": "connect-gate5-connector-receipt-binding-review/1",
+  "reviewed_at": "2026-10-14T09:18:13.121347+00:00",
+  "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "status": "narrow-repair-component-verified; full-candidate-and-installed-review-pending",
+  "scope": "Independent review of existing non-media connector receipt ordering, operation admission, voice response binding and setup/runtime documentation; authored fix for dispatch receipt ID binding. No live providers, package or blanket release claim.",
+  "findings": [
+    {
+      "id": "R5-14",
+      "priority": 2,
+      "finding": "Normalized message dispatch selected a durable job from the adapter-returned mutation ID without checking it against the claimed attempt; a malformed response could alter an earlier same-connector job and leave the actual effect sending.",
+      "state": "source-fixed-and-component-tested",
+      "resolution": "Reject a mismatched response binding as uncertain under the original claimed ID before choosing normalized or legacy persistence. Preserve read-only reconciliation and do not resubmit the effect.",
+      "files": [
+        "crates/connect-server/src/providers.rs",
+        "crates/connect-server/tests/connector_template.rs",
+        "docs/CONNECTORS.md"
+      ],
+      "test": "wrong_attempt_receipt_preserves_original_uncertainty_and_exact_id_reconciliation",
+      "evidence": "Actual SDK two-turn fixture completes A, dispatches B once, returns A receipt for B, observes B uncertain with no reply and unchanged A receipt, replays business request and restarts worker, then reconciles B by exact original ID and verifies one provider effect."
+    },
+    {
+      "id": "R5-10",
+      "state": "existing-source-fix-independently-component-verified",
+      "evidence": "Three Store ordering tests pass: late older callback, applied terminal reconciliation of older turn, and newer continuation retained even after its terminal status is reconciled. Existing source guard checks job sequence/current pointer before provider_context changes."
+    },
+    {
+      "id": "R5-11",
+      "state": "existing-source-fix-independently-component-verified",
+      "evidence": "Receive-only connector retains independent ingress while outbound fails before provider call; voice fixtures separately omit discovery/start, panic on forbidden provider methods, and retain permitted counterpart behavior. All 9 connector-template and 7 voice-flow tests passed."
+    },
+    {
+      "id": "R5-13",
+      "state": "documentation-repair-independently-confirmed",
+      "evidence": "Current start_with_vapi_media rustdoc explicitly assigns endpoint/account effects to caller-selected adapter and describes polling-disabled loopback fixture use. No claim injection alone prevents external effects.",
+      "source_sha256": "7b2fc0d192e5ab20ded7217ebe89fef4899393f9d4e0036e10a119ec5d867681"
+    }
+  ],
+  "voice_counterpart_review": {
+    "source": "crates/connect-store/src/voice.rs",
+    "source_sha256": "7c4782015457623a43f95cfab9e7c09953d6ef59f7e35b246fba441d50979a9b",
+    "result": "finish_voice_result already binds observation mutation ID, external ID and normalized state to the exact supplied durable job in its transaction. No matching cross-job mutation gap; no voice production edit."
+  },
+  "verification": [
+    {
+      "command": "bash scripts/prepare-dependencies.sh",
+      "result": "Pinned sources and patch digests verified; exit 0."
+    },
+    {
+      "command": "cargo test -p connect-store --test connector_observation_order",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "3cd9e378799832b65ca43b755d90250fb3e742aae087f5b3dc3fdf8c15164c26",
+      "inputs_before_sha256": {
+        "crates/connect-store/src/connector_observations.rs": "930c766ecfd4b15dbe1f14a6d4a034c6768d9476af2e8725983dc22abc150d0c",
+        "crates/connect-store/src/providers.rs": "a4d5530d870245e26af6f2d4798affecb39322b34c01f1330d915476668be956",
+        "crates/connect-store/src/connector_registry.rs": "0ddd91e3841d344615840311c03945ecbc649d3ec13f19706487d3cf13def847",
+        "crates/connect-store/tests/connector_observation_order.rs": "07c5a4a641e834f9b17780188c159ea8caddf9be26a9e8c500b57dfc4c79ee32"
+      }
+    },
+    {
+      "command": "CARGO_TARGET_DIR=target/gate4-final-review CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --locked -p connect-server --all-features --test connector_template --test voice_flow",
+      "passed": 16,
+      "suites": {
+        "connector_template": 9,
+        "voice_flow": 7
+      },
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "65f11a3c499ad62ccb40a6dee0072e6178263089c6e484d6ebc51e6d189e34a7",
+      "warnings": "Existing macOS ld compact-unwind section-size warning; no strict Clippy/Rustdoc claim."
+    },
+    {
+      "command": "bash scripts/format.sh",
+      "result": "exit 0"
+    }
+  ],
+  "retained_failed_attempt": {
+    "kind": "test compilation",
+    "cause": "New test wrapper configuration() call ambiguous between Connector and Fixture traits. Corrected to explicitly call Connector::configuration.",
+    "log_sha256": "cb3983b788552681bcbd6fbaa9809587c9932ee3e7d5dd352846b49cbb44cb60",
+    "inputs_sha256": {
+      "crates/connect-store/src/connector_observations.rs": "930c766ecfd4b15dbe1f14a6d4a034c6768d9476af2e8725983dc22abc150d0c",
+      "crates/connect-store/src/providers.rs": "a4d5530d870245e26af6f2d4798affecb39322b34c01f1330d915476668be956",
+      "crates/connect-store/src/connector_registry.rs": "0ddd91e3841d344615840311c03945ecbc649d3ec13f19706487d3cf13def847",
+      "crates/connect-server/src/providers.rs": "1cf8c41bed0c9c4eb6efb9af74f9e027fe534a97ff7d0abe7023cd963b73a18f",
+      "crates/connect-server/src/voice.rs": "bd2ff4dd886c4d2e1e6dd20f15b9a2b4f49d837ed3ad83cbd6c9a46656a15493",
+      "crates/connect-store/tests/connector_observation_order.rs": "07c5a4a641e834f9b17780188c159ea8caddf9be26a9e8c500b57dfc4c79ee32",
+      "crates/connect-server/tests/connector_template.rs": "0087101ff1aa97884b35f45c5f51ac385a59b9b204faa09d55c03d3d34e8e14b",
+      "crates/connect-server/tests/voice_flow.rs": "014d081f19bc28506064c1d95560614e43f8419910ab748cb23813aed9542339",
+      "dependencies/source-lock.json": "70bb6353c5af9fa0aa73026e0b39e22e0ba9733068b76728ae7fbc42b4b23501"
+    }
+  },
+  "inputs_before_sha256": {
+    "crates/connect-store/src/connector_observations.rs": "930c766ecfd4b15dbe1f14a6d4a034c6768d9476af2e8725983dc22abc150d0c",
+    "crates/connect-store/src/providers.rs": "a4d5530d870245e26af6f2d4798affecb39322b34c01f1330d915476668be956",
+    "crates/connect-store/src/connector_registry.rs": "0ddd91e3841d344615840311c03945ecbc649d3ec13f19706487d3cf13def847",
+    "crates/connect-server/src/providers.rs": "1cf8c41bed0c9c4eb6efb9af74f9e027fe534a97ff7d0abe7023cd963b73a18f",
+    "crates/connect-server/src/voice.rs": "bd2ff4dd886c4d2e1e6dd20f15b9a2b4f49d837ed3ad83cbd6c9a46656a15493",
+    "crates/connect-store/tests/connector_observation_order.rs": "07c5a4a641e834f9b17780188c159ea8caddf9be26a9e8c500b57dfc4c79ee32",
+    "crates/connect-server/tests/connector_template.rs": "d7c8289972431054d1e950c046bc783fa3202e2ac6521c30070f11bed81c3774",
+    "crates/connect-server/tests/voice_flow.rs": "014d081f19bc28506064c1d95560614e43f8419910ab748cb23813aed9542339",
+    "dependencies/source-lock.json": "70bb6353c5af9fa0aa73026e0b39e22e0ba9733068b76728ae7fbc42b4b23501"
+  },
+  "inputs_after_sha256": {
+    "crates/connect-store/src/connector_observations.rs": "930c766ecfd4b15dbe1f14a6d4a034c6768d9476af2e8725983dc22abc150d0c",
+    "crates/connect-store/src/providers.rs": "a4d5530d870245e26af6f2d4798affecb39322b34c01f1330d915476668be956",
+    "crates/connect-store/src/connector_registry.rs": "0ddd91e3841d344615840311c03945ecbc649d3ec13f19706487d3cf13def847",
+    "crates/connect-server/src/providers.rs": "1cf8c41bed0c9c4eb6efb9af74f9e027fe534a97ff7d0abe7023cd963b73a18f",
+    "crates/connect-server/src/voice.rs": "bd2ff4dd886c4d2e1e6dd20f15b9a2b4f49d837ed3ad83cbd6c9a46656a15493",
+    "crates/connect-store/tests/connector_observation_order.rs": "07c5a4a641e834f9b17780188c159ea8caddf9be26a9e8c500b57dfc4c79ee32",
+    "crates/connect-server/tests/connector_template.rs": "d7c8289972431054d1e950c046bc783fa3202e2ac6521c30070f11bed81c3774",
+    "crates/connect-server/tests/voice_flow.rs": "014d081f19bc28506064c1d95560614e43f8419910ab748cb23813aed9542339",
+    "dependencies/source-lock.json": "70bb6353c5af9fa0aa73026e0b39e22e0ba9733068b76728ae7fbc42b4b23501"
+  },
+  "selected_inputs_stable": true,
+  "scope_limit": "Selected reviewed sources are sealed before/after. Other agents changed unrelated media example code concurrently; this is not a clean whole-tree candidate or installed evidence seal. Reviewed/setup contracts retain their prior bounded proofs; no new setup runtime qualification is claimed.",
+  "invalidation": "providers.rs dispatch changed; prior compiled/package evidence does not qualify this repair. Parent full regression, strict checks and installed candidate must include this source. Existing sealed media executables keep their explicit earlier source scope. All-feature test build may replace warm target connect executable; use separately sealed default binaries for normal-feature claims.",
+  "remaining": [
+    "Full stable-source regression and strict Clippy/Rustdoc",
+    "Installed app/agent and independent-client qualification",
+    "Actual-model journey and independent walkthroughs",
+    "Final media profile, provider source matrix and owner review"
+  ],
+  "whole_gate_qualified": false,
+  "published": false
+}

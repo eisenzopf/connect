@@ -1,0 +1,259 @@
+{
+  "format": 1,
+  "recorded_at": "2026-10-14T10:37:21.490084+00:00",
+  "task_ids": [
+    "G5-014",
+    "G5-016"
+  ],
+  "status": "prepared-graph-focused-tests-passed-runtime-qualification-pending",
+  "whole_gate_qualified": false,
+  "published": false,
+  "scope": "Receiver-report cumulative and interval loss correctness within the existing8192-packet history, independently reviewed by the root agent; browser send-rate or timing recovery is not established.",
+  "source": {
+    "kind": "crate",
+    "version": "0.20.0-alpha.1",
+    "url": "https://static.crates.io/crates/rtc-interceptor/rtc-interceptor-0.20.0-alpha.1.crate",
+    "sha256": "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e",
+    "repository": "https://github.com/webrtc-rs/rtc",
+    "revision": "b808b74f712ed379312a114b848ede133880d58a",
+    "repository_path": "rtc-interceptor"
+  },
+  "patch": {
+    "private_path": ".local/gate5/receiver-report-late-proof/rr-late-loss-private.patch",
+    "sha256": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+    "historical_integration_note": "Accepted for graph21 after active graph20 sustained fixture; release agent owns mapping, locks, prepare and runtime build.",
+    "recorded_path": "patches/rtc-interceptor/late-loss-accounting.patch",
+    "recorded_sha256": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb"
+  },
+  "defects": [
+    "Late unique packets arriving after a report never canceled their previously reported cumulative loss. Their receipts also failed to offset new loss in the current report interval.",
+    "An expired packet could set an aliased receive-bitmap slot and hide a newer missing packet before its report. Exact reported-loss tags alone did not prevent this."
+  ],
+  "repair": [
+    "Track exact sequence identities for reported missing packets in a fixed8192-slot array. A unique late receipt within that history cancels the marker once and corrects cumulative loss.",
+    "Subtract uniquely recovered receipts from newly missing packets for interval loss, saturating at zero; consume that credit at every report, including an interval with no sequence advancement.",
+    "Expire tags as forward progress reuses slots. Arrivals outside the retained history cannot mutate aliased receive bits; the existing jitter/timestamp update still runs."
+  ],
+  "tests": {
+    "actual_crate": {
+      "original": {
+        "passed": 13,
+        "failed": 3,
+        "ignored": 0
+      },
+      "repaired": {
+        "passed": 16,
+        "failed": 0,
+        "ignored": 0
+      },
+      "selector": "--lib report::receiver_stream",
+      "existing_tests": 12,
+      "new_regressions": 4,
+      "cases": [
+        "Cumulative and interval recovery once, duplicate arrivals and16-bit sequence wrap",
+        "Expired sequence after a report cannot cancel a new gap sharing its slot",
+        "Expired sequence before a report cannot hide that new gap; jitter timestamp still updates",
+        "Reorder before the first loss report creates no recovery credit"
+      ]
+    },
+    "execution": [
+      {
+        "name": "original-crate",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate5/receiver-report-late-proof/original-deps/rtc-interceptor/Cargo.toml",
+          "--lib",
+          "report::receiver_stream",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1200,
+        "log": "original-crate.log",
+        "status": "failed",
+        "exit_code": 101,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 3.859,
+        "scoped_clean": {
+          "name": "original-clean",
+          "command": [
+            "cargo",
+            "clean",
+            "--locked",
+            "--manifest-path",
+            "/Volumes/D2-2019/Developer/Connect/.local/gate5/receiver-report-late-proof/original-deps/rtc-interceptor/Cargo.toml",
+            "-p",
+            "rtc-interceptor"
+          ],
+          "timeout_seconds": 120,
+          "log": "original-clean.log",
+          "status": "passed",
+          "exit_code": 0,
+          "leftover_group_members": [],
+          "group_cleanup": "signalled",
+          "seconds": 0.135
+        },
+        "fresh_selected_compile": true,
+        "cargo_lock_sha256_before": "25d5e21673067960fde393ff76fe2077a430aee9ea6d035685af97810e5d5424",
+        "cargo_lock_sha256_after": "25d5e21673067960fde393ff76fe2077a430aee9ea6d035685af97810e5d5424",
+        "source_sha256": "d6b89042532015a69483d1b768405a4e398ec742903f801159c1d7662a5e7442",
+        "log_sha256": "3937af21ef3f513c4a71bd97f1607a69fb1e316660c9a88243d6f7686ec1360d"
+      },
+      {
+        "name": "repaired-crate",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate5/receiver-report-late-proof/repaired-deps/rtc-interceptor/Cargo.toml",
+          "--lib",
+          "report::receiver_stream",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1200,
+        "log": "repaired-crate.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.841,
+        "scoped_clean": {
+          "name": "repaired-clean",
+          "command": [
+            "cargo",
+            "clean",
+            "--locked",
+            "--manifest-path",
+            "/Volumes/D2-2019/Developer/Connect/.local/gate5/receiver-report-late-proof/repaired-deps/rtc-interceptor/Cargo.toml",
+            "-p",
+            "rtc-interceptor"
+          ],
+          "timeout_seconds": 120,
+          "log": "repaired-clean.log",
+          "status": "passed",
+          "exit_code": 0,
+          "leftover_group_members": [],
+          "group_cleanup": "signalled",
+          "seconds": 0.12
+        },
+        "fresh_selected_compile": true,
+        "cargo_lock_sha256_before": "25d5e21673067960fde393ff76fe2077a430aee9ea6d035685af97810e5d5424",
+        "cargo_lock_sha256_after": "25d5e21673067960fde393ff76fe2077a430aee9ea6d035685af97810e5d5424",
+        "source_sha256": "aa79f4496f7884c47592a3c7f25ba1248bedec44ad46fd3706bd61a4f88ec3a5",
+        "log_sha256": "51d7221a312dda1ad49812c291704038987551c17591ad54f751fcdba87c68be"
+      }
+    ],
+    "preparation": "Both private graphs prepared by prepare-dependencies from the same SHA-pinned crate archive; original graph adds tests only. No registry or tracked graph mutation.",
+    "cache_isolation": "Scoped cargo clean -p rtc-interceptor before each run; exact selected private compile path observed in both logs.",
+    "locks": "Both --locked runs retained Cargo.lock SHA25d5e21673067960fde393ff76fe2077a430aee9ea6d035685af97810e5d5424."
+  },
+  "original_failures": {
+    "retained": true,
+    "log": ".local/gate5/receiver-report-late-proof/original-crate.log",
+    "example": "1,3/report then2,5/report incorrectly yielded cumulative2 and fraction128; expected cumulative1 and fraction0.",
+    "alias_before_report": "Old2 arriving after8195 but before the report set the slot for missing8194 and hid its loss."
+  },
+  "evidence_sha256": {
+    "rr-late-loss-private.patch": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+    "rr-late-loss-tests-only.patch": "957a90d530f734362d7c67c5472d25f504215e151cd1df16c14df49bf5ebd57f",
+    "original-prepare.log": "66b9860d6329a10272e19439cc86a6caacb01ea50e92ece048ccbd065c588dc3",
+    "repaired-prepare.log": "49e7ccf1df081496e8ae0dc8ef31456eebc0c1b659352ad19784771a8aa11dd5",
+    "original-crate.log": "3937af21ef3f513c4a71bd97f1607a69fb1e316660c9a88243d6f7686ec1360d",
+    "repaired-crate.log": "51d7221a312dda1ad49812c291704038987551c17591ad54f751fcdba87c68be",
+    "original-clean.log": "30b9473bdbf3a08594212fb30bea938760948d53a848af58db1700f16ad8fce3",
+    "repaired-clean.log": "948bb4473174f1a3a343eca9c80a4f73a0ca15a188791d3efdb40f4c41c1a5c9"
+  },
+  "limits": [
+    "The retained history remains8192packets; this does not claim arbitrarily late correction or full receiver-report RFC conformance.",
+    "No timestamp-wrap or jitter-formula redesign.",
+    "The extra fixed tag array is bounded; no packet payloads, keys or credentials are retained.",
+    "Root/workspace runtime compilation and fresh native/browser impairment profiles remain required after recorded integration.",
+    "No failed browser attempt is retroactively promoted and no causal browser recovery is claimed."
+  ],
+  "recorded_candidate": {
+    "recorded_at": "2026-10-14T10:45:51.008398+00:00",
+    "status": "integrated-candidate; final-prepared-graph-component-and-runtime-verification-pending",
+    "source_lock_path": "dependencies/source-lock.json",
+    "source_lock_sha256": "f3232e9c20e265526385831a0767adb4950a1fe6eddbde0fd5ab38656b89449b",
+    "recorded_patch_count": 22,
+    "recorded_patch_path": "patches/rtc-interceptor/late-loss-accounting.patch",
+    "recorded_patch_sha256": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+    "source_metadata": {
+      "kind": "crate",
+      "version": "0.20.0-alpha.1",
+      "url": "https://static.crates.io/crates/rtc-interceptor/rtc-interceptor-0.20.0-alpha.1.crate",
+      "sha256": "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "repository_path": "rtc-interceptor",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+        }
+      ]
+    },
+    "root_cargo_mapping": ".deps/rtc-interceptor",
+    "upstream_rvoip_cargo_mapping": "../rtc-interceptor",
+    "scope": "Release confirmed these final staged digests for this attempt. Preparation, actual combined-graph component tests and runtime/sustained qualification remain separate from the retained private fixture evidence.",
+    "patch_identity": "Recorded patch bytes exactly match the privately tested16-test repair.",
+    "snapshot_note": "This dated integration snapshot preceded the passing prepared_graph_verification appended below; its pending wording is retained as history."
+  },
+  "prepared_graph_verification": {
+    "recorded_at": "2026-10-14T10:48:11.118213+00:00",
+    "scope": "Focused tests against the final formatted recorded patches in prepared graph22; full runtime/source/installed qualification remains separate",
+    "source_lock_sha256": "f3232e9c20e265526385831a0767adb4950a1fe6eddbde0fd5ab38656b89449b",
+    "root_cargo_lock_sha256": "2f3abc14b06ba9335d01ce1cc99910f99ab48293731a80d0c50e6fa5ab9d4957",
+    "report": ".local/gate5/quic-bbr-authoring/candidate22-tests-20261014T104605/result.json",
+    "report_sha256": "416a4ec5a21d5d096b7f6250ef76adf2545b7843f3507c8cd9d33ab3715d3201",
+    "inputs_stable": true,
+    "fresh_selected_compile_checked": true,
+    "steps": [
+      {
+        "name": "receiver-report",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "--manifest-path",
+          ".deps/rtc-interceptor/Cargo.toml",
+          "--lib",
+          "report::receiver_stream",
+          "--",
+          "--nocapture"
+        ],
+        "timeout_seconds": 1800,
+        "log": "receiver-report.log",
+        "status": "passed",
+        "exit_code": 0,
+        "leftover_group_members": [],
+        "group_cleanup": "signalled",
+        "seconds": 0.82,
+        "rust_tests": {
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        },
+        "log_sha256": "7eed6a91c94601cbb00e9b35ca81cc2f5dd8b06c017ad5ce6511e2a4508378de"
+      }
+    ],
+    "workspace_compile": {
+      "status": "passed",
+      "log_sha256": "f74f2d6e9db5d65c8353e8f7fee39799dce75d8d77b261c4805a5d91e635d603",
+      "scope": "Exact root-lock sustained-transport test executable compiled; not workspace suite execution"
+    }
+  }
+}

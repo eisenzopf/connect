@@ -1,0 +1,157 @@
+{
+  "format": 1,
+  "task_ids": [
+    "G5-007",
+    "G5-010",
+    "G5-042",
+    "G5-045"
+  ],
+  "status": "component-tests-passed",
+  "scope": "Recorded QUIC implementation repair and upstream transport/diagnostic fixtures only; actual decoded fixed-profile qualification remains pending",
+  "source_revision": "ee34b4ed24b3cc1a2ef2559c8b267994285590b3",
+  "source_dirty": true,
+  "whole_gate_qualified": false,
+  "published": false,
+  "files": {
+    "patches/rvoip/quic-video-loss-tolerance.patch": "0820429577a589a63d75e098eda1b19a8962b8dea1fa7969f0b8dfc512df52b1",
+    "dependencies/source-lock.json": "6a4983b9aa34386eef7c2917b74c6edde1c23f7a818c5c82b4ee8d12477c8374",
+    "THIRD_PARTY_NOTICES.md": "9e107091fe0cdff2d7dac80bac5a7db0fc25683d3c4aad8d388359844272f34e",
+    "crates/connect-client/src/client.rs": "566976a3d07b145ee2717dd989db8a2d1d6f5740e1f0a1d347e61a17290c7d1f",
+    "crates/connect-server/src/runtime.rs": "3bb542d6cbabe0910f786010b5c185144d63ffc223c7b400fa5c6ef69c6ff12a",
+    "crates/connect-protocol/src/media_diagnostics.rs": "7fa3e67fd694a4715ae5abd05dc6a37b125200c85b4c3cdbe883fb37283f3f8d",
+    "crates/connect-server/src/media_diagnostics.rs": "2d9b2b04e345c542bf9fc80b0c1723ab2bde8cf45252bc8230064f197b5b5018",
+    "examples/native-video/src/report.rs": "e3438d4d948eb3fc4183f23aee130694e40265730a80060c6a90e8c217e7628b",
+    "contracts/connect-media-vp8-v1.md": "19dd2dc2a9284fd00b4ebcc1e0805fc3fc80ed488d86a6c432c4a783ce151590",
+    "scripts/lib/gate5_phases.py": "5213a39d530cc1e69a1b1939a800f0f65d8ab6392193d1154ed6e644a74a055a",
+    "sdk/python/connect_sdk/media_validation.py": "cb452252a276f06b21876e6dd59b33f7e1f638fdc3f9706431bd2704903a1e4d",
+    "sdk/typescript/src/media_diagnostics.ts": "b8d556562720ac0148c8114fe795ada00b6ae284fd79647e80d079a967939180",
+    "sdk/typescript/dist/media_diagnostics.js": "b7c99561b44fc369d0cdb7110cd8aaa96bd94f63d1d858f75e1d1c046aac70e5",
+    "sdk/typescript/dist/media_diagnostics.d.ts": "cb4c2a664168556722173247f25518c7638bbc1144b01db1e7d6c2d220c6fc75",
+    "sdk/tests/test_media_diagnostics.py": "fbe668eca0364a589218ed291ac5c890377257b7ef5a628bec929a54f27053c7",
+    "sdk/tests/media_diagnostics.test.mjs": "936ff4054386f65707492864bef25dbe6dd736d230ee9fa63da0d5988b2f6c55"
+  },
+  "recorded_patches": 16,
+  "configuration": {
+    "packet_threshold": 64,
+    "time_threshold_rtt_factor": 4,
+    "congestion_controller": "unchanged default Cubic",
+    "datagram_buffer_bytes": 76032,
+    "application_video_queue_packets": 64,
+    "application_maximum_local_age_ms": 200,
+    "scope": "physical Connect QUIC connections, including reliable control and audio-only traffic; current authorization and application deadlines unchanged"
+  },
+  "actual_transport_fixture": {
+    "report": ".local/gate5/quic-loss-tolerance-authoring/attempt-20261014T100335/result.json",
+    "sha256": "6245defae8fd91b59d88d1431953b505bfa152baaa78f270d0af71992cb535cd",
+    "log": ".local/gate5/quic-loss-tolerance-authoring/attempt-20261014T100335/video-budget.log",
+    "log_sha256": "8008b215250d97dbe49aa3714ec20b2dbaa705e7c22239c018d6fc05d2c3b1cc",
+    "upstream_cargo_lock_sha256": "4453fc0e82891068dba7ba993a000e3052bb4bac6371ba48d65dba95ce1c850a",
+    "upstream_quinn": "0.11.11",
+    "upstream_quinn_proto": "0.11.16",
+    "workspace_quinn": "0.11.12",
+    "workspace_quinn_proto": "0.11.19",
+    "qualification_boundary": "fixture is compiled with pinned upstream lock; subsequent normal runtime build and actual decoded media exercise the workspace lock",
+    "profile": {
+      "datagrams_sent": 480,
+      "bytes_per_datagram": 900,
+      "datagrams_per_frame_tick": 4,
+      "frame_ticks_per_second": 30,
+      "maximum_proxy_delay_ms": 100,
+      "drain_before_path_snapshot_ms": 400,
+      "all_accepted_proxy_work_drained_before_completion": true,
+      "received_equals_dropped_plus_forwarded_each_direction": true
+    },
+    "reorder_only": {
+      "delivered": 480,
+      "send_over_sampled_free_space": 0,
+      "proxy_received": [
+        497,
+        452
+      ],
+      "proxy_dropped": [
+        0,
+        0
+      ],
+      "proxy_forwarded": [
+        497,
+        452
+      ],
+      "quinn_declared_lost_packets": 11,
+      "congestion_events": 9
+    },
+    "loss_and_reorder": {
+      "drop_rule": "each33rd opaque UDP datagram in each direction",
+      "delivered": 465,
+      "send_over_sampled_free_space": 0,
+      "proxy_received": [
+        497,
+        443
+      ],
+      "proxy_dropped": [
+        15,
+        13
+      ],
+      "proxy_forwarded": [
+        482,
+        430
+      ],
+      "quinn_declared_lost_packets": 19,
+      "congestion_events": 18
+    },
+    "limitation": "Zero-drop fixture still produced11 QUIC-declared losses; this repair does not claim elimination of spurious detector loss."
+  },
+  "guards": {
+    "video_datagram_budget": 3,
+    "media_diagnostics": 7,
+    "failed": 0,
+    "ignored": 0,
+    "source_driver_integration": "existing upstream-video-datagram-budget and upstream-media-diagnostics phases require exact3 and7 passes",
+    "python_health_diagnostics": 2,
+    "typescript_health_diagnostics": 2
+  },
+  "prior_failed_candidate": {
+    "packet_threshold": 64,
+    "time_threshold_rtt_factor": 2,
+    "report": ".local/gate5/quic-loss-tolerance-authoring/attempt-20261014T100122/result.json",
+    "sha256": "2269d58b296d439e1fba1a0f49096c6fe7846136cc3915f9ed06ab5faddb1e73",
+    "log": ".local/gate5/quic-loss-tolerance-authoring/attempt-20261014T100122/video-budget.log",
+    "log_sha256": "dfebb648815820ad279b69ddd9e868e9b8e3e53947c254e1a55aac2705578371",
+    "zero_proxy_drops": true,
+    "delivered": 325,
+    "sent": 480,
+    "send_over_sampled_free_space": 120,
+    "quinn_declared_lost_packets": 58,
+    "congestion_events": 39,
+    "additional_fixture_failure": "Previous budget fixture started with an interframe tag; corrected to keyframe-tag fixture to match earlier bounded reorder startup contract"
+  },
+  "not_run": [
+    "Current workspace normal binary decoded impairment profile",
+    "Complete current control/revocation regressions",
+    "Final extracted gate5-local qualification"
+  ],
+  "sdk_compatibility": "Closed validators explicitly accept the complete additive sampled-congestion field set and old field absence; malformed/partial new counters remain rejected",
+  "normal_build": {
+    "status": "passed",
+    "inputs_stable": true,
+    "report": ".local/gate5/quic-loss-repairs-binaries-20261014T100504.705763Z/result.json",
+    "report_sha256": "d3f47fcb33da05a1f6f5d1d3ae45ba723793c2d00936cac69455f5ac6912c528",
+    "prepare_status": "passed",
+    "features": "default; no test-support",
+    "binaries": {
+      "connect": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-loss-repairs-binaries-20261014T100504.705763Z/normal/connect",
+        "sha256": "411974c1f6781d8d8a419bd94c5bed84e24c52ad15204ceb5b1f9b55c8ba2583"
+      },
+      "connect-example": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-loss-repairs-binaries-20261014T100504.705763Z/normal/connect-example",
+        "sha256": "1e8445ebe1d03f35ed1d7cb26a407216046bcd3b1f5859516f33ffeb878f84cd"
+      },
+      "connect-video": {
+        "path": "/Volumes/D2-2019/Developer/Connect/.local/gate5/quic-loss-repairs-binaries-20261014T100504.705763Z/normal/connect-video",
+        "sha256": "4ebacb546d3e833593b04d9b8b0bac2a16cc9e6f6de7ab1bce3d339200420659"
+      }
+    },
+    "interrupted_prior_attempt": ".local/gate5/quic-loss-repairs-binaries-20261014T100415.090976Z/result.json",
+    "interrupted_reason": "source scope comments corrected after first snapshot; stopped and retained unstable attempt, then rebuilt from stable inputs"
+  }
+}
