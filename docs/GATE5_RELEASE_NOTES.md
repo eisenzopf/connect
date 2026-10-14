@@ -101,16 +101,18 @@ patch and SHA256 digest. Modified upstream behavior is attributed to those
 patches rather than described as unmodified upstream code. The package notice
 builder includes both license texts for each prepared crate override as well as
 the Git and registry notices; [third-party notices](../THIRD_PARTY_NOTICES.md)
-explain these inventories. The prepared-source notice-copy rehearsal has passed;
-verification of the final archive's license inventory remains pending. Thelve and Bridgefu are design provenance, not copied
-source in this candidate.
+explain these inventories. The unpublished aa31f0281516 candidate passed archive
+inventory and independent source/patch review; see the exact
+[package evidence](evidence/gate-5/local-package-qualification.json). Its runtime,
+source and qualification archives retain that source boundary. Thelve and Bridgefu
+are design provenance, not copied source in this candidate.
 
 The independent Python client has [pinned dependency notices](../examples/independent-uctp-client/DEPENDENCIES.md)
 and hashed requirements. FFmpeg, Chrome, Playwright, Node and the independent
 Python environment are selected external prerequisites, not bundled tools.
 Their installed versions/builds and licenses remain separate from Connect's
-repository license. This draft does not assert that an unbuilt archive's
-license inventory has already been verified.
+repository license. Later source repairs require a new matching archive and
+affected checks; the existing inventory result does not close release acceptance.
 
 Before release, seal a clean source revision and matching runtime/source/
 qualification archives, verify their manifests/checksums and included notices,

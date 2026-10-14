@@ -1,5 +1,5 @@
 {
-  "status": "Historical clean 66115d2 passed all 84 source phases; eight current changed inputs have independently accepted scoped repair proofs. Installed and whole-gate acceptance remain open.",
+  "status": "Historical clean66115d2 passed all84 source phases; ten current changed inputs have independently accepted scoped repair proofs, including the reference contact correction. Matching replacement package and whole-gate acceptance remain open.",
   "scope": "Local macOS arm64 source-only lane; not installed, model, full media or release acceptance",
   "attempts": [
     {
@@ -234,8 +234,12 @@
     ],
     "baseline_selected_input_count": 1108,
     "current_selected_input_count": 1109,
-    "unchanged_selected_input_count": 1101,
+    "unchanged_selected_input_count": 1099,
     "changed_selected_inputs": {
+      "examples/conversation-client/contacts.js": {
+        "baseline_sha256": "956149ce46b3fa5af412803f6edb6042664488de6dd885ac3de5775b45b664b0",
+        "current_sha256": "45a524cb4634f294e55c682b5459874d119e76435384f723af4dd9f4e3347157"
+      },
       "examples/native-video/src/interrupt.rs": {
         "baseline_sha256": null,
         "current_sha256": "808ce444d7f7eb0ba98fb85235bedbb35a541b27d9397527436a231395dcf959"
@@ -267,6 +271,10 @@
       "scripts/video/decoder_observation.py": {
         "baseline_sha256": "38f6a93c3ed6e9d9793cd602d68916f679cc80e966a3d0eefe81343e5cbb8be2",
         "current_sha256": "2e5c8e5bd1caa7e68019ee8cde5eef1da78c59131df130bd3e5e1d60ab308d60"
+      },
+      "sdk/tests/reference_client.test.mjs": {
+        "baseline_sha256": "ce1c9e50b9b433276526b4812467bc59f484eeab679df6e33774d1af53b77f21",
+        "current_sha256": "3216efd55e8344f20b88fb2b4ced26c68b9dfc6b54dbfca6b83810d84ccc32ee"
       }
     },
     "affected_slices": [
@@ -328,9 +336,15 @@
           "path": ".local/gate5/mute-native-browser-analysis-98ef894/media-20261014T212507.464590Z/result.json",
           "sha256": "5abca2da39a83dd4d4b76fb372723cba2819fdcc5f517a1c25e8c7c5f352d37a"
         }
+      },
+      {
+        "phase": "source--typescript-public-media-tests",
+        "scope": "Reference contact selection handler and its existing test file; no TypeScript distribution, core runtime or transport changes.",
+        "proof": "Three new delayed-client regressions fail against original handler; fixed reference file12/12 and full existing SDK glob216/216 pass, with all1109 selected source inputs plus runner/Node sealed.",
+        "evidence": "docs/evidence/gate-5/contact-selection-repair.json"
       }
     ],
-    "unaffected_scope": "All other 1,101 selected inputs are byte-identical to the 84-phase baseline. Protocol, public SDK, library, store, service, server, manifests, lockfiles and 34 upstream patches are unchanged. Source-composition history retains the prior six-input review; its counts are not reused for this eight-input composition.",
+    "unaffected_scope": "All other1,099 selected inputs are byte-identical to the84-phase baseline. Protocol, SDK implementation/distribution, library, store, service, server, manifests, lockfiles and34 upstream patches remain unchanged. Historical six- and eight-input compositions retain their original scopes.",
     "independent_reviews": [
       {
         "path": ".local/gate5/source-composition-98ef8947f5a6/assessment.json",
@@ -351,23 +365,47 @@
       {
         "path": ".local/gate5/mute-native-browser-analysis-98ef894/quality-final-proof-review.json",
         "sha256": "77e105a566f894b82928a7531c50bf6a6c893eef7fb351a38e90db342122f55e"
+      },
+      {
+        "path": ".local/gate5/contact-selection-repair/quality-final-review.json",
+        "sha256": "ac519a6e7debedc0f7dc2cc5726b28be61f1689d0b8dac410782c004b71e3f7f"
       }
     ],
     "limits": [
       "No new literal 84-phase source run is claimed.",
-      "The next archive must include canonical recovery and RGB mute checker repairs; matching installed qualification remains open.",
+      "The next archive must include the reference contact selection repair. aa31 already contains the canonical recovery and RGB mute repairs and passed their affected archived diagnostics; complete matching installed qualification remains open.",
       "Original failed package and media reports remain immutable. Fresh mute diagnostic does not close impaired browser sending, actual-model, independent human or owner acceptance."
     ],
-    "rgb_mute_repair_revision": "Pending commit; exact selected input hashes below",
+    "rgb_mute_repair_revision": "aa31f028151668e100e942c32013b1e46d1e8c4f",
     "prior_six_input_review": {
       "path": ".local/gate5/source-composition-98ef8947f5a6/six-input-review.json",
       "sha256": "8eb2b4b59bd9113a6e6b04d5f6511e11f93230e868763358d707496aefd0a83e",
       "scope": "Review of the composition append before this acceptance annotation;22 evidence digests and exact six-input delta independently verified."
     },
-    "combined_independent_review": {
+    "contact_repair_source": {
+      "base_revision": "c5bf7359c1d735ecf5753ed2833f74f5f1625416",
+      "source_sha256": {
+        "examples/conversation-client/contacts.js": "45a524cb4634f294e55c682b5459874d119e76435384f723af4dd9f4e3347157",
+        "sdk/tests/reference_client.test.mjs": "3216efd55e8344f20b88fb2b4ced26c68b9dfc6b54dbfca6b83810d84ccc32ee"
+      },
+      "evidence": {
+        "path": "docs/evidence/gate-5/contact-selection-repair.json",
+        "sha256": "da2d2ad5297937f5816fd3b3754b57edc6de233a73e37d5b37c7da6f499b139b"
+      }
+    },
+    "prior_exact_record": {
+      "path": "docs/evidence/gate-5/source-qualification-aa31f0281516.json",
+      "sha256": "11ed13af126f802c2603cef1aed2c6eb518602bc956f47a18bef352470c2ebe0"
+    },
+    "prior_eight_input_review": {
       "path": ".local/gate5/source-composition-98ef8947f5a6/eight-input-review.json",
       "sha256": "e3854badeb1d3afc909b2f02a5c1f8f54c1571f59c45fad240dcc459c7e319c7",
       "scope": "Review of current eight-input composition before this acceptance annotation."
+    },
+    "combined_independent_review": {
+      "path": ".local/gate5/source-composition-contact-repair/quality-ten-input-review.json",
+      "sha256": "4006c54df0ec98075b8eb55cdffb572c023dfac40782a2f3c2029e332ebfacee",
+      "scope": "Independent ten-input composition review before this acceptance annotation and core-runtime wording clarification; new archive/reference followup still required."
     }
   },
   "source_composition_history": [
@@ -484,6 +522,153 @@
         "path": ".local/gate5/source-composition-98ef8947f5a6/six-input-review.json",
         "sha256": "8eb2b4b59bd9113a6e6b04d5f6511e11f93230e868763358d707496aefd0a83e",
         "scope": "Review of the composition append before this acceptance annotation;22 evidence digests and exact six-input delta independently verified."
+      }
+    },
+    {
+      "status": "Accepted scoped source composition; matching installed and whole-gate acceptance remain open",
+      "baseline_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
+      "native_repair_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
+      "canonical_repair_revision": "94ae35601e92cd7d1008e549522128e469fafebb",
+      "contract_basis": [
+        "A5-16 permits explicitly reviewed source-composition evidence.",
+        "G5-049 requires requalification of affected artifacts."
+      ],
+      "baseline_selected_input_count": 1108,
+      "current_selected_input_count": 1109,
+      "unchanged_selected_input_count": 1101,
+      "changed_selected_inputs": {
+        "examples/native-video/src/interrupt.rs": {
+          "baseline_sha256": null,
+          "current_sha256": "808ce444d7f7eb0ba98fb85235bedbb35a541b27d9397527436a231395dcf959"
+        },
+        "examples/native-video/src/main.rs": {
+          "baseline_sha256": "82f2d7197710ef38a0f50186a912a7058e9407506bcd1d3cae8f01df11c4fdc5",
+          "current_sha256": "65a7495c18ea5c9ff3bc92c4d1145d02ecabfc6878c60e9ab5e909459d023171"
+        },
+        "scripts/check-gate-5.py": {
+          "baseline_sha256": "3f170c9b8fc3e477858d617e4382e7fa8b2afb4f2ff12005e8278d5a62b82a15",
+          "current_sha256": "af6ba3c58e1ffa46d6c362dd5b624bb019196f6e73c5257d2d92c21744e72f42"
+        },
+        "scripts/check-gate5-recovery.py": {
+          "baseline_sha256": "9a1efe5be94ade95cbf90d0de75a9ed1d562194592f0dda388ced1f3ec67b4dd",
+          "current_sha256": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1"
+        },
+        "scripts/lib/package_inventory.py": {
+          "baseline_sha256": "99964396e8dca6ecc6aa08525edd347d2741a77ec0b6a602550934b0ca07ea79",
+          "current_sha256": "2d5006f0eb4232b9575d0a6f689b167155c86b5e05740a0aa8f90d1e9a2b2de5"
+        },
+        "scripts/tests/test_package_inventory.py": {
+          "baseline_sha256": "4252982cc5bbedff97ac405919c596649d577be67657d86df7f13a820789b708",
+          "current_sha256": "0437a5f6b4c1da000fc231f37bb21cd9d5fb3207d0a33be32661d18fbdc4c2ee"
+        },
+        "scripts/tests/test_video_measurements.py": {
+          "baseline_sha256": "8bfbdf312b3bbb970c4cf81450ba0d6939d47850e08a45b49c4331f95e144b82",
+          "current_sha256": "31c5f13525350d1aa2b4892c682e80e7e9db22d5c4feae1afe389c167acdffe7"
+        },
+        "scripts/video/decoder_observation.py": {
+          "baseline_sha256": "38f6a93c3ed6e9d9793cd602d68916f679cc80e966a3d0eefe81343e5cbb8be2",
+          "current_sha256": "2e5c8e5bd1caa7e68019ee8cde5eef1da78c59131df130bd3e5e1d60ab308d60"
+        }
+      },
+      "affected_slices": [
+        {
+          "phase": "source--workspace",
+          "scope": "Native example binary only; library, reverse-dependency interface and manifests unchanged.",
+          "proof": "13 native tests including real process-SIGINT regression; exact normal optimized package composition build; three cleanup runs,12pair lifecycles and24exits without forced cleanup.",
+          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
+        },
+        {
+          "phase": "source--lint",
+          "scope": "Native binary and private interrupt module.",
+          "proof": "Scoped strict Clippy with all targets passed.",
+          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
+        },
+        {
+          "phase": "source--format",
+          "scope": "Changed native Rust source.",
+          "proof": "Repository scripts/format.sh --check passed after the native repair.",
+          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
+        },
+        {
+          "phase": "source--rustdoc",
+          "scope": "Native package including new private interrupt module.",
+          "proof": "Strict cargo doc --locked -p connect-native-video --all-features --no-deps passed;13 native source files match98ef8947. Concurrent recovery-checker edits explicitly excluded from this narrow scope.",
+          "result": {
+            "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc/result.json",
+            "sha256": "fbdfa2b67f2e924b246dc068960cc56584f1550eaa3ec544e62280312cef3470"
+          }
+        },
+        {
+          "phase": "source--package-proof-tests",
+          "scope": "Required interrupt runtime asset and canonical source-root hashing guards.",
+          "proof": "27 package inventory guards passed. Counts retained in author result/tool execution; standalone raw guard logs were not saved.98 candidate archive independently verifies shipped interrupt asset; fresh archive still required for canonical checker.",
+          "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
+        },
+        {
+          "phase": "source--gate5-driver-tests",
+          "scope": "Expected package guards 25 to 27 and video measurement guards 45 to 47.",
+          "proof": "11 driver unit tests passed after each count change. Latest execution has retained hashed logs; unchanged 10 dependency-root guards remain baseline evidence. No new 21-test aggregate invocation is claimed.",
+          "evidence": "docs/evidence/gate-5/rgb-mute-observation-repair.json"
+        },
+        {
+          "phase": "source--gate5-historical-recovery",
+          "scope": "Same nine source inputs canonicalized before containment/hash comparison; behavior assertions unchanged.",
+          "proof": "All six actual historical recovery phases passed through a symlinked source root with immutable98 runtime and historical binaries; exact hashes stable and no owned survivors. Separate diagnostic, not a resumed installed pass.",
+          "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
+        },
+        {
+          "phase": "source--video-measurement-tests",
+          "scope": "Native mute observer opts into exact full-resolution FFmpeg RGB24 hashes. Default YUV hashing used by other observations, source mapping, windows and all acceptance limits are unchanged.",
+          "proof": "47 measurement guards passed with retained logs, including single visible-pixel rejection and timestamp-binding mutation. Actual FFmpeg generated conversion and full retained-window reanalysis confirm the invisible-chroma counterexample. Fresh 20-second native/browser mute diagnostic passed with immutable 98 runtime and corrected current checker.",
+          "evidence": "docs/evidence/gate-5/rgb-mute-observation-repair.json",
+          "unit_and_conversion_proof": {
+            "path": ".local/gate5/mute-native-browser-analysis-98ef894/proof-20261014T212450.762752Z/result.json",
+            "sha256": "63088f8fe870c810820478461203689e7ec3023a5603114bcfdf9d7eccd762b7"
+          },
+          "fresh_media_proof": {
+            "path": ".local/gate5/mute-native-browser-analysis-98ef894/media-20261014T212507.464590Z/result.json",
+            "sha256": "5abca2da39a83dd4d4b76fb372723cba2819fdcc5f517a1c25e8c7c5f352d37a"
+          }
+        }
+      ],
+      "unaffected_scope": "All other 1,101 selected inputs are byte-identical to the 84-phase baseline. Protocol, public SDK, library, store, service, server, manifests, lockfiles and 34 upstream patches are unchanged. Source-composition history retains the prior six-input review; its counts are not reused for this eight-input composition.",
+      "independent_reviews": [
+        {
+          "path": ".local/gate5/source-composition-98ef8947f5a6/assessment.json",
+          "sha256": "8ec933254de05f51d1440cb8383e3056b5dbc26473e11ccd2857c1ac622914e5"
+        },
+        {
+          "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc-review.json",
+          "sha256": "d0841de8bc73ab4b7482efdec4cc5d8922295fde826edf5351bff68f99890bca"
+        },
+        {
+          "path": ".local/gate5/native-peer-terminal-repair/quality-final-review.json",
+          "sha256": "212bed746bada577e26eafcaa0e44127621a7ecb2cdb9c63352040954b05fff7"
+        },
+        {
+          "path": ".local/gate5/historical-recovery-canonical-path/quality-review.json",
+          "sha256": "53602ff823ceb86a80eb5638ecd4829032398bbce25f2f6b07f7436cb996fa73"
+        },
+        {
+          "path": ".local/gate5/mute-native-browser-analysis-98ef894/quality-final-proof-review.json",
+          "sha256": "77e105a566f894b82928a7531c50bf6a6c893eef7fb351a38e90db342122f55e"
+        }
+      ],
+      "limits": [
+        "No new literal 84-phase source run is claimed.",
+        "The next archive must include canonical recovery and RGB mute checker repairs; matching installed qualification remains open.",
+        "Original failed package and media reports remain immutable. Fresh mute diagnostic does not close impaired browser sending, actual-model, independent human or owner acceptance."
+      ],
+      "rgb_mute_repair_revision": "Pending commit; exact selected input hashes below",
+      "prior_six_input_review": {
+        "path": ".local/gate5/source-composition-98ef8947f5a6/six-input-review.json",
+        "sha256": "8eb2b4b59bd9113a6e6b04d5f6511e11f93230e868763358d707496aefd0a83e",
+        "scope": "Review of the composition append before this acceptance annotation;22 evidence digests and exact six-input delta independently verified."
+      },
+      "combined_independent_review": {
+        "path": ".local/gate5/source-composition-98ef8947f5a6/eight-input-review.json",
+        "sha256": "e3854badeb1d3afc909b2f02a5c1f8f54c1571f59c45fad240dcc459c7e319c7",
+        "scope": "Review of current eight-input composition before this acceptance annotation."
       }
     }
   ]

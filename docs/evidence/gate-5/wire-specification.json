@@ -1,6 +1,6 @@
 {
   "task": "G5-024",
-  "status": "implemented-awaiting-final-profile-and-native-vector-test",
+  "status": "Source/profile/vector task verified; independent installed control passed within the retained failed98 installed attempt; final acceptance remains open",
   "source_revision": "993771a98b8f39c7a83418d6b6da4182b8a3c797",
   "source_dirty": true,
   "profiles": {
@@ -28,10 +28,22 @@
     "Unconsumed ACK recovered by same logical request ID with one native observed effect"
   ],
   "unresolved": [
+    "Complete matching installed and whole-gate acceptance remain open; independent control does not claim media."
+  ],
+  "scope": "Published reliable-control specification and independently tested vectors; no independent media stack or final acceptance",
+  "evidence_note": "Component test observations identify tested revisions/hashes. Later conformance additions/source edits require the final source/candidate rerun and are not retrospectively counted as tested.",
+  "historical_status": "implemented-awaiting-final-profile-and-native-vector-test",
+  "historical_unresolved": [
     "New native gate5_wire_vectors integration test awaits coordinated prepared dependency build",
     "Final Gate5 media negotiation/profile additions belong to root video lane",
     "Prerequisite completion and final source/package conformance rerun"
   ],
-  "scope": "Published reliable-control specification and independently tested vectors; no independent media stack or final acceptance",
-  "evidence_note": "Component test observations identify tested revisions/hashes. Later conformance additions/source edits require the final source/candidate rerun and are not retrospectively counted as tested."
+  "verification_followup": {
+    "evidence": [
+      "docs/evidence/gate-5/current-source-qualification.json",
+      "docs/evidence/gate-5/local-package-qualification.json",
+      "docs/evidence/gate-5/checklist-reconciliation.json"
+    ],
+    "scope": "Clean66115d2 native wire-vector workspace target passed; six independent vectors and26 actual QUIC control checks passed in installed98. Relevant contracts/client/checker source is unchanged. Original pending snapshot retained above."
+  }
 }

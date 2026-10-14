@@ -386,7 +386,7 @@
       },
       "build_status": "passed with stable selected inputs at clean source",
       "source_proof_composition": {
-        "path": "docs/evidence/gate-5/current-source-qualification.json",
+        "path": "docs/evidence/gate-5/source-qualification-aa31f0281516.json",
         "sha256": "11ed13af126f802c2603cef1aed2c6eb518602bc956f47a18bef352470c2ebe0"
       },
       "source_proof_scope": "Historical 84-phase baseline plus independently reviewed eight-input composition; no new literal 84-phase invocation. Runtime binaries are byte-identical to 98ef8947.",

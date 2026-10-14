@@ -4,6 +4,84 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {webcrypto} from 'node:crypto';
 import {IntentJournal,configuredVoiceBinding,historyPage,readArtifactBytes} from '../../examples/conversation-client/workflow.js';
+
+function contactFixture(client) {
+ const elements=new Map();
+ const byId=id=>{
+  if(!elements.has(id))elements.set(id,{value:'',textContent:'',children:[],listeners:new Map(),
+   append(row){this.children.push(row);},replaceChildren(){this.children=[];},
+   addEventListener(name,callback){this.listeners.set(name,callback);}});
+  return elements.get(id);
+ };
+ const sandbox={document:{getElementById:byId,createElement:()=>({textContent:''})},Date,
+  act:async(_label,action)=>action(),needClient:()=>client,value:id=>byId(id).value.trim()};
+ const source=fs.readFileSync(new URL('../../examples/conversation-client/contacts.js',import.meta.url),'utf8')
+  .replace(/^import[^\n]+\n/,'');
+ vm.createContext(sandbox);vm.runInContext(source,sandbox);
+ return {byId,edit(id,value){byId(id).value=value;byId(id).listeners.get('input')?.();},
+  inspect:()=>byId('inspect-contact').onclick()};
+}
+function contactClient(calls=[]) {
+ return {resolve:async address=>{calls.push(['resolve',address]);return {id:'identity-'+address};},
+  capabilities:async(address,conversation)=>{calls.push(['capabilities',address,conversation]);return {
+   availability:{state:'available',expires_at:Math.floor(Date.now()/1000)+300},
+   routes:[{transport:'native',media:['text'],readiness:'ready'}]};},
+  contactState:async identity=>{calls.push(['contactState',identity]);return {ownership:'unknown'};}};
+}
+function deferred() {let resolve;const promise=new Promise(done=>resolve=done);return {promise,resolve};}
+
+test('reference contact lookup never mixes a delayed identity with edited address or conversation',async()=>{
+ for(const field of ['contact-address','conversation']) {
+  const calls=[],client=contactClient(calls),pending=deferred();
+  client.resolve=async address=>{calls.push(['resolve',address]);return pending.promise;};
+  const ui=contactFixture(client);ui.edit('contact-address','alice');ui.edit('conversation','first');
+  const lookup=ui.inspect();ui.edit(field,'changed');pending.resolve({id:'identity-alice'});
+  await assert.rejects(lookup,/selection changed/i);
+  assert.deepEqual(calls,[['resolve','alice']]);
+  assert.equal(ui.byId('participant').value,'');assert.equal(ui.byId('contact-state').textContent,'');
+  assert.deepEqual(ui.byId('contact-routes').children,[]);
+ }
+});
+
+test('reference contact input edits invalidate pending and completed selection even after edit-back',async()=>{
+ for(const field of ['contact-address','conversation','participant']) {
+  const client=contactClient(),pending=deferred(),started=deferred();
+  client.contactState=async()=>{started.resolve();return pending.promise;};
+  const ui=contactFixture(client);ui.edit('contact-address','alice');ui.edit('conversation','first');
+  const lookup=ui.inspect();await started.promise;
+  const original=ui.byId(field).value;ui.edit(field,'changed');ui.edit(field,original);
+  pending.resolve({ownership:'verified_native'});
+  await assert.rejects(lookup,/selection changed/i);
+  assert.equal(ui.byId('participant').value,'');assert.equal(ui.byId('contact-state').textContent,'');
+  assert.deepEqual(ui.byId('contact-routes').children,[]);
+ }
+ const ui=contactFixture(contactClient());ui.edit('contact-address','alice');await ui.inspect();
+ assert.equal(ui.byId('participant').value,'identity-alice');
+ ui.edit('conversation','another');
+ assert.equal(ui.byId('participant').value,'');assert.equal(ui.byId('contact-state').textContent,'');
+ assert.deepEqual(ui.byId('contact-routes').children,[]);
+});
+
+test('reference contact replacement failure clears owned selection without clearing manual participant',async()=>{
+ for(const stage of ['resolve','capabilities','contactState']) {
+  const calls=[],client=contactClient(calls),ui=contactFixture(client);
+  ui.edit('contact-address','alice');ui.edit('conversation','first');await ui.inspect();
+  assert.deepEqual(calls,[['resolve','alice'],['capabilities','alice','first'],['contactState','identity-alice']]);
+  assert.equal(ui.byId('participant').value,'identity-alice');
+  assert.match(ui.byId('contact-state').textContent,/Native ownership: unknown.*available.*not.*SMS/);
+  assert.equal(ui.byId('contact-routes').children[0].textContent,'native · text · ready');
+  client[stage]=async()=>{throw Error('selected lookup failed');};
+  // A programmatic form update can omit the input event; starting lookup must clear old output too.
+  ui.byId('contact-address').value='bob';
+  await assert.rejects(ui.inspect(),/selected lookup failed/);
+  assert.equal(ui.byId('participant').value,'');assert.equal(ui.byId('contact-state').textContent,'');
+  assert.deepEqual(ui.byId('contact-routes').children,[]);
+ }
+ const ui=contactFixture(contactClient());ui.edit('contact-address','alice');await ui.inspect();
+ ui.edit('participant','manually-selected');
+ assert.equal(ui.byId('participant').value,'manually-selected');
+ assert.equal(ui.byId('contact-state').textContent,'');assert.deepEqual(ui.byId('contact-routes').children,[]);
+});
 const storage = () => {const values=new Map();return {getItem:k=>values.get(k)??null,setItem:(k,v)=>{if(v.length>128000)throw Error('quota');values.set(k,v);}};};
 test('reference client reuses saved mutation identity after lost acknowledgement and reload',async()=>{
  const saved=storage(), submitted=[];

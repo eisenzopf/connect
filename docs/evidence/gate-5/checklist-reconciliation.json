@@ -58,21 +58,168 @@
       "notes": "Native authenticated one-use pairing, expiry/attempt bounds, wrong identity, revocation and current completing-credential replay pass Store/public-interface proofs. Challenges are redacted; pairing cannot grant Conversation membership or SMS consent. Source setup/recovery preserves pairing records. Production contacts are unchanged by later terminal lifecycle repairs. Installed/model contact probes remain in their downstream qualification tasks."
     }
   ],
-  "current_counts": {
+  "completed_dependency_validation": "All done tasks have owners/evidence and every dependency done. Downstream work is not marked complete simply because a prerequisite passed.",
+  "whole_gate_qualified": false,
+  "published": false,
+  "initial_counts": {
     "done": 7,
     "in-progress": 38,
     "not-started": 5,
     "blocked": 0
   },
-  "completed_dependency_validation": "All done tasks have owners/evidence and every dependency done. Downstream work is not marked complete simply because a prerequisite passed.",
-  "not_closed": [
+  "initial_not_closed": [
     "G5-004 (latest SDK activation findings; source-scoped feasibility does not pass profile)",
     "G5-005 (feasibility dependency and combined graph qualification)",
     "G5-017\u2013G5-023 (upstream prerequisite; latest connector fixes under verification)",
     "G5-043 (changed shared graph/provider audit boundaries; exact-candidate source qualification pending)",
     "G5-044\u2013G5-050 (release/install/usability/review/owner evidence pending)"
   ],
-  "implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f",
-  "whole_gate_qualified": false,
-  "published": false
+  "current_counts": {
+    "done": 27,
+    "in-progress": 22,
+    "not-started": 1
+  },
+  "current_reconciliation": {
+    "recorded_at": "2026-10-14T21:53:48.513419+00:00",
+    "scope": "Task-own verification plus completed explicit dependencies; no criterion/final-installed/media/model/human/owner acceptance inferred.",
+    "source_boundary": "Audited c5bf735/aa31 plus unchanged affected slices from66115d2. Concurrent contact UI correction changes no dependency/connector/control/setup implementation.",
+    "newly_completed_tasks": [
+      {
+        "id": "G5-005",
+        "notes": "Dependency reuse and provenance verified: fresh graph34 preparation reproduces all34 recorded patches/source-lock inputs; clean66115d2 source proof passes915 Rvoip and28 Parley tests. Accepted source composition changes no dependency inputs. This completes the pinned-reuse task; upstream replacement and decoded/installed release acceptance retain their separate scopes.",
+        "evidence": "docs/evidence/gate-5/parley-qualification-graph.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-007",
+        "notes": "Typed video admission verified in the clean source baseline and unchanged current protocol/service/store code. Native exact-profile tests reject duplicate/unsupported streams; Store browser selection preserves audio defaults, checks both participants and refuses foreign current operators; Vapi rejects video before attachment. Public Session control parity and transport rejection tests pass. Decoded operating-profile acceptance is separate.",
+        "evidence": "docs/evidence/gate-5/contracts.json; docs/evidence/gate-5/session-interface-parity.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-008",
+        "notes": "Durable binding and current authority verified by unchanged Store video_binding transition/race tests and all7 gate5_video_failures cases: revoke, durable end, restart, peer loss, ownership and reattachment preserve Conversation history without resurrecting media. Source baseline and literal installed98 external failure phases pass. This closes the binding/lifecycle implementation scope, not decoded impairment or whole installed acceptance.",
+        "evidence": "docs/evidence/gate-5/terminal-session-lifetime.json; docs/evidence/gate-5/video-admission-cleanup.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-009",
+        "notes": "Native QUIC VP8/audio forwarding verified through public clients with fragment/marker/source identity, queue/size bounds and shared Session history tests. Immutable98 passes60-second native/native clean and impairment plus20-second mute, and clean reliable1MiB transfer; aa31 runtime binaries are identical. Sustained native transport proof retains its source and limits. Browser impairment and additional-concurrency measurements remain separate G5-010/G5-016 obligations.",
+        "evidence": "docs/evidence/gate-5/video-transport.json; docs/evidence/gate-5/release-media-diagnostics.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-017",
+        "notes": "Versioned messaging/context/voice manifests and strict capability/configuration validation pass unchanged connector fixtures and current source composition. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/contracts.json; docs/evidence/gate-5/connector-runtime-integration.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-018",
+        "notes": "Normalized lifecycle, unknown/accepted/reconciled outcomes, callback ordering, current authorization and cross-job receipt binding pass unchanged component and full-source fixtures. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/connector-runtime-integration.json; docs/evidence/gate-5/connector-receipt-binding-review.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-019",
+        "notes": "Packaged messaging/context template builds from shipped public APIs and passes its four tests and40-check contract in installed98 before the unrelated later recovery failure. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/connector-runtime-integration.json; docs/evidence/gate-5/contributor-exercise.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-020",
+        "notes": "Bounded generated-PCM voice fixture and guide pass lifecycle, cancellation, cleanup and unsupported-video checks. This is local fixture scope, not live carrier media. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/contributor-exercise.json; docs/evidence/gate-5/connector-runtime-integration.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-021",
+        "notes": "Existing Vapi/Telnyx request, callback, SIP cancellation, SMS and tool-origin paths are mapped to explicit contracts and pass unchanged offline suites. Historical live results retain their exact source; conditional provider composition does not claim current carrier execution. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/connector-runtime-integration.json; docs/evidence/gate-5/provider-source-audit.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-022",
+        "notes": "Both shipped connector implementations pass the same40-check harness and its broken-profile/receipt/lifecycle controls. Installed98 cold builds and four tests per implementation passed. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/contributor-exercise.json; docs/evidence/gate-5/connector-runtime-integration.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-023",
+        "notes": "Independent contributor implementation uses shipped public contracts and explicit composition registration without core policy edits. Its installed98 cold build, four tests and40-check contract pass. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/contributor-exercise.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-024",
+        "notes": "Published reliable-control profile, version/malformed/size/security/replay vectors and diagrams match unchanged executable contracts. Native wire-vector target passed in the clean workspace; six independent vectors passed in installed98. Independent media remains unsupported. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/wire-specification.json; docs/evidence/gate-5/independent-client.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-025",
+        "notes": "Independent Python/aioquic1.6.1 implementation uses public framing/vectors and verified real QUIC, without Connect helper or Rvoip parser reuse. Actual installed98 execution passed all26 checks with stable inputs. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/independent-client.json; docs/evidence/gate-5/independent-conformance.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-026",
+        "notes": "Independent installed98 control proof passes compatible negotiation, malformed/oversized envelopes, wrong trust/current authority, incoming communication, cursor recovery and uncertain-ACK same-ID replay across restart. It is control-only and does not qualify an independent media implementation. Exact source/installed composition and independent audit are recorded; whole installed/media/model acceptance remains open.",
+        "evidence": "docs/evidence/gate-5/independent-conformance.json; docs/evidence/gate-5/independent-client.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-030",
+        "notes": "Local catalogs, previews and explicit selection cover empty/large/ambiguous/unrelated resources, invalid credentials and capability refusal without provider mutation or secret export. Unchanged source fixtures and installed98 public setup pass. This closes the local implementation/fixture scope; integrated acceptance and independent fresh-user evidence remain separate.",
+        "evidence": "docs/evidence/gate-5/setup-lane.json; docs/evidence/gate-5/setup-upgrade.json; docs/evidence/gate-5/shipped-setup-package-proof.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-031",
+        "notes": "Persisted setup intents retain IDs and distinguish definite failure, uncertainty, reconciliation and cancellation. Six interruption/owned-cleanup proofs and current source composition cover before-request, accepted-before-receipt and restart cases without duplicate creation or unrelated deletion. This closes the local implementation/fixture scope; integrated acceptance and independent fresh-user evidence remain separate.",
+        "evidence": "docs/evidence/gate-5/setup-lane.json; docs/evidence/gate-5/setup-upgrade.json; docs/evidence/gate-5/shipped-setup-package-proof.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-032",
+        "notes": "Inbound/outbound authentication, resources, callbacks, SIP/media and SMS observations retain freshness and actionable gaps. Fourteen source readiness cases and installed public setup pass; no automatic fallback or inferred account/carrier readiness. This closes the local implementation/fixture scope; integrated acceptance and independent fresh-user evidence remain separate.",
+        "evidence": "docs/evidence/gate-5/setup-lane.json; docs/evidence/gate-5/setup-upgrade.json; docs/evidence/gate-5/shipped-setup-package-proof.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-033",
+        "notes": "Alternative SMS policy fixture uses the same authoritative boundary; STOP cancels queued work, START cannot revive it, and unknown/stale eligibility/current-authorization replay remain denied. Contact ownership is distinct from consent; no production enrollment data used. This closes the local implementation/fixture scope; integrated acceptance and independent fresh-user evidence remain separate.",
+        "evidence": "docs/evidence/gate-5/setup-lane.json; docs/evidence/gate-5/setup-upgrade.json; docs/evidence/gate-5/shipped-setup-package-proof.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-034",
+        "notes": "Provider-free local init/demo and isolated host installation cover existing configuration preservation, repeated setup, unsupported host/missing authentication, revocation, recovery and owned-file cleanup. Source scripted-host and installed98 setup checks pass. Actual-model continuation belongs to G5-038 and remains unrun. This closes the local implementation/fixture scope; integrated acceptance and independent fresh-user evidence remain separate.",
+        "evidence": "docs/evidence/gate-5/setup-lane.json; docs/evidence/gate-5/setup-upgrade.json; docs/evidence/gate-5/shipped-setup-package-proof.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      }
+    ],
+    "audits": [
+      {
+        "path": ".local/gate5/requirements-audit-c5bf735/review.json",
+        "sha256": "fc628404554ca77bbfcdc365c7adccbe9d5fc200ec1fe5fe335a5a177b3099c2"
+      },
+      {
+        "path": ".local/gate5/connector-wire-scope-audit-c5bf735/result.json",
+        "sha256": "1f6c90766ff4a704bf2f2f5f1452336f7a7483a011676f7c9d0dbaa4f70820ac"
+      },
+      {
+        "path": ".local/gate5/requirement-audit-027-041/result.json",
+        "sha256": "15cb8b9612d0d7e18eab9cee4d594e54ec26813f24e75bbee85dc8a6563a5328"
+      }
+    ],
+    "remaining_tasks": [
+      "G5-010",
+      "G5-011",
+      "G5-012",
+      "G5-013",
+      "G5-014",
+      "G5-015",
+      "G5-016",
+      "G5-035",
+      "G5-036",
+      "G5-037",
+      "G5-038",
+      "G5-039",
+      "G5-040",
+      "G5-041",
+      "G5-042",
+      "G5-043",
+      "G5-044",
+      "G5-045",
+      "G5-046",
+      "G5-047",
+      "G5-048",
+      "G5-049",
+      "G5-050"
+    ],
+    "implementation_sha256": "74997b30ae8511a680193bd17bef1aa259675a3367a323b8bd21257a46002cd7"
+  },
+  "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"
 }
