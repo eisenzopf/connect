@@ -1,5 +1,5 @@
 {
-  "status": "Repaired integration candidate 98ef8947f5a6 builds and passes inventory/native cleanup; full installed qualification fails before historical recovery on checker canonical-path mismatch. Separate corrected recovery and archived reference diagnostics pass.",
+  "status": "Clean aa31f0281516 candidate built and passed archive inventory plus both affected archived checks. Full installed and impaired-browser qualification remain open; all earlier failures are preserved.",
   "scope": "Local macOS arm64; unpublished integration candidate; no provider operations or model inference",
   "source_qualification": {
     "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
@@ -376,6 +376,75 @@
       },
       "whole_gate_qualified": false,
       "publication": "not published"
+    },
+    {
+      "candidate": "connect-0.1.0-alpha.1-macos-arm64-aa31f0281516-gate5-local",
+      "source_revision": "aa31f028151668e100e942c32013b1e46d1e8c4f",
+      "build": {
+        "path": ".local/gate5/package-build-20261014T212812.450872Z/result.json",
+        "sha256": "857fbb413579f05903e4636489c8b27ba3aa920c7ee9ee79f484bced7e9b23e0"
+      },
+      "build_status": "passed with stable selected inputs at clean source",
+      "source_proof_composition": {
+        "path": "docs/evidence/gate-5/current-source-qualification.json",
+        "sha256": "11ed13af126f802c2603cef1aed2c6eb518602bc956f47a18bef352470c2ebe0"
+      },
+      "source_proof_scope": "Historical 84-phase baseline plus independently reviewed eight-input composition; no new literal 84-phase invocation. Runtime binaries are byte-identical to 98ef8947.",
+      "archives": [
+        {
+          "name": "connect-0.1.0-alpha.1-macos-arm64-aa31f0281516-gate5-local-qualification.tar.gz",
+          "sha256": "afbc81391332d913a69eecac7729e872cc6659de4511b4efd977d0bc4d6c6d68",
+          "bytes": 60807687
+        },
+        {
+          "name": "connect-0.1.0-alpha.1-macos-arm64-aa31f0281516-gate5-local-source.tar.gz",
+          "sha256": "6135a90275c808e5523476ff9603054485a0fc0427b50cf972441a69dcab699d",
+          "bytes": 3505754
+        },
+        {
+          "name": "connect-0.1.0-alpha.1-macos-arm64-aa31f0281516-gate5-local.tar.gz",
+          "sha256": "31665fcb2757cc47e8c8eaaf3c301fbd8ad74d70386944b63f14c3b199d4b7e9",
+          "bytes": 40601701
+        }
+      ],
+      "inventory": {
+        "path": ".local/package-checks/20261014T212856.807340Z/result.json",
+        "sha256": "416463715c0cc058f691ed629dcbc574bfdd9ea0c02784455266bb67ace64da3"
+      },
+      "independent_archive_review": {
+        "path": ".local/gate5/package-independent-review-aa31f0281516/review.json",
+        "sha256": "fcb14d22ba67f11e346a00952dfb681b38addb9fd9aff7d406495a93ab3875d0"
+      },
+      "status": "inventory verified; both affected archived diagnostics passed; complete installed qualification remains open",
+      "installed_attempts": [],
+      "whole_gate_qualified": false,
+      "publication": "not performed",
+      "complete_installed_not_run_reason": "Impaired browser sending remains a known unresolved failure under unchanged runtime/SDK inputs. This attempt verifies the changed archive/checker paths without repeating unrelated passing installed checks or treating earlier failures as a pass. A matching complete installed pass is still required before actual-model acceptance.",
+      "selected_archived_diagnostics": {
+        "scope": "Only archived historical recovery through a real /var source alias and archived 20-second native/browser mute. Runtime, source checker/helpers, SDK, catalog and two historical binaries all came from the three verified aa31 archives.",
+        "result": {
+          "path": ".local/gate5/package-followup-aa31f0281516/selected-diagnostic.json",
+          "sha256": "8fa250e148126dedcad47a7ac2d031b247d6d8a833906ae9e6d0fa61249722b7"
+        },
+        "recovery": {
+          "path": ".local/gate5/package-followup-aa31f0281516/recovery.json",
+          "sha256": "2f62dcc3ec1d3a19eea54cf22f4c53cb397ea6f2c52e68b012a9ac8cbc4588b3"
+        },
+        "mute": {
+          "path": ".local/gate5/package-followup-aa31f0281516/mute-native-browser.json",
+          "sha256": "df5f5890201438ed815dee1a8e156e36b0942651be87cc579b85cab8625dd665"
+        },
+        "status": "passed-selected-archived-diagnostics",
+        "historical_phases_passed": 6,
+        "extracted_files_and_modes_stable": 3041,
+        "source_alias_cleaned": true,
+        "leftover_owned_group_members": 0,
+        "independent_review": {
+          "path": ".local/gate5/package-followup-aa31f0281516/quality-selected-review.json",
+          "sha256": "0122eb2166761edd8544cfee108603b9abe48017bfc80b624a47729b541e2a3c"
+        },
+        "resource_limits": "Mute resource sampling passed. The fast recovery report retained zero resource samples, so no recovery RSS/CPU measurement is claimed."
+      }
     }
   ],
   "installed_prerequisites": {
@@ -394,9 +463,9 @@
     }
   },
   "remaining": [
-    "Build a matching package containing the reviewed checker canonical-path correction and complete installed qualification; all prior failed reports remain failed.",
-    "Complete all nine required decoded scenarios on the matching candidate; separate archived diagnostics do not establish a passing installed report.",
-    "Actual-model requires matching passing package evidence; three independent human walkthroughs, final technical/quality review and owner acceptance remain open.",
+    "Resolve sparse impaired browser sending under the unchanged approved profile and complete all nine matching decoded scenarios.",
+    "Obtain a matching complete installed pass; selected archived diagnostics cannot replace it.",
+    "Actual-model requires matching passing package evidence; three independent human walkthroughs, final review and owner acceptance remain open.",
     "Publication remains separate and unperformed."
   ],
   "documentation_repair_review": {
@@ -415,5 +484,6 @@
   "canonical_path_followup": {
     "evidence": "canonical-path-repair.json",
     "scope": "Narrow checker source correction, author-recorded guards and independently reviewed actual six-phase symlink recovery; separate archived reference pass. Matching replacement installed qualification remains pending."
-  }
+  },
+  "rgb_mute_followup": "docs/evidence/gate-5/rgb-mute-observation-repair.json"
 }

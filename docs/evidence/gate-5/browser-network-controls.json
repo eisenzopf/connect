@@ -1,0 +1,320 @@
+{
+  "scope": "Local macOS arm64 private direct-Chrome network controls. No Connect gateway, provider operation, frozen-profile qualification or production change.",
+  "status": "Three controlled diagnostics completed; strict clean positive passed; original nonclean overall verdicts remain failed.",
+  "whole_gate_qualified": false,
+  "question": "Does sustained sparse encoding depend on configured random loss or added random delay/reordering when the source, SDK transform and sender settings remain fixed?",
+  "finding": "Added random delay/reordering without any recorded proxy loss produced sparse encoding and failed coded AV in this run; random3%loss without added delay did not. The clean positive control passed.",
+  "controls": {
+    "sequence": [
+      "clean",
+      "loss-only",
+      "jitter-only"
+    ],
+    "seconds_per_case": 60,
+    "production_sdk_transform_every_case": true,
+    "scheduled_bursts_every_case": [],
+    "profile_difference": "The frozen qualification combines3%loss,0\u2013100msdelay and two250msstalls. These diagnostics intentionally omit stalls and separate loss from delay; they cannot qualify that combined profile.",
+    "clean_positive_gate": "The later cases execute only after original clean status passed with childexit0 and valid controls: at least24 decoded and changing frames per second, coded AV, audio, identity, motion, worker, codec, dimensions and teardown requirements.",
+    "fixed_media": "Same generated coded-content source, receivers and observers; VP8 primary plus matching RTX,640\u00d7360/30fps capture, maintain-resolution, maximum1Mbps/30fps sender. Required production worker and keyframe policy retained.",
+    "network": "One owned loopback bidirectional UDP proxy in every arm; exact configured treatment and zero unexpected drop causes verified. Selected remote proxy paths sampled throughout both peer windows.",
+    "source_binding": {
+      "input_count": 138,
+      "before_after_equal": true,
+      "manifest": {
+        "path": ".local/gate5/direct-chrome-network-control/run-20261014T213500Z/result.json",
+        "sha256": "77b98f98ec0ace2712a4d5d1111710ddeecaf645c1d4eac732b3ef8d065ca6c8"
+      },
+      "authoring": {
+        "path": ".local/gate5/direct-chrome-network-control/authoring.json",
+        "sha256": "e29c5ddfaf4c8726c93715f7887eb75a62e7eb9b940b7958f058c929e2d2df41"
+      },
+      "derivation": {
+        "path": ".local/gate5/direct-chrome-network-control/derivation.json",
+        "sha256": "68814fe5b3f7b5620151ffc9fb42a7c91b9c53fcf0491fd0e07dcb505f9bca5c"
+      }
+    }
+  },
+  "cases": [
+    {
+      "treatment": "clean",
+      "report": {
+        "path": ".local/gate5/direct-chrome-network-control/run-20261014T213500Z/1-clean/result.json",
+        "sha256": "d98d5fe97420bbb7c16739984a23e93b669871271f59254563dffc2750d229f5"
+      },
+      "network_policy": {
+        "drop_probability": 0.0,
+        "maximum_delay": 0.0,
+        "burst_policy": "none",
+        "seed": 515
+      },
+      "diagnostic_valid": true,
+      "network_control_valid": true,
+      "original_browser_verdict": "passed",
+      "sender_encode_fps": [
+        29.444,
+        29.378
+      ],
+      "sender_keyframes_in_window": [
+        63,
+        63
+      ],
+      "sender_target_bitrate_median_bps": [
+        1000000,
+        1000000
+      ],
+      "receiver_decoded_frames": [
+        1763,
+        1767
+      ],
+      "receiver_changing_frames": [
+        1489,
+        1497
+      ],
+      "receiver_av": [
+        {
+          "status": "passed",
+          "paired": 84,
+          "median_abs_skew_ms": 24.55000001192076,
+          "p95_abs_skew_ms": 55.60000002384058
+        },
+        {
+          "status": "passed",
+          "paired": 84,
+          "median_abs_skew_ms": 31.299999952317137,
+          "p95_abs_skew_ms": 58.800000071526526
+        }
+      ],
+      "maximum_changing_observation_gap_seconds": [
+        0.15059995651245117,
+        0.16500020027160645
+      ],
+      "proxy": {
+        "to_server": {
+          "received": 8033,
+          "forwarded": 8033,
+          "dropped": 0,
+          "random_dropped": 0,
+          "maximum_planned_delay_ms": 0,
+          "maximum_observed_dispatch_delay_ms": 4.189416998997331
+        },
+        "to_client": {
+          "received": 8082,
+          "forwarded": 8082,
+          "dropped": 0,
+          "random_dropped": 0,
+          "maximum_planned_delay_ms": 0,
+          "maximum_observed_dispatch_delay_ms": 3.016624948941171
+        }
+      },
+      "delay_detector_overuse_counts": [
+        0,
+        0
+      ],
+      "final_delay_estimate_bps": [
+        1919529,
+        2277714
+      ],
+      "selected_path_samples": [
+        121,
+        121
+      ],
+      "owned_process_leftovers": []
+    },
+    {
+      "treatment": "loss-only",
+      "report": {
+        "path": ".local/gate5/direct-chrome-network-control/run-20261014T213500Z/2-loss-only/result.json",
+        "sha256": "3dbcdc3da4e61bc2c2b4fc57daa4e31a937eb8600611afe17544fcf2f305f953"
+      },
+      "network_policy": {
+        "drop_probability": 0.03,
+        "maximum_delay": 0.0,
+        "burst_policy": "none",
+        "seed": 515
+      },
+      "diagnostic_valid": true,
+      "network_control_valid": true,
+      "original_browser_verdict": "failed",
+      "sender_encode_fps": [
+        29.444,
+        29.427
+      ],
+      "sender_keyframes_in_window": [
+        63,
+        63
+      ],
+      "sender_target_bitrate_median_bps": [
+        1000000,
+        1000000
+      ],
+      "receiver_decoded_frames": [
+        1765,
+        1763
+      ],
+      "receiver_changing_frames": [
+        1479,
+        1484
+      ],
+      "receiver_av": [
+        {
+          "status": "passed",
+          "paired": 84,
+          "median_abs_skew_ms": 22.000000000003794,
+          "p95_abs_skew_ms": 46.100000023841844
+        },
+        {
+          "status": "passed",
+          "paired": 84,
+          "median_abs_skew_ms": 21.09999996423717,
+          "p95_abs_skew_ms": 41.60000002384123
+        }
+      ],
+      "maximum_changing_observation_gap_seconds": [
+        0.15039992332458496,
+        0.15080022811889648
+      ],
+      "proxy": {
+        "to_server": {
+          "received": 8501,
+          "forwarded": 8266,
+          "dropped": 235,
+          "random_dropped": 235,
+          "maximum_planned_delay_ms": 0,
+          "maximum_observed_dispatch_delay_ms": 5.979750072583556
+        },
+        "to_client": {
+          "received": 8244,
+          "forwarded": 8007,
+          "dropped": 237,
+          "random_dropped": 237,
+          "maximum_planned_delay_ms": 0,
+          "maximum_observed_dispatch_delay_ms": 3.0649169348180294
+        }
+      },
+      "delay_detector_overuse_counts": [
+        0,
+        0
+      ],
+      "final_delay_estimate_bps": [
+        2059428,
+        2375088
+      ],
+      "selected_path_samples": [
+        121,
+        121
+      ],
+      "owned_process_leftovers": []
+    },
+    {
+      "treatment": "jitter-only",
+      "report": {
+        "path": ".local/gate5/direct-chrome-network-control/run-20261014T213500Z/3-jitter-only/result.json",
+        "sha256": "db69ae792da02ff720d06effa3a197764f401e0a1f497f44b2efb40b039669aa"
+      },
+      "network_policy": {
+        "drop_probability": 0.0,
+        "maximum_delay": 0.1,
+        "burst_policy": "none",
+        "seed": 515
+      },
+      "diagnostic_valid": true,
+      "network_control_valid": true,
+      "original_browser_verdict": "failed",
+      "sender_encode_fps": [
+        10.165,
+        11.364
+      ],
+      "sender_keyframes_in_window": [
+        57,
+        57
+      ],
+      "sender_target_bitrate_median_bps": [
+        33279.5,
+        31623.5
+      ],
+      "receiver_decoded_frames": [
+        649,
+        569
+      ],
+      "receiver_changing_frames": [
+        574,
+        509
+      ],
+      "receiver_av": [
+        {
+          "status": "failed",
+          "paired": 0,
+          "median_abs_skew_ms": null,
+          "p95_abs_skew_ms": null
+        },
+        {
+          "status": "failed",
+          "paired": 33,
+          "median_abs_skew_ms": 38.49999999999909,
+          "p95_abs_skew_ms": 147.00000000000557
+        }
+      ],
+      "maximum_changing_observation_gap_seconds": [
+        1.132000207901001,
+        1.2848000526428223
+      ],
+      "proxy": {
+        "to_server": {
+          "received": 5667,
+          "forwarded": 5667,
+          "dropped": 0,
+          "random_dropped": 0,
+          "maximum_planned_delay_ms": 99.97389718070299,
+          "maximum_observed_dispatch_delay_ms": 101.66241705883294
+        },
+        "to_client": {
+          "received": 5901,
+          "forwarded": 5901,
+          "dropped": 0,
+          "random_dropped": 0,
+          "maximum_planned_delay_ms": 99.9941184264119,
+          "maximum_observed_dispatch_delay_ms": 102.4242090061307
+        }
+      },
+      "delay_detector_overuse_counts": [
+        12,
+        12
+      ],
+      "final_delay_estimate_bps": [
+        170550,
+        129631
+      ],
+      "selected_path_samples": [
+        122,
+        122
+      ],
+      "owned_process_leftovers": []
+    }
+  ],
+  "controller_observation": "Clean and loss-only traces have zero delay OVERUSING events and final delay estimates1.9\u20132.4Mbps. Both jitter-only traces have12 OVERUSING events, minimum84,400bps, and final delay estimates170,550/129,631bps. This observes a delay-controller response under the isolated treatment, not proof of an implementation defect or its exact internal cause.",
+  "motion_guard_caveat": "The unchanged motionObservation impairment mode requires at least one burst. Both nonclean arms intentionally provide none, so their original motion verdicts and overall media verdicts remain failed with empty active_segments. Raw changing-frame observations, coded-AV verdicts, encoder counters and network/path controls remain independently reported; this analysis does not override original verdicts or claim a no-burst qualification pass.",
+  "causal_limits": [
+    "One sample per network treatment; not a statistical equivalence claim or proof3%loss always preserves cadence. Different traffic means different packet realizations.",
+    "No bursts in any arm; these diagnostics intentionally differ from the frozen combined loss/jitter/stall profile.",
+    "No recorded proxy drops does not prove every dispatched packet was authenticated or decoded. Reordering can induce provisional missing reports, late rejection or retransmission without proxy random loss.",
+    "Zero added delay means proxy scheduling delay0; actual maximum receipt-to-sendto-return scheduling remained3\u20136ms on clean/loss-only. Jitter observed maxima101.7/102.4ms include event-loop scheduling, despite maximum planned delay at most100ms.",
+    "LossBasedBweUpdates is capped combined target, not raw loss estimator. Continuous acknowledged throughput, exact limiter cause and encoder drop reasons remain unobserved.",
+    "No changes to required production transform, keyframe policy, cadence thresholds, congestion control or frozen qualification are justified solely by this diagnostic."
+  ],
+  "mapping": "Local sender index feeds opposite receiver index. Controller log rows retain their original file identity in the private comparison; no unsupported log-to-peer mapping is asserted here.",
+  "retained_proofs": [
+    {
+      "path": ".local/gate5/direct-chrome-network-control/run-20261014T213500Z/comparison.json",
+      "sha256": "5e1ae875594ac38e065f13f0b1c920b0314a3ba8214f82a4040e131e7f1f91d0"
+    },
+    {
+      "path": ".local/gate5/direct-chrome-network-control/quality-independent-review.json",
+      "sha256": "79201c45a3f698fe8c03bb9c23586100b402c2639b6e7657dd92147c67cc19a6"
+    },
+    {
+      "path": ".local/gate5/direct-chrome-network-control/run-20261014T213500Z/quality-final-review.json",
+      "sha256": "9f7dd33b4a2142ded0f33b8e331c31eeff7dc4185203934001473dc702ed9e19"
+    }
+  ],
+  "independent_review": "Accepted bounded diagnostic interpretation;138 runtime inputs,20 analysis inputs and all retained case/log/event references verified."
+}
