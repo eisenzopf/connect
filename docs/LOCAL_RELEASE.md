@@ -139,8 +139,9 @@ skill and calculate literal draft bytes/digests; they are retained in the privat
 records. The independent review passes all 49 checks, including actual MCP
 receipts, downloaded artifact bytes, full histories and the exact saved session.
 Model communication uses the installed MCP tools; independent observations
-use the installed public SDK. The public [model-journey runbook](AGENT_JOURNEY_QUALIFICATION.md) and
-[runner](../scripts/live/agent-journey.py) provide the separately invoked check.
+use the installed public SDK. The public [model-journey runbook](AGENT_JOURNEY_QUALIFICATION.md)
+provides the separately invoked check. Run `scripts/live/agent-journey.py` from
+the matching source archive, using the installed runtime as its explicit input.
 
 A tracked follow-up uses the received reply journal event to authorize and
 correlate its effect. That reference does not consume the reply implicitly.

@@ -77,7 +77,7 @@ the Gate 3 durable model, SIP-leg intent and SMS eligibility. Existing installat
 provider credentials and remote resources are not modified by source checks.
 Presence/contact preferences remain backlog decision B-001. Recorded live SMS
 qualification is separate from offline source checks. [Wire contract](../contracts/connect-control-v1.md) ·
-[Contributor workflow](../CONTRIBUTING.md) · [Connector guide](CONNECTORS.md).
+Contributor workflow (`CONTRIBUTING.md` in the matching source archive) · [Connector guide](CONNECTORS.md).
 
 ## Gate 4 task boundary
 

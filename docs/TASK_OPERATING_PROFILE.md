@@ -97,10 +97,10 @@ listeners share the 32-listener server ceiling. Durable binding rows are bounded
 by the retained session limit (10,000 by default). The full-capacity profile below measures that bound using real setup expiry and listener reuse. The additive migration
 reserves older task-created sessions without inventing missing private intent.
 
-The relevant implementation is [setup binding](../crates/connect-store/src/tasks/media_setup_binding.rs),
-[session admission](../crates/connect-store/src/sessions.rs),
-[setup retirement](../crates/connect-server/src/vapi_media.rs) and
-[listener ownership](../crates/connect-server/src/vapi_bootstrap/media.rs).
+The relevant implementation in the matching source archive is setup binding (`crates/connect-store/src/tasks/media_setup_binding.rs`),
+session admission (`crates/connect-store/src/sessions.rs`),
+setup retirement (`crates/connect-server/src/vapi_media.rs`) and
+listener ownership (`crates/connect-server/src/vapi_bootstrap/media.rs`).
 The [restart repair audit](evidence/gate-4/vapi-setup-restart.json) qualifies
 migration, rollback, exact-intent admission, concurrent registration, restart
 denial and same-task continuation: 211 Store and 32 Vapi/parity checks pass, with

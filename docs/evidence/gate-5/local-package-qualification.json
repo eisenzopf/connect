@@ -1,0 +1,64 @@
+{
+  "status": "First local integration package built; inventory failed on a runtime README source-only link; corrected package pending",
+  "scope": "Local macOS arm64; unpublished integration candidate; no provider operations or model inference",
+  "source_qualification": {
+    "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
+    "sha256": "57338ed261774d668cf7ebd847523d0e60591617e0a3bc9509dfc264b53d0cd8"
+  },
+  "attempts": [
+    {
+      "candidate": "connect-0.1.0-alpha.1-macos-arm64-b5a3b6a1fd08-gate5-local",
+      "source_revision": "b5a3b6a1fd08b8025f73cd70a55544a94792b7c3",
+      "build": {
+        "path": ".local/gate5/package-build-20261014T195011.671138Z/result.json",
+        "sha256": "23640cb873d3920348ed03f6ef31711fe36e1426a0407f012cfbb15cceede76a"
+      },
+      "source_proof_composition": "Four docs-only files differ from clean66115d2; all1,108 selected qualification inputs match exactly.",
+      "archives": {
+        "connect-0.1.0-alpha.1-macos-arm64-b5a3b6a1fd08-gate5-local-qualification.tar.gz": "3908938a333dff3fcd05bc4f6666390b21428a715c21dda33e17e5c4088f346b",
+        "connect-0.1.0-alpha.1-macos-arm64-b5a3b6a1fd08-gate5-local-source.tar.gz": "91116a3ab07d26370274aeaf786bb4bffeba4c1648f434f5be3952821a533a4b",
+        "connect-0.1.0-alpha.1-macos-arm64-b5a3b6a1fd08-gate5-local.tar.gz": "15f4a8d85784f2b61374f6911d5e5d12d9b1567f382bc46c570d87a6a8fce58a"
+      },
+      "inventory": {
+        "path": ".local/package-checks/20261014T200206.287688Z/result.json",
+        "sha256": "6d29390ec8e8f5dd750b3620ad287560b9fdb3413b697453c6e030c8085ce6a4"
+      },
+      "status": "failed",
+      "passed": [
+        "archive-checksums"
+      ],
+      "failure": "Runtime README links to docs/../scripts/live/agent-journey.py, absent from the runtime archive. Runner exists in the complete matching source archive.",
+      "correction": "Point readers to the shipped model-journey guide and state the runner source-archive path explicitly; audit other source-only links in shipped documentation.",
+      "preservation": "Original candidate archives and failed inventory report remain unchanged.",
+      "not_run": [
+        "installed behavior",
+        "installed media",
+        "actual-model journey"
+      ]
+    }
+  ],
+  "installed_prerequisites": {
+    "original_proof": {
+      "path": ".local/gate5/installed-prerequisites-20261014/result.json",
+      "sha256": "6f35e80874a54317a85c4c1dc4266f9eb5aafcf6646167d41914e64bc273c715"
+    },
+    "resolved_python_correction": {
+      "path": ".local/gate5/independent-python-resolved-20261014/result.json",
+      "sha256": "542f9866a7e43c41870014526fabcf4af669c138b48d4a647bfa491d4caa21f8"
+    },
+    "scope": "Account-free tool/version and pinned package checks only. Use a copied-executable venv so path resolution preserves its pinned dependencies; original symlink environment remains retained."
+  },
+  "remaining": [
+    "Build corrected immutable candidate and pass inventory.",
+    "Complete installed checks including all required decoded media cases.",
+    "Actual-model, independent human walkthroughs, final review and owner acceptance remain open."
+  ],
+  "documentation_repair_review": {
+    "path": ".local/gate5/runtime-docs-overlay-review/final-result.json",
+    "sha256": "ed5398fc7e835bacfbc27d6d25bc5605894a055b82c1aa2e10770febde16260a",
+    "relative_targets_checked": 1974,
+    "missing_targets": 0,
+    "readme_targets": 42,
+    "scope": "Prospective current-docs overlay on preserved runtime asset inventory; no rebuilt archive or executed walkthrough claim. Original example source README unchanged."
+  }
+}

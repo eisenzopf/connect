@@ -1,7 +1,7 @@
 # Public recovery prerequisites
 
 Gate 5 recovery uses disposable local state and public source pins from
-[dependencies/recovery-baselines.json](../dependencies/recovery-baselines.json).
+`dependencies/recovery-baselines.json` in the matching source archive.
 Neither an owner database nor a private milestone binary is required.
 
 ```sh
@@ -26,7 +26,7 @@ Public history first introduces implementation at schema 2 in
 The original private schema 1 milestone has no recorded source revision. The
 reproducible schema 1 prerequisite is therefore an **identity-only recovery
 fixture**, built from that public source with the digest-pinned
-[schema 1 initialization patch](../patches/recovery/schema1-identity-fixture.patch).
+schema 1 initialization patch (`patches/recovery/schema1-identity-fixture.patch` in the matching source archive).
 The patch sets the supported schema to 1 and omits conversation DDL during
 initialization. It preserves the original identity/authentication/TLS runtime.
 It is not an unmodified historical release and does not qualify messaging on

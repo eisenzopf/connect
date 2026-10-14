@@ -68,7 +68,7 @@ provider adapters. Media negotiation/routes and codec/frame vectors belong to
 [the Gate 5 video implementation](connect-gate-5-implementation.html#G5-007).
 A control-only pass cannot close the video or installed-release acceptance criteria.
 
-The [Gate 5 driver](../scripts/check-gate-5.py) lists executable named source,
+The Gate 5 driver (`scripts/check-gate-5.py` in the matching source archive) lists executable named source,
 independent-client, installed, scripted-host, actual-model, operating and isolated
 native-keychain lanes.
 Use `--list` to inspect commands and immutable child budgets, `--source-only` for

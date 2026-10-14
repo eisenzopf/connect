@@ -1,8 +1,8 @@
 # Repeat the actual-agent acceptance journey
 
 This is the separately invoked actual-model acceptance procedure for G4-034
-and G5-038. The checked-in
-[runner](../scripts/live/agent-journey.py) uses the selected **installed** Connect
+and G5-038. The `scripts/live/agent-journey.py` runner in the matching source
+archive uses the selected **installed** Connect
 binary, Python SDK, MCP tools and skill. It creates an isolated local server and
 synthetic reviewer; it does not use Telnyx, Vapi, SMS, a handset, public ingress
 or remote deployment. Two real Codex model turns use your authenticated account
@@ -87,7 +87,7 @@ promised production response times.
 ## Evidence and failed attempts
 
 The public observer is split into focused modules under
-[scripts/live/agent_journey](../scripts/live/agent_journey/). Reports record all
+`scripts/live/agent_journey/` in the matching source archive. Reports record all
 driver hashes, runtime/source identity, model executable/version, observed tool
 counts, exact-session continuation, artifact/effect correlation and cleanup.
 The offline tests cover manifest mismatches, explicit inference admission,
@@ -111,5 +111,6 @@ provenance, not a prerequisite for this public runner.
 This journey qualifies normal agent access, optional tracking and explicit
 host resume. It does not qualify unattended scheduling, a new carrier route,
 voice/SMS delivery or every assistant host. Use the separate
-[live voice and Vapi chat procedures](../scripts/live/README.md) for those paths;
+live voice and Vapi chat procedures in `scripts/live/README.md` in the matching
+source archive for those paths;
 retain their exact source versions and evidence boundaries.

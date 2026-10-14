@@ -55,7 +55,7 @@ A restored server snapshot may be older than the app cursor; that is an explicit
 error requiring reconciliation, not an instruction to reset app history.
 
 A compiling native example is in the crate's Rust documentation; the runnable
-process journey is [examples/review-loop/README.md](../examples/review-loop/README.md).
+process journey is [packaged review-loop guide](review-loop.md).
 Verify them with:
 
 ```sh
