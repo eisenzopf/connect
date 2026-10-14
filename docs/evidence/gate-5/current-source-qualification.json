@@ -16,7 +16,7 @@
       "not_run_phases": 65,
       "cause": "All96 diagnostics are clippy::unwrap_used from the two upstream QUIC fixture modules imported into the Connect integration-test target.",
       "correction": "Add the existing repository fixture assertion allowance narrowly to those two imported test modules. No production lint rule, fixture behavior or upstream source changed.",
-      "correction_verification": "Format and focused strict Clippy pass; full84-phase rerun pending.",
+      "correction_verification": "Format and focused strict Clippy pass; subsequent full attempt passed strict Clippy and Rustdoc before a later workspace fixture failure.",
       "focused_clippy": {
         "path": ".local/gate5/audio-clock-integration/fixture-clippy.log",
         "sha256": "95f41dbac3e0c70c2721f05fe80f7a19f5a6c73460923bdfe476604fe40d12a3",
@@ -34,6 +34,52 @@
           "warnings"
         ],
         "status": "passed"
+      }
+    },
+    {
+      "source_revision": "0ba4fa0d695b2293e5b68a7ef856ae39cfac5ccd",
+      "source_dirty_at_start": false,
+      "result": {
+        "path": ".local/gate-5-checks/20261014T154649.751144Z/result.json",
+        "sha256": "2ff9dd54f5c6f0283996f773ab790d10ead20a85f72cad3c217869a7182a6411"
+      },
+      "status": "failed",
+      "passed_phases": 20,
+      "failed_phase": "source--workspace",
+      "required_phases": 84,
+      "not_run_phases": 63,
+      "workspace": {
+        "path": ".local/ci-workspace/20261014T154916.990594Z/result.json",
+        "sha256": "4e603607d2107f6d5fdf033246f46a15bddd2cd64472955b7a642201901d848e",
+        "completed_targets": 67,
+        "expected_targets": 210,
+        "failed": [
+          {
+            "package": "connect-server",
+            "target": "gate3_webrtc_security"
+          }
+        ]
+      },
+      "cause": "The Gate 3 security fixture expected foreign valid credentials to fail WebSocket upgrade. Gate 5 authenticates normal participant credentials before selecting an accepted AV Session; legacy audio route authorization remains enforced before offer admission.",
+      "correction": "Replace the stale upgrade-only assertion with valid audio offer denial and no durable Session/binding effects for both foreign credentials, plus identical-SDP configured-key admission and existing selected-AV normal-key regression.",
+      "correction_verification": "Passed: dependency preparation; 2 security and 1 selected-session behavior tests with zero failures/ignored; scoped strict Clippy; repository format check. All 1,106 selected source inputs stable. Full source rerun pending.",
+      "focused_proof": {
+        "path": ".local/gate5/webrtc-auth-boundary-repair/proof-20261014T160738/result.json",
+        "sha256": "315e02eeaddac5a4cb7e66057b83d53a9bf9115259fd120dac4c10e7eeb7191d"
+      },
+      "retained_incomplete_positive_attempt": {
+        "path": ".local/gate5/webrtc-auth-boundary-repair/proof-20261014T160231/result.json",
+        "sha256": "ea6b161d60252e940734ebc53011e1191f92cf4b3ca4d27de81c1bb3a5e2feaf"
+      },
+      "fixture_correction": "The first valid-offer positive control exposed a missing configured voice assistant in the old handshake-only fixture. Reuse the existing loopback FakeVapi and configured voice route. Configured identical SDP now receives answer and readiness, creates one Session and binding; foreign keys create none and cause no observed provider create call.",
+      "proof_limits": [
+        "Denial is a terminal socket, not an explicit client authorization error frame.",
+        "Durable Session and binding effects are observed; pre-allocation authorization follows reviewed source order rather than an ephemeral route counter.",
+        "FakeVapi is loopback only; this is not live-provider or decoded provider-media evidence."
+      ],
+      "independent_review": {
+        "path": ".local/gate5/webrtc-auth-boundary-repair/quality-final-review.json",
+        "sha256": "66bb0ea18f8c5910b9c9e474ff4d991e197c2417d5a1ceb84ae1e72603e0c72d"
       }
     }
   ],
