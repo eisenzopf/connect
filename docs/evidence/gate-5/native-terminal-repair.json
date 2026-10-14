@@ -1,0 +1,111 @@
+{
+  "scope": "Local macOS arm64 dirty source component proof against immutable released server. No complete source/package qualification, media performance, physical capture, provider or model claim.",
+  "source_revision_base": "7f8ae642fc546fb29fc138aba4928b4fc7aa948d",
+  "changes": [
+    "Audio and video sends handle only typed MediaEnded as normal peer-terminal, consistently with receive; arbitrary failures still fail.",
+    "One synchronous interrupt receiver registers before capture/readiness and remains alive across selected asynchronous branch work. Unix/Windows APIs retain cfg separation; only macOS was tested."
+  ],
+  "causal_evidence": [
+    "Original installed capture-refusal failure retains exact MediaEnded text on healthy peer; source unconditionally propagated that typed send error. Original logs do not identify which send won.",
+    "Optimized typed-send-only builds each retained one failed missed-interrupt reattachment attempt. Peers continued actual media across timeout; no retained stack or OS signal receipt identifies their exact blocked/winning branch.",
+    "New real-SIGINT regression independently acknowledges OS delivery during an awaited select branch. Original per-iteration ctrl_c pattern loses the event; retained production receiver preserves it, including before first recv poll. This is deterministic API/control-flow evidence, separate from historical runtime attribution."
+  ],
+  "validation": {
+    "native_tests": {
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0
+    },
+    "prepare_format_clippy": "passed",
+    "release_build_command": [
+      "cargo",
+      "build",
+      "--locked",
+      "--release",
+      "-p",
+      "connect-server",
+      "-p",
+      "connect-review-loop",
+      "-p",
+      "connect-native-video",
+      "--bins"
+    ],
+    "cleanup_attempts_passed": 3,
+    "actual_pair_lifecycles": 12,
+    "participant_exits": 24,
+    "maximum_trigger_to_exit_seconds": 0.035534625058062375,
+    "maximum_teardown_seconds": 0.001907958,
+    "all_same_session": true,
+    "no_owned_leftovers_or_forced_cleanup": true,
+    "source_and_driver_inputs_stable": true,
+    "fixed_video_sha256": "19bb683ea9d8b41e20bf5f873f1efe3be1dc4cdbd276b0f0619d3b9028ce16e4",
+    "immutable_server_sha256": "c16fab1ed79e3d6275961332d1974309c171a3ceeb0b3c04f01483b4c53cb161"
+  },
+  "source_sha256": {
+    "examples/native-video/src/main.rs": "65a7495c18ea5c9ff3bc92c4d1145d02ecabfc6878c60e9ab5e909459d023171",
+    "examples/native-video/src/interrupt.rs": "808ce444d7f7eb0ba98fb85235bedbb35a541b27d9397527436a231395dcf959",
+    "scripts/check-native-video-cleanup.py": "65a7de42cc60754d450e86153a0dfd1e394d2a48584d3722696b2bac81b83029"
+  },
+  "unchanged_limits": "5-second checker termination,4.5-second owned cleanup; all profile/queue/buffer limits unchanged; no generic error swallowing.",
+  "status": "scoped native lifecycle repair independently accepted; matching clean candidate qualification pending",
+  "whole_gate_qualified": false,
+  "retained_proofs": [
+    {
+      "path": ".local/gate5/native-peer-terminal-repair/diagnosis.json",
+      "sha256": "1985737cd0bc2f6c2e559871e46721494e68f8e4d759c7b371becfe71f6c9c0f",
+      "status": "source correction authored; no build or behavior recheck yet"
+    },
+    {
+      "path": ".local/gate5/native-peer-terminal-repair/proof-20261014T203758.463152Z/result.json",
+      "sha256": "554367530ace6786bd01e0e6014b6014a431e133519085af2f1d6b3d44500c4f",
+      "status": "failed"
+    },
+    {
+      "path": ".local/gate5/native-peer-terminal-repair/proof-20261014T203810.902760Z/result.json",
+      "sha256": "139df002b23c8c5ca493025d38269a51e055878e09610fc5c019fac9116950ff",
+      "status": "passed"
+    },
+    {
+      "path": ".local/gate5/native-peer-terminal-repair/release-proof-20261014T203950.390612Z/result.json",
+      "sha256": "ea1be1bf92c1dd5a9e21e6c260993ae076899cadd5d7b9712067ec85cf7f856a",
+      "status": "failed"
+    },
+    {
+      "path": ".local/gate5/native-peer-terminal-repair/package-composition-proof-20261014T204214.672274Z/result.json",
+      "sha256": "ddaaa7f5d67e53dbe4caf81d2dd5b5036908461aab29cfd2363edac50baac7b7",
+      "status": "failed"
+    },
+    {
+      "path": ".local/gate5/native-peer-terminal-repair/signal-fixed-proof-20261014T204454.693627Z/result.json",
+      "sha256": "b91582821f47219277aa8531ed6db5de426786ed03d9a85fb4219d5484229c94",
+      "status": "passed"
+    },
+    {
+      "path": ".local/gate5/native-peer-terminal-repair/summary.json",
+      "sha256": "dd97ca7ed2fa83d5103c64261faf864290a16b481193630bb5a46514ecda730a"
+    },
+    {
+      "path": ".local/gate5/native-peer-terminal-repair/inventory-followup.json",
+      "sha256": "19777b32e0b2e401aebdbec6e81693f7d6df059b87156a47afba333977a36768"
+    },
+    {
+      "path": ".local/gate5/native-terminal-semantics-review/optimized-interrupt-review.json",
+      "sha256": "09717d878d8742fddb51bfe71d7b385244c6f6339dc76926df70bb8ca582034c"
+    }
+  ],
+  "package_inventory": {
+    "status": "passed",
+    "tests": 25,
+    "new_required_asset": "examples/native-video/src/interrupt.rs"
+  },
+  "remaining": [
+    "Clean current source and matching repaired package qualification.",
+    "Browser-browser impaired decoded cadence/A/V acceptance remains unresolved.",
+    "Actual model, independent human walkthroughs and owner acceptance remain separate."
+  ],
+  "independent_review": {
+    "path": ".local/gate5/native-peer-terminal-repair/quality-final-review.json",
+    "sha256": "212bed746bada577e26eafcaa0e44127621a7ecb2cdb9c63352040954b05fff7",
+    "scope": "Final native component code,13 tests,8 phase logs,3 optimized cleanup attempts and24 child reports accepted; subsequent package inventory amendment is separately verified."
+  }
+}

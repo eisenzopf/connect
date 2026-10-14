@@ -1,0 +1,186 @@
+{
+  "status": "diagnostics complete; native-browser impairment passed; browser-browser impairment failed",
+  "scope": "Local macOS arm64; immutable unpublished 7f8ae642fc54 release candidate. Separate diagnostic runs after installed qualification failed at native capture-refusal cleanup; not a resumed or passing installed qualification.",
+  "source_revision": "7f8ae642fc546fb29fc138aba4928b4fc7aa948d",
+  "source_lock_sha256": "76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71",
+  "whole_gate_qualified": false,
+  "runtime_archive_sha256": "ee6f6c3fd72b1b1cddf0c6b499b779d8302c9baef52926c0aa8cfe4a551ad7c5",
+  "profile": {
+    "seconds_per_route": 60,
+    "configured_drop_probability": 0.03,
+    "maximum_added_delay_ms": 100,
+    "burst_duration_ms": 250,
+    "frozen_limits_changed": false
+  },
+  "private_evidence": [
+    {
+      "path": ".local/gate5/release-media-diagnostic-7f8ae642fc54/diagnostic.json",
+      "sha256": "3c66b451428d256145c0ea307817c049f396433fde0c4999675ca70327496a62"
+    },
+    {
+      "path": ".local/gate5/release-media-diagnostic-7f8ae642fc54/browser-browser.json",
+      "sha256": "008412eac8f53d79675d107e1f51194b1f55639392fe829891514164dc61ddd4"
+    },
+    {
+      "path": ".local/gate5/release-media-diagnostic-7f8ae642fc54/native-browser.json",
+      "sha256": "712b2c9a90e16c287a3fa1584b09c3f6e83b9764547bd6f4664b30e62890edf4"
+    },
+    {
+      "path": ".local/gate5/release-av-comparison-20261014T203459/review-with-native-browser.json",
+      "sha256": "60ef3b051b2957a636753f4d84745b9b5a5027f72225cca81da0a4e80a495954"
+    }
+  ],
+  "browser_browser": {
+    "status": "failed",
+    "tested_inputs_stable": true,
+    "observers": [
+      {
+        "index": 0,
+        "expected_remote_source_id": 1,
+        "changing": 278,
+        "decoded": 293,
+        "changing_fps": 4.632769687405074,
+        "video_markers": 30,
+        "audio_markers": 82,
+        "video_calibration": "missing-proof",
+        "audio_calibration": "calibrated",
+        "av_status": "failed",
+        "pairs": 0,
+        "median_ms": null,
+        "p95_ms": null,
+        "audio_status": "passed",
+        "motion_status": "passed",
+        "recovery_seconds": [
+          0.6445879936218262,
+          0.2943880558013916
+        ],
+        "recovery_status": [
+          "passed",
+          "passed"
+        ],
+        "local_sender_final": {
+          "frames_per_second": 30,
+          "captured_frames_per_second": 29,
+          "target_bitrate_bits_per_second": 1000000,
+          "available_outgoing_bitrate_bits_per_second": 3712615
+        },
+        "mapping_note": "Local sender/source statistics correspond to the opposite receiver, not this observation\u2019s inbound stream."
+      },
+      {
+        "index": 1,
+        "expected_remote_source_id": 0,
+        "changing": 1428,
+        "decoded": 1727,
+        "changing_fps": 23.79718395813992,
+        "video_markers": 81,
+        "audio_markers": 82,
+        "video_calibration": "calibrated",
+        "audio_calibration": "calibrated",
+        "av_status": "passed",
+        "pairs": 81,
+        "median_ms": 56.299999952315716,
+        "p95_ms": 110.80000007152613,
+        "audio_status": "passed",
+        "motion_status": "passed",
+        "recovery_seconds": [
+          0.13768792152404785,
+          0.31938767433166504
+        ],
+        "recovery_status": [
+          "passed",
+          "passed"
+        ],
+        "local_sender_final": {
+          "frames_per_second": 4,
+          "captured_frames_per_second": 29,
+          "target_bitrate_bits_per_second": 30000,
+          "available_outgoing_bitrate_bits_per_second": 94782
+        },
+        "mapping_note": "Local sender/source statistics correspond to the opposite receiver, not this observation\u2019s inbound stream."
+      }
+    ],
+    "teardown_seconds": 0.5895168750000012,
+    "resources": {
+      "sampled_peak_rss_bytes": 2060189696,
+      "sampled_peak_cpu_percent": 132.5,
+      "sampling_errors": {
+        "count": 0,
+        "classes": {}
+      }
+    },
+    "receiver_playout_stats_captured": false,
+    "conclusion": "The optimized release still exhibits sparse received video with uncalibrated cadence in one direction. The opposite sender captures 29 fps but reports 4 encoded fps at a 30 kbps target. This observation does not establish a new causal defect or justify relaxing limits."
+  },
+  "native_browser": {
+    "status": "passed-impairment",
+    "source_revision": "7f8ae642fc546fb29fc138aba4928b4fc7aa948d",
+    "tested_inputs_stable": true,
+    "qualification_seconds": 60,
+    "whole_gate_qualified": false,
+    "native_receive": {
+      "decoded": 1088,
+      "changing": 1050,
+      "changing_fps": 17.5,
+      "audio_identifiable_tone": true,
+      "motion_status": "passed",
+      "video_markers": 53,
+      "audio_markers": 84,
+      "paired": 53,
+      "av_status": "passed",
+      "median_ms": 27.74454200000065,
+      "p95_ms": 89.7513339999989,
+      "recovery_keyframe_seconds": [
+        0.7864480018615723,
+        0.9393956661224365
+      ],
+      "recovery_motion_seconds": [
+        0.8186752796173096,
+        0.97239089012146
+      ],
+      "teardown_seconds": 0.001887209,
+      "maximum_codec_emission_hold_ms": 131.61725000000501
+    },
+    "browser_receive": {
+      "decoded": 1726,
+      "changing": 1452,
+      "audio_status": "passed",
+      "audio_bad_unexcepted": 0,
+      "motion_status": "passed",
+      "video_markers": 82,
+      "audio_markers": 83,
+      "paired": 82,
+      "av_status": "passed",
+      "median_ms": 21.700000047683687,
+      "p95_ms": 99.79999995231648,
+      "recovery_motion_seconds": [
+        0.21352386474609375,
+        0.14482378959655762
+      ]
+    },
+    "resources": {
+      "sampled_peak_rss_bytes": 1547223040,
+      "sampled_peak_cpu_percent": 198.5,
+      "coverage_complete": true
+    },
+    "concurrent_reliable_file": {
+      "status": "passed",
+      "bytes": 1048576,
+      "elapsed_seconds": 6.5178919159807265
+    },
+    "durable_conversation_preserved": true,
+    "paired_termination": {
+      "lag_seconds": -0.5773417949676514,
+      "limit_seconds": 5,
+      "native_end_reason": "peer-terminal",
+      "status": "passed"
+    },
+    "scope": "Retained old immutable7f8ae64 candidate diagnostic, not a whole installed pass or replacement-candidate qualification. A separate capture-refusal process-status defect remains pending repair. Native offline decoder mapping validates content against recorded live emission, not physical render/decoder completion latency."
+  },
+  "remaining": [
+    "Repair and requalify native capture-refusal peer terminal classification.",
+    "Resolve browser-browser impaired decoded cadence and A/V acceptance under frozen limits.",
+    "Run all nine matching decoded scenarios and complete installed qualification on the repaired candidate.",
+    "Complete actual-model, three independent human walkthroughs and owner acceptance.",
+    "Publication remains a separate action."
+  ]
+}

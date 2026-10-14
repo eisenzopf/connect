@@ -1,5 +1,5 @@
 {
-  "status": "First local integration package built; inventory failed on a runtime README source-only link; corrected package pending",
+  "status": "Replacement integration package and inventory pass; installed qualification failed on native capture-refusal terminal-send race after retained toolchain failure",
   "scope": "Local macOS arm64; unpublished integration candidate; no provider operations or model inference",
   "source_qualification": {
     "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
@@ -35,6 +35,207 @@
         "installed media",
         "actual-model journey"
       ]
+    },
+    {
+      "candidate": "connect-0.1.0-alpha.1-macos-arm64-7f8ae642fc54-gate5-local",
+      "source_revision": "7f8ae642fc546fb29fc138aba4928b4fc7aa948d",
+      "build": {
+        "path": ".local/gate5/package-build-20261014T200608.299970Z/result.json",
+        "sha256": "f79d2010cf270320cd299e3095f78075f2b181f21a683ff9f41f0bbe080305c2"
+      },
+      "build_status": "passed",
+      "source_proof_composition": {
+        "source_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
+        "documentation_only_delta": [
+          "docs/AGENT_JOURNEY_QUALIFICATION.md",
+          "docs/ARCHITECTURE.md",
+          "docs/HISTORICAL_RECOVERY.md",
+          "docs/LOCAL_RELEASE.md",
+          "docs/PROTOCOL_CONFORMANCE.md",
+          "docs/SDK.md",
+          "docs/TASK_OPERATING_PROFILE.md",
+          "docs/connect-community-review.html",
+          "docs/connect-gate-1-implementation.html",
+          "docs/connect-gate-2-implementation.html",
+          "docs/connect-gate-5-implementation.html",
+          "docs/connect-pre-gate-4-review.html",
+          "docs/evidence/gate-5/current-source-qualification.json",
+          "docs/evidence/gate-5/local-package-qualification.json",
+          "docs/evidence/gate-5/parley-qualification-graph.json",
+          "docs/evidence/gate-5/provider-source-audit.json",
+          "docs/index.html",
+          "docs/review-loop.md"
+        ],
+        "selected_inputs_equal_source_proof": true,
+        "selected_inputs_stable": true,
+        "clean_after_build": true
+      },
+      "archives": {
+        "connect-0.1.0-alpha.1-macos-arm64-7f8ae642fc54-gate5-local-qualification.tar.gz": "6c539c1b02c7d39a017e7a3bb7690b65a843695accec87a22b730e1723808c5c",
+        "connect-0.1.0-alpha.1-macos-arm64-7f8ae642fc54-gate5-local-source.tar.gz": "9c61bec7c6e6c4c296a24ce49683f830eb94b0c95f8da1c2d353a9730749206f",
+        "connect-0.1.0-alpha.1-macos-arm64-7f8ae642fc54-gate5-local.tar.gz": "ee6f6c3fd72b1b1cddf0c6b499b779d8302c9baef52926c0aa8cfe4a551ad7c5"
+      },
+      "inventory": {
+        "path": ".local/package-checks/20261014T200653.460513Z/result.json",
+        "sha256": "7f978faa5db6f46d46bbf8c29e0d8a33c764334f03ae00cd3c0ad928549576d9",
+        "status": "inventory-verified",
+        "whole_gate_qualified": false
+      },
+      "actual_runtime_documentation": {
+        "path": ".local/gate5/actual-runtime-docs-7f8ae642fc54/result.json",
+        "sha256": "01a0ce1c06c73ed86959190b0547124c6ee6585054faae973cf22c8e2f303ef4",
+        "status": "passed-file-target-audit",
+        "relative_targets_checked": 1974,
+        "readme_targets": 42,
+        "missing_targets": 0,
+        "matches_prospective_overlay": true,
+        "new_guide_bytes_match": true,
+        "scope": "Actual runtime archive file targets and guide bytes; no anchor or command-execution claim."
+      },
+      "status": "inventory verified; both complete installed attempts failed",
+      "installed_attempts": [
+        {
+          "report": {
+            "path": ".local/package-checks/20261014T200711.953451Z/result.json",
+            "sha256": "794c7097342c74ce79aac2c740ca74b30d840a3c1a674e9646210b50c7cf662f"
+          },
+          "status": "failed",
+          "passed_checks": [
+            "archive-checksums",
+            "inventory",
+            "sdk-source-build",
+            "first-launch-connect",
+            "first-launch-example",
+            "first-launch-schema1",
+            "first-launch-video",
+            "installed-walkthrough",
+            "restart-shutdown",
+            "installed-language-sdks",
+            "installed-gate4-agent",
+            "qualification-fixture-build",
+            "first-launch-fault-connect",
+            "first-launch-fault-connect-example",
+            "check-examples.py",
+            "check-recovery.py",
+            "check-crash-replay.py",
+            "check-example-recovery.py"
+          ],
+          "failure_phase": "connector-template-cold-tests",
+          "failure": "Connector cold build from runtime cwd selected default rustc1.95.0; package requires1.97.1.",
+          "correction": "Explicit PATH selects existing pinned Rust 1.97.1 Cargo/rustc binaries in all working directories; no global default or source/archive change.",
+          "toolchain_selection": {
+            "path": ".local/gate5/installed-toolchain-selection.json",
+            "sha256": "e07bb66701faa6460e57061bb067485b22589deb1dee771d5b7f5c662ae0b1cd"
+          },
+          "selected_versions": {
+            "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+            "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+          },
+          "scope": "18 completed baseline/inventory checks are retained component observations; actual Codex interfaces were exercised through account-free scripted fixtures, not model inference. Gate5 connector cold build failed before subsequent Gate5 checks.",
+          "preservation": "Original report, logs and candidate archives remain unchanged."
+        },
+        {
+          "report": {
+            "path": ".local/package-checks/20261014T201736.208245Z/result.json",
+            "sha256": "3f1779f2a9c817beeb73cc753470e500b2319ec25ddcaca7e43292bc3b658995"
+          },
+          "gate5_report": {
+            "path": ".local/package-checks/20261014T201736.208245Z/gate5-installed/result.json",
+            "sha256": "40bf254194433a9b2a22ea81d34bb6005cc4e8f86ba326c229771f04e8ffe6c2"
+          },
+          "status": "failed",
+          "passed_baseline_checks": [
+            "archive-checksums",
+            "inventory",
+            "sdk-source-build",
+            "first-launch-connect",
+            "first-launch-example",
+            "first-launch-schema1",
+            "first-launch-video",
+            "installed-walkthrough",
+            "restart-shutdown",
+            "installed-language-sdks",
+            "installed-gate4-agent",
+            "qualification-fixture-build",
+            "first-launch-fault-connect",
+            "first-launch-fault-connect-example",
+            "check-examples.py",
+            "check-recovery.py",
+            "check-crash-replay.py",
+            "check-example-recovery.py"
+          ],
+          "passed_gate5_phases": [
+            "connector-template-cold-tests",
+            "connector-template-cold-binary",
+            "connector-template-tests",
+            "connector-template-contract",
+            "connector-contribution-cold-tests",
+            "connector-contribution-cold-binary",
+            "connector-contribution-tests",
+            "connector-contribution-contract",
+            "independent-client-vectors",
+            "installed-independent-control",
+            "installed-public-setup",
+            "installed-connected-app",
+            "installed-session-controls",
+            "native-storage-fixture-cold-build",
+            "native-storage-installed-cli",
+            "source-media-failure-fixture-build",
+            "source-media-failure-fixture",
+            "external-media-failure-fixture-build",
+            "installed-media-failures",
+            "native-example-cold-build"
+          ],
+          "failed_phase": "installed-native-example-cleanup",
+          "native_cleanup": {
+            "report": {
+              "path": ".local/package-checks/20261014T201736.208245Z/gate5-installed/native-example-cleanup.json",
+              "sha256": "a414049c83658db5c3831141561ae34990292c75923e48630717c4a41b7d7bd8"
+            },
+            "tested_inputs_stable": true,
+            "interrupt_and_same_session_reattachment": "passed",
+            "capture_refusal": "failed",
+            "failure": "Refusing participant correctly reports child-failure. Healthy counterpart encounters typed MediaEnded during sending and exits with generic error instead of successful peer-terminal cleanup.",
+            "exit_state": {
+              "path": ".local/package-checks/20261014T201736.208245Z/gate5-installed/native-example-cleanup-state/20261014T203214.314601Z/capture-refusal/fault/exit-state.json",
+              "sha256": "cc3178565a00792dadc32267cb500aaffd86547aaff1720c58a01496e63b0523"
+            },
+            "participants": [
+              {
+                "slot": 0,
+                "exit_code": 1,
+                "trigger_to_exit_seconds": 0.030346125015057623
+              },
+              {
+                "slot": 1,
+                "exit_code": 1,
+                "trigger_to_exit_seconds": 0.015309041948057711
+              }
+            ],
+            "maximum_trigger_to_exit_seconds": 0.030346125015057623,
+            "remaining_owned_processes": 0,
+            "scope": "Both participants exited within 31 ms and no owned processes remained; correct terminal outcome still failed. Controlled audio capture refusal invokes no physical hardware. No decoded performance claim."
+          },
+          "not_run": [
+            "capture-refusal continuity and fresh same-Session reattachment after the failed fault case",
+            "installed-historical-recovery",
+            "installed-reference-client",
+            "installed decoded clean routes (three 60-second routes)",
+            "installed decoded impaired routes (three 60-second routes)",
+            "installed mute/recovery routes (three 20-second routes)",
+            "actual-model journey"
+          ],
+          "repair_status": "Narrow native example terminal-send race repair is being authored separately; no repair test or replacement package pass is claimed.",
+          "preservation": "Original reports, logs and immutable candidate archives remain unchanged."
+        }
+      ],
+      "whole_gate_qualified": false,
+      "publication": "not published",
+      "independent_archive_review": {
+        "path": ".local/gate5/package-independent-review/review.json",
+        "sha256": "8512fb87f5b2a70effd7973c0a013ba80062f6c7eb636f4df1f2dc038bd7f7ee",
+        "scope": "Independent immutable archive/source inventory review; separate from installed behavior."
+      }
     }
   ],
   "installed_prerequisites": {
@@ -46,12 +247,18 @@
       "path": ".local/gate5/independent-python-resolved-20261014/result.json",
       "sha256": "542f9866a7e43c41870014526fabcf4af669c138b48d4a647bfa491d4caa21f8"
     },
-    "scope": "Account-free tool/version and pinned package checks only. Use a copied-executable venv so path resolution preserves its pinned dependencies; original symlink environment remains retained."
+    "scope": "Account-free tool/version and pinned package checks only. Use a copied-executable venv so path resolution preserves its pinned dependencies; original symlink environment remains retained.",
+    "installed_toolchain_selection": {
+      "path": ".local/gate5/installed-toolchain-selection.json",
+      "sha256": "e07bb66701faa6460e57061bb067485b22589deb1dee771d5b7f5c662ae0b1cd"
+    }
   },
   "remaining": [
-    "Build corrected immutable candidate and pass inventory.",
-    "Complete installed checks including all required decoded media cases.",
-    "Actual-model, independent human walkthroughs, final review and owner acceptance remain open."
+    "Native terminal-send and interrupt-listener component repairs pass focused verification (native-terminal-repair.json); build and requalify the affected replacement candidate.",
+    "Complete installed historical/reference and all nine decoded scenarios; these were not run after the native cleanup failure.",
+    "Current browser impairment remains unqualified; separate diagnostics do not replace complete installed qualification.",
+    "Actual-model requires matching passing package report; three independent human walkthroughs, final technical/quality review and owner acceptance remain open.",
+    "Publication remains separate and unperformed."
   ],
   "documentation_repair_review": {
     "path": ".local/gate5/runtime-docs-overlay-review/final-result.json",
@@ -60,5 +267,9 @@
     "missing_targets": 0,
     "readme_targets": 42,
     "scope": "Prospective current-docs overlay on preserved runtime asset inventory; no rebuilt archive or executed walkthrough claim. Original example source README unchanged."
+  },
+  "native_repair_followup": {
+    "evidence": "native-terminal-repair.json",
+    "scope": "Separately verified native component repair; does not change either failed installed report or immutable candidate archives."
   }
 }

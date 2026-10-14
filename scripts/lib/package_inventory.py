@@ -27,6 +27,7 @@ GATE5_RUNTIME = (
     'examples/native-video/README.md', 'examples/native-video/prepare-session.py',
     'examples/native-video/Cargo.toml', 'examples/native-video/src/main.rs',
     'examples/native-video/src/lib.rs', 'examples/native-video/src/audio.rs',
+    'examples/native-video/src/interrupt.rs',
     'examples/native-video/src/preview.rs',
     'examples/native-video/src/report.rs',
     'examples/native-video/src/playout.rs',

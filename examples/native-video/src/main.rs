@@ -1,6 +1,7 @@
 //! Capture/encode outside Connect; participate through the public native SDK.
 mod audio;
 mod decode_continuity;
+mod interrupt;
 mod markers;
 mod pacing;
 mod playout;
@@ -86,6 +87,10 @@ async fn main() -> Result<()> {
     if a.fixture_marker.is_some() && a.input != "test" && a.input != "test-pulse" {
         bail!("Fixture markers require generated test or test-pulse input");
     }
+    // Register before capture/readiness and retain the receiver while a selected
+    // media branch awaits work. A fresh ctrl_c() future each iteration can miss
+    // a signal delivered after select drops its losing branch futures.
+    let mut interrupt = interrupt::listen()?;
     let mut measurements = report::Measurements::new(a.report.as_deref()).await?;
     let mut audio_output = match &a.audio_output {
         Some(path) => Some(report::private_output(path).await?),
@@ -280,7 +285,7 @@ async fn main() -> Result<()> {
             tokio::pin!(release);
             tokio::select! {
                 _ = &mut stop => {end_reason = "deadline";break;},
-                _ = tokio::signal::ctrl_c() => {end_reason = "interrupt";break;},
+                _ = interrupt.recv() => {end_reason = "interrupt";break;},
                 _ = &mut release => {
                     assembler.expire_stale();
                     for frame in playout.ready(std::time::Instant::now()) {
@@ -300,11 +305,22 @@ async fn main() -> Result<()> {
                 },
                 frame = audio_capture.frames.recv() => {
                     let Some(frame)=frame else {end_reason="child-failure";bail!("Audio capture ended; check the selected source/device");};
-                    session.send_pcmu(&frame).await?;
+                    // Reliable remote termination can become visible during
+                    // either a send or receive; the select winner must not
+                    // turn normal peer termination into a participant failure.
+                    match session.send_pcmu(&frame).await {
+                        Err(connect_client::ClientError::MediaEnded) => {end_reason = "peer-terminal";break;},
+                        Err(error) => return Err(error.into()),
+                        Ok(()) => {},
+                    }
                 },
                 encoded = rx.recv() => {
                     let Some(encoded) = encoded else { end_reason="child-failure";bail!("Encoder ended before the participation deadline"); };
-                    session.send_vp8(&encoded).await?;
+                    match session.send_vp8(&encoded).await {
+                        Err(connect_client::ClientError::MediaEnded) => {end_reason = "peer-terminal";break;},
+                        Err(error) => return Err(error.into()),
+                        Ok(()) => {},
+                    }
                 }
                 received = session.receive(Duration::from_secs(5)) => {
                     match received {
