@@ -1,0 +1,60 @@
+{
+  "profile": "connect-gate5-registry-notice-repair/1",
+  "recorded_at": "2026-10-15T11:15:01.740039+00:00",
+  "status": "independently accepted scoped source repair; corrected package qualification pending",
+  "whole_gate_qualified": false,
+  "finding": "QR5-PROVENANCE-01",
+  "prior_candidate_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "problem": "The old collector copied only top-level familiar license filenames. It omitted crc-catalog nested LICENSES text and rmcp full exact upstream transition/attribution text; 14 other selected packages lacked explicit associations to exact already-bundled root texts.",
+  "corrected_audit": {
+    "path": ".local/gate5/registry-license-coverage-ab843/corrected-coverage.json",
+    "sha256": "f02bcfb0c942fafd03276207943a4d549f767ee4a887f48a07985e670052edb9"
+  },
+  "repair": [
+    "Collect top-level notice files, nested LICENSES/LICENCES text and explicit contained license_file paths. Reject symlinks, escapes and source files merely named license.rs.",
+    "Bind registry identity and Cargo.lock archive checksum, then compare copied notice, manifest and VCS files with exact registry archive members.",
+    "Bind repository-root fallback text to exact package, version, registry checksum, repository, VCS revision/path, immutable URL and local SHA-256. Retain complete upstream text rather than substitute an SPDX label.",
+    "Package the provenance lock and referenced text assets; fail on absent selected normal/build graph coverage. Keep conservative outside-graph declarations explicit.",
+    "Include guards and assets in the source inventory and register the nine-test collector phase in the source lane."
+  ],
+  "provenance_lock": {
+    "path": "dependencies/registry-license-lock.json",
+    "sha256": "7896066999daf79e058b9e0aa181adf71158011a7448767313c55a7d8336171e"
+  },
+  "focused_proof": {
+    "path": ".local/gate5/registry-license-candidate/source-proof-20261015T111323.430690Z/result.json",
+    "sha256": "bfae2cddbb14750fc775d185de34473f9331e38eb341f7da9a82066f4fc47251"
+  },
+  "real_graph_integration": {
+    "path": ".local/gate5/registry-license-coverage-ab843/integration-20261015T111251/result.json",
+    "sha256": "e8d3451bfd8b6d8f716e565b4cd08876bb35c40bf3d3d41b6baa1531804648df"
+  },
+  "verified_counts": {
+    "registry_entries": 485,
+    "selected_normal_build_registry_dependencies": 415,
+    "selected_missing_texts": 0,
+    "outside_selected_graph_declaration_only": 10,
+    "exact_root_fallback_packages": 15,
+    "driver_tests": 21,
+    "registry_tests": 9,
+    "package_inventory_tests": 29,
+    "selected_source_inputs": 1120
+  },
+  "source_composition_counts": {
+    "historical_baseline": 1108,
+    "current": 1120,
+    "changed": 31,
+    "unchanged": 1089
+  },
+  "source_lane_boundary": "The current source lane adds one collector phase, now 85 planned phases. This focused proof composes with the retained historical 84-phase pass and reviewed deltas; it is not a new literal full 85-phase run.",
+  "candidate_boundary": "Old ab843 archives and all prior technical/failure reports are unchanged. A new immutable package must pass affected archive/source/license/installed checks and independently reviewed runtime-byte composition before G5-044/G5-045 close again.",
+  "not_claimed": [
+    "Legal advice or a blanket license-compliance conclusion",
+    "New media, provider, actual-model, human or owner execution",
+    "Publication or final gate acceptance"
+  ],
+  "independent_source_review": {
+    "path": ".local/gate5/registry-license-candidate/quality-source-review.json",
+    "sha256": "a6885fd6f9846ea5b2bbb40efbd751b372870c23f5516ca02c2906a5fba6bb7a"
+  }
+}

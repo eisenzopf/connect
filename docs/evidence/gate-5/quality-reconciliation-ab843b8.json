@@ -1,0 +1,903 @@
+{
+  "profile": "connect-gate5-current-quality-reconciliation/1",
+  "status": "unsealed-current-technical-reconciliation; provenance-followup-open",
+  "candidate_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "reviewed_document_head": "ed3de6f877db6cb8abd366028d9636ce6646d85b",
+  "scope": "Targeted reconciliation of23 existing findings, current source/license provenance and oversized-module review candidates. No new full-repository audit, runtime, build, provider or host execution. This is not final G5-048 closure.",
+  "whole_gate_qualified": false,
+  "final_quality_review_complete": false,
+  "historical_records_preserved": true,
+  "references": [
+    {
+      "path": "docs/evidence/gate-5/source-qualification-ab843b843fa7.json",
+      "sha256": "61366543766cdcd7036818b978bb86ddf913abd353a05528b231da4aa7a4d740"
+    },
+    {
+      "path": "docs/evidence/gate-5/current-source-qualification.json",
+      "sha256": "61db9adfce2c4669143bd2a3db2b07b307ec7ce62a3038b52899c23213fc8b3b"
+    },
+    {
+      "path": "docs/evidence/gate-5/complete-installed-ab843b8.json",
+      "sha256": "d6d22fd50c683a79b00acec766ba75e71574e7a05f45defd2e96613e7a29d635"
+    },
+    {
+      "path": "docs/evidence/gate-5/actual-model-ab843b8.json",
+      "sha256": "b9d8e8aded6c3e49f6ad1ba8f431e8875638c88a0cbf7dae74e0de2dad99dc5c"
+    },
+    {
+      "path": "docs/evidence/gate-5/provider-claims-ab843b8.json",
+      "sha256": "308f2a2348b0b82d3ad50b51ae8e917d1fbce5ed253233ba4f4cb59251f5ea90"
+    },
+    {
+      "path": "docs/evidence/gate-5/independent-quality-review.json",
+      "sha256": "c1f9a737307c16ed877ff4d024bb65c64db737a5e6492e5f4e73ccebfd7321bd"
+    },
+    {
+      "path": "docs/evidence/gate-5/repository-organization-review.json",
+      "sha256": "565d98240853ccdfb5adbeeaecbd7b2ff74d564c3ac4d7de817b099bafc8d1ab"
+    },
+    {
+      "path": "dependencies/source-lock.json",
+      "sha256": "76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "7826e2673b9bf61032dab46d28587d4499cc263d217f47869cd790e5d5ca8d2f"
+    },
+    {
+      "path": ".local/gate5/registry-license-coverage-ab843/result.json",
+      "sha256": "724e61a14459611642dab518168f16f62f966177d4b657168d0cbca9175ba9a4"
+    },
+    {
+      "path": ".local/gate5/registry-license-coverage-ab843/corrected-coverage.json",
+      "sha256": "f02bcfb0c942fafd03276207943a4d549f767ee4a887f48a07985e670052edb9"
+    }
+  ],
+  "finding_count": 23,
+  "findings": [
+    {
+      "id": "R5-01",
+      "finding": "History byte-capped pages can contain fewer than100 messages with unread continuation",
+      "historical_state": "source-fixed-and-regression-tested",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Installed reference UI/media qualification is current; independent people and physical camera devices are not inferred.",
+      "historical_component_basis": "Source/SDK negative regressions plus exact archived reference UI/media evidence. The new permission-denial augmentation separately proves native policy rejection and continued Conversation use.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-02",
+      "finding": "Required camera/microphone choice missing",
+      "historical_state": "source-fixed-and-regression-tested",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Installed reference UI/media qualification is current; independent people and physical camera devices are not inferred.",
+      "historical_component_basis": "Source/SDK negative regressions plus exact archived reference UI/media evidence. The new permission-denial augmentation separately proves native policy rejection and continued Conversation use.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-03",
+      "finding": "Connector independent-contact checks did not initiate new contact",
+      "historical_state": "source-fixed-and-component-tested",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Current installed connector/setup/contribution phases pass. Six bounded provider claims are separately accepted, with no new live carrier or normalized-provider claim.",
+      "historical_component_basis": "Connector/setup/receipt source components are covered by accepted baseline84 and unchanged applicable production source; documentation precision fix already confirmed.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-04",
+      "finding": "Provider discovery requires both unrelated credentials",
+      "historical_state": "source-fixed-and-component-tested",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Current installed connector/setup/contribution phases pass. Six bounded provider claims are separately accepted, with no new live carrier or normalized-provider claim.",
+      "historical_component_basis": "Connector/setup/receipt source components are covered by accepted baseline84 and unchanged applicable production source; documentation precision fix already confirmed.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-05",
+      "finding": "Late playback completion can reactivate controls after concurrent hangup",
+      "historical_state": "source-fixed-and-regression-tested",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Installed reference UI/media qualification is current; independent people and physical camera devices are not inferred.",
+      "historical_component_basis": "Source/SDK negative regressions plus exact archived reference UI/media evidence. The new permission-denial augmentation separately proves native policy rejection and continued Conversation use.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-06",
+      "finding": "Native generated example interruption and capture-refusal cleanup lacked process evidence",
+      "historical_state": "implemented-pending-current-runtime-qualification",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Persistent interrupt listener and typed normal MediaEnded handling are separately reviewed. Current ab843 installed capture-refusal, interrupt, same-Session reattachment and owned-process cleanup pass; earlier missed-signal failures remain failed.",
+      "historical_component_basis": "Native typed MediaEnded and persistent SIGINT corrections have13 tests/strict checks and three optimized package-composition lifecycle passes.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/native-terminal-repair.json"
+      ]
+    },
+    {
+      "id": "R5-07",
+      "finding": "End-versus-bind and accept-versus-reject transitions lacked explicit concurrent evidence",
+      "historical_state": "source-fixed-and-component-tested",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Installed external media failure/authority/cleanup phases pass on current graph34. Saturated-queue and transaction race fixtures retain their source-component scope; not every upstream fixture is claimed rerun against an installed binary.",
+      "historical_component_basis": "Concurrent Store races, exact authority retirement and bounded saturated signaling fixtures retained; current source composition includes shared graph34.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/terminal-session-lifetime.json"
+      ]
+    },
+    {
+      "id": "R5-08",
+      "finding": "Nearest identical periodic AV pulses can alias a whole-period video delay",
+      "historical_state": "source-fixed-and-regression-tested; actual decoded qualification pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Current valid-observer and anti-alias negatives remain in the reviewed policy2 source composition. All18 current observer acceptance decisions were independently recomputed. Clean/mute remain strict; three valid impaired raw AV failures are advisory under explicit owner-approved policy2. Invalid envelopes/metadata/source identity remain hard failures. R5-18 prolonged valid PLC envelope behavior follows the later revision, not the original oversized-envelope assumption.",
+      "historical_component_basis": "Ordinal marker anti-alias and observer-invalid hard rejection remain covered by current56 Python/34 JS/30 parity cases; policy2 changes acceptance only for valid impaired quality evidence.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/audio-envelope-observer.json",
+        "docs/evidence/gate-5/impaired-quality-policy.json"
+      ]
+    },
+    {
+      "id": "R5-09",
+      "finding": "Normal durable Session end can race physical-peer authorization and leave a stale video attachment waiting until timeout",
+      "historical_state": "component-verified; final graph and installed requalification pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Installed external media failure/authority/cleanup phases pass on current graph34. Saturated-queue and transaction race fixtures retain their source-component scope; not every upstream fixture is claimed rerun against an installed binary.",
+      "historical_component_basis": "Concurrent Store races, exact authority retirement and bounded saturated signaling fixtures retained; current source composition includes shared graph34.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/terminal-session-lifetime.json"
+      ]
+    },
+    {
+      "id": "R5-10",
+      "finding": "Older observations of an earlier completed normalized connector job can regress a newer provider continuation ID",
+      "historical_state": "existing-source-fix-independently-component-verified",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Current installed connector/setup/contribution phases pass. Six bounded provider claims are separately accepted, with no new live carrier or normalized-provider claim.",
+      "historical_component_basis": "Connector/setup/receipt source components are covered by accepted baseline84 and unchanged applicable production source; documentation precision fix already confirmed.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-11",
+      "finding": "Normalized messaging/voice workers can dispatch operations absent from their declared manifest capabilities",
+      "historical_state": "existing-source-fix-independently-component-verified",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Current installed connector/setup/contribution phases pass. Six bounded provider claims are separately accepted, with no new live carrier or normalized-provider claim.",
+      "historical_component_basis": "Connector/setup/receipt source components are covered by accepted baseline84 and unchanged applicable production source; documentation precision fix already confirmed.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-12",
+      "finding": "Authorized terminal Session retirement can wait on sequential general ten-second signaling/event queue deadlines",
+      "historical_state": "component-verified; final graph and installed requalification pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Installed external media failure/authority/cleanup phases pass on current graph34. Saturated-queue and transaction race fixtures retain their source-component scope; not every upstream fixture is claimed rerun against an installed binary.",
+      "historical_component_basis": "Concurrent Store races, exact authority retirement and bounded saturated signaling fixtures retained; current source composition includes shared graph34.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/terminal-session-lifetime.json"
+      ]
+    },
+    {
+      "id": "R5-13",
+      "finding": "start_with_vapi_media rustdoc says disabled polling means an injected Vapi adapter cannot affect an external account. Trusted injected adapter is caller-selected and used by the actual media lifecycle; no loopback-origin restriction is enforced by this method.",
+      "historical_state": "documentation-repair-independently-confirmed",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Current installed connector/setup/contribution phases pass. Six bounded provider claims are separately accepted, with no new live carrier or normalized-provider claim.",
+      "historical_component_basis": "Connector/setup/receipt source components are covered by accepted baseline84 and unchanged applicable production source; documentation precision fix already confirmed.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-14",
+      "finding": "Normalized message dispatch selected a durable job from the adapter-returned mutation ID without checking it against the claimed attempt; a malformed response could alter an earlier same-connector job and leave the actual effect sending.",
+      "historical_state": "source-fixed-and-component-tested",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Accepted baseline source and current reviewed composition retain the specific negative/regression fixtures; literal ab843 installed phases now pass. Generic installed success does not replace the named component negative proofs. Current installed connector/setup/contribution phases pass. Six bounded provider claims are separately accepted, with no new live carrier or normalized-provider claim.",
+      "historical_component_basis": "Connector/setup/receipt source components are covered by accepted baseline84 and unchanged applicable production source; documentation precision fix already confirmed.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-15",
+      "finding": "Native playout selected the earliest local due time across all queued frames although only its timestamp-ordered head could release. A later reordered frame with an already-past due time repeatedly woke the event loop without progress.",
+      "historical_state": "source-fixed-and-clean-native60-verified; other scenarios pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Original head-aware wake correction is retained. Subsequent actual post-flush hold failure led to separately reviewed absolute200ms emission/teardown correction. All current native scenarios pass; old CPU/hold failures stay failed.",
+      "historical_component_basis": "Native playout wake fix is unchanged with focused regression and retained actual scenarios.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/native-emission-deadline-repair.json"
+      ]
+    },
+    {
+      "id": "R5-17",
+      "finding": "Default QUIC packet/time loss detection interpreted deep bounded UDP reordering as loss, reduced the congestion window and collapsed useful encoded-video delivery.",
+      "historical_state": "recorded-patch-reviewed-and-component-tested; current-graph-media-control-pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Graph34 and current source composition include recorded loss-tolerance, receiver-report late-packet and BBR model repairs. Prepared/full-source component proofs and ab843 all-route media, reliable transfer, bounds and cleanup now exist. Historical graph16 Cubic and graph22 pending descriptions are not current. No zero false loss, downstream Quinn residence bound, or causal explanation of Chrome GCC is claimed.",
+      "historical_component_basis": "Recorded graph34 includes loss tolerance, corrected RR accounting and corrected BBR model. Old graph16 Cubic/graph22 pending descriptions are historical; accepted fullsource84+composition establish final source tests.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-18",
+      "finding": "A numeric-only browser AV verdict could accept a failed or invalid decoded audio-envelope observer when retained ordinal skew metrics were otherwise in range.",
+      "historical_state": "source-fixed-and-adversarial-component-tested; fresh-browser-runtime-pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Current valid-observer and anti-alias negatives remain in the reviewed policy2 source composition. All18 current observer acceptance decisions were independently recomputed. Clean/mute remain strict; three valid impaired raw AV failures are advisory under explicit owner-approved policy2. Invalid envelopes/metadata/source identity remain hard failures. R5-18 prolonged valid PLC envelope behavior follows the later revision, not the original oversized-envelope assumption.",
+      "historical_component_basis": "Ordinal marker anti-alias and observer-invalid hard rejection remain covered by current56 Python/34 JS/30 parity cases; policy2 changes acceptance only for valid impaired quality evidence.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/audio-envelope-observer.json",
+        "docs/evidence/gate-5/impaired-quality-policy.json"
+      ]
+    },
+    {
+      "id": "R5-19",
+      "finding": "Receiver reports permanently retained losses later recovered by unique packets, omitted interval recovery credit, and allowed expired arrivals to hide a newer gap through receive-bitmap aliasing.",
+      "historical_state": "recorded-candidate-and-private-component-tested; final-graph-and-runtime-pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Graph34 and current source composition include recorded loss-tolerance, receiver-report late-packet and BBR model repairs. Prepared/full-source component proofs and ab843 all-route media, reliable transfer, bounds and cleanup now exist. Historical graph16 Cubic and graph22 pending descriptions are not current. No zero false loss, downstream Quinn residence bound, or causal explanation of Chrome GCC is claimed.",
+      "historical_component_basis": "Recorded graph34 includes loss tolerance, corrected RR accounting and corrected BBR model. Old graph16 Cubic/graph22 pending descriptions are historical; accepted fullsource84+composition establish final source tests.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-20",
+      "finding": "Pinned Quinn BBR excluded useful application-limited samples, prevented lower eligible samples aging its bandwidth filter, and compared startup gain with target bytes instead of current congestion-window bytes.",
+      "historical_state": "recorded-candidate-and-private-component-tested; final-graph-and-runtime-pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Graph34 and current source composition include recorded loss-tolerance, receiver-report late-packet and BBR model repairs. Prepared/full-source component proofs and ab843 all-route media, reliable transfer, bounds and cleanup now exist. Historical graph16 Cubic and graph22 pending descriptions are not current. No zero false loss, downstream Quinn residence bound, or causal explanation of Chrome GCC is claimed.",
+      "historical_component_basis": "Recorded graph34 includes loss tolerance, corrected RR accounting and corrected BBR model. Old graph16 Cubic/graph22 pending descriptions are historical; accepted fullsource84+composition establish final source tests.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ]
+    },
+    {
+      "id": "R5-21",
+      "finding": "The strict VP8 browser hop did not negotiate RTX. Retransmissions reused primary RTP sequence numbers with new transport sequence numbers; SRTP replay protection discarded already-received primary sequences before transport feedback could observe those wire receipts.",
+      "historical_state": "component-sdk-and-strict-server-rtx-activation-verified; media-profile-pending",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Recorded RTX/source-clock/track-publication repairs retain exact component and runtime activation evidence, including later first-audio and initial-SR fixes. Current integrated clean/impairment/mute routes pass under policy2. This does not promote original failures, assert every raw skew meets strict limits, or infer unlogged internal CNAME/clock/RTX state.",
+      "historical_component_basis": "RTX inbound/outbound, source clock and ready-track defects have actual component/runtime activation evidence and recorded prepared fixes; later first-audio/initialSR repairs are separately retained.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/browser-rtx-feedback.json",
+        "docs/evidence/gate-5/source-clock-preservation.json"
+      ]
+    },
+    {
+      "id": "R5-22",
+      "finding": "Relay sender reports discarded the original source clock relation and remapped preserved RTP timestamps onto independently jittered audio/video arrival times.",
+      "historical_state": "actual-runtime-clock-activation-observed; full-media-open",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Recorded RTX/source-clock/track-publication repairs retain exact component and runtime activation evidence, including later first-audio and initial-SR fixes. Current integrated clean/impairment/mute routes pass under policy2. This does not promote original failures, assert every raw skew meets strict limits, or infer unlogged internal CNAME/clock/RTX state.",
+      "historical_component_basis": "RTX inbound/outbound, source clock and ready-track defects have actual component/runtime activation evidence and recorded prepared fixes; later first-audio/initialSR repairs are separately retained.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/browser-rtx-feedback.json",
+        "docs/evidence/gate-5/source-clock-preservation.json"
+      ]
+    },
+    {
+      "id": "R5-23",
+      "finding": "The stack called on_track with empty coding metadata and published its receiver before application binding, allowing permanent empty source-clock leases.",
+      "historical_state": "recorded-component-and-browser-startup-verified",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Recorded RTX/source-clock/track-publication repairs retain exact component and runtime activation evidence, including later first-audio and initial-SR fixes. Current integrated clean/impairment/mute routes pass under policy2. This does not promote original failures, assert every raw skew meets strict limits, or infer unlogged internal CNAME/clock/RTX state.",
+      "historical_component_basis": "RTX inbound/outbound, source clock and ready-track defects have actual component/runtime activation evidence and recorded prepared fixes; later first-audio/initialSR repairs are separately retained.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/browser-rtx-feedback.json",
+        "docs/evidence/gate-5/source-clock-preservation.json"
+      ]
+    },
+    {
+      "id": "R5-24",
+      "finding": "Outgoing RTX omitted negotiated repair binding and used RTP header version zero; declined RTX also retained stale cached encodings.",
+      "historical_state": "source-fixed; encrypted-component-and-browser-runtime-verified",
+      "current_state": "resolved-within-recorded-source-and-current-installed-technical-scope",
+      "resolution": "Recorded RTX/source-clock/track-publication repairs retain exact component and runtime activation evidence, including later first-audio and initial-SR fixes. Current integrated clean/impairment/mute routes pass under policy2. This does not promote original failures, assert every raw skew meets strict limits, or infer unlogged internal CNAME/clock/RTX state.",
+      "historical_component_basis": "RTX inbound/outbound, source clock and ready-track defects have actual component/runtime activation evidence and recorded prepared fixes; later first-audio/initialSR repairs are separately retained.",
+      "current_evidence": [
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/browser-rtx-feedback.json",
+        "docs/evidence/gate-5/source-clock-preservation.json"
+      ]
+    }
+  ],
+  "stable_id_note": "R5-16 is absent in the historical23-row ledger; no renumbering or invented historical finding.",
+  "current_findings": [
+    {
+      "id": "QR5-PROVENANCE-01",
+      "severity": "required-distribution-provenance-followup",
+      "state": "open; packaging-repair-required-for-two-selected-packages",
+      "finding": "The accepted runtime registry license index has26 declared dependencies with no copied license/notice text or explicit coverage/exclusion mapping.",
+      "evidence": {
+        "registry_index_sha256": "3623dbb13de9b709c25e817c1000e2565d80ddebd1d4173931b707d8e67dbf63",
+        "registry_entries": 485,
+        "empty_text_entries": [
+          "asn1-rs-impl-0.2.0",
+          "crc-catalog-2.5.0",
+          "jni-0.22.4",
+          "jni-macros-0.22.4",
+          "jni-sys-macros-0.4.1",
+          "ndk-context-0.1.1",
+          "r-efi-5.3.0",
+          "r-efi-6.0.0",
+          "rmcp-3.5.1",
+          "rtc-datachannel-0.20.0-alpha.1",
+          "rtc-ice-0.20.0-alpha.1",
+          "rtc-interceptor-derive-0.20.0-alpha.1",
+          "rtc-mdns-0.20.0-alpha.1",
+          "rtc-media-0.20.0-alpha.1",
+          "rtc-rtcp-0.20.0-alpha.1",
+          "rtc-rtp-0.20.0-alpha.1",
+          "rtc-sctp-0.20.0-alpha.1",
+          "rtc-sdp-0.20.0-alpha.1",
+          "rtc-shared-0.20.0-alpha.1",
+          "rtc-srtp-0.20.0-alpha.1",
+          "rtc-stun-0.20.0-alpha.1",
+          "rtc-turn-0.20.0-alpha.1",
+          "rustls-platform-verifier-android-0.2.0",
+          "valuable-0.1.1",
+          "winapi-i686-pc-windows-gnu-0.4.0",
+          "winapi-x86_64-pc-windows-gnu-0.4.0"
+        ],
+        "prepared_index_sha256": "57270c22ab53be78dd7616b3fa6e2e649ea9a22845af52813c88c6516694d924",
+        "prepared_entries_with_texts": 3
+      },
+      "source_boundary": "scripts/package-local.py133\u2013148 copies crate-root matching license names and permits empty lists. rmcp is an explicit normal server/MCP dependency; several rtc entries are explicit Rvoip RTC dependencies. Some other empty entries are likely nonhost graph members, but linked-host classification has not been proved by this review.",
+      "required_action": "Add verified exact missing crc-catalog and rmcp texts with pinned provenance; record14 existing text associations and10 graph-only classifications; guard coverage completeness. Produce replacement candidate and independently review affected packaging checks and composition; do not mutate or relabel accepted ab843 archives.",
+      "limits": "This is a concrete packaging/provenance completeness gap, not a legal opinion or observed media/runtime defect. Current exact archive/behavior passes remain their stated scopes; do not mutate the accepted archives.",
+      "classification_history": [
+        {
+          "review": {
+            "path": ".local/gate5/registry-license-coverage-ab843/result.json",
+            "sha256": "724e61a14459611642dab518168f16f62f966177d4b657168d0cbca9175ba9a4"
+          },
+          "normal_or_build_host_graph": 16,
+          "proc_macros_included_in_host_graph_count": 2,
+          "outside_selected_host_graph": 10,
+          "existing_exact_rtc_root_license_coverage": 13,
+          "active_without_established_text": [
+            "asn1-rs-impl-0.2.0",
+            "crc-catalog-2.5.0",
+            "rmcp-3.5.1"
+          ],
+          "interpretation": "Independent offline exact-archive/VCS audit verifies13RTC entries share b808b74 upstream revision and applicable root texts already bundled for prepared RTC overrides. Those13 need explicit coverage associations, not duplicate guessed text. Three remaining included packages lack established exact texts in inspected inputs;10 graph-only entries need explicit classification rather than implied runtime inclusion."
+        }
+      ],
+      "classification": {
+        "review": {
+          "path": ".local/gate5/registry-license-coverage-ab843/corrected-coverage.json",
+          "sha256": "f02bcfb0c942fafd03276207943a4d549f767ee4a887f48a07985e670052edb9"
+        },
+        "normal_or_build_host_graph": 16,
+        "outside_selected_host_graph": 10,
+        "existing_exact_texts_need_association": 14,
+        "selected_packages_missing_exact_texts": [
+          "crc-catalog-2.5.0",
+          "rmcp-3.5.1"
+        ],
+        "interpretation": "Corrected independent exact Git-tree/blob audit:13RTC entries plus asn1-rs-impl have byte-identical applicable texts already in the runtime and need explicit associations. Exact crc-catalog nested MIT/Apache texts and rmcp full transition/MIT/documentation notices are absent. Prior724e audit is preserved and superseded for these coverage details."
+      }
+    },
+    {
+      "id": "QR5-DOC-01",
+      "severity": "documentation-precision",
+      "state": "current-parent-summary-corrected; final-link-check-pending",
+      "finding": "Current G5-048 notes still conclude candidate media/fullinstalled required and G5-016 open, despite accepted ab843 proof.",
+      "required_action": "Replace current summary with accepted source/installed/model scope and open047-dependent final quality boundary; keep historical records unchanged.",
+      "resolution": "Parent updated G5-046\u2013050 current notes while retaining their statuses and original evidence. Final static surface/link review is separate."
+    }
+  ],
+  "large_file_review": {
+    "threshold_lines": 400,
+    "scope": "Tracked Rust/Python/JS/MJS/TS files, excluding generated SDK dist. Current inventory broadens old Rust-only review to qualification scripts.",
+    "file_count": 47,
+    "unchanged_from_historical_inventory": 30,
+    "inventory": [
+      {
+        "path": "crates/connect-client/src/media.rs",
+        "lines": 460,
+        "sha256": "abc1c11886435454709e7af7a69405a057c4d71d95ce5bda52abbee9d2db632a",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-client/src/operations.rs",
+        "lines": 577,
+        "sha256": "a5f97ccd9ee13f026fbe783a40cbd17cf3c40a19c94145a74ac1aac7b67afe29",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-client/src/video/assembly.rs",
+        "lines": 431,
+        "sha256": "ef1fa67eb672b55c8fae33481574c55f47c172250175b9cd35d787af613259ec",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "One bounded VP8 assembler and its inline negative tests; production ends before the test module. Sequence diagnostics belong to that assembly boundary."
+      },
+      {
+        "path": "crates/connect-client/src/video/signaling.rs",
+        "lines": 514,
+        "sha256": "cb4a8072fe492db329c840bb2c799c8ddad8bc8d38d9abf450f31ffb3b1da608",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-connector-api/src/conformance.rs",
+        "lines": 431,
+        "sha256": "1129295207f24cf01c11fab32a701e435ca192da9513ce407a5c459c12d5e5a7",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-connectors/src/setup.rs",
+        "lines": 677,
+        "sha256": "4c441775190aab88900e585c54d7cf972a28ff1a665c6f86559adb07d19f2f06",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-connectors/src/voice_native_setup.rs",
+        "lines": 469,
+        "sha256": "c41d88ea38fdf676b78bcb9f0ada7c9c6395dfe2aa38606d605a9a88d0373238",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-connectors/src/voice_setup.rs",
+        "lines": 447,
+        "sha256": "1f7af1a38a6a2101b9e5e0c304a3da387772344311af8d7deca0fe74a59b9af0",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-protocol/src/lib.rs",
+        "lines": 819,
+        "sha256": "ce11551b0bf24f1bbe01e1ae0729b698dae28ede9bf19793983171b686c54460",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-protocol/tests/task_contract.rs",
+        "lines": 427,
+        "sha256": "d9ed99069fcd80adc29129e85e9be6d926ddd2c3eaf1ed5d47b3fea2811e5342",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/src/main.rs",
+        "lines": 659,
+        "sha256": "f827e4e59e4035e9e1c66ac85cf485fcadf42101ed50611c0ccd2741aa7c02a4",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-server/src/media_lifecycle.rs",
+        "lines": 415,
+        "sha256": "a1d8db8069ea4db3c19a2e5ca62ee1deb509b5f021fc3dc19a7e2a18d4d7bfcd",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-server/src/runtime.rs",
+        "lines": 482,
+        "sha256": "3bb542d6cbabe0910f786010b5c185144d63ffc223c7b400fa5c6ef69c6ff12a",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-server/src/voice.rs",
+        "lines": 406,
+        "sha256": "bd2ff4dd886c4d2e1e6dd20f15b9a2b4f49d837ed3ad83cbd6c9a46656a15493",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-server/tests/connector_contribution.rs",
+        "lines": 624,
+        "sha256": "3c4abc7362ab55718b382654650438210157e67dd101d30648b4038ce78ae706",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/connector_template.rs",
+        "lines": 860,
+        "sha256": "d7c8289972431054d1e950c046bc783fa3202e2ac6521c30070f11bed81c3774",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/gate3_sip_media.rs",
+        "lines": 418,
+        "sha256": "e5ce379bcb95a905b8c485b4509faaba2708cfea0fb2b01ccbc0188c14d9e5e3",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/gate3_sip_webrtc.rs",
+        "lines": 424,
+        "sha256": "3d2574bd315014a08a56e4fda9e3d620056fff605768c8b96ebf9f04e8885710",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/gate4_agent_optional_tasks.rs",
+        "lines": 403,
+        "sha256": "88421cb002e950da9952b1c50e5217697917ecec2217db9b5fd34016d30f76a0",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/gate5_contact_interface_parity.rs",
+        "lines": 516,
+        "sha256": "8f0be3a589ee2b0edcdd8eccec2a8f8d3727d1fded7392625a9a731e0e6e0ab6",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/gate5_session_interface_parity.rs",
+        "lines": 417,
+        "sha256": "7586a97e30f048d7b4ba9b6b8485a2eb79aa94cac821eda781ce62910a23d387",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/provider_flow.rs",
+        "lines": 416,
+        "sha256": "fce3dbc16d7991863609b91902ec02a4da42e464407bed29fa3d3c27b8cca291",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/secrets_native.rs",
+        "lines": 441,
+        "sha256": "0f378712214e595df4ec32b1267f098b1e3b056551f898ba574b99630d12a143",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/transport_parity.rs",
+        "lines": 446,
+        "sha256": "ce6b6f72820ce932de059bae1c9b218fd074ae4861680725f2cc63233aee6e80",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-server/tests/voice_flow.rs",
+        "lines": 599,
+        "sha256": "014d081f19bc28506064c1d95560614e43f8419910ab748cb23813aed9542339",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-service/src/session_binding_tests.rs",
+        "lines": 431,
+        "sha256": "932e295c759173192908627649dd9531d188b59f80fa19af43e971e305a7f969",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-store/src/identity.rs",
+        "lines": 425,
+        "sha256": "a879ca5b3e9515bfe8eb3b651beb85386bec168431b441cfe866686657646b53",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-store/src/providers.rs",
+        "lines": 534,
+        "sha256": "a4d5530d870245e26af6f2d4798affecb39322b34c01f1330d915476668be956",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-store/src/sessions.rs",
+        "lines": 699,
+        "sha256": "3d82ea158c6940993fa1d5062c330f75dee5d7e77696608e236718d393ab6697",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-store/src/voice.rs",
+        "lines": 605,
+        "sha256": "7c4782015457623a43f95cfab9e7c09953d6ef59f7e35b246fba441d50979a9b",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "crates/connect-store/tests/gate3_artifact_lifecycle.rs",
+        "lines": 525,
+        "sha256": "194314195e79f1e910152394071c442f89d7d4e2cd11d46a7a9a2642d2520e21",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-store/tests/gate3_sip_legs.rs",
+        "lines": 548,
+        "sha256": "2aa28b6028bc152c7e49f8888c542d5ad08f496be84120369808026a9f37ed32",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-store/tests/providers.rs",
+        "lines": 622,
+        "sha256": "518c5e98c48f023835740f20493eb877e6dbf1e254b2a7d4706c2ab3459074f4",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-store/tests/video_binding.rs",
+        "lines": 780,
+        "sha256": "7e7a5173a00d3facb659549a3368b620469eb98d0966be90a37a0ba78a8d4ce0",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "crates/connect-store/tests/voice.rs",
+        "lines": 598,
+        "sha256": "a9c081f48506d4722103dfd61ab8426dba76c440c4df0b9fe68264aa8470bf18",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "examples/connector-contribution/src/lib.rs",
+        "lines": 465,
+        "sha256": "c80f8c45400281042a077f3ec163a87015a6e1cc1aca61dbcadcfe7ce76cd415",
+        "prior_organization_review": true,
+        "unchanged_since_prior_review": true,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Existing cohesive fa\u00e7ade, aggregate, lifecycle or setup boundary from historical organization review remains applicable; later reviewed edits do not introduce another application layer."
+      },
+      {
+        "path": "examples/native-video/src/playout_tests.rs",
+        "lines": 406,
+        "sha256": "644aa53eb03efea2fb16124cd74b739b6940734b8861b0668268f50a69b813a8",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "scripts/check-native-video-cleanup.py",
+        "lines": 406,
+        "sha256": "65a7de42cc60754d450e86153a0dfd1e394d2a48584d3722696b2bac81b83029",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Qualification orchestration/observation only, outside core APIs. Process ownership, observation parsing and verdict helpers are already separately named/imported; no runtime API mixing identified. Further splitting is maintenance, not a current correctness blocker."
+      },
+      {
+        "path": "scripts/check-reference-client.mjs",
+        "lines": 436,
+        "sha256": "b707338292cc229fc84e9bdd72bd25e5e9a6137a5deaf6d9b1fecc7b39965f8c",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Qualification orchestration/observation only, outside core APIs. Process ownership, observation parsing and verdict helpers are already separately named/imported; no runtime API mixing identified. Further splitting is maintenance, not a current correctness blocker."
+      },
+      {
+        "path": "scripts/check-video-paths.py",
+        "lines": 513,
+        "sha256": "c547f99692f7f05012196756d602f271dbc70934e333cd729ad4c46408954002",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Qualification orchestration/observation only, outside core APIs. Process ownership, observation parsing and verdict helpers are already separately named/imported; no runtime API mixing identified. Further splitting is maintenance, not a current correctness blocker."
+      },
+      {
+        "path": "scripts/lib/package_gate5.py",
+        "lines": 574,
+        "sha256": "249216cea26ccbc5bf035ebad632f50e6860bbace22dac8d2ebbfaf537f5312b",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Qualification orchestration/observation only, outside core APIs. Process ownership, observation parsing and verdict helpers are already separately named/imported; no runtime API mixing identified. Further splitting is maintenance, not a current correctness blocker."
+      },
+      {
+        "path": "scripts/lib/reference_video.mjs",
+        "lines": 505,
+        "sha256": "ec68d4828b1702656309246fa492bf86db8a1ed5655412603c94482079e7a93f",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Qualification orchestration/observation only, outside core APIs. Process ownership, observation parsing and verdict helpers are already separately named/imported; no runtime API mixing identified. Further splitting is maintenance, not a current correctness blocker."
+      },
+      {
+        "path": "scripts/tests/test_package_inventory.py",
+        "lines": 836,
+        "sha256": "362c7364c6cdb38f32cbfb1e328f647023a116ca65bd6ee6aa76cf8cf2e1391a",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "scripts/tests/test_video_measurements.py",
+        "lines": 1273,
+        "sha256": "94974ebb4117bcfec3b44f503725c35eebaa6938a12de73201344ffa6194b385",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      },
+      {
+        "path": "scripts/video/decoder_observation.py",
+        "lines": 492,
+        "sha256": "2e5c8e5bd1caa7e68019ee8cde5eef1da78c59131df130bd3e5e1d60ab308d60",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Qualification orchestration/observation only, outside core APIs. Process ownership, observation parsing and verdict helpers are already separately named/imported; no runtime API mixing identified. Further splitting is maintenance, not a current correctness blocker."
+      },
+      {
+        "path": "scripts/video/native-processes.py",
+        "lines": 412,
+        "sha256": "3750fa88ae670ad3b113c1132cb7d98214dad5f74f103f19bd542228400dc3c8",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": false,
+        "current_exception_rationale": "Qualification orchestration/observation only, outside core APIs. Process ownership, observation parsing and verdict helpers are already separately named/imported; no runtime API mixing identified. Further splitting is maintenance, not a current correctness blocker."
+      },
+      {
+        "path": "sdk/tests/browser_voice.test.mjs",
+        "lines": 422,
+        "sha256": "7da4e56c78ed2e29143a345a00e95eccede0ba7524c8d98ac42b5a20dca85c0c",
+        "prior_organization_review": false,
+        "unchanged_since_prior_review": false,
+        "test_or_fixture": true,
+        "current_exception_rationale": "Cohesive bounded regression/fixture scenarios; length is not application responsibility mixing. Existing actual regression proof retained."
+      }
+    ],
+    "maintenance_only": "Existing setup/catalog projection split remains a nonblocking followup; no mechanical mass split is justified. Conformance/voice files previously inventoried by their author are not converted into a new whole-code independent review merely by this count. Final G5-048 must retain appropriate independent source reviews."
+  },
+  "provenance_checks": {
+    "recorded_patches": 34,
+    "patch_and_explicit_license_hashes_match": true,
+    "notice_source_lock_matches": "76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71",
+    "all_indexed_license_text_paths_exist": true,
+    "all_current_selected_source_hashes_match_accepted_installed": 1114,
+    "examples_private_interface_scan": "No production examples/*.rs imports of connect_store/server/service identified; matching imports were confined to fixture tests. No unsafe block matches found in example Rust sources.",
+    "prepared_sources": "No undocumented .deps changes inferred or made. Exact prepared graph reproduction remains bound to accepted archive/source proof; no fresh dependency preparation was run."
+  },
+  "remaining": [
+    "Resolve current provenance coverage gap without weakening retained distribution claims.",
+    "Update stale current summaries and link this reconciliation; historical hashes/states remain historical.",
+    "Finish G5-047 after actual independent-human feedback; then finalize G5-048 across the final documented candidate and any subsequent changes.",
+    "G5-049 final evidence seal and G5-050 owner decision remain separate; no publication performed."
+  ],
+  "not_claimed": [
+    "No new independent-human attempt.",
+    "No current external carrier/provider execution.",
+    "No retrospective promotion of9ce/304/d538 or earlier media failures.",
+    "No literal new84-phase source run.",
+    "No final whole-gate quality approval."
+  ],
+  "source_composition_reference_policy": "The source-qualification-ab843b843fa7 snapshot is byte-exact candidate documentation. The separately hashed current-source record adds post-build installed/model status; neither implies a fresh full84-phase source execution.",
+  "notice_repair_source": {
+    "path": "docs/evidence/gate-5/registry-license-repair.json",
+    "sha256": "df2bfffe9eb5fe85b3598abaf11a4fadd2cba1b5ec983593ea50f784d220b3d7"
+  }
+}

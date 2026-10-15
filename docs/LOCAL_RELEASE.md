@@ -2,8 +2,16 @@
 
 ## Gate 5 candidate entry point
 
-The next `gate5-local` candidate is under qualification for local macOS arm64.
-It is unpublished. Its three executable artifacts are `bin/connect`,
+The designated `gate5-local` candidate is `ab843b843fa7`, source
+`ab843b843fa7445d4d6c663939c7226c5c432c7d`, for local macOS arm64.
+It is unpublished. [Exact archive hashes and designation](evidence/gate-5/release-candidate.json)
+and the [installed release record](evidence/gate-5/installed-release.json) identify
+this immutable candidate. Complete installed qualification passed 18 baseline
+checks and 26 Gate 5 phases, including all nine media conditions and both strict
+runtime inventories. The separate [actual-model journey](evidence/gate-5/actual-model-ab843b8.json)
+passed 28 MCP calls with exact session resume and no tool/turn errors.
+Independent human walkthroughs, final documentation/quality/seal and owner
+acceptance remain open; this is not final Gate 5 acceptance. Its three executable artifacts are `bin/connect`,
 `bin/connect-example` and `bin/connect-video`; the matching source archive,
 SDKs, reference client, contracts and qualification inputs have distinct
 verification obligations. Use the [Gate 5 package guide](GATE5_PACKAGE.md) and
@@ -38,10 +46,14 @@ recovery without repeating an uncertain provider creation.
 FFmpeg, Chrome, Playwright and Node are explicitly selected external tools;
 the independent Python environment is prepared separately. They are not bundled
 with Connect. Generated codecs and controlled capture-child refusal do not
-prove physical camera/microphone permissions. Three-route full decoded media,
-actual installed native cleanup, current provider compatibility, independent
-fresh-user walkthroughs and owner acceptance retain their recorded scopes;
-check the current reports rather than inferring completion from this guide.
+prove physical camera/microphone permissions. The [accepted installed media report](evidence/gate-5/complete-installed-ab843b8.json)
+records 18 passing policy decisions: 15 raw A/V quality passes and three valid
+impaired advisory quality failures. Clean/mute and all non-A/V hard checks remain
+strict. [Provider compatibility](evidence/gate-5/provider-claims-ab843b8.json)
+is limited to six reviewed statements; no new carrier or Vapi execution is
+inferred. Independent fresh-user walkthroughs and owner acceptance remain open.
+These updated instructions postdate the candidate archives; no archive was
+modified to include this later review supplement.
 
 The [retained baseline](evidence/gate-5/baseline.json) now reproduces all 42
 original source phases through matching-source individual runs and all 17

@@ -238,7 +238,7 @@
       "id": 5,
       "name": "Downloadable v0.1",
       "outcome": "Video, connector/protocol conformance, first-run setup, measured end-to-end acceptance and published v0.1.",
-      "status": "planned",
+      "status": "implementation-in-progress",
       "plan": "connect-gate-5-plan.html",
       "milestones": [
         {
@@ -308,7 +308,43 @@
       ],
       "implementation": "connect-gate-5-implementation.html",
       "acceptance": "gate-5-acceptance.json",
-      "planning_status": "product-and-numbered-implementation-plans-for-review"
+      "planning_status": "implementation-authorized; technical-proof-accepted; distribution-notice-repair-and-final-human-review-open",
+      "current_progress": {
+        "recorded_at": "2026-10-15T11:08:30.453481+00:00",
+        "implementation": {
+          "done": 43,
+          "in-progress": 6,
+          "not-started": 1
+        },
+        "acceptance": {
+          "qualified_local_technical_scope": 11,
+          "not-qualified": 5
+        },
+        "candidate_behavior_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+        "reopened": [
+          "G5-044",
+          "G5-045"
+        ],
+        "reason": "On October 15, G5-044 and G5-045 reopened after review found missing exact crc-catalog and rmcp license notices in the candidate distribution. Replacement packaging and affected qualification are required. The accepted ab843 behavior/model results and 11 technical criteria remain valid at their recorded scopes; A5-15 and final acceptance remain open.",
+        "historical_progress": {
+          "implementation": {
+            "done": 45,
+            "in-progress": 4,
+            "not-started": 1
+          },
+          "record": "evidence/gate-5/technical-acceptance-ab843b8.json",
+          "scope": "Prior technical/designation closure before notice omission was identified; retained historical evidence, not current package readiness."
+        },
+        "whole_gate_qualified": false,
+        "historical_planning_snapshot": {
+          "gate_status": "planned",
+          "gate_planning_status": "product-and-numbered-implementation-plans-for-review",
+          "planning_gaps": [
+            "Gate 5 product and 50-item implementation plans are drafted for review. Finalize D5-01\u2013D5-05 and the technical decision records in G5-001 before dependent implementation. No Gate 5 implementation or publication is complete."
+          ],
+          "planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits; Gate 5 product and numbered implementation plans are ready for review. All 50 Gate 5 items remain not started; full v0.1 remains unreleased."
+        }
+      }
     }
   ],
   "source_of_truth": {
@@ -322,14 +358,14 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 5 product and 50-item implementation plans are drafted for review. Finalize D5-01\u2013D5-05 and the technical decision records in G5-001 before dependent implementation. No Gate 5 implementation or publication is complete."
+    "Gate 5 requires corrected dependency notices and a replacement candidate with reviewed affected qualification, three independent human walkthroughs, final documentation/quality/seal and owner acceptance. Publication remains separate."
   ],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
   "revision": 12,
   "document": "connect-roadmap.html",
-  "planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits; Gate 5 product and numbered implementation plans are ready for review. All 50 Gate 5 items remain not started; full v0.1 remains unreleased.",
+  "planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits. Gate 5 has43completed,6in-progress and1not-started implementation items;11local technical criteria are qualified. Distribution-notice repair and final human/owner gates remain open; full v0.1 remains unreleased.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
   "parallel_lanes": [
     {

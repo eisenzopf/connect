@@ -21,15 +21,24 @@ The model host and its account remain explicit prerequisites for actual AI use.
 
 The next local alpha adds a contributor connector kit, independently implemented
 UCTP control, first-run setup and two-party video. Native participants use QUIC;
-browsers use authenticated WebRTC. The video profile and matching installed
-candidate are still being qualified for local macOS arm64.
+browsers use authenticated WebRTC. The selected local macOS arm64 candidate has
+passed complete installed qualification across all three routes and clean, impaired and mute conditions.
+Impaired A/V quality remains visible and advisory under the approved policy;
+clean/mute quality, audio, identity, recovery, resource and cleanup checks remain
+hard requirements.
 
 Existing Vapi, Telnyx and SIP integrations have distinct capabilities and setup
 requirements. Telephone is audio-only; an unsupported video route rejects
 instead of silently becoming an audio call. Optional service accounts and
 credentials stay separate from the first local exchange.
 
-**Status: local alpha under qualification; unpublished.**
+The `ab843b843fa7` candidate also has a separately verified actual-model journey:
+28 successful MCP calls, source-backed replies and an explicit resume of the
+same host session after restart. This is not automatic wake or a claim of
+current Vapi/carrier execution.
+
+**Status: local review candidate; installed and model checks accepted,
+unpublished. Human walkthroughs and final owner acceptance remain open.**
 
 Explore the [source and documentation](https://github.com/eisenzopf/connect),
 [read the local package profile](GATE5_PACKAGE.md), or
@@ -39,8 +48,9 @@ Explore the [source and documentation](https://github.com/eisenzopf/connect),
 
 Connect gives people, apps and agents one place to exchange messages, files and
 conversation context. It combines a local server, public SDKs, revocable
-identities and optional service connectors. The next macOS arm64 alpha is being
-qualified for two-party VP8 video across native QUIC and browser WebRTC. The
+identities and optional service connectors. The selected macOS arm64 alpha has
+passed local installed qualification for two-party VP8 video across native QUIC
+and browser WebRTC. The
 project is open source and unpublished; the demonstration is not a claim that
 all release acceptance is complete.
 
@@ -49,14 +59,18 @@ all release acceptance is complete.
 | Wording | Why it matters |
 |---|---|
 | “Local macOS arm64” | Other platforms and public deployment have not been qualified by this gate. |
-| “Under qualification; unpublished” | Component passes and a conference demonstration do not establish a matching installed release. |
+| “Local review candidate; unpublished” | Complete installed and actual-model evidence is accepted for ab843; human walkthroughs, final quality/seal and owner acceptance are still separate. |
 | “Native QUIC; browser WebRTC” | The browser facade is not a browser-native QUIC implementation. |
 | “Two-party VP8” | No multiparty video, screen sharing, SIP/PSTN video or Vapi vision is promised. |
 | “Optional provider/model prerequisites” | Local deterministic messaging is account-free; actual models and external services have their own prerequisites. |
 | “Explicit resume” when describing host continuity | A saved model session does not imply automatic wake, resume or an always-running host. |
 
 Use the [draft release notes](GATE5_RELEASE_NOTES.md) for the compatibility matrix,
-unsupported paths, component evidence and remaining acceptance. Link actual
+unsupported paths, exact archive hashes, all six bounded provider claims and
+remaining acceptance. The [candidate designation](evidence/gate-5/release-candidate.json),
+[installed proof](evidence/gate-5/complete-installed-ab843b8.json) and
+[model proof](evidence/gate-5/actual-model-ab843b8.json) bind these statements to
+ab843; older live-provider receipts remain source-specific. Link actual
 immutable archives/checksums only after owner approval and publication; no
 public download destination is invented here. When placing the page online,
 point the relative documentation link at the approved repository documentation

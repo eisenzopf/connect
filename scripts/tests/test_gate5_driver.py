@@ -118,6 +118,7 @@ class Gate5Driver(unittest.TestCase):
         self.assertEqual(names.index('source--connected-app-public-journey'),
                          names.index('source--current-binaries') + 1)
         for name, filename in [('package-proof-tests', 'test_package_inventory.py'),
+                               ('registry-license-tests', 'test_registry_licenses.py'),
                                ('connected-app-checker-tests', 'test_connected_app_checker.py')]:
             selected = next(step for step in source if step['name'] == 'source--' + name)
             self.assertIn(filename, selected['command'])

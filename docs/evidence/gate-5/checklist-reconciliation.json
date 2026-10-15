@@ -75,8 +75,8 @@
     "G5-044\u2013G5-050 (release/install/usability/review/owner evidence pending)"
   ],
   "current_counts": {
-    "done": 45,
-    "in-progress": 4,
+    "done": 43,
+    "in-progress": 6,
     "not-started": 1
   },
   "current_reconciliation": {
@@ -261,7 +261,7 @@
       "G5-049",
       "G5-050"
     ],
-    "implementation_sha256": "eefbd2cccfc61515280dbc76f3ba8e22b55e176467948cc96d5b60ae94801b97",
+    "implementation_sha256": "947ac7d6451b3adaccd2f3be5fadc0433273062d7cfd503eef2c760a3432a68f",
     "followup_annotation": {
       "recorded_at": "2026-10-14T22:04:13.434869+00:00",
       "candidate_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
@@ -395,7 +395,55 @@
       },
       "requirement_text_unchanged": true,
       "whole_gate_qualified": false
+    },
+    "distribution_notice_reopening": {
+      "recorded_at": "2026-10-15T11:08:30.453481+00:00",
+      "reopened_in_dependency_order": [
+        "G5-045",
+        "G5-044"
+      ],
+      "reason": "On October 15, G5-044 and G5-045 reopened after review found missing exact crc-catalog and rmcp license notices in the candidate distribution. Replacement packaging and affected qualification are required. The accepted ab843 behavior/model results and 11 technical criteria remain valid at their recorded scopes; A5-15 and final acceptance remain open.",
+      "evidence": "docs/evidence/gate-5/quality-reconciliation-ab843b8.json",
+      "scope": "Package provenance readiness only; no media/runtime regression asserted and no acceptance-criterion status changed."
+    },
+    "notice_repair_source": {
+      "path": "docs/evidence/gate-5/registry-license-repair.json",
+      "sha256": "df2bfffe9eb5fe85b3598abaf11a4fadd2cba1b5ec983593ea50f784d220b3d7"
     }
   },
-  "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"
+  "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f",
+  "count_history": [
+    {
+      "recorded_at": "2026-10-15T11:08:30.453481+00:00",
+      "counts": {
+        "done": 45,
+        "in-progress": 4,
+        "not-started": 1
+      },
+      "scope": "Historical ab843 technical closure before required notice omission was discovered.",
+      "closure_record": {
+        "recorded_at": "2026-10-15T10:42:12.265364+00:00",
+        "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+        "newly_closed": [
+          "G5-016",
+          "G5-038",
+          "G5-039",
+          "G5-042",
+          "G5-043",
+          "G5-044",
+          "G5-045"
+        ],
+        "evidence": [
+          "docs/evidence/gate-5/complete-installed-ab843b8.json",
+          "docs/evidence/gate-5/actual-model-ab843b8.json",
+          "docs/evidence/gate-5/provider-claims-ab843b8.json",
+          "docs/evidence/gate-5/release-candidate.json",
+          "docs/evidence/gate-5/installed-release.json"
+        ],
+        "whole_gate_qualified": false,
+        "human_attempts_recorded": 0,
+        "meaning": "Task-own technical scopes close after accepted source/installed/model/bounded-provider proofs; no independent-human, final documentation/quality/seal/owner or publication completion."
+      }
+    }
+  ]
 }

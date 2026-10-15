@@ -1,0 +1,74 @@
+{
+  "profile": "connect-gate5-documentation-progress/1",
+  "recorded_at": "2026-10-15T11:10:49.305347+00:00",
+  "status": "prerequisite-materials-corrected; final-documentation-review-open",
+  "scope": "Current local documentation supplement to immutable ab843 archives. No publication, human attempt, whole-gate qualification or final G5-047/G5-048 completion.",
+  "candidate_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "whole_gate_qualified": false,
+  "human_attempts_recorded": 0,
+  "corrections": [
+    "Release runbook, release notes and proposed project copy describe accepted ab843 installed/media/model/bounded-provider scopes and retained raw impaired advisory failures.",
+    "SDK, connector and developer guides separate historical Gate 4 proof from current Gate 5 technical evidence.",
+    "Executable first-run entry is prominent; independent installations and within-journey Conversation continuity are explicit; ended Sessions require a new invitation and acceptance.",
+    "Installation, local reply and later model/device prerequisites have separate clocks; no provider account is required for the local reply.",
+    "The source qualification state has a byte-exact snapshot at the ab843 candidate revision, separate from mutable current progress annotations.",
+    "Both walkthrough documents render without page overflow at 1440, 375 and 320 px after correcting navigation overlap, grid width, code wrapping and table readability. This visual check is not an independent user attempt."
+  ],
+  "reviews": {
+    "release_materials": {
+      "path": ".local/gate5/release-materials-ab843-refresh/result.json",
+      "sha256": "e49dec9b948a9c0bbe9c02b0daa1adee44438ec50df43684a2192adfac5562f2"
+    },
+    "static_document_review": {
+      "path": ".local/gate5/quality-reconciliation-ab843b8/docs-review.json",
+      "sha256": "fc32e2a28aaec385d57c0420472f38d86e4dfaa1483891f9c7495453ce0da389"
+    },
+    "count_reopening": {
+      "path": ".local/gate5/quality-reconciliation-ab843b8/count-reopening-review.json",
+      "sha256": "d72d2bd71097e23297526add079810a116c36c61bf01be7066fdb0455f063749"
+    },
+    "walkthrough_visual": {
+      "path": ".local/gate5/human-handoff-ab843b8/visual-review-20261015/current-assessment.json",
+      "sha256": "986885dd1230a20a7003c359162aa2078592af28c0f95302c1dc179c052c287b"
+    },
+    "walkthrough_static_and_packaging_hold": {
+      "path": ".local/gate5/human-handoff-ab843b8/replacement-packaging-hold/result.json",
+      "sha256": "dd90ebbf300b2cb3fb7dfc26ff6fef12c218350841437686285346ec378d682e"
+    }
+  },
+  "frozen_candidate_source_record": {
+    "path": "docs/evidence/gate-5/source-qualification-ab843b843fa7.json",
+    "sha256": "61366543766cdcd7036818b978bb86ddf913abd353a05528b231da4aa7a4d740"
+  },
+  "open_findings": [
+    {
+      "id": "QR5-PROVENANCE-01",
+      "description": "Corrected exact-revision audit found missing crc-catalog nested LICENSES texts and complete rmcp transition/attribution text in ab843. Other exact existing-text associations must be explicit. Packaging collector correction and replacement candidate affected qualification are underway.",
+      "audit": {
+        "path": ".local/gate5/registry-license-coverage-ab843/corrected-coverage.json",
+        "sha256": "f02bcfb0c942fafd03276207943a4d549f767ee4a887f48a07985e670052edb9"
+      },
+      "implementation_progress": {
+        "focused_proof": {
+          "path": ".local/gate5/registry-license-candidate/source-proof-20261015T111323.430690Z/result.json",
+          "sha256": "bfae2cddbb14750fc775d185de34473f9331e38eb341f7da9a82066f4fc47251"
+        },
+        "real_graph_integration": {
+          "path": ".local/gate5/registry-license-coverage-ab843/integration-20261015T111251/result.json",
+          "sha256": "e8d3451bfd8b6d8f716e565b4cd08876bb35c40bf3d3d41b6baa1531804648df"
+        },
+        "status": "Collector implementation passes focused tests; replacement archive and affected installed qualification still required."
+      }
+    }
+  ],
+  "remaining": [
+    "Complete and independently review registry license collection/provenance repair and corrected candidate affected qualification.",
+    "Record at least three independent fresh-user walkthroughs, retaining timings, help, failures and remediation.",
+    "Reconcile public materials with the corrected candidate and actual human feedback, then perform final documentation and independent quality review.",
+    "Seal exact final evidence and obtain actual owner decision; publication remains separate."
+  ],
+  "historical_documentation_review_preserved": {
+    "path": "docs/evidence/gate-5/documentation-review.json",
+    "sha256": "2defa04ec3a5018ce2c4492015b7990479c2afa2e1769a66a034a6bd2718ab10"
+  }
+}

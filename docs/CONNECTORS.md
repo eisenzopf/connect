@@ -286,9 +286,17 @@ install tool configuration on an assistant, or solve first-invocation bootstrap.
 Those lifecycle steps and main runtime integration are delivered separately through
 [Vapi task bootstrap](VAPI_TASK_BOOTSTRAP.md); the current full review is linked below.
 
-Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+Historical Gate 4 owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
 
 [offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)
+
+Current Gate 5 local technical qualification is recorded for the unpublished
+`ab843b8` candidate: [complete installed proof](evidence/gate-5/complete-installed-ab843b8.json),
+[actual-model journey](evidence/gate-5/actual-model-ab843b8.json), and
+[six bounded provider compatibility claims](evidence/gate-5/provider-claims-ab843b8.json).
+Independent human walkthroughs and final documentation, quality, seal and owner
+acceptance remain open. Historical provider receipts do not imply a fresh carrier,
+Vapi or account-readiness check on this candidate.
 
 
 ## Independent contribution example

@@ -119,7 +119,7 @@ Source qualification lives in `gate5_contact_interface_parity` and
 `sdk/tests/contact_probe.py` / `contact_probe.mjs`; these source tests do not
 establish installed-package, actual-model or browser-reference qualification.
 
-## Gate 5 video interface under qualification
+## Gate 5 qualified local video interface
 
 Rust's `NativeVideoSession` sends one externally encoded VP8 frame with `send_vp8`
 and one 20 ms PCMU frame with `send_pcmu`. `receive` returns identified audio or
@@ -149,7 +149,10 @@ TypeScript native-helper, HTTP/JSON and MCP retain their existing control and
 PCMU interfaces; they do not acquire a VP8 byte-stream API by importing a browser
 facade. The [media contract](../contracts/connect-media-vp8-v1.md) and
 [numbered Gate 5 plan](connect-gate-5-implementation.html) distinguish implemented
-source interfaces from complete decoded, operating and installed qualification.
+source interfaces and the exact local decoded, operating and installed qualification.
+The [current media proof](evidence/gate-5/complete-installed-ab843b8.json) records
+all nine clean, impaired and mute conditions under the approved impairment-only
+quality policy; physical speaker/display latency remains unmeasured.
 
 Tracked reply consumption is an explicit owner operation, separate from reads,
 waits and follow-up sends. The native `consume_reply` task command and the ordinary
@@ -339,15 +342,25 @@ reclassify an unknown result as a rejection. A transport failure or deadline sti
 After fixing configuration or explicitly renewing a grant, close the helper and
 create a new client. It never reloads credentials or falls back to an owner token.
 
-Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+Historical Gate 4 owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
 
 [offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)
 
+Current Gate 5 local technical qualification is recorded for the unpublished
+`ab843b8` candidate: [complete installed proof](evidence/gate-5/complete-installed-ab843b8.json),
+[actual-model journey](evidence/gate-5/actual-model-ab843b8.json), and
+[six bounded provider compatibility claims](evidence/gate-5/provider-claims-ab843b8.json).
+Independent human walkthroughs and final documentation, quality, seal and owner
+acceptance remain open. Historical provider receipts do not imply a fresh carrier,
+Vapi or account-readiness check on this candidate.
 
-## Gate 5 source additions under qualification
 
-These APIs are implemented in the current source; the final installed candidate
-and sixty-second decoded-media evidence remain required before release claims.
+## Gate 5 interfaces and qualification boundary
+
+These APIs have matching source-component and complete installed qualification
+on the exact unpublished `ab843b8` candidate. All three clean and impaired
+60-second media routes and separate 20-second mute scenarios passed. Human
+usability, final review and owner acceptance remain required before Gate 5 closes.
 Rust supports `browser_binding_for(conversation_id, session_id)`; Python supports
 `browser_binding(conversation_id, session_id)` and TypeScript supports
 `browserBinding(conversationId, sessionId)`. Omitting both IDs preserves legacy

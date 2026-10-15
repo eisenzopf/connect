@@ -47,6 +47,11 @@ GATE5_RUNTIME = (
     'connector-kit-source.json',
 )
 GATE5_SOURCE = (
+    'scripts/lib/registry_licenses.py', 'scripts/tests/test_registry_licenses.py',
+    'dependencies/registry-license-lock.json',
+    'dependencies/licenses/asn1-rs-impl/LICENSE-MIT',
+    'dependencies/licenses/asn1-rs-impl/LICENSE-APACHE',
+    'dependencies/licenses/rmcp/LICENSE',
     'examples/native-video/Cargo.toml', 'examples/native-video/src/main.rs',
     'examples/native-video/src/lib.rs', 'sdk/typescript/src/browser_binding.ts',
     'sdk/typescript/src/browser_video.ts', 'sdk/typescript/src/browser_deadline.ts', 'sdk/typescript/src/browser_negotiation.ts',

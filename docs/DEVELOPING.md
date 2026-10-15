@@ -17,6 +17,23 @@ invoked live checks. See the [Gate 3 review report](evidence/gate-3/acceptance.h
 accepted when pinned and reproducible. Basic availability and a small expiring preference override are qualified in Gate 3;
 broader presence/preferences remain decision B-001.
 
+## Current Gate 5 qualification
+
+The unpublished `ab843b8` local macOS arm64 candidate has independently accepted
+[complete installed qualification](evidence/gate-5/complete-installed-ab843b8.json):
+18 baseline checks, 26 Gate 5 phases, all nine media conditions and both strict
+runtime inventories. Its [actual-model journey](evidence/gate-5/actual-model-ab843b8.json)
+passed 28 MCP calls with exact saved-session resume after restart. Source evidence
+composes the historical 84-phase pass with 22 reviewed changed inputs; it is not
+a newly executed full source run.
+
+Use the [Gate 5 package profile](GATE5_PACKAGE.md) for its complete reproduction
+command and explicit tool selectors; the Gate 4 commands below retain their
+separate historical scope. The [acceptance report](evidence/gate-5/acceptance.html)
+keeps the 11 qualified local technical criteria separate from five open final
+criteria. Three independent human walkthroughs have not yet been recorded.
+See the [participant protocol](gate-5-walkthrough-protocol.html).
+
 ## Repository layout
 
 - `crates/connect-protocol`: serializable contract, public outcomes, errors, limits.

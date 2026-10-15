@@ -14,6 +14,7 @@ import tomllib
 from lib.local_process import ROOT
 from lib.package_inventory import source_inventory, copy_gate5_assets, verify_baseline, copy_prepared_crate_notices
 from lib.package_environment import fixture_environment
+from lib.registry_licenses import copy_registry_notices, selected_dependency_ids
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--profile', choices=('gate4-local', 'gate5-local'), default='gate4-local')
@@ -130,22 +131,16 @@ if args.profile == 'gate5-local':
     copy_gate5_assets(ROOT, runtime)
     with readme.open('a') as guide:
         guide.write('\nGate 5 candidates use the explicit [Gate 5 package profile](docs/GATE5_PACKAGE.md); inventory and retained baseline checks do not establish Gate 5 closure.\n')
-# Preserve dependency license/notice texts alongside a readable package index.
-# The workspace graph is a conservative superset of the two runtime binaries.
-notices = []
-for package in metadata['packages']:
-    if not (package.get('source') or '').startswith('registry+'):
-        continue
-    identity = package['name']+'-'+package['version']
-    texts = []
-    for path in pathlib.Path(package['manifest_path']).parent.iterdir():
-        if path.is_file() and path.name.upper().startswith(('LICENSE', 'LICENCE', 'COPYING', 'NOTICE', 'UNLICENSE')):
-            destination = runtime/'licenses/registry'/identity/path.name
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, destination)
-            texts.append(str(destination.relative_to(runtime)))
-    notices.append({'package': identity, 'license': package.get('license'), 'source': package['source'], 'texts': sorted(texts)})
-(runtime/'licenses/registry-index.json').write_text(json.dumps(notices, indent=2)+'\n')
+# Keep the conservative index, but enforce notice coverage for the exact
+# default-feature normal/build graph of the selected macOS binary roots.
+filtered_metadata = json.loads(subprocess.check_output(
+    ['cargo', 'metadata', '--locked', '--offline', '--format-version=1',
+     '--filter-platform', 'aarch64-apple-darwin'], cwd=ROOT, timeout=120))
+license_roots = ['connect-server', 'connect-review-loop']
+if args.profile == 'gate5-local':
+    license_roots.append('connect-native-video')
+copy_registry_notices(ROOT, runtime, metadata,
+                      selected_dependency_ids(filtered_metadata, license_roots))
 copy_prepared_crate_notices(ROOT, runtime, metadata)
 files = {str(p.relative_to(runtime)): digest(p) for p in sorted(runtime.rglob('*')) if p.is_file()}
 ensure_source_unchanged()

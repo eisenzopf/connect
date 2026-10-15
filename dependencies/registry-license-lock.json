@@ -1,0 +1,375 @@
+{
+  "version": 1,
+  "scope": "Exact registry package root-license provenance. Paths resolve against source root, or runtime licenses/provenance. Upstream notices are preserved verbatim; declarations are not rewritten.",
+  "packages": {
+    "asn1-rs-impl-0.2.0": {
+      "name": "asn1-rs-impl",
+      "version": "0.2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "7b18050c2cd6fe86c3a76584ef5e0baf286d038cda203eb6223df2cc413565f7",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/rusticata/asn1-rs.git",
+      "github_repository": "rusticata/asn1-rs",
+      "revision": "a20e5f7319c896737ad0f2557037817b91ad854f",
+      "path_in_vcs": "impl",
+      "license_files": [
+        {
+          "url": "https://raw.githubusercontent.com/rusticata/asn1-rs/a20e5f7319c896737ad0f2557037817b91ad854f/LICENSE-MIT",
+          "sha256": "a5c61b93b6ee1d104af9920cf020ff3c7efe818e31fe562c72261847a728f513",
+          "upstream_path": "LICENSE-MIT",
+          "path": "dependencies/licenses/asn1-rs-impl/LICENSE-MIT"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/rusticata/asn1-rs/a20e5f7319c896737ad0f2557037817b91ad854f/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE",
+          "path": "dependencies/licenses/asn1-rs-impl/LICENSE-APACHE"
+        }
+      ]
+    },
+    "rmcp-3.5.1": {
+      "name": "rmcp",
+      "version": "3.5.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "ab5023804cbe0304cbe06197ac16e645a0a0d0ffa2953bf735c15c2fa0213350",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/modelcontextprotocol/rust-sdk/",
+      "github_repository": "modelcontextprotocol/rust-sdk",
+      "revision": "79437f291b2c44053d00dcd5db969fd0cca7c887",
+      "path_in_vcs": "crates/rmcp",
+      "license_files": [
+        {
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/rust-sdk/79437f291b2c44053d00dcd5db969fd0cca7c887/LICENSE",
+          "sha256": "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a",
+          "upstream_path": "LICENSE",
+          "path": "dependencies/licenses/rmcp/LICENSE"
+        }
+      ]
+    },
+    "rtc-datachannel-0.20.0-alpha.1": {
+      "name": "rtc-datachannel",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "19b532151afaf5f8af7f36b8a57e687dd5ed238117cd29d4bf3a3f68fa8fe035",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-datachannel",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-ice-0.20.0-alpha.1": {
+      "name": "rtc-ice",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "f9c90a85ecfc2b18ee7697342974afa55d36667d9ca7bec3a5eae63322da997c",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-ice",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-interceptor-derive-0.20.0-alpha.1": {
+      "name": "rtc-interceptor-derive",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "b39d78fc2ae7d5e99881d6604a972e99d97d839e5b3d0668018f82f0faa9bfb7",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-interceptor-derive",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-mdns-0.20.0-alpha.1": {
+      "name": "rtc-mdns",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "57deeaa15ece574bf4b6ecd697e4b036aff0bc042e56fb811921eef063a2fdd5",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-mdns",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-media-0.20.0-alpha.1": {
+      "name": "rtc-media",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "f73afea835cfb207f22f4a22952538e3c7cc0ab14dee913b702134178adf2462",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-media",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-rtcp-0.20.0-alpha.1": {
+      "name": "rtc-rtcp",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "b922f475a00c6f853b0c4a3d66c9984fceed368f56dba5fe82af3aff1c77edc7",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-rtcp",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-rtp-0.20.0-alpha.1": {
+      "name": "rtc-rtp",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "1076beeb0f13d4d38e7fe23c46896de638eeea9a7f2cb13209c31c42d37fe290",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-rtp",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-sctp-0.20.0-alpha.1": {
+      "name": "rtc-sctp",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "2d63968f1f8c2c016d04fc16c5a43608772e5b02f9657eed659273dd01b825f7",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-sctp",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-sdp-0.20.0-alpha.1": {
+      "name": "rtc-sdp",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "a8598470804b29e4f3d3486226b43f84db6c0f64311bd1c9e8ec1d9172c3e4c3",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-sdp",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-shared-0.20.0-alpha.1": {
+      "name": "rtc-shared",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "58b76f42332957719c1922bc9a4ba67ed348d12fca8705c3df171c44058d8f90",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-shared",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-srtp-0.20.0-alpha.1": {
+      "name": "rtc-srtp",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "91a79f9ac2db5fb54358d6ec6d51dcee64088507f2035b743f28dc9eabac7de5",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-srtp",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-stun-0.20.0-alpha.1": {
+      "name": "rtc-stun",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "3f4492e747d6468f0e69f5e186639b4075cb777a9a983be5c7d51493c2a05245",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-stun",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    "rtc-turn-0.20.0-alpha.1": {
+      "name": "rtc-turn",
+      "version": "0.20.0-alpha.1",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "7c52c4a3b6d9fea3cb7d1365ff88ee1610ac6c57d0ee126b3b4a26b5debdda6f",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/webrtc-rs/rtc",
+      "github_repository": "webrtc-rs/rtc",
+      "revision": "b808b74f712ed379312a114b848ede133880d58a",
+      "path_in_vcs": "rtc-turn",
+      "license_files": [
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-MIT",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT",
+          "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+          "upstream_path": "LICENSE-MIT"
+        },
+        {
+          "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+          "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "upstream_path": "LICENSE-APACHE"
+        }
+      ]
+    }
+  }
+}

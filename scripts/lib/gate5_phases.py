@@ -75,9 +75,11 @@ def phases(lanes, codex_binary=None, candidate=None, runtime=None, qualification
                                '-s', 'scripts/tests', '-p', 'test_video_measurements.py'], 120))
             selected.insert(4, ('package-proof-tests', [sys.executable, '-m', 'unittest', 'discover',
                                '-s', 'scripts/tests', '-p', 'test_package_inventory.py'], 120))
-            selected.insert(5, ('prepared-archive-tests', [sys.executable, '-m', 'unittest', 'discover',
+            selected.insert(5, ('registry-license-tests', [sys.executable, '-m', 'unittest', 'discover',
+                               '-s', 'scripts/tests', '-p', 'test_registry_licenses.py'], 120))
+            selected.insert(6, ('prepared-archive-tests', [sys.executable, '-m', 'unittest', 'discover',
                                '-s', 'scripts/tests', '-p', 'test_prepared_archive.py'], 120))
-            selected.insert(6, ('connected-app-checker-tests', [sys.executable, '-m', 'unittest', 'discover',
+            selected.insert(7, ('connected-app-checker-tests', [sys.executable, '-m', 'unittest', 'discover',
                                '-s', 'scripts/tests', '-p', 'test_connected_app_checker.py'], 120))
             # Run the delivered app commands immediately after the ordinary
             # binaries are built. Preserve every attempt across driver reruns.
