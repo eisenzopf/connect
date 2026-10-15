@@ -55,7 +55,7 @@ def run_plan(steps, report, directory, env, minimum_free_bytes=4 * 1024 ** 3,
                     | set(EXTERNAL_MEDIA_TESTS) | EXTERNAL_FAILURE_TESTS)
                 expected = {'gate5-driver-tests': 21, 'independent-vector-tests': 6,
                             'video-measurement-tests': 56, 'grant-boundary-tests': 6,
-                            'native-example-cleanup-guards': 13, 'package-proof-tests': 28,
+                            'native-example-cleanup-guards': 13, 'package-proof-tests': 29,
                             'prepared-archive-tests': 6,
                             'connected-app-checker-tests': 3}.get(result['name'])
                 text = (directory / result['log']).read_text(errors='replace')

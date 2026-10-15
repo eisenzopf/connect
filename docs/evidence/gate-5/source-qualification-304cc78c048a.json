@@ -1,0 +1,135 @@
+{
+  "profile": "gate5-source-qualification-composition/2",
+  "recorded_at": "2026-10-15T08:27:03.668471+00:00",
+  "status": "Accepted scoped source composition; corrected complete installed and whole-gate acceptance remain open",
+  "whole_gate_qualified": false,
+  "historical_full_source": {
+    "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
+    "sha256": "57338ed261774d668cf7ebd847523d0e60591617e0a3bc9509dfc264b53d0cd8"
+  },
+  "historical_full_source_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
+  "historical_full_source_phases": 84,
+  "prior_exact_source_record": {
+    "path": "docs/evidence/gate-5/source-qualification-9ce3cc2e621d.json",
+    "sha256": "91fe6dff1c52bd8d441bbab8a3623c877b62544cfd35ef94c177db0885553093"
+  },
+  "approved_policy_component": {
+    "path": "docs/evidence/gate-5/impaired-quality-policy.json",
+    "sha256": "9f3e92599575d975999c1306b26bbcdc67ab918845da3f71972bd0c1a9f751fb"
+  },
+  "installed_runtime_binding_component": {
+    "path": "docs/evidence/gate-5/installed-runtime-binding-repair.json",
+    "sha256": "fec990d4d622485db4414ebb4908ae20d3b0e07ec1f84538c03f23e07edf8d51"
+  },
+  "reviewed_source_composition": {
+    "status": "Accepted scoped source composition for corrected policy-2 candidate",
+    "source_revision_before_commit": "9ce3cc2e621d7a6c26a6629ee9874a87111a5a75",
+    "source_dirty": true,
+    "source_counts": {
+      "baseline": 1108,
+      "current": 1113,
+      "changed": 18,
+      "unchanged": 1095
+    },
+    "changed_selected_inputs": {
+      "examples/conversation-client/contacts.js": {
+        "baseline_sha256": "956149ce46b3fa5af412803f6edb6042664488de6dd885ac3de5775b45b664b0",
+        "current_sha256": "45a524cb4634f294e55c682b5459874d119e76435384f723af4dd9f4e3347157"
+      },
+      "examples/native-video/src/interrupt.rs": {
+        "baseline_sha256": null,
+        "current_sha256": "808ce444d7f7eb0ba98fb85235bedbb35a541b27d9397527436a231395dcf959"
+      },
+      "examples/native-video/src/main.rs": {
+        "baseline_sha256": "82f2d7197710ef38a0f50186a912a7058e9407506bcd1d3cae8f01df11c4fdc5",
+        "current_sha256": "65a7495c18ea5c9ff3bc92c4d1145d02ecabfc6878c60e9ab5e909459d023171"
+      },
+      "scripts/check-gate-5.py": {
+        "baseline_sha256": "3f170c9b8fc3e477858d617e4382e7fa8b2afb4f2ff12005e8278d5a62b82a15",
+        "current_sha256": "7d33055fa54a74b4cd7ba8886cd2cc7ca78a1a0ba8c9d00900b9b30029701ba9"
+      },
+      "scripts/check-gate5-recovery.py": {
+        "baseline_sha256": "9a1efe5be94ade95cbf90d0de75a9ed1d562194592f0dda388ced1f3ec67b4dd",
+        "current_sha256": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1"
+      },
+      "scripts/check-package.py": {
+        "baseline_sha256": "7d65c0cf15ad4a22b146a21bb68da53f5de45a4ce6f6952611cbcdede08716b6",
+        "current_sha256": "85544f1c295e15c7bc7ce74beaaecc8ca3ab4b6a8280476d05d5c52ac6a5ebf7"
+      },
+      "scripts/check-video-paths.py": {
+        "baseline_sha256": "19f385432890e5e0e6e29c76d870d609e7507dc145cc56785ab80eed09040211",
+        "current_sha256": "c547f99692f7f05012196756d602f271dbc70934e333cd729ad4c46408954002"
+      },
+      "scripts/lib/package_gate5.py": {
+        "baseline_sha256": "811fbd468ef4ab3a52e12e59544efa3b96785d8aaadff9df1f2f92c7c27c2539",
+        "current_sha256": "249216cea26ccbc5bf035ebad632f50e6860bbace22dac8d2ebbfaf537f5312b"
+      },
+      "scripts/lib/package_inventory.py": {
+        "baseline_sha256": "99964396e8dca6ecc6aa08525edd347d2741a77ec0b6a602550934b0ca07ea79",
+        "current_sha256": "2309e32e4c06e31282c0b1fa611a245eb5f09c7ae96c7ac90d9505cb5a40909d"
+      },
+      "scripts/tests/acceptance_policy.test.mjs": {
+        "baseline_sha256": null,
+        "current_sha256": "9a4f075edde2d91c6179c29cc83eeb6973168bf65d5f6805959807033e765476"
+      },
+      "scripts/tests/av_acceptance_cases.json": {
+        "baseline_sha256": null,
+        "current_sha256": "596c96bb451c0d82a8dbe7ef8256deb4e5f2403872bd51a515f3ff5f0c9b4e65"
+      },
+      "scripts/tests/test_package_inventory.py": {
+        "baseline_sha256": "4252982cc5bbedff97ac405919c596649d577be67657d86df7f13a820789b708",
+        "current_sha256": "623f818399e62d6ce01ef579a5b99eb46b495f9ed9c1740c064399ab509d490f"
+      },
+      "scripts/tests/test_video_measurements.py": {
+        "baseline_sha256": "8bfbdf312b3bbb970c4cf81450ba0d6939d47850e08a45b49c4331f95e144b82",
+        "current_sha256": "94974ebb4117bcfec3b44f503725c35eebaa6938a12de73201344ffa6194b385"
+      },
+      "scripts/video/acceptance_policy.mjs": {
+        "baseline_sha256": null,
+        "current_sha256": "3631617345312a89a74e51b8cf4d13ee1a58d94a73a75ec6273415c4eca29b85"
+      },
+      "scripts/video/acceptance_policy.py": {
+        "baseline_sha256": null,
+        "current_sha256": "0d503890f93732d7745d87581aa03202ac027629ae90efac51f15c060e2323c3"
+      },
+      "scripts/video/browser-qualify.mjs": {
+        "baseline_sha256": "edcc1002e324275068ef9bdba984e75b7b7e04390d3665c84988d30c7aee0f58",
+        "current_sha256": "96c45053d9fd54a8e519090861de5138f3effde10e6dd1c647c6ecdf2778929e"
+      },
+      "scripts/video/decoder_observation.py": {
+        "baseline_sha256": "38f6a93c3ed6e9d9793cd602d68916f679cc80e966a3d0eefe81343e5cbb8be2",
+        "current_sha256": "2e5c8e5bd1caa7e68019ee8cde5eef1da78c59131df130bd3e5e1d60ab308d60"
+      },
+      "sdk/tests/reference_client.test.mjs": {
+        "baseline_sha256": "ce1c9e50b9b433276526b4812467bc59f484eeab679df6e33774d1af53b77f21",
+        "current_sha256": "3216efd55e8344f20b88fb2b4ced26c68b9dfc6b54dbfca6b83810d84ccc32ee"
+      }
+    },
+    "current_full_source_map_proof": {
+      "path": ".local/gate5/installed-canonical-root-repair/proof-20261015T082132.797252Z/result.json",
+      "sha256": "e22670172df6c3a03056a32b55a2d08032bd5c2eddfd2c0d27eb8622962b3ac2"
+    },
+    "component_composition": "Byte-exact prior17 composition retains baseline84 and scoped runtime/native/canonical/RGB/contact/policy proofs. Only check-package canonical extraction assignment, its actual-code regression and driver count changed since9ce; corrected28 package and21 driver checks passed with all1113 inputs stable. Unchanged video56/JS34/parity30 proof remains applicable. No new literal84-phase source invocation is claimed.",
+    "current_policy_tests": {
+      "path": "docs/evidence/gate-5/impaired-quality-policy.json",
+      "sha256": "9f3e92599575d975999c1306b26bbcdc67ab918845da3f71972bd0c1a9f751fb"
+    },
+    "current_binding_tests": {
+      "path": "docs/evidence/gate-5/installed-runtime-binding-repair.json",
+      "sha256": "fec990d4d622485db4414ebb4908ae20d3b0e07ec1f84538c03f23e07edf8d51"
+    },
+    "runtime_scope": "All Rust/core/SDK/reference assets, dependencies, lockfiles and patches unchanged from9ce. No acceptance predicate weakened. A new source/package identity and complete installed/media qualification remain required.",
+    "independent_review": {
+      "path": ".local/gate5/installed-canonical-root-repair/release-path-source-composition-review.json",
+      "sha256": "f94fe3acc98a0587a12c554ae9c4270a08056e40ba23016bf042acc2d2e0b5e4",
+      "scope": "Independent verification of1113 current inputs, all18 baseline deltas, exact3 changes since9ce, retained component tests and strict binding; no corrected installed acceptance implied."
+    }
+  },
+  "required_followups": [
+    "new clean immutable candidate and independent archive inventory",
+    "fresh three-path clean/impairment/mute qualification under policy2",
+    "matching complete installed candidate pass before actual-model inference",
+    "three independent human walkthroughs",
+    "final technical evidence and owner candidate review; publication separate"
+  ]
+}

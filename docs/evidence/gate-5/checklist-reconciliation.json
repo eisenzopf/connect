@@ -58,7 +58,7 @@
       "notes": "Native authenticated one-use pairing, expiry/attempt bounds, wrong identity, revocation and current completing-credential replay pass Store/public-interface proofs. Challenges are redacted; pairing cannot grant Conversation membership or SMS consent. Source setup/recovery preserves pairing records. Production contacts are unchanged by later terminal lifecycle repairs. Installed/model contact probes remain in their downstream qualification tasks."
     }
   ],
-  "completed_dependency_validation": "All done tasks have owners/evidence and every dependency done. Downstream work is not marked complete simply because a prerequisite passed.",
+  "completed_dependency_validation": "All39 done tasks have completed explicit dependencies; checked from current50-task embedded plan.",
   "whole_gate_qualified": false,
   "published": false,
   "initial_counts": {
@@ -75,14 +75,14 @@
     "G5-044\u2013G5-050 (release/install/usability/review/owner evidence pending)"
   ],
   "current_counts": {
-    "done": 27,
-    "in-progress": 22,
+    "done": 39,
+    "in-progress": 10,
     "not-started": 1
   },
   "current_reconciliation": {
-    "recorded_at": "2026-10-14T21:53:48.513419+00:00",
-    "scope": "Task-own verification plus completed explicit dependencies; no criterion/final-installed/media/model/human/owner acceptance inferred.",
-    "source_boundary": "Audited c5bf735/aa31 plus unchanged affected slices from66115d2. Concurrent contact UI correction changes no dependency/connector/control/setup implementation.",
+    "recorded_at": "2026-10-15T09:16:27.756434+00:00",
+    "scope": "Explicit task-own verification/dependency closure; complete304 package remains failed, model/humans/final gate not inferred.",
+    "source_boundary": "Current19-input source composition plus explicit304 selected runtime evidence; prior source boundaries and component reviews remain historical.",
     "newly_completed_tasks": [
       {
         "id": "G5-005",
@@ -178,6 +178,66 @@
         "id": "G5-034",
         "notes": "Provider-free local init/demo and isolated host installation cover existing configuration preservation, repeated setup, unsupported host/missing authentication, revocation, recovery and owned-file cleanup. Source scripted-host and installed98 setup checks pass. Actual-model continuation belongs to G5-038 and remains unrun. This closes the local implementation/fixture scope; integrated acceptance and independent fresh-user evidence remain separate.",
         "evidence": "docs/evidence/gate-5/setup-lane.json; docs/evidence/gate-5/setup-upgrade.json; docs/evidence/gate-5/shipped-setup-package-proof.json; docs/evidence/gate-5/current-source-qualification.json; docs/evidence/gate-5/local-package-qualification.json; docs/evidence/gate-5/checklist-reconciliation.json"
+      },
+      {
+        "id": "G5-010",
+        "notes": "Fresh exact installed clean/impairment/mute proof across all three routes passes under connect-media-acceptance/2, joined with reviewed feedback/reorder/lifetime component evidence. Impaired raw AV quality remains separately reported; non-AV limits unchanged. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/impaired-quality-policy.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-011",
+        "notes": "Exact archived native example build and installed generated duplex decoding, child capture refusal, interruption/reattachment and ordinary cleanup pass. Opt-in camera/microphone and bounded video preview paths are documented; no physical hardware or live speaker playback is claimed. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/independent-quality-review.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-012",
+        "notes": "Exact installed BB/NB decoded paths and source/installed auth/lifecycle fixtures pass. Browser identity, local topology and acceptance policy remain bound; no direct-peer or live-provider claim. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/release-media-diagnostics.json; docs/evidence/gate-5/browser-transform-control.json; docs/evidence/gate-5/browser-network-controls.json; docs/evidence/gate-5/browser-version-compatibility.json; docs/evidence/gate-5/impaired-quality-policy.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-013",
+        "notes": "Real installed reference controls and selected-device constraints pass. Separately reviewed actual Chrome native NotAllowedError under document camera/microphone policy, identical server/UI/SDK bytes from9ce to304, proves denied-capture UI recovery. No physical-device/human prompt claim. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/reference-experience.json; docs/evidence/gate-5/reference-permission-denial.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-014",
+        "notes": "All three installed public-interface routes pass clean60, impaired60 and mute20 scenarios with source-identified decoded observers. Separate bounded manual device procedure is delivered; generated proof does not claim hardware execution. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/current-media-profile.json; docs/evidence/gate-5/current-driver-integration.json; docs/evidence/gate-5/browser-feedback-reordering-policy.json; docs/evidence/gate-5/impaired-quality-policy.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-015",
+        "notes": "Joined exact-source and installed authority/lifecycle failures, native child refusal/interrupt/reattachment and browser capture-ended/ICE-failed cleanup pass with original bounds and preserved Conversation. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/video-transport.json; docs/evidence/gate-5/native-terminal-repair.json; docs/evidence/gate-5/release-media-diagnostics.json; docs/evidence/gate-5/rgb-mute-observation-repair.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-016",
+        "notes": "Exact single-pair installed operating measurements pass the approved scenario policy. Retained two-pair exploratory low-frame-rate results measure additional load but do not extend supported capacity or promise restoration to clean quality within2s. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/current-media-profile.json; docs/evidence/gate-5/current-driver-integration.json; docs/evidence/gate-5/browser-feedback-reordering-policy.json; docs/evidence/gate-5/release-media-diagnostics.json; docs/evidence/gate-5/native-concurrency-observation.json; docs/evidence/gate-5/impaired-quality-policy.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-035",
+        "notes": "Installed11UI/13AV reference checks and reviewed identical-asset five real-browser contact cases pass. Desktop/narrow visual inspection is separately retained: HTML/CSS unchanged, contact race fix independently covered. Independent three-human usability remains G5-046. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/reference-experience.json; docs/evidence/gate-5/contact-selection-repair.json; docs/evidence/gate-5/reference-permission-denial.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-036",
+        "notes": "Installed language SDK/native helper/HTTP/CLI controls and reviewed Rust/MCP parity demonstrate receipt, replay and authority alignment; exact generated assets and out-of-checkout composition remain bound. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/session-interface-parity.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-037",
+        "notes": "Installed public app14-check journey passes independent incoming and outgoing review, artifact mapping, restart/replay, duplicate/reordered replies and concurrent-worker refusal with original business IDs. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/app-journeys.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-040",
+        "notes": "Reviewed full-source security/SMS/artifact baseline plus exact declared delta proofs and installed authority/recovery results satisfy local security scope. No actual carrier operation is inferred. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/connector-runtime-integration.json; docs/evidence/gate-5/video-admission-cleanup.json; docs/evidence/gate-5/terminal-session-lifetime.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
+      },
+      {
+        "id": "G5-041",
+        "notes": "Exact archived schema1/schema16 public recovery, refusal, corruption/rollback and source migration failure proofs pass; original historical fixture provenance and authority/no-live-replay boundaries retained. Independently reviewed own-scope closure composes identified304 behavior with unchanged runtime/source assets. The304 whole-package result remains failed at final inventory; model and human acceptance are separate. See verified-task-scope-304cc78.json for rawAV, interface and hardware boundaries.",
+        "evidence": "docs/evidence/gate-5/migration-recovery.json; docs/evidence/gate-5/setup-upgrade.json; docs/evidence/gate-5/verified-task-scope-304cc78.json; docs/evidence/gate-5/installed-bytecode-isolation-repair.json"
       }
     ],
     "audits": [
@@ -195,20 +255,8 @@
       }
     ],
     "remaining_tasks": [
-      "G5-010",
-      "G5-011",
-      "G5-012",
-      "G5-013",
-      "G5-014",
-      "G5-015",
-      "G5-016",
-      "G5-035",
-      "G5-036",
-      "G5-037",
       "G5-038",
       "G5-039",
-      "G5-040",
-      "G5-041",
       "G5-042",
       "G5-043",
       "G5-044",
@@ -219,7 +267,7 @@
       "G5-049",
       "G5-050"
     ],
-    "implementation_sha256": "9eb8f7d2ab5a5436193c700fc7fef8d351f4bd31be0cb93297d7d0db75ea89f0",
+    "implementation_sha256": "63d0554cbae483f28512af5631c8ecd35c1108ee47908681056f557ed8c58e97",
     "followup_annotation": {
       "recorded_at": "2026-10-14T22:04:13.434869+00:00",
       "candidate_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
@@ -276,6 +324,10 @@
       ],
       "scope": "Actual browser policy-denial proof only; no task/dependency/criterion promotions",
       "evidence": "docs/evidence/gate-5/reference-permission-denial.json"
+    },
+    "oct15_own_scope_review": {
+      "path": "docs/evidence/gate-5/verified-task-scope-304cc78.json",
+      "sha256": "570e391a1130d5ee582d31149c826216bd87168792b6137dec6495f58d017f85"
     }
   },
   "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"

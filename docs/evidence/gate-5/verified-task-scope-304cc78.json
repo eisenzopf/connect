@@ -1,0 +1,71 @@
+{
+  "profile": "gate5-verified-own-task-scope/1",
+  "recorded_at": "2026-10-15T09:16:27.756434+00:00",
+  "status": "Independent review accepts12 task-own scopes; complete installed/model/final gate remain open",
+  "whole_gate_qualified": false,
+  "candidate_revision": "304cc78c048aeb46ce0cbac60ad5d3f68db73eda",
+  "newly_completed_tasks": [
+    "G5-010",
+    "G5-011",
+    "G5-012",
+    "G5-013",
+    "G5-014",
+    "G5-015",
+    "G5-016",
+    "G5-035",
+    "G5-036",
+    "G5-037",
+    "G5-040",
+    "G5-041"
+  ],
+  "basis": "304 completed all9 decoded conditions and26 Gate5 process phases with exact selected input bindings, current authorization/failure/recovery/reference/app proof and clean owned-process teardown. Reviewed current19-input source composition changes qualification/test code only; Rust/core/SDK/reference executable assets and dependencies remain unchanged. Stored9ce denial and0d contact/visual evidence compose through explicit identical-asset hashes.",
+  "scope_boundary": "Task dependencies and their own verification decide closure; no whole-package pass, model or human prerequisite is invented for these12 tasks. The304 overall report remains FAILED at final inventory. Its exact deleted inventory delta is unknown; isolated original/fixed host diagnostics show cache addition and zero mutation after the correction. Actual-model admission still requires a fresh literal complete installed pass.",
+  "raw_media_boundary": "17 rawAV observations passed. One impaired native observer had35 paired markers (below clean coverage), median24.250166ms/p9561.092791ms; rawfailed stays visible and is separately advisory under owner-approved policy2. Clean/mute remain strict; every nonAV hard check passed.",
+  "interface_boundary": "Installed CLI/Python/TypeScript/native/HTTP controls compose with separately identified source Rust/MCP parity; do not call every interface an installed execution.",
+  "human_boundary": "Generated/native child-refusal and document-policy browser denial are not physical camera/microphone/speaker or human permission-prompt proof. Three independent people, final docs/quality/seal and owner review remain required.",
+  "proofs": {
+    "task_scope_independent_review": {
+      "path": ".local/gate5/task-scope-closure-304cc78/review.json",
+      "sha256": "8e1e252ef32b419b88857a7f0f99c66320a652f92a05bbbe178938c425399ec8"
+    },
+    "failed_complete_with_scoped_success": {
+      "path": ".local/package-checks/20261015T083449.231868Z/result.json",
+      "sha256": "e47303b71a67cc04f57d7b1a4fcdcfcb3720ee2f4e46fb54462216f9839d820f"
+    },
+    "complete_attempt_independent_review": {
+      "path": ".local/gate5/complete-installed-304cc78-attempt1/quality-final-review.json",
+      "sha256": "6b08699a0f7722061228a2281a2f991490efb06f247f697f048da3016e319b46"
+    },
+    "current_source_composition": {
+      "path": "docs/evidence/gate-5/current-source-qualification.json",
+      "sha256": "e31d4cc4deff55e440840d5caa9bdddf52d8a6378698c9c2e22e7f1076f54b01"
+    },
+    "inventory_repair": {
+      "path": "docs/evidence/gate-5/installed-bytecode-isolation-repair.json",
+      "sha256": "7d05eb29afbaeeb239db808ecae5ad7ac34a0ea43e58afcdb9e37b8fe36d74a2"
+    },
+    "asset_composition": {
+      "path": ".local/gate5/conditional-closure-304cc78-20261015/composition.json",
+      "sha256": "8dfede4542dec7bf23041499dc440dfd2e3d57165b3ae6f2973f67fd76e97755"
+    },
+    "public_denial_recipe_review": {
+      "path": ".local/gate5/public-reference-reproduction-review-304cc78/public-doc-review.json",
+      "sha256": "9567e0c4f9946a145465afe63d529b6f841eb0861874c5364446ac869889f6a8"
+    }
+  },
+  "historical_source_pointer": "The asset-composition record captured the then-current source record at304; its exact bytes remain in source-qualification-304cc78c048a.json and Git304. The mutable current pointer now names the independently reviewed19-input composition.",
+  "remain_open": [
+    "G5-038",
+    "G5-039",
+    "G5-042",
+    "G5-043",
+    "G5-044",
+    "G5-045",
+    "G5-046",
+    "G5-047",
+    "G5-048",
+    "G5-049",
+    "G5-050"
+  ],
+  "published": false
+}

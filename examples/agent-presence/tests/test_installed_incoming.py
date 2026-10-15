@@ -54,6 +54,7 @@ class InstalledIncomingTests(unittest.TestCase):
                                                                "codex_home": str(root / "codex-home"), "user_home": str(root / "user-home")}))
                 env = {key: os.environ[key] for key in ("PATH", "HOME", "LANG", "TMPDIR") if key in os.environ}
                 env["PYTHONPATH"] = str(RUNTIME / "sdk/python")
+                env["PYTHONDONTWRITEBYTECODE"] = "1"
                 command = [sys.executable, str(RUNTIME / "examples/agent-presence/codex-inbox.py"),
                            "--config", str(state / "operator.toml"), "--policy", str(policy), "--state", str(app),
                            "--http-address", http_address, "--mcp-address", mcp_address,

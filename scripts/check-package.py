@@ -15,6 +15,7 @@ import tarfile
 import tempfile
 import tomllib
 from lib.package_environment import fixture_environment
+from lib.package_inventory import runtime_inventory
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -69,6 +70,13 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def check_runtime_inventory(release, manifest, manifest_sha256, stage):
+    observed = runtime_inventory(release, manifest, manifest_sha256)
+    report.setdefault('runtime_inventory', {})[stage] = observed
+    save()
+    assert observed['status'] == 'passed', 'Installed runtime inventory changed during behavior'
+
+
 def first_launch(name, binary, working_directory, flag='--version'):
     """Measure macOS loader assessment separately from application deadlines."""
     from lib.qualification_process import run_phase
@@ -111,6 +119,7 @@ try:
                 archive.extractall(work, filter='data')
         release = work/candidate.name
         manifest = json.loads((release/'manifest.json').read_text())
+        manifest_sha256 = digest(release/'manifest.json')
         assert manifest['candidate'] == candidate.name and manifest['target'] == 'aarch64-apple-darwin'
         assert manifest.get('qualification_profile') == args.profile, 'Candidate profile does not match explicit selection'
         # Helper imports cache default executable paths. Select the extracted
@@ -279,6 +288,7 @@ try:
                 raise RuntimeError('Installed behavior check failed: '+script)
             passed(script, 'Independent installed normal binaries; disposable local state; exact-source featured binaries only for abrupt faults')
         if args.profile == 'gate5-local':
+            check_runtime_inventory(release, manifest, manifest_sha256, 'after-baseline')
             from lib.package_gate5 import qualify as qualify_gate5
             report['gate5_installed'] = qualify_gate5(release, source, manifest, results/'gate5-installed',
                 args.independent_python, media_tools, {
@@ -286,11 +296,7 @@ try:
                     'gate4-binary': work/'qualification/connect-schema16',
                     'gate4-manifest': work/'qualification/schema16-manifest.json'})
         # Behavior must not silently mutate the installed inputs it qualifies.
-        final_files = {str(path.relative_to(release)) for path in release.rglob('*') if path.is_file()}
-        assert final_files == set(manifest['files']) | {'manifest.json'}, 'Installed runtime inventory changed during behavior'
-        for name, checksum in manifest['files'].items():
-            path = release / name
-            assert not path.is_symlink() and digest(path) == checksum, 'Installed runtime changed during behavior: ' + name
+        check_runtime_inventory(release, manifest, manifest_sha256, 'after-behavior')
         report['runtime_inputs_stable'] = True
     report['result'] = report['gate5_installed']['status'] if args.profile == 'gate5-local' else 'passed'
     report['whole_gate_qualified'] = False

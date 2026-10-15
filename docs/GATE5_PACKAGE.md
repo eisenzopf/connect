@@ -201,3 +201,47 @@ walkthroughs or owner acceptance.
 Each installed media report must contain exactly one completed observation for
 each route with the expected scenario and full finite duration; an aggregate pass
 cannot substitute for a missing, duplicated, failed or shorter route.
+
+## Repeat camera/microphone denial without a physical device
+
+This is a deterministic browser policy-denial observation, separate from the generated-device positive reference checker, physical-device permission prompts, and the independent-user walkthroughs. Use an identified installed runtime and follow the shipped [reference-client setup](../examples/conversation-client/README.md). Retain the exact candidate, SDK and Chrome versions in your private attempt record.
+
+1. Prepare the local Connect server, reciprocal human/agent configurations and shared Conversation using that guide’s public commands. Keep all private state outside the static root. Make a fresh public-only static copy using that guide’s asset-copy recipe, with its source root set to the selected installed runtime; no SDK rebuild is needed. The copy must contain only examples/conversation-client and sdk/typescript/dist browser files. Do not serve the repository, a state directory, or an earlier qualification scratch directory.
+2. Stop only the ordinary static server you started on port8088. Serve that same public-only copy with a denial header using this standard-library command (replace /absolute/path/to/public-assets):
+
+```sh
+python3 - /absolute/path/to/public-assets <<'PYCODE'
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+import sys
+public = Path(sys.argv[1]).resolve(strict=True)
+assert (public / 'examples/conversation-client/index.html').is_file()
+assert (public / 'sdk/typescript/dist/browser.js').is_file()
+class DeniedCapture(SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header('Permissions-Policy', 'camera=(), microphone=()')
+        super().end_headers()
+ThreadingHTTPServer(('127.0.0.1', 8088), partial(DeniedCapture, directory=str(public))).serve_forever()
+PYCODE
+```
+
+3. Open fresh Chrome tabs at http://127.0.0.1:8088/examples/conversation-client/. Do not use fake-device flags or permission grants. In browser developer tools, inspect only this non-secret expression before joining:
+
+```js
+(() => { const p = document.permissionsPolicy || document.featurePolicy; return {secure: isSecureContext, camera: p?.allowsFeature('camera'), microphone: p?.allowsFeature('microphone')}; })()
+```
+
+It must show secure:true, camera:false and microphone:false. Otherwise record a setup failure; do not treat a different error as the intended denial.
+4. Fill the two permitted identities and the SAME Conversation ID as in the public setup mapping. Connect both tabs. Invite audio+video from one tab, copy its Session ID to the peer and accept there. Do not join before acceptance. Record the accepted Session via the UI or public session_get request; an unaccepted-session rejection does not exercise device denial.
+5. Choose Join video in the first tab. Require Action failed with the actionable media-denied message saying microphone or camera access was denied. Join and the device selectors must become usable; end/mute controls must remain inactive; pending actions must return to zero. Both local and remote video elements must have srcObject===null. You can inspect only these element properties in developer tools; do not copy credentials, SDP or page storage into a public report. There must be no acquired live capture from this attempt. The policy denies acquisition before physical device selection; this is not an OS prompt test.
+6. Verify the same Session is still accepted and the same Conversation remains selected. Send a unique text message using keyboard focus and Enter on the message form's Send button; require Message sent and the actual message in that Conversation's timeline. Do not create a replacement Conversation or Session to recover from denial. Save the original failure if any assertion fails.
+7. Close the attempt's tabs, stop only the owned static and Connect servers, and retain private state/evidence for review. Restore the ordinary static-server command for later positive media tests; do not change browser security settings globally.
+
+Record a separate scoped observation with candidate/hash/version, effective policy, accepted Session before/after, displayed error, control/pending/attachment observations, actual message receipt, cleanup and any assistance/failure. This manual recipe does not reproduce the private harness's exact API-call counter or provide a new five-check automated pass. The retained private actual-browser evidence used the same native policy-denial mechanism and independently asserted one NotAllowedError; that historical count remains bound to its own harness/result.
+
+## Repeat the contact-selection regressions
+
+The source archive includes sdk/tests/reference_client.test.mjs, which executes the actual contacts.js handler with deterministic delayed responses. From the matching source archive with its SDK dist and selected supported Node, run: node --test sdk/tests/reference_client.test.mjs. The three named contact tests cover delayed address/Conversation changes, edit-back invalidation and failed replacement/manual participant preservation. These are actual-handler VM tests, not Chrome or network claims. The separately retained archived Chrome augmentation held and released real public API responses without changing their bodies; it is corroborating evidence, not a hidden input to the public installed checker. Public UI users can also inspect an authorized contact, change the address or Conversation and verify the old selection is cleared, then inspect an unknown address and confirm a manually entered participant is retained. Timing-sensitive race coverage comes from the shipped deterministic tests, not an assumed slow network.
+
+This recipe is supplied for reproduction; it is not recorded as a newly executed manual or independent-user attempt. The private browser-policy observation remains separately identified in [its evidence record](evidence/gate-5/reference-permission-denial.json).

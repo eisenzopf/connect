@@ -1,0 +1,82 @@
+{
+  "profile": "gate5-installed-bytecode-isolation-repair/1",
+  "recorded_at": "2026-10-15T09:10:53.790191+00:00",
+  "status": "Scoped repair, actual archived-host followup and independent review passed; new complete installed qualification required",
+  "whole_gate_qualified": false,
+  "policy": "connect-media-acceptance/2",
+  "original_attempt": "304cc78 completed18 baseline checks,26 Gate5 phases and all9 decoded scenarios; parent route/input bindings and all18 recomputed AV acceptance decisions passed. Overall check-package remained failed at final runtime file-set assertion. The temporary extraction was deleted without saving its final delta; its exact original delta remains unknown.",
+  "reproduction": "A separately identified fresh304 archived incoming-host fixture passed while adding17 Python bytecode files and2 cache directories, changing/removing no original entries. The nested Python launch rebuilt its environment without the parent no-bytecode setting. This reproduces the cause class; it does not fabricate an inventory for the deleted full attempt.",
+  "repair": "Preserve PYTHONDONTWRITEBYTECODE=1 in that qualification child. Strict runtime inventory now saves added/missing/changed/symlink paths before hard failure, checks the manifest hash too, and checks immediately after baseline as well as after all behavior. No caches are ignored, removed to hide mutations or accepted as passes.",
+  "changed_selected_files": [
+    "examples/agent-presence/tests/test_installed_incoming.py",
+    "scripts/check-gate-5.py",
+    "scripts/check-package.py",
+    "scripts/lib/package_inventory.py",
+    "scripts/tests/test_package_inventory.py"
+  ],
+  "proofs": {
+    "failed_complete": {
+      "path": ".local/package-checks/20261015T083449.231868Z/result.json",
+      "sha256": "e47303b71a67cc04f57d7b1a4fcdcfcb3720ee2f4e46fb54462216f9839d820f"
+    },
+    "failed_outer": {
+      "path": ".local/gate5/complete-installed-304cc78-attempt1/result.json",
+      "sha256": "d4595a9bc5704342fe65a9fe46122fe42cefd6e4ce254ea9acaa70f0888a5ff2"
+    },
+    "failed_summary": {
+      "path": ".local/gate5/complete-installed-304cc78-attempt1/failure-summary.json",
+      "sha256": "e161ed6cab18cf195983abe5cf8ac16ec8b9cd34c6f1f8affa6732706c93c54f"
+    },
+    "failed_attempt_independent_review": {
+      "path": ".local/gate5/complete-installed-304cc78-attempt1/quality-final-review.json",
+      "sha256": "6b08699a0f7722061228a2281a2f991490efb06f247f697f048da3016e319b46"
+    },
+    "original_archived_host_diagnostic": {
+      "path": ".local/gate5/installed-runtime-inventory-diagnostic-304cc78/result.json",
+      "sha256": "a860c1627c39b5a90e704e5b7f4327a271cf8409d1c063663b02808f95c2e4a9"
+    },
+    "fixed_archived_host_diagnostic": {
+      "path": ".local/gate5/installed-runtime-inventory-fixed-304cc78-attempt2/result.json",
+      "sha256": "55df8f68a6801143567bddbff46765224b6d111698c7fb542f1c5343d8c6eb5c"
+    },
+    "unit_proof": {
+      "path": ".local/gate5/installed-runtime-inventory-repair/proof-20261015T090701.516771Z/result.json",
+      "sha256": "d62f8f89cb785b2b87ecb12001514b7b3500dc2757b057a673dfcd167dad71d5"
+    },
+    "repair_independent_review": {
+      "path": ".local/gate5/installed-runtime-inventory-repair/quality-final-review.json",
+      "sha256": "78ae362a90f0a1df537fc1e5503b6e0858e44b0b60cfef7ba902440aab60ed60"
+    }
+  },
+  "checks": {
+    "package_python": 29,
+    "driver_python": 21,
+    "selected_inputs_stable": 1113,
+    "fixed_host_runtime_added": 0,
+    "fixed_host_runtime_removed": 0,
+    "fixed_host_runtime_changed": 0,
+    "fixed_host_owned_survivors": 0
+  },
+  "media_scope": {
+    "clean_routes_passed": 3,
+    "impaired_routes_passed": 3,
+    "mute_recovery_routes_passed": 3,
+    "raw_av_passed": 17,
+    "impaired_raw_av_failed_advisory": 1,
+    "advisory_detail": "The native observer in the impaired native-browser route had35 pairs, median24.250166ms/p9561.092791ms; valid insufficient impaired marker coverage remains rawfailed and separately accepted as advisory. All other rawAV decisions passed.",
+    "whole_installed_status": "failed; no actual-model admission"
+  },
+  "public_reproduction": {
+    "recipe": {
+      "path": "docs/GATE5_PACKAGE.md",
+      "sha256": "1915670aeaeffef45548f59682e6e7acc145ca751ca895150a01db6fc3b32195"
+    },
+    "scope": "Standard-library denial-header server and public setup/UI expectations; not a new executed manual attempt. Shipped contact-handler tests reproduce deterministic races; private Chrome augmentation is corroboration."
+  },
+  "limits": [
+    "No Rust/core/SDK/reference executable asset, dependency, media policy or hard media predicate changes.",
+    "Original304 overall verdict remains failed despite its valid scoped media results.",
+    "Fresh corrected immutable candidate and complete installed pass still required before model work.",
+    "No independent human, owner candidate acceptance or publication."
+  ]
+}

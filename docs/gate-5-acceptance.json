@@ -625,18 +625,23 @@
   "publication": "not-performed",
   "report": "evidence/gate-5/acceptance.html",
   "progress_boundary": {
-    "latest_built_candidate": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
-    "candidate_status": "Archive inventory and selected archived reference/contact checks passed; no complete installed qualification.",
-    "source_boundary": "Candidate 0d285d168509 includes the contact-selection repair. This progress update and the new evidence annotations are later documentation, not contents claimed to be baked into that archive.",
+    "latest_built_candidate": "304cc78c048aeb46ce0cbac60ad5d3f68db73eda",
+    "candidate_status": "All9 media conditions and26Gate5 phases passed at304; complete installed result remains failed at final runtime inventory.",
+    "source_boundary": "Current19-input qualification/test repair composition changes no runtime code or SDK/reference executable asset. This later progress/docs update is not claimed inside304 archive.",
     "source_evidence": "Historical clean 66115d2 passed 84 source phases; subsequent source composition and repairs retain their own recorded boundaries.",
     "actual_model": "not-run",
     "human_attempts_recorded": 0,
     "independent_fresh_users_required": 3,
-    "browser_impairment": "Historical strict-policy reports remain failed. Fresh matching policy-2 qualification is pending.",
+    "browser_impairment": "All3 fresh304 policy2 impaired routes passed. Original strict-policy failures remain failed; one fresh valid35-pair rawAV failure remains separately advisory.",
     "owner_handoff": "not-ready",
     "meaning": "Progress only. Linked records keep their own revisions, scopes and failures. This file is not a final result, final seal, owner acceptance or publication approval.",
     "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1\u20135.3 changing fps per participant. This does not extend the supported one-pair profile.",
-    "media_acceptance_policy": "connect-media-acceptance/2; owner-approved impairment-only change, component checks verified; new candidate qualification pending",
-    "latest_installed_attempt": "9ce policy2 failed on checker /var versus /private/var binding after18 baseline/24 Gate5 process phases and all3 strict clean routes passed; impairment/mute unrun. Canonical root repair has28+21 component tests and independent review; corrected candidate/full installed proof pending."
+    "media_acceptance_policy": "connect-media-acceptance/2; owner-approved impaired-only relaxation verified on all9 route/conditions; no whole-gate acceptance.",
+    "latest_installed_attempt": "304:18baseline+26Gate5/all9media passed; finalinventory assertion failed. Original/fixed archived host diagnostics identify cache isolation and zero mutation after correction. New complete installed pass required before model.",
+    "verified_task_counts": {
+      "done": 39,
+      "in-progress": 10,
+      "not-started": 1
+    }
   }
 }

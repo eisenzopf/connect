@@ -111,6 +111,33 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def runtime_inventory(release, manifest, manifest_sha256):
+    """Describe every runtime file mutation without ignoring generated caches."""
+    release = release.resolve(strict=True)
+    expected = dict(manifest['files'])
+    if 'manifest.json' in expected:
+        raise ValueError('Runtime manifest cannot inventory itself')
+    expected['manifest.json'] = manifest_sha256
+    for name in expected:
+        path = pathlib.PurePosixPath(name)
+        if path.is_absolute() or '..' in path.parts or str(path) != name:
+            raise ValueError('Runtime inventory path is not relative and canonical')
+    entries = list(release.rglob('*'))
+    actual = {str(path.relative_to(release)) for path in entries if path.is_file()}
+    symlinks = {str(path.relative_to(release)) for path in entries if path.is_symlink()}
+    changed = []
+    for name in sorted(set(expected) & actual):
+        path = pathlib.PurePosixPath(name)
+        if (any(str(parent) in symlinks for parent in (path, *path.parents))
+                or digest(release / name) != expected[name]):
+            changed.append(name)
+    added, missing = sorted(actual - set(expected)), sorted(set(expected) - actual)
+    return {'status': 'failed' if added or missing or changed or symlinks else 'passed',
+            'expected_files': len(expected), 'observed_files': len(actual),
+            'added': added, 'missing': missing, 'changed': changed,
+            'symlinks': sorted(symlinks)}
+
+
 def require(root, names, label):
     for name in names:
         path = root / name
