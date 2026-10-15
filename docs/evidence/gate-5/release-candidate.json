@@ -1,8 +1,8 @@
 {
   "profile": "gate5-provisional-local-candidate/1",
   "recorded_at": "2026-10-15T11:52:20.789885+00:00",
-  "status": "Exact notice-corrected unpublished candidate designated for three independent human walkthroughs and eventual owner review",
-  "whole_gate_qualified": false,
+  "status": "Owner-approved release-ready local candidate; unpublished",
+  "whole_gate_qualified": true,
   "source_revision": "284cef16c64b324ce2add037b013249692a60087",
   "candidate": "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
   "candidate_directory": "dist/connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
@@ -41,13 +41,23 @@
   },
   "post_build_evidence_boundary": "This designation, current qualification summaries and updated guides postdate immutable284 archives. They are explicit review annotations, not archived-doc or new model execution claims.",
   "remaining": [
-    "Three independent fresh-user walkthroughs and remediation",
-    "Final documentation and independent quality review",
-    "Final seal and actual owner decision",
-    "Publication only on a separate explicit instruction"
+    "Publication only on a separate explicit instruction; verify exact archive bytes before upload"
   ],
   "previous_designation": {
     "path": "docs/evidence/gate-5/release-candidate-ab843b8.json",
     "sha256": "a35cabf1db629304e8ce53d8103d0ab7af1467ed9d443c17a1a642c9543aeb85"
-  }
+  },
+  "final_handoff": {
+    "recorded_date": "2026-10-15",
+    "seal": "docs/evidence/gate-5/final-candidate-seal-20261015.json",
+    "handoff": "docs/GATE5_OWNER_HANDOFF.md",
+    "usability_completion": "Owner-confirmed; first-run-owner-confirmation-20261015.json",
+    "quality_completion": "Owner-confirmed; quality-owner-confirmation-20261015.json",
+    "new_runtime_execution": false,
+    "archive_files_available_in_this_checkout": false,
+    "archive_identity_basis": "Hashes retained in independently accepted complete-installed-284cef1.json; archives are not present in this checkout and were not rehashed in this finalization.",
+    "status": "owner-approved-release-ready",
+    "owner_approval": "docs/evidence/gate-5/owner-approval-20261015.json"
+  },
+  "owner_approval": "docs/evidence/gate-5/owner-approval-20261015.json"
 }

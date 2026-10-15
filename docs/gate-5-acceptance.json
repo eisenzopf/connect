@@ -1,9 +1,9 @@
 {
   "gate": 5,
   "title": "Downloadable v0.1",
-  "revision": 5,
+  "revision": 7,
   "updated": "2026-10-15",
-  "status": "not-qualified",
+  "status": "qualified-release-ready",
   "plan": "connect-gate-5-plan.html",
   "implementation": "connect-gate-5-implementation.html",
   "scope": "Owner-authorized Gate 5 implementation and parallel qualification. Local macOS arm64 only; communication provider operations, public ingress, deployment and publication remain separate. Acceptance requires current behavior evidence and actual owner review.",
@@ -18,15 +18,17 @@
         "F-18",
         "F-21"
       ],
-      "status": "not-qualified",
-      "proof": "A developer outside the author\u2019s checkout installs the candidate, starts a persistent local server, resolves two identities, exchanges a message and file in both directions, and reconnects without lost history. No provider account or private bootstrap file is required.",
+      "status": "qualified",
+      "proof": "A developer outside the author’s checkout installs the candidate, starts a persistent local server, resolves two identities, exchanges a message and file in both directions, and reconnects without lost history. No provider account or private bootstrap file is required.",
       "evidence": [
         "evidence/gate-5/local-package-qualification.json",
         "evidence/gate-5/setup-lane.json",
         "evidence/gate-5/shipped-setup-package-proof.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
         "evidence/gate-5/release-candidate.json",
-        "evidence/gate-5/complete-installed-284cef1.json"
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/first-run-owner-confirmation-20261015.json",
+        "evidence/gate-5/quality-owner-confirmation-20261015.json"
       ],
       "implementation_items": [
         "G5-027",
@@ -40,11 +42,10 @@
         "G5-046",
         "G5-049"
       ],
-      "observation": "The scripted outside-checkout installation and persistence walkthrough passed, but no independent fresh-user attempt is recorded. The prepared handoff and blank templates do not count as human evidence.",
-      "remaining": [
-        "Record independent first-run attempts using the exact candidate, separating prerequisites and installation from the local-reply timer.",
-        "Retain failures, assistance, message/file exchange and restart observations; do not replace people with agents or scripts."
-      ]
+      "observation": "The installed outside-checkout setup and persistence proof is retained. The owner confirmed G5-046 complete; human usability closure relies on that confirmation. No participant timestamps or individual observations are inferred.",
+      "remaining": [],
+      "qualification_scope": "Local macOS arm64; existing behavior evidence and reviewed source compositions retain their original scopes. Human and final quality completion rely on direct owner confirmations; no new run or detailed measurement is implied.",
+      "qualification_basis": "Owner-confirmed human completion plus existing technical evidence."
     },
     {
       "id": "A5-02",
@@ -57,7 +58,7 @@
         "F-21"
       ],
       "status": "qualified",
-      "proof": "Install the supplied MCP configuration and skill into the qualified Codex host using one ordinary revocable identity. Share a draft, receive the human\u2019s reply, consume it explicitly, and continue the exact saved session after restart. Also answer independently initiated contact. Report the actual resume mode; do not imply automatic model wake.",
+      "proof": "Install the supplied MCP configuration and skill into the qualified Codex host using one ordinary revocable identity. Share a draft, receive the human’s reply, consume it explicitly, and continue the exact saved session after restart. Also answer independently initiated contact. Report the actual resume mode; do not imply automatic model wake.",
       "evidence": [
         "evidence/gate-5/agent-journeys.json",
         "evidence/gate-5/local-package-qualification.json",
@@ -120,7 +121,7 @@
         "F-16"
       ],
       "status": "qualified",
-      "proof": "On the approved profile, distinct clients exchange decoded moving video and duplex audio through Connect: browser\u2194browser, native QUIC\u2194browser, and native QUIC\u2194native QUIC. Prove negotiation, invitation rejection, access, camera mute, peer loss and teardown. Audio and video remain separate streams in the same Session and Conversation. Unsupported routes reject video explicitly.",
+      "proof": "On the approved profile, distinct clients exchange decoded moving video and duplex audio through Connect: browser↔browser, native QUIC↔browser, and native QUIC↔native QUIC. Prove negotiation, invitation rejection, access, camera mute, peer loss and teardown. Audio and video remain separate streams in the same Session and Conversation. Unsupported routes reject video explicitly.",
       "evidence": [
         "evidence/gate-5/release-media-diagnostics.json",
         "evidence/gate-5/audio-clock-initialization.json",
@@ -270,7 +271,7 @@
         "F-17"
       ],
       "status": "qualified",
-      "proof": "A separately written client using a different protocol implementation reads the published profile, negotiates and authenticates over real QUIC, resolves an identity, exchanges permitted requests/events, resumes its cursor and replays one mutation safely. It must not invoke Connect\u2019s Rust helper/client or rvoip\u2019s UCTP implementation. Include incompatible-version, malformed-envelope and unauthorized-operation cases; use shared vectors, not shared parser code.",
+      "proof": "A separately written client using a different protocol implementation reads the published profile, negotiates and authenticates over real QUIC, resolves an identity, exchanges permitted requests/events, resumes its cursor and replays one mutation safely. It must not invoke Connect’s Rust helper/client or rvoip’s UCTP implementation. Include incompatible-version, malformed-envelope and unauthorized-operation cases; use shared vectors, not shared parser code.",
       "evidence": [
         "evidence/gate-5/independent-client.json",
         "evidence/gate-5/independent-conformance.json",
@@ -481,7 +482,7 @@
         "F-19",
         "F-21"
       ],
-      "status": "not-qualified",
+      "status": "qualified",
       "proof": "Publish versions, network/media profiles, concurrency, queue/size/retention limits and measured startup/setup times with reproducible procedures. Meet the approved video profile and retain audio/recovery bounds. Run fresh-user walkthroughs and bounded loss/load/interrupt tests; distinguish forwarding latency from end-to-end provider/model delay and measured values from targets.",
       "evidence": [
         "evidence/gate-5/release-media-diagnostics.json",
@@ -494,7 +495,9 @@
         "evidence/gate-5/native-emission-deadline-regression.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
         "evidence/gate-5/release-candidate.json",
-        "evidence/gate-5/complete-installed-284cef1.json"
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/first-run-owner-confirmation-20261015.json",
+        "evidence/gate-5/quality-owner-confirmation-20261015.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -512,11 +515,10 @@
         "G5-047",
         "G5-049"
       ],
-      "observation": "The one-pair operating profile passed all nine media conditions with published versions and measured bounds. The separate two-pair experiment does not extend supported capacity. Independent fresh-user usability remains unqualified: zero of three people recorded.",
-      "remaining": [
-        "Record three independent fresh users with installation/prerequisite time separate from the ten-minute local-reply target.",
-        "Reconcile their observations with the measured operating profile and explicitly retain failures or assistance."
-      ]
+      "observation": "The supported one-pair profile passed all nine media conditions. The owner confirmed G5-046 usability completion. Detailed human timings were not supplied, so the 600-second target is not restated as a measured result. The exploratory two-pair observation does not extend supported capacity.",
+      "remaining": [],
+      "qualification_scope": "Local macOS arm64; existing behavior evidence and reviewed source compositions retain their original scopes. Human and final quality completion rely on direct owner confirmations; no new run or detailed measurement is implied.",
+      "qualification_basis": "Owner-confirmed human completion plus existing technical evidence."
     },
     {
       "id": "A5-14",
@@ -531,7 +533,7 @@
         "F-14",
         "F-19"
       ],
-      "status": "not-qualified",
+      "status": "qualified",
       "proof": "Run the full candidate source and installed-package suites, required ignored cases and agent/app journeys at identified revisions. Keep offline, actual-model and historical provider evidence separate. Review every changed provider path against its previous live proof; changed unqualified behavior blocks its release claim until separate qualification is authorized and recorded. Retain failures and unresolved checks.",
       "evidence": [
         "evidence/gate-5/current-source-qualification.json",
@@ -541,7 +543,9 @@
         "evidence/gate-5/independent-quality-review.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
         "evidence/gate-5/release-candidate.json",
-        "evidence/gate-5/complete-installed-284cef1.json"
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/first-run-owner-confirmation-20261015.json",
+        "evidence/gate-5/quality-owner-confirmation-20261015.json"
       ],
       "implementation_items": [
         "G5-002",
@@ -560,11 +564,10 @@
         "G5-048",
         "G5-049"
       ],
-      "observation": "Current source composition, literal complete installed qualification, explicit unchanged-runtime actual-model composition and six bounded provider claims are accepted. Three human walkthroughs and the dependent final documentation, quality reconciliation and seal remain open.",
-      "remaining": [
-        "Complete final evidence and documentation reconciliation after independent human results.",
-        "Complete the final independent quality review and release seal; preserve all failures and scoped historical proofs."
-      ]
+      "observation": "Source composition, complete installed qualification, unchanged-runtime model composition and six bounded provider claims are reconciled. Usability and quality review completion are owner-confirmed. The technical evidence seal binds current records and preserves historical failures and limits.",
+      "remaining": [],
+      "qualification_scope": "Local macOS arm64; existing behavior evidence and reviewed source compositions retain their original scopes. Human and final quality completion rely on direct owner confirmations; no new run or detailed measurement is implied.",
+      "qualification_basis": "Reconciled technical evidence, final documentation and owner-confirmed quality review."
     },
     {
       "id": "A5-15",
@@ -578,7 +581,7 @@
         "F-14",
         "F-17"
       ],
-      "status": "not-qualified",
+      "status": "qualified",
       "proof": "A clean machine can install the versioned server, SDKs/helper, examples, MCP/skill and reference client from the documented distribution. Publish hashes, dependency/patch provenance, license notices, protocol/profile versioning, release notes and migration instructions. Required source and qualification inputs are publicly reproducible; a private historical executable or owner-review supplement cannot be an unexplained prerequisite.",
       "evidence": [
         "evidence/gate-5/local-package-qualification.json",
@@ -588,7 +591,9 @@
         "evidence/gate-5/complete-installed-ab843b8.json",
         "evidence/gate-5/release-candidate.json",
         "evidence/gate-5/complete-installed-284cef1.json",
-        "evidence/gate-5/registry-license-closure-284cef1.json"
+        "evidence/gate-5/registry-license-closure-284cef1.json",
+        "evidence/gate-5/first-run-owner-confirmation-20261015.json",
+        "evidence/gate-5/quality-owner-confirmation-20261015.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -613,11 +618,10 @@
         "G5-048",
         "G5-049"
       ],
-      "observation": "The corrected284 package includes exact source, runtime, historical inputs, pinned notices and checksums; all415 selected registry normal/build dependencies have text. New literal installed checks pass. Post-build guide/evidence annotations are explicit; final human feedback, documentation and seal remain open.",
-      "remaining": [
-        "Reconcile final public documentation and package provenance with the human results and exact candidate designation.",
-        "Complete the final quality review and seal without implying publication."
-      ]
+      "observation": "The exact candidate has matching source/runtime archives, notices for all 415 selected dependencies, accepted installed checks and final reconciled documentation. Later documentation remains an explicit supplement to immutable archives. Quality review completion is owner-confirmed.",
+      "remaining": [],
+      "qualification_scope": "Local macOS arm64; existing behavior evidence and reviewed source compositions retain their original scopes. Human and final quality completion rely on direct owner confirmations; no new run or detailed measurement is implied.",
+      "qualification_basis": "Reconciled technical evidence, final documentation and owner-confirmed quality review."
     },
     {
       "id": "A5-16",
@@ -627,8 +631,8 @@
         "F-14",
         "F-21"
       ],
-      "status": "not-qualified",
-      "proof": "All A5 criteria and F-01\u2013F-21 commitments have current evidence or an explicitly reviewed source-composition record, with no unresolved release blockers. The owner reviews the candidate and exact compatibility claims. Only a separate publication instruction permits uploading release artifacts or updating the public project claims. Gate 5 stays release-ready, not released, until publication is verified.",
+      "status": "qualified",
+      "proof": "All A5 criteria and F-01–F-21 commitments have current evidence or an explicitly reviewed source-composition record, with no unresolved release blockers. The owner reviews the candidate and exact compatibility claims. Only a separate publication instruction permits uploading release artifacts or updating the public project claims. Gate 5 stays release-ready, not released, until publication is verified.",
       "evidence": [
         "evidence/gate-5/current-source-qualification.json",
         "evidence/gate-5/local-package-qualification.json",
@@ -636,7 +640,10 @@
         "evidence/gate-5/first-run-walkthroughs.template.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
         "evidence/gate-5/release-candidate.json",
-        "evidence/gate-5/complete-installed-284cef1.json"
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/first-run-owner-confirmation-20261015.json",
+        "evidence/gate-5/quality-owner-confirmation-20261015.json",
+        "evidence/gate-5/owner-approval-20261015.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -644,20 +651,30 @@
         "G5-047",
         "G5-050"
       ],
-      "observation": "The exact unpublished local candidate is designated for human and eventual owner review. Eleven technical criteria are qualified; five final criteria remain open. No owner acceptance or publication is recorded.",
-      "remaining": [
-        "Finish independent human, final documentation/quality and seal requirements.",
-        "Obtain owner review of the exact candidate and bounded compatibility claims.",
-        "Treat publication as a separate explicit instruction and verified action."
-      ]
+      "observation": "The owner explicitly approved candidate284cef1 as release-ready after presentation of the exact sealed handoff and documented limits: \"yes i approve\". The approval record binds the reviewed seal, handoff, manifest and archive identities. No remediation was requested. Publication remains a separate instruction.",
+      "remaining": [],
+      "qualification_scope": "Owner-approved local macOS arm64 release readiness; publication is not authorized or performed.",
+      "qualification_basis": "Direct owner approval of the exact sealed candidate on October15,2026."
     }
   ],
-  "record_kind": "unsealed-acceptance-progress",
-  "whole_gate_qualified": false,
-  "owner_acceptance": "not-recorded",
+  "record_kind": "owner-approved-local-acceptance",
+  "whole_gate_qualified": true,
+  "owner_acceptance": "approved-release-ready",
   "publication": "not-performed",
   "report": "evidence/gate-5/acceptance.html",
-  "progress_boundary": {
+  "candidate_transition": {
+    "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+    "scope": "Current literal installed18+26/all9 and corrected notices; actual-model28 and six provider claims retain explicit prior-execution and unchanged-source composition scopes. No new human, final seal or owner acceptance.",
+    "package": {
+      "path": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
+      "sha256": "8cd3fce98f3fa72fea50cf17f9cb4da323cc1c4cce7794700e0de79780db9545"
+    },
+    "model_composition": {
+      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
+      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
+    }
+  },
+  "historical_progress_boundary": {
     "latest_built_candidate": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
     "candidate_status": "Exact unpublished ab843 candidate designated for local human/owner review after accepted source/archive/complete-installed/actual-model/bounded-provider proofs. Final Gate5 acceptance remains open.",
     "source_boundary": "Immutable ab843 archives contain the reviewed source composition of 1,114 inputs (22 changed and 1,092 unchanged), native deadline repair and policy2. These later evidence/progress annotations are outside the unchanged archives.",
@@ -668,7 +685,7 @@
     "browser_impairment": "All three ab843 policy-2 impaired routes passed. Three valid raw A/V quality failures remain separately advisory: native/browser has37 pairs; browser/browser has82 pairs with p95 126.7 ms and41 pairs with p95 131.2 ms. Original strict-policy reports retain their failed verdicts.",
     "owner_handoff": "not-ready",
     "meaning": "Progress only. Linked records keep their own revisions, scopes and failures. This file is not a final result, final seal, owner acceptance or publication approval.",
-    "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1\u20135.3 changing fps per participant. This does not extend the supported one-pair profile.",
+    "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1–5.3 changing fps per participant. This does not extend the supported one-pair profile.",
     "media_acceptance_policy": "connect-media-acceptance/2; 15 raw A/V passes and three valid impaired advisories remain separately recorded. Strict clean/mute and all hard non-A/V checks passed.",
     "latest_installed_attempt": "ab843 passed 18 baseline checks, 26 Gate 5 phases, all nine media conditions and both exact 1,528-file inventories. Independent source/tool/candidate seal and hard-predicate review accepted.",
     "verified_task_counts": {
@@ -701,16 +718,27 @@
     },
     "human_handoff": "Ready for three independent fresh users; zero actual attempts recorded. Final owner handoff remains pending human and final review requirements."
   },
-  "candidate_transition": {
-    "source_revision": "284cef16c64b324ce2add037b013249692a60087",
-    "scope": "Current literal installed18+26/all9 and corrected notices; actual-model28 and six provider claims retain explicit prior-execution and unchanged-source composition scopes. No new human, final seal or owner acceptance.",
-    "package": {
-      "path": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
-      "sha256": "8cd3fce98f3fa72fea50cf17f9cb4da323cc1c4cce7794700e0de79780db9545"
+  "progress_boundary": {
+    "candidate_revision": "284cef16c64b324ce2add037b013249692a60087",
+    "status": "owner-approved-release-ready",
+    "implementation_counts": {
+      "done": 50,
+      "in-progress": 0,
+      "not-started": 0
     },
-    "model_composition": {
-      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
-      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
-    }
-  }
+    "acceptance_counts": {
+      "qualified": 16,
+      "not-qualified": 0
+    },
+    "remaining_tasks": [],
+    "human_completion": "Owner-confirmed G5-046; detailed attempts and timings not supplied in the confirmation.",
+    "quality_completion": "Owner-confirmed G5-048; final reviewer details not supplied in the confirmation.",
+    "source_boundary": "Documentation and evidence supplement only. Historical 84-phase source run plus reviewed deltas; no new 85-phase run.",
+    "seal": "evidence/gate-5/final-candidate-seal-20261015.json",
+    "handoff": "GATE5_OWNER_HANDOFF.md",
+    "owner_handoff": "approved",
+    "publication": "not-performed",
+    "owner_approval": "evidence/gate-5/owner-approval-20261015.json"
+  },
+  "owner_approval": "evidence/gate-5/owner-approval-20261015.json"
 }

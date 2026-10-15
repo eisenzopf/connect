@@ -1,0 +1,716 @@
+{
+  "gate": 5,
+  "title": "Downloadable v0.1",
+  "revision": 5,
+  "updated": "2026-10-15",
+  "status": "not-qualified",
+  "plan": "connect-gate-5-plan.html",
+  "implementation": "connect-gate-5-implementation.html",
+  "scope": "Owner-authorized Gate 5 implementation and parallel qualification. Local macOS arm64 only; communication provider operations, public ingress, deployment and publication remain separate. Acceptance requires current behavior evidence and actual owner review.",
+  "acceptance": [
+    {
+      "id": "A5-01",
+      "title": "A usable first run",
+      "milestone": "G5-C",
+      "features": [
+        "F-03",
+        "F-04",
+        "F-18",
+        "F-21"
+      ],
+      "status": "not-qualified",
+      "proof": "A developer outside the author\u2019s checkout installs the candidate, starts a persistent local server, resolves two identities, exchanges a message and file in both directions, and reconnects without lost history. No provider account or private bootstrap file is required.",
+      "evidence": [
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/setup-lane.json",
+        "evidence/gate-5/shipped-setup-package-proof.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-027",
+        "G5-029",
+        "G5-032",
+        "G5-034",
+        "G5-035",
+        "G5-037",
+        "G5-044",
+        "G5-045",
+        "G5-046",
+        "G5-049"
+      ],
+      "observation": "The scripted outside-checkout installation and persistence walkthrough passed, but no independent fresh-user attempt is recorded. The prepared handoff and blank templates do not count as human evidence.",
+      "remaining": [
+        "Record independent first-run attempts using the exact candidate, separating prerequisites and installation from the local-reply timer.",
+        "Retain failures, assistance, message/file exchange and restart observations; do not replace people with agents or scripts."
+      ]
+    },
+    {
+      "id": "A5-02",
+      "title": "Give an agent presence",
+      "milestone": "G5-D",
+      "features": [
+        "F-10",
+        "F-15",
+        "F-20",
+        "F-21"
+      ],
+      "status": "qualified",
+      "proof": "Install the supplied MCP configuration and skill into the qualified Codex host using one ordinary revocable identity. Share a draft, receive the human\u2019s reply, consume it explicitly, and continue the exact saved session after restart. Also answer independently initiated contact. Report the actual resume mode; do not imply automatic model wake.",
+      "evidence": [
+        "evidence/gate-5/agent-journeys.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/actual-model-ab843b8.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/actual-model-composition-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-034",
+        "G5-038",
+        "G5-045",
+        "G5-046",
+        "G5-049"
+      ],
+      "observation": "The exact installed Codex host passed 28 actual MCP calls with one ordinary revocable identity, two source-backed artifacts, explicit reply consumption, independent contact response and exact saved-session resume after server restart. No automatic wake is claimed.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Fixture reviewer supplies human-role reply; not an independent fresh-user walkthrough. No automatic model wake."
+    },
+    {
+      "id": "A5-03",
+      "title": "Make an app reachable",
+      "milestone": "G5-D",
+      "features": [
+        "F-01",
+        "F-03",
+        "F-04",
+        "F-21"
+      ],
+      "status": "qualified",
+      "proof": "The separate review app uses only public interfaces to ask for a decision and answer an incoming request. The developer installs it without editing Connect internals. Restart both processes; recover the inbox and preserve one logical business effect and reply.",
+      "evidence": [
+        "evidence/gate-5/app-journeys.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-034",
+        "G5-037",
+        "G5-045",
+        "G5-046",
+        "G5-049"
+      ],
+      "observation": "The installed separate review app passed 14 public-interface journey checks, including incoming and outgoing requests, server/worker restart, replay and one logical reply/effect per direction.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Automated developer-install/recovery capability proof; independent fresh-user comprehension remains A5-01/A5-13."
+    },
+    {
+      "id": "A5-04",
+      "title": "Two-party video on named paths",
+      "milestone": "G5-A",
+      "features": [
+        "F-07",
+        "F-08",
+        "F-11",
+        "F-12",
+        "F-16"
+      ],
+      "status": "qualified",
+      "proof": "On the approved profile, distinct clients exchange decoded moving video and duplex audio through Connect: browser\u2194browser, native QUIC\u2194browser, and native QUIC\u2194native QUIC. Prove negotiation, invitation rejection, access, camera mute, peer loss and teardown. Audio and video remain separate streams in the same Session and Conversation. Unsupported routes reject video explicitly.",
+      "evidence": [
+        "evidence/gate-5/release-media-diagnostics.json",
+        "evidence/gate-5/audio-clock-initialization.json",
+        "evidence/gate-5/browser-network-controls.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/impaired-quality-policy.json",
+        "evidence/gate-5/native-emission-deadline-regression.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-001",
+        "G5-003",
+        "G5-004",
+        "G5-005",
+        "G5-007",
+        "G5-008",
+        "G5-009",
+        "G5-010",
+        "G5-011",
+        "G5-012",
+        "G5-013",
+        "G5-014",
+        "G5-015",
+        "G5-016",
+        "G5-035",
+        "G5-042",
+        "G5-045",
+        "G5-049"
+      ],
+      "observation": "All nine current clean, impaired and mute conditions passed on the three named paths under the approved policy 2. Raw A/V quality: 16 passed and two impaired observations remain advisory failures. Clean and mute rules, source identity, audio, recovery, deadlines, resources and cleanup remain strict.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Two current impaired raw A/V failures remain explicit advisory outcomes, alongside historical raw results; no physical speaker/display latency claim."
+    },
+    {
+      "id": "A5-05",
+      "title": "A reference client developers can learn from",
+      "milestone": "G5-D",
+      "features": [
+        "F-02",
+        "F-11",
+        "F-12",
+        "F-16"
+      ],
+      "status": "qualified",
+      "proof": "A person can select a permitted contact, inspect available routes, exchange messages/files, accept or reject voice/video, mute camera or microphone, and see delivery and recovery state. The reference client uses public SDK/API behavior, has keyboard-accessible controls, and works at narrow and desktop widths without exposing provider credentials.",
+      "evidence": [
+        "evidence/gate-5/reference-experience.json",
+        "evidence/gate-5/contact-selection-repair.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-013",
+        "G5-014",
+        "G5-035",
+        "G5-039",
+        "G5-045",
+        "G5-046",
+        "G5-049"
+      ],
+      "observation": "The exact archived reference client passed 11 general and 13 A/V/continuity checks. Contact-race, permission-denial, keyboard and narrow/desktop visual evidence remains bound to unchanged UI/SDK assets. These are capability checks; independent fresh-user usability remains open.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Person-facing capability demonstrated by real automated browser checks; independent fresh-user usability remains A5-01/A5-13."
+    },
+    {
+      "id": "A5-06",
+      "title": "A contributor adds a connector",
+      "milestone": "G5-B",
+      "features": [
+        "F-13",
+        "F-20"
+      ],
+      "status": "qualified",
+      "proof": "A contributor following the shipped guide implements an independently owned fixture connector with a capability/configuration manifest and passes the common harness. Cover messages/context and a bounded voice lifecycle fixture. Explicit composition registration is allowed; core conversation, authorization and routing logic are not edited.",
+      "evidence": [
+        "evidence/gate-5/contributor-exercise.json",
+        "evidence/gate-5/connector-runtime-integration.json",
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-017",
+        "G5-018",
+        "G5-019",
+        "G5-020",
+        "G5-022",
+        "G5-023",
+        "G5-047",
+        "G5-049"
+      ],
+      "observation": "The independently owned Prism fixture contribution passes the shipped connector kit and 40-check contracts, plus fresh installed cold builds and conformance. It covers messages, context and bounded voice lifecycle without core routing, authorization or conversation edits.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Separate contributor-agent exercise satisfies this technical contribution requirement; no fresh-human claim and no added real provider capability."
+    },
+    {
+      "id": "A5-07",
+      "title": "Provider lifecycle remains explicit",
+      "milestone": "G5-B",
+      "features": [
+        "F-05",
+        "F-06",
+        "F-07",
+        "F-08",
+        "F-09",
+        "F-13"
+      ],
+      "status": "qualified",
+      "proof": "The extension contract represents readiness, external identifiers, verified callbacks, accepted/delivered/failed/uncertain results, start/end and reconciliation without provider-name branches in core logic. Qualify reordered/duplicate events, uncertain creation, restart and cleanup. Map Vapi/Telnyx to the contract; do not force SMS into a call abstraction.",
+      "evidence": [
+        "evidence/gate-5/connector-runtime-integration.json",
+        "evidence/gate-5/provider-source-audit.json",
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/provider-claims-ab843b8.json"
+      ],
+      "implementation_items": [
+        "G5-003",
+        "G5-005",
+        "G5-017",
+        "G5-018",
+        "G5-019",
+        "G5-020",
+        "G5-021",
+        "G5-022",
+        "G5-023",
+        "G5-033",
+        "G5-040",
+        "G5-043",
+        "G5-049"
+      ],
+      "observation": "Normalized lifecycle regressions cover external IDs, verified observations, uncertainty, replay, reordered events, restart and cleanup. Six source-scoped Vapi/Telnyx compatibility statements are independently accepted; fresh carrier or normalized builtin-provider execution is not claimed.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Normalized extension contract/mapping is qualified locally; normalized builtin carrier execution and new live-provider proof remain excluded."
+    },
+    {
+      "id": "A5-08",
+      "title": "An independent UCTP client interoperates",
+      "milestone": "G5-B",
+      "features": [
+        "F-17"
+      ],
+      "status": "qualified",
+      "proof": "A separately written client using a different protocol implementation reads the published profile, negotiates and authenticates over real QUIC, resolves an identity, exchanges permitted requests/events, resumes its cursor and replays one mutation safely. It must not invoke Connect\u2019s Rust helper/client or rvoip\u2019s UCTP implementation. Include incompatible-version, malformed-envelope and unauthorized-operation cases; use shared vectors, not shared parser code.",
+      "evidence": [
+        "evidence/gate-5/independent-client.json",
+        "evidence/gate-5/independent-conformance.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-001",
+        "G5-003",
+        "G5-024",
+        "G5-025",
+        "G5-026",
+        "G5-045",
+        "G5-047",
+        "G5-049"
+      ],
+      "observation": "The independently written aioquic implementation passed real verified QUIC interoperability, six vector checks and 26 control checks, including version/framing/authority rejection, cursor resume and mutation replay. It uses its own parser and no Connect Rust helper.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Control interoperability only, no independent media stack; implementation/transport boundaries retained."
+    },
+    {
+      "id": "A5-09",
+      "title": "One honest interface matrix",
+      "milestone": "G5-D",
+      "features": [
+        "F-03",
+        "F-04",
+        "F-07",
+        "F-09",
+        "F-10",
+        "F-16",
+        "F-17"
+      ],
+      "status": "qualified",
+      "proof": "Publish and execute the operation/transport matrix for Rust, Python, TypeScript, HTTP/JSON, CLI and MCP. Equivalent operations preserve authority, IDs, errors and replay semantics. Explicitly label the Python/TypeScript native helper and browser WebRTC path. Tools control sessions; they do not carry media frames. Unsupported combinations remain visible.",
+      "evidence": [
+        "evidence/gate-5/contact-interface-parity.json",
+        "evidence/gate-5/session-interface-parity.json",
+        "evidence/gate-5/installed-session-controls.json",
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/actual-model-ab843b8.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/actual-model-composition-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-003",
+        "G5-007",
+        "G5-011",
+        "G5-012",
+        "G5-017",
+        "G5-021",
+        "G5-024",
+        "G5-025",
+        "G5-026",
+        "G5-036",
+        "G5-038",
+        "G5-042",
+        "G5-043",
+        "G5-044",
+        "G5-047",
+        "G5-048",
+        "G5-049"
+      ],
+      "observation": "Published source parity and exact installed CLI, Python, TypeScript, HTTP, native control and actual MCP tests preserve authority, IDs, errors and replay semantics. Native-helper, browser WebRTC and unsupported-operation boundaries remain explicit; tools do not carry media frames.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Python/TypeScript helper and browserWebRTC boundaries explicit; tools control sessions but do not carry frames; unsupported combinations remain visible."
+    },
+    {
+      "id": "A5-10",
+      "title": "Setup is recoverable and understandable",
+      "milestone": "G5-C",
+      "features": [
+        "F-18",
+        "F-19",
+        "F-20"
+      ],
+      "status": "qualified",
+      "proof": "Choose existing resources or preview proposed changes, keep secrets out of clients/logs, and resume interrupted setup without duplicate purchases or resource creation. Qualify locked/missing secret storage, rejected credentials, uncertain provider results and separate inbound/outbound readiness using local fixtures. Contact ownership and SMS enrollment are separate states; neither a saved number nor a valid API key establishes consent.",
+      "evidence": [
+        "evidence/gate-5/setup-lane.json",
+        "evidence/gate-5/setup-upgrade.json",
+        "evidence/gate-5/secret-vault-migration.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-001",
+        "G5-027",
+        "G5-028",
+        "G5-029",
+        "G5-030",
+        "G5-031",
+        "G5-032",
+        "G5-033",
+        "G5-034",
+        "G5-040",
+        "G5-046",
+        "G5-049"
+      ],
+      "observation": "Public setup, native protected storage and source migration/uncertainty fixtures passed selection, preview, refusal, interrupted resume and separate inbound/outbound, ownership and enrollment states. No duplicate creation or actual account-readiness claim is inferred.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Technical recoverability and explicit states qualified with local fixtures; independent comprehension and real account readiness are not inferred."
+    },
+    {
+      "id": "A5-11",
+      "title": "One conversation survives channel changes",
+      "milestone": "G5-D",
+      "features": [
+        "F-01",
+        "F-11",
+        "F-15",
+        "F-16",
+        "F-21"
+      ],
+      "status": "qualified",
+      "proof": "Messages and an artifact establish context; voice/video sessions reuse that Conversation; an attributable outcome supports a later message after restart. Retain source references, omissions and incomplete-transcript state. A bounded leg ending does not close the Conversation. Only explicit developer intent creates a new Conversation; ambiguous inbound binding cannot silently split or merge it.",
+      "evidence": [
+        "evidence/gate-5/reference-experience.json",
+        "evidence/gate-5/app-journeys.json",
+        "evidence/gate-5/audio-clock-initialization.json",
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/contact-selection-repair.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/actual-model-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/actual-model-composition-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-003",
+        "G5-008",
+        "G5-009",
+        "G5-013",
+        "G5-015",
+        "G5-035",
+        "G5-037",
+        "G5-038",
+        "G5-039",
+        "G5-049"
+      ],
+      "observation": "Installed reference continuity and the actual-model journey preserve the original Conversation across artifact exchange, media, an attributed outcome and restart. Reply attribution, context isolation and explicit continuation passed; no transcript, ASR or model-vision claim is made.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Explicit omissions and no transcript/ASR/modelvision state retained; not a media-understanding claim."
+    },
+    {
+      "id": "A5-12",
+      "title": "Revocation, SMS rules and data recovery hold",
+      "milestone": "G5-D",
+      "features": [
+        "F-06",
+        "F-11",
+        "F-19",
+        "F-20"
+      ],
+      "status": "qualified",
+      "proof": "Recheck current authority on replay, queued dispatch and active resource use. Verify denied cross-conversation access, artifact integrity/retention, HELP/STOP/START, cancellation that START cannot revive, and provider uncertainty. Upgrade a populated previous schema, restore a verified backup and exercise rollback/refusal without deleting the database or replaying live media.",
+      "evidence": [
+        "evidence/gate-5/migration-recovery.json",
+        "evidence/gate-5/canonical-path-repair.json",
+        "evidence/gate-5/rgb-mute-observation-repair.json",
+        "evidence/gate-5/connector-runtime-integration.json",
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/provider-claims-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-002",
+        "G5-003",
+        "G5-008",
+        "G5-015",
+        "G5-018",
+        "G5-021",
+        "G5-028",
+        "G5-029",
+        "G5-031",
+        "G5-033",
+        "G5-037",
+        "G5-039",
+        "G5-040",
+        "G5-041",
+        "G5-042",
+        "G5-045",
+        "G5-048",
+        "G5-049"
+      ],
+      "observation": "Accepted source and current installed authority, failure and historical-recovery checks cover revocation, replay, queued use, cross-context denial, artifact integrity, SMS suppression, uncertainty and populated upgrade/restore/rollback refusal. Carrier receipts remain historical and source-specific.",
+      "remaining": [],
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "SMS/carrier execution remains source-specific historical plus current local compatibility; no live media replay or fresh handset delivery claim."
+    },
+    {
+      "id": "A5-13",
+      "title": "Measured operating and usability limits",
+      "milestone": "G5-D",
+      "features": [
+        "F-02",
+        "F-14",
+        "F-19",
+        "F-21"
+      ],
+      "status": "not-qualified",
+      "proof": "Publish versions, network/media profiles, concurrency, queue/size/retention limits and measured startup/setup times with reproducible procedures. Meet the approved video profile and retain audio/recovery bounds. Run fresh-user walkthroughs and bounded loss/load/interrupt tests; distinguish forwarding latency from end-to-end provider/model delay and measured values from targets.",
+      "evidence": [
+        "evidence/gate-5/release-media-diagnostics.json",
+        "evidence/gate-5/browser-transform-control.json",
+        "evidence/gate-5/browser-network-controls.json",
+        "evidence/gate-5/native-terminal-repair.json",
+        "evidence/gate-5/first-run-walkthroughs.template.json",
+        "evidence/gate-5/native-concurrency-observation.json",
+        "evidence/gate-5/impaired-quality-policy.json",
+        "evidence/gate-5/native-emission-deadline-regression.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-001",
+        "G5-004",
+        "G5-006",
+        "G5-009",
+        "G5-010",
+        "G5-012",
+        "G5-015",
+        "G5-016",
+        "G5-020",
+        "G5-032",
+        "G5-042",
+        "G5-046",
+        "G5-047",
+        "G5-049"
+      ],
+      "observation": "The one-pair operating profile passed all nine media conditions with published versions and measured bounds. The separate two-pair experiment does not extend supported capacity. Independent fresh-user usability remains unqualified: zero of three people recorded.",
+      "remaining": [
+        "Record three independent fresh users with installation/prerequisite time separate from the ten-minute local-reply target.",
+        "Reconcile their observations with the measured operating profile and explicitly retain failures or assistance."
+      ]
+    },
+    {
+      "id": "A5-14",
+      "title": "Current release evidence is complete",
+      "milestone": "G5-D",
+      "features": [
+        "F-05",
+        "F-06",
+        "F-07",
+        "F-08",
+        "F-09",
+        "F-14",
+        "F-19"
+      ],
+      "status": "not-qualified",
+      "proof": "Run the full candidate source and installed-package suites, required ignored cases and agent/app journeys at identified revisions. Keep offline, actual-model and historical provider evidence separate. Review every changed provider path against its previous live proof; changed unqualified behavior blocks its release claim until separate qualification is authorized and recorded. Retain failures and unresolved checks.",
+      "evidence": [
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/provider-source-audit.json",
+        "evidence/gate-5/agent-journeys.json",
+        "evidence/gate-5/independent-quality-review.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-002",
+        "G5-006",
+        "G5-014",
+        "G5-021",
+        "G5-022",
+        "G5-026",
+        "G5-036",
+        "G5-038",
+        "G5-040",
+        "G5-041",
+        "G5-042",
+        "G5-043",
+        "G5-045",
+        "G5-048",
+        "G5-049"
+      ],
+      "observation": "Current source composition, literal complete installed qualification, explicit unchanged-runtime actual-model composition and six bounded provider claims are accepted. Three human walkthroughs and the dependent final documentation, quality reconciliation and seal remain open.",
+      "remaining": [
+        "Complete final evidence and documentation reconciliation after independent human results.",
+        "Complete the final independent quality review and release seal; preserve all failures and scoped historical proofs."
+      ]
+    },
+    {
+      "id": "A5-15",
+      "title": "A reproducible package and contribution surface",
+      "milestone": "G5-E",
+      "features": [
+        "F-03",
+        "F-04",
+        "F-10",
+        "F-13",
+        "F-14",
+        "F-17"
+      ],
+      "status": "not-qualified",
+      "proof": "A clean machine can install the versioned server, SDKs/helper, examples, MCP/skill and reference client from the documented distribution. Publish hashes, dependency/patch provenance, license notices, protocol/profile versioning, release notes and migration instructions. Required source and qualification inputs are publicly reproducible; a private historical executable or owner-review supplement cannot be an unexplained prerequisite.",
+      "evidence": [
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/parley-qualification-graph.json",
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/shipped-setup-package-proof.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/registry-license-closure-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-001",
+        "G5-002",
+        "G5-005",
+        "G5-006",
+        "G5-011",
+        "G5-019",
+        "G5-022",
+        "G5-023",
+        "G5-024",
+        "G5-025",
+        "G5-027",
+        "G5-028",
+        "G5-030",
+        "G5-034",
+        "G5-036",
+        "G5-041",
+        "G5-044",
+        "G5-045",
+        "G5-047",
+        "G5-048",
+        "G5-049"
+      ],
+      "observation": "The corrected284 package includes exact source, runtime, historical inputs, pinned notices and checksums; all415 selected registry normal/build dependencies have text. New literal installed checks pass. Post-build guide/evidence annotations are explicit; final human feedback, documentation and seal remain open.",
+      "remaining": [
+        "Reconcile final public documentation and package provenance with the human results and exact candidate designation.",
+        "Complete the final quality review and seal without implying publication."
+      ]
+    },
+    {
+      "id": "A5-16",
+      "title": "Owner review precedes publication",
+      "milestone": "G5-E",
+      "features": [
+        "F-14",
+        "F-21"
+      ],
+      "status": "not-qualified",
+      "proof": "All A5 criteria and F-01\u2013F-21 commitments have current evidence or an explicitly reviewed source-composition record, with no unresolved release blockers. The owner reviews the candidate and exact compatibility claims. Only a separate publication instruction permits uploading release artifacts or updating the public project claims. Gate 5 stays release-ready, not released, until publication is verified.",
+      "evidence": [
+        "evidence/gate-5/current-source-qualification.json",
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/provider-source-audit.json",
+        "evidence/gate-5/first-run-walkthroughs.template.json",
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
+      ],
+      "implementation_items": [
+        "G5-001",
+        "G5-043",
+        "G5-047",
+        "G5-050"
+      ],
+      "observation": "The exact unpublished local candidate is designated for human and eventual owner review. Eleven technical criteria are qualified; five final criteria remain open. No owner acceptance or publication is recorded.",
+      "remaining": [
+        "Finish independent human, final documentation/quality and seal requirements.",
+        "Obtain owner review of the exact candidate and bounded compatibility claims.",
+        "Treat publication as a separate explicit instruction and verified action."
+      ]
+    }
+  ],
+  "record_kind": "unsealed-acceptance-progress",
+  "whole_gate_qualified": false,
+  "owner_acceptance": "not-recorded",
+  "publication": "not-performed",
+  "report": "evidence/gate-5/acceptance.html",
+  "progress_boundary": {
+    "latest_built_candidate": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+    "candidate_status": "Exact unpublished ab843 candidate designated for local human/owner review after accepted source/archive/complete-installed/actual-model/bounded-provider proofs. Final Gate5 acceptance remains open.",
+    "source_boundary": "Immutable ab843 archives contain the reviewed source composition of 1,114 inputs (22 changed and 1,092 unchanged), native deadline repair and policy2. These later evidence/progress annotations are outside the unchanged archives.",
+    "source_evidence": "Historical clean 66115d2 passed 84 source phases; subsequent source composition and repairs retain their own recorded boundaries.",
+    "actual_model": "Actual inference passed with 28 independently reviewed MCP calls, zero errors, exact host-session resume, artifact bytes/source attribution and replay-safe followups.",
+    "human_attempts_recorded": 0,
+    "independent_fresh_users_required": 3,
+    "browser_impairment": "All three ab843 policy-2 impaired routes passed. Three valid raw A/V quality failures remain separately advisory: native/browser has37 pairs; browser/browser has82 pairs with p95 126.7 ms and41 pairs with p95 131.2 ms. Original strict-policy reports retain their failed verdicts.",
+    "owner_handoff": "not-ready",
+    "meaning": "Progress only. Linked records keep their own revisions, scopes and failures. This file is not a final result, final seal, owner acceptance or publication approval.",
+    "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1\u20135.3 changing fps per participant. This does not extend the supported one-pair profile.",
+    "media_acceptance_policy": "connect-media-acceptance/2; 15 raw A/V passes and three valid impaired advisories remain separately recorded. Strict clean/mute and all hard non-A/V checks passed.",
+    "latest_installed_attempt": "ab843 passed 18 baseline checks, 26 Gate 5 phases, all nine media conditions and both exact 1,528-file inventories. Independent source/tool/candidate seal and hard-predicate review accepted.",
+    "verified_task_counts": {
+      "done": 45,
+      "in-progress": 4,
+      "not-started": 1
+    },
+    "qualification_evidence": [
+      "evidence/gate-5/complete-installed-ab843b8.json",
+      "evidence/gate-5/actual-model-ab843b8.json",
+      "evidence/gate-5/provider-claims-ab843b8.json",
+      "evidence/gate-5/release-candidate.json",
+      "evidence/gate-5/installed-release.json"
+    ],
+    "remaining_tasks": [
+      "G5-046",
+      "G5-047",
+      "G5-048",
+      "G5-049",
+      "G5-050"
+    ],
+    "status": "technical qualification accepted; human and final gate acceptance open",
+    "acceptance_counts": {
+      "qualified_local_technical_scope": 11,
+      "not-qualified": 5
+    },
+    "technical_acceptance_review": {
+      "path": ".local/gate5/public-technical-closure-ab843b8/review.json",
+      "sha256": "d46ef82cb8b6eca5a13b3bf0ea314d076a3a7b0a957a1244ea886daa2a80eb93"
+    },
+    "human_handoff": "Ready for three independent fresh users; zero actual attempts recorded. Final owner handoff remains pending human and final review requirements."
+  },
+  "candidate_transition": {
+    "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+    "scope": "Current literal installed18+26/all9 and corrected notices; actual-model28 and six provider claims retain explicit prior-execution and unchanged-source composition scopes. No new human, final seal or owner acceptance.",
+    "package": {
+      "path": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
+      "sha256": "8cd3fce98f3fa72fea50cf17f9cb4da323cc1c4cce7794700e0de79780db9545"
+    },
+    "model_composition": {
+      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
+      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
+    }
+  }
+}

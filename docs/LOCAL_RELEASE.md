@@ -12,9 +12,9 @@ setup checks passed, followed by [complete installed qualification](evidence/gat
 both strict inventories passing. All three binaries and 240 protected runtime
 assets match ab843 exactly. The separate accepted 28-call actual-model journey
 is [composed evidence from ab843](evidence/gate-5/actual-model-composition-284cef1.json),
-not a new inference run on 284cef. Independent
-human walkthroughs, final documentation/quality/seal and owner acceptance
-remain open; this is not final Gate 5 acceptance. Its three executable artifacts are `bin/connect`,
+not a new inference run on 284cef. The owner has confirmed usability and quality
+review completion. Documentation and technical evidence are sealed for
+[final owner review](GATE5_OWNER_HANDOFF.md); final owner acceptance is recorded. Its three executable artifacts are `bin/connect`,
 `bin/connect-example` and `bin/connect-video`; the matching source archive,
 SDKs, reference client, contracts and qualification inputs have distinct
 verification obligations. Use the [Gate 5 package guide](GATE5_PACKAGE.md) and
@@ -54,7 +54,7 @@ records 18 passing policy decisions: 16 raw A/V quality passes and two valid
 impaired advisory quality failures. Clean/mute and all non-A/V hard checks remain
 strict. [Provider compatibility](evidence/gate-5/provider-claims-ab843b8.json)
 is limited to six reviewed statements; no new carrier or Vapi execution is
-inferred. Independent fresh-user walkthroughs and owner acceptance remain open.
+inferred. Usability completion is owner-confirmed; final owner acceptance is recorded.
 These updated instructions postdate the candidate archives; no archive was
 modified to include this later review supplement.
 

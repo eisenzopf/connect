@@ -157,7 +157,10 @@ separately exercise the selected installed CLI; the report distinguishes those
 scopes. Tools and binaries are explicitly selected and hash-bound. A 60-second
 decoded route pass cannot substitute for an unmeasured failure or operating case.
 
-These hooks have source-level checks, but no Gate 5 candidate is yet qualified.
+Candidate `284cef1` has an accepted complete installed report covering these
+hooks: 18 baseline checks, 26 Gate 5 phases and all nine media conditions.
+See the [final candidate handoff](GATE5_OWNER_HANDOFF.md) for the sealed evidence
+and recorded final owner acceptance.
 The checker returns `incomplete` (exit 2) for remaining acceptance observations
 or missing independent/media tool inputs. Retained audio/task checks and a source
 media pass cannot satisfy installed Gate 5 requirements. No ambient browser or

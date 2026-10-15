@@ -1,0 +1,59 @@
+{
+  "profile": "gate5-final-documentation-reconciliation/1",
+  "recorded_date": "2026-10-15",
+  "status": "passed",
+  "scope": "Documentation/evidence-only finalization. Usability and quality closure rely on direct owner confirmations. No new runtime execution or archive rehash.",
+  "checks": {
+    "local_link_references": 1458,
+    "local_link_errors": 0,
+    "plan_tasks": 50,
+    "done": 49,
+    "owner_decision_pending": 1,
+    "acceptance_qualified": 15,
+    "acceptance_owner_decision_pending": 1,
+    "features_preserved_and_mapped": 21,
+    "candidate_proof_hashes_verified": 5,
+    "candidate_archive_identity_cross_checks": "matched installed and package reports",
+    "done_dependencies_and_static_cards": "passed",
+    "changed_json_parse": "passed",
+    "git_diff_whitespace": "passed",
+    "changes_since_candidate": "README and docs only"
+  },
+  "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+  "checkout_base_revision": "be747fd8fc9185f3a42dc2e1ae6ec5eb20ce111a",
+  "proof_checks": [
+    {
+      "name": "source_snapshot",
+      "path": "docs/evidence/gate-5/source-qualification-284cef16c64b.json",
+      "sha256": "61db9adfce2c4669143bd2a3db2b07b307ec7ce62a3038b52899c23213fc8b3b"
+    },
+    {
+      "name": "package_and_notice_composition",
+      "path": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
+      "sha256": "8cd3fce98f3fa72fea50cf17f9cb4da323cc1c4cce7794700e0de79780db9545"
+    },
+    {
+      "name": "installed",
+      "path": "docs/evidence/gate-5/complete-installed-284cef1.json",
+      "sha256": "62b9cc89499f46e07defb08a5944fdac480614ef36a15bee97d1cc7f3b580297"
+    },
+    {
+      "name": "actual_model_composition",
+      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
+      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
+    },
+    {
+      "name": "bounded_provider_claims",
+      "path": "docs/evidence/gate-5/provider-claims-ab843b8.json",
+      "sha256": "308f2a2348b0b82d3ad50b51ae8e917d1fbce5ed253233ba4f4cb59251f5ea90"
+    }
+  ],
+  "human_confirmation": "docs/evidence/gate-5/first-run-owner-confirmation-20261015.json",
+  "quality_confirmation": "docs/evidence/gate-5/quality-owner-confirmation-20261015.json",
+  "limitations": [
+    "Archives and private raw reports are absent from this checkout. Recorded archive identities and independent execution summaries are retained; no new archive-byte verification.",
+    "No detailed participant dataset or final quality-review findings supplied with owner confirmations.",
+    "Historical source composition, actual-model composition, provider claims and impairment advisories keep their scopes.",
+    "G5-050 / A5-16 remains pending the actual owner decision. No publication."
+  ]
+}

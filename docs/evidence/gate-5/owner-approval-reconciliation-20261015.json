@@ -1,0 +1,44 @@
+{
+  "profile": "gate5-owner-approval-reconciliation/1",
+  "recorded_date": "2026-10-15",
+  "status": "passed",
+  "all_gate_implementation_counts": {
+    "gate-1": {
+      "done": 53,
+      "total": 53
+    },
+    "gate-2": {
+      "done": 27,
+      "total": 27
+    },
+    "gate-3": {
+      "done": 35,
+      "total": 35
+    },
+    "gate-4": {
+      "done": 36,
+      "total": 36
+    },
+    "gate-5": {
+      "done": 50,
+      "total": 50
+    }
+  },
+  "gate5_acceptance": {
+    "qualified": 16,
+    "total": 16
+  },
+  "required_features_retained": 21,
+  "local_link_references_checked": 1730,
+  "local_link_errors": 0,
+  "reviewed_snapshot_inputs_verified": 32,
+  "approval": {
+    "path": "docs/evidence/gate-5/owner-approval-20261015.json",
+    "sha256": "8e8cee04a178d5b3fb1695af260d77f51a8d5201bb1b736188c7fad4b78ffb38"
+  },
+  "candidate_archive_identity": "unchanged; matches accepted installed report",
+  "runtime_source_changes": 0,
+  "verification_scope": "Administrative approval and documentation changes only; existing behavior evidence retained. No new build, archive rehash, model or provider execution.",
+  "git_diff_whitespace": "passed",
+  "publication": "not-performed"
+}

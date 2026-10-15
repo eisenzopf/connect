@@ -11,7 +11,7 @@
       "required_capability": "Durable identity, discovery, two-way messaging and offline recovery",
       "delivery_gate": 1,
       "status": "local acceptance passed",
-      "required_evidence": "A1\u2013A11; G1-001\u2013053",
+      "required_evidence": "A1–A11; G1-001–053",
       "v0_1_required": true,
       "milestones": [
         "gate-1"
@@ -22,7 +22,12 @@
       ],
       "gate_3_criteria": [
         "A3-01"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-03",
+        "A5-11"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-02",
@@ -45,7 +50,12 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-05",
+        "A5-13"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-03",
@@ -82,7 +92,14 @@
         "evidence/gate-4/review-remediation-709cf82.json",
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-01",
+        "A5-03",
+        "A5-09",
+        "A5-15"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-04",
@@ -120,7 +137,14 @@
         "evidence/gate-4/review-remediation-709cf82.json",
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-01",
+        "A5-03",
+        "A5-09",
+        "A5-15"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-05",
@@ -135,7 +159,12 @@
       ],
       "sources": [
         "connect-v0.1-contract.html#scope"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-07",
+        "A5-14"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-06",
@@ -174,7 +203,13 @@
         "evidence/gate-4/review-remediation-709cf82.json",
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-07",
+        "A5-12",
+        "A5-14"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-07",
@@ -195,7 +230,14 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-04",
+        "A5-07",
+        "A5-09",
+        "A5-14"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-08",
@@ -219,7 +261,13 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-04",
+        "A5-07",
+        "A5-14"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-09",
@@ -254,7 +302,13 @@
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
       "gate_4_progress": "Historical Gate 4 evidence: Fresh current shared-handler Vapi chat and historical actual Connect-carried voice satisfy both required paths within the explicit source-composition boundary. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-07",
+        "A5-09",
+        "A5-14"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-10",
@@ -296,7 +350,13 @@
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
       "gate_4_progress": "Historical Gate 4 evidence: Explicit exact saved-session resume is qualified; normal grants are regular communication credentials. A separate always-running scheduler or automatic model wake is not claimed. Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-02",
+        "A5-09",
+        "A5-15"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-11",
@@ -320,7 +380,14 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-04",
+        "A5-05",
+        "A5-11",
+        "A5-12"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-12",
@@ -345,7 +412,12 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-04",
+        "A5-05"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-13",
@@ -362,7 +434,13 @@
         "connect-v0.1-contract.html#scope",
         "connect-technical-readiness.html#map"
       ],
-      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json",
+      "gate_5_criteria": [
+        "A5-06",
+        "A5-07",
+        "A5-15"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-14",
@@ -385,7 +463,14 @@
       "gate_4_criteria": [
         "A4-14"
       ],
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-13",
+        "A5-14",
+        "A5-15",
+        "A5-16"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-15",
@@ -434,7 +519,12 @@
         "evidence/gate-4/review-remediation-709cf82.json",
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-02",
+        "A5-11"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-16",
@@ -459,7 +549,14 @@
       ],
       "evidence": [
         "evidence/gate-3/acceptance.html"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-04",
+        "A5-05",
+        "A5-09",
+        "A5-11"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-17",
@@ -475,7 +572,13 @@
       ],
       "sources": [
         "connect-first-ten-minutes.html#wire"
-      ]
+      ],
+      "gate_5_criteria": [
+        "A5-08",
+        "A5-09",
+        "A5-15"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-18",
@@ -492,7 +595,12 @@
       "sources": [
         "connect-first-ten-minutes.html#start"
       ],
-      "entry_evidence": "evidence/pre-gate-4/entry-closure.json"
+      "entry_evidence": "evidence/pre-gate-4/entry-closure.json",
+      "gate_5_criteria": [
+        "A5-01",
+        "A5-10"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-19",
@@ -543,13 +651,20 @@
         "evidence/gate-4/review-remediation-709cf82.json",
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-10",
+        "A5-12",
+        "A5-13",
+        "A5-14"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-20",
       "required_capability": "Scoped authority across files, media, tools and app actions",
       "delivery_gate": "See milestone assignments",
-      "status": "Recorded pre-review capability: Current regular non-admin identity credentials enforce configured operations, membership, expiry, revocation and reviewed SMS rules. Optional task/grant mode preserves mapped T-A1\u2013T-A8 authority checks; configured agents act without per-action approval prompts. Current Gate 4 repair qualification passes at 709cf82.",
+      "status": "Recorded pre-review capability: Current regular non-admin identity credentials enforce configured operations, membership, expiry, revocation and reviewed SMS rules. Optional task/grant mode preserves mapped T-A1–T-A8 authority checks; configured agents act without per-action approval prompts. Current Gate 4 repair qualification passes at 709cf82.",
       "required_evidence": "Enforce current authorization and revocation on all added operations. Prevent cross-task/context leakage, spoofed caller authority and unauthorized file access; no per-action permission console.",
       "v0_1_required": true,
       "milestones": [
@@ -598,7 +713,14 @@
         "evidence/gate-4/review-remediation-709cf82.json",
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-02",
+        "A5-06",
+        "A5-10",
+        "A5-12"
+      ],
+      "gate_5_status": "qualified-local-scope"
     },
     {
       "id": "F-21",
@@ -640,7 +762,16 @@
         "evidence/gate-4/review-remediation-709cf82.json",
         "evidence/gate-4/qualification-controls-d64f1b9.json"
       ],
-      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate."
+      "gate_4_requalification": "passed; Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.",
+      "gate_5_criteria": [
+        "A5-01",
+        "A5-02",
+        "A5-03",
+        "A5-11",
+        "A5-13",
+        "A5-16"
+      ],
+      "gate_5_status": "qualified-local-scope"
     }
   ],
   "upstream": {
@@ -652,15 +783,17 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "All 21 required commitments retain their delivery assignments and recorded evidence. Gate 4 owner-review repairs are locally qualified; Gate 5 remains required/planned, including video, full connector/conformance, first-run/reference and release.",
+  "assignment_status": "All21 commitments retain their delivery assignments and scoped evidence. Gate5 is complete within the approved local macOS arm64 profile; candidate284cef1 is owner-approved and release-ready. Publication remains separate.",
   "gate_3_acceptance": "gate-3-acceptance.json",
   "gate_4_acceptance": "gate-4-acceptance.json",
   "current_gate_4_review": "connect-gate-4-implementation.html#tracking",
   "gate_5_acceptance": {
-    "status": "proposed-not-qualified",
+    "status": "qualified-release-ready",
     "plan": "connect-gate-5-plan.html",
     "map": "gate-5-acceptance.json",
     "implementation": "connect-gate-5-implementation.html",
-    "note": "All F-01\u2013F-21 commitments remain required; proposed acceptance does not change delivery or qualification status."
+    "note": "All50 implementation items and16acceptance criteria are complete in their recorded local scopes. Final owner approval is recorded; no publication.",
+    "seal": "evidence/gate-5/final-candidate-seal-20261015.json",
+    "owner_approval": "evidence/gate-5/owner-approval-20261015.json"
   }
 }

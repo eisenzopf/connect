@@ -40,7 +40,8 @@ explicit resume of the same host session after restart. This is not automatic wa
 current Vapi/carrier execution.
 
 **Status: local review candidate; installed and model checks accepted,
-unpublished. Human walkthroughs and final owner acceptance remain open.**
+unpublished. Usability and quality review completion are owner-confirmed;
+final owner acceptance is recorded.**
 
 Explore the [source and documentation](https://github.com/eisenzopf/connect),
 [read the local package profile](GATE5_PACKAGE.md), or
@@ -61,7 +62,7 @@ all release acceptance is complete.
 | Wording | Why it matters |
 |---|---|
 | “Local macOS arm64” | Other platforms and public deployment have not been qualified by this gate. |
-| “Local review candidate; unpublished” | New installed evidence is accepted for 284cef; model evidence is inherited from identical ab843 runtime assets; human walkthroughs, final quality/seal and owner acceptance are still separate. |
+| “Local review candidate; unpublished” | New installed evidence is accepted for 284cef; model evidence is inherited from identical ab843 runtime assets; usability and quality completion are owner-confirmed; technical evidence is sealed and final owner approval is recorded. |
 | “Native QUIC; browser WebRTC” | The browser facade is not a browser-native QUIC implementation. |
 | “Two-party VP8” | No multiparty video, screen sharing, SIP/PSTN video or Vapi vision is promised. |
 | “Optional provider/model prerequisites” | Local deterministic messaging is account-free; actual models and external services have their own prerequisites. |

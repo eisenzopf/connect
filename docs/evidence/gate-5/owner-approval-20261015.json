@@ -1,0 +1,40 @@
+{
+  "profile": "gate5-owner-approval/1",
+  "recorded_date": "2026-10-15",
+  "status": "approved-release-ready",
+  "source": "Direct project-owner reply in this chat",
+  "statement": "yes i approve",
+  "approval_context": "Approval requested for candidate284cef1 as release-ready with the limits in docs/GATE5_OWNER_HANDOFF.md, after presentation of the sealed technical evidence.",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
+  "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local-qualification.tar.gz": "3fc18ca1d734ddec7eb47888898ab22e95668166eb8a2dc5792af9c3282d58de",
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local-source.tar.gz": "a7011377b39e0269aa2786ae718360dbe34c28c79131718ed00db2a3e76f043e",
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local.tar.gz": "a26f107672df840b2f16933dbff44bcff0640b407d3379d2c234752b6380a701"
+  },
+  "installed_manifest_sha256": "da8e1b67ca557211fc2a394ba5fe84e4b9b504178e64917673494f5e3205418a",
+  "reviewed_seal": {
+    "path": "docs/evidence/gate-5/owner-reviewed-seal-20261015.json",
+    "sha256": "9ffdeec223cb9bb14c5d9009158e7e1c3edf7dd33f059791bb78d10ca3a76045"
+  },
+  "reviewed_handoff": {
+    "path_at_review": "docs/GATE5_OWNER_HANDOFF.md",
+    "sha256": "cb8dd7d316e247a34924aa49ed68af25a9034daa3f2fca8d442c0ad66c9331c8"
+  },
+  "reviewed_inputs_snapshot": {
+    "path": ".local/gate5/owner-approval/reviewed-supplement-20261015.tar.gz",
+    "sha256": "c39066db8b7db3a2db527a2c3198d0bf39f598fdb5b8e550f39cf29c0430fd72",
+    "scope": "Private local archive of the exact32 reviewed input files and seal, retained before approval-status annotations."
+  },
+  "approval_scope": "Local macOS arm64 release readiness at the documented evidence and capability limits. No new runtime qualification or detailed usability measurements are implied.",
+  "required_remediation_from_approval": [],
+  "implementation_items_closed": [
+    "G5-050"
+  ],
+  "acceptance_criteria_closed": [
+    "A5-16"
+  ],
+  "whole_gate_qualified": true,
+  "publication_authorized": false,
+  "publication": "not-performed"
+}

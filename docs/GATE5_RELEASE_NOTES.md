@@ -1,4 +1,4 @@
-# Gate 5 local alpha — release notes prepared for review
+# Gate 5 local alpha — owner-approved release notes
 
 These locally prepared release notes describe the unpublished macOS arm64
 candidate `284cef16c64b`, source
@@ -6,13 +6,14 @@ candidate `284cef16c64b`, source
 archive checks and new complete installed qualification are independently
 accepted. The 28-call actual-model journey remains accepted composition from
 ab843 through exact protected-runtime identity; no new inference was run.
-Three independent fresh-user walkthroughs, final documentation and quality
-review, release sealing and owner acceptance remain open. No final Gate 5
-acceptance or publication is asserted. Historical results keep their original
+The owner confirmed G5-046 usability completion and G5-048 quality review
+completion. Final documentation and technical evidence are reconciled and sealed
+for [owner review](GATE5_OWNER_HANDOFF.md). Final owner acceptance is recorded; publication remains separate. Detailed participant timings and final review findings were not
+supplied with those confirmations; no such measurements are invented. Historical results keep their original
 source and topology limits.
 
 Follow the [implementation tracker](connect-gate-5-implementation.html),
-[acceptance map](gate-5-acceptance.json), [unsealed acceptance progress](evidence/gate-5/acceptance.html)
+[acceptance map](gate-5-acceptance.json), [acceptance report](evidence/gate-5/acceptance.html)
 and [package guide](GATE5_PACKAGE.md) for
 current evidence. A conference demonstration, component test or short media
 rehearsal does not establish the full release profile.
@@ -75,8 +76,10 @@ outcomes in [package evidence](evidence/gate-5/local-package-qualification.json)
 These release materials and acceptance annotations postdate the immutable
 284cef archives. They are a separate review supplement, not a claim that the
 archived documentation contains these later results. New installed execution
-and inherited ab843 model evidence remain distinct. G5-047 remains open for
-independent human feedback and final documentation review.
+and inherited ab843 model evidence remain distinct. The final documentation
+reconciliation uses the owner's completion confirmations; the
+[technical evidence seal](evidence/gate-5/final-candidate-seal-20261015.json)
+records its exact scope separately from final owner acceptance.
 
 ## October 15 impairment-only policy amendment
 
@@ -188,7 +191,7 @@ speaker/display latency are not observed by those counters.
 | Physical camera/microphone or arbitrary NAT/TURN reachability inferred from generated tests | Generated codec/capture-refusal fixtures do not prove physical device permission, public network reachability or production capacity. |
 | Automatic model resume or autonomous host startup | Exact saved host sessions use explicit resume. Model/host prerequisites and actual inference are qualified separately. |
 | Universal connector/provider support or telephone ownership implying SMS consent | Each adapter declares its supported operations and configuration. Native pairing does not enroll a number or enlarge authority. |
-| A ten-minute onboarding guarantee | The target requires the agreed independent fresh-user walkthroughs; an author's script is not that evidence. |
+| A ten-minute onboarding guarantee | G5-046 completion is owner-confirmed. Detailed timings were not supplied, so no measured guarantee is added. |
 
 ## Source, licenses and distribution
 
@@ -234,7 +237,9 @@ archives and their matching source revision:
 | `-qualification.tar.gz` | `3fc18ca1d734ddec7eb47888898ab22e95668166eb8a2dc5792af9c3282d58de` |
 
 The [installed release record](evidence/gate-5/installed-release.json) binds the
-accepted new installed execution and separately composed model evidence. Human walkthroughs, their documentation corrections,
-final independent quality/seal and owner acceptance remain required. Publication,
+accepted new installed execution and separately composed model evidence. The owner
+has confirmed usability and quality completion; documentation and technical
+evidence are sealed in the [final handoff](GATE5_OWNER_HANDOFF.md). Final owner
+acceptance is recorded. Publication,
 public download verification and project-page changes are separate actions.
 The [proposed project copy](GATE5_PROJECT_COPY.md) remains local preparation only.

@@ -6,11 +6,14 @@ An open communications server and SDK from [Rudeless](https://rudeless.ai). One 
 
 ## Status
 
-[Gate 5 implementation](docs/connect-gate-5-implementation.html) is underway:
+[Gate 5 implementation](docs/connect-gate-5-implementation.html) is complete within
+the approved local macOS arm64 scope:
 three two-party VP8/PCMU video paths, a contributor connector kit, independently
 implemented UCTP control, first-run setup and an expanded reference client.
-Component evidence is being recorded; the final installed candidate and complete
-release acceptance remain open. Review the [product plan](docs/connect-gate-5-plan.html)
+Candidate `284cef1` has accepted installed qualification; 50 of 50 tasks and
+16 of 16 criteria are complete within their recorded scopes. Usability and quality
+review completion are owner-confirmed. Final owner acceptance is recorded;
+see the [sealed candidate handoff](docs/GATE5_OWNER_HANDOFF.md). Review the [product plan](docs/connect-gate-5-plan.html)
 and [local package profile](docs/GATE5_PACKAGE.md) for the qualification boundary.
 [Draft release notes](docs/GATE5_RELEASE_NOTES.md) and
 [proposed project-page copy](docs/GATE5_PROJECT_COPY.md) are prepared locally for review.
@@ -38,8 +41,8 @@ Historical [Vapi](docs/evidence/gate-4/actual-vapi-chat-dc73996.json),
 source, account, handset and topology limits. The [source/provider review](docs/evidence/gate-4/review-remediation-709cf82.json)
 explains how those proofs relate to the current code.
 
-The local alpha is unpublished. Gate 5 qualifies local macOS arm64 and prepares
-an owner-review candidate. Additional platforms need separate qualification;
+The local alpha is owner-approved and release-ready, and remains unpublished.
+Gate 5 qualifies local macOS arm64. Additional platforms need separate qualification;
 community publication follows a separate owner instruction.
 
 See [the documentation and delivery index](docs/index.html) and
