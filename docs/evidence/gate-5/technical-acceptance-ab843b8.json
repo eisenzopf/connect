@@ -1,0 +1,182 @@
+{
+  "profile": "gate5-technical-acceptance/1",
+  "recorded_at": "2026-10-15T10:47:15.584643+00:00",
+  "status": "Eleven criteria qualified within reviewed local technical scopes; five final criteria open",
+  "whole_gate_qualified": false,
+  "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "qualified": [
+    {
+      "id": "A5-02",
+      "title": "Give an agent presence",
+      "proof_sha256": "8b38bd6e35c8bc44af12cd482f2ab82abd84915f87eaa71d756666770e91cdc2",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Exact selected Codex installed MCP/skill run:28successful calls, normal revocable non-admin identity,2source-backed artifacts, explicit attributed reply consumption, identical saved host session after restart and independent contact response.",
+      "limits": "Fixture reviewer supplies human-role reply; not an independent fresh-user walkthrough. No automatic model wake.",
+      "public_evidence": [
+        "docs/evidence/gate-5/actual-model-ab843b8.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-03",
+      "title": "Make an app reachable",
+      "proof_sha256": "0aa945ff24b3f6af6308319cbe7d0dad20e837d0231b5a65e164c641e195d2f9",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Exact installed separate app passes14 public-interface checks including outgoing review/incoming request, original ledger ownership, server/worker restart, exact replay and one logical response/effect per direction.",
+      "limits": "Automated developer-install/recovery capability proof; independent fresh-user comprehension remains A5-01/A5-13.",
+      "public_evidence": [
+        "docs/evidence/gate-5/app-journeys.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-04",
+      "title": "Two-party video on named paths",
+      "proof_sha256": "3dcec4ffbfde0a1fedc56938d9a42ad54a0a1988eb76262148a14536b35cd696",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "All9approved policy2 media conditions pass on3named paths,18canonical policy decisions plus matching authority/profile/refusal/peer-loss/mute/teardown components. Codec hold<=200ms and fresh recovery<=2s remain hard.",
+      "limits": "Three impaired rawAV failures are explicit advisory outcomes under approved012, not rewritten raw passes; no physical speaker/display latency claim.",
+      "public_evidence": [
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/impaired-quality-policy.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-05",
+      "title": "A reference client developers can learn from",
+      "proof_sha256": "b7802fdf0123c2dafb12b6cd737702bcbf3b25b269b4edf839e76f25697a94fb",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Exact archived reference app passes11general and13AV/continuity checks, public contact/session interfaces, keyboard send, files, narrow layout, capture/ICE cleanup; accepted contact-race/permission-denial scoped proofs remain bound to unchanged UI/SDK.",
+      "limits": "Person-facing capability demonstrated by real automated browser checks; independent fresh-user usability remains A5-01/A5-13.",
+      "public_evidence": [
+        "docs/evidence/gate-5/reference-experience.json",
+        "docs/evidence/gate-5/contact-selection-repair.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-06",
+      "title": "A contributor adds a connector",
+      "proof_sha256": "2141c40590e4373231097dd1f66816dd043e7fb828d8e5cd0d47b6ea9defbb5d",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Independently owned Prism fixture contribution from shipped public kit, messages/context/voice lifecycle,40-check contracts and fresh installed cold build/conformance; no core routing/auth/conversation changes.",
+      "limits": "Separate contributor-agent exercise satisfies this technical contribution requirement; no fresh-human claim and no added real provider capability.",
+      "public_evidence": [
+        "docs/evidence/gate-5/contributor-exercise.json",
+        "docs/evidence/gate-5/connector-runtime-integration.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-07",
+      "title": "Provider lifecycle remains explicit",
+      "proof_sha256": "a4de1838730680744036e80a8f287a18e3681f0ab0e68a7386e0d84728e07e61",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Accepted normalized lifecycle/source regressions cover external IDs, verified observations, uncertainty, replay/reordering/restart and cleanup; current6bounded Vapi/Telnyx compatibility claims now independently accepted.",
+      "limits": "Normalized extension contract/mapping is qualified locally; normalized builtin carrier execution and new live-provider proof remain excluded.",
+      "public_evidence": [
+        "docs/evidence/gate-5/connector-runtime-integration.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json",
+        "docs/evidence/gate-5/current-source-qualification.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-08",
+      "title": "An independent UCTP client interoperates",
+      "proof_sha256": "a7ccbd94bc11c0715c380c1ac7348cb03c52424b09bc7829d31da4b12175e97a",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Installed independent aioquic parser/client runs real verified QUIC, shared-vector6tests plus26control checks including TLS/version/framing/authority negatives and restart/cursor/mutation replay.",
+      "limits": "Control interoperability only, no independent media stack; implementation/transport boundaries retained.",
+      "public_evidence": [
+        "docs/evidence/gate-5/independent-client.json",
+        "docs/evidence/gate-5/independent-conformance.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-09",
+      "title": "One honest interface matrix",
+      "proof_sha256": "ebd6d6612d260b01ec4248a5147a3f4222e3f6f73d68fee98a699f2b1f662227",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Published operation matrix and source interface regressions plus exact installed CLI/Python/TypeScript native+HTTP controls, real MCP model run and named media routes preserve IDs/authority/errors/replay.",
+      "limits": "Python/TypeScript helper and browserWebRTC boundaries explicit; tools control sessions but do not carry frames; unsupported combinations remain visible.",
+      "public_evidence": [
+        "docs/evidence/gate-5/contact-interface-parity.json",
+        "docs/evidence/gate-5/session-interface-parity.json",
+        "docs/evidence/gate-5/installed-session-controls.json",
+        "docs/evidence/gate-5/actual-model-ab843b8.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-10",
+      "title": "Setup is recoverable and understandable",
+      "proof_sha256": "83dd18e05be6f318aa9d67ef89435285c3d203be9b5ab79444000c8af17bac4e",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Exact installed public setup, native protected storage and source upgrade/uncertainty fixtures cover selection/preview/resume, locked/missing/rejected conditions and separated inbound/outbound/ownership/enrollment states without duplicate creation.",
+      "limits": "Technical recoverability and explicit states qualified with local fixtures; independent comprehension and real account readiness are not inferred.",
+      "public_evidence": [
+        "docs/evidence/gate-5/setup-lane.json",
+        "docs/evidence/gate-5/setup-upgrade.json",
+        "docs/evidence/gate-5/secret-vault-migration.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-11",
+      "title": "One conversation survives channel changes",
+      "proof_sha256": "fb62b4693495ae071d7175a0afc500e71c826274417792700dd2b122c9a0435e",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Exact archived reference continuity proves artifact/context/decodedAV/attributed outcome in original Conversation across restart; model followup proves source-backed explicit session continuation. Leg exit preserves accepted Session/Conversation and ambiguous bindings reject.",
+      "limits": "Explicit omissions and no transcript/ASR/modelvision state retained; not a media-understanding claim.",
+      "public_evidence": [
+        "docs/evidence/gate-5/reference-experience.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/actual-model-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    },
+    {
+      "id": "A5-12",
+      "title": "Revocation, SMS rules and data recovery hold",
+      "proof_sha256": "a01908c24e2f5dbda0a054c2fbbb4646b6afcfb10defb919ac548e06704bbab0",
+      "judgment": "eligible-for-qualified-within-own-technical-scope",
+      "basis": "Accepted source regressions/current installed authority/failure/historical recovery lanes cover revocation/replay/queued use, cross-context denial, artifact integrity, SMSsuppression/STARTnonrevival, uncertainty, populated upgrade/backup/restore/rollback-refusal.",
+      "limits": "SMS/carrier execution remains source-specific historical plus current local compatibility; no live media replay or fresh handset delivery claim.",
+      "public_evidence": [
+        "docs/evidence/gate-5/migration-recovery.json",
+        "docs/evidence/gate-5/connector-runtime-integration.json",
+        "docs/evidence/gate-5/current-source-qualification.json",
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json"
+      ],
+      "new_unmet_own_scope_requirement": null
+    }
+  ],
+  "open": [
+    "A5-01",
+    "A5-13",
+    "A5-14",
+    "A5-15",
+    "A5-16"
+  ],
+  "implementation_counts": {
+    "done": 45,
+    "in-progress": 4,
+    "not-started": 1
+  },
+  "independent_review": {
+    "path": ".local/gate5/public-technical-closure-ab843b8/review.json",
+    "sha256": "d46ef82cb8b6eca5a13b3bf0ea314d076a3a7b0a957a1244ea886daa2a80eb93"
+  },
+  "boundary": "Requirement text, feature mappings and stable IDs are unchanged. Implementation mappings identify evidence and do not automatically propagate unrelated human/final prerequisites into completed technical criteria. G5-046 through G5-050 remain open. No whole-gate, owner or publication acceptance."
+}

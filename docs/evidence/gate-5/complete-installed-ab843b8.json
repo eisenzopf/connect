@@ -1,0 +1,596 @@
+{
+  "profile": "gate5-complete-installed-qualification/1",
+  "recorded_at": "2026-10-15T10:39:06.574872+00:00",
+  "status": "Independently accepted complete local installed qualification",
+  "whole_gate_qualified": false,
+  "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local",
+  "platform_scope": "Local macOS arm64; one two-party media session. No remote deployment, public ingress or live communication-provider operation.",
+  "media_acceptance_policy": "connect-media-acceptance/2",
+  "completed": {
+    "baseline_checks": 18,
+    "gate5_phases": 26,
+    "media_conditions": 9,
+    "observer_policy_decisions": 18,
+    "raw_av_quality": {
+      "passed": 15,
+      "failed": 3
+    },
+    "strict_runtime_inventory_files": 1528,
+    "inventories": {
+      "after_baseline": "passed; zero additions, missing files, changed bytes or symlinks",
+      "after_behavior": "passed; zero additions, missing files, changed bytes or symlinks"
+    },
+    "source_inputs": 1114,
+    "source_and_tools_stable": true,
+    "owned_cleanup": "empty process groups; no surviving owned process"
+  },
+  "observed_bounds": {
+    "maximum_native_codec_emission_hold_ms": 198.78891700000167,
+    "hard_codec_hold_limit_ms": 200,
+    "maximum_impaired_fresh_motion_recovery_seconds": 1.9506590366363525,
+    "hard_fresh_motion_recovery_limit_seconds": 2
+  },
+  "routes": [
+    {
+      "path": "native-native",
+      "scenario": "clean",
+      "status": "passed-clean",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 60,
+          "changing_fps": 28.55,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 86,
+            "median_abs_skew_ms": 3.790770999999804,
+            "p95_abs_skew_ms": 36.375333000002286
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed"
+          },
+          "maximum_codec_emission_hold_ms": 195.92512500000225
+        },
+        {
+          "kind": "native",
+          "receiver_slot": 2,
+          "measured_seconds": 60,
+          "changing_fps": 28.5,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 86,
+            "median_abs_skew_ms": 6.325437500000835,
+            "p95_abs_skew_ms": 40.56612500000156
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed"
+          },
+          "maximum_codec_emission_hold_ms": 197.32308300000057
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 226295808,
+        "sampled_peak_cpu_percent": 248.9,
+        "sampled_peak_processes": 10,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    },
+    {
+      "path": "native-browser",
+      "scenario": "clean",
+      "status": "passed-clean",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 60,
+          "changing_fps": 27.7,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 85,
+            "median_abs_skew_ms": 10.855374999998446,
+            "p95_abs_skew_ms": 21.80258399999957
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed"
+          },
+          "maximum_codec_emission_hold_ms": 130.06116700000092
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 60.0074999332428,
+          "changing_fps": 27.463233792998686,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 84,
+            "median_abs_skew_ms": 9.200000047684398,
+            "p95_abs_skew_ms": 41.20000004768265
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed"
+          }
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 1562034176,
+        "sampled_peak_cpu_percent": 154.5,
+        "sampled_peak_processes": 16,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    },
+    {
+      "path": "browser-browser",
+      "scenario": "clean",
+      "status": "passed-clean",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "browser",
+          "receiver_slot": 1,
+          "measured_seconds": 60.00999999046326,
+          "changing_fps": 24.67922013390034,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 84,
+            "median_abs_skew_ms": 14.749999999999375,
+            "p95_abs_skew_ms": 47.49999999999943
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed"
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 60.01009964942932,
+          "changing_fps": 24.862481627526982,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 84,
+            "median_abs_skew_ms": 18.44999998807495,
+            "p95_abs_skew_ms": 49.700000047684156
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "clean",
+            "status": "passed",
+            "quality_status": "passed"
+          }
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 2034089984,
+        "sampled_peak_cpu_percent": 155.8,
+        "sampled_peak_processes": 15,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    },
+    {
+      "path": "native-native",
+      "scenario": "impairment",
+      "status": "passed-impairment",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 60,
+          "changing_fps": 14.7,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 58,
+            "median_abs_skew_ms": 20.424916500000112,
+            "p95_abs_skew_ms": 82.22574999999921
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "passed"
+          },
+          "maximum_codec_emission_hold_ms": 185.92112500000013
+        },
+        {
+          "kind": "native",
+          "receiver_slot": 2,
+          "measured_seconds": 60,
+          "changing_fps": 16.833333333333332,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 65,
+            "median_abs_skew_ms": 61.995542000000015,
+            "p95_abs_skew_ms": 118.491542000001
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "passed"
+          },
+          "maximum_codec_emission_hold_ms": 139.36458300000254
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 233668608,
+        "sampled_peak_cpu_percent": 236.5,
+        "sampled_peak_processes": 10,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    },
+    {
+      "path": "native-browser",
+      "scenario": "impairment",
+      "status": "passed-impairment",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 60,
+          "changing_fps": 6.45,
+          "raw_av_quality": {
+            "status": "failed",
+            "paired": 37,
+            "median_abs_skew_ms": 43.785791999999546,
+            "p95_abs_skew_ms": 91.72212500000043
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed"
+          },
+          "maximum_codec_emission_hold_ms": 132.67199999999946
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 60.00599980354309,
+          "changing_fps": 23.680965314340053,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 81,
+            "median_abs_skew_ms": 21.799999952316185,
+            "p95_abs_skew_ms": 70.99999999999973
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "passed"
+          }
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 1553547264,
+        "sampled_peak_cpu_percent": 194.9,
+        "sampled_peak_processes": 16,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    },
+    {
+      "path": "browser-browser",
+      "scenario": "impairment",
+      "status": "passed-impairment",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "browser",
+          "receiver_slot": 1,
+          "measured_seconds": 60.0113000869751,
+          "changing_fps": 23.1456408707511,
+          "raw_av_quality": {
+            "status": "failed",
+            "paired": 82,
+            "median_abs_skew_ms": 55.5999999642367,
+            "p95_abs_skew_ms": 126.70000004768411
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed"
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 60.011500120162964,
+          "changing_fps": 9.048265730947127,
+          "raw_av_quality": {
+            "status": "failed",
+            "paired": 41,
+            "median_abs_skew_ms": 26.29999995231458,
+            "p95_abs_skew_ms": 131.20000004768428
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "impairment",
+            "status": "passed",
+            "quality_status": "failed"
+          }
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 2022522880,
+        "sampled_peak_cpu_percent": 139.7,
+        "sampled_peak_processes": 15,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    },
+    {
+      "path": "native-native",
+      "scenario": "mute-recovery",
+      "status": "passed-mute-recovery",
+      "qualification_seconds": 20,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 20,
+          "changing_fps": 25.85,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 28,
+            "median_abs_skew_ms": 3.7833754999989644,
+            "p95_abs_skew_ms": 35.98612500000087
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "mute",
+            "status": "passed",
+            "quality_status": "passed"
+          },
+          "maximum_codec_emission_hold_ms": 198.78891700000167
+        },
+        {
+          "kind": "native",
+          "receiver_slot": 2,
+          "measured_seconds": 20,
+          "changing_fps": 25.75,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 28,
+            "median_abs_skew_ms": 3.8096874999991037,
+            "p95_abs_skew_ms": 37.395874999999634
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "mute",
+            "status": "passed",
+            "quality_status": "passed"
+          },
+          "maximum_codec_emission_hold_ms": 178.7318340000006
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 228343808,
+        "sampled_peak_cpu_percent": 283.09999999999997,
+        "sampled_peak_processes": 10,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    },
+    {
+      "path": "native-browser",
+      "scenario": "mute-recovery",
+      "status": "passed-mute-recovery",
+      "qualification_seconds": 20,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 20,
+          "changing_fps": 25.0,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 25,
+            "median_abs_skew_ms": 10.566167000000348,
+            "p95_abs_skew_ms": 24.513750000000112
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "mute",
+            "status": "passed",
+            "quality_status": "passed"
+          },
+          "maximum_codec_emission_hold_ms": 130.28324999999995
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 20.00759983062744,
+          "changing_fps": 24.540674751420305,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 26,
+            "median_abs_skew_ms": 12.949999988078886,
+            "p95_abs_skew_ms": 40.699999928474284
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "mute",
+            "status": "passed",
+            "quality_status": "passed"
+          }
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 1528627200,
+        "sampled_peak_cpu_percent": 175.70000000000002,
+        "sampled_peak_processes": 16,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    },
+    {
+      "path": "browser-browser",
+      "scenario": "mute-recovery",
+      "status": "passed-mute-recovery",
+      "qualification_seconds": 20,
+      "observers": [
+        {
+          "kind": "browser",
+          "receiver_slot": 1,
+          "measured_seconds": 20.010900259017944,
+          "changing_fps": 23.03744429450392,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 25,
+            "median_abs_skew_ms": 31.399999976159165,
+            "p95_abs_skew_ms": 56.10000002384119
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "mute",
+            "status": "passed",
+            "quality_status": "passed"
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 20.01129984855652,
+          "changing_fps": 21.887633652723185,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 24,
+            "median_abs_skew_ms": 32.80000001192107,
+            "p95_abs_skew_ms": 53.600000023843464
+          },
+          "av_acceptance": {
+            "policy": "connect-media-acceptance/2",
+            "scenario": "mute",
+            "status": "passed",
+            "quality_status": "passed"
+          }
+        }
+      ],
+      "sampled_resources": {
+        "sampled_peak_rss_bytes": 1942781952,
+        "sampled_peak_cpu_percent": 166.70000000000002,
+        "sampled_peak_processes": 15,
+        "coverage_complete": true,
+        "within_limits": true,
+        "limits": {
+          "sampled_peak_rss_bytes": 2147483648,
+          "sampled_peak_cpu_percent": 800
+        }
+      },
+      "hard_scenario_predicates_independently_verified": true
+    }
+  ],
+  "versions": {
+    "chrome": "Google Chrome 155.0.8059.40",
+    "node": "v24.19.0",
+    "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "codex": "codex-cli 0.162.0-alpha.17.2",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "playwright": "1.62.1",
+    "playwright-core": "1.62.1",
+    "aioquic": "1.6.1"
+  },
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local-qualification.tar.gz": "6303271b566d8b06aa801a84b01546d3b98e1e9f5df87bac083c57a66b70b1a0",
+    "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local-source.tar.gz": "6c2438afd000dfb0ebc29523023ef01df796477d1b1abec0de9628989d233b4a",
+    "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local.tar.gz": "151a7c7eac8a426ad0741dbe4e5fd1a522681daad90f30c9df3f204466088b36"
+  },
+  "interpretation": "All clean and mute A/V decisions pass their strict rules. Three valid impaired raw A/V quality failures remain failed raw measurements and separately pass approved advisory acceptance. Native/browser impaired raw A/V has 37 pairs; browser/browser has 82 pairs with p95 126.7 ms and 41 pairs with p95 131.2 ms. No invalid observer result or non-A/V hard failure was waived.",
+  "rate_and_resource_scope": "Clean requires 24 independently decoded moving fps; impairment retains its existing 1 fps floor and fresh-motion recovery. Mute includes intentional stopped/frozen intervals with separate active/mute checks; whole-window rates are not a universal 24 fps claim. RSS and CPU are sampled across owned participant processes; CPU uses platform process-average percentages, not instantaneous hardware counters.",
+  "proofs": {
+    "official": {
+      "path": ".local/package-checks/20261015T100412.587920Z/result.json",
+      "sha256": "da7c207388c937af56bb59c2158edea95b73e5c1ed235d0610daa25349263f00"
+    },
+    "outer": {
+      "path": ".local/gate5/complete-installed-ab843b8-attempt1/result.json",
+      "sha256": "510ff72d5128a5aa03b284cb2e4f4eecf7b734e3c0b0a392432d12aa80ecda66"
+    },
+    "independent_review": {
+      "path": ".local/gate5/complete-installed-ab843b8-attempt1/quality-final-review.json",
+      "sha256": "5ecca9583594007bd47d7b6387f8ac825c0ca42b89b8326d9576d9cb368bc96b"
+    },
+    "private_summary": {
+      "path": ".local/gate5/installed-summary-ab843b8-20261015/result.json",
+      "sha256": "7a5d5724e92744ac3a2a3d4582cb2f3fe01b737bb9a9d95eb0c56cf7455c6805"
+    },
+    "summary_review": {
+      "path": ".local/gate5/installed-summary-ab843b8-20261015/quality-summary-result-review.json",
+      "sha256": "3f6b111a52c5463a114ee14d07f2a9e036bfa3febc50c6897905e5a8dedaa80d"
+    }
+  },
+  "limits": [
+    "Historical 84-phase source pass plus exact reviewed 22-input composition; no new literal 84-phase source invocation.",
+    "Native decoding is independently analyzed after participation against live emission journals; physical speaker/display latency and live native audio playback are unmeasured.",
+    "Generated-device media and browser permission fixtures do not replace independent humans or physical-device observations.",
+    "Earlier 9ce,304 and d538 failures retain their exact original outcomes and unrun scopes.",
+    "Model proof, human usability, final documentation/quality/seal, owner acceptance and publication are separate."
+  ]
+}

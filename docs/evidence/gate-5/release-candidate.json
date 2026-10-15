@@ -1,0 +1,57 @@
+{
+  "profile": "gate5-provisional-local-candidate/1",
+  "recorded_at": "2026-10-15T10:41:30.636242+00:00",
+  "status": "Exact existing unpublished candidate designated for independent human and owner review",
+  "whole_gate_qualified": false,
+  "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local",
+  "candidate_directory": "dist/connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local",
+  "runtime_directory": "dist/connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local/connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local-qualification.tar.gz": "6303271b566d8b06aa801a84b01546d3b98e1e9f5df87bac083c57a66b70b1a0",
+    "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local-source.tar.gz": "6c2438afd000dfb0ebc29523023ef01df796477d1b1abec0de9628989d233b4a",
+    "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local.tar.gz": "151a7c7eac8a426ad0741dbe4e5fd1a522681daad90f30c9df3f204466088b36"
+  },
+  "source_archive_files_exact_git": 1553,
+  "runtime_payload_files": 1527,
+  "historical_qualification_assets": 4,
+  "recorded_patches": 34,
+  "explicit_designation": "Codex designates the existing immutable ab843 candidate after independently accepted source, archive, complete installed, actual-model and bounded provider reviews. This does not assert final owner acceptance or publication.",
+  "proofs": {
+    "source_composition_at_candidate": {
+      "path": "docs/evidence/gate-5/current-source-qualification.json",
+      "revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+      "meaning": "Exact file captured in the immutable source archive; component scope is historical84 phases plus22 changed/1092 unchanged of1114 inputs."
+    },
+    "archive_review": {
+      "path": ".local/gate5/package-independent-review-ab843b843fa7/review.json",
+      "sha256": "23fc9727d84c744d74daa1000ac9f3f3e61a9c4271eadcf9f6783d0b22812558"
+    },
+    "build": {
+      "path": ".local/gate5/package-build-20261015T095842.176236Z/result.json",
+      "sha256": "95ddaa7c28ba1164ae1e27dd7e7869ee2b11c3368ac253cd0a968923bcdd460f"
+    },
+    "installed": {
+      "path": "docs/evidence/gate-5/complete-installed-ab843b8.json",
+      "sha256": "d6d22fd50c683a79b00acec766ba75e71574e7a05f45defd2e96613e7a29d635"
+    },
+    "actual_model": {
+      "path": "docs/evidence/gate-5/actual-model-ab843b8.json",
+      "sha256": "b9d8e8aded6c3e49f6ad1ba8f431e8875638c88a0cbf7dae74e0de2dad99dc5c"
+    },
+    "provider_claims": {
+      "path": "docs/evidence/gate-5/provider-claims-ab843b8.json",
+      "sha256": "308f2a2348b0b82d3ad50b51ae8e917d1fbce5ed253233ba4f4cb59251f5ea90"
+    },
+    "designation_eligibility_review": {
+      "path": ".local/gate5/provider-claim-readiness-ab843b8-20261015/quality-final-provider-candidate-review.json",
+      "sha256": "82e3ccd635cc7e85429ab1a94673957e22a6d8f3f1b3616d97057c4dd86722c8"
+    }
+  },
+  "post_build_evidence_boundary": "These acceptance/progress annotations were created after building ab843. They are separate records and are not asserted to exist inside its immutable source/runtime archives. No archive was rebuilt, relabeled, uploaded or changed. The candidate QUALIFICATION.json remains the exact official complete-installed result.",
+  "remaining": [
+    "Three independent fresh-user walkthroughs; zero attempts recorded.",
+    "Dependent final documentation, final quality review, release seal and owner acceptance.",
+    "Publication is a separate action and has not occurred."
+  ]
+}

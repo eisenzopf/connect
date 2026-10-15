@@ -58,7 +58,7 @@
       "notes": "Native authenticated one-use pairing, expiry/attempt bounds, wrong identity, revocation and current completing-credential replay pass Store/public-interface proofs. Challenges are redacted; pairing cannot grant Conversation membership or SMS consent. Source setup/recovery preserves pairing records. Production contacts are unchanged by later terminal lifecycle repairs. Installed/model contact probes remain in their downstream qualification tasks."
     }
   ],
-  "completed_dependency_validation": "All38 done tasks have completed explicit dependencies; operating016 reopened and downstream042 remains open.",
+  "completed_dependency_validation": "All45 done tasks have completed explicit dependencies and recorded own-scope evidence;046\u2013050 remain open.",
   "whole_gate_qualified": false,
   "published": false,
   "initial_counts": {
@@ -75,8 +75,8 @@
     "G5-044\u2013G5-050 (release/install/usability/review/owner evidence pending)"
   ],
   "current_counts": {
-    "done": 38,
-    "in-progress": 11,
+    "done": 45,
+    "in-progress": 4,
     "not-started": 1
   },
   "current_reconciliation": {
@@ -255,20 +255,13 @@
       }
     ],
     "remaining_tasks": [
-      "G5-016",
-      "G5-038",
-      "G5-039",
-      "G5-042",
-      "G5-043",
-      "G5-044",
-      "G5-045",
       "G5-046",
       "G5-047",
       "G5-048",
       "G5-049",
       "G5-050"
     ],
-    "implementation_sha256": "7f7228bd4467ecd07df98e71009b39bae3082fbdbbabf99793d8c2d0557a4ef8",
+    "implementation_sha256": "eefbd2cccfc61515280dbc76f3ba8e22b55e176467948cc96d5b60ae94801b97",
     "followup_annotation": {
       "recorded_at": "2026-10-14T22:04:13.434869+00:00",
       "candidate_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
@@ -350,6 +343,58 @@
         "changed": 22,
         "unchanged": 1092
       }
+    },
+    "current_ab843_technical_closure": {
+      "recorded_at": "2026-10-15T10:42:12.265364+00:00",
+      "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+      "newly_closed": [
+        "G5-016",
+        "G5-038",
+        "G5-039",
+        "G5-042",
+        "G5-043",
+        "G5-044",
+        "G5-045"
+      ],
+      "evidence": [
+        "docs/evidence/gate-5/complete-installed-ab843b8.json",
+        "docs/evidence/gate-5/actual-model-ab843b8.json",
+        "docs/evidence/gate-5/provider-claims-ab843b8.json",
+        "docs/evidence/gate-5/release-candidate.json",
+        "docs/evidence/gate-5/installed-release.json"
+      ],
+      "whole_gate_qualified": false,
+      "human_attempts_recorded": 0,
+      "meaning": "Task-own technical scopes close after accepted source/installed/model/bounded-provider proofs; no independent-human, final documentation/quality/seal/owner or publication completion."
+    },
+    "technical_acceptance": {
+      "qualified": [
+        "A5-02",
+        "A5-03",
+        "A5-04",
+        "A5-05",
+        "A5-06",
+        "A5-07",
+        "A5-08",
+        "A5-09",
+        "A5-10",
+        "A5-11",
+        "A5-12"
+      ],
+      "open": [
+        "A5-01",
+        "A5-13",
+        "A5-14",
+        "A5-15",
+        "A5-16"
+      ],
+      "evidence": "docs/evidence/gate-5/technical-acceptance-ab843b8.json",
+      "independent_review": {
+        "path": ".local/gate5/public-technical-closure-ab843b8/review.json",
+        "sha256": "d46ef82cb8b6eca5a13b3bf0ea314d076a3a7b0a957a1244ea886daa2a80eb93"
+      },
+      "requirement_text_unchanged": true,
+      "whole_gate_qualified": false
     }
   },
   "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"

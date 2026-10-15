@@ -1,0 +1,67 @@
+{
+  "profile": "gate5-bounded-provider-claims/1",
+  "recorded_at": "2026-10-15T10:41:30.636242+00:00",
+  "status": "Independently accepted source-scoped compatibility claims",
+  "whole_gate_qualified": false,
+  "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "claim_matrix": [
+    {
+      "surface": "Telnyx SMS and signed callbacks",
+      "status": "accepted-only-for-exact-bounded-wording",
+      "accepted_wording": "Historical delivery/HELP/STOP/START remains source-specific. Current request/status mapping, single-attempt dispatch, replay, eligibility and stricter malformed-input admission are locally verified compatibility composition.",
+      "excluded_without_separate_fresh_authorized_evidence": "Current-candidate handset delivery, carrier callback execution or actual account/enrollment readiness."
+    },
+    {
+      "surface": "Vapi text and MCP tools",
+      "status": "accepted-only-for-exact-bounded-wording",
+      "accepted_wording": "Historical actual model/tool proof plus current SDK/Store/Worker loopback tests supports default request/context/tool-binding compatibility. Builtin messages retain the legacy receipt path.",
+      "excluded_without_separate_fresh_authorized_evidence": "Current Vapi model response, actual tool discovery/execution and source-backed response on this candidate. No normalized used-source provenance is inferred for builtin Vapi."
+    },
+    {
+      "surface": "Vapi telephone control",
+      "status": "accepted-only-for-exact-bounded-wording",
+      "accepted_wording": "Historical live proof plus current legacy start/status/end/recovery fixtures supports default control composition; Worker::start selects normalized=false.",
+      "excluded_without_separate_fresh_authorized_evidence": "Newly advertised normalized Vapi telephone execution. with_observed_driver is explicit and its carrier execution is not proved by fixtures."
+    },
+    {
+      "surface": "Native/browser Vapi audio and SIP/PSTN",
+      "status": "accepted-only-for-exact-bounded-wording",
+      "accepted_wording": "Historical audio remains source-specific. Current audio bridge, codec, authorization, teardown, pressure and upstream tests can establish local compatibility of the changed graph. Shared runtime is not unchanged.",
+      "excluded_without_separate_fresh_authorized_evidence": "Exact-candidate carrier answer/audio/remote-end behavior, arbitrary network reachability or production interoperability."
+    },
+    {
+      "surface": "Provider setup, catalogs and secrets",
+      "status": "accepted-only-for-exact-bounded-wording",
+      "accepted_wording": "Local fixtures establish selection, refusal, protected-reference resolution, uncertainty recovery and metadata-only readiness reasoning.",
+      "excluded_without_separate_fresh_authorized_evidence": "Actual account readiness, ownership, SMS consent, provisioning or purchases; no such operation follows from local proof."
+    },
+    {
+      "surface": "Normalized connector extension and contribution",
+      "status": "accepted-only-for-exact-bounded-wording",
+      "accepted_wording": "Fixture connector and trusted-host lifecycle, receipt binding, reconciliation, independent ingress and attribution semantics.",
+      "excluded_without_separate_fresh_authorized_evidence": "An additional real carrier/model capability or normalized builtin-provider execution; no automatic activation is inferred."
+    }
+  ],
+  "audited_source_files": 96,
+  "historical_live_proofs_rehashed": 5,
+  "current_evidence": {
+    "installed": {
+      "path": "docs/evidence/gate-5/complete-installed-ab843b8.json",
+      "sha256": "d6d22fd50c683a79b00acec766ba75e71574e7a05f45defd2e96613e7a29d635"
+    },
+    "actual_model": {
+      "path": "docs/evidence/gate-5/actual-model-ab843b8.json",
+      "sha256": "b9d8e8aded6c3e49f6ad1ba8f431e8875638c88a0cbf7dae74e0de2dad99dc5c"
+    },
+    "independent_claim_review": {
+      "path": ".local/gate5/provider-claim-readiness-ab843b8-20261015/quality-final-provider-candidate-review.json",
+      "sha256": "82e3ccd635cc7e85429ab1a94673957e22a6d8f3f1b3616d97057c4dd86722c8"
+    },
+    "private_source_review": {
+      "path": ".local/gate5/provider-claim-readiness-ab843b8-20261015/result.json",
+      "sha256": "34bbfa7cd5155f4b814a3ee68279b7d9a4d72e1bd812d140d0c532f69e4d8ae8"
+    }
+  },
+  "scope": "Historical live receipts retain their own sources. Current local qualification establishes only the six bounded compatibility statements above. Native emission repair is outside the provider source map; shared runtime is not described as unchanged.",
+  "excluded": "No current-candidate handset/carrier delivery, Vapi model or telephone execution, account/enrollment readiness, provisioning, purchases or normalized builtin-provider execution. No new live communication-provider calls were made."
+}

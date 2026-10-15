@@ -1,0 +1,51 @@
+{
+  "profile": "gate5-actual-model-qualification/1",
+  "recorded_at": "2026-10-15T10:39:06.574872+00:00",
+  "status": "Independently accepted actual-model journey",
+  "whole_gate_qualified": false,
+  "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local",
+  "actual_inference": true,
+  "host_version": "codex-cli 0.162.0-alpha.17.2",
+  "actual_mcp_calls": 28,
+  "first_turn_calls": 15,
+  "resumed_turn_calls": 13,
+  "tool_or_turn_errors": 0,
+  "verified": {
+    "one_credential_across_two_authorized_conversations": true,
+    "same_exact_host_session_after_server_restart": true,
+    "unanswered_review_task_still_waiting": true,
+    "original_reply_attribution_retained_once": true,
+    "public_request_replay_preserves_messages": true,
+    "no_task_grant_issuance_or_renewal": true,
+    "source_backed_review_followup_count": 1,
+    "source_backed_independent_incoming_answer_count": 1
+  },
+  "artifact_byte_payloads_verified": 2,
+  "source_inputs_stable": 1114,
+  "runtime_payload_files_rehashed": 1527,
+  "owned_process_cleanup": "passed; no surviving owned processes",
+  "proofs": {
+    "official_selected_lane": {
+      "path": ".local/gate-5-checks/20261015T103214.054389Z/result.json",
+      "sha256": "b1a63b27a4d0ed7c8f91da51a2ee2863a5c0ef4c9c09ff9617ce47fc03ded15b"
+    },
+    "actual_journey": {
+      "path": ".local/gate5-agent-access/identity-model-20261015T103214.699280Z/result.json",
+      "sha256": "3aa6cb7ac7a8431ce54f85173c05265830b672429b57f7eea7183a292bcd4bcd"
+    },
+    "independent_review": {
+      "path": ".local/gate5/actual-model-readiness-ab843b8-20261015/quality-actual-model-review.json",
+      "sha256": "d8f44415d0962b9d8c2c85dc273cf1a969174bd3dd7742e4c3d3216139edd464"
+    },
+    "matching_installed": {
+      "path": "docs/evidence/gate-5/complete-installed-ab843b8.json",
+      "sha256": "d6d22fd50c683a79b00acec766ba75e71574e7a05f45defd2e96613e7a29d635"
+    }
+  },
+  "limits": [
+    "This selected lane proves actual model behavior; other source/installed obligations retain their separate accepted compositions.",
+    "No automatic wake, model video understanding, carrier operation, provider account readiness or normalized builtin-provider execution is inferred.",
+    "Three independent human walkthroughs, final documentation/quality/seal, owner acceptance and publication remain separate."
+  ]
+}
