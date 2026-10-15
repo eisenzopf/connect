@@ -17,6 +17,7 @@ from .qualification_process import run_phase
 from .media_failure_proof import verify_external_failures
 from .qualification_report import environment, check_test_results
 from .setup_provider_fixture import CHECKS as PROVIDER_SETUP_CHECKS
+from video.acceptance_policy import POLICY as MEDIA_ACCEPTANCE_POLICY, audio_video_acceptance
 
 CONNECTED_APP_CHECKS = (
     'normal example excludes test-support crash controls',
@@ -269,19 +270,49 @@ def verify_native_cleanup(observed, release, source, ffmpeg, revision, work_root
 
 
 def verify_decoded_routes(observed, expected_status, seconds):
-    """Require every route's completed scenario, not only an aggregate label."""
+    """Require every completed route and its exact scenario acceptance policy."""
     def duration(value):
         return type(value) in (int, float) and math.isfinite(value) and value >= seconds
 
+    scenarios = {'passed-clean': ('clean', 'clean'),
+                 'passed-impairment': ('impairment', 'impairment'),
+                 'passed-mute-recovery': ('mute-recovery', 'mute')}
+    scenario, av_scenario = scenarios.get(expected_status, (None, None))
     routes = observed.get('paths')
-    if (not duration(observed.get('qualification_seconds'))
+    if (scenario is None or observed.get('status') != expected_status
+            or observed.get('scenario') != scenario
+            or observed.get('acceptance_policy') != MEDIA_ACCEPTANCE_POLICY
+            or not duration(observed.get('qualification_seconds'))
             or not isinstance(routes, list) or len(routes) != 3
             or any(not isinstance(route, dict) for route in routes)
             or {route.get('path') for route in routes}
             != {'native-native', 'native-browser', 'browser-browser'}
             or any(route.get('status') != expected_status
+                   or route.get('scenario') != scenario
+                   or route.get('acceptance_policy') != MEDIA_ACCEPTANCE_POLICY
                    or not duration(route.get('qualification_seconds')) for route in routes)):
         raise ValueError('Installed decoded paths did not complete every candidate route/input scenario')
+    for route in routes:
+        native = route.get('native')
+        expected_native = {'native-native': 2, 'native-browser': 1, 'browser-browser': 0}[route['path']]
+        browser = route.get('browser', {})
+        observers = browser.get('observations', []) if isinstance(browser, dict) else None
+        if (not isinstance(native, list) or len(native) != expected_native
+                or not isinstance(observers, list) or len(observers) != 2 - expected_native
+                or (observers and browser.get('acceptance_policy') != MEDIA_ACCEPTANCE_POLICY)):
+            raise ValueError('Installed decoded paths did not complete every candidate route/input observer')
+        if any(not isinstance(participant, dict)
+               or not isinstance(participant.get('av_sync'), dict)
+               or not isinstance(participant['av_sync'].get('audio_envelope'), dict)
+               or participant['av_sync']['audio_envelope'].get('status') != 'observer-valid'
+               for participant in observers):
+            raise ValueError('Installed decoded paths did not complete every candidate route/input audio observer')
+        for participant in native + observers:
+            if not isinstance(participant, dict):
+                raise ValueError('Installed decoded paths did not complete every candidate route/input observer')
+            expected = audio_video_acceptance(participant.get('av_sync'), av_scenario, seconds)
+            if expected['status'] != 'passed' or participant.get('av_acceptance') != expected:
+                raise ValueError('Installed decoded paths did not complete every candidate route/input A/V policy')
 
 
 def verify_provider_setup(observed):
@@ -313,6 +344,7 @@ def qualify(release, source, manifest, directory, independent_python=None, media
                CONNECT_SOURCE_REVISION=manifest['source_revision'],
                CARGO_TARGET_DIR=str(directory / 'target'))
     report = {'status': 'running', 'source_revision': manifest['source_revision'],
+              'media_acceptance_policy': MEDIA_ACCEPTANCE_POLICY,
               'installed_binary_sha256': digest(release / 'bin/connect'),
               'installed_video_sha256': digest(release / 'bin/connect-video'),
               'steps': [], 'whole_gate_qualified': False, 'unresolved': []}

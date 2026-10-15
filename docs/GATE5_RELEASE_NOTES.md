@@ -33,11 +33,35 @@ A separate 60-second [two-native-pair observation](evidence/gate-5/native-concur
 recorded roughly 5.1–5.3 independently decoded changing frames per second across
 four participants, below the 24 fps clean-profile comparison. This exploratory
 result does not extend the supported **one simultaneous two-party call** profile
-or establish a capacity claim. Approved browser impairment remains unresolved.
+or establish a capacity claim. These historical impaired-browser reports retain
+their original failures; fresh qualification under the October 15 policy remains
+unperformed.
 Actual-model execution, three independent human walkthroughs and owner acceptance
 remain open. All 16 acceptance criteria remain not-qualified. Earlier failed
 runs retain their original outcomes. These progress annotations postdate the
 0d archive and are not claimed to be its baked documentation.
+
+## October 15 impairment-only policy amendment
+
+The owner approved “Relax quality expectations under poor network conditions”.
+[Decision 012](decisions/012-gate-5-impaired-media-proposal.md) records the exact
+qualification policy `connect-media-acceptance/2`, separate from the unchanged
+`connect-video-vp8/1` wire/media profile. Only impaired A/V skew and validly
+derived A/V measurement availability become advisory degraded-quality results.
+Raw measurements and failure reasons remain visible. Clean and mute checks stay
+strict; malformed observers, invalid derivation, wrong source identity and all
+existing non-A/V hard checks still fail. The 3% loss, 0–100 ms delay/reordering,
+two 250 ms interruptions and existing 1 fps impaired moving-video floor remain
+unchanged, alongside identified duplex audio, continuous fresh motion, bounded
+resources and five-second paired teardown.
+
+Recovery within two seconds still means fresh decoded motion after each
+interruption; it does not promise restoration of full clean quality. Candidate
+`0d285d168509` predates this policy implementation. It and earlier failed reports
+are not retrospectively qualified. Fresh policy tests and matching new-policy
+candidate qualification are required. No criterion or task is completed by the
+policy approval; full installed, actual-model, human and owner acceptance remain
+separate requirements.
 
 ## Changes prepared for this candidate
 
@@ -91,12 +115,14 @@ attempts before reusing it for a later source graph.
 
 ## Profile targets and unsupported paths
 
-The [frozen local profile](decisions/011-gate-5-profile.md) targets one two-party
+The [approved local profile](decisions/011-gate-5-profile.md) targets one two-party
 640×360 VP8 call, at most 30 fps, with at least 24 independently decoded moving
 frames per second for each clean 60-second route. It separately requires duplex
-identifiable audio, A/V marker alignment, impaired recovery, bounded resources,
+identifiable audio, strict clean/mute A/V marker alignment, impaired fresh-motion
+recovery, bounded resources,
 concurrent verified file transfer and paired teardown within five seconds.
-These are qualification requirements, not measurements claimed by this draft.
+Impaired A/V quality is measured and advisory only under the versioned policy
+above. These are qualification requirements, not measurements claimed by this draft.
 Queue occupancy is sampled; Quinn's internal evictions/queued age and physical
 speaker/display latency are not observed by those counters.
 

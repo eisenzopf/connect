@@ -8,7 +8,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { ordinalSync } from "./marker_calibration.mjs";
 import { audioObservation } from "./audio_observation.mjs";
-import { combineAudioEnvelopeSync, audioVideoSyncPassed } from "./audio_envelope.mjs";
+import { combineAudioEnvelopeSync } from "./audio_envelope.mjs";
+import { acceptancePolicy, audioVideoAcceptance } from "./acceptance_policy.mjs";
 import { motionObservation } from "./motion_observation.mjs";
 import { workerPipeline } from "./encoded_worker_observation.mjs";
 import { installPeerDiagnostics, browserFailure } from "./browser_failure.mjs";
@@ -338,7 +339,8 @@ try {
             video_rtp_bytes:videoBytes,video_rtp_bitrate_bits_per_second:videoBytes===null?null:videoBytes*8/observedElapsed,
             keyframes:delta("keyframes"),audio_rms:end.audio.rms,audio_frequency_hz:end.audio.frequency_hz,
             maximum_changing_decoded_frame_observation_gap_seconds:maximumMotionGap,
-            expected_audio_frequency_hz:expected,av_sync:sync,recovery,elapsed_seconds:observedElapsed};
+            expected_audio_frequency_hz:expected,av_sync:sync,
+            av_acceptance:audioVideoAcceptance(sync,spec.profileMode,spec.seconds),recovery,elapsed_seconds:observedElapsed};
     });
     const closeAt=performance.now();
     const release=page=>page.evaluate(async()=>{
@@ -362,9 +364,9 @@ try {
     const passed=observations.every(o=>o.worker_pipeline.status==="passed"&&(o.motion_profile.status==="passed"||(spec.muteRecovery&&pages.length===1&&o.motion_profile.status==="requires-counterpart-setter-binding"))&&(o.audio_profile.status==="passed"||(spec.muteRecovery&&pages.length===1&&o.audio_profile.status==="requires-counterpart-setter-binding"))&&o.source_identity.status==="passed"&&o.stats_available&&o.decoded!==null&&o.codec?.toLowerCase()==="video/vp8"&&o.width===640&&o.height===360
         &&o.decoded/o.elapsed_seconds>=(spec.profileMode==="clean"?24:1)&&o.changing/o.elapsed_seconds>=(spec.profileMode==="clean"?24:1)&&o.audio_rms>0.001
         &&Math.abs(o.audio_frequency_hz-o.expected_audio_frequency_hz)<35
-        &&o.av_sync.status==="passed"&&audioVideoSyncPassed(o.av_sync,spec.seconds)
+        &&o.av_sync.audio_envelope?.status==="observer-valid"&&o.av_acceptance.status==="passed"
         &&o.recovery.every(item=>item.status==="passed"))&&teardown<5&&ended.every(Boolean)&&pairedTermination.status!=="failed";
-    console.log(JSON.stringify({status:passed?"passed":"failed",profile:"connect-video-vp8/1",
+    console.log(JSON.stringify({status:passed?"passed":"failed",profile:"connect-video-vp8/1",acceptance_policy:acceptancePolicy,
         browser:browser.version(),observations,teardown_seconds:teardown,paired_termination:pairedTermination,
         ended_unix_seconds:Date.now()/1000}));
     if(!passed)process.exitCode=1;

@@ -1113,4 +1113,161 @@ class FailureEvidencePreservationTests(unittest.TestCase):
                 self.assertNotIn('private decode', json.dumps(observed))
 
 
+class AcceptancePolicyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location('acceptance_policy_tests', pathlib.Path(__file__).parents[1] / 'video/acceptance_policy.py')
+        cls.policy = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.policy)
+
+    def sync(self, offset=0, count=70):
+        edges = [frame / 30 for frame in MEDIA.decoder.markers.marker_frames()][:count]
+        return MEDIA.decoder.markers.ordinal_sync(edges, [at + offset for at in edges], 60)
+
+    def test_strict_clean_and_mute_remain_strict_but_impairment_preserves_degraded_measurement(self):
+        import copy
+        good = self.sync()
+        poor = self.sync(.3)
+        original = copy.deepcopy(poor)
+        for scenario in ('clean', 'mute'):
+            self.assertEqual(self.policy.audio_video_acceptance(good, scenario, 60)['status'], 'passed')
+            self.assertEqual(self.policy.audio_video_acceptance(poor, scenario, 60)['status'], 'failed')
+        accepted = self.policy.audio_video_acceptance(poor, 'impairment', 60)
+        self.assertEqual((accepted['status'], accepted['quality_status'], accepted['reason']),
+                         ('passed', 'failed', 'impaired-quality-advisory'))
+        self.assertEqual(poor, original)
+
+    def test_sparse_and_contradictory_valid_cadence_are_advisory_only_under_impairment(self):
+        sparse = self.sync(count=30)
+        contradictory = MEDIA.decoder.markers.ordinal_sync([.1, .2, .3, .4, .5, .6, .7], [], 60)
+        for sync in (sparse, contradictory):
+            self.assertEqual(sync['status'], 'failed')
+            self.assertEqual(self.policy.audio_video_acceptance(sync, 'impairment', 60)['status'], 'passed')
+            self.assertEqual(self.policy.audio_video_acceptance(sync, 'clean', 60)['status'], 'failed')
+
+    def test_malformed_edges_and_count_overflow_cannot_be_advisory(self):
+        import copy
+        good = self.sync()
+        for values, count in (([1, float('nan')], 2), ([1, float('inf')], 2), ([2, 1], 2),
+                              ([1, 1], 2), ([True, 2], 2), ([1, 2], 1), ([1], True),
+                              (list(range(513)), 513), ('not edges', 9)):
+            sync = copy.deepcopy(good)
+            sync.update(video_edge_seconds=values, video_markers=count)
+            self.assertEqual(self.policy.audio_video_acceptance(sync, 'impairment', 60)['status'], 'failed')
+
+    def test_fabricated_summary_pair_and_calibration_metadata_fail_closed(self):
+        import copy
+        good = self.sync()
+        mutations = [lambda s: s.update(paired=99), lambda s: s.update(median_abs_skew_ms=70),
+                     lambda s: s.update(status='failed'), lambda s: s.update(marker_pairs=[]),
+                     lambda s: s['marker_pairs'][0].update(ordinal=999),
+                     lambda s: s['video_calibration']['ordinals'].__setitem__(0, 999),
+                     lambda s: s['limits'].update(p95_abs_skew_ms=999)]
+        for mutate in mutations:
+            sync = copy.deepcopy(good); mutate(sync)
+            self.assertEqual(self.policy.audio_video_acceptance(sync, 'impairment', 60)['reason'], 'inconsistent-observation')
+
+    def test_invalid_envelope_cannot_override_good_or_degraded_skew(self):
+        for offset in (0, .3):
+            for invalid in ({'status': 'observer-invalid'}, {'overflow': True}, {'invalid_input': True},
+                            {'invalid': [{'reason': 'unobserved active envelope'}]}):
+                sync = self.sync(offset)
+                sync['audio_envelope'] = dict(status='observer-valid', overflow=False, invalid_input=False, invalid=[])
+                sync['audio_envelope'].update(invalid)
+                self.assertEqual(self.policy.audio_video_acceptance(sync, 'impairment', 60)['reason'], 'invalid-observer')
+        sync = self.sync(); sync['observer_failure'] = 'invalid mapping'
+        self.assertEqual(self.policy.audio_video_acceptance(sync, 'impairment', 60)['status'], 'failed')
+
+    def test_unknown_scenarios_duration_and_unmapped_native_reports_fail_closed(self):
+        for scenario in ('', 'mute-recovery', 'exploratory', None, 'IMPAIRMENT'):
+            self.assertEqual(self.policy.audio_video_acceptance(self.sync(), scenario, 60)['reason'], 'invalid-scenario')
+        for seconds in (0, 121, float('nan'), float('inf'), True, '60'):
+            self.assertEqual(self.policy.audio_video_acceptance(self.sync(), 'impairment', seconds)['reason'], 'invalid-duration')
+        for sync in (None, {}, {'status': 'unmapped', 'reason': 'decoder correspondence failed'}):
+            self.assertEqual(self.policy.audio_video_acceptance(sync, 'impairment', 60)['status'], 'failed')
+
+
+    def test_shared_acceptance_cases_match_actual_javascript_and_preserve_raw_evidence(self):
+        import copy
+        fixture_path = pathlib.Path(__file__).with_name('av_acceptance_cases.json')
+        fixture = json.loads(fixture_path.read_text())
+        outputs = []
+        for row in fixture['cases']:
+            variant = fixture['variants'][row['variant']]
+            sync = MEDIA.decoder.markers.ordinal_sync(variant['video_edges'], variant['audio_edges'], row['seconds'])
+            for dotted, value in row['changes']:
+                keys = dotted.split('.'); target = sync
+                for key in keys[:-1]: target = target[int(key)] if isinstance(target, list) else target[key]
+                target[int(keys[-1]) if isinstance(target, list) else keys[-1]] = copy.deepcopy(value)
+            original = copy.deepcopy(sync)
+            actual = self.policy.audio_video_acceptance(sync, row['scenario'], row['seconds'])
+            self.assertEqual(actual, row['expected'], row['name'])
+            self.assertEqual(sync, original, row['name'])
+            outputs.append(actual)
+        self.assertEqual(len(outputs), 30)
+        module = (pathlib.Path(__file__).parents[1] / 'video/acceptance_policy.mjs').resolve().as_uri()
+        marker = (pathlib.Path(__file__).parents[1] / 'video/marker_calibration.mjs').resolve().as_uri()
+        script = ("import fs from 'node:fs';import {audioVideoAcceptance} from " + json.dumps(module)
+                  + ";import {ordinalSync} from " + json.dumps(marker) + ";"
+                  + "const f=JSON.parse(fs.readFileSync(0,'utf8'));console.log(JSON.stringify(f.cases.map(r=>{"
+                  + "const v=f.variants[r.variant],s=ordinalSync(v.video_edges,v.audio_edges,r.seconds);"
+                  + "for(const[p,x]of r.changes){const k=p.split('.');let t=s;for(const a of k.slice(0,-1))t=t[a];t[k.at(-1)]=x;}"
+                  + "return audioVideoAcceptance(s,r.scenario,r.seconds);})));" )
+        result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'), '--input-type=module', '-e', script],
+                                input=json.dumps(fixture), capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), outputs)
+
+    def test_javascript_acceptance_executes_all_thirty_four_adversarial_guards(self):
+        script = pathlib.Path(__file__).with_name('acceptance_policy.test.mjs')
+        result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'), '--test', '--test-reporter=tap', str(script)],
+                                capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for count in ('# tests 34', '# pass 34', '# fail 0', '# cancelled 0', '# skipped 0'):
+            self.assertIn(count + '\n', result.stdout)
+
+
+    def test_actual_native_verdict_keeps_non_av_hard_gates_during_degradation(self):
+        import ast
+        import copy
+        import types
+        tree = ast.parse((pathlib.Path(__file__).parents[1] / 'check-video-paths.py').read_text())
+        function = next(n for n in tree.body if isinstance(n, ast.AsyncFunctionDef) and n.name == '_qualify_path')
+        expressions = [n.value for n in ast.walk(function) if isinstance(n, ast.Assign)
+                       and any(isinstance(t, ast.Name) and t.id == 'passed' for t in n.targets)]
+        self.assertEqual(len(expressions), 1)
+        expression = compile(ast.Expression(expressions[0]), '<actual native route verdict>', 'eval')
+        sync = self.sync(.3)
+        sync['source_identity'] = {'status': 'passed'}
+        participant = {'video': {'changing_fps': 5, 'motion_profile': {'status': 'passed'},
+                                 'width': 640, 'height': 360, 'clean_decoder_diagnostics': False},
+                       'audio': {'identifiable_tone': True, 'duration_seconds': 60},
+                       'teardown_seconds': .1, 'participant_success': True, 'av_sync': sync,
+                       'av_acceptance': self.policy.audio_video_acceptance(sync, 'impairment', 60),
+                       'sdk_media': {'status': 'measured'}, 'maximum_rtp_bytes': 1180,
+                       'maximum_encoded_frame_bytes': 1024, 'assembly': {'peak_pending_frames': 1, 'peak_queued_fragments': 1},
+                       'playout': {'peak_video_frames': 1, 'peak_audio_frames': 1, 'maximum_hold_ms': 10},
+                       'maximum_codec_emission_hold_ms': 10}
+        observed = {'forwarding_diagnostics': {'status': 'measured'}, 'paired_termination': {'status': 'passed'},
+                    'resources': {'within_limits': True}, 'network': {'within_limits': True}}
+        def verdict(peer, route):
+            return eval(expression, {'args': types.SimpleNamespace(impairment=True, mute_recovery=False, seconds=60),
+                                     'file_containment': {'required_in_this_scenario': False},
+                                     'native': [peer], 'observed': route})
+        self.assertTrue(verdict(participant, observed))
+        for path, value in [('video.changing_fps', .5), ('video.motion_profile.status', 'failed'),
+                            ('audio.identifiable_tone', False), ('audio.duration_seconds', 1),
+                            ('av_sync.source_identity.status', 'failed'), ('participant_success', False),
+                            ('teardown_seconds', 6), ('sdk_media.status', 'missing'), ('maximum_rtp_bytes', 1181),
+                            ('assembly.peak_queued_fragments', 65), ('playout.maximum_hold_ms', 201)]:
+            peer = copy.deepcopy(participant); keys = path.split('.'); target = peer
+            for key in keys[:-1]: target = target[key]
+            target[keys[-1]] = value
+            self.assertFalse(verdict(peer, observed), path)
+        for key in ('resources', 'network'):
+            route = copy.deepcopy(observed); route[key]['within_limits'] = False
+            self.assertFalse(verdict(participant, route), key)
+        route = copy.deepcopy(observed); route['paired_termination']['status'] = 'failed'
+        self.assertFalse(verdict(participant, route))
+
+
 if __name__ == '__main__': unittest.main()

@@ -1,0 +1,1038 @@
+{
+  "schema": "av-acceptance-parity-cases/1",
+  "variants": {
+    "aligned": {
+      "video_edges": [
+        0.3,
+        0.8,
+        1.3,
+        1.8,
+        2.3,
+        2.8,
+        3.3,
+        4.2,
+        4.7,
+        5.2,
+        5.7,
+        6.2,
+        6.7,
+        8.0,
+        8.5,
+        9.0,
+        9.5,
+        10.0,
+        10.9,
+        11.8,
+        12.3,
+        12.8,
+        13.3,
+        13.8,
+        14.7,
+        16.0,
+        16.5,
+        17.0,
+        17.5,
+        18.0,
+        19.3,
+        20.2,
+        20.7,
+        21.2,
+        21.7,
+        22.2,
+        23.5,
+        24.8,
+        25.3,
+        25.8,
+        26.3,
+        27.2,
+        27.7,
+        28.6,
+        29.1,
+        29.6,
+        30.1,
+        31.0,
+        31.5,
+        32.8,
+        33.3,
+        33.8,
+        34.3,
+        35.2,
+        36.1,
+        37.0,
+        37.5,
+        38.0,
+        38.5,
+        39.4,
+        40.3,
+        41.6,
+        42.1,
+        42.6,
+        43.1,
+        44.0,
+        45.3,
+        46.2,
+        46.7,
+        47.2,
+        47.7,
+        48.6,
+        49.9,
+        51.2,
+        51.7,
+        52.2,
+        52.7,
+        54.0,
+        54.5,
+        55.4,
+        55.9,
+        56.4,
+        56.9,
+        58.2,
+        58.7
+      ],
+      "audio_edges": [
+        0.3,
+        0.8,
+        1.3,
+        1.8,
+        2.3,
+        2.8,
+        3.3,
+        4.2,
+        4.7,
+        5.2,
+        5.7,
+        6.2,
+        6.7,
+        8.0,
+        8.5,
+        9.0,
+        9.5,
+        10.0,
+        10.9,
+        11.8,
+        12.3,
+        12.8,
+        13.3,
+        13.8,
+        14.7,
+        16.0,
+        16.5,
+        17.0,
+        17.5,
+        18.0,
+        19.3,
+        20.2,
+        20.7,
+        21.2,
+        21.7,
+        22.2,
+        23.5,
+        24.8,
+        25.3,
+        25.8,
+        26.3,
+        27.2,
+        27.7,
+        28.6,
+        29.1,
+        29.6,
+        30.1,
+        31.0,
+        31.5,
+        32.8,
+        33.3,
+        33.8,
+        34.3,
+        35.2,
+        36.1,
+        37.0,
+        37.5,
+        38.0,
+        38.5,
+        39.4,
+        40.3,
+        41.6,
+        42.1,
+        42.6,
+        43.1,
+        44.0,
+        45.3,
+        46.2,
+        46.7,
+        47.2,
+        47.7,
+        48.6,
+        49.9,
+        51.2,
+        51.7,
+        52.2,
+        52.7,
+        54.0,
+        54.5,
+        55.4,
+        55.9,
+        56.4,
+        56.9,
+        58.2,
+        58.7
+      ]
+    },
+    "offset": {
+      "video_edges": [
+        0.3,
+        0.8,
+        1.3,
+        1.8,
+        2.3,
+        2.8,
+        3.3,
+        4.2,
+        4.7,
+        5.2,
+        5.7,
+        6.2,
+        6.7,
+        8.0,
+        8.5,
+        9.0,
+        9.5,
+        10.0,
+        10.9,
+        11.8,
+        12.3,
+        12.8,
+        13.3,
+        13.8,
+        14.7,
+        16.0,
+        16.5,
+        17.0,
+        17.5,
+        18.0,
+        19.3,
+        20.2,
+        20.7,
+        21.2,
+        21.7,
+        22.2,
+        23.5,
+        24.8,
+        25.3,
+        25.8,
+        26.3,
+        27.2,
+        27.7,
+        28.6,
+        29.1,
+        29.6,
+        30.1,
+        31.0,
+        31.5,
+        32.8,
+        33.3,
+        33.8,
+        34.3,
+        35.2,
+        36.1,
+        37.0,
+        37.5,
+        38.0,
+        38.5,
+        39.4,
+        40.3,
+        41.6,
+        42.1,
+        42.6,
+        43.1,
+        44.0,
+        45.3,
+        46.2,
+        46.7,
+        47.2,
+        47.7,
+        48.6,
+        49.9,
+        51.2,
+        51.7,
+        52.2,
+        52.7,
+        54.0,
+        54.5,
+        55.4,
+        55.9,
+        56.4,
+        56.9,
+        58.2,
+        58.7
+      ],
+      "audio_edges": [
+        0.6,
+        1.1,
+        1.6,
+        2.1,
+        2.5999999999999996,
+        3.0999999999999996,
+        3.5999999999999996,
+        4.5,
+        5.0,
+        5.5,
+        6.0,
+        6.5,
+        7.0,
+        8.3,
+        8.8,
+        9.3,
+        9.8,
+        10.3,
+        11.200000000000001,
+        12.100000000000001,
+        12.600000000000001,
+        13.100000000000001,
+        13.600000000000001,
+        14.100000000000001,
+        15.0,
+        16.3,
+        16.8,
+        17.3,
+        17.8,
+        18.3,
+        19.6,
+        20.5,
+        21.0,
+        21.5,
+        22.0,
+        22.5,
+        23.8,
+        25.1,
+        25.6,
+        26.1,
+        26.6,
+        27.5,
+        28.0,
+        28.900000000000002,
+        29.400000000000002,
+        29.900000000000002,
+        30.400000000000002,
+        31.3,
+        31.8,
+        33.099999999999994,
+        33.599999999999994,
+        34.099999999999994,
+        34.599999999999994,
+        35.5,
+        36.4,
+        37.3,
+        37.8,
+        38.3,
+        38.8,
+        39.699999999999996,
+        40.599999999999994,
+        41.9,
+        42.4,
+        42.9,
+        43.4,
+        44.3,
+        45.599999999999994,
+        46.5,
+        47.0,
+        47.5,
+        48.0,
+        48.9,
+        50.199999999999996,
+        51.5,
+        52.0,
+        52.5,
+        53.0,
+        54.3,
+        54.8,
+        55.699999999999996,
+        56.199999999999996,
+        56.699999999999996,
+        57.199999999999996,
+        58.5,
+        59.0
+      ]
+    },
+    "few": {
+      "video_edges": [
+        0.3,
+        0.8,
+        1.3,
+        1.8,
+        2.3,
+        2.8,
+        3.3,
+        4.2,
+        4.7,
+        5.2,
+        5.7,
+        6.2,
+        6.7,
+        8.0,
+        8.5,
+        9.0,
+        9.5,
+        10.0,
+        10.9,
+        11.8
+      ],
+      "audio_edges": [
+        0.3,
+        0.8,
+        1.3,
+        1.8,
+        2.3,
+        2.8,
+        3.3,
+        4.2,
+        4.7,
+        5.2,
+        5.7,
+        6.2,
+        6.7,
+        8.0,
+        8.5,
+        9.0,
+        9.5,
+        10.0,
+        10.9,
+        11.8
+      ]
+    },
+    "empty": {
+      "video_edges": [],
+      "audio_edges": []
+    },
+    "inconsistent_cadence": {
+      "video_edges": [
+        0.0,
+        0.13,
+        0.26,
+        0.39,
+        0.52,
+        0.65,
+        0.78,
+        0.91,
+        1.04,
+        1.17,
+        1.3,
+        1.4300000000000002,
+        1.56,
+        1.69,
+        1.82,
+        1.9500000000000002,
+        2.08,
+        2.21,
+        2.34,
+        2.47,
+        2.6,
+        2.73,
+        2.8600000000000003,
+        2.99,
+        3.12,
+        3.25,
+        3.38,
+        3.5100000000000002,
+        3.64,
+        3.77
+      ],
+      "audio_edges": [
+        0.3,
+        0.8,
+        1.3,
+        1.8,
+        2.3,
+        2.8,
+        3.3,
+        4.2,
+        4.7,
+        5.2,
+        5.7,
+        6.2,
+        6.7,
+        8.0,
+        8.5,
+        9.0,
+        9.5,
+        10.0,
+        10.9,
+        11.8,
+        12.3,
+        12.8,
+        13.3,
+        13.8,
+        14.7,
+        16.0,
+        16.5,
+        17.0,
+        17.5,
+        18.0,
+        19.3,
+        20.2,
+        20.7,
+        21.2,
+        21.7,
+        22.2,
+        23.5,
+        24.8,
+        25.3,
+        25.8,
+        26.3,
+        27.2,
+        27.7,
+        28.6,
+        29.1,
+        29.6,
+        30.1,
+        31.0,
+        31.5,
+        32.8,
+        33.3,
+        33.8,
+        34.3,
+        35.2,
+        36.1,
+        37.0,
+        37.5,
+        38.0,
+        38.5,
+        39.4,
+        40.3,
+        41.6,
+        42.1,
+        42.6,
+        43.1,
+        44.0,
+        45.3,
+        46.2,
+        46.7,
+        47.2,
+        47.7,
+        48.6,
+        49.9,
+        51.2,
+        51.7,
+        52.2,
+        52.7,
+        54.0,
+        54.5,
+        55.4,
+        55.9,
+        56.4,
+        56.9,
+        58.2,
+        58.7
+      ]
+    }
+  },
+  "cases": [
+    {
+      "name": "strict clean aligned",
+      "scenario": "clean",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "clean",
+        "status": "passed",
+        "quality_status": "passed",
+        "reason": "quality-met"
+      }
+    },
+    {
+      "name": "strict mute aligned",
+      "scenario": "mute",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "mute",
+        "status": "passed",
+        "quality_status": "passed",
+        "reason": "quality-met"
+      }
+    },
+    {
+      "name": "impaired aligned",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "passed",
+        "quality_status": "passed",
+        "reason": "quality-met"
+      }
+    },
+    {
+      "name": "clean offset",
+      "scenario": "clean",
+      "seconds": 60,
+      "variant": "offset",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "clean",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    },
+    {
+      "name": "mute offset",
+      "scenario": "mute",
+      "seconds": 60,
+      "variant": "offset",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "mute",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    },
+    {
+      "name": "impairment offset",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "offset",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "passed",
+        "quality_status": "failed",
+        "reason": "impaired-quality-advisory"
+      }
+    },
+    {
+      "name": "clean few",
+      "scenario": "clean",
+      "seconds": 60,
+      "variant": "few",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "clean",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    },
+    {
+      "name": "mute few",
+      "scenario": "mute",
+      "seconds": 60,
+      "variant": "few",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "mute",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    },
+    {
+      "name": "impairment few",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "few",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "passed",
+        "quality_status": "failed",
+        "reason": "impaired-quality-advisory"
+      }
+    },
+    {
+      "name": "clean empty",
+      "scenario": "clean",
+      "seconds": 60,
+      "variant": "empty",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "clean",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    },
+    {
+      "name": "mute empty",
+      "scenario": "mute",
+      "seconds": 60,
+      "variant": "empty",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "mute",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    },
+    {
+      "name": "impairment empty",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "empty",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "passed",
+        "quality_status": "failed",
+        "reason": "impaired-quality-advisory"
+      }
+    },
+    {
+      "name": "clean inconsistent_cadence",
+      "scenario": "clean",
+      "seconds": 60,
+      "variant": "inconsistent_cadence",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "clean",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    },
+    {
+      "name": "mute inconsistent_cadence",
+      "scenario": "mute",
+      "seconds": 60,
+      "variant": "inconsistent_cadence",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "mute",
+        "status": "failed",
+        "quality_status": "failed",
+        "reason": "strict-quality-not-met"
+      }
+    },
+    {
+      "name": "impairment inconsistent_cadence",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "inconsistent_cadence",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "passed",
+        "quality_status": "failed",
+        "reason": "impaired-quality-advisory"
+      }
+    },
+    {
+      "name": "wrong marker count",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "video_markers",
+          1
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "invalid-observation"
+      }
+    },
+    {
+      "name": "reordered raw edges",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "video_edge_seconds",
+          [
+            1,
+            0
+          ]
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "invalid-observation"
+      }
+    },
+    {
+      "name": "duplicate raw edges",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "video_edge_seconds",
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "invalid-observation"
+      }
+    },
+    {
+      "name": "fabricated numeric skew",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "median_abs_skew_ms",
+          1
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "inconsistent-observation"
+      }
+    },
+    {
+      "name": "fabricated derived status",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "status",
+          "failed"
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "inconsistent-observation"
+      }
+    },
+    {
+      "name": "fabricated ordinal",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "marker_pairs.0.ordinal",
+          99
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "inconsistent-observation"
+      }
+    },
+    {
+      "name": "invalid audio observer",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "audio_envelope",
+          {
+            "status": "observer-invalid",
+            "invalid": [],
+            "overflow": false,
+            "invalid_input": false
+          }
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "invalid-observer"
+      }
+    },
+    {
+      "name": "observer overflow",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "audio_envelope",
+          {
+            "status": "observer-valid",
+            "invalid": [],
+            "overflow": true,
+            "invalid_input": false
+          }
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "invalid-observer"
+      }
+    },
+    {
+      "name": "explicit observer failure",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "observer_failure",
+          "invalid retained observation"
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "invalid-observer"
+      }
+    },
+    {
+      "name": "valid browser envelope",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "audio_envelope",
+          {
+            "status": "observer-valid",
+            "invalid": [],
+            "overflow": false,
+            "invalid_input": false
+          }
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "passed",
+        "quality_status": "passed",
+        "reason": "quality-met"
+      }
+    },
+    {
+      "name": "extra native metadata",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "decoder_mapping",
+          {
+            "mapped_decoded_frames": 123
+          }
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "passed",
+        "quality_status": "passed",
+        "reason": "quality-met"
+      }
+    },
+    {
+      "name": "unknown scenario",
+      "scenario": "other",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "other",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "invalid-scenario"
+      }
+    },
+    {
+      "name": "invalid duration",
+      "scenario": "impairment",
+      "seconds": 0,
+      "variant": "aligned",
+      "changes": [],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "invalid-duration"
+      }
+    },
+    {
+      "name": "fractional pair count",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "paired",
+          85.00000001
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "inconsistent-observation"
+      }
+    },
+    {
+      "name": "fractional ordinal",
+      "scenario": "impairment",
+      "seconds": 60,
+      "variant": "aligned",
+      "changes": [
+        [
+          "marker_pairs.0.ordinal",
+          1e-08
+        ]
+      ],
+      "expected": {
+        "policy": "connect-media-acceptance/2",
+        "scenario": "impairment",
+        "status": "failed",
+        "quality_status": "invalid",
+        "reason": "inconsistent-observation"
+      }
+    }
+  ]
+}

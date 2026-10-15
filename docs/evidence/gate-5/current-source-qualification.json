@@ -1,240 +1,32 @@
 {
-  "status": "Historical clean66115d2 passed all84 source phases; ten current changed inputs have independently accepted scoped repair proofs, including the reference contact correction. Matching replacement package and whole-gate acceptance remain open.",
-  "scope": "Local macOS arm64 source-only lane; not installed, model, full media or release acceptance",
-  "attempts": [
-    {
-      "source_revision": "dfe1f46011b6f8aed37e28f3b5f00b577944261e",
-      "source_dirty_at_start": false,
-      "result": {
-        "path": ".local/gate-5-checks/20261014T153945.445918Z/result.json",
-        "sha256": "3ce41b002e8ba57bededc8bbdc746730879d3091c54937b7d47c11838c57dd0d"
-      },
-      "status": "failed",
-      "passed_phases": 18,
-      "failed_phase": "source--lint",
-      "required_phases": 84,
-      "not_run_phases": 65,
-      "cause": "All96 diagnostics are clippy::unwrap_used from the two upstream QUIC fixture modules imported into the Connect integration-test target.",
-      "correction": "Add the existing repository fixture assertion allowance narrowly to those two imported test modules. No production lint rule, fixture behavior or upstream source changed.",
-      "correction_verification": "Format and focused strict Clippy pass; subsequent full attempt passed strict Clippy and Rustdoc before a later workspace fixture failure.",
-      "focused_clippy": {
-        "path": ".local/gate5/audio-clock-integration/fixture-clippy.log",
-        "sha256": "95f41dbac3e0c70c2721f05fe80f7a19f5a6c73460923bdfe476604fe40d12a3",
-        "command": [
-          "cargo",
-          "clippy",
-          "--locked",
-          "-p",
-          "connect-server",
-          "--test",
-          "gate5_quic_transport",
-          "--all-features",
-          "--",
-          "-D",
-          "warnings"
-        ],
-        "status": "passed"
-      }
-    },
-    {
-      "source_revision": "0ba4fa0d695b2293e5b68a7ef856ae39cfac5ccd",
-      "source_dirty_at_start": false,
-      "result": {
-        "path": ".local/gate-5-checks/20261014T154649.751144Z/result.json",
-        "sha256": "2ff9dd54f5c6f0283996f773ab790d10ead20a85f72cad3c217869a7182a6411"
-      },
-      "status": "failed",
-      "passed_phases": 20,
-      "failed_phase": "source--workspace",
-      "required_phases": 84,
-      "not_run_phases": 63,
-      "workspace": {
-        "path": ".local/ci-workspace/20261014T154916.990594Z/result.json",
-        "sha256": "4e603607d2107f6d5fdf033246f46a15bddd2cd64472955b7a642201901d848e",
-        "completed_targets": 67,
-        "expected_targets": 210,
-        "failed": [
-          {
-            "package": "connect-server",
-            "target": "gate3_webrtc_security"
-          }
-        ]
-      },
-      "cause": "The Gate 3 security fixture expected foreign valid credentials to fail WebSocket upgrade. Gate 5 authenticates normal participant credentials before selecting an accepted AV Session; legacy audio route authorization remains enforced before offer admission.",
-      "correction": "Replace the stale upgrade-only assertion with valid audio offer denial and no durable Session/binding effects for both foreign credentials, plus identical-SDP configured-key admission and existing selected-AV normal-key regression.",
-      "correction_verification": "Passed: dependency preparation; 2 security and 1 selected-session behavior tests with zero failures/ignored; scoped strict Clippy; repository format check. All 1,106 selected source inputs stable. Full source rerun pending.",
-      "focused_proof": {
-        "path": ".local/gate5/webrtc-auth-boundary-repair/proof-20261014T160738/result.json",
-        "sha256": "315e02eeaddac5a4cb7e66057b83d53a9bf9115259fd120dac4c10e7eeb7191d"
-      },
-      "retained_incomplete_positive_attempt": {
-        "path": ".local/gate5/webrtc-auth-boundary-repair/proof-20261014T160231/result.json",
-        "sha256": "ea6b161d60252e940734ebc53011e1191f92cf4b3ca4d27de81c1bb3a5e2feaf"
-      },
-      "fixture_correction": "The first valid-offer positive control exposed a missing configured voice assistant in the old handshake-only fixture. Reuse the existing loopback FakeVapi and configured voice route. Configured identical SDP now receives answer and readiness, creates one Session and binding; foreign keys create none and cause no observed provider create call.",
-      "proof_limits": [
-        "Denial is a terminal socket, not an explicit client authorization error frame.",
-        "Durable Session and binding effects are observed; pre-allocation authorization follows reviewed source order rather than an ephemeral route counter.",
-        "FakeVapi is loopback only; this is not live-provider or decoded provider-media evidence."
-      ],
-      "independent_review": {
-        "path": ".local/gate5/webrtc-auth-boundary-repair/quality-final-review.json",
-        "sha256": "66bb0ea18f8c5910b9c9e474ff4d991e197c2417d5a1ceb84ae1e72603e0c72d"
-      }
-    },
-    {
-      "source_revision": "6635e269b53937b0a4aa3494b39601c6d34812e9",
-      "source_dirty_at_start": false,
-      "result": {
-        "path": ".local/gate-5-checks/20261014T161055.019916Z/result.json",
-        "sha256": "ed05ac4822e00f01c541796536fa2f82ba23def4cf8caff78cd562551781e538"
-      },
-      "status": "failed",
-      "passed_phases": 20,
-      "failed_phase": "source--workspace",
-      "required_phases": 84,
-      "not_run_phases": 63,
-      "workspace": {
-        "path": ".local/ci-workspace/20261014T161125.916876Z/result.json",
-        "sha256": "893df5c755f445b425478c6f41c6a58b953af514630ebb7b19acbaa4d3bc0669",
-        "passed_targets": 169,
-        "expected_targets": 210,
-        "failed": [
-          {
-            "package": "connect-server",
-            "target": "gate5_native_diagnostics"
-          }
-        ]
-      },
-      "cause": "The native diagnostics fixture sent only interframe-tagged synthetic VP8 payloads. The receiver correctly waits for a partition-zero keyframe start; video never reached the receive queue. Ten unchanged repetitions failed; adding a five-second readiness loop with the same payload also failed.",
-      "prior_correction_verification": "Corrected Gate3 valid-offer authorization test passed in the full workspace configuration.",
-      "correction_verification": "Passed: ten predeclared corrected-fixture repetitions with the exact workspace selector, dependency preparation, workspace strict Clippy and repository formatting. All 1,106 selected source inputs stable. Original qualified video0x35, old0x42/fresh0x65, existing receipt deadlines,64-packet/76,032-byte limits and200ms stale-frame policy retained. Full source rerun pending.",
-      "correction": "Use a key-start-tagged synthetic warm-up packet and explicitly observe both media kinds before distinct qualification frames. The diagnostic observes transport/queue behavior, not fully decoded VP8. Production receiver, queue, byte-buffer and200ms stale-frame limits remain unchanged.",
-      "focused_proof": {
-        "path": ".local/gate5/native-diagnostics-startup-repair/candidate-20261014T163840/result.json",
-        "sha256": "1e7f47b9c6f597519d0ac9439292072a2cf0323a3e9ad3102484911e85c2a0c3"
-      },
-      "causal_summary": {
-        "path": ".local/gate5/native-diagnostics-startup-repair/summary.json",
-        "sha256": "31742fce0b0719ffd1e6c0fc0ddcf8a87c94bb9d56889dd5f98dcbba0d653240"
-      },
-      "independent_review": {
-        "path": ".local/gate5/native-diagnostics-startup-repair/quality-final-review.json",
-        "sha256": "f1ce8db98c5e7ad34286f0da1449017a114abfef0d4b4a13924a480140f37755"
-      },
-      "proof_limits": [
-        "Synthetic key-start-tagged encoded payload proves actual transport/queue observations, not fully decoded VP8.",
-        "Separate bounded warm-up observes both actual streams; distinct post-readiness payloads must satisfy the original qualification receipt deadlines.",
-        "No production or upstream source changed; no full-source or media profile pass is claimed."
-      ],
-      "remaining_workspace_diagnostic": {
-        "summary": {
-          "path": ".local/gate5/remaining-workspace-diagnostic-20261014T164003.442627Z/summary.json",
-          "sha256": "bf39744b1987fadc1789704cfdb71766f4d136487db839222f36d0667710250b"
-        },
-        "workspace": {
-          "path": ".local/gate5/remaining-workspace-diagnostic-20261014T164003.442627Z/workspace/result.json",
-          "sha256": "727bc69db47c12e0cba36463f350dad02fb1e57d5a2d0a185a34f33cbfe95a6a"
-        },
-        "log": {
-          "path": ".local/gate5/remaining-workspace-diagnostic-20261014T164003.442627Z/workspace.log",
-          "sha256": "cef0fbfe2b626937144f0fe7fdb6232d47f0f6891f5c183ae30f7f617246aaa7"
-        },
-        "status": "passed",
-        "targets": 41,
-        "inputs_stable": true,
-        "limits": "Only the41 targets not passed in the retained failed run. Uses the same workspace selectors and feature unification; omits169 priorpassed targets. Diagnostic only, not a resumed or complete qualification pass."
-      }
-    },
-    {
-      "source_revision": "9cd89e8d9cc9f262b2f8445864f2b00df4069f62",
-      "source_dirty_at_start": false,
-      "result": {
-        "path": ".local/gate-5-checks/20261014T164703.154843Z/result.json",
-        "sha256": "9872783e41794abf951453492fb865d183eca06aceeb08cdabbe0add3a2b6f1c"
-      },
-      "status": "failed",
-      "passed_phases": 22,
-      "failed_phase": "source--upstream-regression",
-      "required_phases": 84,
-      "not_run_phases": 61,
-      "workspace": {
-        "path": ".local/ci-workspace/20261014T164732.332133Z/result.json",
-        "sha256": "97b92c4fc01f3566cea7ebe9d484bdf2569215b5b0f39710fc863886f66d8e6a",
-        "passed_targets": 210,
-        "expected_targets": 210
-      },
-      "media_pressure": "one and four concurrent sessions,60 seconds each; passed121.16seconds",
-      "upstream_before_failure": "915 Rvoip tests passed; copied Parley lock refused under --locked before tests",
-      "cause": "The isolated Parley regression copy refuses its stale Cargo.lock under --locked. Review also found that Rvoip dependency-level registry overrides do not govern standalone Parley resolution; the check must explicitly select the prepared source graph.",
-      "correction_verification": "Freshly prepared graph34 passes28 Parley tests,21 driver guards,25 package guards,6 archive guards and formatting, with1,108 stable selected inputs. Fullsource rerun remains pending.",
-      "correction_evidence": "docs/evidence/gate-5/parley-qualification-graph.json"
-    },
-    {
-      "source_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
-      "source_dirty_at_start": false,
-      "result": {
-        "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
-        "sha256": "57338ed261774d668cf7ebd847523d0e60591617e0a3bc9509dfc264b53d0cd8"
-      },
-      "status": "passed-selected-lanes",
-      "selected_lanes": [
-        "source"
-      ],
-      "passed_phases": 84,
-      "required_phases": 84,
-      "not_run_phases": 0,
-      "stable_selected_source_inputs": 1108,
-      "started_at": "2026-10-14T17:45:37.438034+00:00",
-      "finished_at": "2026-10-14T19:47:17.155585+00:00",
-      "owned_worker_cleanup": "All84 phases report no leftover process-group members.",
-      "workspace": {
-        "path": ".local/ci-workspace/20261014T175008.368024Z/result.json",
-        "sha256": "b8b11d9b9f60e873473e4ef7a58ce25868ebe6341cd95790a350c36ed1a29877",
-        "passed_targets": 210,
-        "expected_targets": 210
-      },
-      "upstream_regression": {
-        "rvoip_tests_passed": 915,
-        "parley_tests_passed": 28
-      },
-      "voice_retirement": {
-        "path": ".local/voice-retirement/20261014T185740.441490Z/result.json",
-        "sha256": "277552a2c75ff8a352cbf54a40eb3b40808c9636c47cb72d45f05267ef793d07",
-        "retired_setups": 10000,
-        "batches": 313,
-        "point_samples": 628,
-        "duration_seconds": 1828.17
-      },
-      "limits": [
-        "Source lane only; whole_gate_qualified remains false.",
-        "Includes six source operating profiles; separately named unselected lanes remain unqualified.",
-        "Decoded browser impairment and matching installed/model/human acceptance remain open."
-      ]
-    }
-  ],
-  "remaining": [
-    "Current decoded browser impairment remains failed.",
-    "Build and qualify a matching installed candidate; independent-client/scripted-host/native-keychain/native-example and actual-model acceptance remain distinct.",
-    "Independent usability, final provider/quality review and owner acceptance remain unresolved."
-  ],
-  "independent_full_source_review": {
-    "path": ".local/gate5/full-source-independent-review/review.json",
-    "sha256": "00d882873e8bb2658a8617dba3e8be414dd36e087ac07cb1049a8b2eb83879ec"
+  "profile": "gate5-source-qualification-composition/2",
+  "recorded_at": "2026-10-15T07:49:00.591823+00:00",
+  "status": "Accepted scoped source composition; matching media/installed and whole-gate acceptance remain open",
+  "whole_gate_qualified": false,
+  "historical_full_source": {
+    "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
+    "sha256": "57338ed261774d668cf7ebd847523d0e60591617e0a3bc9509dfc264b53d0cd8"
   },
-  "documentation_followup": "Earlier documentation-only changes preserved all 1,108 baseline inputs. Native, canonical-recovery and RGB-mute repairs now change eight selected inputs. Exact hashes and reviewed composition history distinguish these proofs from the historical 84-phase run.",
+  "historical_full_source_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
+  "historical_full_source_phases": 84,
+  "prior_exact_source_record": {
+    "path": "docs/evidence/gate-5/source-qualification-d5368f0.json",
+    "sha256": "76034996cceb8c6dacd67b7ffce1e6ecac094bb73160cf3a4256ac9dbb83fbc8"
+  },
+  "approved_policy_component": {
+    "path": "docs/evidence/gate-5/impaired-quality-policy.json",
+    "sha256": "9f3e92599575d975999c1306b26bbcdc67ab918845da3f71972bd0c1a9f751fb"
+  },
   "reviewed_source_composition": {
-    "status": "Accepted scoped source composition; matching installed and whole-gate acceptance remain open",
-    "baseline_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
-    "native_repair_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
-    "canonical_repair_revision": "94ae35601e92cd7d1008e549522128e469fafebb",
-    "contract_basis": [
-      "A5-16 permits explicitly reviewed source-composition evidence.",
-      "G5-049 requires requalification of affected artifacts."
-    ],
-    "baseline_selected_input_count": 1108,
-    "current_selected_input_count": 1109,
-    "unchanged_selected_input_count": 1099,
+    "status": "Accepted scoped source composition for a new policy-2 candidate",
+    "source_revision_before_commit": "d5368f0f9c2d5e40171c75c2df37d61875affa75",
+    "source_dirty": true,
+    "source_counts": {
+      "baseline": 1108,
+      "current": 1113,
+      "changed": 17,
+      "unchanged": 1096
+    },
     "changed_selected_inputs": {
       "examples/conversation-client/contacts.js": {
         "baseline_sha256": "956149ce46b3fa5af412803f6edb6042664488de6dd885ac3de5775b45b664b0",
@@ -250,23 +42,51 @@
       },
       "scripts/check-gate-5.py": {
         "baseline_sha256": "3f170c9b8fc3e477858d617e4382e7fa8b2afb4f2ff12005e8278d5a62b82a15",
-        "current_sha256": "af6ba3c58e1ffa46d6c362dd5b624bb019196f6e73c5257d2d92c21744e72f42"
+        "current_sha256": "23eefda7a94f37a7c3340034a40b70dcb576878c44aa6ce4993ed095dff46215"
       },
       "scripts/check-gate5-recovery.py": {
         "baseline_sha256": "9a1efe5be94ade95cbf90d0de75a9ed1d562194592f0dda388ced1f3ec67b4dd",
         "current_sha256": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1"
       },
+      "scripts/check-video-paths.py": {
+        "baseline_sha256": "19f385432890e5e0e6e29c76d870d609e7507dc145cc56785ab80eed09040211",
+        "current_sha256": "c547f99692f7f05012196756d602f271dbc70934e333cd729ad4c46408954002"
+      },
+      "scripts/lib/package_gate5.py": {
+        "baseline_sha256": "811fbd468ef4ab3a52e12e59544efa3b96785d8aaadff9df1f2f92c7c27c2539",
+        "current_sha256": "249216cea26ccbc5bf035ebad632f50e6860bbace22dac8d2ebbfaf537f5312b"
+      },
       "scripts/lib/package_inventory.py": {
         "baseline_sha256": "99964396e8dca6ecc6aa08525edd347d2741a77ec0b6a602550934b0ca07ea79",
-        "current_sha256": "2d5006f0eb4232b9575d0a6f689b167155c86b5e05740a0aa8f90d1e9a2b2de5"
+        "current_sha256": "2309e32e4c06e31282c0b1fa611a245eb5f09c7ae96c7ac90d9505cb5a40909d"
+      },
+      "scripts/tests/acceptance_policy.test.mjs": {
+        "baseline_sha256": null,
+        "current_sha256": "9a4f075edde2d91c6179c29cc83eeb6973168bf65d5f6805959807033e765476"
+      },
+      "scripts/tests/av_acceptance_cases.json": {
+        "baseline_sha256": null,
+        "current_sha256": "596c96bb451c0d82a8dbe7ef8256deb4e5f2403872bd51a515f3ff5f0c9b4e65"
       },
       "scripts/tests/test_package_inventory.py": {
         "baseline_sha256": "4252982cc5bbedff97ac405919c596649d577be67657d86df7f13a820789b708",
-        "current_sha256": "0437a5f6b4c1da000fc231f37bb21cd9d5fb3207d0a33be32661d18fbdc4c2ee"
+        "current_sha256": "80c234c57afd84c906067c3360db901b98f734c68bdff58107bb58e33cafdc6f"
       },
       "scripts/tests/test_video_measurements.py": {
         "baseline_sha256": "8bfbdf312b3bbb970c4cf81450ba0d6939d47850e08a45b49c4331f95e144b82",
-        "current_sha256": "31c5f13525350d1aa2b4892c682e80e7e9db22d5c4feae1afe389c167acdffe7"
+        "current_sha256": "94974ebb4117bcfec3b44f503725c35eebaa6938a12de73201344ffa6194b385"
+      },
+      "scripts/video/acceptance_policy.mjs": {
+        "baseline_sha256": null,
+        "current_sha256": "3631617345312a89a74e51b8cf4d13ee1a58d94a73a75ec6273415c4eca29b85"
+      },
+      "scripts/video/acceptance_policy.py": {
+        "baseline_sha256": null,
+        "current_sha256": "0d503890f93732d7745d87581aa03202ac027629ae90efac51f15c060e2323c3"
+      },
+      "scripts/video/browser-qualify.mjs": {
+        "baseline_sha256": "edcc1002e324275068ef9bdba984e75b7b7e04390d3665c84988d30c7aee0f58",
+        "current_sha256": "96c45053d9fd54a8e519090861de5138f3effde10e6dd1c647c6ecdf2778929e"
       },
       "scripts/video/decoder_observation.py": {
         "baseline_sha256": "38f6a93c3ed6e9d9793cd602d68916f679cc80e966a3d0eefe81343e5cbb8be2",
@@ -277,399 +97,28 @@
         "current_sha256": "3216efd55e8344f20b88fb2b4ced26c68b9dfc6b54dbfca6b83810d84ccc32ee"
       }
     },
-    "affected_slices": [
-      {
-        "phase": "source--workspace",
-        "scope": "Native example binary only; library, reverse-dependency interface and manifests unchanged.",
-        "proof": "13 native tests including real process-SIGINT regression; exact normal optimized package composition build; three cleanup runs,12pair lifecycles and24exits without forced cleanup.",
-        "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-      },
-      {
-        "phase": "source--lint",
-        "scope": "Native binary and private interrupt module.",
-        "proof": "Scoped strict Clippy with all targets passed.",
-        "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-      },
-      {
-        "phase": "source--format",
-        "scope": "Changed native Rust source.",
-        "proof": "Repository scripts/format.sh --check passed after the native repair.",
-        "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-      },
-      {
-        "phase": "source--rustdoc",
-        "scope": "Native package including new private interrupt module.",
-        "proof": "Strict cargo doc --locked -p connect-native-video --all-features --no-deps passed;13 native source files match98ef8947. Concurrent recovery-checker edits explicitly excluded from this narrow scope.",
-        "result": {
-          "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc/result.json",
-          "sha256": "fbdfa2b67f2e924b246dc068960cc56584f1550eaa3ec544e62280312cef3470"
-        }
-      },
-      {
-        "phase": "source--package-proof-tests",
-        "scope": "Required interrupt runtime asset and canonical source-root hashing guards.",
-        "proof": "27 package inventory guards passed. Counts retained in author result/tool execution; standalone raw guard logs were not saved.98 candidate archive independently verifies shipped interrupt asset; fresh archive still required for canonical checker.",
-        "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
-      },
-      {
-        "phase": "source--gate5-driver-tests",
-        "scope": "Expected package guards 25 to 27 and video measurement guards 45 to 47.",
-        "proof": "11 driver unit tests passed after each count change. Latest execution has retained hashed logs; unchanged 10 dependency-root guards remain baseline evidence. No new 21-test aggregate invocation is claimed.",
-        "evidence": "docs/evidence/gate-5/rgb-mute-observation-repair.json"
-      },
-      {
-        "phase": "source--gate5-historical-recovery",
-        "scope": "Same nine source inputs canonicalized before containment/hash comparison; behavior assertions unchanged.",
-        "proof": "All six actual historical recovery phases passed through a symlinked source root with immutable98 runtime and historical binaries; exact hashes stable and no owned survivors. Separate diagnostic, not a resumed installed pass.",
-        "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
-      },
-      {
-        "phase": "source--video-measurement-tests",
-        "scope": "Native mute observer opts into exact full-resolution FFmpeg RGB24 hashes. Default YUV hashing used by other observations, source mapping, windows and all acceptance limits are unchanged.",
-        "proof": "47 measurement guards passed with retained logs, including single visible-pixel rejection and timestamp-binding mutation. Actual FFmpeg generated conversion and full retained-window reanalysis confirm the invisible-chroma counterexample. Fresh 20-second native/browser mute diagnostic passed with immutable 98 runtime and corrected current checker.",
-        "evidence": "docs/evidence/gate-5/rgb-mute-observation-repair.json",
-        "unit_and_conversion_proof": {
-          "path": ".local/gate5/mute-native-browser-analysis-98ef894/proof-20261014T212450.762752Z/result.json",
-          "sha256": "63088f8fe870c810820478461203689e7ec3023a5603114bcfdf9d7eccd762b7"
-        },
-        "fresh_media_proof": {
-          "path": ".local/gate5/mute-native-browser-analysis-98ef894/media-20261014T212507.464590Z/result.json",
-          "sha256": "5abca2da39a83dd4d4b76fb372723cba2819fdcc5f517a1c25e8c7c5f352d37a"
-        }
-      },
-      {
-        "phase": "source--typescript-public-media-tests",
-        "scope": "Reference contact selection handler and its existing test file; no TypeScript distribution, core runtime or transport changes.",
-        "proof": "Three new delayed-client regressions fail against original handler; fixed reference file12/12 and full existing SDK glob216/216 pass, with all1109 selected source inputs plus runner/Node sealed.",
-        "evidence": "docs/evidence/gate-5/contact-selection-repair.json"
-      }
-    ],
-    "unaffected_scope": "All other1,099 selected inputs are byte-identical to the84-phase baseline. Protocol, SDK implementation/distribution, library, store, service, server, manifests, lockfiles and34 upstream patches remain unchanged. Historical six- and eight-input compositions retain their original scopes.",
-    "independent_reviews": [
-      {
-        "path": ".local/gate5/source-composition-98ef8947f5a6/assessment.json",
-        "sha256": "8ec933254de05f51d1440cb8383e3056b5dbc26473e11ccd2857c1ac622914e5"
-      },
-      {
-        "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc-review.json",
-        "sha256": "d0841de8bc73ab4b7482efdec4cc5d8922295fde826edf5351bff68f99890bca"
-      },
-      {
-        "path": ".local/gate5/native-peer-terminal-repair/quality-final-review.json",
-        "sha256": "212bed746bada577e26eafcaa0e44127621a7ecb2cdb9c63352040954b05fff7"
-      },
-      {
-        "path": ".local/gate5/historical-recovery-canonical-path/quality-review.json",
-        "sha256": "53602ff823ceb86a80eb5638ecd4829032398bbce25f2f6b07f7436cb996fa73"
-      },
-      {
-        "path": ".local/gate5/mute-native-browser-analysis-98ef894/quality-final-proof-review.json",
-        "sha256": "77e105a566f894b82928a7531c50bf6a6c893eef7fb351a38e90db342122f55e"
-      },
-      {
-        "path": ".local/gate5/contact-selection-repair/quality-final-review.json",
-        "sha256": "ac519a6e7debedc0f7dc2cc5726b28be61f1689d0b8dac410782c004b71e3f7f"
-      }
-    ],
-    "limits": [
-      "No new literal 84-phase source run is claimed.",
-      "The next archive must include the reference contact selection repair. aa31 already contains the canonical recovery and RGB mute repairs and passed their affected archived diagnostics; complete matching installed qualification remains open.",
-      "Original failed package and media reports remain immutable. Fresh mute diagnostic does not close impaired browser sending, actual-model, independent human or owner acceptance."
-    ],
-    "rgb_mute_repair_revision": "aa31f028151668e100e942c32013b1e46d1e8c4f",
-    "prior_six_input_review": {
-      "path": ".local/gate5/source-composition-98ef8947f5a6/six-input-review.json",
-      "sha256": "8eb2b4b59bd9113a6e6b04d5f6511e11f93230e868763358d707496aefd0a83e",
-      "scope": "Review of the composition append before this acceptance annotation;22 evidence digests and exact six-input delta independently verified."
+    "current_full_source_map_proof": {
+      "path": ".local/gate5/approved-impaired-policy-20261015/package-followup-20261015T074732.844395Z/result.json",
+      "sha256": "bea96f51f65a6ccc3f7bc6ef55e8e5bf3472db9da39bd0dc104836227ba90c98"
     },
-    "contact_repair_source": {
-      "base_revision": "c5bf7359c1d735ecf5753ed2833f74f5f1625416",
-      "source_sha256": {
-        "examples/conversation-client/contacts.js": "45a524cb4634f294e55c682b5459874d119e76435384f723af4dd9f4e3347157",
-        "sdk/tests/reference_client.test.mjs": "3216efd55e8344f20b88fb2b4ced26c68b9dfc6b54dbfca6b83810d84ccc32ee"
-      },
-      "evidence": {
-        "path": "docs/evidence/gate-5/contact-selection-source-0d285d168509.json",
-        "sha256": "da2d2ad5297937f5816fd3b3754b57edc6de233a73e37d5b37c7da6f499b139b"
-      }
+    "component_composition": "Prior source/runtime/native/canonical/RGB/contact evidence is preserved byte-exact in prior_exact_source_record. The policy delta adds only qualification code/tests and packaging enumeration. Original source baseline84 and scoped later proofs remain distinct; no new literal84 invocation is claimed.",
+    "current_policy_tests": {
+      "path": "docs/evidence/gate-5/impaired-quality-policy.json",
+      "sha256": "9f3e92599575d975999c1306b26bbcdc67ab918845da3f71972bd0c1a9f751fb"
     },
-    "prior_exact_record": {
-      "path": "docs/evidence/gate-5/source-qualification-aa31f0281516.json",
-      "sha256": "11ed13af126f802c2603cef1aed2c6eb518602bc956f47a18bef352470c2ebe0"
-    },
-    "prior_eight_input_review": {
-      "path": ".local/gate5/source-composition-98ef8947f5a6/eight-input-review.json",
-      "sha256": "e3854badeb1d3afc909b2f02a5c1f8f54c1571f59c45fad240dcc459c7e319c7",
-      "scope": "Review of current eight-input composition before this acceptance annotation."
-    },
-    "combined_independent_review": {
-      "path": ".local/gate5/source-composition-contact-repair/quality-ten-input-review.json",
-      "sha256": "4006c54df0ec98075b8eb55cdffb572c023dfac40782a2f3c2029e332ebfacee",
-      "scope": "Independent ten-input composition review before this acceptance annotation and core-runtime wording clarification; new archive/reference followup still required."
+    "runtime_scope": "No Rust crate, SDK/runtime reference asset, dependency source, Cargo lock, source-lock or patch input changed since the reviewed0d candidate. New qualification policy requires a new source/package identity and fresh media/installed proof.",
+    "independent_review": {
+      "path": ".local/gate5/approved-impaired-policy-20261015/source-composition-review.json",
+      "sha256": "1208d09d9f950c340935699c8622760e61c51492d8e90dbe613c6a9bd704c77c",
+      "scope": "Review of source map, all17 deltas and evidence references before this acceptance annotation; no runtime/media acceptance implied."
     }
   },
-  "source_composition_history": [
-    {
-      "status": "Accepted scoped source composition; matching installed and whole-gate acceptance remain open",
-      "baseline_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
-      "native_repair_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
-      "canonical_repair_revision": "Pending commit; exact input hashes below",
-      "contract_basis": [
-        "A5-16 permits explicitly reviewed source-composition evidence.",
-        "G5-049 requires requalification of affected artifacts."
-      ],
-      "baseline_selected_input_count": 1108,
-      "current_selected_input_count": 1109,
-      "unchanged_selected_input_count": 1103,
-      "changed_selected_inputs": {
-        "examples/native-video/src/interrupt.rs": {
-          "baseline_sha256": null,
-          "current_sha256": "808ce444d7f7eb0ba98fb85235bedbb35a541b27d9397527436a231395dcf959"
-        },
-        "examples/native-video/src/main.rs": {
-          "baseline_sha256": "82f2d7197710ef38a0f50186a912a7058e9407506bcd1d3cae8f01df11c4fdc5",
-          "current_sha256": "65a7495c18ea5c9ff3bc92c4d1145d02ecabfc6878c60e9ab5e909459d023171"
-        },
-        "scripts/check-gate-5.py": {
-          "baseline_sha256": "3f170c9b8fc3e477858d617e4382e7fa8b2afb4f2ff12005e8278d5a62b82a15",
-          "current_sha256": "91f9a3d63911b53f055c7848649be5e5689f3bd82951db40c349a2a4e297604a"
-        },
-        "scripts/check-gate5-recovery.py": {
-          "baseline_sha256": "9a1efe5be94ade95cbf90d0de75a9ed1d562194592f0dda388ced1f3ec67b4dd",
-          "current_sha256": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1"
-        },
-        "scripts/lib/package_inventory.py": {
-          "baseline_sha256": "99964396e8dca6ecc6aa08525edd347d2741a77ec0b6a602550934b0ca07ea79",
-          "current_sha256": "2d5006f0eb4232b9575d0a6f689b167155c86b5e05740a0aa8f90d1e9a2b2de5"
-        },
-        "scripts/tests/test_package_inventory.py": {
-          "baseline_sha256": "4252982cc5bbedff97ac405919c596649d577be67657d86df7f13a820789b708",
-          "current_sha256": "0437a5f6b4c1da000fc231f37bb21cd9d5fb3207d0a33be32661d18fbdc4c2ee"
-        }
-      },
-      "affected_slices": [
-        {
-          "phase": "source--workspace",
-          "scope": "Native example binary only; library, reverse-dependency interface and manifests unchanged.",
-          "proof": "13 native tests including real process-SIGINT regression; exact normal optimized package composition build; three cleanup runs,12pair lifecycles and24exits without forced cleanup.",
-          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-        },
-        {
-          "phase": "source--lint",
-          "scope": "Native binary and private interrupt module.",
-          "proof": "Scoped strict Clippy with all targets passed.",
-          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-        },
-        {
-          "phase": "source--format",
-          "scope": "Changed native Rust source.",
-          "proof": "Repository scripts/format.sh --check passed after the native repair.",
-          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-        },
-        {
-          "phase": "source--rustdoc",
-          "scope": "Native package including new private interrupt module.",
-          "proof": "Strict cargo doc --locked -p connect-native-video --all-features --no-deps passed;13 native source files match98ef8947. Concurrent recovery-checker edits explicitly excluded from this narrow scope.",
-          "result": {
-            "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc/result.json",
-            "sha256": "fbdfa2b67f2e924b246dc068960cc56584f1550eaa3ec544e62280312cef3470"
-          }
-        },
-        {
-          "phase": "source--package-proof-tests",
-          "scope": "Required interrupt runtime asset and canonical source-root hashing guards.",
-          "proof": "27 package inventory guards passed. Counts retained in author result/tool execution; standalone raw guard logs were not saved.98 candidate archive independently verifies shipped interrupt asset; fresh archive still required for canonical checker.",
-          "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
-        },
-        {
-          "phase": "source--gate5-driver-tests",
-          "scope": "Expected package guard count25 to27.",
-          "proof": "11 driver unit tests passed; unchanged10 dependency-root guards remain baseline evidence. This is not a new21-test aggregate invocation.",
-          "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
-        },
-        {
-          "phase": "source--gate5-historical-recovery",
-          "scope": "Same nine source inputs canonicalized before containment/hash comparison; behavior assertions unchanged.",
-          "proof": "All six actual historical recovery phases passed through a symlinked source root with immutable98 runtime and historical binaries; exact hashes stable and no owned survivors. Separate diagnostic, not a resumed installed pass.",
-          "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
-        }
-      ],
-      "unaffected_scope": "All other1,103 selected inputs are byte-identical to the baseline. Protocol, public SDK, library, store, service, server, manifests, lockfiles and34 upstream patches are unchanged. Earlier79-phase unaffected count applied only to the three-input98 repair; it is not reused for this six-input composition.",
-      "independent_reviews": [
-        {
-          "path": ".local/gate5/source-composition-98ef8947f5a6/assessment.json",
-          "sha256": "8ec933254de05f51d1440cb8383e3056b5dbc26473e11ccd2857c1ac622914e5"
-        },
-        {
-          "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc-review.json",
-          "sha256": "d0841de8bc73ab4b7482efdec4cc5d8922295fde826edf5351bff68f99890bca"
-        },
-        {
-          "path": ".local/gate5/native-peer-terminal-repair/quality-final-review.json",
-          "sha256": "212bed746bada577e26eafcaa0e44127621a7ecb2cdb9c63352040954b05fff7"
-        },
-        {
-          "path": ".local/gate5/historical-recovery-canonical-path/quality-review.json",
-          "sha256": "53602ff823ceb86a80eb5638ecd4829032398bbce25f2f6b07f7436cb996fa73"
-        }
-      ],
-      "limits": [
-        "Not84 source phases executed against the repaired candidate.",
-        "Matching new archives and complete installed qualification remain required;98 installed attempt failed before historical recovery behavior.",
-        "Decoded media diagnostics, actual model, independent humans and owner acceptance remain separate requirements. No threshold or required check waived."
-      ],
-      "combined_independent_review": {
-        "path": ".local/gate5/source-composition-98ef8947f5a6/six-input-review.json",
-        "sha256": "8eb2b4b59bd9113a6e6b04d5f6511e11f93230e868763358d707496aefd0a83e",
-        "scope": "Review of the composition append before this acceptance annotation;22 evidence digests and exact six-input delta independently verified."
-      }
-    },
-    {
-      "status": "Accepted scoped source composition; matching installed and whole-gate acceptance remain open",
-      "baseline_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
-      "native_repair_revision": "98ef8947f5a6ff5d87786f256a084928acd8168d",
-      "canonical_repair_revision": "94ae35601e92cd7d1008e549522128e469fafebb",
-      "contract_basis": [
-        "A5-16 permits explicitly reviewed source-composition evidence.",
-        "G5-049 requires requalification of affected artifacts."
-      ],
-      "baseline_selected_input_count": 1108,
-      "current_selected_input_count": 1109,
-      "unchanged_selected_input_count": 1101,
-      "changed_selected_inputs": {
-        "examples/native-video/src/interrupt.rs": {
-          "baseline_sha256": null,
-          "current_sha256": "808ce444d7f7eb0ba98fb85235bedbb35a541b27d9397527436a231395dcf959"
-        },
-        "examples/native-video/src/main.rs": {
-          "baseline_sha256": "82f2d7197710ef38a0f50186a912a7058e9407506bcd1d3cae8f01df11c4fdc5",
-          "current_sha256": "65a7495c18ea5c9ff3bc92c4d1145d02ecabfc6878c60e9ab5e909459d023171"
-        },
-        "scripts/check-gate-5.py": {
-          "baseline_sha256": "3f170c9b8fc3e477858d617e4382e7fa8b2afb4f2ff12005e8278d5a62b82a15",
-          "current_sha256": "af6ba3c58e1ffa46d6c362dd5b624bb019196f6e73c5257d2d92c21744e72f42"
-        },
-        "scripts/check-gate5-recovery.py": {
-          "baseline_sha256": "9a1efe5be94ade95cbf90d0de75a9ed1d562194592f0dda388ced1f3ec67b4dd",
-          "current_sha256": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1"
-        },
-        "scripts/lib/package_inventory.py": {
-          "baseline_sha256": "99964396e8dca6ecc6aa08525edd347d2741a77ec0b6a602550934b0ca07ea79",
-          "current_sha256": "2d5006f0eb4232b9575d0a6f689b167155c86b5e05740a0aa8f90d1e9a2b2de5"
-        },
-        "scripts/tests/test_package_inventory.py": {
-          "baseline_sha256": "4252982cc5bbedff97ac405919c596649d577be67657d86df7f13a820789b708",
-          "current_sha256": "0437a5f6b4c1da000fc231f37bb21cd9d5fb3207d0a33be32661d18fbdc4c2ee"
-        },
-        "scripts/tests/test_video_measurements.py": {
-          "baseline_sha256": "8bfbdf312b3bbb970c4cf81450ba0d6939d47850e08a45b49c4331f95e144b82",
-          "current_sha256": "31c5f13525350d1aa2b4892c682e80e7e9db22d5c4feae1afe389c167acdffe7"
-        },
-        "scripts/video/decoder_observation.py": {
-          "baseline_sha256": "38f6a93c3ed6e9d9793cd602d68916f679cc80e966a3d0eefe81343e5cbb8be2",
-          "current_sha256": "2e5c8e5bd1caa7e68019ee8cde5eef1da78c59131df130bd3e5e1d60ab308d60"
-        }
-      },
-      "affected_slices": [
-        {
-          "phase": "source--workspace",
-          "scope": "Native example binary only; library, reverse-dependency interface and manifests unchanged.",
-          "proof": "13 native tests including real process-SIGINT regression; exact normal optimized package composition build; three cleanup runs,12pair lifecycles and24exits without forced cleanup.",
-          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-        },
-        {
-          "phase": "source--lint",
-          "scope": "Native binary and private interrupt module.",
-          "proof": "Scoped strict Clippy with all targets passed.",
-          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-        },
-        {
-          "phase": "source--format",
-          "scope": "Changed native Rust source.",
-          "proof": "Repository scripts/format.sh --check passed after the native repair.",
-          "evidence": "docs/evidence/gate-5/native-terminal-repair.json"
-        },
-        {
-          "phase": "source--rustdoc",
-          "scope": "Native package including new private interrupt module.",
-          "proof": "Strict cargo doc --locked -p connect-native-video --all-features --no-deps passed;13 native source files match98ef8947. Concurrent recovery-checker edits explicitly excluded from this narrow scope.",
-          "result": {
-            "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc/result.json",
-            "sha256": "fbdfa2b67f2e924b246dc068960cc56584f1550eaa3ec544e62280312cef3470"
-          }
-        },
-        {
-          "phase": "source--package-proof-tests",
-          "scope": "Required interrupt runtime asset and canonical source-root hashing guards.",
-          "proof": "27 package inventory guards passed. Counts retained in author result/tool execution; standalone raw guard logs were not saved.98 candidate archive independently verifies shipped interrupt asset; fresh archive still required for canonical checker.",
-          "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
-        },
-        {
-          "phase": "source--gate5-driver-tests",
-          "scope": "Expected package guards 25 to 27 and video measurement guards 45 to 47.",
-          "proof": "11 driver unit tests passed after each count change. Latest execution has retained hashed logs; unchanged 10 dependency-root guards remain baseline evidence. No new 21-test aggregate invocation is claimed.",
-          "evidence": "docs/evidence/gate-5/rgb-mute-observation-repair.json"
-        },
-        {
-          "phase": "source--gate5-historical-recovery",
-          "scope": "Same nine source inputs canonicalized before containment/hash comparison; behavior assertions unchanged.",
-          "proof": "All six actual historical recovery phases passed through a symlinked source root with immutable98 runtime and historical binaries; exact hashes stable and no owned survivors. Separate diagnostic, not a resumed installed pass.",
-          "evidence": "docs/evidence/gate-5/canonical-path-repair.json"
-        },
-        {
-          "phase": "source--video-measurement-tests",
-          "scope": "Native mute observer opts into exact full-resolution FFmpeg RGB24 hashes. Default YUV hashing used by other observations, source mapping, windows and all acceptance limits are unchanged.",
-          "proof": "47 measurement guards passed with retained logs, including single visible-pixel rejection and timestamp-binding mutation. Actual FFmpeg generated conversion and full retained-window reanalysis confirm the invisible-chroma counterexample. Fresh 20-second native/browser mute diagnostic passed with immutable 98 runtime and corrected current checker.",
-          "evidence": "docs/evidence/gate-5/rgb-mute-observation-repair.json",
-          "unit_and_conversion_proof": {
-            "path": ".local/gate5/mute-native-browser-analysis-98ef894/proof-20261014T212450.762752Z/result.json",
-            "sha256": "63088f8fe870c810820478461203689e7ec3023a5603114bcfdf9d7eccd762b7"
-          },
-          "fresh_media_proof": {
-            "path": ".local/gate5/mute-native-browser-analysis-98ef894/media-20261014T212507.464590Z/result.json",
-            "sha256": "5abca2da39a83dd4d4b76fb372723cba2819fdcc5f517a1c25e8c7c5f352d37a"
-          }
-        }
-      ],
-      "unaffected_scope": "All other 1,101 selected inputs are byte-identical to the 84-phase baseline. Protocol, public SDK, library, store, service, server, manifests, lockfiles and 34 upstream patches are unchanged. Source-composition history retains the prior six-input review; its counts are not reused for this eight-input composition.",
-      "independent_reviews": [
-        {
-          "path": ".local/gate5/source-composition-98ef8947f5a6/assessment.json",
-          "sha256": "8ec933254de05f51d1440cb8383e3056b5dbc26473e11ccd2857c1ac622914e5"
-        },
-        {
-          "path": ".local/gate5/source-composition-98ef8947f5a6/rustdoc-review.json",
-          "sha256": "d0841de8bc73ab4b7482efdec4cc5d8922295fde826edf5351bff68f99890bca"
-        },
-        {
-          "path": ".local/gate5/native-peer-terminal-repair/quality-final-review.json",
-          "sha256": "212bed746bada577e26eafcaa0e44127621a7ecb2cdb9c63352040954b05fff7"
-        },
-        {
-          "path": ".local/gate5/historical-recovery-canonical-path/quality-review.json",
-          "sha256": "53602ff823ceb86a80eb5638ecd4829032398bbce25f2f6b07f7436cb996fa73"
-        },
-        {
-          "path": ".local/gate5/mute-native-browser-analysis-98ef894/quality-final-proof-review.json",
-          "sha256": "77e105a566f894b82928a7531c50bf6a6c893eef7fb351a38e90db342122f55e"
-        }
-      ],
-      "limits": [
-        "No new literal 84-phase source run is claimed.",
-        "The next archive must include canonical recovery and RGB mute checker repairs; matching installed qualification remains open.",
-        "Original failed package and media reports remain immutable. Fresh mute diagnostic does not close impaired browser sending, actual-model, independent human or owner acceptance."
-      ],
-      "rgb_mute_repair_revision": "Pending commit; exact selected input hashes below",
-      "prior_six_input_review": {
-        "path": ".local/gate5/source-composition-98ef8947f5a6/six-input-review.json",
-        "sha256": "8eb2b4b59bd9113a6e6b04d5f6511e11f93230e868763358d707496aefd0a83e",
-        "scope": "Review of the composition append before this acceptance annotation;22 evidence digests and exact six-input delta independently verified."
-      },
-      "combined_independent_review": {
-        "path": ".local/gate5/source-composition-98ef8947f5a6/eight-input-review.json",
-        "sha256": "e3854badeb1d3afc909b2f02a5c1f8f54c1571f59c45fad240dcc459c7e319c7",
-        "scope": "Review of current eight-input composition before this acceptance annotation."
-      }
-    }
+  "required_followups": [
+    "independent source composition review",
+    "new clean immutable candidate and independent archive inventory",
+    "fresh three-path clean/impairment/mute qualification under policy2",
+    "matching complete installed candidate pass before actual-model inference",
+    "three independent human walkthroughs",
+    "final technical evidence and owner candidate review; publication separate"
   ]
 }

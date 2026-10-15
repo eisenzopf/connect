@@ -173,9 +173,31 @@ files, narrow layout, and generated AV invite/reject/accept/mute/end/reinvite
 through the actual reference UI. Its short AV journey is separate from full media
 qualification. The installed media checks require all three clean 60-second
 routes, all three impaired 60-second routes, and a separate 20-second
-camera/microphone mute/recovery scenario on each route. Resource and measurement
-coverage gaps remain blocking. The exploratory two-call capacity rehearsal is
+camera/microphone mute/recovery scenario on each route. Resource coverage and
+invalid observer/derivation gaps remain blocking; the sole impaired A/V quality
+availability exception is defined below. The exploratory two-call capacity rehearsal is
 reported separately and does not expand the supported two-party profile.
+The owner-approved October 15 impairment-only policy is
+`connect-media-acceptance/2`; see [Decision 012](decisions/012-gate-5-impaired-media-proposal.md).
+The media wire profile remains `connect-video-vp8/1`. Clean and mute scenarios
+retain every strict quality check. In the unchanged impaired scenario only,
+validly measured A/V skew and validly derived A/V measurement availability are
+advisory. The raw `av_sync` result remains in each observation beside a separate
+`av_acceptance` object (`policy`, `scenario`, `status`, `quality_status`, `reason`).
+Malformed observer data, invalid derivation and source-identity failures remain
+blocking, as do all existing non-A/V checks: identified duplex audio, the
+existing impaired moving-video floor, continuous fresh motion, interruption
+recovery, authorization, resource/network ceilings and paired cleanup.
+
+Installed acceptance must require the matching new policy field and validate
+its scenario; it must not require every impaired raw A/V result to say passed or
+treat every raw failure as advisory. The two-second rule is fresh-motion recovery
+after each interruption, not restoration of full clean quality. New-policy
+qualification requires fresh checks and a matching identified candidate and
+archive. Previous failures stay failed; neither this amendment nor selected
+component results complete the installed lane, actual-model journey, human
+walkthroughs or owner acceptance.
+
 Each installed media report must contain exactly one completed observation for
 each route with the expected scenario and full finite duration; an aggregate pass
 cannot substitute for a missing, duplicated, failed or shorter route.

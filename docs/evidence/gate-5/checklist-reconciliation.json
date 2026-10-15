@@ -219,7 +219,7 @@
       "G5-049",
       "G5-050"
     ],
-    "implementation_sha256": "e06bee03295c2067d661c696bc1b46ca454441f92ec33c202a15ff634375e1c0",
+    "implementation_sha256": "0cdf0270323df6f516b408320cee0e06abb2eccdf479f56b23137ed12d005126",
     "followup_annotation": {
       "recorded_at": "2026-10-14T22:04:13.434869+00:00",
       "candidate_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
@@ -243,6 +243,20 @@
       "source_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
       "scope": "Chrome153 clean A/V failure recorded; impairment unrun. Task statuses, requirements and dependencies unchanged.",
       "evidence": "docs/evidence/gate-5/browser-version-compatibility.json"
+    },
+    "approved_policy_2_annotation": {
+      "date": "2026-10-15",
+      "owner_instruction": "Relax quality expectations under poor network conditions",
+      "tasks": [
+        "G5-010",
+        "G5-012",
+        "G5-014",
+        "G5-016",
+        "G5-042",
+        "G5-048"
+      ],
+      "scope": "Approval and component proof only; task statuses/dependencies/criteria qualifications unchanged",
+      "evidence": "docs/evidence/gate-5/impaired-quality-policy.json"
     }
   },
   "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"

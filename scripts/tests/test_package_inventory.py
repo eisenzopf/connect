@@ -414,17 +414,15 @@ print(json.dumps(checker['source_input_hashes'](), sort_keys=True))
                 pathlib.Path(env['CONNECT_REFERENCE_OUTPUT']).write_text(json.dumps(evidence))
             if name.startswith('installed-decoded-video'):
                 label = name.removeprefix('installed-')
-                evidence = {'status': 'passed-mute-recovery' if '--mute-recovery' in command else 'passed-impairment' if '--impairment' in command else 'passed-clean',
-                    'qualification_seconds': 8 if smoke else int(command[command.index('--seconds') + 1]), 'tested_inputs_stable': True,
-                    'source_revision': 'fixture-revision', 'selected_runtime': str(self.release),
-                    'selected_assets': str(self.release), 'input_sha256': {
+                status = 'passed-mute-recovery' if '--mute-recovery' in command else 'passed-impairment' if '--impairment' in command else 'passed-clean'
+                seconds = int(command[command.index('--seconds') + 1])
+                evidence = self.decoded_routes_fixture(status, seconds)
+                evidence.update(qualification_seconds=8 if smoke else seconds, tested_inputs_stable=True,
+                    source_revision='fixture-revision', selected_runtime=str(self.release),
+                    selected_assets=str(self.release), input_sha256={
                         str(self.release / 'bin/connect'): digest(self.release / 'bin/connect'),
                         str(self.release / 'bin/connect-video'): digest(self.release / 'bin/connect-video')},
-                    'paths': [{'path': route,
-                        'status': 'passed-mute-recovery' if '--mute-recovery' in command else 'passed-impairment' if '--impairment' in command else 'passed-clean',
-                        'qualification_seconds': int(command[command.index('--seconds') + 1])}
-                        for route in ('native-native', 'native-browser', 'browser-browser')],
-                    'unresolved': []}
+                    unresolved=[])
                 (output / (label + '.json')).write_text(json.dumps(evidence))
             return {'name': name, 'status': 'passed', 'log': log}
         with patch('lib.package_gate5.run_phase', side_effect=phase):
@@ -500,14 +498,53 @@ print(json.dumps(checker['source_input_hashes'](), sort_keys=True))
             self.installed_hook(independent=True, media=True, smoke=True)
         self.assertEqual(json.loads((self.base / 'qualification/result.json').read_text())['status'], 'failed')
 
+    def decoded_routes_fixture(self, status, seconds):
+        import copy
+        from video.acceptance_policy import POLICY, audio_video_acceptance
+        from video.marker_calibration import marker_frames, ordinal_sync
+        scenario = {'passed-clean': 'clean', 'passed-impairment': 'impairment',
+                    'passed-mute-recovery': 'mute-recovery'}[status]
+        av_scenario = 'mute' if scenario == 'mute-recovery' else scenario
+        audio = [frame / 30 for frame in marker_frames() if frame / 30 < seconds - .1]
+        sync = ordinal_sync([at + .04 for at in audio], audio, seconds)
+        self.assertEqual(sync['status'], 'passed')
+        participant = {'av_sync': sync, 'av_acceptance': audio_video_acceptance(sync, av_scenario, seconds)}
+        proof = {'status': status, 'qualification_seconds': seconds, 'scenario': scenario,
+            'acceptance_policy': POLICY, 'paths': []}
+        for route, native_count in [('native-native', 2), ('native-browser', 1), ('browser-browser', 0)]:
+            row = {'path': route, 'status': status, 'qualification_seconds': seconds,
+                   'scenario': scenario, 'acceptance_policy': POLICY,
+                   'native': [copy.deepcopy(participant) for _ in range(native_count)]}
+            if native_count != 2:
+                row['browser'] = {'acceptance_policy': POLICY,
+                    'observations': [copy.deepcopy(participant) for _ in range(2 - native_count)]}
+                for browser in row['browser']['observations']:
+                    browser['av_sync']['audio_envelope'] = {'status': 'observer-valid',
+                        'overflow': False, 'invalid_input': False, 'invalid': []}
+            proof['paths'].append(row)
+        return proof
+
     def test_decoded_route_proof_rejects_partial_duplicate_and_wrong_scenarios(self):
         import copy
         from lib.package_gate5 import verify_decoded_routes
+        from video.acceptance_policy import POLICY, audio_video_acceptance
+        from video.marker_calibration import marker_frames, ordinal_sync
         for status, seconds in [('passed-clean', 60), ('passed-impairment', 60), ('passed-mute-recovery', 20)]:
-            proof = {'status': status, 'qualification_seconds': seconds,
-                'paths': [{'path': route, 'status': status, 'qualification_seconds': seconds}
-                    for route in ('native-native', 'native-browser', 'browser-browser')]}
+            proof = self.decoded_routes_fixture(status, seconds)
+            scenario = proof['scenario']
+            audio = [frame / 30 for frame in marker_frames() if frame / 30 < seconds - .1]
             verify_decoded_routes(proof, status, seconds)
+            if scenario == 'impairment':
+                degraded = copy.deepcopy(proof)
+                for observer in [degraded['paths'][0]['native'][0],
+                                 degraded['paths'][2]['browser']['observations'][0]]:
+                    envelope = observer['av_sync'].get('audio_envelope')
+                    observer['av_sync'] = ordinal_sync([at + .5 for at in audio], audio, seconds)
+                    if envelope is not None:
+                        observer['av_sync']['audio_envelope'] = envelope
+                    self.assertEqual(observer['av_sync']['status'], 'failed')
+                    observer['av_acceptance'] = audio_video_acceptance(observer['av_sync'], 'impairment', seconds)
+                verify_decoded_routes(degraded, status, seconds)
             changes = {
                 'missing route': lambda p: p['paths'].pop(),
                 'duplicate route': lambda p: p['paths'].append(copy.deepcopy(p['paths'][0])),
@@ -519,11 +556,32 @@ print(json.dumps(checker['source_input_hashes'](), sort_keys=True))
                 'nonfinite aggregate': lambda p: p.__setitem__('qualification_seconds', float('inf')),
                 'boolean duration': lambda p: p['paths'][0].__setitem__('qualification_seconds', True),
                 'missing observation': lambda p: p['paths'].__setitem__(0, None),
+                'missing aggregate policy': lambda p: p.pop('acceptance_policy'),
+                'old route policy': lambda p: p['paths'][0].__setitem__('acceptance_policy', 'legacy'),
+                'wrong policy scenario': lambda p: p['paths'][0]['native'][0]['av_acceptance'].__setitem__('scenario', 'unknown'),
+                'wrong aggregate scenario': lambda p: p.__setitem__('scenario', 'unknown'),
+                'wrong route scenario': lambda p: p['paths'][0].__setitem__('scenario', 'unknown'),
+                'missing participant': lambda p: p['paths'][0]['native'].pop(),
+                'missing browser observer': lambda p: p['paths'][2]['browser']['observations'].pop(),
+                'missing browser policy': lambda p: p['paths'][2]['browser'].pop('acceptance_policy'),
+                'missing browser envelope': lambda p: p['paths'][2]['browser']['observations'][0]['av_sync'].pop('audio_envelope'),
+                'invalid browser envelope': lambda p: p['paths'][2]['browser']['observations'][0]['av_sync']['audio_envelope'].__setitem__('status', 'observer-invalid'),
+                'fabricated acceptance': lambda p: p['paths'][0]['native'][0]['av_acceptance'].__setitem__('reason', 'passed'),
+                'changed raw observation': lambda p: p['paths'][0]['native'][0]['av_sync'].__setitem__('paired', 999),
             }
             for label, change in changes.items():
                 bad = copy.deepcopy(proof)
                 change(bad)
                 with self.subTest(status=status, defect=label), self.assertRaisesRegex(ValueError, 'every candidate route/input'):
+                    verify_decoded_routes(bad, status, seconds)
+            if scenario == 'clean':
+                # A clean result cannot borrow impairment's quality exception.
+                bad = copy.deepcopy(proof)
+                altered = bad['paths'][0]['native'][0]
+                altered['av_sync'] = ordinal_sync([at + .5 for at in audio], audio, seconds)
+                altered['av_acceptance'] = audio_video_acceptance(altered['av_sync'], 'impairment', seconds)
+                self.assertEqual(altered['av_acceptance']['status'], 'passed')
+                with self.assertRaisesRegex(ValueError, 'every candidate route/input A/V policy'):
                     verify_decoded_routes(bad, status, seconds)
 
     def test_provider_setup_proof_requires_every_read_only_case(self):

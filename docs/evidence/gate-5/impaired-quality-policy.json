@@ -1,0 +1,41 @@
+{
+  "profile": "approved-impaired-media-policy/2",
+  "recorded_at": "2026-10-15T07:49:00.591823+00:00",
+  "status": "component checks passed; fresh candidate/media/installed qualification pending",
+  "policy": "connect-media-acceptance/2",
+  "owner_instruction": "Relax quality expectations under poor network conditions",
+  "approved_decision": {
+    "path": "docs/decisions/012-gate-5-impaired-media-proposal.md",
+    "sha256": "1ad0f2ebc36e058851a352cbf917841b44f79bd74ed7700899164eb3f7dd07be"
+  },
+  "scope": "Only impaired A/V quality acceptance changes. Raw av_sync observations/calibration/quality verdicts remain; separate av_acceptance applies the explicit scenario policy. Clean and mute are strict. Every existing non-A/V hard predicate remains. Malformed evidence fails. No wire/profile/bitrate/feedback/runtime transport change.",
+  "proofs": {
+    "initial_unit_attempt": {
+      "path": ".local/gate5/approved-impaired-policy-20261015/unit-proof-20261015T074629.516250Z/result.json",
+      "sha256": "85d551defeb3fcd523b6f0ae1de0f998a56355e6a323321a37df686f402db0be"
+    },
+    "package_followup": {
+      "path": ".local/gate5/approved-impaired-policy-20261015/package-followup-20261015T074732.844395Z/result.json",
+      "sha256": "bea96f51f65a6ccc3f7bc6ef55e8e5bf3472db9da39bd0dc104836227ba90c98"
+    }
+  },
+  "checks": {
+    "video_measurement_python": 56,
+    "embedded_javascript_adversarial": 34,
+    "shared_python_javascript_parity_cases": 30,
+    "gate5_driver_python": 21,
+    "package_python_followup": 27
+  },
+  "original_failed_attempt": "The first combined unit attempt passed video56 and driver21, but package27 had one obsolete simulated-report fixture error. Its failed overall verdict remains. Only that test fixture changed before the passing27-check followup; all selected inputs and inherited passing test dependencies were verified. The earlier delegate JS-count transition failure remains private and failed.",
+  "integration": "Native and browser actual predicate tests reject audio/source/motion/recovery/worker/codec/teardown/queue/resource violations despite impaired A/V advisory acceptance. Installed verifier requires matching policy/scenario/participant counts, valid browser envelope and exact recomputed acceptance; clean cannot borrow impairment exemption.",
+  "packaging": "Both policy helpers, JS adversarial tests and shared recipes are required source assets and both helper modules enter the media input hash seal.",
+  "whole_gate_qualified": false,
+  "not_performed": [
+    "new literal84-phase source invocation",
+    "new candidate archive qualification",
+    "fresh decoded-media qualification",
+    "complete installed qualification",
+    "actual-model or human walkthroughs",
+    "owner candidate acceptance or publication"
+  ]
+}

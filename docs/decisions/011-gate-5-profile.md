@@ -4,6 +4,13 @@ Recorded October 13, 2026. The owner directed Gate 5 implementation against the
 product and numbered plans. The defaults below make D5-01–D5-05 concrete; their
 qualification is required before advertising them as delivered.
 
+Amended October 15, 2026 by the owner-approved impairment-only acceptance
+policy `connect-media-acceptance/2`, recorded in
+[Decision 012](012-gate-5-impaired-media-proposal.md). The wire/media profile
+`connect-video-vp8/1`, strict clean and mute checks, and all existing non-A/V
+acceptance checks are unchanged. Fresh matching policy-versioned qualification
+is required; this amendment does not promote any retained failed report.
+
 ## Media
 
 The required two-party paths are browser/browser, native QUIC/browser and native
@@ -36,14 +43,29 @@ The local profile is `connect-video-vp8/1`:
   are measured; feedback and periodic keyframes have distinct evidence.
 - Clean profile: at least 24 independently decoded moving frames/second for
   60 seconds on each required path. The loss rehearsal retains 3% loss and up to
-  100 ms delay variation, plus a deterministic 250 ms burst interruption.
+  100 ms delay variation, plus the existing two deterministic 250 ms burst
+  interruptions.
   Fresh decoded motion must recover within two seconds of the burst ending.
-  Paired teardown remains within five seconds.
+  This is fresh-motion recovery, not restoration of full clean quality within
+  two seconds. Paired teardown remains within five seconds.
 - Generated synchronized audio pulses and visual markers measure receive-side
-  A/V alignment: median absolute offset at most 80 ms, 95th percentile at most
-  120 ms. Packet receipt and nominal RTP clock rates cannot substitute for
-  independently decoded markers. These measurements do not claim a native
-  renderer's physical speaker/display latency.
+  A/V alignment. Clean and mute scenarios retain their strict existing sample,
+  calibration and skew requirements: median absolute offset at most 80 ms and
+  95th percentile at most 120 ms. Clean 60-second windows require at least 42
+  uniquely paired markers. Packet receipt and nominal RTP clock rates cannot
+  substitute for independently decoded markers. These measurements do not claim
+  a native renderer's physical speaker/display latency.
+- Only during the unchanged impaired scenario, measured A/V skew and validly
+  derived A/V measurement availability are advisory degraded-quality results.
+  Exceeding the clean skew limits or having insufficient/ambiguous cadence
+  evidence does not alone block impaired acceptance. The raw A/V result and its
+  reason remain visible; unavailable evidence never becomes a synchronization
+  claim. Malformed observer data, invalid derivation, wrong source identity and
+  every existing non-A/V failure still block acceptance. Identified duplex audio,
+  the existing impaired moving-video floor of 1 fps, continuous fresh motion,
+  two-second interruption recovery, resource/network ceilings, authorization and
+  five-second paired teardown remain required. See Decision 012 for the exact
+  policy boundary and fresh-evidence requirement.
 - During each clean 60-second window, transfer a 1 MiB artifact in 32 KiB
   chunks through the public reliable client interface and independently verify
   its final bytes/hash. Include transfer timing in the media report.

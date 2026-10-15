@@ -19,7 +19,7 @@
         "F-21"
       ],
       "status": "not-qualified",
-      "proof": "A developer outside the author’s checkout installs the candidate, starts a persistent local server, resolves two identities, exchanges a message and file in both directions, and reconnects without lost history. No provider account or private bootstrap file is required.",
+      "proof": "A developer outside the author\u2019s checkout installs the candidate, starts a persistent local server, resolves two identities, exchanges a message and file in both directions, and reconnects without lost history. No provider account or private bootstrap file is required.",
       "evidence": [
         "evidence/gate-5/local-package-qualification.json",
         "evidence/gate-5/setup-lane.json",
@@ -54,7 +54,7 @@
         "F-21"
       ],
       "status": "not-qualified",
-      "proof": "Install the supplied MCP configuration and skill into the qualified Codex host using one ordinary revocable identity. Share a draft, receive the human’s reply, consume it explicitly, and continue the exact saved session after restart. Also answer independently initiated contact. Report the actual resume mode; do not imply automatic model wake.",
+      "proof": "Install the supplied MCP configuration and skill into the qualified Codex host using one ordinary revocable identity. Share a draft, receive the human\u2019s reply, consume it explicitly, and continue the exact saved session after restart. Also answer independently initiated contact. Report the actual resume mode; do not imply automatic model wake.",
       "evidence": [
         "evidence/gate-5/agent-journeys.json",
         "evidence/gate-5/local-package-qualification.json"
@@ -114,7 +114,7 @@
         "F-16"
       ],
       "status": "not-qualified",
-      "proof": "On the approved profile, distinct clients exchange decoded moving video and duplex audio through Connect: browser↔browser, native QUIC↔browser, and native QUIC↔native QUIC. Prove negotiation, invitation rejection, access, camera mute, peer loss and teardown. Audio and video remain separate streams in the same Session and Conversation. Unsupported routes reject video explicitly.",
+      "proof": "On the approved profile, distinct clients exchange decoded moving video and duplex audio through Connect: browser\u2194browser, native QUIC\u2194browser, and native QUIC\u2194native QUIC. Prove negotiation, invitation rejection, access, camera mute, peer loss and teardown. Audio and video remain separate streams in the same Session and Conversation. Unsupported routes reject video explicitly.",
       "evidence": [
         "evidence/gate-5/release-media-diagnostics.json",
         "evidence/gate-5/audio-clock-initialization.json",
@@ -259,7 +259,7 @@
         "F-17"
       ],
       "status": "not-qualified",
-      "proof": "A separately written client using a different protocol implementation reads the published profile, negotiates and authenticates over real QUIC, resolves an identity, exchanges permitted requests/events, resumes its cursor and replays one mutation safely. It must not invoke Connect’s Rust helper/client or rvoip’s UCTP implementation. Include incompatible-version, malformed-envelope and unauthorized-operation cases; use shared vectors, not shared parser code.",
+      "proof": "A separately written client using a different protocol implementation reads the published profile, negotiates and authenticates over real QUIC, resolves an identity, exchanges permitted requests/events, resumes its cursor and replays one mutation safely. It must not invoke Connect\u2019s Rust helper/client or rvoip\u2019s UCTP implementation. Include incompatible-version, malformed-envelope and unauthorized-operation cases; use shared vectors, not shared parser code.",
       "evidence": [
         "evidence/gate-5/independent-client.json",
         "evidence/gate-5/independent-conformance.json",
@@ -486,7 +486,7 @@
         "G5-047",
         "G5-049"
       ],
-      "observation": "The separate 0d285d168509 exploratory 60-second two-native-pair run observed 5.10–5.32 changing fps across four participants, below the 24 fps clean-profile comparison. It does not extend the supported one-pair profile or establish capacity. Browser impairment remains unqualified. No independent fresh-user attempt is recorded; the walkthrough JSON is a blank template.",
+      "observation": "The separate 0d285d168509 exploratory 60-second two-native-pair run observed 5.10\u20135.32 changing fps across four participants, below the 24 fps clean-profile comparison. It does not extend the supported one-pair profile or establish capacity. Browser impairment remains unqualified. No independent fresh-user attempt is recorded; the walkthrough JSON is a blank template.",
       "remaining": [
         "Meet the unchanged approved media operating profile.",
         "Record three independent fresh users with installation and prerequisite time separated from the ten-minute local reply target.",
@@ -532,7 +532,7 @@
         "G5-048",
         "G5-049"
       ],
-      "observation": "Clean 66115d2 passed all 84 source phases; later changes have explicitly scoped composition/repair evidence. Candidate 0d285d168509 includes the contact UI repair and passed selected archived reference/contact checks. There is no matching complete installed pass, and the actual-model lane is unrun. Later evidence annotations do not change the archive’s recorded source boundary.",
+      "observation": "Clean 66115d2 passed all 84 source phases; later changes have explicitly scoped composition/repair evidence. Candidate 0d285d168509 includes the contact UI repair and passed selected archived reference/contact checks. There is no matching complete installed pass, and the actual-model lane is unrun. Later evidence annotations do not change the archive\u2019s recorded source boundary.",
       "remaining": [
         "Reconcile the selected final source and affected artifacts using reviewed composition or a new complete source run.",
         "Obtain matching installed, media and actual-model evidence; retain every earlier failed attempt.",
@@ -598,7 +598,7 @@
         "F-21"
       ],
       "status": "not-qualified",
-      "proof": "All A5 criteria and F-01–F-21 commitments have current evidence or an explicitly reviewed source-composition record, with no unresolved release blockers. The owner reviews the candidate and exact compatibility claims. Only a separate publication instruction permits uploading release artifacts or updating the public project claims. Gate 5 stays release-ready, not released, until publication is verified.",
+      "proof": "All A5 criteria and F-01\u2013F-21 commitments have current evidence or an explicitly reviewed source-composition record, with no unresolved release blockers. The owner reviews the candidate and exact compatibility claims. Only a separate publication instruction permits uploading release artifacts or updating the public project claims. Gate 5 stays release-ready, not released, until publication is verified.",
       "evidence": [
         "evidence/gate-5/current-source-qualification.json",
         "evidence/gate-5/local-package-qualification.json",
@@ -632,9 +632,10 @@
     "actual_model": "not-run",
     "human_attempts_recorded": 0,
     "independent_fresh_users_required": 3,
-    "browser_impairment": "failed / unresolved under the unchanged approved profile",
+    "browser_impairment": "Historical strict-policy reports remain failed. Fresh matching policy-2 qualification is pending.",
     "owner_handoff": "not-ready",
     "meaning": "Progress only. Linked records keep their own revisions, scopes and failures. This file is not a final result, final seal, owner acceptance or publication approval.",
-    "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1–5.3 changing fps per participant. This does not extend the supported one-pair profile."
+    "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1\u20135.3 changing fps per participant. This does not extend the supported one-pair profile.",
+    "media_acceptance_policy": "connect-media-acceptance/2; owner-approved impairment-only change, component checks verified; new candidate qualification pending"
   }
 }

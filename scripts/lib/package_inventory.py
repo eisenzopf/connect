@@ -76,6 +76,8 @@ GATE5_SOURCE = (
     'scripts/video/decoder_observation.py', 'scripts/video/fixture_protocol.py',
     'scripts/video/source_identity.mjs', 'scripts/video/browser_failure.mjs',
     'scripts/video/marker_calibration.py', 'scripts/video/marker_calibration.mjs',
+    'scripts/video/acceptance_policy.py', 'scripts/video/acceptance_policy.mjs',
+    'scripts/tests/acceptance_policy.test.mjs', 'scripts/tests/av_acceptance_cases.json',
     'scripts/video/audio_observation.py', 'scripts/video/audio_observation.mjs',
     'scripts/video/audio_envelope.mjs', 'scripts/tests/audio_envelope.test.mjs',
     'scripts/video/motion_observation.py', 'scripts/video/motion_observation.mjs',

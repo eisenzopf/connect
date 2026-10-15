@@ -32,6 +32,10 @@ DECODER_HELPER = pathlib.Path(media.decoder.__file__).resolve()
 VISUAL_HELPER = pathlib.Path(__file__).parent / 'video/source_identity.mjs'
 MARKER_PY = pathlib.Path(media.decoder.markers.__file__).resolve()
 MARKER_JS = pathlib.Path(__file__).parent / 'video/marker_calibration.mjs'
+ACCEPTANCE_PY = pathlib.Path(__file__).parent / 'video/acceptance_policy.py'
+ACCEPTANCE_JS = pathlib.Path(__file__).parent / 'video/acceptance_policy.mjs'
+acceptance_spec = importlib.util.spec_from_file_location('media_acceptance_policy', ACCEPTANCE_PY)
+acceptance = importlib.util.module_from_spec(acceptance_spec); acceptance_spec.loader.exec_module(acceptance)
 AUDIO_PY = pathlib.Path(media.decoder.audio_observer.__file__).resolve()
 AUDIO_JS = pathlib.Path(__file__).parent / 'video/audio_observation.mjs'
 ENVELOPE_JS = pathlib.Path(__file__).parent / 'video/audio_envelope.mjs'
@@ -97,7 +101,8 @@ async def measurement_readiness(participants, browser_ready, browser_count):
 async def _qualify_path(args, route, work):
     work.mkdir(mode=0o700)
     state, identities, configs, conversation, session, signaling = prepare(work, args.server_binary)
-    participants = []; sampler = None; observed = {'path': route, 'status': 'running', 'qualification_seconds': args.seconds, 'transport':
+    participants = []; sampler = None; observed = {'path': route, 'status': 'running', 'qualification_seconds': args.seconds, 'acceptance_policy': acceptance.POLICY,
+        'scenario': 'mute-recovery' if args.mute_recovery else 'impairment' if args.impairment else 'clean', 'transport':
         'native=authenticated UCTP over QUIC; browser=authenticated WebRTC'}
     (work / 'result.json').write_text(json.dumps(observed, indent=2) + '\n')
     with Server(state, binary=args.server_binary, log_path=work / 'server.log') as server:
@@ -228,6 +233,8 @@ async def _qualify_path(args, route, work):
                         'playout': result['playout'],
                         'maximum_codec_emission_hold_ms': result['maximum_codec_emission_hold_ms'],
                         'participant_success': result['success']})
+                    native[-1]['av_acceptance'] = acceptance.audio_video_acceptance(
+                        native[-1]['av_sync'], 'mute' if args.mute_recovery else 'impairment' if args.impairment else 'clean', args.seconds)
                     if args.impairment:
                         native[-1]['recovery'] = media.decode_recovery(video, result, window,
                             rtc_proxy.bursts() if rtc_proxy else observed['network']['stall_bursts'], args.ffmpeg)
@@ -270,7 +277,7 @@ async def _qualify_path(args, route, work):
                     and p['video']['motion_profile']['status'] == 'passed' and p['video']['width'] == 640 and p['video']['height'] == 360
                     and (args.impairment or args.mute_recovery or p['video']['clean_decoder_diagnostics'])
                     and p['audio']['duration_seconds'] >= args.seconds * .8 and p['teardown_seconds'] < 5
-                    and p['participant_success'] and p['av_sync']['status'] == 'passed'
+                    and p['participant_success'] and p['av_acceptance']['status'] == 'passed'
                     and p['av_sync']['source_identity']['status'] == 'passed'
                     and p['sdk_media']['status'] == 'measured'
                     and p['maximum_rtp_bytes'] <= 1180 and p['maximum_encoded_frame_bytes'] <= 256 * 1024
@@ -322,7 +329,8 @@ async def qualify_path(args, route, work):
             chain.append({'type': type(cursor).__name__, 'frames': [{'file': pathlib.Path(frame.filename).name,
                 'line': frame.lineno, 'function': frame.name} for frame in traceback.extract_tb(cursor.__traceback__)]})
             cursor = cursor.__cause__ or cursor.__context__
-        observed.update({'status': 'failed', 'error_class': type(error).__name__, 'error_chain': chain,
+        observed.update({'status': 'failed', 'acceptance_policy': acceptance.POLICY,
+            'scenario': 'mute-recovery' if args.mute_recovery else 'impairment' if args.impairment else 'clean', 'error_class': type(error).__name__, 'error_chain': chain,
             'private_attempt_directory': str(work), 'error_frames': [{'file': pathlib.Path(frame.filename).name,
                 'line': frame.lineno, 'function': frame.name} for frame in traceback.extract_tb(error.__traceback__)]})
         if work.exists(): (work / 'result.json').write_text(json.dumps(observed, indent=2) + '\n')
@@ -443,7 +451,7 @@ def main():
     # Binding includes every served public SDK/reference asset plus selected executable inputs.
     bound = [args.server_binary, args.video_binary, selected_ffmpeg, selected_node,
         pathlib.Path(sys.executable).resolve(strict=True),
-        pathlib.Path(__file__), PROCESS_HELPER, HELPER, WEBRTC_HELPER, DECODER_HELPER, FIXTURE_HELPER, VISUAL_HELPER, MARKER_PY, MARKER_JS, AUDIO_PY, AUDIO_JS, ENVELOPE_JS, BROWSER_FAILURE_JS, MOTION_PY, MOTION_JS, WORKER_JS, SPECTRUM_JS,
+        pathlib.Path(__file__), PROCESS_HELPER, HELPER, WEBRTC_HELPER, DECODER_HELPER, FIXTURE_HELPER, VISUAL_HELPER, MARKER_PY, MARKER_JS, ACCEPTANCE_PY, ACCEPTANCE_JS, AUDIO_PY, AUDIO_JS, ENVELOPE_JS, BROWSER_FAILURE_JS, MOTION_PY, MOTION_JS, WORKER_JS, SPECTRUM_JS,
         pathlib.Path(__file__).parent / 'video/browser-qualify.mjs']
     if os.environ.get('CONNECT_CHROME_BINARY'):
         bound.append(pathlib.Path(os.environ['CONNECT_CHROME_BINARY']).resolve(strict=True))
@@ -460,7 +468,7 @@ def main():
     work = args.work_root / datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
     work.mkdir(mode=0o700)
     report = {'status': 'running', 'profile': 'connect-video-vp8/1', 'source_revision': args.source_revision,
-        'marker_program': media.decoder.markers.PROGRAM,
+        'marker_program': media.decoder.markers.PROGRAM, 'acceptance_policy': acceptance.POLICY,
         'scenario': 'exploratory-concurrency' if args.exploratory_concurrency else 'mute-recovery' if args.mute_recovery else 'impairment' if args.impairment else 'clean',
         'qualification_seconds': args.seconds,
         'selected_runtime': str(args.runtime), 'selected_assets': str(args.source_path), 'input_sha256': hashes,
