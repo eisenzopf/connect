@@ -1,0 +1,209 @@
+{
+  "profile": "connect-v0.1-publication-qualification/1",
+  "recorded_at": "2026-10-15T22:37:08.978167+00:00",
+  "source_revision": "5beccc4e2fbec4a6835a2795bf0b573a97ffc0ce",
+  "version": "0.1.0",
+  "candidate": "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "macos": "27.0.1"
+  },
+  "status": "publication-authorized-with-disclosed-performance-exceptions",
+  "fully_qualified_new_build": false,
+  "runtime_manifest_sha256": "b87eadd91282fa40c65c726d242f8fc2e10b11769f765f0df9e13ee99ba0cbb5",
+  "binary_hashes": {
+    "bin/connect": "80792c13a103e8cd8fb2387ee6a69884f988d8964c4ef06c2655be74041e3b9d",
+    "bin/connect-example": "f3b8e44a722ab7e88f4b4e7b6d49b255e3f514ef84061a6338a36d0ede54289a",
+    "bin/connect-video": "0ce9793e9178746e950ec1c3866bbf6166856b3985fc5792c335ee13a958d925"
+  },
+  "archives": {
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local-qualification.tar.gz": "cd9cfb45a9241494c73d4179202073120580e270d32ed7b90b6ae33874d58a8f",
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local-source.tar.gz": "6f763efd6be5bce4bff47e9faccdf6109b874505f467fafc254476cfd877c42e",
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local.tar.gz": "17429d84a7e4660aa379acf17690bae9fdc933270e17b599cecfba3e30f0039b"
+  },
+  "installed_baseline_checks": {
+    "archive-checksums": "passed",
+    "inventory": "passed",
+    "sdk-source-build": "passed",
+    "first-launch-connect": "passed",
+    "first-launch-example": "passed",
+    "first-launch-schema1": "passed",
+    "first-launch-video": "passed",
+    "installed-walkthrough": "passed",
+    "restart-shutdown": "passed",
+    "installed-language-sdks": "passed",
+    "installed-gate4-agent": "passed",
+    "qualification-fixture-build": "passed",
+    "first-launch-fault-connect": "passed",
+    "first-launch-fault-connect-example": "passed",
+    "check-examples.py": "passed",
+    "check-recovery.py": "passed",
+    "check-crash-replay.py": "passed",
+    "check-example-recovery.py": "passed"
+  },
+  "gate5_steps": [
+    {
+      "name": "connector-template-cold-tests",
+      "status": "passed",
+      "seconds": 4.192
+    },
+    {
+      "name": "connector-template-cold-binary",
+      "status": "passed",
+      "seconds": 1.017
+    },
+    {
+      "name": "connector-template-tests",
+      "status": "passed",
+      "seconds": 0.351
+    },
+    {
+      "name": "connector-template-contract",
+      "status": "passed",
+      "seconds": 0.309
+    },
+    {
+      "name": "connector-contribution-cold-tests",
+      "status": "passed",
+      "seconds": 1.115
+    },
+    {
+      "name": "connector-contribution-cold-binary",
+      "status": "passed",
+      "seconds": 0.143
+    },
+    {
+      "name": "connector-contribution-tests",
+      "status": "passed",
+      "seconds": 0.301
+    },
+    {
+      "name": "connector-contribution-contract",
+      "status": "passed",
+      "seconds": 0.413
+    },
+    {
+      "name": "independent-client-vectors",
+      "status": "passed",
+      "seconds": 0.41
+    },
+    {
+      "name": "installed-independent-control",
+      "status": "passed",
+      "seconds": 4.061
+    },
+    {
+      "name": "installed-public-setup",
+      "status": "passed",
+      "seconds": 2.235
+    },
+    {
+      "name": "installed-connected-app",
+      "status": "passed",
+      "seconds": 2.609
+    },
+    {
+      "name": "installed-session-controls",
+      "status": "passed",
+      "seconds": 9.985
+    },
+    {
+      "name": "native-storage-fixture-cold-build",
+      "status": "passed",
+      "seconds": 201.396
+    },
+    {
+      "name": "native-storage-installed-cli",
+      "status": "passed",
+      "seconds": 2.617
+    },
+    {
+      "name": "source-media-failure-fixture-build",
+      "status": "passed",
+      "seconds": 1.997
+    },
+    {
+      "name": "source-media-failure-fixture",
+      "status": "passed",
+      "seconds": 13.13
+    },
+    {
+      "name": "external-media-failure-fixture-build",
+      "status": "passed",
+      "seconds": 1.216
+    },
+    {
+      "name": "installed-media-failures",
+      "status": "passed",
+      "seconds": 30.015
+    },
+    {
+      "name": "native-example-cold-build",
+      "status": "passed",
+      "seconds": 22.335
+    },
+    {
+      "name": "installed-native-example-cleanup",
+      "status": "passed",
+      "seconds": 6.835
+    },
+    {
+      "name": "installed-historical-recovery",
+      "status": "passed",
+      "seconds": 10.693
+    },
+    {
+      "name": "installed-reference-client",
+      "status": "passed",
+      "seconds": 18.456
+    },
+    {
+      "name": "installed-decoded-video",
+      "status": "failed",
+      "seconds": 200.246
+    }
+  ],
+  "gate5_step_counts": {
+    "passed": 23,
+    "failed": 1,
+    "not_run": 2
+  },
+  "clean_media_routes": [
+    {
+      "path": "native-native",
+      "status": "passed-clean",
+      "browser_media_status": null,
+      "sampled_process_tree_rss_bytes": 238452736,
+      "memory_within_budget": true
+    },
+    {
+      "path": "native-browser",
+      "status": "passed-clean",
+      "browser_media_status": "passed",
+      "sampled_process_tree_rss_bytes": 1677541376,
+      "memory_within_budget": true
+    },
+    {
+      "path": "browser-browser",
+      "status": "failed",
+      "browser_media_status": "passed",
+      "sampled_process_tree_rss_bytes": 2221572096,
+      "memory_within_budget": false
+    }
+  ],
+  "not_run": [
+    "New-build impaired and mute/recovery media phases after the clean resource-budget failure",
+    "New actual-model execution: the runner requires a completely passing package report; no report was synthesized"
+  ],
+  "actual_model_evidence": "Historical 28-call ab843b8 model run retains its original source/execution scope; no new-model pass is claimed for0.1.0.",
+  "source_qualification": "Historical Gate5 source proof retained. Current hosted CI has a disclosed owner-waived recovery failure; full green CI is not claimed.",
+  "provider_scope": "No new live communication-provider operations, public ingress or server deployment.",
+  "new_runtime_inventory_verification": "All1565 payload hashes and manifest-only exact inventory verified before publication.",
+  "private_original_report_hashes": {
+    "package": "01dc1a9348b3dcb80fec697c721552601cb4978b4a54006063027261239ac5d4",
+    "gate5": "d6be25c39f40078c3ec0ee6831d4cd3cc564ab419c42b6cc89bc10b2f9d04dda",
+    "clean_media": "67baabb2232eccb7a3f4482b4a480cf2f6f908c953b32b7f46f0bd9ca396a1cd"
+  },
+  "release_decision": "Owner instructed publication to proceed, explicitly dismissing combined Chrome-test RAM as a blocker. Failed raw observations and unrun checks remain explicit."
+}

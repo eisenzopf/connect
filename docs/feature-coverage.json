@@ -783,7 +783,7 @@
   },
   "decision_backlog": "backlog.html#B-001",
   "roadmap": "connect-roadmap.html#coverage",
-  "assignment_status": "All21 commitments retain their delivery assignments and scoped evidence. Gate5 is complete within the approved local macOS arm64 profile; candidate284cef1 is owner-approved and release-ready. Publication remains separate.",
+  "assignment_status": "All21 commitments retain assignments and source-scoped evidence. Public v0.1 has disclosed performance exceptions; no failed measurement or unrun phase is counted as a new pass.",
   "gate_3_acceptance": "gate-3-acceptance.json",
   "gate_4_acceptance": "gate-4-acceptance.json",
   "current_gate_4_review": "connect-gate-4-implementation.html#tracking",
@@ -794,6 +794,9 @@
     "implementation": "connect-gate-5-implementation.html",
     "note": "All50 implementation items and16acceptance criteria are complete in their recorded local scopes. Final owner approval is recorded; no publication.",
     "seal": "evidence/gate-5/final-candidate-seal-20261015.json",
-    "owner_approval": "evidence/gate-5/owner-approval-20261015.json"
+    "owner_approval": "evidence/gate-5/owner-approval-20261015.json",
+    "publication": "https://github.com/eisenzopf/connect/releases/tag/v0.1",
+    "published_build_fully_qualified": false,
+    "exceptions": "evidence/gate-5/v0.1-release-exceptions.json"
   }
 }

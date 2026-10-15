@@ -3,7 +3,7 @@
   "product": "Connect",
   "identity": "Communication for people, apps, and agents",
   "priority": "Server and SDK first",
-  "release": "Gates 1 and 2 qualified within their recorded scope; full v0.1 remains unreleased.",
+  "release": "Connect v0.1 published in eisenzopf/connect, for local macOS arm64, with disclosed performance exceptions and verified public downloads.",
   "gates": [
     {
       "id": 1,
@@ -238,7 +238,7 @@
       "id": 5,
       "name": "Downloadable v0.1",
       "outcome": "Video, connector/protocol conformance, first-run setup, measured end-to-end acceptance and published v0.1.",
-      "status": "release-ready-unpublished",
+      "status": "released-with-disclosed-performance-exceptions",
       "plan": "connect-gate-5-plan.html",
       "milestones": [
         {
@@ -303,7 +303,7 @@
           "acceptance": "A reviewer outside the development workspace installs the candidate, completes both supported journeys, upgrades/restores safely and follows the connector guide. Release artifacts and documentation agree. Owner reviews before publication.",
           "reuse": "Current unpublished macOS arm64 packaging and source hashes; broader platforms require their own qualification. Existing local upstream patches remain explicit until replaced and requalified.",
           "experiment": "Release qualification",
-          "status": "release-ready-publication-separate"
+          "status": "published-with-disclosed-performance-exceptions"
         }
       ],
       "implementation": "connect-gate-5-implementation.html",
@@ -321,10 +321,14 @@
           "not-qualified": 0
         },
         "candidate_behavior_revision": "284cef16c64b324ce2add037b013249692a60087",
-        "reason": "Gate 5 local implementation and acceptance complete:50/50tasks,16/16criteria. Candidate284cef1 is owner-approved and release-ready. Full v0.1 remains unpublished.",
+        "reason": "All201 implementation tasks across Gates1–5 are complete in their recorded scopes. Version0.1.0 is published with explicit failed/unrun qualification observations and owner-accepted performance exceptions.",
         "whole_gate_qualified": true,
         "evidence": "evidence/gate-5/final-candidate-seal-20261015.json",
-        "owner_approval": "evidence/gate-5/owner-approval-20261015.json"
+        "owner_approval": "evidence/gate-5/owner-approval-20261015.json",
+        "published_version": "0.1.0",
+        "published_candidate": "5beccc4e2fbec4a6835a2795bf0b573a97ffc0ce",
+        "published_build_fully_qualified": false,
+        "publication": "https://github.com/eisenzopf/connect/releases/tag/v0.1"
       },
       "historical_progress_before_finalization": {
         "recorded_at": "2026-10-15T11:54:11.230505+00:00",
@@ -377,7 +381,9 @@
           ]
         },
         "evidence": "evidence/gate-5/package-notice-composition-284cef1.json"
-      }
+      },
+      "release_url": "https://github.com/eisenzopf/connect/releases/tag/v0.1",
+      "publication_record": "evidence/gate-5/v0.1-publication.json"
     }
   ],
   "source_of_truth": {
@@ -396,7 +402,7 @@
   "local_patches": "Accepted for now; source-lock digests verified",
   "revision": 14,
   "document": "connect-roadmap.html",
-  "planning_status": "Gate 5 local implementation and acceptance complete:50/50tasks,16/16criteria. Candidate284cef1 is owner-approved and release-ready. Full v0.1 remains unpublished.",
+  "planning_status": "All201 implementation tasks across Gates1–5 are complete in their recorded scopes. Version0.1.0 is published with explicit failed/unrun qualification observations and owner-accepted performance exceptions.",
   "sequencing_rule": "Keep gates 1–5 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
   "parallel_lanes": [
     {

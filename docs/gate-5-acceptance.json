@@ -3,7 +3,7 @@
   "title": "Downloadable v0.1",
   "revision": 7,
   "updated": "2026-10-15",
-  "status": "qualified-release-ready",
+  "status": "published-with-disclosed-performance-exceptions",
   "plan": "connect-gate-5-plan.html",
   "implementation": "connect-gate-5-implementation.html",
   "scope": "Owner-authorized Gate 5 implementation and parallel qualification. Local macOS arm64 only; communication provider operations, public ingress, deployment and publication remain separate. Acceptance requires current behavior evidence and actual owner review.",
@@ -660,7 +660,7 @@
   "record_kind": "owner-approved-local-acceptance",
   "whole_gate_qualified": true,
   "owner_acceptance": "approved-release-ready",
-  "publication": "not-performed",
+  "publication": "https://github.com/eisenzopf/connect/releases/tag/v0.1",
   "report": "evidence/gate-5/acceptance.html",
   "candidate_transition": {
     "source_revision": "284cef16c64b324ce2add037b013249692a60087",
@@ -737,8 +737,13 @@
     "seal": "evidence/gate-5/final-candidate-seal-20261015.json",
     "handoff": "GATE5_OWNER_HANDOFF.md",
     "owner_handoff": "approved",
-    "publication": "not-performed",
-    "owner_approval": "evidence/gate-5/owner-approval-20261015.json"
+    "publication": "performed-and-downloads-verified",
+    "owner_approval": "evidence/gate-5/owner-approval-20261015.json",
+    "current_published_candidate": "5beccc4e2fbec4a6835a2795bf0b573a97ffc0ce",
+    "release_exceptions": "evidence/gate-5/v0.1-release-exceptions.json"
   },
-  "owner_approval": "evidence/gate-5/owner-approval-20261015.json"
+  "owner_approval": "evidence/gate-5/owner-approval-20261015.json",
+  "published_build_fully_qualified": false,
+  "publication_record": "evidence/gate-5/v0.1-publication.json",
+  "publication_scope": "Historical alpha acceptance remains source-scoped. The new0.1.0 build has explicit raw failures and unrun phases; publication is owner-authorized with disclosed performance exceptions."
 }

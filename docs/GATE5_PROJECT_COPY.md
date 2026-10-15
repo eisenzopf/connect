@@ -1,3 +1,5 @@
+> **v0.1 is published:** [GitHub release](https://github.com/eisenzopf/connect/releases/tag/v0.1). See [current release notes](releases/v0.1.md) for the new build’s actual checks, disclosed performance exceptions and unrun phases. Historical alpha identities below retain their own scopes.
+
 # Proposed Rudeless Connect project-page copy
 
 Prepared locally for owner review. No site, release, download or remote content

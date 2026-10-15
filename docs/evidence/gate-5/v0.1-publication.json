@@ -9,9 +9,66 @@
     "and publish as eisenzopf/connect on github",
     "they were on a remote computer but i'm coding here now. you can't make them?"
   ],
-  "scope": "Rebuild locally, qualify new archives, publish source and GitHub release assets. No public website or remote server deployment.",
-  "status": "authorized-build-and-qualification-in-progress",
+  "scope": "GitHub v0.1 source and assets published in eisenzopf/connect. No external website, registry or server deployment.",
+  "status": "published-with-disclosed-performance-exceptions",
   "original_approved_candidate": "284cef16c64b324ce2add037b013249692a60087",
   "original_archives_available": false,
-  "new_archive_hashes_required": true
+  "new_archive_hashes_required": true,
+  "publication": "performed-and-public-downloads-verified",
+  "release_url": "https://github.com/eisenzopf/connect/releases/tag/v0.1",
+  "published_at": "2026-10-15T22:37:18Z",
+  "source_revision": "5beccc4e2fbec4a6835a2795bf0b573a97ffc0ce",
+  "candidate": "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local",
+  "archives": {
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local-qualification.tar.gz": "cd9cfb45a9241494c73d4179202073120580e270d32ed7b90b6ae33874d58a8f",
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local-source.tar.gz": "6f763efd6be5bce4bff47e9faccdf6109b874505f467fafc254476cfd877c42e",
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local.tar.gz": "17429d84a7e4660aa379acf17690bae9fdc933270e17b599cecfba3e30f0039b"
+  },
+  "fully_qualified_new_build": false,
+  "qualification": "evidence/gate-5/v0.1-qualification.json",
+  "exceptions": "evidence/gate-5/v0.1-release-exceptions.json",
+  "public_download_verification": {
+    "status": "passed",
+    "method": "Unauthenticated public HTTPS downloads via curl; every asset rehashed and compared with the local published file.",
+    "release_url": "https://github.com/eisenzopf/connect/releases/tag/v0.1",
+    "assets": [
+      {
+        "asset": "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local-qualification.tar.gz",
+        "sha256": "cd9cfb45a9241494c73d4179202073120580e270d32ed7b90b6ae33874d58a8f",
+        "bytes": 60806716,
+        "verified": true
+      },
+      {
+        "asset": "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local-source.tar.gz",
+        "sha256": "6f763efd6be5bce4bff47e9faccdf6109b874505f467fafc254476cfd877c42e",
+        "bytes": 3662328,
+        "verified": true
+      },
+      {
+        "asset": "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local.tar.gz",
+        "sha256": "17429d84a7e4660aa379acf17690bae9fdc933270e17b599cecfba3e30f0039b",
+        "bytes": 40746517,
+        "verified": true
+      },
+      {
+        "asset": "connect-v0.1-qualification-supplement.tar.gz",
+        "sha256": "ca0e2c0d5ea0fbf8b0a0d634c934a2c3f7bd6a8edadb5eca4a3d016f3dbf130e",
+        "bytes": 5594,
+        "verified": true
+      },
+      {
+        "asset": "SHA256SUMS",
+        "sha256": "113568137972ab2d5500aebbb5caace50874c667d04c58191d8dd73d3ad3b0ee",
+        "bytes": 393,
+        "verified": true
+      },
+      {
+        "asset": "SUPPLEMENT_SHA256SUMS",
+        "sha256": "e5372b5c4a6033f61fc521fe34ddcd6da4908f8a6fa07c8453b5ad7d85933385",
+        "bytes": 111,
+        "verified": true
+      }
+    ]
+  },
+  "historical_gate5_qualification": "Prior alpha qualification remains at its original source scopes. Current build results and owner-accepted performance exceptions are explicit."
 }

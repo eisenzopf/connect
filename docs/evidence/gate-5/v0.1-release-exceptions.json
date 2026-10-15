@@ -1,0 +1,26 @@
+{
+  "profile": "connect-v0.1-owner-release-exception/1",
+  "recorded_date": "2026-10-15",
+  "status": "owner-waived-for-publication",
+  "owner_instruction": "pass it",
+  "context": "Owner instructed publication to proceed after disclosure of the hosted QUIC recovery stress-test failure.",
+  "workflow_url": "https://github.com/eisenzopf/connect/actions/runs/38810250524",
+  "job_id": 116681385413,
+  "test": "sustained::sustained_duplex_av_rate_loss_and_stalls_with_reliable_bytes",
+  "raw_test_result": "failed",
+  "observed_recovery_seconds": 2.7643167920000025,
+  "target_recovery_seconds": 2.0,
+  "test_result_changed": false,
+  "test_threshold_changed": false,
+  "scope": "Publication exception for this disclosed CI recovery result. No passing measurement or completed hosted suite is inferred; local installed qualification remains separately recorded.",
+  "unconditional_two_second_recovery_guarantee": false,
+  "browser_memory_exception": {
+    "status": "accepted-by-owner-for-publication",
+    "metric": "combined sampled resident memory of two Chrome instances, Connect server and test helpers; not disk usage or standalone server RAM",
+    "observed_bytes": 2221572096,
+    "budget_bytes": 2147483648,
+    "raw_package_test_result": "failed",
+    "owner_direction": "Combined Chrome test memory is not a release blocker; proceed with publication.",
+    "test_result_changed": false
+  }
+}

@@ -6,50 +6,26 @@ An open communications server and SDK from [Rudeless](https://rudeless.ai). One 
 
 ## Status
 
-[Gate 5 implementation](docs/connect-gate-5-implementation.html) is complete within
-the approved local macOS arm64 scope:
-three two-party VP8/PCMU video paths, a contributor connector kit, independently
-implemented UCTP control, first-run setup and an expanded reference client.
-The public v0.1 build uses version `0.1.0`, with local macOS arm64 qualification.
-The earlier approved alpha candidate `284cef1` retains its exact evidence. All 50 tasks and
-all 16 acceptance criteria are complete within their recorded scopes. Usability and quality
-review completion are owner-confirmed. Final owner acceptance is recorded;
-see the [sealed candidate handoff](docs/GATE5_OWNER_HANDOFF.md). Review the [product plan](docs/connect-gate-5-plan.html)
-and [local package profile](docs/GATE5_PACKAGE.md) for the qualification boundary.
-[Draft release notes](docs/GATE5_RELEASE_NOTES.md) and
-[proposed project-page copy](docs/GATE5_PROJECT_COPY.md) are prepared locally for review.
+**[Connect v0.1 is published](https://github.com/eisenzopf/connect/releases/tag/v0.1)**
+with version `0.1.0` binaries for local macOS arm64, SDKs, examples, complete
+source, recovery fixtures, checksums and a qualification supplement. All six
+release assets were independently downloaded over public HTTPS and rehashed.
 
-The retained Gate 4 baseline is ready for local macOS arm64 owner review: [36 implementation
-items](docs/connect-gate-4-implementation.html#tracking) and [14 acceptance
-criteria](docs/evidence/gate-4/acceptance.html) have recorded evidence. Agents
-get [one revocable communication identity](docs/AGENT_ACCESS.md) across their
-authorized conversations. Tasks track work when needed; narrow grants remain
-optional. The [Codex host](docs/CODEX_TASK_HOST.md) preserves its session for
-explicit resume.
+The implementation checklists for Gates 1–5 are complete within their recorded
+scopes. The owner approved publication with disclosed performance exceptions:
+a hosted QUIC stress recovery measured 2.76 seconds against a 2-second target,
+and the two-browser test exceeded its combined process-memory budget. That
+memory total includes two Chrome instances and test helpers; it is not the
+Connect server's standalone RAM usage. Failed results and unrun follow-up
+checks remain explicit; the rebuilt package is not described as fully passing.
 
-The frozen `709cf82` candidate passes [42 offline qualification phases](docs/evidence/gate-4/offline-709cf82.json),
-[17 installed-package checks](docs/evidence/gate-4/package-709cf82.json) and
-[32 actual-model MCP calls](docs/evidence/gate-4/real-model-agent-709cf82.json).
-The [public journey runner](docs/AGENT_JOURNEY_QUALIFICATION.md) makes the
-separate model check reproducible. [Hosted CI](https://github.com/eisenzopf/connect/actions/runs/38334742398)
-uses `d64f1b9`; its workflow and three qualification-fixture files are the only
-changes from the immutable runtime candidate. The [qualification record](docs/evidence/gate-4/qualification-controls-d64f1b9.json)
-keeps that boundary and the earlier failed attempts explicit.
-
-Historical [Vapi](docs/evidence/gate-4/actual-vapi-chat-dc73996.json),
-[voice/chat](docs/evidence/gate-4/live-voice-continuity.json) and
-[SMS](docs/evidence/gate-4/sms-0737-rehearsal.json) rehearsals retain their exact
-source, account, handset and topology limits. The [source/provider review](docs/evidence/gate-4/review-remediation-709cf82.json)
-explains how those proofs relate to the current code.
-
-The owner authorized publication as `v0.1` in `eisenzopf/connect`. The release
-is being rebuilt and verified locally; [release notes](docs/releases/v0.1.md)
-record the public package scope. Gate 5 qualifies local macOS arm64. Additional platforms need separate qualification;
-community publication follows a separate owner instruction.
-
-See [the documentation and delivery index](docs/index.html) and
-[local candidate instructions](docs/LOCAL_RELEASE.md). The capabilities below
-describe the complete product we intend to build.
+Read the [release notes](docs/releases/v0.1.md),
+[qualification results](docs/evidence/gate-5/v0.1-qualification.json) and
+[publication record](docs/evidence/gate-5/v0.1-publication.json).
+Earlier [Gate 5 alpha evidence](docs/GATE5_OWNER_HANDOFF.md) and
+[Gate 4 qualification](docs/evidence/gate-4/acceptance.html) retain their exact
+source/model/provider scopes. No remote-server deployment or live provider
+operation is part of this release.
 
 ## Local development
 

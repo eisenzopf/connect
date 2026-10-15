@@ -1,63 +1,21 @@
 {
-  "profile": "gate5-provisional-local-candidate/1",
-  "recorded_at": "2026-10-15T11:52:20.789885+00:00",
-  "status": "Owner-approved release-ready local candidate; unpublished",
-  "whole_gate_qualified": true,
-  "source_revision": "284cef16c64b324ce2add037b013249692a60087",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
-  "candidate_directory": "dist/connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
-  "runtime_directory": "dist/connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local/connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
+  "profile": "connect-published-candidate/1",
+  "recorded_date": "2026-10-15",
+  "status": "published-with-disclosed-performance-exceptions",
+  "version": "0.1.0",
+  "candidate": "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local",
+  "source_revision": "5beccc4e2fbec4a6835a2795bf0b573a97ffc0ce",
+  "release_url": "https://github.com/eisenzopf/connect/releases/tag/v0.1",
   "archives": {
-    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local-qualification.tar.gz": "3fc18ca1d734ddec7eb47888898ab22e95668166eb8a2dc5792af9c3282d58de",
-    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local-source.tar.gz": "a7011377b39e0269aa2786ae718360dbe34c28c79131718ed00db2a3e76f043e",
-    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local.tar.gz": "a26f107672df840b2f16933dbff44bcff0640b407d3379d2c234752b6380a701"
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local-qualification.tar.gz": "cd9cfb45a9241494c73d4179202073120580e270d32ed7b90b6ae33874d58a8f",
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local-source.tar.gz": "6f763efd6be5bce4bff47e9faccdf6109b874505f467fafc254476cfd877c42e",
+    "connect-0.1.0-macos-arm64-5beccc4e2fbe-gate5-local.tar.gz": "17429d84a7e4660aa379acf17690bae9fdc933270e17b599cecfba3e30f0039b"
   },
-  "source_archive_files_exact_git": 1569,
-  "runtime_payload_files": 1545,
-  "historical_qualification_assets": 4,
-  "recorded_patches": 34,
-  "explicit_designation": "Codex designates immutable284cef1 after accepted source, archive, affected notices, literal complete installed and unchanged model/provider evidence composition. Owner acceptance and publication remain separate.",
-  "proofs": {
-    "source_snapshot": {
-      "path": "docs/evidence/gate-5/source-qualification-284cef16c64b.json",
-      "sha256": "61db9adfce2c4669143bd2a3db2b07b307ec7ce62a3038b52899c23213fc8b3b"
-    },
-    "package_and_notice_composition": {
-      "path": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
-      "sha256": "8cd3fce98f3fa72fea50cf17f9cb4da323cc1c4cce7794700e0de79780db9545"
-    },
-    "installed": {
-      "path": "docs/evidence/gate-5/complete-installed-284cef1.json",
-      "sha256": "62b9cc89499f46e07defb08a5944fdac480614ef36a15bee97d1cc7f3b580297"
-    },
-    "actual_model_composition": {
-      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
-      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
-    },
-    "bounded_provider_claims": {
-      "path": "docs/evidence/gate-5/provider-claims-ab843b8.json",
-      "sha256": "308f2a2348b0b82d3ad50b51ae8e917d1fbce5ed253233ba4f4cb59251f5ea90"
-    }
-  },
-  "post_build_evidence_boundary": "This designation, current qualification summaries and updated guides postdate immutable284 archives. They are explicit review annotations, not archived-doc or new model execution claims.",
-  "remaining": [
-    "Publication only on a separate explicit instruction; verify exact archive bytes before upload"
-  ],
-  "previous_designation": {
-    "path": "docs/evidence/gate-5/release-candidate-ab843b8.json",
-    "sha256": "a35cabf1db629304e8ce53d8103d0ab7af1467ed9d443c17a1a642c9543aeb85"
-  },
-  "final_handoff": {
-    "recorded_date": "2026-10-15",
-    "seal": "docs/evidence/gate-5/final-candidate-seal-20261015.json",
-    "handoff": "docs/GATE5_OWNER_HANDOFF.md",
-    "usability_completion": "Owner-confirmed; first-run-owner-confirmation-20261015.json",
-    "quality_completion": "Owner-confirmed; quality-owner-confirmation-20261015.json",
-    "new_runtime_execution": false,
-    "archive_files_available_in_this_checkout": false,
-    "archive_identity_basis": "Hashes retained in independently accepted complete-installed-284cef1.json; archives are not present in this checkout and were not rehashed in this finalization.",
-    "status": "owner-approved-release-ready",
-    "owner_approval": "docs/evidence/gate-5/owner-approval-20261015.json"
-  },
-  "owner_approval": "docs/evidence/gate-5/owner-approval-20261015.json"
+  "runtime_manifest_sha256": "b87eadd91282fa40c65c726d242f8fc2e10b11769f765f0df9e13ee99ba0cbb5",
+  "fully_qualified_new_build": false,
+  "qualification": "docs/evidence/gate-5/v0.1-qualification.json",
+  "exceptions": "docs/evidence/gate-5/v0.1-release-exceptions.json",
+  "publication_record": "docs/evidence/gate-5/v0.1-publication.json",
+  "historical_approved_alpha": "docs/evidence/gate-5/release-candidate-approved-alpha-20261015.json",
+  "remaining": []
 }
