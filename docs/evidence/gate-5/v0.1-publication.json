@@ -1,0 +1,17 @@
+{
+  "profile": "connect-v0.1-publication-authorization/1",
+  "recorded_date": "2026-10-15",
+  "destination": "https://github.com/eisenzopf/connect",
+  "tag": "v0.1",
+  "version": "0.1.0",
+  "owner_statements": [
+    "ok lets release and publish as v0.1",
+    "and publish as eisenzopf/connect on github",
+    "they were on a remote computer but i'm coding here now. you can't make them?"
+  ],
+  "scope": "Rebuild locally, qualify new archives, publish source and GitHub release assets. No public website or remote server deployment.",
+  "status": "authorized-build-and-qualification-in-progress",
+  "original_approved_candidate": "284cef16c64b324ce2add037b013249692a60087",
+  "original_archives_available": false,
+  "new_archive_hashes_required": true
+}

@@ -641,7 +641,7 @@ dependencies = [
 
 [[package]]
 name = "connect-client"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "chrono",
  "connect-protocol",
@@ -664,7 +664,7 @@ dependencies = [
 
 [[package]]
 name = "connect-connector-api"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "serde",
@@ -688,7 +688,7 @@ dependencies = [
 
 [[package]]
 name = "connect-connectors"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -710,7 +710,7 @@ dependencies = [
 
 [[package]]
 name = "connect-mcp"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -728,7 +728,7 @@ dependencies = [
 
 [[package]]
 name = "connect-native-video"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -739,7 +739,7 @@ dependencies = [
 
 [[package]]
 name = "connect-protocol"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -750,7 +750,7 @@ dependencies = [
 
 [[package]]
 name = "connect-review-loop"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -778,7 +778,7 @@ dependencies = [
 
 [[package]]
 name = "connect-server"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -837,7 +837,7 @@ dependencies = [
 
 [[package]]
 name = "connect-service"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -858,7 +858,7 @@ dependencies = [
 
 [[package]]
 name = "connect-store"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
