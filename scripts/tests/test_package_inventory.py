@@ -43,6 +43,60 @@ class PackageInventoryTests(unittest.TestCase):
                 shutil.copy2(ROOT / name, target)
         copy_gate5_assets(self.source, self.release)
 
+    def test_installed_extraction_canonicalizes_root_without_loosening_media_binding(self):
+        import ast
+        import copy
+        import hashlib
+        tree = ast.parse((ROOT / 'scripts/check-package.py').read_text())
+        extraction = next(node for node in ast.walk(tree) if isinstance(node, ast.With)
+            and any(isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Attribute)
+                    and item.context_expr.func.attr == 'TemporaryDirectory'
+                    for item in node.items))
+        assignment = extraction.body[0]
+        self.assertIsInstance(assignment, ast.Assign)
+        self.assertEqual([target.id for target in assignment.targets], ['work'])
+        physical = self.base / 'installed-root'
+        physical.mkdir()
+        alias = self.base / 'installed-alias'
+        alias.symlink_to(physical, target_is_directory=True)
+        scope = {'pathlib': pathlib, 'temporary': str(alias)}
+        exec(compile(ast.Module(body=[assignment], type_ignores=[]), '<actual extraction root>', 'exec'), scope)
+        self.assertEqual(scope['work'], physical.resolve(strict=True))
+
+        # Exercise the real parent binding predicate against canonical child
+        # observations, rather than accepting basename/hash-only substitutes.
+        release = scope['work'] / 'candidate'
+        (release / 'bin').mkdir(parents=True)
+        for name in ('connect', 'connect-video'):
+            (release / 'bin' / name).write_bytes(name.encode())
+        hashes = {name: hashlib.sha256((release / 'bin' / name).read_bytes()).hexdigest()
+                  for name in ('connect', 'connect-video')}
+        module = ast.parse((ROOT / 'scripts/lib/package_gate5.py').read_text())
+        binding = next(node.test for node in ast.walk(module) if isinstance(node, ast.If)
+            and any(isinstance(row, ast.Raise) and isinstance(row.exc, ast.Call)
+                    and row.exc.args and isinstance(row.exc.args[0], ast.Constant)
+                    and row.exc.args[0].value == 'Installed decoded paths did not bind every candidate route/input'
+                    for row in node.body))
+        predicate = compile(ast.Expression(binding), '<actual installed media binding>', 'eval')
+        observed = {'status': 'passed-clean', 'tested_inputs_stable': True,
+                    'source_revision': 'candidate-revision', 'selected_runtime': str(release),
+                    'selected_assets': str(release)}
+        context = {'observed': observed, 'expected_status': 'passed-clean',
+                   'manifest': {'source_revision': 'candidate-revision'}, 'release': release,
+                   'bound': {str(release / 'bin' / name): checksum for name, checksum in hashes.items()},
+                   'report': {'installed_binary_sha256': hashes['connect'],
+                              'installed_video_sha256': hashes['connect-video']}}
+        self.assertFalse(eval(predicate, context))
+        for field in ('selected_runtime', 'selected_assets'):
+            bad = dict(context, observed=copy.deepcopy(observed))
+            bad['observed'][field] = str(self.base / 'foreign' / 'candidate')
+            self.assertTrue(eval(predicate, bad), field)
+        for name in hashes:
+            bad = dict(context, bound=dict(context['bound']))
+            bad['bound'][str(release / 'bin' / name)] = '0' * 64
+            self.assertTrue(eval(predicate, bad), name)
+
     def copy_recovery_inputs(self):
         # These are inherited Gate4 qualification helpers, outside the explicit
         # Gate5 asset subset copied by this inventory fixture's setUp.

@@ -95,7 +95,7 @@ try:
     report['archives'] = checksums
     passed('archive-checksums', 'All three archives match SHA256SUMS')
     with tempfile.TemporaryDirectory(prefix='connect-installed-') as temporary:
-        work = pathlib.Path(temporary)
+        work = pathlib.Path(temporary).resolve(strict=True)
         os.chdir(work)
         for name in checksums:
             with tarfile.open(candidate/name) as archive:

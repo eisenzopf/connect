@@ -1,0 +1,57 @@
+{
+  "profile": "gate5-installed-runtime-binding-repair/1",
+  "recorded_at": "2026-10-15T08:27:03.668471+00:00",
+  "status": "Scoped source regression and independent review passed; corrected full installed qualification pending",
+  "whole_gate_qualified": false,
+  "policy": "connect-media-acceptance/2",
+  "problem": "Complete9ce installed checker passed all three clean decoded routes, then rejected their exact candidate binding because its temporary root used /var while the child canonicalized it to /private/var. Executable digests matched. Impaired and mute phases were not run.",
+  "repair": "Resolve the existing owned extraction root strictly once before chdir, extraction and deriving runtime/source paths. Exact candidate paths, executable digests, archive containment and ordinary-file-only checks remain unchanged.",
+  "changed_source": [
+    "scripts/check-package.py",
+    "scripts/tests/test_package_inventory.py",
+    "scripts/check-gate-5.py"
+  ],
+  "proofs": {
+    "original_failed_installed": {
+      "path": ".local/package-checks/20261015T075945.062857Z/result.json",
+      "sha256": "963e45d00a76ad4e65fc74795036538e99333b36d4fbcfa6b8078eeeba2978bf"
+    },
+    "original_failure_summary": {
+      "path": ".local/gate5/complete-installed-9ce3cc2-attempt1/failure-summary.json",
+      "sha256": "50147a1a9295fb2926393bf9758d11093d7d676d0b1bbfbd3705f6a402cce1ae"
+    },
+    "original_independent_review": {
+      "path": ".local/gate5/complete-installed-9ce3cc2-attempt1/quality-final-review.json",
+      "sha256": "753a73cbebbb56a43cda7d9abf3c620bbe1fb19613d33f9b48c3801509386fb4"
+    },
+    "repair_regression": {
+      "path": ".local/gate5/installed-canonical-root-repair/proof-20261015T082132.797252Z/result.json",
+      "sha256": "e22670172df6c3a03056a32b55a2d08032bd5c2eddfd2c0d27eb8622962b3ac2"
+    },
+    "repair_independent_review": {
+      "path": ".local/gate5/installed-canonical-root-repair/quality-final-review.json",
+      "sha256": "c920fe4a31108b7478a6bdeb90052fbe289f9699d67e91bd132a5749c03e97c4"
+    }
+  },
+  "original_behavior": {
+    "baseline_installed_checks_passed": 18,
+    "gate5_process_phases_passed": 24,
+    "clean_routes_passed": 3,
+    "impaired_routes_not_run": 3,
+    "mute_routes_not_run": 3,
+    "overall_status": "failed",
+    "owned_process_survivors": 0
+  },
+  "regression": {
+    "original_actual_assignment_test": "failed, retained unchanged",
+    "corrected_package_tests": 28,
+    "driver_tests": 21,
+    "source_inputs_stable": 1113,
+    "guard_scope": "Execute actual root assignment through a real directory symlink and actual installed binding predicate; canonical root accepted, foreign runtime/assets roots and wrong binary digests rejected."
+  },
+  "limits": [
+    "No media policy, raw observation, production runtime, SDK, core crate or dependency input changed by this repair.",
+    "Old failed installed verdict remains failed. New immutable package and complete installed qualification required.",
+    "No actual-model inference, independent human walkthrough, owner candidate acceptance or publication qualified by this component."
+  ]
+}

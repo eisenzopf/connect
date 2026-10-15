@@ -219,7 +219,7 @@
       "G5-049",
       "G5-050"
     ],
-    "implementation_sha256": "0cdf0270323df6f516b408320cee0e06abb2eccdf479f56b23137ed12d005126",
+    "implementation_sha256": "9eb8f7d2ab5a5436193c700fc7fef8d351f4bd31be0cb93297d7d0db75ea89f0",
     "followup_annotation": {
       "recorded_at": "2026-10-14T22:04:13.434869+00:00",
       "candidate_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
@@ -257,6 +257,25 @@
       ],
       "scope": "Approval and component proof only; task statuses/dependencies/criteria qualifications unchanged",
       "evidence": "docs/evidence/gate-5/impaired-quality-policy.json"
+    },
+    "installed_runtime_binding_annotation": {
+      "date": "2026-10-15",
+      "tasks": [
+        "G5-042",
+        "G5-045",
+        "G5-048"
+      ],
+      "scope": "Strict checker canonical-root correction and scoped proof only; task statuses/dependencies/criteria unchanged",
+      "evidence": "docs/evidence/gate-5/installed-runtime-binding-repair.json"
+    },
+    "reference_permission_annotation": {
+      "date": "2026-10-15",
+      "tasks": [
+        "G5-013",
+        "G5-035"
+      ],
+      "scope": "Actual browser policy-denial proof only; no task/dependency/criterion promotions",
+      "evidence": "docs/evidence/gate-5/reference-permission-denial.json"
     }
   },
   "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"

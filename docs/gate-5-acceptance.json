@@ -636,6 +636,7 @@
     "owner_handoff": "not-ready",
     "meaning": "Progress only. Linked records keep their own revisions, scopes and failures. This file is not a final result, final seal, owner acceptance or publication approval.",
     "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1\u20135.3 changing fps per participant. This does not extend the supported one-pair profile.",
-    "media_acceptance_policy": "connect-media-acceptance/2; owner-approved impairment-only change, component checks verified; new candidate qualification pending"
+    "media_acceptance_policy": "connect-media-acceptance/2; owner-approved impairment-only change, component checks verified; new candidate qualification pending",
+    "latest_installed_attempt": "9ce policy2 failed on checker /var versus /private/var binding after18 baseline/24 Gate5 process phases and all3 strict clean routes passed; impairment/mute unrun. Canonical root repair has28+21 component tests and independent review; corrected candidate/full installed proof pending."
   }
 }

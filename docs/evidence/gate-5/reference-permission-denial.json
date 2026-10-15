@@ -1,0 +1,109 @@
+{
+  "profile": "gate5-reference-permission-denial/1",
+  "recorded_at": "2026-10-15",
+  "task_ids": [
+    "G5-013",
+    "G5-035"
+  ],
+  "status": "passed-scoped-browser-policy-denial",
+  "whole_gate_qualified": false,
+  "source_revision": "9ce3cc2e621d7a6c26a6629ee9874a87111a5a75",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-9ce3cc2e621d-gate5-local",
+  "scope": "Private augmentation against unchanged extracted candidate reference UI, SDK, server and ReferenceRuntime. Actual Chrome enforces document Permissions-Policy camera=(), microphone=(). No generated or physical capture, permission grant, human permission prompt or live provider operation.",
+  "requirement": "Exercise denied device permission through the real browser reference controls, retain usable conversation state and release media ownership.",
+  "method": [
+    "Create a real Conversation and accepted audio/video Session through public candidate interfaces.",
+    "Serve unchanged reference/SDK assets from an allowlisted loopback static server with document camera/microphone policy disabled.",
+    "Assert the effective secure-document policy before clicking Join video. A passive wrapper invokes the original native getUserMedia, recording only counters and error names. It does not replace capture with a fake rejection.",
+    "Assert native NotAllowedError and the actual reference media-denied message. Check controls, pending mutations, attachments and owned tracks.",
+    "Send a keyboard message in the same Conversation; verify the accepted Session remains accepted."
+  ],
+  "observed": {
+    "browser_version": "155.0.8059.40",
+    "effective_policy": {
+      "supported": true,
+      "camera": false,
+      "microphone": false,
+      "secure": true
+    },
+    "native_capture_calls": 1,
+    "capture_successes": 0,
+    "error_names": [
+      "NotAllowedError"
+    ],
+    "live_tracks": 0,
+    "unresolved_actions": 0,
+    "join_control_enabled": true,
+    "device_controls_enabled": true,
+    "active_media_controls": false,
+    "attached_media": false,
+    "same_conversation_keyboard_message": "passed",
+    "accepted_session_preserved": "passed",
+    "page_errors": []
+  },
+  "checks": [
+    "valid accepted Session before capture",
+    "native getUserMedia rejects once with NotAllowedError under document policy",
+    "actionable media-denied UI and zero pending actions",
+    "no acquired tracks or attached media; join/device controls remain usable",
+    "same accepted Session and Conversation; keyboard message succeeds"
+  ],
+  "execution": {
+    "phase_status": "passed",
+    "exit_code": 0,
+    "phase_seconds": 7.531,
+    "phase_budget_seconds": 180,
+    "leftover_group_members": [],
+    "cleanup": [
+      {
+        "name": "browser",
+        "status": "passed"
+      },
+      {
+        "name": "static",
+        "status": "passed"
+      },
+      {
+        "name": "runtime",
+        "status": "passed"
+      }
+    ],
+    "tested_inputs_stable": true,
+    "extracted_entries_bound": 3716,
+    "selected_tool_entries_bound": 2160,
+    "input_scope": "All three exact archived inventories, source/runtime file hashes and modes, selected Python/Node executables, entire selected Chrome bundle and Playwright packages, private driver/harness and supervision helpers."
+  },
+  "proofs": [
+    {
+      "path": ".local/gate5/reference-permission-denial-9ce3/runner-manifest.json",
+      "sha256": "d8e8b806d8b92a1c5e1cf49776f4b3763247a245b2794332b105d89b2a87c8ae"
+    },
+    {
+      "path": ".local/gate5/reference-permission-denial-9ce3/quality-harness-review.json",
+      "sha256": "0c2fc88a0ae7b6f0c24d7c6c460777a81ebfd2bd14c098fd6076f448a7d91949"
+    },
+    {
+      "path": ".local/gate5/reference-permission-denial-9ce3/run-20261015T082751.306975Z/result.json",
+      "sha256": "bd8e3c38b55f213bc26a310198252b425d3e0da07bfd3677e7d45ae4b4a23fec"
+    },
+    {
+      "path": ".local/gate5/reference-permission-denial-9ce3/run-20261015T082751.306975Z/quality-final-review.json",
+      "sha256": "0b67a7105f65e0adb89bd26b0ca1b707133091f0a9b3255820c7e0d0f46a5c63"
+    },
+    {
+      "path": ".local/gate5/reference-permission-denial-9ce3/check.mjs",
+      "sha256": "03632ca7c1de49bf91679d1aacef0b2772a417ecb985fd318ed4b86c11ac4b59"
+    },
+    {
+      "path": ".local/gate5/reference-permission-denial-9ce3/run.py",
+      "sha256": "35e9daa001f43402a43c68cdb5b8e6864bb45943185e3f94d169f8be58643c01"
+    }
+  ],
+  "limits": [
+    "This is browser-policy-induced denial, not an OS/browser human permission prompt or physical camera/microphone test.",
+    "No decoded-media, first-user usability, actual-model or complete installed qualification claim is made. The original complete9ce3 installed failure remains failed.",
+    "The private field denial_ms includes subsequent assertions and the follow-up message; it is not API rejection latency and is not used as an acceptance metric.",
+    "Raw participant, Conversation and Session identifiers, credentials and server/browser logs remain private under .local.",
+    "Task closure still requires explicit dependencies and matching fresh candidate qualification; this record does not promote task status."
+  ]
+}

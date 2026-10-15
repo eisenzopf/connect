@@ -1,7 +1,7 @@
 {
   "profile": "gate5-source-qualification-composition/2",
-  "recorded_at": "2026-10-15T07:49:00.591823+00:00",
-  "status": "Accepted scoped source composition; matching media/installed and whole-gate acceptance remain open",
+  "recorded_at": "2026-10-15T08:27:03.668471+00:00",
+  "status": "Accepted scoped source composition; corrected complete installed and whole-gate acceptance remain open",
   "whole_gate_qualified": false,
   "historical_full_source": {
     "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
@@ -10,22 +10,26 @@
   "historical_full_source_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
   "historical_full_source_phases": 84,
   "prior_exact_source_record": {
-    "path": "docs/evidence/gate-5/source-qualification-d5368f0.json",
-    "sha256": "76034996cceb8c6dacd67b7ffce1e6ecac094bb73160cf3a4256ac9dbb83fbc8"
+    "path": "docs/evidence/gate-5/source-qualification-9ce3cc2e621d.json",
+    "sha256": "91fe6dff1c52bd8d441bbab8a3623c877b62544cfd35ef94c177db0885553093"
   },
   "approved_policy_component": {
     "path": "docs/evidence/gate-5/impaired-quality-policy.json",
     "sha256": "9f3e92599575d975999c1306b26bbcdc67ab918845da3f71972bd0c1a9f751fb"
   },
+  "installed_runtime_binding_component": {
+    "path": "docs/evidence/gate-5/installed-runtime-binding-repair.json",
+    "sha256": "fec990d4d622485db4414ebb4908ae20d3b0e07ec1f84538c03f23e07edf8d51"
+  },
   "reviewed_source_composition": {
-    "status": "Accepted scoped source composition for a new policy-2 candidate",
-    "source_revision_before_commit": "d5368f0f9c2d5e40171c75c2df37d61875affa75",
+    "status": "Accepted scoped source composition for corrected policy-2 candidate",
+    "source_revision_before_commit": "9ce3cc2e621d7a6c26a6629ee9874a87111a5a75",
     "source_dirty": true,
     "source_counts": {
       "baseline": 1108,
       "current": 1113,
-      "changed": 17,
-      "unchanged": 1096
+      "changed": 18,
+      "unchanged": 1095
     },
     "changed_selected_inputs": {
       "examples/conversation-client/contacts.js": {
@@ -42,11 +46,15 @@
       },
       "scripts/check-gate-5.py": {
         "baseline_sha256": "3f170c9b8fc3e477858d617e4382e7fa8b2afb4f2ff12005e8278d5a62b82a15",
-        "current_sha256": "23eefda7a94f37a7c3340034a40b70dcb576878c44aa6ce4993ed095dff46215"
+        "current_sha256": "7d33055fa54a74b4cd7ba8886cd2cc7ca78a1a0ba8c9d00900b9b30029701ba9"
       },
       "scripts/check-gate5-recovery.py": {
         "baseline_sha256": "9a1efe5be94ade95cbf90d0de75a9ed1d562194592f0dda388ced1f3ec67b4dd",
         "current_sha256": "98bb1d39d5f876ee63c18e0f5496b0d92b661d45e5dcafbdeb0c24839beea9b1"
+      },
+      "scripts/check-package.py": {
+        "baseline_sha256": "7d65c0cf15ad4a22b146a21bb68da53f5de45a4ce6f6952611cbcdede08716b6",
+        "current_sha256": "85544f1c295e15c7bc7ce74beaaecc8ca3ab4b6a8280476d05d5c52ac6a5ebf7"
       },
       "scripts/check-video-paths.py": {
         "baseline_sha256": "19f385432890e5e0e6e29c76d870d609e7507dc145cc56785ab80eed09040211",
@@ -70,7 +78,7 @@
       },
       "scripts/tests/test_package_inventory.py": {
         "baseline_sha256": "4252982cc5bbedff97ac405919c596649d577be67657d86df7f13a820789b708",
-        "current_sha256": "80c234c57afd84c906067c3360db901b98f734c68bdff58107bb58e33cafdc6f"
+        "current_sha256": "623f818399e62d6ce01ef579a5b99eb46b495f9ed9c1740c064399ab509d490f"
       },
       "scripts/tests/test_video_measurements.py": {
         "baseline_sha256": "8bfbdf312b3bbb970c4cf81450ba0d6939d47850e08a45b49c4331f95e144b82",
@@ -98,23 +106,26 @@
       }
     },
     "current_full_source_map_proof": {
-      "path": ".local/gate5/approved-impaired-policy-20261015/package-followup-20261015T074732.844395Z/result.json",
-      "sha256": "bea96f51f65a6ccc3f7bc6ef55e8e5bf3472db9da39bd0dc104836227ba90c98"
+      "path": ".local/gate5/installed-canonical-root-repair/proof-20261015T082132.797252Z/result.json",
+      "sha256": "e22670172df6c3a03056a32b55a2d08032bd5c2eddfd2c0d27eb8622962b3ac2"
     },
-    "component_composition": "Prior source/runtime/native/canonical/RGB/contact evidence is preserved byte-exact in prior_exact_source_record. The policy delta adds only qualification code/tests and packaging enumeration. Original source baseline84 and scoped later proofs remain distinct; no new literal84 invocation is claimed.",
+    "component_composition": "Byte-exact prior17 composition retains baseline84 and scoped runtime/native/canonical/RGB/contact/policy proofs. Only check-package canonical extraction assignment, its actual-code regression and driver count changed since9ce; corrected28 package and21 driver checks passed with all1113 inputs stable. Unchanged video56/JS34/parity30 proof remains applicable. No new literal84-phase source invocation is claimed.",
     "current_policy_tests": {
       "path": "docs/evidence/gate-5/impaired-quality-policy.json",
       "sha256": "9f3e92599575d975999c1306b26bbcdc67ab918845da3f71972bd0c1a9f751fb"
     },
-    "runtime_scope": "No Rust crate, SDK/runtime reference asset, dependency source, Cargo lock, source-lock or patch input changed since the reviewed0d candidate. New qualification policy requires a new source/package identity and fresh media/installed proof.",
+    "current_binding_tests": {
+      "path": "docs/evidence/gate-5/installed-runtime-binding-repair.json",
+      "sha256": "fec990d4d622485db4414ebb4908ae20d3b0e07ec1f84538c03f23e07edf8d51"
+    },
+    "runtime_scope": "All Rust/core/SDK/reference assets, dependencies, lockfiles and patches unchanged from9ce. No acceptance predicate weakened. A new source/package identity and complete installed/media qualification remain required.",
     "independent_review": {
-      "path": ".local/gate5/approved-impaired-policy-20261015/source-composition-review.json",
-      "sha256": "1208d09d9f950c340935699c8622760e61c51492d8e90dbe613c6a9bd704c77c",
-      "scope": "Review of source map, all17 deltas and evidence references before this acceptance annotation; no runtime/media acceptance implied."
+      "path": ".local/gate5/installed-canonical-root-repair/release-path-source-composition-review.json",
+      "sha256": "f94fe3acc98a0587a12c554ae9c4270a08056e40ba23016bf042acc2d2e0b5e4",
+      "scope": "Independent verification of1113 current inputs, all18 baseline deltas, exact3 changes since9ce, retained component tests and strict binding; no corrected installed acceptance implied."
     }
   },
   "required_followups": [
-    "independent source composition review",
     "new clean immutable candidate and independent archive inventory",
     "fresh three-path clean/impairment/mute qualification under policy2",
     "matching complete installed candidate pass before actual-model inference",
