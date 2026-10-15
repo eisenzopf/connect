@@ -25,7 +25,8 @@
         "evidence/gate-5/setup-lane.json",
         "evidence/gate-5/shipped-setup-package-proof.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
-        "evidence/gate-5/release-candidate.json"
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-027",
@@ -61,7 +62,9 @@
         "evidence/gate-5/agent-journeys.json",
         "evidence/gate-5/local-package-qualification.json",
         "evidence/gate-5/actual-model-ab843b8.json",
-        "evidence/gate-5/complete-installed-ab843b8.json"
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/actual-model-composition-284cef1.json"
       ],
       "implementation_items": [
         "G5-034",
@@ -72,7 +75,7 @@
       ],
       "observation": "The exact installed Codex host passed 28 actual MCP calls with one ordinary revocable identity, two source-backed artifacts, explicit reply consumption, independent contact response and exact saved-session resume after server restart. No automatic wake is claimed.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Fixture reviewer supplies human-role reply; not an independent fresh-user walkthrough. No automatic model wake."
     },
     {
@@ -90,7 +93,8 @@
       "evidence": [
         "evidence/gate-5/app-journeys.json",
         "evidence/gate-5/local-package-qualification.json",
-        "evidence/gate-5/complete-installed-ab843b8.json"
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-034",
@@ -101,7 +105,7 @@
       ],
       "observation": "The installed separate review app passed 14 public-interface journey checks, including incoming and outgoing requests, server/worker restart, replay and one logical reply/effect per direction.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Automated developer-install/recovery capability proof; independent fresh-user comprehension remains A5-01/A5-13."
     },
     {
@@ -124,7 +128,8 @@
         "evidence/gate-5/local-package-qualification.json",
         "evidence/gate-5/impaired-quality-policy.json",
         "evidence/gate-5/native-emission-deadline-regression.json",
-        "evidence/gate-5/complete-installed-ab843b8.json"
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -146,10 +151,10 @@
         "G5-045",
         "G5-049"
       ],
-      "observation": "All nine clean, impaired and mute conditions passed on the three named paths under the owner-approved policy2. Clean and mute A/V rules remain strict. Three valid impaired raw A/V failures remain separately recorded advisory outcomes; every hard audio, source, recovery, deadline, resource and cleanup check passed.",
+      "observation": "All nine current clean, impaired and mute conditions passed on the three named paths under the approved policy 2. Raw A/V quality: 16 passed and two impaired observations remain advisory failures. Clean and mute rules, source identity, audio, recovery, deadlines, resources and cleanup remain strict.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
-      "limits": "Three impaired rawAV failures are explicit advisory outcomes under approved012, not rewritten raw passes; no physical speaker/display latency claim."
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
+      "limits": "Two current impaired raw A/V failures remain explicit advisory outcomes, alongside historical raw results; no physical speaker/display latency claim."
     },
     {
       "id": "A5-05",
@@ -167,7 +172,8 @@
         "evidence/gate-5/reference-experience.json",
         "evidence/gate-5/contact-selection-repair.json",
         "evidence/gate-5/local-package-qualification.json",
-        "evidence/gate-5/complete-installed-ab843b8.json"
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-013",
@@ -180,7 +186,7 @@
       ],
       "observation": "The exact archived reference client passed 11 general and 13 A/V/continuity checks. Contact-race, permission-denial, keyboard and narrow/desktop visual evidence remains bound to unchanged UI/SDK assets. These are capability checks; independent fresh-user usability remains open.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Person-facing capability demonstrated by real automated browser checks; independent fresh-user usability remains A5-01/A5-13."
     },
     {
@@ -198,7 +204,8 @@
         "evidence/gate-5/connector-runtime-integration.json",
         "evidence/gate-5/current-source-qualification.json",
         "evidence/gate-5/local-package-qualification.json",
-        "evidence/gate-5/complete-installed-ab843b8.json"
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-017",
@@ -212,7 +219,7 @@
       ],
       "observation": "The independently owned Prism fixture contribution passes the shipped connector kit and 40-check contracts, plus fresh installed cold builds and conformance. It covers messages, context and bounded voice lifecycle without core routing, authorization or conversation edits.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Separate contributor-agent exercise satisfies this technical contribution requirement; no fresh-human claim and no added real provider capability."
     },
     {
@@ -252,7 +259,7 @@
       ],
       "observation": "Normalized lifecycle regressions cover external IDs, verified observations, uncertainty, replay, reordered events, restart and cleanup. Six source-scoped Vapi/Telnyx compatibility statements are independently accepted; fresh carrier or normalized builtin-provider execution is not claimed.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Normalized extension contract/mapping is qualified locally; normalized builtin carrier execution and new live-provider proof remain excluded."
     },
     {
@@ -269,7 +276,8 @@
         "evidence/gate-5/independent-conformance.json",
         "evidence/gate-5/local-package-qualification.json",
         "evidence/gate-5/current-source-qualification.json",
-        "evidence/gate-5/complete-installed-ab843b8.json"
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -283,7 +291,7 @@
       ],
       "observation": "The independently written aioquic implementation passed real verified QUIC interoperability, six vector checks and 26 control checks, including version/framing/authority rejection, cursor resume and mutation replay. It uses its own parser and no Connect Rust helper.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Control interoperability only, no independent media stack; implementation/transport boundaries retained."
     },
     {
@@ -308,7 +316,9 @@
         "evidence/gate-5/current-source-qualification.json",
         "evidence/gate-5/local-package-qualification.json",
         "evidence/gate-5/actual-model-ab843b8.json",
-        "evidence/gate-5/complete-installed-ab843b8.json"
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/actual-model-composition-284cef1.json"
       ],
       "implementation_items": [
         "G5-003",
@@ -331,7 +341,7 @@
       ],
       "observation": "Published source parity and exact installed CLI, Python, TypeScript, HTTP, native control and actual MCP tests preserve authority, IDs, errors and replay semantics. Native-helper, browser WebRTC and unsupported-operation boundaries remain explicit; tools do not carry media frames.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Python/TypeScript helper and browserWebRTC boundaries explicit; tools control sessions but do not carry frames; unsupported combinations remain visible."
     },
     {
@@ -350,7 +360,8 @@
         "evidence/gate-5/setup-upgrade.json",
         "evidence/gate-5/secret-vault-migration.json",
         "evidence/gate-5/local-package-qualification.json",
-        "evidence/gate-5/complete-installed-ab843b8.json"
+        "evidence/gate-5/complete-installed-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -368,7 +379,7 @@
       ],
       "observation": "Public setup, native protected storage and source migration/uncertainty fixtures passed selection, preview, refusal, interrupted resume and separate inbound/outbound, ownership and enrollment states. No duplicate creation or actual account-readiness claim is inferred.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Technical recoverability and explicit states qualified with local fixtures; independent comprehension and real account readiness are not inferred."
     },
     {
@@ -391,7 +402,9 @@
         "evidence/gate-5/current-source-qualification.json",
         "evidence/gate-5/contact-selection-repair.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
-        "evidence/gate-5/actual-model-ab843b8.json"
+        "evidence/gate-5/actual-model-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/actual-model-composition-284cef1.json"
       ],
       "implementation_items": [
         "G5-003",
@@ -407,7 +420,7 @@
       ],
       "observation": "Installed reference continuity and the actual-model journey preserve the original Conversation across artifact exchange, media, an attributed outcome and restart. Reply attribution, context isolation and explicit continuation passed; no transcript, ASR or model-vision claim is made.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "Explicit omissions and no transcript/ASR/modelvision state retained; not a media-understanding claim."
     },
     {
@@ -430,7 +443,8 @@
         "evidence/gate-5/current-source-qualification.json",
         "evidence/gate-5/local-package-qualification.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
-        "evidence/gate-5/provider-claims-ab843b8.json"
+        "evidence/gate-5/provider-claims-ab843b8.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-002",
@@ -454,7 +468,7 @@
       ],
       "observation": "Accepted source and current installed authority, failure and historical-recovery checks cover revocation, replay, queued use, cross-context denial, artifact integrity, SMS suppression, uncertainty and populated upgrade/restore/rollback refusal. Carrier receipts remain historical and source-specific.",
       "remaining": [],
-      "qualification_scope": "Local technical capability at the exact identified candidate and explicitly reviewed source compositions. Whole-gate, independent-human and owner acceptance remain separate.",
+      "qualification_scope": "Local technical scope retained through the current284 literal installed pass and unchanged-runtime model/provider composition. Whole-gate, independent-human and owner acceptance remain separate.",
       "limits": "SMS/carrier execution remains source-specific historical plus current local compatibility; no live media replay or fresh handset delivery claim."
     },
     {
@@ -479,7 +493,8 @@
         "evidence/gate-5/impaired-quality-policy.json",
         "evidence/gate-5/native-emission-deadline-regression.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
-        "evidence/gate-5/release-candidate.json"
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -525,7 +540,8 @@
         "evidence/gate-5/agent-journeys.json",
         "evidence/gate-5/independent-quality-review.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
-        "evidence/gate-5/release-candidate.json"
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-002",
@@ -544,7 +560,7 @@
         "G5-048",
         "G5-049"
       ],
-      "observation": "Source composition, complete installed qualification, actual-model proof and six bounded provider claims are independently accepted. The final overall evidence/documentation/quality reconciliation and seal remain open after the required human walkthroughs.",
+      "observation": "Current source composition, literal complete installed qualification, explicit unchanged-runtime actual-model composition and six bounded provider claims are accepted. Three human walkthroughs and the dependent final documentation, quality reconciliation and seal remain open.",
       "remaining": [
         "Complete final evidence and documentation reconciliation after independent human results.",
         "Complete the final independent quality review and release seal; preserve all failures and scoped historical proofs."
@@ -570,7 +586,9 @@
         "evidence/gate-5/current-source-qualification.json",
         "evidence/gate-5/shipped-setup-package-proof.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
-        "evidence/gate-5/release-candidate.json"
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json",
+        "evidence/gate-5/registry-license-closure-284cef1.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -595,7 +613,7 @@
         "G5-048",
         "G5-049"
       ],
-      "observation": "Exact source, runtime and historical assets, public guides and checksums are accepted for the unpublished ab843 candidate. Later evidence annotations are outside its unchanged archives. Final documentation, notices, migration/release-note reconciliation and seal remain open.",
+      "observation": "The corrected284 package includes exact source, runtime, historical inputs, pinned notices and checksums; all415 selected registry normal/build dependencies have text. New literal installed checks pass. Post-build guide/evidence annotations are explicit; final human feedback, documentation and seal remain open.",
       "remaining": [
         "Reconcile final public documentation and package provenance with the human results and exact candidate designation.",
         "Complete the final quality review and seal without implying publication."
@@ -617,7 +635,8 @@
         "evidence/gate-5/provider-source-audit.json",
         "evidence/gate-5/first-run-walkthroughs.template.json",
         "evidence/gate-5/complete-installed-ab843b8.json",
-        "evidence/gate-5/release-candidate.json"
+        "evidence/gate-5/release-candidate.json",
+        "evidence/gate-5/complete-installed-284cef1.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -681,5 +700,17 @@
       "sha256": "d46ef82cb8b6eca5a13b3bf0ea314d076a3a7b0a957a1244ea886daa2a80eb93"
     },
     "human_handoff": "Ready for three independent fresh users; zero actual attempts recorded. Final owner handoff remains pending human and final review requirements."
+  },
+  "candidate_transition": {
+    "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+    "scope": "Current literal installed18+26/all9 and corrected notices; actual-model28 and six provider claims retain explicit prior-execution and unchanged-source composition scopes. No new human, final seal or owner acceptance.",
+    "package": {
+      "path": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
+      "sha256": "8cd3fce98f3fa72fea50cf17f9cb4da323cc1c4cce7794700e0de79780db9545"
+    },
+    "model_composition": {
+      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
+      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
+    }
   }
 }

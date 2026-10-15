@@ -2,16 +2,19 @@
 
 ## Gate 5 candidate entry point
 
-The designated `gate5-local` candidate is `ab843b843fa7`, source
-`ab843b843fa7445d4d6c663939c7226c5c432c7d`, for local macOS arm64.
+The designated `gate5-local` candidate is `284cef16c64b`, source
+`284cef16c64b324ce2add037b013249692a60087`, for local macOS arm64.
 It is unpublished. [Exact archive hashes and designation](evidence/gate-5/release-candidate.json)
-and the [installed release record](evidence/gate-5/installed-release.json) identify
-this immutable candidate. Complete installed qualification passed 18 baseline
-checks and 26 Gate 5 phases, including all nine media conditions and both strict
-runtime inventories. The separate [actual-model journey](evidence/gate-5/actual-model-ab843b8.json)
-passed 28 MCP calls with exact session resume and no tool/turn errors.
-Independent human walkthroughs, final documentation/quality/seal and owner
-acceptance remain open; this is not final Gate 5 acceptance. Its three executable artifacts are `bin/connect`,
+and the [notice-package composition](evidence/gate-5/package-notice-composition-284cef1.json)
+bind this immutable candidate. New archive, installed-version and provider-free
+setup checks passed, followed by [complete installed qualification](evidence/gate-5/complete-installed-284cef1.json):
+18 baseline checks, all 26 Gate 5 phases and all nine media conditions, with
+both strict inventories passing. All three binaries and 240 protected runtime
+assets match ab843 exactly. The separate accepted 28-call actual-model journey
+is [composed evidence from ab843](evidence/gate-5/actual-model-composition-284cef1.json),
+not a new inference run on 284cef. Independent
+human walkthroughs, final documentation/quality/seal and owner acceptance
+remain open; this is not final Gate 5 acceptance. Its three executable artifacts are `bin/connect`,
 `bin/connect-example` and `bin/connect-video`; the matching source archive,
 SDKs, reference client, contracts and qualification inputs have distinct
 verification obligations. Use the [Gate 5 package guide](GATE5_PACKAGE.md) and
@@ -46,8 +49,8 @@ recovery without repeating an uncertain provider creation.
 FFmpeg, Chrome, Playwright and Node are explicitly selected external tools;
 the independent Python environment is prepared separately. They are not bundled
 with Connect. Generated codecs and controlled capture-child refusal do not
-prove physical camera/microphone permissions. The [accepted installed media report](evidence/gate-5/complete-installed-ab843b8.json)
-records 18 passing policy decisions: 15 raw A/V quality passes and three valid
+prove physical camera/microphone permissions. The [accepted installed media report](evidence/gate-5/complete-installed-284cef1.json)
+records 18 passing policy decisions: 16 raw A/V quality passes and two valid
 impaired advisory quality failures. Clean/mute and all non-A/V hard checks remain
 strict. [Provider compatibility](evidence/gate-5/provider-claims-ab843b8.json)
 is limited to six reviewed statements; no new carrier or Vapi execution is

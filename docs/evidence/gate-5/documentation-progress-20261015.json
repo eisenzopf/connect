@@ -1,9 +1,9 @@
 {
   "profile": "connect-gate5-documentation-progress/1",
   "recorded_at": "2026-10-15T11:10:49.305347+00:00",
-  "status": "prerequisite-materials-corrected; final-documentation-review-open",
-  "scope": "Current local documentation supplement to immutable ab843 archives. No publication, human attempt, whole-gate qualification or final G5-047/G5-048 completion.",
-  "candidate_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "status": "Preparatory documentation synchronized with the qualified284candidate; final review depends on human walkthroughs",
+  "scope": "Current local documentation supplement to immutable284 archives, with explicitly historical ab843 preparation and discovery records retained. No publication, human attempt, whole-gate qualification or final G5-047/G5-048 completion.",
+  "candidate_revision": "284cef16c64b324ce2add037b013249692a60087",
   "whole_gate_qualified": false,
   "human_attempts_recorded": 0,
   "corrections": [
@@ -15,40 +15,95 @@
     "Both walkthrough documents render without page overflow at 1440, 375 and 320 px after correcting navigation overlap, grid width, code wrapping and table readability. This visual check is not an independent user attempt."
   ],
   "reviews": {
-    "release_materials": {
+    "current_release_materials": {
+      "path": ".local/gate5/release-materials-284cef1-refresh/result.json",
+      "sha256": "31cc3629636b7682195715d7ed6bfc8ce0080891c1aa0b6b06b78bfb6a3f3d9e"
+    },
+    "current_walkthrough_activation": {
+      "path": ".local/gate5/human-handoff-284cef1/activation-20261015/result.json",
+      "sha256": "a02e2daff6ebedd4a1fa484b7e4f6bc0d7b2597323a6b7628acea97621a3e4ae"
+    },
+    "historical_release_materials": {
       "path": ".local/gate5/release-materials-ab843-refresh/result.json",
       "sha256": "e49dec9b948a9c0bbe9c02b0daa1adee44438ec50df43684a2192adfac5562f2"
     },
-    "static_document_review": {
+    "historical_static_document_review": {
       "path": ".local/gate5/quality-reconciliation-ab843b8/docs-review.json",
       "sha256": "fc32e2a28aaec385d57c0420472f38d86e4dfaa1483891f9c7495453ce0da389"
     },
-    "count_reopening": {
+    "historical_count_reopening": {
       "path": ".local/gate5/quality-reconciliation-ab843b8/count-reopening-review.json",
       "sha256": "d72d2bd71097e23297526add079810a116c36c61bf01be7066fdb0455f063749"
     },
-    "walkthrough_visual": {
+    "historical_walkthrough_visual": {
       "path": ".local/gate5/human-handoff-ab843b8/visual-review-20261015/current-assessment.json",
       "sha256": "986885dd1230a20a7003c359162aa2078592af28c0f95302c1dc179c052c287b"
     },
-    "walkthrough_static_and_packaging_hold": {
+    "historical_walkthrough_static_and_packaging_hold": {
       "path": ".local/gate5/human-handoff-ab843b8/replacement-packaging-hold/result.json",
       "sha256": "dd90ebbf300b2cb3fb7dfc26ff6fef12c218350841437686285346ec378d682e"
     }
   },
-  "frozen_candidate_source_record": {
+  "remaining": [
+    "Record three independent fresh-user walkthroughs, with timings, assistance, failures and remediation.",
+    "Reconcile final public materials with actual human feedback, then perform final documentation and independent quality review.",
+    "Seal exact final evidence and obtain the actual owner decision. Publication remains separate."
+  ],
+  "historical_documentation_review_preserved": {
+    "path": "docs/evidence/gate-5/documentation-review.json",
+    "sha256": "2defa04ec3a5018ce2c4492015b7990479c2afa2e1769a66a034a6bd2718ab10"
+  },
+  "updated_at": "2026-10-15T12:05:03.865935+00:00",
+  "current_candidate": {
+    "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+    "designation": {
+      "path": "docs/evidence/gate-5/release-candidate.json",
+      "sha256": "5822da599b3a97edd352dc7c9eae991b746fcdafc4c29c2ce778e87d1e343456"
+    },
+    "qualification": {
+      "path": "docs/evidence/gate-5/complete-installed-284cef1.json",
+      "sha256": "62b9cc89499f46e07defb08a5944fdac480614ef36a15bee97d1cc7f3b580297"
+    },
+    "model_composition": {
+      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
+      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
+    },
+    "source_snapshot": {
+      "path": "docs/evidence/gate-5/source-qualification-284cef16c64b.json",
+      "sha256": "61db9adfce2c4669143bd2a3db2b07b307ec7ce62a3038b52899c23213fc8b3b"
+    }
+  },
+  "current_human_handoff": {
+    "ready": {
+      "path": ".local/gate5/human-handoff-284cef1/READY.txt",
+      "sha256": "6228abb091201ac87cadb2d2266c56c1fadb0fe224a9458482b71e0e2fb58d1e"
+    },
+    "attempts_recorded": 0,
+    "required_independent_users": 3,
+    "scope": "Exact284 package and revised guide handoff; readiness is not a participant attempt or usability pass."
+  },
+  "initial_documentation_scope": {
+    "candidate_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+    "scope": "Current local documentation supplement to immutable ab843 archives. No publication, human attempt, whole-gate qualification or final G5-047/G5-048 completion."
+  },
+  "initial_frozen_candidate_source_record": {
     "path": "docs/evidence/gate-5/source-qualification-ab843b843fa7.json",
     "sha256": "61366543766cdcd7036818b978bb86ddf913abd353a05528b231da4aa7a4d740"
   },
-  "open_findings": [
+  "resolved_findings": [
     {
       "id": "QR5-PROVENANCE-01",
-      "description": "Corrected exact-revision audit found missing crc-catalog nested LICENSES texts and complete rmcp transition/attribution text in ab843. Other exact existing-text associations must be explicit. Packaging collector correction and replacement candidate affected qualification are underway.",
       "audit": {
         "path": ".local/gate5/registry-license-coverage-ab843/corrected-coverage.json",
         "sha256": "f02bcfb0c942fafd03276207943a4d549f767ee4a887f48a07985e670052edb9"
       },
-      "implementation_progress": {
+      "current_status": "Resolved in exact284candidate; original discovery retained",
+      "resolution": {
+        "path": "docs/evidence/gate-5/registry-license-closure-284cef1.json",
+        "sha256": "9a11917f12e75f9b9fe0d8b44d9f088d2892ba4ddaad4cd32cb64af78be42742"
+      },
+      "initial_description": "Corrected exact-revision audit found missing crc-catalog nested LICENSES texts and complete rmcp transition/attribution text in ab843. Other exact existing-text associations must be explicit. Packaging collector correction and replacement candidate affected qualification are underway.",
+      "historical_implementation_progress": {
         "focused_proof": {
           "path": ".local/gate5/registry-license-candidate/source-proof-20261015T111323.430690Z/result.json",
           "sha256": "bfae2cddbb14750fc775d185de34473f9331e38eb341f7da9a82066f4fc47251"
@@ -61,14 +116,5 @@
       }
     }
   ],
-  "remaining": [
-    "Complete and independently review registry license collection/provenance repair and corrected candidate affected qualification.",
-    "Record at least three independent fresh-user walkthroughs, retaining timings, help, failures and remediation.",
-    "Reconcile public materials with the corrected candidate and actual human feedback, then perform final documentation and independent quality review.",
-    "Seal exact final evidence and obtain actual owner decision; publication remains separate."
-  ],
-  "historical_documentation_review_preserved": {
-    "path": "docs/evidence/gate-5/documentation-review.json",
-    "sha256": "2defa04ec3a5018ce2c4492015b7990479c2afa2e1769a66a034a6bd2718ab10"
-  }
+  "open_findings": []
 }

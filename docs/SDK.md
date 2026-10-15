@@ -150,7 +150,7 @@ PCMU interfaces; they do not acquire a VP8 byte-stream API by importing a browse
 facade. The [media contract](../contracts/connect-media-vp8-v1.md) and
 [numbered Gate 5 plan](connect-gate-5-implementation.html) distinguish implemented
 source interfaces and the exact local decoded, operating and installed qualification.
-The [current media proof](evidence/gate-5/complete-installed-ab843b8.json) records
+The [current media proof](evidence/gate-5/complete-installed-284cef1.json) records
 all nine clean, impaired and mute conditions under the approved impairment-only
 quality policy; physical speaker/display latency remains unmeasured.
 
@@ -347,8 +347,8 @@ Historical Gate 4 owner-review qualification: Runtime 709cf82 passes 42 offline 
 [offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)
 
 Current Gate 5 local technical qualification is recorded for the unpublished
-`ab843b8` candidate: [complete installed proof](evidence/gate-5/complete-installed-ab843b8.json),
-[actual-model journey](evidence/gate-5/actual-model-ab843b8.json), and
+`284cef1` candidate: [complete installed proof](evidence/gate-5/complete-installed-284cef1.json),
+[actual-model evidence composition](evidence/gate-5/actual-model-composition-284cef1.json), and
 [six bounded provider compatibility claims](evidence/gate-5/provider-claims-ab843b8.json).
 Independent human walkthroughs and final documentation, quality, seal and owner
 acceptance remain open. Historical provider receipts do not imply a fresh carrier,
@@ -358,7 +358,7 @@ Vapi or account-readiness check on this candidate.
 ## Gate 5 interfaces and qualification boundary
 
 These APIs have matching source-component and complete installed qualification
-on the exact unpublished `ab843b8` candidate. All three clean and impaired
+on the exact unpublished `284cef1` candidate. All three clean and impaired
 60-second media routes and separate 20-second mute scenarios passed. Human
 usability, final review and owner acceptance remain required before Gate 5 closes.
 Rust supports `browser_binding_for(conversation_id, session_id)`; Python supports

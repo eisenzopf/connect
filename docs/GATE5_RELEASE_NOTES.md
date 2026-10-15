@@ -1,13 +1,15 @@
 # Gate 5 local alpha — release notes prepared for review
 
 These locally prepared release notes describe the unpublished macOS arm64
-candidate `ab843b843fa7`, source
-`ab843b843fa7445d4d6c663939c7226c5c432c7d`. Its complete installed qualification,
-actual-model journey and six bounded provider compatibility claims are
-independently accepted. Three independent fresh-user walkthroughs, final
-documentation and quality review, release sealing and owner acceptance remain
-open. No final Gate 5 acceptance or publication is asserted. Historical results
-keep their original source and topology limits.
+candidate `284cef16c64b`, source
+`284cef16c64b324ce2add037b013249692a60087`. Its notice-package correction,
+archive checks and new complete installed qualification are independently
+accepted. The 28-call actual-model journey remains accepted composition from
+ab843 through exact protected-runtime identity; no new inference was run.
+Three independent fresh-user walkthroughs, final documentation and quality
+review, release sealing and owner acceptance remain open. No final Gate 5
+acceptance or publication is asserted. Historical results keep their original
+source and topology limits.
 
 Follow the [implementation tracker](connect-gate-5-implementation.html),
 [acceptance map](gate-5-acceptance.json), [unsealed acceptance progress](evidence/gate-5/acceptance.html)
@@ -24,9 +26,16 @@ coverage, not a single uninterrupted source run or a changed Gate 5 candidate pa
 
 ## Current candidate observations
 
-The [designated candidate](evidence/gate-5/release-candidate.json) passed exact
-archive inventory and independent archive review. The
-[complete installed result](evidence/gate-5/complete-installed-ab843b8.json)
+The [designated candidate](evidence/gate-5/release-candidate.json) has an accepted
+[notice-package composition](evidence/gate-5/package-notice-composition-284cef1.json):
+new archive inventory, installed version and provider-free setup demo passed;
+all 1,546 runtime inventory files (including the manifest) were stable before and
+after. All three binaries and 240 protected runtime assets are byte-identical
+to ab843. The 37 changed runtime paths are documentation, README and notices;
+none changes runtime behavior. The source proof composes the historical full
+baseline with 31 changed inputs, rather than claiming a new full-source run.
+
+The new 284cef [complete installed result](evidence/gate-5/complete-installed-284cef1.json)
 passed 18 baseline checks and all 26 Gate 5 phases, including all nine native/
 native, native/browser and browser/browser clean, impaired and mute conditions.
 Both strict runtime inventories passed without additions, missing files,
@@ -34,21 +43,27 @@ changed bytes or symlinks; source/tool inputs remained stable and owned process
 groups were empty after cleanup.
 
 All 18 observer acceptance decisions passed `connect-media-acceptance/2`.
-Raw A/V quality remains separate: 15 passed and three impaired observations
+Raw A/V quality remains separate: 16 passed and two impaired observations
 retain failed quality measurements, accepted only as advisory under Decision
 012. Clean and mute A/V checks remain strict, and no malformed observer or
 non-A/V hard failure was waived. The observed maximum native codec emission
-hold was 198.788917 ms against 200 ms; maximum impaired fresh-motion recovery
-was 1.950659 seconds against two seconds. These are observations of this run,
-not guarantees for arbitrary machines or networks.
+hold was 187.53175 ms against 200 ms; maximum impaired fresh-motion recovery
+was 1.573964 seconds against two seconds. These are observations of this run,
+not guarantees for arbitrary machines or networks. The two advisory results
+were the native/browser native observer (35 pairs, p95 136.509 ms) and one
+browser/browser observer with zero pairs and valid measurement unavailability.
+The earlier ab843 run retains its distinct 15-pass/three-advisory raw results.
 
-The separately accepted [actual-model journey](evidence/gate-5/actual-model-ab843b8.json)
+The separately accepted ab843 [actual-model journey](evidence/gate-5/actual-model-ab843b8.json)
 used `codex-cli 0.162.0-alpha.17.2`: 28 successful MCP calls across the initial
 and explicitly resumed turns, zero tool/turn errors, two verified artifact byte
 payloads, and the same saved host session after server restart. One regular
 credential served two authorized conversations; source-backed followup and
 independent incoming contact were verified without duplicate effects. This
 proves neither automatic wake nor Vapi inference or model video understanding.
+Its continued applicability to 284cef is independently reviewed
+[exact-runtime model composition](evidence/gate-5/actual-model-composition-284cef1.json),
+not a repeated actual-model execution.
 
 The historical `0d285d168509` reference/contact proof and separate 60-second
 [two-native-pair observation](evidence/gate-5/native-concurrency-observation.json)
@@ -58,8 +73,9 @@ call profile. Earlier failed packages and media runs retain their original
 outcomes in [package evidence](evidence/gate-5/local-package-qualification.json).
 
 These release materials and acceptance annotations postdate the immutable
-ab843 archives. They are a separate review supplement, not a claim that the
-archived documentation contains these later results. G5-047 remains open for
+284cef archives. They are a separate review supplement, not a claim that the
+archived documentation contains these later results. New installed execution
+and inherited ab843 model evidence remain distinct. G5-047 remains open for
 independent human feedback and final documentation review.
 
 ## October 15 impairment-only policy amendment
@@ -79,8 +95,8 @@ resources and five-second paired teardown.
 Recovery within two seconds still means fresh decoded motion after each
 interruption; it does not promise restoration of full clean quality. Candidate
 `0d285d168509` predates this policy implementation. It and earlier failed reports
-are not retrospectively qualified. The matching ab843 installed run now supplies new-policy qualification;
-it does not change any historical result. Policy approval alone was not a pass.
+are not retrospectively qualified. The new matching 284cef installed run supplies
+policy-2 qualification; it does not change any historical result. Policy approval alone was not a pass.
 Actual-model evidence is separately accepted; human and owner acceptance remain
 separate requirements.
 
@@ -115,17 +131,17 @@ not qualify a later binary, full operating profile or installed package.
 
 | Surface | Behavior and compatibility | Evidence / remaining boundary |
 |---|---|---|
-| Messages, files and tasks | One persistent Conversation; stable mutation IDs, durable receipts and current authority on replay. Ordinary revocable identity remains the default; narrow task grants are optional. | Retained [Gate 4 acceptance](evidence/gate-4/acceptance.html); [ab843 installed proof](evidence/gate-5/complete-installed-ab843b8.json). |
-| Rust, Python, TypeScript, HTTP, CLI and MCP | Shared control model. Python/TypeScript native clients use the Rust helper; HTTP is separate. MCP is a control surface, not a media-byte API. | [SDK guide](SDK.md), [source contact parity](evidence/gate-5/contact-interface-parity.json); [installed](evidence/gate-5/complete-installed-ab843b8.json) and [actual-model](evidence/gate-5/actual-model-ab843b8.json) proof retain their distinct scopes. |
-| Three two-party AV routes | VP8 video plus PCMU audio; a transient Connection ending preserves the accepted Session and Conversation for fresh authorized attachment. Explicit Session end is terminal. | [Media contract](../contracts/connect-media-vp8-v1.md), [component transport checks](evidence/gate-5/video-transport.json); all nine decoded route/condition checks pass in the [ab843 installed result](evidence/gate-5/complete-installed-ab843b8.json), with raw impaired quality retained separately. |
-| Native video example | Generated sources use real external codecs. SIGINT and controlled capture-child refusal require paired cleanup, preserved history and fresh same-Session attachment. | [Native guide](../examples/native-video/README.md), [installed cleanup integration guards](evidence/gate-5/package-native-cleanup-integration.json). The [ab843 installed result](evidence/gate-5/complete-installed-ab843b8.json) separately passes actual installed cleanup and deadline-boundary behavior. |
+| Messages, files and tasks | One persistent Conversation; stable mutation IDs, durable receipts and current authority on replay. Ordinary revocable identity remains the default; narrow task grants are optional. | Retained [Gate 4 acceptance](evidence/gate-4/acceptance.html); [284cef installed proof](evidence/gate-5/complete-installed-284cef1.json). |
+| Rust, Python, TypeScript, HTTP, CLI and MCP | Shared control model. Python/TypeScript native clients use the Rust helper; HTTP is separate. MCP is a control surface, not a media-byte API. | [SDK guide](SDK.md), [source contact parity](evidence/gate-5/contact-interface-parity.json); [installed](evidence/gate-5/complete-installed-284cef1.json) and [actual-model](evidence/gate-5/actual-model-ab843b8.json) proof retain their distinct scopes. |
+| Three two-party AV routes | VP8 video plus PCMU audio; a transient Connection ending preserves the accepted Session and Conversation for fresh authorized attachment. Explicit Session end is terminal. | [Media contract](../contracts/connect-media-vp8-v1.md), [component transport checks](evidence/gate-5/video-transport.json); all nine decoded route/condition checks pass in the [284cef installed result](evidence/gate-5/complete-installed-284cef1.json), with raw impaired quality retained separately. |
+| Native video example | Generated sources use real external codecs. SIGINT and controlled capture-child refusal require paired cleanup, preserved history and fresh same-Session attachment. | [Native guide](../examples/native-video/README.md), [installed cleanup integration guards](evidence/gate-5/package-native-cleanup-integration.json). The [284cef installed result](evidence/gate-5/complete-installed-284cef1.json) separately passes actual installed cleanup and deadline-boundary behavior. |
 | SIP / telephone | Audio-only Sessions remain supported. An AV `sip_dial` rejects with `unsupported-media-profile`; it cannot silently downgrade. An explicit audio-only Session can share the same Conversation. Already owned legs retain cleanup authority. | [Admission/race tests](evidence/gate-5/video-admission-cleanup.json); no new carrier-live proof. |
 | Existing Vapi / Telnyx routes | Default carrier transport paths retain their documented behavior. New normalized message extensions and `with_observed_driver` voice composition are explicit opt-ins. A manifest alone does not activate those hooks. | [Connector guide](CONNECTORS.md), [source audit](evidence/gate-5/provider-source-audit.json); [six accepted bounded claims](evidence/gate-5/provider-claims-ab843b8.json) do not assert fresh provider execution. |
 | Late replies and SMS tracking | A cancelled/expired task's late answer stays ordinary unassigned communication. Verified delivery-only observations can be recorded after STOP/lease expiry; replies and new dispatch still require current policy. | [Connector host proof](evidence/gate-5/connector-runtime-integration.json); no task continuation, new outbound effect or policy resurrection is authorized. |
 | Connector contributors | Storage-independent public kit and deterministic fixture harness. Provider credentials, verified callback origin and current route authority remain required where applicable. | [Independent contribution](evidence/gate-5/contributor-exercise.json), [API/host proof](evidence/gate-5/connector-runtime-integration.json); fixture results do not establish carrier/account interoperability. |
-| Independent wire implementation | Seven reliable control operations over actual QUIC; no Connect SDK/helper/parser imported. | [Conformance guide](PROTOCOL_CONFORMANCE.md), [control-only proof](evidence/gate-5/independent-conformance.json); [matching installed control proof](evidence/gate-5/complete-installed-ab843b8.json) accepted; media is outside this independent implementation. |
-| Setup and secrets | Local demo needs no provider/model account. Keychain references or an explicitly selected environment reference; missing/locked storage fails without a plaintext fallback. | [Setup guide](SETUP.md), [source setup/recovery](evidence/gate-5/setup-upgrade.json), [vault migration](evidence/gate-5/secret-vault-migration.json); [matching installed checks](evidence/gate-5/complete-installed-ab843b8.json) passed; actual provider readiness is excluded. |
-| Upgrade / rollback | Stop the server and retain a matching verified backup; `serve` does not migrate implicitly. Restore into a new directory with a compatible binary. Database schema is authoritative during setup metadata recovery. | [Public historical recovery](evidence/gate-5/migration-recovery.json), [package prerequisites](GATE5_PACKAGE.md); [ab843 installed historical recovery](evidence/gate-5/complete-installed-ab843b8.json) passed; rollback still requires compatible verified backup/binary inputs. |
+| Independent wire implementation | Seven reliable control operations over actual QUIC; no Connect SDK/helper/parser imported. | [Conformance guide](PROTOCOL_CONFORMANCE.md), [control-only proof](evidence/gate-5/independent-conformance.json); [matching installed control proof](evidence/gate-5/complete-installed-284cef1.json) accepted; media is outside this independent implementation. |
+| Setup and secrets | Local demo needs no provider/model account. Keychain references or an explicitly selected environment reference; missing/locked storage fails without a plaintext fallback. | [Setup guide](SETUP.md), [source setup/recovery](evidence/gate-5/setup-upgrade.json), [vault migration](evidence/gate-5/secret-vault-migration.json); [matching installed checks](evidence/gate-5/complete-installed-284cef1.json) passed; actual provider readiness is excluded. |
+| Upgrade / rollback | Stop the server and retain a matching verified backup; `serve` does not migrate implicitly. Restore into a new directory with a compatible binary. Database schema is authoritative during setup metadata recovery. | [Public historical recovery](evidence/gate-5/migration-recovery.json), [package prerequisites](GATE5_PACKAGE.md); [284cef installed historical recovery](evidence/gate-5/complete-installed-284cef1.json) passed; rollback still requires compatible verified backup/binary inputs. |
 
 The connector report records 287 API/Store/connector tests, 24 host tests and both
 40-case harnesses at its recorded source boundary. The admission report records
@@ -185,10 +201,15 @@ patch and SHA256 digest. Modified upstream behavior is attributed to those
 patches rather than described as unmodified upstream code. The package notice
 builder includes both license texts for each prepared crate override as well as
 the Git and registry notices; [third-party notices](../THIRD_PARTY_NOTICES.md)
-explain these inventories. The unpublished ab843b843fa7 candidate passed archive
+explain these inventories. The unpublished 284cef16c64b candidate passed archive
 inventory and independent archive review; see the exact
-[package evidence](evidence/gate-5/local-package-qualification.json). Its runtime,
-source and qualification archives retain that source boundary. Thelve and Bridgefu
+[package composition](evidence/gate-5/package-notice-composition-284cef1.json).
+Its registry index contains 485 entries: all 415 selected normal/build
+macOS arm64 dependencies have bundled texts; ten outside-graph entries remain
+explicitly declaration-only. Fifteen exact package/version/checksum/VCS mappings
+associate repository-root notices. Nested `LICENSES` texts and the full rmcp
+licensing-transition, retained MIT contribution and documentation notice are
+preserved. This records provenance and coverage, not a legal conclusion. Thelve and Bridgefu
 are design provenance, not copied source in this candidate.
 
 The independent Python client has [pinned dependency notices](../examples/independent-uctp-client/DEPENDENCIES.md)
@@ -201,19 +222,19 @@ affected checks; the existing inventory result does not close release acceptance
 ## Immutable candidate identity and remaining release work
 
 The archive base name is
-`connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local`.
+`connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local`.
 Verify `SHA256SUMS` before extracting into a new directory; the
 [candidate designation](evidence/gate-5/release-candidate.json) binds these exact
 archives and their matching source revision:
 
 | Archive suffix | SHA-256 |
 |---|---|
-| `.tar.gz` (runtime) | `151a7c7eac8a426ad0741dbe4e5fd1a522681daad90f30c9df3f204466088b36` |
-| `-source.tar.gz` | `6c2438afd000dfb0ebc29523023ef01df796477d1b1abec0de9628989d233b4a` |
-| `-qualification.tar.gz` | `6303271b566d8b06aa801a84b01546d3b98e1e9f5df87bac083c57a66b70b1a0` |
+| `.tar.gz` (runtime) | `a26f107672df840b2f16933dbff44bcff0640b407d3379d2c234752b6380a701` |
+| `-source.tar.gz` | `a7011377b39e0269aa2786ae718360dbe34c28c79131718ed00db2a3e76f043e` |
+| `-qualification.tar.gz` | `3fc18ca1d734ddec7eb47888898ab22e95668166eb8a2dc5792af9c3282d58de` |
 
 The [installed release record](evidence/gate-5/installed-release.json) binds the
-accepted package behavior. Human walkthroughs, their documentation corrections,
+accepted new installed execution and separately composed model evidence. Human walkthroughs, their documentation corrections,
 final independent quality/seal and owner acceptance remain required. Publication,
 public download verification and project-page changes are separate actions.
 The [proposed project copy](GATE5_PROJECT_COPY.md) remains local preparation only.

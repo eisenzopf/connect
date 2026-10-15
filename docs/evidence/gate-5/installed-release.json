@@ -1,26 +1,30 @@
 {
-  "profile": "gate5-installed-release-candidate/1",
-  "recorded_at": "2026-10-15T10:41:30.636242+00:00",
-  "status": "Matching complete installed and actual-model proof accepted for designated local candidate",
+  "profile": "gate5-installed-release-candidate/2",
+  "recorded_at": "2026-10-15T11:52:20.789885+00:00",
+  "status": "Current literal complete installed proof and explicit unchanged model composition accepted",
   "whole_gate_qualified": false,
-  "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
-  "candidate": "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local",
+  "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
   "qualification": {
-    "path": "docs/evidence/gate-5/complete-installed-ab843b8.json",
-    "sha256": "d6d22fd50c683a79b00acec766ba75e71574e7a05f45defd2e96613e7a29d635"
+    "path": "docs/evidence/gate-5/complete-installed-284cef1.json",
+    "sha256": "62b9cc89499f46e07defb08a5944fdac480614ef36a15bee97d1cc7f3b580297"
   },
-  "actual_model": {
-    "path": "docs/evidence/gate-5/actual-model-ab843b8.json",
-    "sha256": "b9d8e8aded6c3e49f6ad1ba8f431e8875638c88a0cbf7dae74e0de2dad99dc5c"
+  "actual_model_composition": {
+    "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
+    "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
   },
   "candidate_designation": {
     "path": "docs/evidence/gate-5/release-candidate.json",
-    "sha256": "a35cabf1db629304e8ce53d8103d0ab7af1467ed9d443c17a1a642c9543aeb85"
+    "sha256": "5822da599b3a97edd352dc7c9eae991b746fcdafc4c29c2ce778e87d1e343456"
   },
-  "scope": "Outside-checkout source/native SDK/helper/installed binaries, public setup/app/session/reference interfaces, independent QUIC client, native secret storage, media failure/recovery, historical schema recovery, all nine decoded media conditions and actual Codex continuation. Both runtime inventories are exact; all source/tool/candidate seals were independently reviewed.",
+  "previous_installed_record": {
+    "path": "docs/evidence/gate-5/installed-release-ab843b8.json",
+    "sha256": "519fbcc194e0af9f161e2618a00530fb4e7bf75dc984a02b5b835f2d6e62ca3d"
+  },
   "boundaries": [
-    "Scripted installed walkthroughs and generated media do not count as independent humans.",
-    "No fresh live communication-provider operation, final release seal, owner acceptance or publication.",
-    "Post-build evidence records do not alter immutable candidate archives."
+    "No new284model execution is claimed.",
+    "Source, installed, model and provider scopes remain separate and traceable.",
+    "Zero independent human attempts; final documentation/quality/seal/owner and publication remain open.",
+    "Postbuild records supplement unchanged immutable archives."
   ]
 }

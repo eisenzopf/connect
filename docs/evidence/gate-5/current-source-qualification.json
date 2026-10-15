@@ -1,7 +1,7 @@
 {
   "profile": "gate5-source-qualification-composition/2",
-  "recorded_at": "2026-10-15T11:16:07.192772+00:00",
-  "status": "Accepted scoped registry notice repair source composition; corrected matching package qualification and final gate acceptance remain open",
+  "recorded_at": "2026-10-15T11:52:20.789885+00:00",
+  "status": "Accepted scoped source composition with matching284completeinstalled, exact notices and unchanged model/provider composition; independenthuman/finalgateacceptanceopen",
   "whole_gate_qualified": false,
   "historical_full_source": {
     "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
@@ -170,7 +170,7 @@
       "path": "docs/evidence/gate-5/installed-bytecode-isolation-repair.json",
       "sha256": "7d05eb29afbaeeb239db808ecae5ad7ac34a0ea43e58afcdb9e37b8fe36d74a2"
     },
-    "runtime_scope": "No Rust, SDK, contract, example, Cargo graph, dependency source-lock, prepared source or patch changes from ab843. Its accepted complete installed/media/model evidence remains exact old-candidate evidence. Corrected matching archives must pass affected package/license/installed checks and an independent exact binary/behavior-asset composition review before package tasks close again.",
+    "runtime_scope": "The unchanged runtime behavior bytes from ab843 also pass a new literal284completeinstalled18+26/all9 and both1546-entry strictinventories. Exact pinned notices and all415selected registry coverage are independently verified. Actual-model28 and provider claims remain explicit prior-execution/unchanged-source compositions.",
     "independent_review": {
       "path": ".local/gate5/registry-license-candidate/quality-source-review.json",
       "sha256": "a6885fd6f9846ea5b2bbb40efbd751b372870c23f5516ca02c2906a5fba6bb7a"
@@ -181,21 +181,49 @@
     }
   },
   "required_followups": [
-    "Build an immutable corrected package and verify affected archive/source/license/installed checks plus exact runtime identity composition.",
-    "Record at least three independent fresh-user walkthroughs and remediate observed problems.",
-    "Complete final documentation and independent quality review, final seal and actual owner acceptance; publication is separate."
+    "Record at least three independent fresh-user walkthroughs and remediate observed issues.",
+    "Complete final documentation and independent quality review, final seal and actual owner acceptance; publication remains separate."
   ],
   "native_emission_component": {
     "path": "docs/evidence/gate-5/native-emission-deadline-repair.json",
     "sha256": "453f2eb3a725640fe5b85d3680adff8ac53f69c988d996d005465510d0d6e458"
   },
   "qualification_snapshot_at_candidate": {
+    "path": "docs/evidence/gate-5/source-qualification-284cef16c64b.json",
+    "sha256": "61db9adfce2c4669143bd2a3db2b07b307ec7ce62a3038b52899c23213fc8b3b",
+    "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+    "meaning": "Byteexact current-source-qualification.json in immutable284sourcearchive. Historical build/review path+digest references resolve to this snapshot, separately from live progress annotations."
+  },
+  "current_qualification": {
+    "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+    "complete_installed": {
+      "path": "docs/evidence/gate-5/complete-installed-284cef1.json",
+      "sha256": "62b9cc89499f46e07defb08a5944fdac480614ef36a15bee97d1cc7f3b580297"
+    },
+    "actual_model_composition": {
+      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
+      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
+    },
+    "package_and_notices": {
+      "path": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
+      "sha256": "8cd3fce98f3fa72fea50cf17f9cb4da323cc1c4cce7794700e0de79780db9545"
+    },
+    "candidate_designation": {
+      "path": "docs/evidence/gate-5/release-candidate.json",
+      "sha256": "5822da599b3a97edd352dc7c9eae991b746fcdafc4c29c2ce778e87d1e343456"
+    }
+  },
+  "registry_notice_component": {
+    "path": "docs/evidence/gate-5/registry-license-repair.json",
+    "sha256": "df2bfffe9eb5fe85b3598abaf11a4fadd2cba1b5ec983593ea50f784d220b3d7"
+  },
+  "prior_qualification_snapshot_at_candidate": {
     "path": "docs/evidence/gate-5/source-qualification-ab843b843fa7.json",
     "sha256": "61366543766cdcd7036818b978bb86ddf913abd353a05528b231da4aa7a4d740",
     "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
     "meaning": "Byte-exact current-source-qualification.json captured by the ab843 source archive. Historical build/review references to that path and digest resolve to these frozen bytes, not this later progress annotation."
   },
-  "current_qualification": {
+  "historical_ab843_qualification": {
     "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
     "installed": {
       "path": "docs/evidence/gate-5/complete-installed-ab843b8.json",
@@ -215,9 +243,5 @@
     },
     "scope": "18 baseline checks,26 Gate5 phases/all9 media conditions, exact runtime inventories and28 actual MCP calls independently accepted. Post-build documentation updates do not change immutable candidate archives or its 1,114 selected code/source inputs.",
     "status": "Prior ab843 technical qualification retained; replacement notice-corrected package qualification pending"
-  },
-  "registry_notice_component": {
-    "path": "docs/evidence/gate-5/registry-license-repair.json",
-    "sha256": "df2bfffe9eb5fe85b3598abaf11a4fadd2cba1b5ec983593ea50f784d220b3d7"
   }
 }

@@ -1,0 +1,32 @@
+{
+  "profile": "gate5-actual-model-runtime-composition/1",
+  "recorded_at": "2026-10-15T11:52:20.789885+00:00",
+  "status": "accepted-unchanged-runtime-evidence-composition",
+  "whole_gate_qualified": false,
+  "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
+  "actual_execution_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "new_model_execution": false,
+  "successful_mcp_calls_at_execution": 28,
+  "basis": "All three binaries and240 protected runtime files, including SDK/helper, MCP/skill, agent/app/reference source and contracts, are byte- and mode-identical to the actual-model-qualified ab843 runtime. All current source differences are packaging, qualification guards and pinned notices; model/provider implementation inputs are unchanged. A new literal full installed report on284 passes the documented runtime verifier.",
+  "execution_evidence": {
+    "path": "docs/evidence/gate-5/actual-model-ab843b8.json",
+    "sha256": "b9d8e8aded6c3e49f6ad1ba8f431e8875638c88a0cbf7dae74e0de2dad99dc5c"
+  },
+  "independent_actual_execution_review": {
+    "path": ".local/gate5/actual-model-readiness-ab843b8-20261015/quality-actual-model-review.json",
+    "sha256": "d8f44415d0962b9d8c2c85dc273cf1a969174bd3dd7742e4c3d3216139edd464"
+  },
+  "runtime_identity_review": {
+    "path": ".local/gate5/registry-license-candidate/quality-final-composition-review.json",
+    "sha256": "7e4cb48d5aa9784d70257b09147a084707755a987a08fdb919ac1f784fbbe250"
+  },
+  "current_full_installed": {
+    "path": "docs/evidence/gate-5/complete-installed-284cef1.json",
+    "sha256": "62b9cc89499f46e07defb08a5944fdac480614ef36a15bee97d1cc7f3b580297"
+  },
+  "limits": [
+    "No new284 model turn or physical/human walkthrough is inferred.",
+    "Exact saved-host-session continuation, normal credential, two source-backed artifacts and28 calls retain the actual ab843 execution scope."
+  ]
+}

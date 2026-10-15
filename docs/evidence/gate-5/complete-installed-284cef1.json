@@ -1,0 +1,514 @@
+{
+  "profile": "gate5-complete-installed-public/2",
+  "recorded_at": "2026-10-15T11:52:20.789885+00:00",
+  "status": "independently-accepted-literal-complete-installed-and-nine-media-scenarios",
+  "whole_gate_qualified": false,
+  "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
+  "scope": "Exact local macOS arm64 installed runtime, public interfaces, source fixtures and generated media. No fresh actual-model or live communication-provider execution; no human, final owner or publication acceptance.",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local-qualification.tar.gz": "3fc18ca1d734ddec7eb47888898ab22e95668166eb8a2dc5792af9c3282d58de",
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local-source.tar.gz": "a7011377b39e0269aa2786ae718360dbe34c28c79131718ed00db2a3e76f043e",
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local.tar.gz": "a26f107672df840b2f16933dbff44bcff0640b407d3379d2c234752b6380a701"
+  },
+  "runtime_manifest_sha256": "da8e1b67ca557211fc2a394ba5fe84e4b9b504178e64917673494f5e3205418a",
+  "source_inputs": 1120,
+  "baseline_checks_passed": 18,
+  "gate5_phases_passed": 26,
+  "route_conditions_passed": 9,
+  "policy_decisions_passed": 18,
+  "raw_av_quality": {
+    "passed": 16,
+    "failed": 2
+  },
+  "maximum_observed_native_codec_hold_ms": 187.53175,
+  "maximum_observed_impaired_fresh_motion_recovery_seconds": 1.573963642,
+  "runtime_inventory": {
+    "after-baseline": {
+      "status": "passed",
+      "expected_files": 1546,
+      "observed_files": 1546,
+      "added": [],
+      "missing": [],
+      "changed": [],
+      "symlinks": []
+    },
+    "after-behavior": {
+      "status": "passed",
+      "expected_files": 1546,
+      "observed_files": 1546,
+      "added": [],
+      "missing": [],
+      "changed": [],
+      "symlinks": []
+    }
+  },
+  "binary_hashes": {
+    "bin/connect": "c16fab1ed79e3d6275961332d1974309c171a3ceeb0b3c04f01483b4c53cb161",
+    "bin/connect-example": "e3d58e30c4792451420cf2937ff054959bc61f79ca42b93ec37e83415857b5d1",
+    "bin/connect-video": "01c083d4fede4c51d3c38ab268627df72df79dba2d00ead4e926b2902e95f612"
+  },
+  "routes": [
+    {
+      "path": "native-native",
+      "scenario": "clean",
+      "status": "passed-clean",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 60,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 86,
+            "median_abs_skew_ms": 2.5377914999995532,
+            "p95_abs_skew_ms": 37.16324999999898
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 1799,
+            "changing_frames": 1709,
+            "changing_fps": 28.483333333333334,
+            "width": 640,
+            "height": 360
+          }
+        },
+        {
+          "kind": "native",
+          "receiver_slot": 2,
+          "measured_seconds": 60,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 86,
+            "median_abs_skew_ms": 6.7519790000023505,
+            "p95_abs_skew_ms": 41.277000000000896
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 1799,
+            "changing_frames": 1712,
+            "changing_fps": 28.533333333333335,
+            "width": 640,
+            "height": 360
+          }
+        }
+      ]
+    },
+    {
+      "path": "native-browser",
+      "scenario": "clean",
+      "status": "passed-clean",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 60,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 86,
+            "median_abs_skew_ms": 9.598833500000126,
+            "p95_abs_skew_ms": 21.157000000000536
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 1768,
+            "changing_frames": 1663,
+            "changing_fps": 27.716666666666665,
+            "width": 640,
+            "height": 360
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 60.00589990615845,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 84,
+            "median_abs_skew_ms": 25.000000000001243,
+            "p95_abs_skew_ms": 39.00000000000148
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 1800,
+            "changing": 1501,
+            "rendered": 1625,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 25.01420697543695,
+            "decoded_fps": 29.99705033696636
+          }
+        }
+      ]
+    },
+    {
+      "path": "browser-browser",
+      "scenario": "clean",
+      "status": "passed-clean",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "browser",
+          "receiver_slot": 1,
+          "measured_seconds": 60.01049995422363,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 84,
+            "median_abs_skew_ms": 15.199999988080748,
+            "p95_abs_skew_ms": 61.29999995231606
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 1764,
+            "changing": 1504,
+            "rendered": 1677,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 25.062280786650007,
+            "decoded_fps": 29.394855922640033
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 60.009599924087524,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 84,
+            "median_abs_skew_ms": 17.449999988079057,
+            "p95_abs_skew_ms": 56.99999999999994
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 1763,
+            "changing": 1511,
+            "rendered": 1671,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 25.179304676442158,
+            "decoded_fps": 29.378632789257132
+          }
+        }
+      ]
+    },
+    {
+      "path": "native-native",
+      "scenario": "impairment",
+      "status": "passed-impairment",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 60,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 59,
+            "median_abs_skew_ms": 30.533667000000264,
+            "p95_abs_skew_ms": 72.65345799999778
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 921,
+            "changing_frames": 859,
+            "changing_fps": 14.316666666666666,
+            "width": 640,
+            "height": 360
+          }
+        },
+        {
+          "kind": "native",
+          "receiver_slot": 2,
+          "measured_seconds": 60,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 61,
+            "median_abs_skew_ms": 60.23812499999792,
+            "p95_abs_skew_ms": 88.19129200000032
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 1092,
+            "changing_frames": 1025,
+            "changing_fps": 17.083333333333332,
+            "width": 640,
+            "height": 360
+          }
+        }
+      ]
+    },
+    {
+      "path": "native-browser",
+      "scenario": "impairment",
+      "status": "passed-impairment",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 60,
+          "raw_av_quality": {
+            "status": "failed",
+            "paired": 35,
+            "median_abs_skew_ms": 58.869666999996184,
+            "p95_abs_skew_ms": 136.50908299999998
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 425,
+            "changing_frames": 420,
+            "changing_fps": 7.0,
+            "width": 640,
+            "height": 360
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 60.00780010223389,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 81,
+            "median_abs_skew_ms": 36.40000009536948,
+            "p95_abs_skew_ms": 106.1999999284744
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 1758,
+            "changing": 1506,
+            "rendered": 1634,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 25.096737381378137,
+            "decoded_fps": 29.2961914451944
+          }
+        }
+      ]
+    },
+    {
+      "path": "browser-browser",
+      "scenario": "impairment",
+      "status": "passed-impairment",
+      "qualification_seconds": 60,
+      "observers": [
+        {
+          "kind": "browser",
+          "receiver_slot": 1,
+          "measured_seconds": 60.00979971885681,
+          "raw_av_quality": {
+            "status": "failed",
+            "paired": 0,
+            "median_abs_skew_ms": null,
+            "p95_abs_skew_ms": null
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 283,
+            "changing": 268,
+            "rendered": 278,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 4.465937251175105,
+            "decoded_fps": 4.715896425681175
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 60.009599685668945,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 84,
+            "median_abs_skew_ms": 34.30000001192113,
+            "p95_abs_skew_ms": 86.30000007153171
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 1743,
+            "changing": 1461,
+            "rendered": 1625,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 24.346104750785486,
+            "decoded_fps": 29.04535289570096
+          }
+        }
+      ]
+    },
+    {
+      "path": "native-native",
+      "scenario": "mute-recovery",
+      "status": "passed-mute-recovery",
+      "qualification_seconds": 20,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 20,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 28,
+            "median_abs_skew_ms": 0.677291999999774,
+            "p95_abs_skew_ms": 20.748333999998536
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 541,
+            "changing_frames": 520,
+            "changing_fps": 26.0,
+            "width": 640,
+            "height": 360
+          }
+        },
+        {
+          "kind": "native",
+          "receiver_slot": 2,
+          "measured_seconds": 20,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 28,
+            "median_abs_skew_ms": 0.037311999999900536,
+            "p95_abs_skew_ms": 20.822625000000983
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 541,
+            "changing_frames": 518,
+            "changing_fps": 25.9,
+            "width": 640,
+            "height": 360
+          }
+        }
+      ]
+    },
+    {
+      "path": "native-browser",
+      "scenario": "mute-recovery",
+      "status": "passed-mute-recovery",
+      "qualification_seconds": 20,
+      "observers": [
+        {
+          "kind": "native",
+          "receiver_slot": 1,
+          "measured_seconds": 20,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 25,
+            "median_abs_skew_ms": 12.510792000000492,
+            "p95_abs_skew_ms": 21.653833000000233
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded_frames": 590,
+            "changing_frames": 496,
+            "changing_fps": 24.8,
+            "width": 640,
+            "height": 360
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 20.00499987602234,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 26,
+            "median_abs_skew_ms": 4.600000023842199,
+            "p95_abs_skew_ms": 22.699999928473602
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 540,
+            "changing": 484,
+            "rendered": 525,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 24.193951662059963,
+            "decoded_fps": 26.99325185436442
+          }
+        }
+      ]
+    },
+    {
+      "path": "browser-browser",
+      "scenario": "mute-recovery",
+      "status": "passed-mute-recovery",
+      "qualification_seconds": 20,
+      "observers": [
+        {
+          "kind": "browser",
+          "receiver_slot": 1,
+          "measured_seconds": 20.010600090026855,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 24,
+            "median_abs_skew_ms": 28.60000002384222,
+            "p95_abs_skew_ms": 63.29999995231628
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 589,
+            "changing": 445,
+            "rendered": 556,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 22.238213646665447,
+            "decoded_fps": 29.434399635698757
+          }
+        },
+        {
+          "kind": "browser",
+          "receiver_slot": 2,
+          "measured_seconds": 20.01110005378723,
+          "raw_av_quality": {
+            "status": "passed",
+            "paired": 24,
+            "median_abs_skew_ms": 24.199999928475435,
+            "p95_abs_skew_ms": 58.799999952316995
+          },
+          "policy_acceptance": "passed",
+          "decoded_motion": {
+            "decoded": 590,
+            "changing": 450,
+            "rendered": 555,
+            "width": 640,
+            "height": 360,
+            "changing_fps": 22.487519366274647,
+            "decoded_fps": 29.48363650244898
+          }
+        }
+      ]
+    }
+  ],
+  "proofs": {
+    "official": {
+      "path": ".local/package-checks/20261015T112457.796265Z/result.json",
+      "sha256": "264e5509c7218d9aab02785ec8458e6ba718140f653db82dbae33ffdf012b3c2"
+    },
+    "outer": {
+      "path": ".local/gate5/complete-installed-284cef1-attempt1/result.json",
+      "sha256": "435745c41d487c7e75f60d211ff16525b3e64852b2a98793f7683afa4c14a4f0"
+    },
+    "independent_full_review": {
+      "path": ".local/gate5/complete-installed-284cef1-attempt1/quality-final-review.json",
+      "sha256": "1e0eaa092457f1ca36934790e49fb7e2c050925ade3614d757cca068c9f1ac5a"
+    },
+    "private_summary": {
+      "path": ".local/gate5/installed-summary-284cef1-20261015/result.json",
+      "sha256": "ab0186ca19b2fc73c07d7d07b39d7c74f497398ab7a47da90192faf76ec4b6fb"
+    },
+    "summary_review": {
+      "path": ".local/gate5/installed-summary-284cef1-20261015/quality-summary-review.json",
+      "sha256": "72f6dafe0caf65c815181b05c32d36edae2c892efd4545388e1ece774ee448d8"
+    }
+  },
+  "historical_failure_preservation": "All earlier failed packages/raw quality observations retain original scopes. New raw16passed/2impaired-advisory does not rewrite old ab84315passed/3impaired-advisory or earlier policy1 failures.",
+  "limits": [
+    "Policy2 impairment-only AV skew/valid measurement availability advisory; clean/mute and all non-AV hard predicates remain strict.",
+    "Recovery means fresh decoded motion, not restoration of clean quality in two seconds.",
+    "Generated media is not physical camera/microphone or speaker/display latency evidence.",
+    "Private raw network, forwarding and process journals are not exported."
+  ]
+}

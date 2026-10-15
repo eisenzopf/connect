@@ -291,8 +291,8 @@ Historical Gate 4 owner-review qualification: Runtime 709cf82 passes 42 offline 
 [offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)
 
 Current Gate 5 local technical qualification is recorded for the unpublished
-`ab843b8` candidate: [complete installed proof](evidence/gate-5/complete-installed-ab843b8.json),
-[actual-model journey](evidence/gate-5/actual-model-ab843b8.json), and
+`284cef1` candidate: [complete installed proof](evidence/gate-5/complete-installed-284cef1.json),
+[actual-model evidence composition](evidence/gate-5/actual-model-composition-284cef1.json), and
 [six bounded provider compatibility claims](evidence/gate-5/provider-claims-ab843b8.json).
 Independent human walkthroughs and final documentation, quality, seal and owner
 acceptance remain open. Historical provider receipts do not imply a fresh carrier,

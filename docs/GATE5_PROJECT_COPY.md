@@ -21,8 +21,9 @@ The model host and its account remain explicit prerequisites for actual AI use.
 
 The next local alpha adds a contributor connector kit, independently implemented
 UCTP control, first-run setup and two-party video. Native participants use QUIC;
-browsers use authenticated WebRTC. The selected local macOS arm64 candidate has
-passed complete installed qualification across all three routes and clean, impaired and mute conditions.
+browsers use authenticated WebRTC. The selected local macOS arm64 candidate
+284cef has passed a new complete installed qualification across all three routes
+and clean, impaired and mute conditions, alongside its notice-package checks.
 Impaired A/V quality remains visible and advisory under the approved policy;
 clean/mute quality, audio, identity, recovery, resource and cleanup checks remain
 hard requirements.
@@ -32,9 +33,10 @@ requirements. Telephone is audio-only; an unsupported video route rejects
 instead of silently becoming an audio call. Optional service accounts and
 credentials stay separate from the first local exchange.
 
-The `ab843b843fa7` candidate also has a separately verified actual-model journey:
-28 successful MCP calls, source-backed replies and an explicit resume of the
-same host session after restart. This is not automatic wake or a claim of
+The preserved `ab843b843fa7` actual-model journey,
+[composed into the unchanged 284cef runtime](evidence/gate-5/actual-model-composition-284cef1.json),
+records 28 successful MCP calls, source-backed replies and an
+explicit resume of the same host session after restart. This is not automatic wake or a claim of
 current Vapi/carrier execution.
 
 **Status: local review candidate; installed and model checks accepted,
@@ -49,8 +51,8 @@ Explore the [source and documentation](https://github.com/eisenzopf/connect),
 Connect gives people, apps and agents one place to exchange messages, files and
 conversation context. It combines a local server, public SDKs, revocable
 identities and optional service connectors. The selected macOS arm64 alpha has
-passed local installed qualification for two-party VP8 video across native QUIC
-and browser WebRTC. The
+passed new local installed qualification for two-party VP8 video across native
+QUIC and browser WebRTC. The
 project is open source and unpublished; the demonstration is not a claim that
 all release acceptance is complete.
 
@@ -59,7 +61,7 @@ all release acceptance is complete.
 | Wording | Why it matters |
 |---|---|
 | “Local macOS arm64” | Other platforms and public deployment have not been qualified by this gate. |
-| “Local review candidate; unpublished” | Complete installed and actual-model evidence is accepted for ab843; human walkthroughs, final quality/seal and owner acceptance are still separate. |
+| “Local review candidate; unpublished” | New installed evidence is accepted for 284cef; model evidence is inherited from identical ab843 runtime assets; human walkthroughs, final quality/seal and owner acceptance are still separate. |
 | “Native QUIC; browser WebRTC” | The browser facade is not a browser-native QUIC implementation. |
 | “Two-party VP8” | No multiparty video, screen sharing, SIP/PSTN video or Vapi vision is promised. |
 | “Optional provider/model prerequisites” | Local deterministic messaging is account-free; actual models and external services have their own prerequisites. |
@@ -68,9 +70,11 @@ all release acceptance is complete.
 Use the [draft release notes](GATE5_RELEASE_NOTES.md) for the compatibility matrix,
 unsupported paths, exact archive hashes, all six bounded provider claims and
 remaining acceptance. The [candidate designation](evidence/gate-5/release-candidate.json),
-[installed proof](evidence/gate-5/complete-installed-ab843b8.json) and
-[model proof](evidence/gate-5/actual-model-ab843b8.json) bind these statements to
-ab843; older live-provider receipts remain source-specific. Link actual
+[new installed proof](evidence/gate-5/complete-installed-284cef1.json) and
+[ab843 model proof](evidence/gate-5/actual-model-ab843b8.json) retain distinct
+execution sources. The [284cef package composition](evidence/gate-5/package-notice-composition-284cef1.json)
+records the new notice package and exact unchanged runtime assets. Older
+live-provider receipts remain source-specific. Link actual
 immutable archives/checksums only after owner approval and publication; no
 public download destination is invented here. When placing the page online,
 point the relative documentation link at the approved repository documentation

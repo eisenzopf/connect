@@ -1,0 +1,16 @@
+{
+  "profile": "gate5-registry-notice-closure/1",
+  "recorded_at": "2026-10-15T11:52:20.789885+00:00",
+  "status": "QR5-PROVENANCE-01-resolved-at-corrected-284-package-scope",
+  "source_repair": {
+    "path": "docs/evidence/gate-5/registry-license-repair.json",
+    "sha256": "df2bfffe9eb5fe85b3598abaf11a4fadd2cba1b5ec983593ea50f784d220b3d7"
+  },
+  "corrected_package": {
+    "path": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
+    "sha256": "8cd3fce98f3fa72fea50cf17f9cb4da323cc1c4cce7794700e0de79780db9545"
+  },
+  "scope": "Exact pinned nested crc-catalog LICENSES text, full rmcp transition/attribution notice and15 repository-root package associations are bundled and independently verified. All415 selected registry normal/build dependencies have text;10 conservative outside-graph declarations remain explicit.",
+  "whole_gate_qualified": false,
+  "not_claimed": "A legal opinion or blanket compliance assertion."
+}

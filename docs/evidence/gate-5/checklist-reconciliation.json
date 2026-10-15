@@ -75,14 +75,14 @@
     "G5-044\u2013G5-050 (release/install/usability/review/owner evidence pending)"
   ],
   "current_counts": {
-    "done": 43,
-    "in-progress": 6,
+    "done": 45,
+    "in-progress": 4,
     "not-started": 1
   },
   "current_reconciliation": {
     "recorded_at": "2026-10-15T09:16:27.756434+00:00",
-    "scope": "Explicit task-own verification/dependency closure; complete304 package remains failed, model/humans/final gate not inferred.",
-    "source_boundary": "Current19-input source composition plus explicit304 selected runtime evidence; prior source boundaries and component reviews remain historical.",
+    "scope": "Current task-own closure:45 done,4 in progress,1 not started after corrected284 notices and literal complete installed18+26/all9 acceptance. All historical scopes and failures remain preserved.",
+    "source_boundary": "Historical84-phase full pass plus independently reviewed31changed/1089unchanged of1120 selected inputs; no new literal85-phase full source execution.",
     "newly_completed_tasks": [
       {
         "id": "G5-005",
@@ -261,7 +261,7 @@
       "G5-049",
       "G5-050"
     ],
-    "implementation_sha256": "947ac7d6451b3adaccd2f3be5fadc0433273062d7cfd503eef2c760a3432a68f",
+    "implementation_sha256": "5b31465a3514dadc643b3f6405644f92ee94fc4c7d0e65b929b0fd379529209f",
     "followup_annotation": {
       "recorded_at": "2026-10-14T22:04:13.434869+00:00",
       "candidate_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
@@ -394,7 +394,8 @@
         "sha256": "d46ef82cb8b6eca5a13b3bf0ea314d076a3a7b0a957a1244ea886daa2a80eb93"
       },
       "requirement_text_unchanged": true,
-      "whole_gate_qualified": false
+      "whole_gate_qualified": false,
+      "current_scope": "docs/evidence/gate-5/technical-acceptance-284cef1.json"
     },
     "distribution_notice_reopening": {
       "recorded_at": "2026-10-15T11:08:30.453481+00:00",
@@ -409,6 +410,21 @@
     "notice_repair_source": {
       "path": "docs/evidence/gate-5/registry-license-repair.json",
       "sha256": "df2bfffe9eb5fe85b3598abaf11a4fadd2cba1b5ec983593ea50f784d220b3d7"
+    },
+    "notice_corrected_candidate_closure": {
+      "recorded_at": "2026-10-15T11:54:11.231910+00:00",
+      "closed_again": [
+        "G5-044",
+        "G5-045"
+      ],
+      "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+      "evidence": "docs/evidence/gate-5/package-notice-composition-284cef1.json",
+      "human_attempts": 0,
+      "whole_gate_qualified": false
+    },
+    "prior_own_scope_boundary": {
+      "scope": "Explicit task-own verification/dependency closure; complete304 package remains failed, model/humans/final gate not inferred.",
+      "source_boundary": "Current19-input source composition plus explicit304 selected runtime evidence; prior source boundaries and component reviews remain historical."
     }
   },
   "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f",

@@ -1,0 +1,78 @@
+{
+  "profile": "gate5-notice-corrected-package/1",
+  "recorded_at": "2026-10-15T11:52:20.789885+00:00",
+  "status": "independently-accepted-current-complete-installed-and-unchanged-model-provider-composition",
+  "whole_gate_qualified": false,
+  "source_revision": "284cef16c64b324ce2add037b013249692a60087",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local",
+  "archives": {
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local-qualification.tar.gz": "3fc18ca1d734ddec7eb47888898ab22e95668166eb8a2dc5792af9c3282d58de",
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local-source.tar.gz": "a7011377b39e0269aa2786ae718360dbe34c28c79131718ed00db2a3e76f043e",
+    "connect-0.1.0-alpha.1-macos-arm64-284cef16c64b-gate5-local.tar.gz": "a26f107672df840b2f16933dbff44bcff0640b407d3379d2c234752b6380a701"
+  },
+  "source_archive_files_exact_git": 1569,
+  "runtime_payload_files": 1545,
+  "protected_runtime_files_identical_in_bytes_and_modes": 240,
+  "runtime_delta_files": 37,
+  "runtime_delta_scope": "README, documentation and exact license/provenance assets only; no runtime behavior asset difference.",
+  "source_composition": {
+    "baseline": 1108,
+    "current": 1120,
+    "changed": 31,
+    "unchanged": 1089,
+    "snapshot": {
+      "path": "docs/evidence/gate-5/source-qualification-284cef16c64b.json",
+      "sha256": "61db9adfce2c4669143bd2a3db2b07b307ec7ce62a3038b52899c23213fc8b3b"
+    }
+  },
+  "license_coverage": {
+    "registry_rows": 485,
+    "selected_normal_build_registry_dependencies": 415,
+    "selected_missing_texts": 0,
+    "explicit_root_provenance_packages": 15,
+    "outside_selected_graph_declaration_only": 10,
+    "provenance_lock": {
+      "path": "dependencies/registry-license-lock.json",
+      "sha256": "7896066999daf79e058b9e0aa181adf71158011a7448767313c55a7d8336171e"
+    }
+  },
+  "proofs": {
+    "build": {
+      "path": ".local/gate5/package-build-20261015T111811.075221Z/result.json",
+      "sha256": "55bc24864ad555e5a22da2d9d647379db5d534e64fcc2e7c4f8c241a38dfc8ba"
+    },
+    "source_review": {
+      "path": ".local/gate5/registry-license-candidate/quality-source-review.json",
+      "sha256": "a6885fd6f9846ea5b2bbb40efbd751b372870c23f5516ca02c2906a5fba6bb7a"
+    },
+    "archive_identity_and_affected_review": {
+      "path": ".local/gate5/registry-license-candidate/quality-final-composition-review.json",
+      "sha256": "7e4cb48d5aa9784d70257b09147a084707755a987a08fdb919ac1f784fbbe250"
+    },
+    "affected_checks": {
+      "path": ".local/gate5/registry-license-candidate/affected-284cef1-attempt1/result.json",
+      "sha256": "75fe2c2ca76b60537bf87ea033e746312f674c6de48ffb475471e4fe80884874"
+    },
+    "complete_installed": {
+      "path": "docs/evidence/gate-5/complete-installed-284cef1.json",
+      "sha256": "62b9cc89499f46e07defb08a5944fdac480614ef36a15bee97d1cc7f3b580297"
+    },
+    "actual_model_composition": {
+      "path": "docs/evidence/gate-5/actual-model-composition-284cef1.json",
+      "sha256": "8d6c8ead586570002622bb88d74415935fdbde3c7453c6bd04be2dbb14c765a7"
+    },
+    "bounded_provider_claims": {
+      "path": "docs/evidence/gate-5/provider-claims-ab843b8.json",
+      "sha256": "308f2a2348b0b82d3ad50b51ae8e917d1fbce5ed253233ba4f4cb59251f5ea90"
+    }
+  },
+  "task_eligibility": [
+    "G5-044",
+    "G5-045"
+  ],
+  "limits": [
+    "Current installed18+26/all9 are literal new executions; actual-model28 and bounded historical provider claims are explicit unchanged-runtime/source compositions.",
+    "Source uses a historical84-phase full pass plus reviewed deltas; the current85-phase plan was not newly executed in full.",
+    "No human, final documentation/quality, release seal, owner decision or publication completion."
+  ]
+}

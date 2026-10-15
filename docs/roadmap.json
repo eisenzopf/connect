@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-13",
+  "updated": "2026-10-15",
   "product": "Connect",
   "identity": "Communication for people, apps, and agents",
   "priority": "Server and SDK first",
@@ -308,24 +308,21 @@
       ],
       "implementation": "connect-gate-5-implementation.html",
       "acceptance": "gate-5-acceptance.json",
-      "planning_status": "implementation-authorized; technical-proof-accepted; distribution-notice-repair-and-final-human-review-open",
+      "planning_status": "implementation-authorized; current-technical-and-notice-proof-accepted; final-human-review-open",
       "current_progress": {
-        "recorded_at": "2026-10-15T11:08:30.453481+00:00",
+        "recorded_at": "2026-10-15T11:54:11.230505+00:00",
         "implementation": {
-          "done": 43,
-          "in-progress": 6,
+          "done": 45,
+          "in-progress": 4,
           "not-started": 1
         },
         "acceptance": {
           "qualified_local_technical_scope": 11,
           "not-qualified": 5
         },
-        "candidate_behavior_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
-        "reopened": [
-          "G5-044",
-          "G5-045"
-        ],
-        "reason": "On October 15, G5-044 and G5-045 reopened after review found missing exact crc-catalog and rmcp license notices in the candidate distribution. Replacement packaging and affected qualification are required. The accepted ab843 behavior/model results and 11 technical criteria remain valid at their recorded scopes; A5-15 and final acceptance remain open.",
+        "candidate_behavior_revision": "284cef16c64b324ce2add037b013249692a60087",
+        "reopened": [],
+        "reason": "The October 15 notice omission is resolved in candidate 284cef1. Its exact notices and a new run of 18 baseline checks, 26 Gate 5 phases and all nine media conditions are independently accepted. The ab843 model result is retained through explicit runtime identity composition. G5-044 and G5-045 are complete again. Three independent human walkthroughs, final documentation and quality review, sealing and owner acceptance remain open; A5-15 and whole-gate acceptance are not qualified.",
         "historical_progress": {
           "implementation": {
             "done": 45,
@@ -343,7 +340,26 @@
             "Gate 5 product and 50-item implementation plans are drafted for review. Finalize D5-01\u2013D5-05 and the technical decision records in G5-001 before dependent implementation. No Gate 5 implementation or publication is complete."
           ],
           "planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits; Gate 5 product and numbered implementation plans are ready for review. All 50 Gate 5 items remain not started; full v0.1 remains unreleased."
-        }
+        },
+        "notice_reopening_history": {
+          "recorded_at": "2026-10-15T11:08:30.453481+00:00",
+          "implementation": {
+            "done": 43,
+            "in-progress": 6,
+            "not-started": 1
+          },
+          "candidate_behavior_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+          "reopened": [
+            "G5-044",
+            "G5-045"
+          ],
+          "reason": "On October 15, G5-044 and G5-045 reopened after review found missing exact crc-catalog and rmcp license notices in the candidate distribution. Replacement packaging and affected qualification are required. The accepted ab843 behavior/model results and 11 technical criteria remain valid at their recorded scopes; A5-15 and final acceptance remain open.",
+          "root_planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits. Gate 5 has43completed,6in-progress and1not-started implementation items;11local technical criteria are qualified. Distribution-notice repair and final human/owner gates remain open; full v0.1 remains unreleased.",
+          "planning_gaps": [
+            "Gate 5 requires corrected dependency notices and a replacement candidate with reviewed affected qualification, three independent human walkthroughs, final documentation/quality/seal and owner acceptance. Publication remains separate."
+          ]
+        },
+        "evidence": "evidence/gate-5/package-notice-composition-284cef1.json"
       }
     }
   ],
@@ -358,14 +374,14 @@
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [
-    "Gate 5 requires corrected dependency notices and a replacement candidate with reviewed affected qualification, three independent human walkthroughs, final documentation/quality/seal and owner acceptance. Publication remains separate."
+    "Record three independent fresh-user walkthroughs, resolve feedback, and complete final documentation/quality/seal and actual owner review. Publication remains separate."
   ],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
   "revision": 12,
   "document": "connect-roadmap.html",
-  "planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits. Gate 5 has43completed,6in-progress and1not-started implementation items;11local technical criteria are qualified. Distribution-notice repair and final human/owner gates remain open; full v0.1 remains unreleased.",
+  "planning_status": "Gates 1\u20134 retain their recorded qualification. Gate 5 has 45 completed, 4 in-progress and 1 not-started implementation items; 11 local technical criteria are qualified. Corrected284 notices and complete installed checks pass. Three fresh-user walkthroughs, final documentation/quality/seal and owner acceptance remain open; v0.1 remains unpublished.",
   "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
   "parallel_lanes": [
     {

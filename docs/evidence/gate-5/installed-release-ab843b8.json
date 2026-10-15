@@ -1,0 +1,26 @@
+{
+  "profile": "gate5-installed-release-candidate/1",
+  "recorded_at": "2026-10-15T10:41:30.636242+00:00",
+  "status": "Matching complete installed and actual-model proof accepted for designated local candidate",
+  "whole_gate_qualified": false,
+  "source_revision": "ab843b843fa7445d4d6c663939c7226c5c432c7d",
+  "candidate": "connect-0.1.0-alpha.1-macos-arm64-ab843b843fa7-gate5-local",
+  "qualification": {
+    "path": "docs/evidence/gate-5/complete-installed-ab843b8.json",
+    "sha256": "d6d22fd50c683a79b00acec766ba75e71574e7a05f45defd2e96613e7a29d635"
+  },
+  "actual_model": {
+    "path": "docs/evidence/gate-5/actual-model-ab843b8.json",
+    "sha256": "b9d8e8aded6c3e49f6ad1ba8f431e8875638c88a0cbf7dae74e0de2dad99dc5c"
+  },
+  "candidate_designation": {
+    "path": "docs/evidence/gate-5/release-candidate.json",
+    "sha256": "a35cabf1db629304e8ce53d8103d0ab7af1467ed9d443c17a1a642c9543aeb85"
+  },
+  "scope": "Outside-checkout source/native SDK/helper/installed binaries, public setup/app/session/reference interfaces, independent QUIC client, native secret storage, media failure/recovery, historical schema recovery, all nine decoded media conditions and actual Codex continuation. Both runtime inventories are exact; all source/tool/candidate seals were independently reviewed.",
+  "boundaries": [
+    "Scripted installed walkthroughs and generated media do not count as independent humans.",
+    "No fresh live communication-provider operation, final release seal, owner acceptance or publication.",
+    "Post-build evidence records do not alter immutable candidate archives."
+  ]
+}
