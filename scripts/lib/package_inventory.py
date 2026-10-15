@@ -31,6 +31,7 @@ GATE5_RUNTIME = (
     'examples/native-video/src/preview.rs',
     'examples/native-video/src/report.rs',
     'examples/native-video/src/playout.rs',
+    'examples/native-video/src/playout_tests.rs',
     'examples/native-video/src/markers.rs',
     'contracts/connectors/profile-v1.md', 'contracts/connectors/host-context-v1.md',
     'contracts/fixtures/wire/framing-v1.json', 'contracts/fixtures/wire/rejections-v1.json',

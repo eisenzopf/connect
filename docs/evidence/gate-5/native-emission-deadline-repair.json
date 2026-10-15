@@ -1,0 +1,55 @@
+{
+  "profile": "gate5-native-emission-deadline-repair/1",
+  "status": "Independently accepted focused source component; matching media and complete installed qualification pending",
+  "recorded_at": "2026-10-15T09:53:39.055182+00:00",
+  "whole_gate_qualified": false,
+  "failure_evidence": "docs/evidence/gate-5/native-emission-deadline-regression.json",
+  "changes": [
+    "Drain one frame at a time, with fresh expiry after every sink operation. Preserve timestamp ordering and VP8 reference continuity when stale frames are dropped before writing.",
+    "Bound each complete codec write and flush by its original receipt + 200 ms. Any timed-out or partial write is fatal; no later frame is appended.",
+    "Journal actual completed post-flush emission before rejecting a late completion. Preserve the raw hard-bound violation rather than hiding or relabeling it.",
+    "Flush the IVF header during setup. Do not retry a failed codec write during cleanup. Bound observation finalization by the existing 4.5-second teardown budget and preserve the primary media error if final reporting also fails.",
+    "Ship the new native test module explicitly with the runtime example sources."
+  ],
+  "unchanged": [
+    "connect-media-acceptance/2 owner-approved impaired quality policy",
+    "All clean and mute acceptance thresholds; all hard audio, recovery, authorization, queue/deadline, resource and teardown checks",
+    "Core protocol, store, service, client, server, SDK, dependencies and lockfiles"
+  ],
+  "verification": {
+    "native_tests": 21,
+    "native_binary_tests": 19,
+    "native_library_tests": 2,
+    "new_actual_path_cases": 8,
+    "package_inventory_tests": 29,
+    "strict_clippy": "passed",
+    "workspace_format": "passed",
+    "diff_check": "passed",
+    "source_inputs": 1114,
+    "stable_inputs": true,
+    "combined_proof": {
+      "path": ".local/gate5/native-emission-deadline-repair/combined-source-proof-final.json",
+      "sha256": "0e516caf9090829781e8fdc6787f2fffd7cac679d4635ebb2ae4b236437adb5e"
+    }
+  },
+  "test_cases": [
+    "Delayed video flush expires ready audio before any audio write.",
+    "Expired VP8 reference or keyframe rejects dependent frames until a fresh keyframe.",
+    "Blocked flush fails at the receipt deadline with no completed sample or preview claim.",
+    "Partial IVF timeout is fatal and never appends a later frame.",
+    "Noncooperative late flush retains its actual completed sample before failing.",
+    "Sink errors preserve the original error without completed-frame or preview claims.",
+    "Observation-finalization timeout preserves the primary codec failure.",
+    "Completed observation flush after its deadline fails even when the future returns ready."
+  ],
+  "limits": [
+    "Focused source component only; no current media run or literal full source invocation.",
+    "The d538 complete installed attempt remains failed; G5-016 remains open.",
+    "Fresh matching complete installed pass is required before actual-model inference.",
+    "No independent human, final owner acceptance or publication claim."
+  ],
+  "independent_review": {
+    "path": ".local/gate5/native-emission-deadline-repair/quality-final-review.json",
+    "sha256": "dde95f4ffc08c64e689ab36460deba38bee66585d175bb63beacd94dada6d6e8"
+  }
+}

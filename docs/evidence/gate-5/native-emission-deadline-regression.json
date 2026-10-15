@@ -1,0 +1,61 @@
+{
+  "profile": "gate5-native-emission-deadline-regression/1",
+  "recorded_at": "2026-10-15T09:42:22.406427+00:00",
+  "status": "Observed hard operating-limit failure; implementation repair in progress",
+  "whole_gate_qualified": false,
+  "candidate_revision": "d5386e64f0bd10454b20030fa6b87ce595936760",
+  "policy": "connect-media-acceptance/2",
+  "observation": {
+    "route": "native-native",
+    "scenario": "clean",
+    "measured_seconds": 60,
+    "observer": "reviews",
+    "media": "audio",
+    "sample_index": 2986,
+    "receipt_seconds": 59.884212625,
+    "post_flush_emit_seconds": 60.095879375,
+    "hold_ms": 211.66675,
+    "limit_ms": 200,
+    "seconds_into_measured_window": 59.643741959,
+    "out_of_window": false,
+    "queue_selection_maximum_hold_ms": 190.21725,
+    "false_predicate": "maximum_codec_emission_hold_ms <= 200"
+  },
+  "scope": "Actual post-write/flush emission exceeded the unchanged hard bound. Other route predicates, identified audio, moving frames, 86 paired A/V markers per observer, clean A/V limits, resources, network and reliable file checks passed. Eighteen baseline and 23 preceding Gate 5 phases passed, with an exact 1,524-file after-baseline inventory. Eight remaining media conditions and final inventory were not reached.",
+  "cause_boundary": "Playout selected a bounded Vec at one clock reading, then awaited sequential output writes and flushes before recording actual emission. Queue selection stayed below 200 ms, but the selected batch was not re-expired between sink operations. Retained evidence does not identify the particular syscall or scheduling delay. This is not RTP/NTP arithmetic, startup or an out-of-window sample.",
+  "repair_direction": "One-at-a-time dequeue with fresh expiry after each sink operation and an absolute receipt + 200 ms deadline over actual write and flush. A partial, timed-out or late write is fatal; completed writes retain actual post-flush journal evidence. Independent implementation review and tests are pending. Acceptance thresholds and clean rules are unchanged.",
+  "task_reconciliation": {
+    "reopened": [
+      "G5-016"
+    ],
+    "remaining_verified_tasks": 38,
+    "reason": "G5-016 requires measured operating limits. G5-010 queue bounds/admission and G5-011/G5-014 build, lifecycle and decoded coverage remain substantiated. G5-042, model, full-package and final gates remain open."
+  },
+  "proofs": {
+    "official_failed": {
+      "path": ".local/package-checks/20261015T091905.134902Z/result.json",
+      "sha256": "9116709299a7beb3cfc96e5787973c6efff8cdcb4c42cd821374c46e191202dd"
+    },
+    "outer_failed": {
+      "path": ".local/gate5/complete-installed-d5386e6-attempt1/result.json",
+      "sha256": "f078fe8a7431411f831bb7be95f09144660ddb4877eda7373e628ec870d7c5c7"
+    },
+    "failure_summary": {
+      "path": ".local/gate5/complete-installed-d5386e6-attempt1/failure-summary.json",
+      "sha256": "03c4f4fc872bb48df107f59ad3c3b6b51e482c87ed18ae318a7bf60e2d610b32"
+    },
+    "independent_review": {
+      "path": ".local/gate5/complete-installed-d5386e6-attempt1/quality-final-review.json",
+      "sha256": "0759f068d6a1658cca491bdd919b344d388b9176647e3b4f6a527cc4ace03aa2"
+    },
+    "timing_analysis": {
+      "path": ".local/gate5/complete-installed-d5386e6-attempt1/codec-emission-hold-analysis.json",
+      "sha256": "80dba9d98b428fa223b4372bbdacc96f40f87f1baf72ef4303d40c9978c55d5f"
+    },
+    "pre_fix_source_process_audit": {
+      "path": ".local/gate5/complete-installed-d5386e6-attempt1/pre-fix-source-process-audit.json",
+      "sha256": "072291aa3a7fc058df9db62693d3303f2f77dd2988893e1d2378650451275356"
+    }
+  },
+  "history": "The 304 candidate scoped successes in all nine media conditions and both earlier failed package attempts remain unchanged. No retry or model inference has run after this failure."
+}

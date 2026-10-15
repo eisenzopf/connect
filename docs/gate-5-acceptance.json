@@ -119,7 +119,9 @@
         "evidence/gate-5/release-media-diagnostics.json",
         "evidence/gate-5/audio-clock-initialization.json",
         "evidence/gate-5/browser-network-controls.json",
-        "evidence/gate-5/local-package-qualification.json"
+        "evidence/gate-5/local-package-qualification.json",
+        "evidence/gate-5/impaired-quality-policy.json",
+        "evidence/gate-5/native-emission-deadline-regression.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -141,10 +143,10 @@
         "G5-045",
         "G5-049"
       ],
-      "observation": "Named native and browser paths have real decoded-media and failure/recovery evidence. The approved impaired-browser requirement remains failed: sparse browser sending prevents the required cadence or AV observations. The direct-Chrome clean/loss/jitter controls are diagnostics with distinct profiles, not qualification.",
+      "observation": "The owner-approved connect-media-acceptance/2 policy permits degraded frame rate and valid degraded or unavailable A/V calibration during the fixed impaired window. All nine media conditions passed on candidate 304, whose complete installed attempt failed final inventory. The latest d538 candidate failed a separate clean native emission bound at 211.66675 ms against 200 ms; its other eight media conditions were not reached. A native output-boundary repair is being verified.",
       "remaining": [
-        "Resolve impaired browser sending without changing the approved limits.",
-        "Pass all required matching decoded paths and failure/recovery scenarios, then the installed media envelope."
+        "Pass all required matching clean, impaired and mute route checks under connect-media-acceptance/2, including the unchanged hard emission deadline.",
+        "Pass the complete installed media envelope on the identified candidate."
       ]
     },
     {
@@ -468,7 +470,9 @@
         "evidence/gate-5/browser-network-controls.json",
         "evidence/gate-5/native-terminal-repair.json",
         "evidence/gate-5/first-run-walkthroughs.template.json",
-        "evidence/gate-5/native-concurrency-observation.json"
+        "evidence/gate-5/native-concurrency-observation.json",
+        "evidence/gate-5/impaired-quality-policy.json",
+        "evidence/gate-5/native-emission-deadline-regression.json"
       ],
       "implementation_items": [
         "G5-001",
@@ -486,9 +490,9 @@
         "G5-047",
         "G5-049"
       ],
-      "observation": "The separate 0d285d168509 exploratory 60-second two-native-pair run observed 5.10\u20135.32 changing fps across four participants, below the 24 fps clean-profile comparison. It does not extend the supported one-pair profile or establish capacity. Browser impairment remains unqualified. No independent fresh-user attempt is recorded; the walkthrough JSON is a blank template.",
+      "observation": "The separate 0d285d168509 exploratory 60-second two-native-pair run observed 5.10\u20135.32 changing fps across four participants. It does not extend the supported one-pair profile or establish capacity. Policy-2 media scenarios passed on candidate 304 within an overall failed installed attempt; the latest d538 clean native emission failure reopens operating qualification. No independent fresh-user attempt is recorded; the walkthrough JSON is a blank template.",
       "remaining": [
-        "Meet the unchanged approved media operating profile.",
+        "Meet the approved operating profile, including the owner-approved impaired quality exception and unchanged hard audio, recovery, deadline and resource bounds.",
         "Record three independent fresh users with installation and prerequisite time separated from the ten-minute local reply target.",
         "Publish measured values with their actual profile and scope; do not substitute diagnostic treatments for required checks."
       ]
@@ -625,9 +629,9 @@
   "publication": "not-performed",
   "report": "evidence/gate-5/acceptance.html",
   "progress_boundary": {
-    "latest_built_candidate": "304cc78c048aeb46ce0cbac60ad5d3f68db73eda",
-    "candidate_status": "All9 media conditions and26Gate5 phases passed at304; complete installed result remains failed at final runtime inventory.",
-    "source_boundary": "Current19-input qualification/test repair composition changes no runtime code or SDK/reference executable asset. This later progress/docs update is not claimed inside304 archive.",
+    "latest_built_candidate": "d5386e64f0bd10454b20030fa6b87ce595936760",
+    "candidate_status": "d538 failed cleanNN codec/file emission hard bound211.667ms>200;18baseline/23pre-mediaG5 and strict earlyinventory passed.8media/finalinventory unrun.",
+    "source_boundary": "Later native deadline-boundary source repair is independently accepted at focused scope:21 native tests, strictClippy/format,29 package tests,1114 stable inputs,22 changed/1092 unchanged against historicalfullpass. Fresh candidate media/completeinstalled qualification remains pending; earlier304 scoped9media passes and d538failure are preserved.",
     "source_evidence": "Historical clean 66115d2 passed 84 source phases; subsequent source composition and repairs retain their own recorded boundaries.",
     "actual_model": "not-run",
     "human_attempts_recorded": 0,
@@ -637,10 +641,10 @@
     "meaning": "Progress only. Linked records keep their own revisions, scopes and failures. This file is not a final result, final seal, owner acceptance or publication approval.",
     "exploratory_capacity": "Two simultaneous native pairs were observed for 60 seconds at roughly 5.1\u20135.3 changing fps per participant. This does not extend the supported one-pair profile.",
     "media_acceptance_policy": "connect-media-acceptance/2; owner-approved impaired-only relaxation verified on all9 route/conditions; no whole-gate acceptance.",
-    "latest_installed_attempt": "304:18baseline+26Gate5/all9media passed; finalinventory assertion failed. Original/fixed archived host diagnostics identify cache isolation and zero mutation after correction. New complete installed pass required before model.",
+    "latest_installed_attempt": "d538 failed cleanNN on in-window post-flush audio emission hold. No retry, completepass or model admission. See native-emission-deadline-regression.json.",
     "verified_task_counts": {
-      "done": 39,
-      "in-progress": 10,
+      "done": 38,
+      "in-progress": 11,
       "not-started": 1
     }
   }

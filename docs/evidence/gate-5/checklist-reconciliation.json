@@ -58,7 +58,7 @@
       "notes": "Native authenticated one-use pairing, expiry/attempt bounds, wrong identity, revocation and current completing-credential replay pass Store/public-interface proofs. Challenges are redacted; pairing cannot grant Conversation membership or SMS consent. Source setup/recovery preserves pairing records. Production contacts are unchanged by later terminal lifecycle repairs. Installed/model contact probes remain in their downstream qualification tasks."
     }
   ],
-  "completed_dependency_validation": "All39 done tasks have completed explicit dependencies; checked from current50-task embedded plan.",
+  "completed_dependency_validation": "All38 done tasks have completed explicit dependencies; operating016 reopened and downstream042 remains open.",
   "whole_gate_qualified": false,
   "published": false,
   "initial_counts": {
@@ -75,8 +75,8 @@
     "G5-044\u2013G5-050 (release/install/usability/review/owner evidence pending)"
   ],
   "current_counts": {
-    "done": 39,
-    "in-progress": 10,
+    "done": 38,
+    "in-progress": 11,
     "not-started": 1
   },
   "current_reconciliation": {
@@ -255,6 +255,7 @@
       }
     ],
     "remaining_tasks": [
+      "G5-016",
       "G5-038",
       "G5-039",
       "G5-042",
@@ -267,7 +268,7 @@
       "G5-049",
       "G5-050"
     ],
-    "implementation_sha256": "63d0554cbae483f28512af5631c8ecd35c1108ee47908681056f557ed8c58e97",
+    "implementation_sha256": "7f7228bd4467ecd07df98e71009b39bae3082fbdbbabf99793d8c2d0557a4ef8",
     "followup_annotation": {
       "recorded_at": "2026-10-14T22:04:13.434869+00:00",
       "candidate_revision": "0d285d16850980a36e3d60a8e7dd081b61fb90ae",
@@ -328,6 +329,27 @@
     "oct15_own_scope_review": {
       "path": "docs/evidence/gate-5/verified-task-scope-304cc78.json",
       "sha256": "570e391a1130d5ee582d31149c826216bd87168792b6137dec6495f58d017f85"
+    },
+    "native_emission_regression": {
+      "recorded_at": "2026-10-15T09:42:22.406427+00:00",
+      "reopened": [
+        "G5-016"
+      ],
+      "evidence": "docs/evidence/gate-5/native-emission-deadline-regression.json",
+      "scope": "Latest actual hard operating-limit failure; unchanged earlier successful scopes remain historical."
+    },
+    "native_emission_repair": {
+      "component": {
+        "path": "docs/evidence/gate-5/native-emission-deadline-repair.json",
+        "sha256": "453f2eb3a725640fe5b85d3680adff8ac53f69c988d996d005465510d0d6e458"
+      },
+      "status": "Focused source accepted; operating016 remains open pending matching runtime",
+      "source_counts": {
+        "baseline": 1108,
+        "current": 1114,
+        "changed": 22,
+        "unchanged": 1092
+      }
     }
   },
   "initial_implementation_sha256": "f48e33a41d99460592cf2a702e386d7b0013b97d73634a0d6d65ece20a2fbb9f"

@@ -6,6 +6,37 @@ use std::{
 };
 use tokio::{fs::File, io::AsyncWriteExt};
 
+/// Reporting shares the existing teardown deadline; it cannot replace a media
+/// failure or keep retrying an unavailable observation sink indefinitely.
+pub async fn finish_before(
+    primary: Result<()>,
+    deadline: tokio::time::Instant,
+    finish: impl std::future::Future<Output = Result<()>>,
+) -> Result<()> {
+    let report = if tokio::time::Instant::now() >= deadline {
+        Err(anyhow::anyhow!(
+            "Observation finalization has no remaining teardown budget"
+        ))
+    } else {
+        match tokio::time::timeout_at(deadline, finish).await {
+            Ok(Ok(())) if tokio::time::Instant::now() > deadline => Err(anyhow::anyhow!(
+                "Observation finalization completed after the teardown deadline"
+            )),
+            Ok(result) => result,
+            Err(_) => Err(anyhow::anyhow!(
+                "Observation finalization exceeded the teardown deadline"
+            )),
+        }
+    };
+    match (primary, report) {
+        (Err(error), Err(report)) => {
+            Err(error.context(format!("Observation finalization also failed: {report:#}")))
+        }
+        (Err(error), Ok(())) => Err(error),
+        (Ok(()), report) => report,
+    }
+}
+
 pub async fn private_output(path: &Path) -> Result<File> {
     let mut options = tokio::fs::OpenOptions::new();
     options.write(true).create_new(true);
@@ -129,6 +160,7 @@ impl Measurements {
         keyframe: bool,
         bytes: usize,
         received: Instant,
+        emitted: Instant,
     ) -> Result<()> {
         self.maximum_encoded_bytes = self.maximum_encoded_bytes.max(bytes);
         if self.output.is_some() {
@@ -137,7 +169,7 @@ impl Measurements {
             }
             self.video.push(Sample {
                 arrival: received.duration_since(self.start).as_secs_f64(),
-                emitted: self.elapsed(),
+                emitted: emitted.duration_since(self.start).as_secs_f64(),
                 timestamp,
                 presentation,
                 bytes,
@@ -146,14 +178,20 @@ impl Measurements {
         }
         Ok(())
     }
-    pub fn audio_at(&mut self, timestamp: u32, bytes: usize, received: Instant) -> Result<()> {
+    pub fn audio_at(
+        &mut self,
+        timestamp: u32,
+        bytes: usize,
+        received: Instant,
+        emitted: Instant,
+    ) -> Result<()> {
         if self.output.is_some() {
             if self.audio.len() >= 20_000 {
                 bail!("Audio observation journal exceeds the bounded profile");
             }
             self.audio.push(Sample {
                 arrival: received.duration_since(self.start).as_secs_f64(),
-                emitted: self.elapsed(),
+                emitted: emitted.duration_since(self.start).as_secs_f64(),
                 timestamp,
                 presentation: 0,
                 bytes,

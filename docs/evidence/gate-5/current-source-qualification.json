@@ -1,7 +1,7 @@
 {
   "profile": "gate5-source-qualification-composition/2",
-  "recorded_at": "2026-10-15T09:10:53.790191+00:00",
-  "status": "Accepted scoped source composition; corrected complete installed and whole-gate acceptance remain open",
+  "recorded_at": "2026-10-15T09:53:39.055794+00:00",
+  "status": "Accepted scoped native emission-boundary source composition; matching installed and whole-gate acceptance remain open",
   "whole_gate_qualified": false,
   "historical_full_source": {
     "path": ".local/gate-5-checks/20261014T174537.437535Z/result.json",
@@ -10,8 +10,8 @@
   "historical_full_source_revision": "66115d237d0f096e4a78175c43484173d48b4f04",
   "historical_full_source_phases": 84,
   "prior_exact_source_record": {
-    "path": "docs/evidence/gate-5/source-qualification-304cc78c048a.json",
-    "sha256": "4bb23178e76e57dbb07a86fd480d277f9dba40d8e761839b73b92b879c740573"
+    "path": "docs/evidence/gate-5/source-qualification-d5386e64f0bd.json",
+    "sha256": "e31d4cc4deff55e440840d5caa9bdddf52d8a6378698c9c2e22e7f1076f54b01"
   },
   "approved_policy_component": {
     "path": "docs/evidence/gate-5/impaired-quality-policy.json",
@@ -22,14 +22,14 @@
     "sha256": "7d05eb29afbaeeb239db808ecae5ad7ac34a0ea43e58afcdb9e37b8fe36d74a2"
   },
   "reviewed_source_composition": {
-    "status": "Accepted scoped source composition for bytecode-isolated policy-2 candidate",
-    "source_revision_before_commit": "304cc78c048aeb46ce0cbac60ad5d3f68db73eda",
+    "status": "Accepted scoped source composition for deadline-aware native policy-2 candidate",
+    "source_revision_before_commit": "d5386e64f0bd10454b20030fa6b87ce595936760",
     "source_dirty": true,
     "source_counts": {
       "baseline": 1108,
-      "current": 1113,
-      "changed": 19,
-      "unchanged": 1094
+      "current": 1114,
+      "changed": 22,
+      "unchanged": 1092
     },
     "changed_selected_inputs": {
       "examples/agent-presence/tests/test_installed_incoming.py": {
@@ -46,7 +46,19 @@
       },
       "examples/native-video/src/main.rs": {
         "baseline_sha256": "82f2d7197710ef38a0f50186a912a7058e9407506bcd1d3cae8f01df11c4fdc5",
-        "current_sha256": "65a7495c18ea5c9ff3bc92c4d1145d02ecabfc6878c60e9ab5e909459d023171"
+        "current_sha256": "7d3cd0c28ccd8baee95d1dcc01a6b167894c424799efec53e7e09e199ae14aff"
+      },
+      "examples/native-video/src/playout.rs": {
+        "baseline_sha256": "ec1ec40e637c2d7dfeb1dca6e0613297bbf4eb0c1cff8b8391f9407f207b5964",
+        "current_sha256": "c961ba924d4a80985beb92231eaedadf338484846bf22c6883b24338f0f79c18"
+      },
+      "examples/native-video/src/playout_tests.rs": {
+        "baseline_sha256": null,
+        "current_sha256": "644aa53eb03efea2fb16124cd74b739b6940734b8861b0668268f50a69b813a8"
+      },
+      "examples/native-video/src/report.rs": {
+        "baseline_sha256": "e3438d4d948eb3fc4183f23aee130694e40265730a80060c6a90e8c217e7628b",
+        "current_sha256": "ea7f9ff175d962b208afeed3ad27aabb4e7a086aa3cfff91cff23d1661e5462c"
       },
       "scripts/check-gate-5.py": {
         "baseline_sha256": "3f170c9b8fc3e477858d617e4382e7fa8b2afb4f2ff12005e8278d5a62b82a15",
@@ -70,7 +82,7 @@
       },
       "scripts/lib/package_inventory.py": {
         "baseline_sha256": "99964396e8dca6ecc6aa08525edd347d2741a77ec0b6a602550934b0ca07ea79",
-        "current_sha256": "9120f2cf89c507ec38fcd3c1ea72a7462cb53a53574bfd8066b982f23c423091"
+        "current_sha256": "0babb7e5dfd369c7ff45ed3a87745e12f8d2bc409a3d6c2457eaacab2f48b126"
       },
       "scripts/tests/acceptance_policy.test.mjs": {
         "baseline_sha256": null,
@@ -110,10 +122,10 @@
       }
     },
     "current_full_source_map_proof": {
-      "path": ".local/gate5/installed-runtime-inventory-repair/proof-20261015T090701.516771Z/result.json",
-      "sha256": "d62f8f89cb785b2b87ecb12001514b7b3500dc2757b057a673dfcd167dad71d5"
+      "path": ".local/gate5/native-emission-deadline-repair/combined-source-proof-final.json",
+      "sha256": "0e516caf9090829781e8fdc6787f2fffd7cac679d4635ebb2ae4b236437adb5e"
     },
-    "component_composition": "Byte-exact prior18 record retains baseline84 and all reviewed source/native/canonical/RGB/contact/policy proofs. Exactly5 qualification/test files changed since304;29 package and21 driver tests pass with1113 stable inputs and independently reviewed real fixed-host diagnostic has zero runtime mutations. Unchanged video56/JS34/parity30 proof retained. No new literal84 source invocation is claimed.",
+    "component_composition": "Exact prior 19-input record retains the historical 84-phase source pass and scoped repairs. Four existing paths plus one new test module change from d538: native main/playout/report and package asset enumeration. Native tests 21, strict Clippy, workspace format and package inventory tests 29 pass with 1,114 stable selected inputs. No new literal 84-phase source execution is claimed.",
     "current_policy_tests": {
       "path": "docs/evidence/gate-5/impaired-quality-policy.json",
       "sha256": "9f3e92599575d975999c1306b26bbcdc67ab918845da3f71972bd0c1a9f751fb"
@@ -122,10 +134,14 @@
       "path": "docs/evidence/gate-5/installed-bytecode-isolation-repair.json",
       "sha256": "7d05eb29afbaeeb239db808ecae5ad7ac34a0ea43e58afcdb9e37b8fe36d74a2"
     },
-    "runtime_scope": "No Rust/core/SDK/reference executable asset, dependencies, lockfiles or patches changed since304. The package guide adds a public denial reproduction recipe, explicitly unexecuted. All9 policy2 media checks passed in the overall failed304 attempt; fresh matching complete installed qualification remains required.",
+    "runtime_scope": "Native example output/deadline handling changes require fresh media qualification. No core protocol, store, service, client, server, SDK, reference UI, dependency, lockfile or patch changes from d538. Earlier 304 all-nine scoped media successes and d538 hard deadline failure remain historical; no matching complete installed pass exists.",
     "independent_review": {
-      "path": ".local/gate5/installed-runtime-inventory-repair/release-path-source-composition-review.json",
-      "sha256": "7e89a0e01e438efa19f0a27cb4157bc37a9810da98a47224f3f651e37ce0f64c"
+      "path": ".local/gate5/native-emission-deadline-repair/quality-final-review.json",
+      "sha256": "dde95f4ffc08c64e689ab36460deba38bee66585d175bb63beacd94dada6d6e8"
+    },
+    "current_native_tests": {
+      "path": "docs/evidence/gate-5/native-emission-deadline-repair.json",
+      "sha256": "453f2eb3a725640fe5b85d3680adff8ac53f69c988d996d005465510d0d6e458"
     }
   },
   "required_followups": [
@@ -134,5 +150,9 @@
     "matching complete installed pass before actual-model inference",
     "three independent human walkthroughs",
     "final docs/quality/seal/owner candidate review; publication separate"
-  ]
+  ],
+  "native_emission_component": {
+    "path": "docs/evidence/gate-5/native-emission-deadline-repair.json",
+    "sha256": "453f2eb3a725640fe5b85d3680adff8ac53f69c988d996d005465510d0d6e458"
+  }
 }

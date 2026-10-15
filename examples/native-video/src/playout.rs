@@ -1,6 +1,8 @@
 //! Application-owned, bounded audio/video release before codec/renderer input.
+use anyhow::{bail, Result};
 use connect_client::{NativeAudioFrame, NativeVideoFrame, VideoSequenceRange};
 use std::time::{Duration, Instant};
+use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 const DELAY: Duration = Duration::from_millis(120);
 const STALE: Duration = Duration::from_millis(200);
@@ -106,6 +108,8 @@ pub struct Playout {
     video: Track<(NativeVideoFrame, VideoSequenceRange)>,
     continuity: crate::decode_continuity::DecodeContinuity,
     pub maximum_hold_ms: f64,
+    emission_timeouts: usize,
+    late_emissions: usize,
     presentation_origin: Option<i64>,
 }
 impl Playout {
@@ -115,6 +119,8 @@ impl Playout {
             video: Track::new(90000, 8),
             continuity: crate::decode_continuity::DecodeContinuity::default(),
             maximum_hold_ms: 0.0,
+            emission_timeouts: 0,
+            late_emissions: 0,
             presentation_origin: None,
         }
     }
@@ -128,10 +134,9 @@ impl Playout {
     pub fn next_deadline(&self) -> Option<Instant> {
         self.audio.next().into_iter().chain(self.video.next()).min()
     }
-    pub fn ready(&mut self, now: Instant) -> Vec<Ready> {
+    fn ready_one(&mut self, now: Instant) -> Option<Ready> {
         self.audio.expire(now);
         self.video.expire(now);
-        let mut result = Vec::new();
         loop {
             match (self.audio.due(now), self.video.due(now)) {
                 (Some(a), Some(v)) if a <= v => {
@@ -139,7 +144,7 @@ impl Playout {
                     self.maximum_hold_ms = self
                         .maximum_hold_ms
                         .max(now.duration_since(item.received).as_secs_f64() * 1000.0);
-                    result.push(Ready::Audio(item.frame, item.received));
+                    return Some(Ready::Audio(item.frame, item.received));
                 }
                 (_, Some(_)) => {
                     let item = self.video.pop();
@@ -155,7 +160,7 @@ impl Playout {
                         .maximum_hold_ms
                         .max(now.duration_since(item.received).as_secs_f64() * 1000.0);
                     let base = *self.presentation_origin.get_or_insert(item.ticks);
-                    result.push(Ready::Video(
+                    return Some(Ready::Video(
                         frame,
                         item.received,
                         (item.ticks - base) as u64,
@@ -166,16 +171,82 @@ impl Playout {
                     self.maximum_hold_ms = self
                         .maximum_hold_ms
                         .max(now.duration_since(item.received).as_secs_f64() * 1000.0);
-                    result.push(Ready::Audio(item.frame, item.received));
+                    return Some(Ready::Audio(item.frame, item.received));
                 }
-                (None, None) => break,
+                (None, None) => return None,
             }
         }
-        result
+    }
+    /// Recheck freshness between sink operations, not once for an entire batch.
+    /// Once a write starts, timeout is fatal: AsyncWrite may have accepted a
+    /// partial record, so continuing the same IVF stream would be dishonest.
+    pub async fn drain<V, A>(
+        &mut self,
+        video: &mut V,
+        audio: &mut Option<A>,
+        mut record: impl FnMut(&Ready, Instant) -> Result<()>,
+        mut preview: impl FnMut(NativeVideoFrame),
+    ) -> Result<()>
+    where
+        V: AsyncWrite + Unpin,
+        A: AsyncWrite + Unpin,
+    {
+        while let Some(frame) = self.ready_one(tokio::time::Instant::now().into_std()) {
+            let received = match &frame {
+                Ready::Audio(_, received) | Ready::Video(_, received, _) => *received,
+            };
+            let deadline = tokio::time::Instant::from_std(received + STALE);
+            // Do not start even the first write if time elapsed after dequeue.
+            if tokio::time::Instant::now() >= deadline {
+                match &frame {
+                    Ready::Audio(..) => self.audio.dropped += 1,
+                    Ready::Video(..) => {
+                        self.video.dropped += 1;
+                        self.continuity = crate::decode_continuity::DecodeContinuity::default();
+                    }
+                }
+                continue;
+            }
+            let write = async {
+                match &frame {
+                    Ready::Video(frame, _, presentation) => {
+                        connect_native_video::write_frame_at(video, frame, *presentation).await?;
+                        video.flush().await?;
+                    }
+                    Ready::Audio(frame, _) => {
+                        if let Some(output) = audio {
+                            output.write_all(&frame.payload).await?;
+                            output.flush().await?;
+                        }
+                    }
+                }
+                Ok::<_, anyhow::Error>(())
+            };
+            match tokio::time::timeout_at(deadline, write).await {
+                Ok(result) => result?,
+                Err(_) => {
+                    self.emission_timeouts += 1;
+                    bail!("Codec sink exceeded the frame's 200ms receipt deadline; partial output is not resumable");
+                }
+            }
+            // Timestamp only after the actual write AND flush. A ready future
+            // can finish after its deadline (e.g. scheduler delay), so timeout
+            // alone is not enough. Retain that completed sample before failing.
+            let emitted = tokio::time::Instant::now().into_std();
+            record(&frame, emitted)?;
+            if emitted.duration_since(received) > STALE {
+                self.late_emissions += 1;
+                bail!("Completed codec emission exceeded the frame's 200ms receipt deadline");
+            }
+            if let Ready::Video(frame, _, _) = frame {
+                preview(frame);
+            }
+        }
+        Ok(())
     }
     pub fn json(&self) -> String {
-        format!("{{\"release_delay_ms\":120,\"stale_deadline_ms\":200,\"video_frames_bound\":8,\"audio_frames_bound\":10,\"peak_video_frames\":{},\"peak_audio_frames\":{},\"dropped_video_frames\":{},\"dropped_audio_frames\":{},\"maximum_hold_ms\":{}}}",
-            self.video.peak, self.audio.peak, self.video.dropped, self.audio.dropped, self.maximum_hold_ms)
+        format!("{{\"release_delay_ms\":120,\"stale_deadline_ms\":200,\"video_frames_bound\":8,\"audio_frames_bound\":10,\"peak_video_frames\":{},\"peak_audio_frames\":{},\"dropped_video_frames\":{},\"dropped_audio_frames\":{},\"maximum_hold_ms\":{},\"emission_timeouts\":{},\"late_emissions\":{}}}",
+            self.video.peak, self.audio.peak, self.video.dropped, self.audio.dropped, self.maximum_hold_ms, self.emission_timeouts, self.late_emissions)
     }
     pub fn discard_live_buffers(&mut self) {
         self.audio.dropped += self.audio.queue.len();
@@ -186,81 +257,5 @@ impl Playout {
 }
 
 #[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used)]
-    use super::*;
-    #[test]
-    fn reorders_before_release_across_wrap_and_rejects_late_replay() {
-        let start = Instant::now();
-        let mut track = Track::new(90000, 8);
-        track.push(u32::MAX - 1000, 1, start);
-        track.push(5000, 3, start + Duration::from_millis(20));
-        track.push(2000, 2, start + Duration::from_millis(40));
-        assert!(track.due(start + Duration::from_millis(119)).is_none());
-        assert_eq!(track.pop().frame, 1);
-        assert_eq!(track.pop().frame, 2);
-        assert_eq!(track.pop().frame, 3);
-        track.push(2000, 2, start + Duration::from_millis(180));
-        assert!(track.queue.is_empty());
-    }
-    #[test]
-    fn queues_are_bounded_and_stale_frames_cannot_be_released() {
-        let start = Instant::now();
-        let mut track = Track::new(8000, 10);
-        for frame in 0..100 {
-            track.push(frame * 160, frame, start);
-        }
-        assert_eq!(track.peak, 10);
-        assert_eq!(track.queue.len(), 10);
-        track.expire(start + STALE);
-        assert!(track.queue.is_empty());
-        assert_eq!(track.dropped, 100);
-    }
-    #[test]
-    fn future_sender_clock_cannot_extend_the_local_release_delay() {
-        let start = Instant::now();
-        let mut track = Track::new(90000, 8);
-        track.push(0, 1, start);
-        track.push(90000, 2, start + Duration::from_millis(33));
-        assert_eq!(track.pop().frame, 1);
-        assert_eq!(
-            track.next(),
-            Some(start + Duration::from_millis(33) + DELAY)
-        );
-        let now = start + Duration::from_millis(33) + DELAY;
-        track.expire(now);
-        assert!(track.due(now).is_some());
-        assert_eq!(track.pop().frame, 2);
-        assert_eq!(track.dropped, 0);
-    }
-    #[test]
-    fn reordered_due_times_wait_for_the_head_or_an_actual_expiry() {
-        let start = Instant::now();
-        let mut track = Track::new(1000, 8);
-        track.push(0, 0, start);
-        track.push(200, 2, start + Duration::from_millis(10));
-        track.push(100, 1, start + Duration::from_millis(100));
-        assert_eq!(track.pop().frame, 0);
-        // Frame 2 is locally due at 130ms, but frame 1 cannot release until
-        // 220ms. Its expiry at 210ms is the first event that can change state.
-        let now = start + Duration::from_millis(130);
-        assert!(track.due(now).is_none());
-        assert_eq!(track.next(), Some(start + Duration::from_millis(210)));
-        track.expire(start + Duration::from_millis(210));
-        assert_eq!(track.dropped, 1);
-        assert_eq!(track.next(), Some(start + Duration::from_millis(220)));
-        assert!(track.due(start + Duration::from_millis(220)).is_some());
-        assert_eq!(track.pop().frame, 1);
-        assert_eq!(track.next(), None);
-    }
-    #[test]
-    fn audio_and_video_use_same_release_delay_with_distinct_rtp_origins() {
-        let start = Instant::now();
-        let mut audio = Track::new(8000, 10);
-        let mut video = Track::new(90000, 8);
-        audio.push(100000, 1, start);
-        video.push(999999999, 1, start);
-        assert_eq!(audio.next(), video.next());
-        assert_eq!(audio.next(), Some(start + DELAY));
-    }
-}
+#[path = "playout_tests.rs"]
+mod tests;

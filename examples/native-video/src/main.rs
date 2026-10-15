@@ -10,7 +10,7 @@ mod report;
 use anyhow::{bail, Context, Result};
 use clap::Parser;
 use connect_client::{ClientConfig, ConnectClient, NativeAvFrame, VideoFrameAssembler};
-use connect_native_video::{read_frame, read_header, write_frame_at, write_header};
+use connect_native_video::{read_frame, read_header, write_header};
 use std::{path::PathBuf, process::Stdio, time::Duration};
 use tokio::{io::AsyncWriteExt, process::Command, sync::mpsc};
 
@@ -179,6 +179,7 @@ async fn main() -> Result<()> {
     // Open the accepted Session before capture, avoiding unbounded codec startup backlog.
     let mut output = report::private_output(&a.output).await?;
     write_header(&mut output).await?;
+    output.flush().await?;
     let mut client = ConnectClient::open(ClientConfig::load(&a.config)?).await?;
     let mut session = client
         .open_native_video(&a.conversation, &a.session, &a.peer)
@@ -288,20 +289,16 @@ async fn main() -> Result<()> {
                 _ = interrupt.recv() => {end_reason = "interrupt";break;},
                 _ = &mut release => {
                     assembler.expire_stale();
-                    for frame in playout.ready(std::time::Instant::now()) {
+                    playout.drain(&mut output, &mut audio_output, |frame, emitted| {
                         match frame {
-                            playout::Ready::Video(frame, received, presentation) => {
-                                write_frame_at(&mut output, &frame, presentation).await?;
-                                output.flush().await?;
-                                measurements.video_at(frame.timestamp_rtp, presentation, frame.keyframe, frame.encoded.len(), received)?;
-                                if let Some(preview)=&preview {preview.show(frame);}
-                            },
-                            playout::Ready::Audio(frame, received) => {
-                                if let Some(output)=&mut audio_output {output.write_all(&frame.payload).await?;output.flush().await?;}
-                                measurements.audio_at(frame.timestamp_rtp, frame.payload.len(), received)?;
-                            },
+                            playout::Ready::Video(frame, received, presentation) => measurements.video_at(
+                                frame.timestamp_rtp, *presentation, frame.keyframe, frame.encoded.len(), *received, emitted),
+                            playout::Ready::Audio(frame, received) => measurements.audio_at(
+                                frame.timestamp_rtp, frame.payload.len(), *received, emitted),
                         }
-                    }
+                    }, |frame| {
+                        if let Some(preview) = &preview { preview.show(frame); }
+                    }).await?;
                 },
                 frame = audio_capture.frames.recv() => {
                     let Some(frame)=frame else {end_reason="child-failure";bail!("Audio capture ended; check the selected source/device");};
@@ -370,22 +367,22 @@ async fn main() -> Result<()> {
     let sdk_media = report::sdk_media_json(&session);
     // Cancels local routes even after an uncertain reliable end; retain the error.
     drop(session);
-    output.flush().await?;
-    if let Some(output) = &mut audio_output {
-        output.flush().await?;
-    }
-    measurements
-        .finish(
+    // Every completed emission was flushed. Never retry a timed-out or partial
+    // codec write during cleanup; preserve its failure and finalize the journal.
+    let success = result.is_ok() && ended.is_ok();
+    report::finish_before(
+        result.and(ended),
+        tokio::time::Instant::from_std(teardown + Duration::from_millis(4500)),
+        measurements.finish(
             teardown.elapsed().as_secs_f64(),
-            result.is_ok() && ended.is_ok(),
+            success,
             end_reason,
             assembly,
             &playout.json(),
             &sdk_media,
-        )
-        .await?;
-    result?;
-    ended?;
+        ),
+    )
+    .await?;
     println!(
         "Native video ended; independently decode the retained IVF output with FFmpeg or ffplay."
     );
