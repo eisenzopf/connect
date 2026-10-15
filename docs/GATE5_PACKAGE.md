@@ -1,13 +1,16 @@
 # Gate 5 local package profile
 
-Gate 5 candidates use the explicit `gate5-local` profile. They are unpublished
-local macOS arm64 artifacts. Existing Gate 4 archives and the default
+Gate 5 candidates and public v0.1 packages use the explicit `gate5-local`
+profile for local macOS arm64. Publication is recorded separately from build
+and qualification; public v0.1 uses version `0.1.0` and GitHub tag `v0.1`. Existing Gate 4 archives and the default
 `gate4-local` builder/checker behavior remain historical evidence; changing a
 profile label cannot qualify their additional Gate 5 behavior.
 
 The [draft release notes](GATE5_RELEASE_NOTES.md) collect compatibility, unsupported
 paths and source-scoped evidence. [Project-page copy](GATE5_PROJECT_COPY.md) is
-prepared for review; neither document declares Gate 5 complete or published.
+prepared locally; see [v0.1 release notes](releases/v0.1.md) and the publication
+record for the rebuilt public candidate. Historical alpha evidence retains its
+exact identity.
 
 The runtime includes `connect`, `connect-example`, `connect-video`, Python and
 TypeScript SDKs, the browser video facade and conversation reference client,

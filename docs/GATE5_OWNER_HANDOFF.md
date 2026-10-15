@@ -1,3 +1,7 @@
+> Historical approved alpha handoff. The owner subsequently authorized public
+> v0.1 publication and local rebuilding. New version `0.1.0` archives require
+> their own checksums and installed qualification; see [v0.1](releases/v0.1.md).
+
 # Gate 5 candidate — final owner handoff
 
 Candidate **284cef16c64b324ce2add037b013249692a60087**, version

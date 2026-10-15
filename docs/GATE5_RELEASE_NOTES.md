@@ -1,4 +1,11 @@
-# Gate 5 local alpha — owner-approved release notes
+# Connect v0.1 public release
+
+See [v0.1 release notes](releases/v0.1.md) for the version `0.1.0` rebuild,
+GitHub distribution and current candidate checks. The alpha identity and
+qualification below are retained as historical scope; their archive hashes
+do not identify the rebuilt public files.
+
+## Historical owner-approved Gate 5 alpha
 
 These locally prepared release notes describe the unpublished macOS arm64
 candidate `284cef16c64b`, source

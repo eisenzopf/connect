@@ -1,6 +1,35 @@
-# Run a local Connect candidate
+# Run Connect v0.1 locally
 
-## Gate 5 candidate entry point
+## Public v0.1 package
+
+The public release uses version **0.1.0**, tag `v0.1`, for **macOS arm64**.
+The runtime, complete source and historical recovery archives are built together
+with the explicit `gate5-local` qualification profile. Use the candidate name,
+source revision and version in this archive's `manifest.json`; verify downloaded
+archive bytes against the release's `SHA256SUMS`. External tool prerequisites and
+compatibility limits are described in [the package guide](GATE5_PACKAGE.md) and
+[v0.1 release notes](releases/v0.1.md).
+
+After extracting the runtime, select its absolute executable path and a fresh
+private state directory outside the runtime:
+
+```sh
+CONNECT=/absolute/path/to/extracted-runtime/bin/connect
+"$CONNECT" --version
+"$CONNECT" setup demo --directory ./connect-demo --bind 127.0.0.1:0
+```
+
+The provider-free demo verifies a deterministic local exchange, files and
+retained history. Actual models require a separately authenticated selected
+host; camera/video and service-provider prerequisites remain separate. Follow
+[setup](SETUP.md), [the app guide](CONNECTED_APP.md) and
+[agent qualification](AGENT_JOURNEY_QUALIFICATION.md) for the full journeys.
+
+The earlier owner-approved alpha is retained below as historical evidence. Its
+old archive hashes do not identify the rebuilt v0.1.0 files. Fresh build and
+installed qualification records accompany the public release.
+
+## Historical Gate 5 alpha candidate
 
 The designated `gate5-local` candidate is `284cef16c64b`, source
 `284cef16c64b324ce2add037b013249692a60087`, for local macOS arm64.
