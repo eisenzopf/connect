@@ -382,7 +382,7 @@ pub(crate) fn actor_from_connection_at(
     credential_id: &str,
     timestamp: i64,
 ) -> Result<Actor> {
-    connection.query_row("SELECT id,identity_id,operations,recipients,expires_at FROM credentials WHERE id=?1 AND revoked=0 AND expires_at>?2",params![credential_id,timestamp],|row| {
+    connection.query_row("SELECT id,identity_id,operations,recipients,expires_at FROM credentials WHERE id=?1 AND revoked=0 AND expires_at>?2 AND EXISTS(SELECT 1 FROM identities i WHERE i.id=credentials.identity_id AND i.revoked=0)",params![credential_id,timestamp],|row| {
             let ops:String=row.get(2)?;let recipients:String=row.get(3)?;
             Ok(Actor { credential_id:row.get(0)?,identity_id:row.get(1)?,scope:Scope { operations:serde_json::from_str(&ops).map_err(|_|rusqlite::Error::InvalidQuery)?,recipients:serde_json::from_str(&recipients).map_err(|_|rusqlite::Error::InvalidQuery)? },expires_at:row.get(4)? })
         }).optional().map_err(|_|Error::storage())?.ok_or_else(Error::unauthorized)
@@ -396,7 +396,7 @@ fn issue_on_connection(
 ) -> Result<IssuedCredential> {
     let exists: bool = connection
         .query_row(
-            "SELECT EXISTS(SELECT 1 FROM identities WHERE id=?1)",
+            "SELECT EXISTS(SELECT 1 FROM identities WHERE id=?1 AND revoked=0)",
             [identity_id],
             |r| r.get(0),
         )

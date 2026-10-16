@@ -81,12 +81,40 @@ impl Listener {
                 super::task_access::admit,
             ))
             .layer(DefaultBodyLimit::max(65_536));
+        let administration = Router::new()
+            .route("/v2/identities", post(super::provisioning::identity))
+            .route(
+                "/v2/identities/{id}/endpoints",
+                post(super::provisioning::scoped),
+            )
+            .route(
+                "/v2/identities/{id}/revoke",
+                post(super::provisioning::scoped),
+            )
+            .route(
+                "/v2/conversations/{id}/participants",
+                post(super::provisioning::scoped),
+            )
+            .route(
+                "/v2/endpoints/{id}/verify",
+                post(super::provisioning::scoped),
+            )
+            .route(
+                "/v2/endpoints/{id}/revoke",
+                post(super::provisioning::scoped),
+            )
+            .route_layer(axum::middleware::from_fn_with_state(
+                state.clone(),
+                super::provisioning::admit,
+            ))
+            .layer(DefaultBodyLimit::max(65_536));
         let app = Router::new().route("/webhooks/telnyx", post(super::telnyx_http::webhook));
         let app = if webhooks_only {
             app
         } else {
             app.route("/v1/operations", post(operation))
                 .merge(access)
+                .merge(administration)
                 .route(
                     "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
                     put(super::artifact_http::put_chunk).get(super::artifact_http::get_chunk),

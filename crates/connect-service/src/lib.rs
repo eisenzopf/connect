@@ -16,6 +16,7 @@ mod authenticated_operations;
 mod authentication;
 mod identity_access;
 mod native_media;
+mod provisioning;
 mod session_bindings;
 pub use authentication::StoreValidator;
 pub use identity_access::{IdentityAccess, IdentityAccessView, TaskCreateDefaults};

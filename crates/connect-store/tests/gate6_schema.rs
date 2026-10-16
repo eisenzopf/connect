@@ -34,7 +34,7 @@ fn gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims()
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("state.sqlite3");
     let store = Store::initialize(&path, Limits::default()).unwrap();
-    assert_eq!(SCHEMA_VERSION, 19);
+    assert_eq!(SCHEMA_VERSION, 20);
     let c = Connection::open(&path).unwrap();
     seed(&c);
     let backup = dir.path().join("backup.sqlite3");
@@ -191,7 +191,7 @@ fn gate6_snapshot_digest_covers_new_private_and_effect_metadata() {
     seed(&c);
     let mut before = Store::inspect_snapshot(&path).unwrap();
     for statement in [
-        "UPDATE endpoints SET address='changed-private-address'",
+        "UPDATE endpoints SET verification_evidence='changed-private-proof'",
         "UPDATE operation_effects SET provider_ref='changed-provider-reference'",
         "UPDATE operation_observations SET data_json='{\"changed\":true}'",
         "UPDATE message_audiences SET purpose='sender' WHERE participant_id='part_bob'",

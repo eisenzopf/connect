@@ -1,0 +1,63 @@
+{
+  "format": 1,
+  "task": "G6-018",
+  "executed_at": "2026-10-16T07:19:47.492174+00:00",
+  "scope": "Engine recipient filtering, typed gateway metadata, frozen audiences, current policy projections and scoped receipts with deterministic adapters. Not server dispatch, external authentication, live media, provider or independent client conformance.",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--manifest-path",
+    ".deps/rvoip/Cargo.toml",
+    "-p",
+    "rvoip-core",
+    "--features",
+    "opus",
+    "--test",
+    "messaging",
+    "--",
+    "--nocapture"
+  ],
+  "exit_code": 0,
+  "source_lock_sha256": "85e80f4a9d9a8f68c9c754095e67906bc82189de71832ae6183ce32f0ee7d98d",
+  "schema_sha256": "c67a75be6bbc269bd0386edad46321f41e84f4cf08314f3669a6b9614af94f7b",
+  "vectors_sha256": "13b9d76310fb5df0f7d7a833711e9e7d94f519dadec2e028638bfcd454d14def",
+  "upstream_sources": {
+    "crates/foundation/rvoip-core/src/addressed_messages.rs": "1cc0e0b7070b425677da6bc3b4914056168407afddf6df7244908a3d64fe16b0",
+    "crates/foundation/rvoip-core/src/config.rs": "7271578438ad2325fbbb3ffffe5214a4b6b716195bedbeb3cd37c525d92e353f",
+    "crates/foundation/rvoip-core/src/orchestrator.rs": "b8f229b63a2a6edc0274b088f5095e12ac4233bf98efb3b34fc9f8b86f1ca8d5",
+    "crates/foundation/rvoip-core/src/message.rs": "b3cfd2b0440c59d425a11f1624f85de23423074a24bb456b046bef938cfa961e",
+    "crates/foundation/rvoip-core/tests/messaging.rs": "ae6286102b484795a3f35e626b8651388b894a39cf00e5b37f72cdd601ac8a64"
+  },
+  "schema_vectors": 0,
+  "valid_type_vectors": 0,
+  "tests_passed": [
+    "cross_crate_data_message_event_exports_only_aggregate_safe_metadata",
+    "pagination_returns_cursor_when_page_full",
+    "oversized_inline_body_rejected_without_attachments",
+    "invalid_outbound_data_message_never_reaches_adapter",
+    "adapter_message_event_persists_and_emits_message_received",
+    "adapter_data_message_event_preserves_binary_metadata_without_legacy_projection",
+    "fanout_send_persists_and_dispatches_to_all_active_legs",
+    "reserved_data_message_label_projects_exactly_once_into_legacy_messages",
+    "gate6_reply_cannot_widen_private_audience_or_cross_conversations",
+    "gate6_invalid_audience_and_direct_connection_bypass_are_denied_before_effects",
+    "gate6_all_audience_is_frozen_before_late_join",
+    "gate6_typed_inbound_preserves_reply_and_binary_with_authenticated_provenance",
+    "gate6_one_many_all_dispatch_preserves_metadata_and_excludes_other_peers",
+    "gate6_private_history_attachments_and_receipts_recheck_revocation",
+    "read_receipt_requires_current_recipient_and_uses_scoped_hook",
+    "untracked_adapter_data_message_is_not_emitted"
+  ],
+  "focused_tests_passed": [
+    "gate6_reply_cannot_widen_private_audience_or_cross_conversations",
+    "gate6_invalid_audience_and_direct_connection_bypass_are_denied_before_effects",
+    "gate6_all_audience_is_frozen_before_late_join",
+    "gate6_typed_inbound_preserves_reply_and_binary_with_authenticated_provenance",
+    "gate6_one_many_all_dispatch_preserves_metadata_and_excludes_other_peers",
+    "gate6_private_history_attachments_and_receipts_recheck_revocation"
+  ],
+  "private_log": ".local/gate-6/addressed-messages.log",
+  "log_sha256": "72cb76007cf87d333293b4a6c234988ea1a59734fac41820d2cca84152e45e24",
+  "passed": true
+}

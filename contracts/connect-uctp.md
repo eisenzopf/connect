@@ -151,3 +151,15 @@ Live media travels over negotiated UCTP/WebTransport/WebRTC paths.
 The Gate 6 plans are approved. Schema/profile changes are allowed. A plan or
 contract acceptance is not a claim that runtime, remote, provider or media tests
 have passed. Record those in their assigned evidence lanes.
+
+## Implemented trusted provisioning subset
+
+G6-030 implements the identity/endpoint administration subset through the shared
+service. See [the provisioning OpenAPI](openapi-provisioning.json) and
+[backend guide](../docs/developer/provisioning.md). Additional typed routes are
+`POST /v2/conversations/{id}/participants`, `POST /v2/endpoints/{id}/verify`,
+`POST /v2/endpoints/{id}/revoke` and `POST /v2/identities/{id}/revoke`.
+Current admin, tenant and recipient authority is required on mutation and replay.
+Endpoint provisioning alone does not assert ownership verification, SMS consent
+or live media readiness. The remainder of this document remains the Gate 6 target
+until its assigned implementation and qualification tasks complete.

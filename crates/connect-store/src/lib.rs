@@ -16,6 +16,7 @@ mod operations;
 mod provider_chat_context;
 mod provider_context;
 mod providers;
+mod provisioning;
 mod sms_eligibility;
 pub use sms_eligibility::{
     control_kind as sms_control_kind, SmsGrant, SmsGrantSnapshot, SMS_LEASE_SECONDS,
@@ -48,7 +49,7 @@ pub use sip_legs::{SipConnectionEnd, SipLegAction, SipLegJob};
 pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 19;
+pub const SCHEMA_VERSION: u32 = 20;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
@@ -117,6 +118,8 @@ impl Store {
         tx.execute_batch(include_str!("../migrations/018_connector_observations.sql"))
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/019_gate6.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/020_provisioning.sql"))
             .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;

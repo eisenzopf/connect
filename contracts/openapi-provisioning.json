@@ -1,0 +1,1590 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect Gate 6 trusted provisioning HTTP API",
+    "version": "gate6-provisioning-1",
+    "description": "Implemented provisioning subset. This file does not claim the rest of the Gate 6 HTTP API or remote TLS hosting is implemented or qualified."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8090",
+      "description": "Configured loopback HTTP listener; replace with the actual bound address."
+    }
+  ],
+  "paths": {
+    "/v2/identities": {
+      "post": {
+        "operationId": "Identity",
+        "summary": "Provision a tenant-scoped identity",
+        "security": [
+          {
+            "operatorBearer": []
+          }
+        ],
+        "description": "Trusted backend only. Requires current admin authority, same tenant and permitted recipient. No browser Origin or provider call/chat identity headers. Body <=65536 bytes; bounded concurrent admission and a five-second total request budget. The body target must match the URL target. Mutations revalidate authorization transactionally, including receipt replay. Use the same operation_id after uncertain transport loss.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed or replayed; current resource projection",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid shape, address or route/body target mismatch",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or revoked credential",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing current admin, tenant or recipient authority; browser/provider-context request denied",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed intent, duplicate claim, immutable owner or stale revision",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired result with retained digest tombstone",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body exceeds 64 KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Capacity, storage or uncertain timeout/shutdown",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/identities/{id}/endpoints": {
+      "post": {
+        "operationId": "Endpoint",
+        "summary": "Provision an unverified endpoint for an identity",
+        "security": [
+          {
+            "operatorBearer": []
+          }
+        ],
+        "description": "Trusted backend only. Requires current admin authority, same tenant and permitted recipient. No browser Origin or provider call/chat identity headers. Body <=65536 bytes; bounded concurrent admission and a five-second total request budget. The body target must match the URL target. Mutations revalidate authorization transactionally, including receipt replay. Use the same operation_id after uncertain transport loss.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndpointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed or replayed; current resource projection",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid shape, address or route/body target mismatch",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or revoked credential",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing current admin, tenant or recipient authority; browser/provider-context request denied",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed intent, duplicate claim, immutable owner or stale revision",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired result with retained digest tombstone",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body exceeds 64 KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Capacity, storage or uncertain timeout/shutdown",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/identities/{id}/revoke": {
+      "post": {
+        "operationId": "RevokeIdentity",
+        "summary": "Revoke an identity and its credentials, devices and endpoints",
+        "security": [
+          {
+            "operatorBearer": []
+          }
+        ],
+        "description": "Trusted backend only. Requires current admin authority, same tenant and permitted recipient. No browser Origin or provider call/chat identity headers. Body <=65536 bytes; bounded concurrent admission and a five-second total request budget. The body target must match the URL target. Mutations revalidate authorization transactionally, including receipt replay. Use the same operation_id after uncertain transport loss.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeIdentityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed or replayed; current resource projection",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid shape, address or route/body target mismatch",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or revoked credential",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing current admin, tenant or recipient authority; browser/provider-context request denied",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed intent, duplicate claim, immutable owner or stale revision",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired result with retained digest tombstone",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body exceeds 64 KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Capacity, storage or uncertain timeout/shutdown",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/conversations/{id}/participants": {
+      "post": {
+        "operationId": "Participant",
+        "summary": "Provision an appearance in a conversation without sharing history",
+        "security": [
+          {
+            "operatorBearer": []
+          }
+        ],
+        "description": "Trusted backend only. Requires current admin authority, same tenant and permitted recipient. No browser Origin or provider call/chat identity headers. Body <=65536 bytes; bounded concurrent admission and a five-second total request budget. The body target must match the URL target. Mutations revalidate authorization transactionally, including receipt replay. Use the same operation_id after uncertain transport loss.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParticipantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed or replayed; current resource projection",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid shape, address or route/body target mismatch",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or revoked credential",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing current admin, tenant or recipient authority; browser/provider-context request denied",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed intent, duplicate claim, immutable owner or stale revision",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired result with retained digest tombstone",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body exceeds 64 KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Capacity, storage or uncertain timeout/shutdown",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/endpoints/{id}/verify": {
+      "post": {
+        "operationId": "VerifyEndpoint",
+        "summary": "Record an attributed trusted verification proof",
+        "security": [
+          {
+            "operatorBearer": []
+          }
+        ],
+        "description": "Trusted backend only. Requires current admin authority, same tenant and permitted recipient. No browser Origin or provider call/chat identity headers. Body <=65536 bytes; bounded concurrent admission and a five-second total request budget. The body target must match the URL target. Mutations revalidate authorization transactionally, including receipt replay. Use the same operation_id after uncertain transport loss.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEndpointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed or replayed; current resource projection",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid shape, address or route/body target mismatch",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or revoked credential",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing current admin, tenant or recipient authority; browser/provider-context request denied",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed intent, duplicate claim, immutable owner or stale revision",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired result with retained digest tombstone",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body exceeds 64 KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Capacity, storage or uncertain timeout/shutdown",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/endpoints/{id}/revoke": {
+      "post": {
+        "operationId": "RevokeEndpoint",
+        "summary": "Revoke an endpoint and remove its secret reference",
+        "security": [
+          {
+            "operatorBearer": []
+          }
+        ],
+        "description": "Trusted backend only. Requires current admin authority, same tenant and permitted recipient. No browser Origin or provider call/chat identity headers. Body <=65536 bytes; bounded concurrent admission and a five-second total request budget. The body target must match the URL target. Mutations revalidate authorization transactionally, including receipt replay. Use the same operation_id after uncertain transport loss.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeEndpointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed or replayed; current resource projection",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid shape, address or route/body target mismatch",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or revoked credential",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing current admin, tenant or recipient authority; browser/provider-context request denied",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed intent, duplicate claim, immutable owner or stale revision",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired result with retained digest tombstone",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body exceeds 64 KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Capacity, storage or uncertain timeout/shutdown",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisioningResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "operatorBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Server-side operator credential with admin operation and explicit recipient scope."
+      }
+    },
+    "schemas": {
+      "Device": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "platform": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "platform"
+        ]
+      },
+      "IdentityRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "identity"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "alias": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "human",
+              "ai",
+              "system",
+              "external"
+            ]
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "type",
+          "operation_id",
+          "alias",
+          "kind"
+        ]
+      },
+      "ParticipantRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "participant"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          }
+        },
+        "required": [
+          "type",
+          "operation_id",
+          "conversation_id",
+          "identity_id",
+          "role"
+        ]
+      },
+      "EndpointRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "endpoint"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "device": {
+            "$ref": "#/components/schemas/Device"
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "quic",
+              "webtransport",
+              "webrtc",
+              "sip",
+              "telephone",
+              "sms",
+              "vapi-voice",
+              "vapi-chat"
+            ]
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "Canonical reachable address. QUIC requires an explicit port; browser transports require HTTPS without userinfo/query/fragment; SIP requires a user and host without password; telephone/SMS require E.164; Vapi uses a bounded assistant reference."
+          },
+          "capabilities": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            }
+          },
+          "secret_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$",
+            "description": "Reference to server-owned secret configuration. Required for SIP, telephone, SMS and Vapi. Never credential plaintext."
+          }
+        },
+        "required": [
+          "type",
+          "operation_id",
+          "identity_id",
+          "device",
+          "transport",
+          "address",
+          "capabilities"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "transport": {
+                  "enum": [
+                    "sip",
+                    "telephone",
+                    "sms",
+                    "vapi-voice",
+                    "vapi-chat"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "secret_ref"
+              ],
+              "properties": {
+                "secret_ref": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "VerifyEndpointRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "verify_endpoint"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740990
+          },
+          "evidence_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          }
+        },
+        "required": [
+          "type",
+          "operation_id",
+          "endpoint_id",
+          "expected_revision",
+          "evidence_ref"
+        ]
+      },
+      "RevokeEndpointRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "revoke_endpoint"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740990
+          }
+        },
+        "required": [
+          "type",
+          "operation_id",
+          "endpoint_id",
+          "expected_revision"
+        ]
+      },
+      "RevokeIdentityRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "revoke_identity"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740990
+          }
+        },
+        "required": [
+          "type",
+          "operation_id",
+          "identity_id",
+          "expected_revision"
+        ]
+      },
+      "IdentityOutcome": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "identity"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "identity_kind": {
+            "type": "string",
+            "enum": [
+              "human",
+              "ai",
+              "system",
+              "external"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "revoked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "identity_id",
+          "alias",
+          "identity_kind",
+          "revision",
+          "revoked"
+        ]
+      },
+      "ParticipantOutcome": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "participant"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "kind",
+          "participant_id",
+          "conversation_id",
+          "identity_id",
+          "membership_epoch"
+        ]
+      },
+      "EndpointOutcome": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "endpoint"
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "quic",
+              "webtransport",
+              "webrtc",
+              "sip",
+              "telephone",
+              "sms",
+              "vapi-voice",
+              "vapi-chat"
+            ]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            }
+          },
+          "verification_state": {
+            "type": "string",
+            "enum": [
+              "unverified",
+              "verified",
+              "revoked"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "kind",
+          "endpoint_id",
+          "identity_id",
+          "device_id",
+          "transport",
+          "capabilities",
+          "verification_state",
+          "revision"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "ProvisioningOutcome": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/IdentityOutcome"
+          },
+          {
+            "$ref": "#/components/schemas/ParticipantOutcome"
+          },
+          {
+            "$ref": "#/components/schemas/EndpointOutcome"
+          }
+        ]
+      },
+      "ProvisioningResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect/2"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/ProvisioningOutcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      }
+    }
+  }
+}

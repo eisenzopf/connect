@@ -26,7 +26,7 @@ v0.1 release evidence with its original source and limits.
 
 ## Implemented state boundary
 
-Gate 6 state uses SQLite schema **19**. Opening a different schema stops before
+Gate 6 state uses SQLite schema **20**. Opening a different schema stops before
 mutable configuration or cleanup. `migrate` does not convert historical state.
 The current runtime restores only a matching Gate 6 backup. A restored connection
 row preserves its ID/lineage but requires fresh adapter observations; it does not

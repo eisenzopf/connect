@@ -3,6 +3,7 @@
 pub mod contacts;
 mod discovery;
 pub mod media_profile;
+pub mod provisioning;
 pub mod tasks;
 pub mod video_profile;
 pub use discovery::*;

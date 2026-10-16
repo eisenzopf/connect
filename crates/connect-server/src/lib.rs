@@ -13,6 +13,8 @@ mod sip_outbound;
 mod sip_registration;
 pub mod tls;
 mod transports;
+/// Bounded loopback HTTP facade over the shared application service.
+pub use transports::http::Listener as HttpListener;
 pub mod vapi_bootstrap;
 mod vapi_media;
 mod vapi_observer;

@@ -253,6 +253,11 @@
       "path": "patches/rvoip/gate6-participant-device-relations.patch",
       "sha256": "7f1d87926487b8bf4ebcd75e8d31868a3940bdae9549204e648b971cf463f850",
       "source": "Gate 6 checked identity/membership/session/device relationships with current epochs, readiness and replacement lineage."
+    },
+    {
+      "path": "patches/rvoip/gate6-addressed-messages.patch",
+      "sha256": "bde02f66c29675bf615c2e36149da5b8c92beb7b64829ff9523efa9b91dd2682",
+      "source": "Gate 6 addressed message fanout, typed inbound gateway, frozen audiences and current-policy projections with scoped per-recipient observations; no fabricated delivery."
     }
   ]
 }

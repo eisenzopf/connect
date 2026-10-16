@@ -1,0 +1,1119 @@
+diff --git a/crates/foundation/rvoip-core/src/addressed_messages.rs b/crates/foundation/rvoip-core/src/addressed_messages.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/addressed_messages.rs
+@@ -0,0 +1,140 @@
++//! Audience-preserving message admission, projections and adapter dispatch.
++//!
++//! The orchestrator is a trusted in-process API. Applications authenticate its
++//! callers and implement `MessagePolicy` against their current durable grants,
++//! membership epochs and retention rules. Transport fields are never authority.
++//! Raw MessageStore access and the orchestrator event bus are internal surfaces;
++//! public gateways must use the participant-scoped projections here.
++use crate::{
++    error::{Result, RvoipError},
++    ids::{ConnectionId, MessageId, ParticipantId},
++    message::{Message, MessageRecipients},
++};
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum MessageAccess {
++    Send,
++    Deliver,
++    History,
++    Receipt,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum MessageDeliveryStage {
++    /// The adapter accepted the message. This does not assert remote delivery.
++    Accepted,
++    Failed,
++    Read,
++}
++
++/// Internal attributed observation. Route only to `viewers`, after checking
++/// current policy again. Neither adapter acceptance nor this fact means a human
++/// received/read the message. Provider-specific confirmations remain separate.
++#[derive(Clone)]
++pub struct MessageReceipt {
++    pub message_id: MessageId,
++    pub participant_id: ParticipantId,
++    pub connection_id: Option<ConnectionId>,
++    pub stage: MessageDeliveryStage,
++    pub viewers: Vec<ParticipantId>,
++}
++
++impl std::fmt::Debug for MessageReceipt {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("MessageReceipt")
++            .field("stage", &self.stage)
++            .field("viewer_count", &self.viewers.len())
++            .finish()
++    }
++}
++
++#[async_trait::async_trait]
++pub trait MessagePolicy: Send + Sync {
++    /// Additional application authority after intrinsic audience checks. Called
++    /// again for each dispatch/projection/receipt; failures are fail-closed.
++    /// Applications must bound this call and perform final external-dispatch
++    /// fencing in their adapter if revocation can race an external submission.
++    async fn authorize(
++        &self,
++        message: &Message,
++        participant: &ParticipantId,
++        access: MessageAccess,
++    ) -> Result<bool>;
++
++    /// Internal hook, never a broadcast to public peers. Implementations enqueue
++    /// only to currently authorized viewers and preserve bounded queues.
++    async fn observe_receipt(&self, _receipt: MessageReceipt) -> Result<()> {
++        Ok(())
++    }
++}
++
++/// No extra application restrictions; intrinsic audience/membership checks still
++/// apply. Public services must supply a policy that checks current credentials,
++/// membership epochs and content grants instead of treating IDs as credentials.
++pub struct IntrinsicMessagePolicy;
++#[async_trait::async_trait]
++impl MessagePolicy for IntrinsicMessagePolicy {
++    async fn authorize(&self, _: &Message, _: &ParticipantId, _: MessageAccess) -> Result<bool> {
++        Ok(true)
++    }
++}
++
++pub(crate) fn denied() -> RvoipError {
++    // The same failure for missing, inaccessible and cross-conversation data.
++    RvoipError::AdmissionRejected("message access denied".into())
++}
++
++pub(crate) fn addressed_to(message: &Message, participant: &ParticipantId) -> bool {
++    match &message.to {
++        MessageRecipients::Participants(ids) => ids.contains(participant),
++        // All must be resolved at admission. Never expand during history/replay.
++        MessageRecipients::All => false,
++    }
++}
++
++pub(crate) fn visible_to(message: &Message, participant: &ParticipantId) -> bool {
++    &message.from_participant == participant || addressed_to(message, participant)
++}
++
++/// Resolve all at acceptance and validate the complete set before any effect.
++/// An empty conversation may still retain an internal System message; explicit
++/// empty/unknown recipients are rejected, never interpreted as broadcast.
++pub(crate) fn freeze_audience(message: &mut Message, members: &[ParticipantId]) -> Result<()> {
++    let recipients = match &message.to {
++        MessageRecipients::All => members.to_vec(),
++        MessageRecipients::Participants(ids) => {
++            if ids.is_empty() || ids.len() > 256 || ids.iter().any(|id| !members.contains(id)) {
++                return Err(denied());
++            }
++            ids.clone()
++        }
++    };
++    let mut unique = Vec::with_capacity(recipients.len());
++    for id in recipients {
++        if !unique.contains(&id) {
++            unique.push(id);
++        }
++    }
++    if unique.len() > 256 {
++        return Err(denied());
++    }
++    message.to = MessageRecipients::Participants(unique);
++    Ok(())
++}
++
++/// Reply visibility alone is insufficient: its whole new audience must fit in
++/// the original sender+recipients. Explicit sharing belongs to the application.
++pub(crate) fn check_reply(message: &Message, original: &Message) -> Result<()> {
++    if message.conversation_id != original.conversation_id
++        || !visible_to(original, &message.from_participant)
++    {
++        return Err(denied());
++    }
++    let MessageRecipients::Participants(ids) = &message.to else {
++        return Err(denied());
++    };
++    if ids.iter().any(|id| !visible_to(original, id)) {
++        return Err(denied());
++    }
++    Ok(())
++}
+diff --git a/crates/foundation/rvoip-core/src/config.rs b/crates/foundation/rvoip-core/src/config.rs
+--- a/crates/foundation/rvoip-core/src/config.rs
++++ b/crates/foundation/rvoip-core/src/config.rs
+@@ -38,6 +38,8 @@
+     pub vcon_store: Arc<dyn VconStore>,
+     /// P4 — message log + history pager. Default in-memory.
+     pub message_store: Arc<dyn MessageStore>,
++    /// Current application authority for addressed messaging and projections.
++    pub message_policy: Arc<dyn crate::addressed_messages::MessagePolicy>,
+     /// How long `bridge_connections` waits for both peers' audio streams
+     /// to appear before failing the admission check. Adapters populate
+     /// streams lazily (typically on `connection.ready`), so a caller
+@@ -79,6 +81,7 @@
+             conversation_store: Arc::new(MemoryConversationStore::new()),
+             vcon_store: Arc::new(MemoryVconStore::new()),
+             message_store: Arc::new(MemoryMessageStore::new()),
++            message_policy: Arc::new(crate::addressed_messages::IntrinsicMessagePolicy),
+             bridge_stream_deadline: Duration::from_secs(5),
+             outbound_preparation_timeout: Duration::from_secs(30),
+             capacity_report_interval: Some(Duration::from_secs(30)),
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -134,6 +134,7 @@
+ pub mod inbound_admission;
+ pub mod media_diagnostics;
+ pub mod media_graph;
++pub mod addressed_messages;
+ pub mod message;
+ pub mod operational_events;
+ pub mod orchestrator;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -15,6 +15,7 @@
+     InboundConnectionContext, OrchestratorAdapterEvent, OriginateRequest, PlaybackHandle,
+     PlaybackOutcome, RejectReason, TransferAttemptId, TransferTarget,
+ };
++use crate::addressed_messages::{self, MessageAccess, MessageDeliveryStage, MessageReceipt};
+ use crate::bridge::{
+     resolve_payload_type, BridgeDestinationReplacement, BridgeManager, CrossBridgeHandle,
+     DirectionalMediaBridgePlan,
+@@ -8249,6 +8250,10 @@
+                     return;
+                 }
+                 let message_id = message.id.clone();
++                let message = match self.prepare_addressed_message(message).await {
++                    Ok(message) => message,
++                    Err(_) => return,
++                };
+                 if let Err(error) = self.config.message_store.put(message).await {
+                     warn!(
+                         ?connection_id,
+@@ -8359,6 +8364,10 @@
+                     timestamp: now,
+                 };
+                 let message_id = legacy.id.clone();
++                let legacy = match self.prepare_addressed_message(legacy).await {
++                    Ok(message) => message,
++                    Err(_) => return,
++                };
+                 if let Err(error) = self.config.message_store.put(legacy).await {
+                     warn!(
+                         ?connection_id,
+@@ -9188,27 +9197,52 @@
+             .await
+     }
+ 
+-    /// P4 — send a Message to a single Connection (single-substrate hop).
+-    /// Persists the Message in the configured `MessageStore`, dispatches
+-    /// to the adapter, emits `MessageSent` then `MessageDelivered`.
++    /// Send only to an addressed, currently authorized connection. Adapter
++    /// acceptance is reported as Accepted, never fabricated remote delivery.
+     pub async fn send_message_to_connection(
+         &self,
+         connection_id: ConnectionId,
+         message: Message,
+     ) -> Result<()> {
+-        Self::validate_inline_body(&message)?;
++        let message = self.prepare_addressed_message(message).await?;
++        let (conversation, participant) = self
++            .message_context_for_connection(&connection_id)
++            .ok_or_else(addressed_messages::denied)?;
++        if conversation != message.conversation_id
++            || !self
++                .message_access(&message, &participant, MessageAccess::Deliver)
++                .await?
++            || !addressed_messages::addressed_to(&message, &participant)
++        {
++            return Err(addressed_messages::denied());
++        }
+         let adapter = self.adapter_for(&connection_id)?;
+-        let msg_id = message.id.clone();
+-        let cid = message.conversation_id.clone();
+         self.config.message_store.put(message.clone()).await?;
+-        adapter.send_message(connection_id, message).await?;
++        // Policy may have changed while persisting. Check just before dispatch.
++        if !self
++            .message_access(&message, &participant, MessageAccess::Deliver)
++            .await?
++        {
++            return Err(addressed_messages::denied());
++        }
++        let result = adapter
++            .send_message(connection_id.clone(), message.clone())
++            .await;
++        self.message_receipt(
++            &message,
++            participant,
++            Some(connection_id),
++            if result.is_ok() {
++                MessageDeliveryStage::Accepted
++            } else {
++                MessageDeliveryStage::Failed
++            },
++        )
++        .await?;
++        result?;
+         self.emit(Event::MessageSent {
+-            message_id: msg_id.clone(),
+-            conversation_id: cid,
+-            at: Utc::now(),
+-        });
+-        self.emit(Event::MessageDelivered {
+-            message_id: msg_id,
++            message_id: message.id,
++            conversation_id: message.conversation_id,
+             at: Utc::now(),
+         });
+         Ok(())
+@@ -9235,73 +9269,334 @@
+         adapter.send_data_message(connection_id, message).await
+     }
+ 
+-    /// P4 — fan-out a Message to every active Connection across every
+-    /// active Session within a Conversation. Persists once; emits
+-    /// `MessageSent` once + `MessageDelivered` per successful per-leg
+-    /// dispatch. Per-leg adapter errors are logged at `warn` and do
+-    /// not abort the fan-out.
++    /// Resolve the send-time audience, persist once, then dispatch only to its
++    /// eligible connections. Metadata is carried unchanged into every adapter.
+     pub async fn send_message_to_conversation(
+         &self,
+         conversation_id: ConversationId,
+         message: Message,
+     ) -> Result<MessageId> {
+-        Self::validate_inline_body(&message)?;
++        if conversation_id != message.conversation_id {
++            return Err(addressed_messages::denied());
++        }
++        let message = self.prepare_addressed_message(message).await?;
+         let conv_arc = self
+-            .conversations
+-            .get(&conversation_id)
+-            .map(|e| Arc::clone(e.value()))
+-            .ok_or_else(|| RvoipError::ConversationNotFound(conversation_id.clone()))?;
+-
+-        let session_ids: Vec<SessionId> = {
+-            let conv = conv_arc.read().expect("conv lock poisoned");
+-            if conv.state != ConversationState::Open {
+-                return Err(RvoipError::InvalidState(
+-                    "send_message_to_conversation: conversation not Open",
+-                ));
+-            }
+-            conv.sessions.clone()
+-        };
+-
+-        // Collect (connection_id, transport) snapshots for active Sessions.
+-        let mut legs: Vec<ConnectionId> = Vec::new();
+-        for sid in &session_ids {
+-            if let Some(sess_arc) = self.sessions.get(sid).map(|e| Arc::clone(e.value())) {
+-                let sess = sess_arc.read().expect("sess lock poisoned");
+-                if sess.state == SessionState::Active {
+-                    for cref in sess.connections.keys() {
+-                        legs.push(cref.clone());
++            .conversation(&conversation_id)
++            .ok_or_else(addressed_messages::denied)?;
++        let session_ids = conv_arc
++            .read()
++            .expect("conv lock poisoned")
++            .sessions
++            .clone();
++        let mut legs = Vec::new();
++        for sid in session_ids {
++            if let Some(session) = self.session(&sid) {
++                let session = session.read().expect("session lock poisoned");
++                if session.state == SessionState::Active {
++                    for (id, connection) in &session.connections {
++                        if addressed_messages::addressed_to(&message, &connection.participant_id)
++                            && !legs.contains(id)
++                        {
++                            legs.push(id.clone());
++                        }
+                     }
+                 }
+             }
+         }
+-
+-        let msg_id = message.id.clone();
+         self.config.message_store.put(message.clone()).await?;
+         self.emit(Event::MessageSent {
+-            message_id: msg_id.clone(),
++            message_id: message.id.clone(),
+             conversation_id,
+             at: Utc::now(),
+         });
+-
+         for connection_id in legs {
+-            match self.adapter_for(&connection_id) {
+-                Ok(adapter) => {
+-                    if let Err(e) = adapter
+-                        .send_message(connection_id.clone(), message.clone())
+-                        .await
+-                    {
+-                        warn!(?connection_id, error=%e, "per-leg send_message failed");
+-                        continue;
++            // Re-resolve after each await: a retired/reassigned leg is not an
++            // authority token and cannot inherit the old participant's audience.
++            let Some((conversation, participant)) =
++                self.message_context_for_connection(&connection_id)
++            else {
++                continue;
++            };
++            if conversation != message.conversation_id
++                || !addressed_messages::addressed_to(&message, &participant)
++                || !self
++                    .message_access(&message, &participant, MessageAccess::Deliver)
++                    .await?
++            {
++                continue;
++            }
++            let Ok(adapter) = self.adapter_for(&connection_id) else {
++                continue;
++            };
++            let result = adapter
++                .send_message(connection_id.clone(), message.clone())
++                .await;
++            self.message_receipt(
++                &message,
++                participant,
++                Some(connection_id),
++                if result.is_ok() {
++                    MessageDeliveryStage::Accepted
++                } else {
++                    MessageDeliveryStage::Failed
++                },
++            )
++            .await?;
++        }
++        Ok(message.id)
++    }
++
++    /// Typed inbound gateway path. The trusted connection binding supplies
++    /// provenance; caller-supplied sender, origin and conversation cannot spoof it.
++    /// Gateways must use this rather than projecting a typed message to plain text.
++    pub async fn receive_addressed_message(
++        &self,
++        connection_id: ConnectionId,
++        mut message: Message,
++    ) -> Result<MessageId> {
++        let (conversation, participant) = self
++            .message_context_for_connection(&connection_id)
++            .ok_or_else(addressed_messages::denied)?;
++        if message.conversation_id != conversation || message.from_participant != participant {
++            return Err(addressed_messages::denied());
++        }
++        message.origin = MessageOrigin::Connection(connection_id);
++        message.direction = Direction::Inbound;
++        let message = self.prepare_addressed_message(message).await?;
++        let id = message.id.clone();
++        self.config.message_store.put(message).await?;
++        self.emit(Event::MessageReceived {
++            message_id: id.clone(),
++            conversation_id: conversation,
++            at: Utc::now(),
++        });
++        Ok(id)
++    }
++
++    fn current_message_members(&self, conversation: &ConversationId) -> Result<Vec<ParticipantId>> {
++        let conv = self
++            .conversation(conversation)
++            .ok_or_else(addressed_messages::denied)?;
++        let (mut members, sessions) = {
++            let conv = conv.read().expect("conversation lock poisoned");
++            (
++                conv.participants
++                    .iter()
++                    .filter(|p| p.left_at.is_none())
++                    .map(|p| p.id.clone())
++                    .collect::<Vec<_>>(),
++                conv.sessions.clone(),
++            )
++        };
++        for id in sessions {
++            if let Some(session) = self.session(&id) {
++                let session = session.read().expect("session lock poisoned");
++                if matches!(
++                    session.state,
++                    SessionState::Active | SessionState::Initiating
++                ) {
++                    for connection in session.connections.values() {
++                        let participant = &connection.participant_id;
++                        if !members.contains(participant) {
++                            members.push(participant.clone());
++                        }
+                     }
+-                    self.emit(Event::MessageDelivered {
+-                        message_id: msg_id.clone(),
+-                        at: Utc::now(),
+-                    });
+                 }
+-                Err(e) => warn!(?connection_id, error=%e, "no adapter for leg"),
+-            }
+-        }
+-        Ok(msg_id)
++            }
++        }
++        Ok(members)
++    }
++
++    async fn prepare_addressed_message(&self, mut message: Message) -> Result<Message> {
++        Self::validate_inline_body(&message)?;
++        if self
++            .conversation(&message.conversation_id)
++            .ok_or_else(addressed_messages::denied)?
++            .read()
++            .expect("conversation lock poisoned")
++            .state
++            != ConversationState::Open
++        {
++            return Err(addressed_messages::denied());
++        }
++        let members = self.current_message_members(&message.conversation_id)?;
++        if !matches!(message.origin, MessageOrigin::System)
++            && !members.contains(&message.from_participant)
++        {
++            return Err(addressed_messages::denied());
++        }
++        match &message.origin {
++            MessageOrigin::Connection(id) => {
++                if self.message_context_for_connection(id)
++                    != Some((
++                        message.conversation_id.clone(),
++                        message.from_participant.clone(),
++                    ))
++                {
++                    return Err(addressed_messages::denied());
++                }
++            }
++            MessageOrigin::Ai(id) if id != &message.from_participant => {
++                return Err(addressed_messages::denied())
++            }
++            _ => {}
++        }
++        addressed_messages::freeze_audience(&mut message, &members)?;
++        if !self
++            .config
++            .message_policy
++            .authorize(&message, &message.from_participant, MessageAccess::Send)
++            .await?
++        {
++            return Err(addressed_messages::denied());
++        }
++        if let Some(reply) = &message.in_reply_to {
++            let original = self
++                .config
++                .message_store
++                .get(reply)
++                .await?
++                .ok_or_else(addressed_messages::denied)?;
++            addressed_messages::check_reply(&message, &original)?;
++            if !self
++                .message_access(&original, &message.from_participant, MessageAccess::History)
++                .await?
++            {
++                return Err(addressed_messages::denied());
++            }
++        }
++        Ok(message)
++    }
++
++    async fn message_access(
++        &self,
++        message: &Message,
++        participant: &ParticipantId,
++        access: MessageAccess,
++    ) -> Result<bool> {
++        if !addressed_messages::visible_to(message, participant)
++            || !self
++                .current_message_members(&message.conversation_id)?
++                .contains(participant)
++        {
++            return Ok(false);
++        }
++        self.config
++            .message_policy
++            .authorize(message, participant, access)
++            .await
++    }
++
++    async fn message_receipt(
++        &self,
++        message: &Message,
++        participant: ParticipantId,
++        connection_id: Option<ConnectionId>,
++        stage: MessageDeliveryStage,
++    ) -> Result<()> {
++        let mut viewers = Vec::new();
++        for viewer in [&message.from_participant, &participant] {
++            if !viewers.contains(viewer)
++                && self
++                    .message_access(message, viewer, MessageAccess::Receipt)
++                    .await?
++            {
++                viewers.push(viewer.clone());
++            }
++        }
++        if !viewers.is_empty() {
++            self.config
++                .message_policy
++                .observe_receipt(MessageReceipt {
++                    message_id: message.id.clone(),
++                    participant_id: participant,
++                    connection_id,
++                    stage,
++                    viewers,
++                })
++                .await?;
++        }
++        Ok(())
++    }
++
++    /// Participant-scoped history/download projection. Metadata-only removes
++    /// bytes and attachment URLs before the result leaves the engine.
++    pub async fn message_for_participant(
++        &self,
++        id: MessageId,
++        participant: ParticipantId,
++        metadata_only: bool,
++    ) -> Result<Message> {
++        let mut message = self
++            .config
++            .message_store
++            .get(&id)
++            .await?
++            .ok_or_else(addressed_messages::denied)?;
++        if !self
++            .message_access(&message, &participant, MessageAccess::History)
++            .await?
++        {
++            return Err(addressed_messages::denied());
++        }
++        if let Some(reply) = &message.in_reply_to {
++            let visible = match self.config.message_store.get(reply).await? {
++                Some(original) => {
++                    self.message_access(&original, &participant, MessageAccess::History)
++                        .await?
++                }
++                None => false,
++            };
++            if !visible {
++                message.in_reply_to = None;
++            }
++        }
++        if metadata_only {
++            message.body = Bytes::new();
++            for attachment in &mut message.attachments {
++                attachment.url.clear();
++            }
++        }
++        Ok(message)
++    }
++
++    /// A bounded source page filtered before return. Cursors may have gaps or
++    /// an empty page; callers continue with next. Never expose private totals.
++    /// Application stores may implement indexed audience filtering for scale.
++    pub async fn list_messages_for_participant(
++        &self,
++        conversation: ConversationId,
++        participant: ParticipantId,
++        mut filter: crate::store::MessageFilter,
++        cursor: Option<crate::store::PageCursor>,
++    ) -> Result<crate::store::MessagePage> {
++        if !self
++            .current_message_members(&conversation)?
++            .contains(&participant)
++        {
++            return Err(addressed_messages::denied());
++        }
++        filter.page_size = Some(filter.page_size.unwrap_or(50).min(256));
++        let mut page = self
++            .config
++            .message_store
++            .list(&conversation, filter, cursor)
++            .await?;
++        let mut visible = Vec::new();
++        for message in page.messages {
++            if self
++                .message_access(&message, &participant, MessageAccess::History)
++                .await?
++            {
++                // Reuse projection to remove now-inaccessible reply references.
++                visible.push(
++                    self.message_for_participant(message.id, participant.clone(), false)
++                        .await?,
++                );
++            }
++        }
++        page.messages = visible;
++        Ok(page)
+     }
+ 
+     /// P4 — paginated history.
+@@ -9317,21 +9612,32 @@
+             .await
+     }
+ 
+-    /// P4 — record a read receipt + emit `MessageRead`.
++    /// Record a recipient's read observation only with current audience access.
++    /// Receipts go through the scoped policy hook, never a public broadcast.
+     pub async fn mark_message_read(
+         &self,
+-        message_id: crate::ids::MessageId,
++        message_id: MessageId,
+         by_participant: ParticipantId,
+     ) -> Result<()> {
++        let message = self
++            .config
++            .message_store
++            .get(&message_id)
++            .await?
++            .ok_or_else(addressed_messages::denied)?;
++        if !addressed_messages::addressed_to(&message, &by_participant)
++            || !self
++                .message_access(&message, &by_participant, MessageAccess::Receipt)
++                .await?
++        {
++            return Err(addressed_messages::denied());
++        }
+         self.config
+             .message_store
+             .mark_read(&message_id, &by_participant)
+             .await?;
+-        self.emit(Event::MessageRead {
+-            message_id,
+-            at: Utc::now(),
+-        });
+-        Ok(())
++        self.message_receipt(&message, by_participant, None, MessageDeliveryStage::Read)
++            .await
+     }
+ 
+     /// P9 — record a per-tenant usage unit. Emits `UsageRecord` on
+diff --git a/crates/foundation/rvoip-core/tests/messaging.rs b/crates/foundation/rvoip-core/tests/messaging.rs
+--- a/crates/foundation/rvoip-core/tests/messaging.rs
++++ b/crates/foundation/rvoip-core/tests/messaging.rs
+@@ -32,6 +32,7 @@
+     inbound: Mutex<Option<mpsc::Receiver<AdapterEvent>>>,
+     sent: AtomicUsize,
+     data_sent: AtomicUsize,
++    deliveries: Mutex<Vec<(ConnectionId, Message)>>,
+ }
+ 
+ impl MsgAdapter {
+@@ -41,6 +42,7 @@
+             inbound: Mutex::new(Some(rx)),
+             sent: AtomicUsize::new(0),
+             data_sent: AtomicUsize::new(0),
++            deliveries: Mutex::new(Vec::new()),
+         });
+         (a, tx)
+     }
+@@ -78,7 +80,8 @@
+     async fn streams(&self, _c: ConnectionId) -> RvResult<Vec<Arc<dyn MediaStream>>> {
+         Ok(vec![])
+     }
+-    async fn send_message(&self, _c: ConnectionId, _m: Message) -> RvResult<()> {
++    async fn send_message(&self, c: ConnectionId, m: Message) -> RvResult<()> {
++        self.deliveries.lock().unwrap().push((c, m));
+         self.sent.fetch_add(1, Ordering::SeqCst);
+         Ok(())
+     }
+@@ -508,29 +511,28 @@
+ }
+ 
+ #[tokio::test]
+-async fn mark_message_read_emits_message_read_event() {
+-    let orch = Orchestrator::new(Config::default());
+-    let cid = orch
+-        .open_conversation(
+-            TenantId::new(),
+-            ConversationPolicy::default(),
+-            HashMap::new(),
+-        )
+-        .await
+-        .unwrap();
++async fn read_receipt_requires_current_recipient_and_uses_scoped_hook() {
++    let (orch, _, _, cid, participants, _) = addressed_fixture().await;
++    let mut message = msg(cid.clone(), "private");
++    message.from_participant = participants[0].clone();
++    message.to = MessageRecipients::Participants(vec![participants[1].clone()]);
+     let mid = orch
+-        .send_message_to_conversation(cid.clone(), msg(cid, "x"))
+-        .await
+-        .unwrap();
++        .send_message_to_conversation(cid, message)
++        .await
++        .unwrap();
++    assert!(orch
++        .mark_message_read(mid.clone(), participants[2].clone())
++        .await
++        .is_err());
+     let mut events = orch.subscribe_events();
+-    orch.mark_message_read(mid.clone(), ParticipantId::new())
+-        .await
+-        .unwrap();
+-    let ev = tokio::time::timeout(Duration::from_secs(1), events.recv())
+-        .await
+-        .unwrap()
+-        .unwrap();
+-    matches!(ev, Event::MessageRead { message_id, .. } if message_id == mid);
++    orch.mark_message_read(mid, participants[1].clone())
++        .await
++        .unwrap();
++    assert!(
++        tokio::time::timeout(Duration::from_millis(20), events.recv())
++            .await
++            .is_err()
++    );
+ }
+ 
+ #[tokio::test]
+@@ -578,3 +580,340 @@
+ // suite we exercise transitively.
+ #[allow(dead_code)]
+ fn _unused_imports_keep_alive(_: MuteDirection) {}
++
++use rvoip_core::addressed_messages::{
++    MessageAccess, MessageDeliveryStage, MessagePolicy, MessageReceipt,
++};
++use rvoip_core::ids::ConversationId;
++use rvoip_core::message::Attachment;
++use rvoip_core::participant::{ParticipantKind, ParticipantRole};
++use std::collections::HashSet;
++
++#[derive(Default)]
++struct AudiencePolicy {
++    revoked: Mutex<HashSet<ParticipantId>>,
++    receipts: Mutex<Vec<MessageReceipt>>,
++}
++#[async_trait::async_trait]
++impl MessagePolicy for AudiencePolicy {
++    async fn authorize(
++        &self,
++        _: &Message,
++        participant: &ParticipantId,
++        _: MessageAccess,
++    ) -> RvResult<bool> {
++        Ok(!self.revoked.lock().unwrap().contains(participant))
++    }
++    async fn observe_receipt(&self, receipt: MessageReceipt) -> RvResult<()> {
++        self.receipts.lock().unwrap().push(receipt);
++        Ok(())
++    }
++}
++
++async fn addressed_fixture() -> (
++    Arc<Orchestrator>,
++    Arc<MsgAdapter>,
++    Arc<AudiencePolicy>,
++    ConversationId,
++    Vec<ParticipantId>,
++    Vec<ConnectionId>,
++) {
++    let policy = Arc::new(AudiencePolicy::default());
++    let orch = Orchestrator::new(Config {
++        message_policy: policy.clone(),
++        ..Config::default()
++    });
++    let (adapter, tx) = MsgAdapter::new();
++    orch.register(adapter.clone()).unwrap();
++    let cid = orch
++        .open_conversation(
++            TenantId::new(),
++            ConversationPolicy::Persistent,
++            HashMap::new(),
++        )
++        .await
++        .unwrap();
++    let sid = orch
++        .start_session(cid.clone(), SessionMedium::TextChat, vec![])
++        .await
++        .unwrap();
++    let participants = (0..3).map(|_| ParticipantId::new()).collect::<Vec<_>>();
++    let mut connections = Vec::new();
++    for participant in &participants {
++        orch.join_session(
++            sid.clone(),
++            participant.clone(),
++            ParticipantKind::Human,
++            ParticipantRole::Agent,
++        )
++        .await
++        .unwrap();
++        let connection = ConnectionId::new();
++        drive_inbound(&tx, connection.clone()).await;
++        orch.route_inbound_connection(
++            connection.clone(),
++            InboundAction::Accept {
++                session_id: sid.clone(),
++                participant_id: participant.clone(),
++            },
++        )
++        .await
++        .unwrap();
++        connections.push(connection);
++    }
++    (orch, adapter, policy, cid, participants, connections)
++}
++
++#[tokio::test]
++async fn gate6_one_many_all_dispatch_preserves_metadata_and_excludes_other_peers() {
++    let (orch, adapter, policy, cid, participants, connections) = addressed_fixture().await;
++    for count in [1, 2, 3] {
++        let mut message = msg(cid.clone(), "private typed body");
++        message.from_participant = participants[0].clone();
++        message.content_type = ContentType::Json;
++        message.attachments.push(Attachment {
++            url: "https://private.invalid/file".into(),
++            content_type: ContentType::Binary,
++            size_bytes: 37,
++        });
++        message.to = if count == 3 {
++            MessageRecipients::All
++        } else {
++            MessageRecipients::Participants(participants[..count].to_vec())
++        };
++        let mid = orch
++            .send_message_to_conversation(cid.clone(), message.clone())
++            .await
++            .unwrap();
++        let deliveries = std::mem::take(&mut *adapter.deliveries.lock().unwrap());
++        assert_eq!(deliveries.len(), count);
++        for (connection, copy) in deliveries {
++            assert!(connections[..count].contains(&connection));
++            assert_eq!(copy.id, mid);
++            assert_eq!(copy.body, message.body);
++            assert_eq!(copy.content_type, ContentType::Json);
++            assert_eq!(copy.attachments[0].url, message.attachments[0].url);
++            assert!(
++                matches!(copy.to, MessageRecipients::Participants(ref ids) if ids.len() == count)
++            );
++        }
++    }
++    for receipt in policy.receipts.lock().unwrap().iter() {
++        assert_eq!(receipt.stage, MessageDeliveryStage::Accepted);
++        assert!(receipt
++            .viewers
++            .iter()
++            .all(|id| id == &participants[0] || id == &receipt.participant_id));
++        assert!(receipt.connection_id.is_some());
++    }
++}
++
++#[tokio::test]
++async fn gate6_private_history_attachments_and_receipts_recheck_revocation() {
++    let (orch, adapter, policy, cid, participants, _) = addressed_fixture().await;
++    let mut message = msg(cid.clone(), "private body");
++    message.from_participant = participants[0].clone();
++    message.to = MessageRecipients::Participants(vec![participants[1].clone()]);
++    message.attachments.push(Attachment {
++        url: "https://secret.invalid/file".into(),
++        content_type: ContentType::Binary,
++        size_bytes: 7,
++    });
++    let id = orch
++        .send_message_to_conversation(cid.clone(), message)
++        .await
++        .unwrap();
++    assert_eq!(adapter.deliveries.lock().unwrap().len(), 1);
++    assert!(orch
++        .message_for_participant(id.clone(), participants[2].clone(), false)
++        .await
++        .is_err());
++    let metadata = orch
++        .message_for_participant(id.clone(), participants[1].clone(), true)
++        .await
++        .unwrap();
++    assert!(metadata.body.is_empty());
++    assert!(metadata.attachments[0].url.is_empty());
++    assert_eq!(metadata.attachments[0].size_bytes, 7);
++    let history = orch
++        .list_messages_for_participant(
++            cid.clone(),
++            participants[2].clone(),
++            MessageFilter::default(),
++            None,
++        )
++        .await
++        .unwrap();
++    assert!(history.messages.is_empty());
++    orch.mark_message_read(id.clone(), participants[1].clone())
++        .await
++        .unwrap();
++    let receipts = policy.receipts.lock().unwrap();
++    let receipt = receipts.last().unwrap();
++    assert_eq!(receipt.stage, MessageDeliveryStage::Read);
++    assert!(!receipt.viewers.contains(&participants[2]));
++    drop(receipts);
++    policy
++        .revoked
++        .lock()
++        .unwrap()
++        .insert(participants[1].clone());
++    assert!(orch
++        .message_for_participant(id.clone(), participants[1].clone(), false)
++        .await
++        .is_err());
++    assert!(orch
++        .mark_message_read(id, participants[1].clone())
++        .await
++        .is_err());
++    let history = orch
++        .list_messages_for_participant(cid, participants[1].clone(), MessageFilter::default(), None)
++        .await
++        .unwrap();
++    assert!(history.messages.is_empty());
++}
++
++#[tokio::test]
++async fn gate6_reply_cannot_widen_private_audience_or_cross_conversations() {
++    let (orch, adapter, _, cid, participants, _) = addressed_fixture().await;
++    let mut original = msg(cid.clone(), "secret");
++    original.from_participant = participants[0].clone();
++    original.to = MessageRecipients::Participants(vec![participants[1].clone()]);
++    let id = orch
++        .send_message_to_conversation(cid.clone(), original)
++        .await
++        .unwrap();
++    let mut reply = msg(cid.clone(), "reply");
++    reply.from_participant = participants[1].clone();
++    reply.to = MessageRecipients::All;
++    reply.in_reply_to = Some(id.clone());
++    assert!(orch
++        .send_message_to_conversation(cid.clone(), reply.clone())
++        .await
++        .is_err());
++    reply.to = MessageRecipients::Participants(vec![participants[0].clone()]);
++    orch.send_message_to_conversation(cid.clone(), reply.clone())
++        .await
++        .unwrap();
++    assert_eq!(
++        adapter
++            .deliveries
++            .lock()
++            .unwrap()
++            .last()
++            .unwrap()
++            .1
++            .in_reply_to,
++        Some(id)
++    );
++    reply.from_participant = participants[2].clone();
++    assert!(orch
++        .send_message_to_conversation(cid.clone(), reply.clone())
++        .await
++        .is_err());
++    assert!(orch
++        .send_message_to_conversation(ConversationId::new(), reply)
++        .await
++        .is_err());
++}
++
++#[tokio::test]
++async fn gate6_invalid_audience_and_direct_connection_bypass_are_denied_before_effects() {
++    let (orch, adapter, policy, cid, participants, connections) = addressed_fixture().await;
++    let mut message = msg(cid.clone(), "secret");
++    message.from_participant = participants[0].clone();
++    for ids in [vec![], vec![ParticipantId::new()]] {
++        message.to = MessageRecipients::Participants(ids);
++        assert!(orch
++            .send_message_to_conversation(cid.clone(), message.clone())
++            .await
++            .is_err());
++    }
++    message.to = MessageRecipients::Participants(vec![participants[1].clone()]);
++    assert!(orch
++        .send_message_to_connection(connections[2].clone(), message.clone())
++        .await
++        .is_err());
++    policy
++        .revoked
++        .lock()
++        .unwrap()
++        .insert(participants[1].clone());
++    assert!(orch
++        .send_message_to_connection(connections[1].clone(), message.clone())
++        .await
++        .is_err());
++    assert!(adapter.deliveries.lock().unwrap().is_empty());
++    assert!(orch
++        .list_messages(cid, MessageFilter::default(), None)
++        .await
++        .unwrap()
++        .messages
++        .is_empty());
++}
++
++#[tokio::test]
++async fn gate6_typed_inbound_preserves_reply_and_binary_with_authenticated_provenance() {
++    let (orch, _, _, cid, participants, connections) = addressed_fixture().await;
++    let mut original = msg(cid.clone(), "original");
++    original.from_participant = participants[0].clone();
++    original.to = MessageRecipients::Participants(vec![participants[1].clone()]);
++    let original_id = orch
++        .send_message_to_conversation(cid.clone(), original)
++        .await
++        .unwrap();
++    let mut message = msg(cid.clone(), "");
++    message.body = Bytes::from_static(&[0, 255, 7]);
++    message.content_type = ContentType::Binary;
++    message.from_participant = participants[1].clone();
++    message.to = MessageRecipients::Participants(vec![participants[0].clone()]);
++    message.in_reply_to = Some(original_id.clone());
++    let id = orch
++        .receive_addressed_message(connections[1].clone(), message.clone())
++        .await
++        .unwrap();
++    let stored = orch
++        .message_for_participant(id, participants[0].clone(), false)
++        .await
++        .unwrap();
++    assert_eq!(stored.body, message.body);
++    assert_eq!(stored.in_reply_to, Some(original_id));
++    assert!(matches!(stored.origin, MessageOrigin::Connection(ref id) if id == &connections[1]));
++    assert_eq!(stored.direction, Direction::Inbound);
++    message.from_participant = participants[0].clone();
++    assert!(orch
++        .receive_addressed_message(connections[1].clone(), message)
++        .await
++        .is_err());
++}
++
++#[tokio::test]
++async fn gate6_all_audience_is_frozen_before_late_join() {
++    let (orch, _, _, cid, participants, _) = addressed_fixture().await;
++    let mut message = msg(cid.clone(), "before join");
++    message.from_participant = participants[0].clone();
++    let id = orch
++        .send_message_to_conversation(cid.clone(), message)
++        .await
++        .unwrap();
++    let late = ParticipantId::new();
++    let sid = orch.conversation(&cid).unwrap().read().unwrap().sessions[0].clone();
++    orch.join_session(
++        sid,
++        late.clone(),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .await
++    .unwrap();
++    assert!(orch
++        .message_for_participant(id, late.clone(), false)
++        .await
++        .is_err());
++    assert!(orch
++        .list_messages_for_participant(cid, late, MessageFilter::default(), None)
++        .await
++        .unwrap()
++        .messages
++        .is_empty());
++}
