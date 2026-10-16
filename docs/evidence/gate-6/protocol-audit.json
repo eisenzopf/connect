@@ -1,0 +1,11 @@
+{
+  "task": "G6-002",
+  "source_sha256": "782749349b6fc52e10866bef932c658cd49ca04bdd3bfffa9e826b4c7a161b8f",
+  "sections": 99,
+  "clauses": 207,
+  "envelopes": 49,
+  "resolutions": 12,
+  "verification": "python3 scripts/audit-gate6-uctp.py --check",
+  "runtime_qualification": false,
+  "findings": "Source/spec/code discrepancies have explicit target resolutions; the remaining runtime requirements stay unrun."
+}

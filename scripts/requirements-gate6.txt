@@ -1,0 +1,2 @@
+# Contract/schema checks; the actual interpreter/library versions enter evidence.
+jsonschema>=4.19,<5

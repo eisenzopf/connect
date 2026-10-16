@@ -21,6 +21,7 @@ pub use sms_eligibility::{
     control_kind as sms_control_kind, SmsGrant, SmsGrantSnapshot, SMS_LEASE_SECONDS,
 };
 mod recovery;
+mod runtime_epoch;
 mod session_routes;
 mod sessions;
 mod sip_legs;
@@ -47,7 +48,7 @@ pub use sip_legs::{SipConnectionEnd, SipLegAction, SipLegJob};
 pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 18;
+pub const SCHEMA_VERSION: u32 = 19;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
@@ -115,6 +116,8 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/018_connector_observations.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/019_gate6.sql"))
+            .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let store = Self {
@@ -137,11 +140,12 @@ impl Store {
         if schema != SCHEMA_VERSION {
             return Err(Error::new(
                 "unsupported-schema",
-                "Use a compatible binary and verified backup; schema is unsupported",
+                "Incompatible state. Preserve a verified backup with its matching binary, then explicitly initialize a new Gate 6 state path; no automatic v0.1 conversion is supported",
             ));
         }
         Self::configure(&connection)?;
         let blob_directory = Self::create_blob_directory(path)?;
+        runtime_epoch::fence_unobserved_connections(&connection, runtime_epoch::process_epoch())?;
         let store = Self {
             connectors: Default::default(),
             connection: Mutex::new(connection),

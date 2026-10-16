@@ -1,0 +1,44 @@
+{
+  "binary_sha256": "80792c13a103e8cd8fb2387ee6a69884f988d8964c4ef06c2655be74041e3b9d",
+  "source": "local release 0.1.0",
+  "checks": [
+    {
+      "check": "Public Python native SDK",
+      "result": "Create, send, exact replay, invite, accept, end and follow-up passed; two messages in one Conversation. Session control only; no audio opened."
+    },
+    {
+      "check": "addressed_message",
+      "result": {
+        "status": 422,
+        "rejection": "Failed to deserialize the JSON body into the target type: unknown field `to`, expected one of `request_id`, `conversation_id`, `body`"
+      }
+    },
+    {
+      "check": "typed_message",
+      "result": {
+        "status": 422,
+        "rejection": "Failed to deserialize the JSON body into the target type: unknown field `content_type`, expected one of `request_id`, `conversation_id`, `body`"
+      }
+    },
+    {
+      "check": "session_handoff",
+      "result": {
+        "status": 422,
+        "rejection": "Failed to deserialize the JSON body into the target type: op: unknown variant `session_update`, expected one of `contact_pairing_start`, `contact_pairing_complete`, `contact_pairing_revoke`, `contact_state`, `task`, `resolve`, `capabilities`, `browser_binding`, `context_deliveries`, `create`, `send`, `history`, `inbox`, `request_status`, `close`, `provider_status`, `call_start`, `call_status`, `call_end`, `session_in"
+      }
+    },
+    {
+      "check": "Restart continuity",
+      "result": "History retains two messages; original mutation replay returns identical receipt."
+    },
+    {
+      "check": "Python remote HTTP SDK",
+      "result": "Use a loopback HTTP URL"
+    },
+    {
+      "check": "Browser remote HTTP SDK",
+      "result": "Use a loopback HTTP URL"
+    }
+  ],
+  "status": "completed"
+}

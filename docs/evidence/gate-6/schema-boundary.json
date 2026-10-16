@@ -1,0 +1,118 @@
+{
+  "task": "G6-029",
+  "policy": "Owner approved breaking pre-alpha schemas; no old-schema conversion or upgrade matrix. Historical migration behavior is intentionally retired, not counted as passing Gate 6 proof.",
+  "replaced_by": [
+    "tests/gate6_schema.rs: incompatible-state refusal preserves original database and verified backup; explicit new state path",
+    "tests/gate6_schema.rs: current backup preserves IDs, audiences and uncertain effects",
+    "tests/setup_snapshot.rs: current setup drift and revocation backup behavior retained",
+    "tests/providers.rs: current provider backup behavior retained",
+    "src/tasks/tests/native_media_binding_retention.rs: revoked grant cannot restore binding authority retained",
+    "crates/connect-server/tests/first_run_schema_boundary.rs: actual public CLI current restore, incompatible refusal and fresh installation"
+  ],
+  "retired_historical_upgrade_tests": [
+    {
+      "path": "crates/connect-store/tests/task_migration.rs",
+      "test": "upgrade_populated_ten_preserves_all_existing_rows_and_verified_backup"
+    },
+    {
+      "path": "crates/connect-store/tests/task_migration.rs",
+      "test": "migration_failure_rolls_back_new_tables_and_version_without_touching_old_rows"
+    },
+    {
+      "path": "crates/connect-store/tests/task_migration.rs",
+      "test": "migration_rejects_stale_backup_before_task_schema_admission"
+    },
+    {
+      "path": "crates/connect-store/tests/sms_migration.rs",
+      "test": "schema_nine_upgrade_is_additive_backup_gated_and_preserves_existing_rows"
+    },
+    {
+      "path": "crates/connect-store/tests/connector_observation_migration.rs",
+      "test": "schema17_backup_migrates_connector_state_without_resetting_revocation_or_contracts"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/effect_migration.rs",
+      "test": "additive_schema_eleven_upgrade_preserves_tasks_grants_and_existing_state"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/effect_migration.rs",
+      "test": "failed_schema_eleven_upgrade_is_transactional_and_stale_backup_is_rejected"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/effect_migration.rs",
+      "test": "legacy_effect_without_dispatch_metadata_cannot_be_promoted_or_reexecuted"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/media_migration.rs",
+      "test": "ordinary_pending_voice_end_retains_its_known_issuer_after_upgrade"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/media_migration.rs",
+      "test": "unresolved_task_end_stays_uncertain_until_a_fresh_authorized_end"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/media_migration.rs",
+      "test": "old_sip_end_requires_a_new_issuer_instead_of_inheriting_the_dialer"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/media_migration.rs",
+      "test": "media_upgrade_failure_rolls_back_new_tables_and_preserves_the_verified_backup"
+    },
+    {
+      "path": "crates/connect-store/tests/contact_pairing.rs",
+      "test": "schema_sixteen_upgrade_is_backup_gated_and_contact_conflicts_roll_back"
+    },
+    {
+      "path": "crates/connect-store/tests/recovery.rs",
+      "test": "migration_requires_matching_backup_and_refuses_newer_schema"
+    },
+    {
+      "path": "crates/connect-store/tests/recovery.rs",
+      "test": "schema_six_upgrade_preserves_conversation_voice_receipt_and_journal_rows"
+    },
+    {
+      "path": "crates/connect-store/tests/recovery.rs",
+      "test": "schema_seven_upgrade_adds_expiry_without_changing_artifact_bytes"
+    },
+    {
+      "path": "crates/connect-store/tests/voice.rs",
+      "test": "schema_three_upgrade_requires_backup_and_preserves_conversations"
+    },
+    {
+      "path": "crates/connect-store/tests/voice.rs",
+      "test": "schema_four_upgrade_preserves_voice_and_requires_snapshot"
+    },
+    {
+      "path": "crates/connect-store/tests/voice.rs",
+      "test": "schema_five_upgrade_retains_inbound_bindings_and_reconciles_legacy_end_intent"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/media_setup_binding.rs",
+      "test": "schema_fifteen_upgrade_preserves_sessions_without_inventing_lost_setup_intent"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/media_setup_binding.rs",
+      "test": "setup_migration_failure_rolls_back_and_does_not_modify_verified_backup"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/sms_policy.rs",
+      "test": "schema_twelve_upgrade_preserves_old_grant_digest_and_task_receipts"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/native_media_migration.rs",
+      "test": "backup_gated_native_media_upgrade_preserves_owner_binding_and_existing_authority"
+    },
+    {
+      "path": "crates/connect-store/src/tasks/tests/native_media_migration.rs",
+      "test": "native_media_migration_failure_rolls_back_column_and_preserves_verified_backup"
+    },
+    {
+      "path": "crates/connect-store/tests/providers.rs",
+      "test": "v2_migration portion of combined provider backup test (current backup portion retained)"
+    },
+    {
+      "path": "crates/connect-server/tests/first_run_migration.rs",
+      "test": "public_known_seventeen_upgrade_and_interrupted_metadata_reconcile_preserve_authority"
+    }
+  ]
+}

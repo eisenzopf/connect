@@ -243,6 +243,16 @@
       "sha256": "7461cf4a71487b1700abc427f6bd8e40f10833131d4b6624efc3977a95bcb1ab",
       "target": "parley",
       "source": "Pin standalone Parley qualification to the prepared DTLS, interceptor and Quinn sources with locked dependency edges, and explicitly mark locally synthesized prompt frames as having no remote source-clock provenance. Preserve the original conversation regression suites."
+    },
+    {
+      "path": "patches/rvoip/gate6-uctp-v2.patch",
+      "sha256": "9d51be0956cc3df85d72d553f2191e60be5ca9ca1ba3972856f09a243747c704",
+      "source": "Gate 6 versioned checked UCTP wire types, complete schema/vector kit and protocol specification."
+    },
+    {
+      "path": "patches/rvoip/gate6-participant-device-relations.patch",
+      "sha256": "7f1d87926487b8bf4ebcd75e8d31868a3940bdae9549204e648b971cf463f850",
+      "source": "Gate 6 checked identity/membership/session/device relationships with current epochs, readiness and replacement lineage."
     }
   ]
 }

@@ -1,0 +1,147 @@
+{
+  "task": "G6-015",
+  "passed": true,
+  "scope": "Clean preparation from pinned source identities and hashed patches; byte verification of recorded complete patch manifests, not behavioral equivalence to public main.",
+  "lock_sha256": "b83e23cf0d37beca894f68132e75312e1faf71d61ec99c0ad1d07a443b9e0e0f",
+  "recorded_patches": 36,
+  "sources": [
+    {
+      "source": "rvoip",
+      "kind": "git",
+      "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+      "patched_files": 145,
+      "manifest_sha256": "0239cb1f49bdf9fea2f7812dd9742c448b080a58860f6840a307c5b8f8c4b9b6"
+    },
+    {
+      "source": "parley",
+      "kind": "git",
+      "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb",
+      "patched_files": 3,
+      "manifest_sha256": "6cbad3f0c8ad940f118611980a84fa4f105c0f9b2f6621e03459fa8c6acd6511"
+    },
+    {
+      "source": "rtc-dtls",
+      "kind": "crate",
+      "identity": {
+        "patches": [
+          {
+            "path": "patches/rtc-dtls/incomplete-flight-timer.patch",
+            "sha256": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845",
+            "source": "Preserve pending DTLS retransmission deadline for incomplete or duplicate flights; cancel on success or terminal error. Real serialized lost-flight completion and terminal-error regressions.",
+            "target": "rtc-dtls"
+          }
+        ],
+        "source": {
+          "kind": "crate",
+          "license": "MIT OR Apache-2.0",
+          "license_files": [
+            {
+              "path": "dependencies/licenses/rtc/LICENSE-MIT",
+              "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+              "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT"
+            },
+            {
+              "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+              "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+              "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE"
+            }
+          ],
+          "repository": "https://github.com/webrtc-rs/rtc",
+          "repository_path": "rtc-dtls",
+          "revision": "b808b74f712ed379312a114b848ede133880d58a",
+          "sha256": "067a19d0491fa2b09363bf9fdab2b3889447498844da092f875a1de9968750d0",
+          "url": "https://static.crates.io/crates/rtc-dtls/rtc-dtls-0.20.0-alpha.1.crate",
+          "version": "0.20.0-alpha.1"
+        }
+      },
+      "file_count": 97,
+      "manifest_sha256": "ab97d1215e8fb33f0a33194bedf6004d9a4f6cd6b1a5472771a060d1dd3261d5"
+    },
+    {
+      "source": "rtc-interceptor",
+      "kind": "crate",
+      "identity": {
+        "patches": [
+          {
+            "path": "patches/rtc-interceptor/late-loss-accounting.patch",
+            "sha256": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+            "source": "Correct current receiver-report interval and cumulative loss after unique in-horizon late packets; reject stale bitmap aliases and duplicates while preserving jitter and genuine gaps. Sixteen actual crate tests.",
+            "target": "rtc-interceptor"
+          },
+          {
+            "path": "patches/rtc-interceptor/rtx-receiver-feedback.patch",
+            "sha256": "3c010485d1282fcbcb40ffb6b5574ee5ada368c66197e042db3ccbb9f78d41b1",
+            "source": "Restore negotiated RTX OSN/primary ownership after transport feedback, with bounded binding state, padding/short-packet guards and real primary RR/NACK history preservation.",
+            "target": "rtc-interceptor"
+          },
+          {
+            "path": "patches/rtc-interceptor/source-clock-provenance.patch",
+            "sha256": "9c980316f443c0289a769954daafb9e3403cdd886655d4ace7b3a7fa43f81864",
+            "source": "Explicit bounded sender-report source clocks preserve authoritative RTP/NTP correspondence and actual wire counters. Pending, unsupported and retired clocks suppress reports; identical stream rebinds retain NACK history, changed bindings retire old state.",
+            "target": "rtc-interceptor"
+          },
+          {
+            "path": "patches/rtc-interceptor/rtx-wire-version.patch",
+            "sha256": "0e0674ad92ba8f284122b9459d44cdfef3a5efd515b2b4a13d3c1891a1e5e195",
+            "source": "Emit valid RTP version2 for generated RFC4588 retransmissions without copying padding; serialized-header and actual encrypted receiver regressions cover the previously discarded repair packets.",
+            "target": "rtc-interceptor"
+          }
+        ],
+        "source": {
+          "kind": "crate",
+          "license": "MIT OR Apache-2.0",
+          "license_files": [
+            {
+              "path": "dependencies/licenses/rtc/LICENSE-MIT",
+              "sha256": "56cc6c08157f4faf70d351b3a7ceac143399d5359a78c180e06dcd0390784f4d",
+              "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-MIT"
+            },
+            {
+              "path": "dependencies/licenses/rtc/LICENSE-APACHE",
+              "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+              "url": "https://raw.githubusercontent.com/webrtc-rs/rtc/b808b74f712ed379312a114b848ede133880d58a/LICENSE-APACHE"
+            }
+          ],
+          "repository": "https://github.com/webrtc-rs/rtc",
+          "repository_path": "rtc-interceptor",
+          "revision": "b808b74f712ed379312a114b848ede133880d58a",
+          "sha256": "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e",
+          "url": "https://static.crates.io/crates/rtc-interceptor/rtc-interceptor-0.20.0-alpha.1.crate",
+          "version": "0.20.0-alpha.1"
+        }
+      },
+      "file_count": 31,
+      "manifest_sha256": "deac0a0f0498dbf86d0431fc6e53ece49010ecdc3979754eaccbc314fdcaafd6"
+    },
+    {
+      "source": "quinn-proto",
+      "kind": "crate",
+      "identity": {
+        "patches": [
+          {
+            "path": "patches/quinn-proto/bbr-model-bounds.patch",
+            "sha256": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6",
+            "source": "Correct BBRv1 bandwidth-sample eligibility/window aging and startup current-window-versus-target comparison. Preserve loss recovery, packet conservation, gain settings and Quinn connection pacing. Nine focused actual-crate tests.",
+            "target": "quinn-proto"
+          }
+        ],
+        "source": {
+          "kind": "crate",
+          "license": "MIT OR Apache-2.0",
+          "repository": "https://github.com/quinn-rs/quinn",
+          "repository_path": "quinn-proto",
+          "revision": "8192ed399a26a6e8f0aba43d10ec8badaa5b905e",
+          "sha256": "0e750cca55fe4f0439a15d0bb529da9651e79993e8e72c61a899a36d462befbe",
+          "url": "https://static.crates.io/crates/quinn-proto/quinn-proto-0.11.19.crate",
+          "version": "0.11.19"
+        }
+      },
+      "file_count": 58,
+      "manifest_sha256": "5ec6aa29d2f978fdbf61e66ee4034c15e9a28307d6903cfababaaab253e0fd2f"
+    }
+  ],
+  "commands": [
+    "python3 scripts/prepare-dependencies.py --destination .local/gate-6-next-deps --cache .local/gate-6-baseline-deps",
+    "bash scripts/prepare-dependencies.sh"
+  ]
+}

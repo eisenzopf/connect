@@ -1,0 +1,62 @@
+{
+  "task": "G6-014",
+  "contract_revision": "gate6-contracts-2026-10-15.3",
+  "implementation_authorization": "authorization.json",
+  "reviewer": "Codex",
+  "review_type": "Technical contract consistency review; not independent runtime review or owner release acceptance.",
+  "decisions": {
+    "D6-01": "Envelope 2 / uctp/2 / connect/2, same authority and store.",
+    "D6-02": "Six nouns, scoped membership/roles, generic consultation/handoff/device replacement.",
+    "D6-03": "Stable operation IDs, fresh signed envelopes, revisions, fenced commits and explicit unknown.",
+    "D6-04": "Audience-first projections, current authority, private consultation context and records.",
+    "D6-05": "Frozen operating/media profile and named browser/host targets; execution unrun.",
+    "D6-06": "Shared SDK design, managed helpers, current package candidates and dedicated HTTP/OpenAPI reference.",
+    "D6-07": "Concrete remote/provider rehearsal belongs to G6-093; no external operations performed.",
+    "D6-08": "All mandatory source clauses assigned; reserved/conditional obligations explicit. No legacy API work."
+  },
+  "verification": "scripts/check-gate6-contracts.py",
+  "verification_result": "contract-checks.json",
+  "contract_sha256": {
+    "contracts/connect-audiences.md": "a163aad5218f11fa03ad364230327653f5b1cedbfa37dbabc0700f188da285b1",
+    "contracts/connect-events.md": "6d8f58b548722d2f56d6e8d95fdcc61901d9ce847caff0088d9590dcf79f49a6",
+    "contracts/connect-media-v2.md": "da1524f9419de19f7cba8d8cc4caae27d0ad3ce644324639fda0434d3577ac03",
+    "contracts/connect-records.md": "fa2e6354b24e3e8f1454b5696cba7766fc8bfc9c946102c2de4a0a2e611af5ca",
+    "contracts/connect-uctp.md": "a879e86c460f4ccfe762f3b6c539405c3222a23454b346bf77357cf8f9b9057a",
+    "contracts/connect-transitions.md": "9b4648d0000c333cefdaa0a1c8be2eae1c552877d1a38d67b74db822de452f27",
+    "contracts/connect-operations.md": "61af9882d2efb877d747315543f483bb1d2713c7e3e5c837b22ef3cb751140b9",
+    "docs/decisions/016-gate-6-sdk.md": "80ca93dd6ac02d6807a4306cb168797f29eb99aee2393a744de242384822817e",
+    "docs/decisions/013-gate-6-model.md": "486208b25e82fb31f5acbd80d8bf198e75ee59f5a27888e9140255e779230d57",
+    "docs/decisions/015-gate-6-operating-profile.md": "4174f3079a7ebfd13658afe7ec097b4ebaf9f2578170b493b5c687a98bc53530",
+    "docs/decisions/014-gate-6-contract-version.md": "81263acea85f34b1d097136ed187353f39b1bdbc1fec4c71520ddaf355c48732",
+    "contracts/uctp-gate-6-requirements.json": "c21ef7e8b9068520303638047252022a93891a46ab59ee588f810c8ba69677da",
+    "contracts/schemas/uctp-envelope-2.schema.json": "c67a75be6bbc269bd0386edad46321f41e84f4cf08314f3669a6b9614af94f7b",
+    "contracts/uctp-vectors/gate6-envelope.json": "13b9d76310fb5df0f7d7a833711e9e7d94f519dadec2e028638bfcd454d14def",
+    "contracts/uctp-vectors/operation-transitions.json": "e50a6fdaefd9a92905785b73fa0e3f7eafc3a1bad4e922c9a120f720279cd8fb"
+  },
+  "runtime_qualified": false,
+  "remaining": "Reusable rvoip schema/primitives and Connect runtime, all transport/provider/media/app/SDK/docs/independent/human qualification.",
+  "amendments": [
+    {
+      "reason": "Apply the already specified bounded identifier rule to nested baseline payload IDs; compiled Rust/schema/vector kit now share this constraint.",
+      "changes": [
+        {
+          "path": "contracts/schemas/uctp-envelope-2.schema.json",
+          "previous": "d90dd699dc2e74f765d99a12546a360fb618c7efc9b1c2b52dd0daaf0ff7120d",
+          "current": "c67a75be6bbc269bd0386edad46321f41e84f4cf08314f3669a6b9614af94f7b"
+        }
+      ],
+      "verification": "contract-checks.json; wire-types.json"
+    },
+    {
+      "reason": "Document implemented schema 19, current backup/restore and explicit reinitialization commands under the approved incompatible-state policy.",
+      "changes": [
+        {
+          "path": "docs/decisions/014-gate-6-contract-version.md",
+          "previous": "dc2b2d3582453397554a9f264be21a738a6b9da5f44e7213b0824aca7993e8f2",
+          "current": "81263acea85f34b1d097136ed187353f39b1bdbc1fec4c71520ddaf355c48732"
+        }
+      ],
+      "verification": "state-schema.json; server-state-schema.json"
+    }
+  ]
+}

@@ -1,0 +1,878 @@
+diff --git a/crates/foundation/rvoip-core-traits/src/ids.rs b/crates/foundation/rvoip-core-traits/src/ids.rs
+index dd5174e..7e7f757 100644
+--- a/crates/foundation/rvoip-core-traits/src/ids.rs
++++ b/crates/foundation/rvoip-core-traits/src/ids.rs
+@@ -60,6 +60,7 @@ id_type!(MessageId, "msg");
+ id_type!(ParticipantId, "part");
+ id_type!(IdentityId, "id");
+ id_type!(DeviceId, "dev");
++id_type!(EndpointId, "ep");
+ id_type!(BridgeId, "brdg");
+ id_type!(MediaRouteId, "route");
+ id_type!(TenantId, "tnt");
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+index 1fa9787..b566930 100644
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -138,6 +138,7 @@ pub mod message;
+ pub mod operational_events;
+ pub mod orchestrator;
+ pub mod participant;
++pub mod relationships;
+ pub mod rtp_boundary;
+ pub mod session;
+ pub mod signing;
+diff --git a/crates/foundation/rvoip-core/src/relationships.rs b/crates/foundation/rvoip-core/src/relationships.rs
+new file mode 100644
+index 0000000..5193a6f
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/relationships.rs
+@@ -0,0 +1,618 @@
++//! Checked identity, membership, presence and device relationships.
++//!
++//! These are pure values and transition guards, not a second registry or an
++//! authorization store. The owning application persists them transactionally,
++//! resolves authenticated identities and rechecks current grants/revocation.
++//! Provider addresses are endpoint data and never select a logical identity.
++
++use crate::{
++    connection::Transport,
++    identity::{AuthenticatedPrincipal, AuthenticationMethod, PrincipalOwnershipKey},
++    ids::{
++        ConnectionId, ConversationId, DeviceId, EndpointId, IdentityId, ParticipantId, SessionId,
++        TenantId,
++    },
++    participant::{ParticipantKind, ParticipantRole},
++};
++use chrono::{DateTime, Utc};
++
++const MAX_REVISION: u64 = 9_007_199_254_740_991;
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
++pub enum RelationshipError {
++    #[error("invalid relationship identifier or role")]
++    InvalidValue,
++    #[error("authenticated identity binding does not match")]
++    OwnerMismatch,
++    #[error("membership or presence is inactive")]
++    Inactive,
++    #[error("stale relationship revision or generation")]
++    Conflict,
++    #[error("endpoint or candidate is not ready")]
++    NotReady,
++}
++
++fn identifier(value: &str) -> Result<(), RelationshipError> {
++    if value.is_empty()
++        || value.len() > 128
++        || !value
++            .bytes()
++            .all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b))
++    {
++        return Err(RelationshipError::InvalidValue);
++    }
++    Ok(())
++}
++
++fn role(value: &ParticipantRole) -> Result<(), RelationshipError> {
++    if let ParticipantRole::Custom(value) = value {
++        if value.is_empty() || value.len() > 64 || value.chars().any(char::is_control) {
++            return Err(RelationshipError::InvalidValue);
++        }
++    }
++    Ok(())
++}
++
++fn next(current: u64, expected: u64) -> Result<u64, RelationshipError> {
++    if current != expected || current >= MAX_REVISION {
++        return Err(RelationshipError::Conflict);
++    }
++    Ok(current + 1)
++}
++
++/// Supplied by the trusted authentication/identity resolver. Payload fields
++/// cannot overwrite any member of this binding. Subject-to-identity mappings
++/// belong to that resolver; a provider address is never such a mapping.
++#[derive(Clone)]
++pub struct IdentityBinding {
++    tenant: TenantId,
++    identity: IdentityId,
++    owner: PrincipalOwnershipKey,
++    expires_at: Option<DateTime<Utc>>,
++}
++
++impl IdentityBinding {
++    pub fn from_authenticated(
++        principal: &AuthenticatedPrincipal,
++        identity: IdentityId,
++        now: DateTime<Utc>,
++    ) -> Result<Self, RelationshipError> {
++        let tenant = principal
++            .tenant
++            .as_deref()
++            .ok_or(RelationshipError::OwnerMismatch)?;
++        identifier(tenant)?;
++        identifier(identity.as_str())?;
++        // Federation resolution is reserved; never silently localize an f_ ID.
++        if identity.as_str().starts_with("f_")
++            || principal.subject.is_empty()
++            || principal.method == AuthenticationMethod::Anonymous
++            || principal.is_expired_at(now)
++        {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        Ok(Self {
++            tenant: TenantId::from_string(tenant),
++            identity,
++            owner: principal.ownership_key(),
++            expires_at: principal.expires_at,
++        })
++    }
++    pub fn identity(&self) -> &IdentityId {
++        &self.identity
++    }
++    pub fn tenant(&self) -> &TenantId {
++        &self.tenant
++    }
++    pub fn assert_identity(&self, supplied: Option<&str>) -> Result<(), RelationshipError> {
++        if supplied.is_some_and(|value| value != self.identity.as_str()) {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        Ok(())
++    }
++    pub fn revalidate(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        now: DateTime<Utc>,
++    ) -> Result<(), RelationshipError> {
++        if self.owner != principal.ownership_key()
++            || principal.method == AuthenticationMethod::Anonymous
++            || principal.is_expired_at(now)
++            || self.expires_at.is_some_and(|expiry| expiry <= now)
++        {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        Ok(())
++    }
++    fn same_identity(&self, other: &Self) -> bool {
++        self.tenant == other.tenant && self.identity == other.identity && self.owner == other.owner
++    }
++}
++
++/// One participant in one conversation. Removal and readmission preserve the
++/// logical participant while advancing its access epoch, never old audiences.
++#[derive(Clone)]
++pub struct Membership {
++    binding: IdentityBinding,
++    conversation: ConversationId,
++    participant: ParticipantId,
++    kind: ParticipantKind,
++    default_role: ParticipantRole,
++    epoch: u64,
++    revision: u64,
++    active: bool,
++}
++
++impl Membership {
++    pub fn admit(
++        binding: IdentityBinding,
++        conversation: ConversationId,
++        participant: ParticipantId,
++        kind: ParticipantKind,
++        default_role: ParticipantRole,
++    ) -> Result<Self, RelationshipError> {
++        identifier(conversation.as_str())?;
++        identifier(participant.as_str())?;
++        role(&default_role)?;
++        Ok(Self {
++            binding,
++            conversation,
++            participant,
++            kind,
++            default_role,
++            epoch: 1,
++            revision: 1,
++            active: true,
++        })
++    }
++    pub fn identity(&self) -> &IdentityId {
++        self.binding.identity()
++    }
++    pub fn tenant(&self) -> &TenantId {
++        self.binding.tenant()
++    }
++    pub fn conversation(&self) -> &ConversationId {
++        &self.conversation
++    }
++    pub fn participant(&self) -> &ParticipantId {
++        &self.participant
++    }
++    pub fn kind(&self) -> &ParticipantKind {
++        &self.kind
++    }
++    pub fn default_role(&self) -> &ParticipantRole {
++        &self.default_role
++    }
++    pub fn epoch(&self) -> u64 {
++        self.epoch
++    }
++    pub fn revision(&self) -> u64 {
++        self.revision
++    }
++    pub fn is_active(&self) -> bool {
++        self.active
++    }
++    pub fn change_role(
++        &mut self,
++        expected: u64,
++        value: ParticipantRole,
++    ) -> Result<(), RelationshipError> {
++        self.require_active()?;
++        role(&value)?;
++        let revision = next(self.revision, expected)?;
++        self.default_role = value;
++        self.revision = revision;
++        Ok(())
++    }
++    pub fn remove(&mut self, expected: u64) -> Result<(), RelationshipError> {
++        self.require_active()?;
++        let revision = next(self.revision, expected)?;
++        self.active = false;
++        self.revision = revision;
++        Ok(())
++    }
++    pub fn readmit(
++        &mut self,
++        binding: &IdentityBinding,
++        expected: u64,
++    ) -> Result<(), RelationshipError> {
++        if self.active {
++            return Err(RelationshipError::Conflict);
++        }
++        if !self.binding.same_identity(binding) {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        let revision = next(self.revision, expected)?;
++        let epoch = next(self.epoch, self.epoch)?;
++        self.binding = binding.clone();
++        self.active = true;
++        self.revision = revision;
++        self.epoch = epoch;
++        Ok(())
++    }
++    fn require_active(&self) -> Result<(), RelationshipError> {
++        if !self.active {
++            Err(RelationshipError::Inactive)
++        } else {
++            Ok(())
++        }
++    }
++}
++
++/// Role is an admission snapshot or explicit session override. Changes to a
++/// conversation's default role do not silently rewrite concurrent sessions.
++#[derive(Clone)]
++pub struct SessionAppearance {
++    tenant: TenantId,
++    identity: IdentityId,
++    conversation: ConversationId,
++    session: SessionId,
++    participant: ParticipantId,
++    epoch: u64,
++    role: ParticipantRole,
++    revision: u64,
++    present: bool,
++}
++
++impl SessionAppearance {
++    pub fn admit(
++        member: &Membership,
++        session: SessionId,
++        role_override: Option<ParticipantRole>,
++    ) -> Result<Self, RelationshipError> {
++        member.require_active()?;
++        identifier(session.as_str())?;
++        let value = role_override.unwrap_or_else(|| member.default_role.clone());
++        role(&value)?;
++        Ok(Self {
++            tenant: member.tenant().clone(),
++            identity: member.identity().clone(),
++            conversation: member.conversation.clone(),
++            session,
++            participant: member.participant.clone(),
++            epoch: member.epoch,
++            role: value,
++            revision: 1,
++            present: true,
++        })
++    }
++    pub fn session(&self) -> &SessionId {
++        &self.session
++    }
++    pub fn participant(&self) -> &ParticipantId {
++        &self.participant
++    }
++    pub fn role(&self) -> &ParticipantRole {
++        &self.role
++    }
++    pub fn revision(&self) -> u64 {
++        self.revision
++    }
++    pub fn membership_epoch(&self) -> u64 {
++        self.epoch
++    }
++    pub fn is_present(&self) -> bool {
++        self.present
++    }
++    pub fn require_current(&self, member: &Membership) -> Result<(), RelationshipError> {
++        member.require_active()?;
++        if !self.present {
++            return Err(RelationshipError::Inactive);
++        }
++        if &self.tenant != member.tenant()
++            || &self.identity != member.identity()
++            || self.conversation != member.conversation
++            || self.participant != member.participant
++            || self.epoch != member.epoch
++        {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        Ok(())
++    }
++    pub fn change_role(
++        &mut self,
++        member: &Membership,
++        expected: u64,
++        value: ParticipantRole,
++    ) -> Result<(), RelationshipError> {
++        self.require_current(member)?;
++        role(&value)?;
++        let revision = next(self.revision, expected)?;
++        self.role = value;
++        self.revision = revision;
++        Ok(())
++    }
++    pub fn leave(&mut self, member: &Membership, expected: u64) -> Result<(), RelationshipError> {
++        self.require_current(member)?;
++        let revision = next(self.revision, expected)?;
++        self.present = false;
++        self.revision = revision;
++        Ok(())
++    }
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum EndpointState {
++    Unverified,
++    Verified,
++    Revoked,
++}
++
++/// A reachable address belongs to an authenticated identity/device. Grants
++/// and membership remain separate. Verification is an attributed server fact.
++#[derive(Clone)]
++pub struct EndpointBinding {
++    binding: IdentityBinding,
++    endpoint: EndpointId,
++    device: DeviceId,
++    transport: Transport,
++    address: String,
++    state: EndpointState,
++    verification: Option<(String, DateTime<Utc>)>,
++}
++
++impl EndpointBinding {
++    pub fn provision(
++        binding: IdentityBinding,
++        endpoint: EndpointId,
++        device: DeviceId,
++        transport: Transport,
++        address: String,
++    ) -> Result<Self, RelationshipError> {
++        identifier(endpoint.as_str())?;
++        identifier(device.as_str())?;
++        if address.is_empty() || address.len() > 2048 || address.chars().any(char::is_control) {
++            return Err(RelationshipError::InvalidValue);
++        }
++        Ok(Self {
++            binding,
++            endpoint,
++            device,
++            transport,
++            address,
++            state: EndpointState::Unverified,
++            verification: None,
++        })
++    }
++    pub fn endpoint(&self) -> &EndpointId {
++        &self.endpoint
++    }
++    pub fn device(&self) -> &DeviceId {
++        &self.device
++    }
++    pub fn identity(&self) -> &IdentityId {
++        self.binding.identity()
++    }
++    pub fn transport(&self) -> Transport {
++        self.transport
++    }
++    pub fn address(&self) -> &str {
++        &self.address
++    }
++    pub fn state(&self) -> EndpointState {
++        self.state
++    }
++    /// Only the owning trusted adapter/provisioner may call this with verified
++    /// evidence; the service must never map a client-supplied boolean here.
++    pub fn verify(
++        &mut self,
++        owner: &IdentityBinding,
++        evidence: String,
++        at: DateTime<Utc>,
++    ) -> Result<(), RelationshipError> {
++        if !self.binding.same_identity(owner) {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        if self.state == EndpointState::Revoked {
++            return Err(RelationshipError::Inactive);
++        }
++        identifier(&evidence)?;
++        self.verification = Some((evidence, at));
++        self.state = EndpointState::Verified;
++        Ok(())
++    }
++    pub fn revoke(&mut self) {
++        self.state = EndpointState::Revoked;
++    }
++    fn usable_by(&self, member: &Membership) -> Result<(), RelationshipError> {
++        member.require_active()?;
++        if !self.binding.same_identity(&member.binding) {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        if self.state != EndpointState::Verified {
++            return Err(RelationshipError::NotReady);
++        }
++        Ok(())
++    }
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum BindingState {
++    Preparing,
++    Ready,
++    Active,
++    Retired,
++}
++
++/// Logical lineage is distinct from the adapter's physical transport handle.
++/// Several bindings can coexist for one participant on different devices.
++#[derive(Clone)]
++pub struct ConnectionBinding {
++    conversation: ConversationId,
++    session: SessionId,
++    participant: ParticipantId,
++    epoch: u64,
++    connection: ConnectionId,
++    endpoint: EndpointId,
++    device: DeviceId,
++    generation: u64,
++    replaces: Option<ConnectionId>,
++    state: BindingState,
++}
++
++impl ConnectionBinding {
++    pub fn prepare(
++        member: &Membership,
++        presence: &SessionAppearance,
++        endpoint: &EndpointBinding,
++        connection: ConnectionId,
++    ) -> Result<Self, RelationshipError> {
++        presence.require_current(member)?;
++        endpoint.usable_by(member)?;
++        identifier(connection.as_str())?;
++        Ok(Self {
++            conversation: member.conversation.clone(),
++            session: presence.session.clone(),
++            participant: member.participant.clone(),
++            epoch: member.epoch,
++            connection,
++            endpoint: endpoint.endpoint.clone(),
++            device: endpoint.device.clone(),
++            generation: 1,
++            replaces: None,
++            state: BindingState::Preparing,
++        })
++    }
++    pub fn replacement(
++        &self,
++        member: &Membership,
++        presence: &SessionAppearance,
++        endpoint: &EndpointBinding,
++        connection: ConnectionId,
++    ) -> Result<Self, RelationshipError> {
++        self.require_current(member, presence)?;
++        if self.state != BindingState::Active || connection == self.connection {
++            return Err(RelationshipError::Conflict);
++        }
++        let mut candidate = Self::prepare(member, presence, endpoint, connection)?;
++        candidate.generation = next(self.generation, self.generation)?;
++        candidate.replaces = Some(self.connection.clone());
++        Ok(candidate)
++    }
++    pub fn connection(&self) -> &ConnectionId {
++        &self.connection
++    }
++    pub fn session(&self) -> &SessionId {
++        &self.session
++    }
++    pub fn participant(&self) -> &ParticipantId {
++        &self.participant
++    }
++    pub fn endpoint(&self) -> &EndpointId {
++        &self.endpoint
++    }
++    pub fn device(&self) -> &DeviceId {
++        &self.device
++    }
++    pub fn generation(&self) -> u64 {
++        self.generation
++    }
++    pub fn replaces(&self) -> Option<&ConnectionId> {
++        self.replaces.as_ref()
++    }
++    pub fn state(&self) -> BindingState {
++        self.state
++    }
++    pub fn require_current(
++        &self,
++        member: &Membership,
++        presence: &SessionAppearance,
++    ) -> Result<(), RelationshipError> {
++        presence.require_current(member)?;
++        if self.conversation != member.conversation
++            || self.session != presence.session
++            || self.participant != member.participant
++            || self.epoch != member.epoch
++        {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        if self.state == BindingState::Retired {
++            return Err(RelationshipError::Inactive);
++        }
++        Ok(())
++    }
++    /// Called only after the adapter proves negotiated ingress/egress and any
++    /// required endpoint confirmation, using this precise connection generation.
++    pub fn observe_ready(
++        &mut self,
++        member: &Membership,
++        presence: &SessionAppearance,
++        endpoint: &EndpointBinding,
++        generation: u64,
++    ) -> Result<(), RelationshipError> {
++        self.require_current(member, presence)?;
++        endpoint.usable_by(member)?;
++        if endpoint.endpoint != self.endpoint || endpoint.device != self.device {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        if generation != self.generation {
++            return Err(RelationshipError::Conflict);
++        }
++        if self.state == BindingState::Preparing {
++            self.state = BindingState::Ready;
++        }
++        Ok(())
++    }
++    pub fn activate(
++        &mut self,
++        member: &Membership,
++        presence: &SessionAppearance,
++        endpoint: &EndpointBinding,
++    ) -> Result<(), RelationshipError> {
++        self.require_current(member, presence)?;
++        endpoint.usable_by(member)?;
++        if endpoint.endpoint != self.endpoint || endpoint.device != self.device {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        if self.state != BindingState::Ready || self.replaces.is_some() {
++            return Err(RelationshipError::NotReady);
++        }
++        self.state = BindingState::Active;
++        Ok(())
++    }
++    pub fn retire(&mut self) {
++        self.state = BindingState::Retired;
++    }
++    /// Application persists both changed values in the same fenced transaction
++    /// that commits its media route. No earlier readiness event retires old.
++    pub fn commit_replacement(
++        &mut self,
++        candidate: &mut Self,
++        member: &Membership,
++        presence: &SessionAppearance,
++        endpoint: &EndpointBinding,
++    ) -> Result<(), RelationshipError> {
++        self.require_current(member, presence)?;
++        candidate.require_current(member, presence)?;
++        endpoint.usable_by(member)?;
++        if endpoint.endpoint != candidate.endpoint || endpoint.device != candidate.device {
++            return Err(RelationshipError::OwnerMismatch);
++        }
++        if self.state != BindingState::Active
++            || candidate.state != BindingState::Ready
++            || candidate.replaces.as_ref() != Some(&self.connection)
++            || candidate.generation != next(self.generation, self.generation)?
++        {
++            return Err(RelationshipError::NotReady);
++        }
++        self.state = BindingState::Retired;
++        candidate.state = BindingState::Active;
++        Ok(())
++    }
++}
++
++macro_rules! redacted_debug {
++    ($($name:ty),*) => { $(impl std::fmt::Debug for $name {
++        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { f.write_str(concat!(stringify!($name), "(redacted)")) }
++    })* };
++}
++redacted_debug!(
++    IdentityBinding,
++    Membership,
++    SessionAppearance,
++    EndpointBinding,
++    ConnectionBinding
++);
++
++#[cfg(test)]
++mod tests;
+diff --git a/crates/foundation/rvoip-core/src/relationships/tests.rs b/crates/foundation/rvoip-core/src/relationships/tests.rs
+new file mode 100644
+index 0000000..50e087d
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/relationships/tests.rs
+@@ -0,0 +1,224 @@
++use super::*;
++use crate::identity::{AuthenticationMethod, IdentityAssurance};
++
++fn now() -> DateTime<Utc> {
++    DateTime::parse_from_rfc3339("2026-10-15T12:00:00Z")
++        .unwrap()
++        .with_timezone(&Utc)
++}
++fn principal(tenant: &str, subject: &str) -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: subject.into(),
++        tenant: Some(tenant.into()),
++        scopes: vec![],
++        issuer: Some("issuer".into()),
++        expires_at: Some(now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Anonymous,
++    }
++}
++fn binding(tenant: &str, id: &str) -> IdentityBinding {
++    IdentityBinding::from_authenticated(&principal(tenant, id), IdentityId::from_string(id), now())
++        .unwrap()
++}
++fn membership(tenant: &str, id: &str, conv: &str) -> Membership {
++    Membership::admit(
++        binding(tenant, id),
++        ConversationId::from_string(conv),
++        ParticipantId::from_string("part_local"),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap()
++}
++fn endpoint(owner: &IdentityBinding, name: &str) -> EndpointBinding {
++    let mut value = EndpointBinding::provision(
++        owner.clone(),
++        EndpointId::from_string(name),
++        DeviceId::from_string(format!("dev_{name}")),
++        Transport::WebRtc,
++        "provider-private-address".into(),
++    )
++    .unwrap();
++    value.verify(owner, "proof_verified".into(), now()).unwrap();
++    value
++}
++
++#[test]
++fn roles_are_conversation_defaults_and_session_snapshots() {
++    let mut first = membership("tenant_one", "id_alice", "conv_one");
++    let second = membership("tenant_one", "id_alice", "conv_two");
++    let mut a = SessionAppearance::admit(&first, SessionId::from_string("sess_a"), None).unwrap();
++    let b = SessionAppearance::admit(&first, SessionId::from_string("sess_b"), None).unwrap();
++    first.change_role(1, ParticipantRole::Supervisor).unwrap();
++    assert_eq!(first.default_role(), &ParticipantRole::Supervisor);
++    assert_eq!(second.default_role(), &ParticipantRole::Agent);
++    assert_eq!(a.role(), &ParticipantRole::Agent);
++    assert_eq!(b.role(), &ParticipantRole::Agent);
++    a.change_role(&first, 1, ParticipantRole::Observer).unwrap();
++    assert_eq!(a.role(), &ParticipantRole::Observer);
++    assert_eq!(b.role(), &ParticipantRole::Agent);
++    assert_eq!(
++        a.change_role(&first, 1, ParticipantRole::Agent),
++        Err(RelationshipError::Conflict)
++    );
++    assert_eq!(
++        first.change_role(1, ParticipantRole::Agent),
++        Err(RelationshipError::Conflict)
++    );
++}
++
++#[test]
++fn removal_and_rejoin_invalidate_old_presence_and_connection_epochs() {
++    let mut member = membership("tenant_one", "id_alice", "conv_one");
++    let mut appearance = SessionAppearance::admit(&member, SessionId::new(), None).unwrap();
++    let ep = endpoint(&member.binding, "ep_one");
++    let mut conn =
++        ConnectionBinding::prepare(&member, &appearance, &ep, ConnectionId::new()).unwrap();
++    member.remove(1).unwrap();
++    assert_eq!(
++        appearance.require_current(&member),
++        Err(RelationshipError::Inactive)
++    );
++    assert!(conn.observe_ready(&member, &appearance, &ep, 1).is_err());
++    member
++        .readmit(&binding("tenant_one", "id_alice"), 2)
++        .unwrap();
++    assert_eq!(member.epoch(), 2);
++    assert_eq!(member.revision(), 3);
++    assert_eq!(
++        appearance.require_current(&member),
++        Err(RelationshipError::OwnerMismatch)
++    );
++    assert!(appearance.leave(&member, 1).is_err());
++    assert!(conn.observe_ready(&member, &appearance, &ep, 1).is_err());
++    let fresh = SessionAppearance::admit(&member, SessionId::new(), None).unwrap();
++    assert_eq!(fresh.membership_epoch(), 2);
++}
++
++#[test]
++fn leaving_one_session_preserves_membership_other_sessions_and_devices() {
++    let member = membership("tenant_one", "id_alice", "conv_one");
++    let mut a = SessionAppearance::admit(&member, SessionId::new(), None).unwrap();
++    let b = SessionAppearance::admit(&member, SessionId::new(), None).unwrap();
++    let ep_a = endpoint(&member.binding, "ep_a");
++    let ep_b = endpoint(&member.binding, "ep_b");
++    let first = ConnectionBinding::prepare(&member, &b, &ep_a, ConnectionId::new()).unwrap();
++    let second = ConnectionBinding::prepare(&member, &b, &ep_b, ConnectionId::new()).unwrap();
++    assert_eq!(first.participant(), second.participant());
++    assert_ne!(first.device(), second.device());
++    a.leave(&member, 1).unwrap();
++    assert!(member.is_active());
++    assert!(b.require_current(&member).is_ok());
++    assert!(first.require_current(&member, &b).is_ok());
++    assert!(second.require_current(&member, &b).is_ok());
++}
++
++#[test]
++fn endpoint_replacement_waits_for_current_readiness_and_retires_only_old_lineage() {
++    let member = membership("tenant_one", "id_alice", "conv_one");
++    let appearance = SessionAppearance::admit(&member, SessionId::new(), None).unwrap();
++    let ep_a = endpoint(&member.binding, "ep_a");
++    let ep_b = endpoint(&member.binding, "ep_b");
++    let mut old =
++        ConnectionBinding::prepare(&member, &appearance, &ep_a, ConnectionId::new()).unwrap();
++    old.observe_ready(&member, &appearance, &ep_a, 1).unwrap();
++    old.activate(&member, &appearance, &ep_a).unwrap();
++    let mut candidate = old
++        .replacement(&member, &appearance, &ep_b, ConnectionId::new())
++        .unwrap();
++    assert_eq!(candidate.replaces(), Some(old.connection()));
++    assert!(old
++        .commit_replacement(&mut candidate, &member, &appearance, &ep_b)
++        .is_err());
++    assert_eq!(old.state(), BindingState::Active);
++    assert_eq!(
++        candidate.observe_ready(&member, &appearance, &ep_b, 1),
++        Err(RelationshipError::Conflict)
++    );
++    candidate
++        .observe_ready(&member, &appearance, &ep_b, 2)
++        .unwrap();
++    old.commit_replacement(&mut candidate, &member, &appearance, &ep_b)
++        .unwrap();
++    assert_eq!(old.state(), BindingState::Retired);
++    assert_eq!(candidate.state(), BindingState::Active);
++    assert_eq!(candidate.participant(), old.participant());
++    assert_eq!(candidate.session(), old.session());
++    assert!(old.observe_ready(&member, &appearance, &ep_a, 1).is_err());
++    assert_eq!(old.state(), BindingState::Retired);
++}
++
++#[test]
++fn revoked_or_foreign_endpoint_cannot_steal_a_ready_route() {
++    let member = membership("tenant_one", "id_alice", "conv_one");
++    let appearance = SessionAppearance::admit(&member, SessionId::new(), None).unwrap();
++    let ep_a = endpoint(&member.binding, "ep_a");
++    let mut ep_b = endpoint(&member.binding, "ep_b");
++    let foreign = endpoint(&binding("tenant_one", "id_bob"), "ep_bob");
++    assert!(
++        ConnectionBinding::prepare(&member, &appearance, &foreign, ConnectionId::new()).is_err()
++    );
++    let mut old =
++        ConnectionBinding::prepare(&member, &appearance, &ep_a, ConnectionId::new()).unwrap();
++    old.observe_ready(&member, &appearance, &ep_a, 1).unwrap();
++    old.activate(&member, &appearance, &ep_a).unwrap();
++    let mut candidate = old
++        .replacement(&member, &appearance, &ep_b, ConnectionId::new())
++        .unwrap();
++    candidate
++        .observe_ready(&member, &appearance, &ep_b, 2)
++        .unwrap();
++    ep_b.revoke();
++    assert!(old
++        .commit_replacement(&mut candidate, &member, &appearance, &ep_b)
++        .is_err());
++    assert_eq!(old.state(), BindingState::Active);
++}
++
++#[test]
++fn authenticated_binding_cannot_be_rebound_by_actor_tenant_or_federation_fields() {
++    let identity = binding("tenant_one", "id_alice");
++    assert!(identity.assert_identity(Some("id_bob")).is_err());
++    assert!(identity.assert_identity(None).is_ok());
++    assert!(identity
++        .revalidate(&principal("tenant_two", "id_alice"), now())
++        .is_err());
++    assert!(identity
++        .revalidate(&principal("tenant_one", "id_bob"), now())
++        .is_err());
++    assert!(identity
++        .revalidate(
++            &principal("tenant_one", "id_alice"),
++            now() + chrono::Duration::hours(2)
++        )
++        .is_err());
++    assert!(IdentityBinding::from_authenticated(
++        &principal("tenant_one", "id_alice"),
++        IdentityId::from_string("f_remote"),
++        now()
++    )
++    .is_err());
++    let one = membership("tenant_one", "id_alice", "conv_same");
++    let other = membership("tenant_two", "id_alice", "conv_same");
++    let appearance = SessionAppearance::admit(&one, SessionId::new(), None).unwrap();
++    assert!(appearance.require_current(&other).is_err());
++}
++
++#[test]
++fn relationship_diagnostics_exclude_addresses_identity_and_roles() {
++    let mut member = membership("tenant_one", "id_alice", "conv_one");
++    member
++        .change_role(1, ParticipantRole::Custom("private-canary".into()))
++        .unwrap();
++    let ep = endpoint(&member.binding, "ep_canary");
++    let output = format!("{:?} {:?} {:?}", member.binding, member, ep);
++    for value in [
++        "private-canary",
++        "provider-private-address",
++        "id_alice",
++        "tenant_one",
++    ] {
++        assert!(!output.contains(value));
++    }
++}

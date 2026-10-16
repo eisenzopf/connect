@@ -1,0 +1,103 @@
+{
+  "gate": 6,
+  "task": "G6-001",
+  "recorded_at": "2026-10-15T19:42:49.391183-07:00",
+  "source_boundary": {
+    "connect": {
+      "revision": "56e9a49c4d002fbe98d2d469d3a8c39b9c8984ec",
+      "tracked_changes": [
+        " M AGENTS.md",
+        " M docs/connect-roadmap.html",
+        " M docs/feature-coverage.json",
+        " M docs/index.html",
+        " M docs/roadmap.json",
+        " M scripts/update-plan.py"
+      ]
+    },
+    "rvoip-local": {
+      "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+      "tracked_changes": [
+        " M crates/sip/rvoip-sip/examples/pbx/README.md",
+        " M crates/sip/rvoip-sip/examples/pbx/common.rs",
+        " M crates/sip/rvoip-sip/examples/pbx/env/jambonz.env.example",
+        " M crates/sip/rvoip-sip/examples/pbx/run.sh",
+        " M crates/sip/rvoip-sip/examples/pbx/tls_cert.sh"
+      ]
+    },
+    "parley": {
+      "revision": "b2984928916a3b6ccca5c501457e509cd7a50df7",
+      "tracked_changes": []
+    },
+    "presentation": {
+      "revision": "c16ccf7875915624510a7d3dc2a4864dbbd7290d",
+      "tracked_changes": []
+    },
+    "rvoip-public": {
+      "revision": "f4d528eaabbac935bce9a6404d3ce4fdec35ed0f"
+    },
+    "pinned_dependencies": {
+      "rvoip": {
+        "revision": "ca7861af4c9920f6949422ae1f40507bf56ede97"
+      },
+      "parley": {
+        "revision": "22509d4df4cbf8dccd2ac7d35d0ac3becc724ceb"
+      },
+      "rtc-dtls": {
+        "revision": "b808b74f712ed379312a114b848ede133880d58a",
+        "version": "0.20.0-alpha.1",
+        "sha256": "067a19d0491fa2b09363bf9fdab2b3889447498844da092f875a1de9968750d0"
+      },
+      "rtc-interceptor": {
+        "revision": "b808b74f712ed379312a114b848ede133880d58a",
+        "version": "0.20.0-alpha.1",
+        "sha256": "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e"
+      },
+      "quinn-proto": {
+        "revision": "8192ed399a26a6e8f0aba43d10ec8badaa5b905e",
+        "version": "0.11.19",
+        "sha256": "0e750cca55fe4f0439a15d0bb529da9651e79993e8e72c61a899a36d462befbe"
+      }
+    },
+    "patch_count": 34
+  },
+  "dependency_preparation": {
+    "command": "bash scripts/prepare-dependencies.sh",
+    "exit_code": 0,
+    "result": "Pinned sources and all 34 patch digests verified; no prepared dependency edits."
+  },
+  "checks": [
+    {
+      "command": "cargo test --locked -p connect-protocol",
+      "exit_code": 0,
+      "passed": 24,
+      "failed": 0,
+      "ignored": 0,
+      "scope": "Current source protocol unit/integration tests only; existing API-shape tests are baseline evidence, not Gate 6 compatibility requirements."
+    },
+    {
+      "command": "python3 .local/vision-review/probe.py",
+      "exit_code": 0,
+      "evidence": "baseline-control.json",
+      "scope": "Exact published binary; isolated new state; native control/replay/restart only. No media, providers or public listeners."
+    }
+  ],
+  "fingerprints": {
+    "Cargo.lock": "bd066f11a2a05b0f53be23f8705aafecfa1d7376cf8543698c1da0ae58262ff4",
+    "dependencies/source-lock.json": "76b0047d18f265221798b50ce91cdb728b2301533a453e6dfa4841b4c515cd71",
+    "target/release/connect": "80792c13a103e8cd8fb2387ee6a69884f988d8964c4ef06c2655be74041e3b9d"
+  },
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "macos": "27.0.1"
+  },
+  "not_run": [
+    "complete Gate 1\u20135 suites",
+    "new media qualification",
+    "actual-model rehearsal",
+    "live communication provider operations",
+    "Linux or remote deployment"
+  ],
+  "state_preservation": "Only owned isolated smoke processes ran and were stopped. Existing user installation untouched. Unrelated local rvoip PBX edits recorded and left untouched.",
+  "qualification": "Starting-boundary evidence, not Gate 6 runtime acceptance."
+}

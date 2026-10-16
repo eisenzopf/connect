@@ -1,0 +1,1318 @@
+{
+  "base": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+  "head": "f4d528eaabbac935bce9a6404d3ce4fdec35ed0f",
+  "ahead_by": 179,
+  "changed_files": [
+    {
+      "path": ".github/workflows/main-ci.yml",
+      "status": "modified"
+    },
+    {
+      "path": ".github/workflows/nextest-parity.yml",
+      "status": "modified"
+    },
+    {
+      "path": ".github/workflows/nightly-interop.yml",
+      "status": "modified"
+    },
+    {
+      "path": ".github/workflows/pr-gate.yml",
+      "status": "modified"
+    },
+    {
+      "path": ".github/workflows/release-prepare.yml",
+      "status": "modified"
+    },
+    {
+      "path": ".github/workflows/release-publish.yml",
+      "status": "modified"
+    },
+    {
+      "path": ".github/workflows/release-qualify.yml",
+      "status": "modified"
+    },
+    {
+      "path": ".github/workflows/release-resume.yml",
+      "status": "modified"
+    },
+    {
+      "path": ".github/workflows/uctp-javascript-client.yml",
+      "status": "added"
+    },
+    {
+      "path": ".github/workflows/uctp-profile-example.yml",
+      "status": "added"
+    },
+    {
+      "path": ".gitignore",
+      "status": "modified"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "status": "modified"
+    },
+    {
+      "path": "Cargo.lock",
+      "status": "modified"
+    },
+    {
+      "path": "Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "README.md",
+      "status": "modified"
+    },
+    {
+      "path": "clippy.toml",
+      "status": "added"
+    },
+    {
+      "path": "crates/extensions/rvoip-harness/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/extensions/rvoip-harness/src/lib.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/extensions/rvoip-harness/src/reference.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/extensions/rvoip-stir-shaken/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/extensions/rvoip-vapi/src/adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/extensions/rvoip-vcon/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/infra-common/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/infra-common/src/events/cross_crate.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core-traits/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core-traits/src/harness.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core-traits/src/ids.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core-traits/src/lib.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core-traits/src/resources.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/foundation/rvoip-core-traits/src/stream.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/config.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/events.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/lib.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/orchestrator.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/playback.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/resources.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/vcon.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/bridge_pump.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/operational_media_activity.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/orchestrator_dispatch.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/p5_pause_and_listener.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/p9_quality_aggregator.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/recording_and_ai.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/tenant_and_capacity.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/tts_destination_codec.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/tests/v2b_semaphore_admission.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/identity/auth-core/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/identity/rvoip-identity/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/identity/users-core/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/codec-core/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/codec-core/src/codecs/g711/mod.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/codec-core/src/codecs/mod.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/codec-core/src/utils/simd.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/codec-core/src/utils/tables.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/codec-core/tests/g711_utility_interop.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/media/media-core/src/codec/g711.rs",
+      "status": "removed"
+    },
+    {
+      "path": "crates/media/media-core/src/events/adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/events/event_hub.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/processing/audio/playout.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/relay/controller/audio_generation.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/relay/controller/codec_runtime.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/relay/controller/mod.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/relay/controller/source_timeline.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/media/media-core/src/relay/controller/statistics.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/relay/controller/tests.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/relay/controller/types.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/src/types/stats.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/media-core/tests/rtp_performance_integration.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/TODO.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/examples/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/examples/TODO.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/api/SRTP_TRANSPORT_FIX.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/api/TODO.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/lib.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/session/mod.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/stats/mod.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/stats/reports.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/task_runtime.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/transport/allocator.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rtp-core/src/transport/udp.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/media/rvoip-audio-send-queue/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/moq/rvoip-moq-relay/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/rvoip-client/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/rvoip/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/rvoip/src/app.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/docs/BETA_RELEASE_CHECKLIST.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/docs/COMPATIBILITY_MATRIX.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/docs/INTEROP_CI_PLAN.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/docs/MEDIA_QUALITY.md",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/docs/RELEASE_NOTES_NEXT.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/docs/TOPOLOGY_PROFILES.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/docs/TUNING.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/pbx/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/pbx/common.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/pbx/env/jambonz.env.example",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/regression/06_session_timer/alice.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/regression/06_session_timer/bob.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/regression/06_session_timer/run.sh",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/regression/07_session_timer_failure/alice.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/regression/07_session_timer_failure/bob.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/examples/regression/07_session_timer_failure/run.sh",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/public-api/rvoip-sip.txt",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/scripts/check_public_api.sh",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/scripts/full_beta_release.sh",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/scripts/test_beta_attestation.py",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/adapters/media_adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/adapters/session_event_handler.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/api/callback_peer.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/api/endpoint.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/api/events.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/api/handle.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/api/mod.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/api/options_keepalive.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/api/unified.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/lib.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/media_stream.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/response_diagnostics.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/session_store/state.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/state_machine/actions.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/state_machine/executor.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/src/state_table/yaml_loader.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/state_tables/default.yaml",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/config_tests.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/deployment_profiles.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/event_tests.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/in_dialog_request_target.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/media_quality_integration.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/options_keepalive_integration.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/register_423_retry.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/response_builders_integration.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/session_422_retry.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/session_timer_failure_integration.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/session_timer_integration.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/session_timer_profile_integration.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/session_timer_refresh_outcomes.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/session_timer_rfc4028_uac.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/session_timer_rfc4028_uas.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/state_machine_wiring_manifest.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/support/mod.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/tls_contact_compatibility.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/rvoip-sip/tests/tls_direct_routing_integration.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/sip/sip-core/DEVELOPER_GUIDE.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-core/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/api/config.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/api/unified.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/dialog/dialog_impl.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/errors/dialog_errors.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/manager/core.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/manager/dialog_operations.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/manager/transaction_integration.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/manager/unified.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/protocol/bye_handler.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/protocol/invite_handler.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/protocol/update_handler.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/transaction/event.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/transaction/manager/mod.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/src/transaction/manager/tests.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/tests/rfc3263_failover.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-dialog/tests/rfc3263_resolution.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-proxy/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-registrar/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/sip/sip-transport/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-quic/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-quic/src/adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-quic/src/server.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-quic/tests/application_profile.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/uctp/rvoip-uctp/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-uctp/src/application.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/uctp/rvoip-uctp/src/lib.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-uctp/src/state/coordinator.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-uctp/tests/application_profile.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/uctp/rvoip-uctp/tests/coordinator.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/examples/README.md",
+      "status": "added"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/examples/application_profile.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/examples/run_application_profile.py",
+      "status": "added"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/src/adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/src/server.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/tests/conversation_create.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/tests/listener_shutdown.rs",
+      "status": "added"
+    },
+    {
+      "path": "crates/uctp/rvoip-websocket/tests/wss_loopback.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/uctp/rvoip-webtransport/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "crates/webrtc/rvoip-webrtc/src/adapter.rs",
+      "status": "modified"
+    },
+    {
+      "path": "crates/webrtc/rvoip-webrtc/src/media/pump.rs",
+      "status": "modified"
+    },
+    {
+      "path": "docs/BOUNDED_LIFECYCLE_CLEANUP.md",
+      "status": "added"
+    },
+    {
+      "path": "docs/CARRIERS.md",
+      "status": "modified"
+    },
+    {
+      "path": "docs/FEATURE_BUNDLES.md",
+      "status": "modified"
+    },
+    {
+      "path": "docs/MIGRATING_0.4.md",
+      "status": "added"
+    },
+    {
+      "path": "docs/PRODUCTION_HARDENING_ROADMAP.md",
+      "status": "modified"
+    },
+    {
+      "path": "docs/RELEASING.md",
+      "status": "modified"
+    },
+    {
+      "path": "docs/SIP_DIAGNOSTIC_OBSERVER_PROPOSAL.md",
+      "status": "added"
+    },
+    {
+      "path": "examples/01-quickstart-p2p/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/02-softphone-audio/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/03-register-to-pbx/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/04-call-control/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/05-blind-transfer/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/06-attended-transfer/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/07-secure-call-srtp/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/08-tls-transport/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/09-ivr-server/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/10-call-center-b2bua/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/11-ai-harness-demo/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/11-ai-harness-demo/src/main.rs",
+      "status": "modified"
+    },
+    {
+      "path": "examples/12-customer-escalation-sip-webrtc/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/13-sip-to-amazon-connect/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/14-vapi-agent/Cargo.toml",
+      "status": "modified"
+    },
+    {
+      "path": "examples/Cargo.lock",
+      "status": "modified"
+    },
+    {
+      "path": "examples/README.md",
+      "status": "modified"
+    },
+    {
+      "path": "infra/release-runners/pbx/jambonz/versions.env",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/ci/policy.json",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/ci/run_checks.py",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/ci/test_jambonz_interop_policy.py",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/ci/test_pr_plan.py",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/ci/test_run_checks.py",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/ci/test_workflow_policy.py",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/release.py",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/test_release.py",
+      "status": "modified"
+    },
+    {
+      "path": "sdk/uctp-js/README.md",
+      "status": "added"
+    },
+    {
+      "path": "sdk/uctp-js/client.mjs",
+      "status": "added"
+    },
+    {
+      "path": "sdk/uctp-js/examples/profile-echo.mjs",
+      "status": "added"
+    },
+    {
+      "path": "sdk/uctp-js/index.d.ts",
+      "status": "added"
+    },
+    {
+      "path": "sdk/uctp-js/package-lock.json",
+      "status": "added"
+    },
+    {
+      "path": "sdk/uctp-js/package.json",
+      "status": "added"
+    },
+    {
+      "path": "sdk/uctp-js/test/client.test.mjs",
+      "status": "added"
+    },
+    {
+      "path": "sdk/uctp-js/test/types.ts",
+      "status": "added"
+    }
+  ],
+  "pinned_patch_count": 34,
+  "rvoip_patch_count": 27,
+  "strategy": "Retain the verified pinned/patch baseline for this first shared schema increment; public-main differences are identified. General engine changes are extracted as reproducible additional patches; no generated dependency edit is authoritative.",
+  "untouched": "Local rvoip checkout with unrelated PBX edits.",
+  "patch_decisions": [
+    {
+      "path": "patches/rvoip/parley-conference.patch",
+      "target": "rvoip",
+      "sha256": "099977f2a66f99987f91779d04727e523ecff6662d8a9b672cf7f82a94186033",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/connect-quic-application.patch",
+      "target": "rvoip",
+      "sha256": "ef986750f2b4d509bb714cbd86c94bb90aaea8ec3c31d042b152e432b3d5e65b",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/connect-session-context.patch",
+      "target": "rvoip",
+      "sha256": "ce46de6483e20e3da0a8ba894af30c821f1aa8f5dffc4ae91eac575532054a33",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/external-session-projection.patch",
+      "target": "rvoip",
+      "sha256": "04983029072e96433d7fa8936d2877c47fbba27c376dbaa9b472d425a8a5d4e9",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/sip-terminal-media-race.patch",
+      "target": "rvoip",
+      "sha256": "8b86b1c2419187310a41cc7fdb38608584da3e88c803509ce3fc3a72bd1e8eac",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/audio-queue-policy.patch",
+      "target": "rvoip",
+      "sha256": "4c7de78b3eafd6649ad6fcf7cfdbdc8098b4c9df5b2933faf7a68001f2f50285",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/transport-audio-queues.patch",
+      "target": "rvoip",
+      "sha256": "be0aae0b152882caf1308e8d0ac3f3ae1768d6ab9124ed65379eefd673fe6894",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/authenticated-envelope-guard.patch",
+      "target": "rvoip",
+      "sha256": "d89086728f39e430b638cff3d684838e6300d6a54961d4f4b3e39c0075abc0c9",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/vapi-call-admission.patch",
+      "target": "rvoip",
+      "sha256": "1aa864636d4728108432eb696b51ea052486fcced3f5636740ab6f1958dbbdaa",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/encoded-video-transport.patch",
+      "target": "rvoip",
+      "sha256": "1d976d7c1718eed46fd722e7ba8f41964ca24bf2d8932a08f5bd314098a65679",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/terminal-session-resource-lifetime.patch",
+      "target": "rvoip",
+      "sha256": "09bac09ceedebe5fd0e822f70e6970425796cbef4f6a0ca18d0b4b244d04c32e",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/terminal-session-backpressure.patch",
+      "target": "rvoip",
+      "sha256": "fbed0bb4b8347a10711f640a057bbaac44892c7241978897991623252fa681fa",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/declared-ssrc-feedback.patch",
+      "target": "rvoip",
+      "sha256": "73f38add01b80f399a44e82c3da68679b18a66c62aa9445baae3cec01b259f1e",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/quic-video-egress-reorder.patch",
+      "target": "rvoip",
+      "sha256": "95dc6e24ec9164cf9d15fd8ad9482c807e4f0d2b3ed9f2b9544fec26decd107d",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/webrtc-audio-ingress-reorder.patch",
+      "target": "rvoip",
+      "sha256": "5d20734f650ff4f7a9a69c1c001af2688560727317315b2b501a5f694e4d122f",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/quic-video-loss-tolerance.patch",
+      "target": "rvoip",
+      "sha256": "0820429577a589a63d75e098eda1b19a8962b8dea1fa7969f0b8dfc512df52b1",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/quic-video-delivery-controller.patch",
+      "target": "rvoip",
+      "sha256": "6d4a39125931ca38b9750baf50db21bf9c5a0930cc278eea86721c20a2f33297",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rtc-dtls/incomplete-flight-timer.patch",
+      "target": "rtc-dtls",
+      "sha256": "02051877a40ca258e2e9e6874628719cc7466f1223f6884ad2480e2d90bd2845",
+      "decision": "retain",
+      "license": "MIT OR Apache-2.0",
+      "reason": "Supporting dependency remains pinned with its existing behavior evidence; not replaced by rvoip main."
+    },
+    {
+      "path": "patches/rvoip/webrtc-video-reorder-pressure.patch",
+      "target": "rvoip",
+      "sha256": "b63d5681fa669e6da10d87271f9bf8802d5688a2412eca4ed045ce5bd2807cbd",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/webrtc-shared-av-sync-identity.patch",
+      "target": "rvoip",
+      "sha256": "b4b2d064c5889e955506ca10985697cbed2444139bc7ec95402f8b0103e75fbb",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": true,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rtc-interceptor/late-loss-accounting.patch",
+      "target": "rtc-interceptor",
+      "sha256": "5791c0d649e471f46f105a619737162994b26f7765eeebc68b721df61ce92edb",
+      "decision": "retain",
+      "license": "MIT OR Apache-2.0",
+      "reason": "Supporting dependency remains pinned with its existing behavior evidence; not replaced by rvoip main."
+    },
+    {
+      "path": "patches/quinn-proto/bbr-model-bounds.patch",
+      "target": "quinn-proto",
+      "sha256": "4bf9ef996840f81fdef9641c0c395ef029d9a7a9e8e7932f15d98b6873613af6",
+      "decision": "retain",
+      "license": "MIT OR Apache-2.0",
+      "reason": "Supporting dependency remains pinned with its existing behavior evidence; not replaced by rvoip main."
+    },
+    {
+      "path": "patches/rtc-interceptor/rtx-receiver-feedback.patch",
+      "target": "rtc-interceptor",
+      "sha256": "3c010485d1282fcbcb40ffb6b5574ee5ada368c66197e042db3ccbb9f78d41b1",
+      "decision": "retain",
+      "license": "MIT OR Apache-2.0",
+      "reason": "Supporting dependency remains pinned with its existing behavior evidence; not replaced by rvoip main."
+    },
+    {
+      "path": "patches/rvoip/webrtc-rtx-binding.patch",
+      "target": "rvoip",
+      "sha256": "8df1917e898f946b1649917c349a76903c695c1489873474c678a3f28f3c6e0b",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rtc-interceptor/source-clock-provenance.patch",
+      "target": "rtc-interceptor",
+      "sha256": "9c980316f443c0289a769954daafb9e3403cdd886655d4ace7b3a7fa43f81864",
+      "decision": "retain",
+      "license": "MIT OR Apache-2.0",
+      "reason": "Supporting dependency remains pinned with its existing behavior evidence; not replaced by rvoip main."
+    },
+    {
+      "path": "patches/rvoip/webrtc-source-clock-provenance.patch",
+      "target": "rvoip",
+      "sha256": "0b9acc7f33a6687bebf9d4815c9a256d9cfbd63337e19db0af88d22fd88db5be",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/webrtc-track-ready-publication.patch",
+      "target": "rvoip",
+      "sha256": "d7ddb98d9066b40372c00fc1d1dd7d1475539f7f5f6f7c906773e679d1587bd7",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/webrtc-source-clock-rtcp-activation.patch",
+      "target": "rvoip",
+      "sha256": "5cc0ec2eaf415711269f818572976df54661f0f77976346143f6a5a7ac8536b0",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rtc-interceptor/rtx-wire-version.patch",
+      "target": "rtc-interceptor",
+      "sha256": "0e0674ad92ba8f284122b9459d44cdfef3a5efd515b2b4a13d3c1891a1e5e195",
+      "decision": "retain",
+      "license": "MIT OR Apache-2.0",
+      "reason": "Supporting dependency remains pinned with its existing behavior evidence; not replaced by rvoip main."
+    },
+    {
+      "path": "patches/rvoip/webrtc-outbound-rtx-binding.patch",
+      "target": "rvoip",
+      "sha256": "7d61f9b02b6fd24945cd2d9797c50b586b50545b74847b5793feb293b65c3525",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/webrtc-first-audio-feedback.patch",
+      "target": "rvoip",
+      "sha256": "388dda0c29f6a46630f183900ac7df8a4c5cb0e05628391d5f9c5a984d3defd6",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/webrtc-payload-audio-feedback.patch",
+      "target": "rvoip",
+      "sha256": "aa1c642109f5e47083f0ecad3374b65025a86cdcf83cb8b942eea9d7c891c932",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/rvoip/webrtc-initial-source-report.patch",
+      "target": "rvoip",
+      "sha256": "0bf5e4c263197df8db130394e17eccf17758d4083036c7ceedf221df5342e02e",
+      "decision": "retain",
+      "license": "MIT",
+      "exact_reverse_applies_to_public": false,
+      "forward_applies_to_public": false,
+      "reason": "No complete byte-identical upstream inclusion proven; retain on pinned verified base."
+    },
+    {
+      "path": "patches/parley/qualification-graph.patch",
+      "target": "parley",
+      "sha256": "7461cf4a71487b1700abc427f6bd8e40f10833131d4b6624efc3977a95bcb1ab",
+      "decision": "retain",
+      "license": "MIT",
+      "reason": "Supporting dependency remains pinned with its existing behavior evidence; not replaced by rvoip main."
+    }
+  ],
+  "upstream_full_patch_matches": 0,
+  "source_licenses": "MIT rvoip/Parley; support sources retain their source-lock SPDX licenses and recorded notices.",
+  "verification": "Exact forward/reverse applicability checks at the frozen public commit. This does not establish semantic equivalence of changed upstream fixes.",
+  "reusable_boundaries": [
+    {
+      "source": "rvoip",
+      "paths": [
+        "crates/uctp/rvoip-uctp",
+        "crates/foundation/rvoip-core",
+        "crates/uctp/rvoip-quic",
+        "crates/uctp/rvoip-webtransport",
+        "crates/webrtc/rvoip-webrtc"
+      ],
+      "decision": "Shared wire, relationships, media transitions and adapters; extract minimal patches against verified baseline."
+    },
+    {
+      "source": "Parley",
+      "revision": "b2984928916a3b6ccca5c501457e509cd7a50df7",
+      "decision": "Use demonstrated conversation/consult/handoff/device-transfer flows as behavior fixtures; do not copy application workflow into the shared transport."
+    }
+  ],
+  "validation_lanes": [
+    "clean dependency reproduction with complete patched-file manifests",
+    "rvoip UCTP v2 golden and malformed-input tests",
+    "rvoip core participant/device/state races",
+    "Connect protocol/service/store integration",
+    "native/browser/media retained-call end-to-end qualification"
+  ],
+  "normative_spec_identity": {
+    "prepared_revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+    "reviewed_public_revision": "f4d528eaabbac935bce9a6404d3ce4fdec35ed0f",
+    "prepared_sha256": "782749349b6fc52e10866bef932c658cd49ca04bdd3bfffa9e826b4c7a161b8f",
+    "public_sha256": "782749349b6fc52e10866bef932c658cd49ca04bdd3bfffa9e826b4c7a161b8f",
+    "identical": true
+  }
+}

@@ -205,7 +205,7 @@ pub(super) fn apply(
                     .map_err(|_| Error::storage())?;
                 for member in resources {
                     c.execute(
-                        "INSERT INTO participants VALUES(?1,?2)",
+                        "INSERT INTO participants(conversation_id,identity_id) VALUES(?1,?2)",
                         params![id, member],
                     )
                     .map_err(|_| Error::storage())?;

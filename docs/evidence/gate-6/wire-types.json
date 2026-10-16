@@ -1,0 +1,47 @@
+{
+  "format": 1,
+  "task": "G6-016",
+  "executed_at": "2026-10-16T04:38:45.488097+00:00",
+  "scope": "Shared wire decoding, typed payloads and transition guards. Not server dispatch, external authentication, live media, provider or independent client conformance.",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--manifest-path",
+    ".deps/rvoip/Cargo.toml",
+    "-p",
+    "rvoip-uctp",
+    "--lib",
+    "v2::tests",
+    "--",
+    "--nocapture"
+  ],
+  "exit_code": 0,
+  "source_lock_sha256": "b83e23cf0d37beca894f68132e75312e1faf71d61ec99c0ad1d07a443b9e0e0f",
+  "schema_sha256": "c67a75be6bbc269bd0386edad46321f41e84f4cf08314f3669a6b9614af94f7b",
+  "vectors_sha256": "13b9d76310fb5df0f7d7a833711e9e7d94f519dadec2e028638bfcd454d14def",
+  "upstream_sources": {
+    "crates/uctp/rvoip-uctp/src/v2/mod.rs": "fc60a4a655135c027af6de5e9e89782bd235ca07c3824fcc48bc851c34261d2d",
+    "crates/uctp/rvoip-uctp/src/v2/payloads.rs": "4c10278a5308731214ee1291113e4cac5377c678559d98a5b5a179fdbfbadf38",
+    "crates/uctp/rvoip-uctp/src/v2/tests.rs": "faff69ae1739d65546d78fef272649931264553c010c14867c8cebcf8544a7a7",
+    "crates/uctp/rvoip-uctp/src/v2/validation.rs": "52c3f4e0bcaf7ea26e340912086954ab5f71a7f2defc0fb9ebb22a62ad5de646"
+  },
+  "schema_vectors": 165,
+  "valid_type_vectors": 65,
+  "tests_passed": [
+    "v2::tests::rejects_oversize_before_decoding",
+    "v2::tests::rejects_duplicate_members_at_all_depths_and_trailing_documents",
+    "v2::tests::uncertain_operations_cannot_complete_cancel_or_retry_without_evidence",
+    "v2::tests::nested_identifiers_and_bounded_typed_errors",
+    "v2::tests::ignores_extensions_for_execution_but_retains_them_for_signatures",
+    "v2::tests::transport_and_logical_operation_ids_have_distinct_lifetimes",
+    "v2::tests::negotiation_selects_only_an_offered_supported_profile",
+    "v2::tests::validates_typed_transitions_and_retained_connection_relationships",
+    "v2::tests::message_body_limit_counts_decoded_bytes_not_unicode_characters",
+    "v2::tests::validates_ids_safe_revisions_scope_and_time",
+    "v2::tests::frozen_golden_vectors_decode_and_roundtrip_every_type"
+  ],
+  "private_log": ".local/gate-6/wire-types.log",
+  "log_sha256": "8d98e3dd5e6745eff2cdef08c1f2f7e0274739be94f7086a5b0e905acdf81e22",
+  "passed": true
+}

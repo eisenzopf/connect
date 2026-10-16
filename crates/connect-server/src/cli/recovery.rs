@@ -204,6 +204,10 @@ pub fn restore(
     websocket_bind: Option<SocketAddr>,
 ) -> Result<()> {
     let manifest = verified_manifest(backup)?;
+    anyhow::ensure!(
+        manifest.snapshot.schema == connect_store::SCHEMA_VERSION,
+        "Incompatible backup schema. Preserve it with its matching binary; Gate 6 requires explicit initialization of a new state path"
+    );
     let mut server = ServerConfig::load(&backup.join("server.toml"))?;
     server.bind = bind;
     server.websocket_bind = websocket_bind;
@@ -288,11 +292,15 @@ fn copy_private_file(source: &Path, destination: &Path) -> Result<()> {
 }
 
 pub fn migrate(server_path: &Path, operator_path: &Path, backup: &Path) -> Result<()> {
+    let manifest = verified_manifest(backup)?;
+    anyhow::ensure!(
+        manifest.snapshot.schema == connect_store::SCHEMA_VERSION,
+        "Gate 6 does not convert historical state. Preserve a verified backup with its matching binary, then explicitly initialize a new state path"
+    );
     let server = ServerConfig::load(server_path)?;
     let _lock = InstallationLock::acquire(&server.database)?;
     let operator = ClientConfig::load(operator_path)?;
     Store::authorize_recovery(&server.database, &operator.credential)?;
-    let manifest = verified_manifest(backup)?;
     let setup = setup_metadata::prepare(server_path, &server, &manifest)?;
     let snapshot = if manifest.snapshot.schema == connect_store::SCHEMA_VERSION
         && setup

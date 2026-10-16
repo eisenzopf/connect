@@ -1,0 +1,33 @@
+{
+  "task": "G6-029",
+  "executed_at": "2026-10-16T04:38:21.456276+00:00",
+  "schema": 19,
+  "passed": true,
+  "scope": "Current Connect store behavior, durable schema constraints, backup and restart fencing. Public server CLI verification is separate; live provider/media recovery remains unqualified.",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "connect-store"
+  ],
+  "tests_passed": 227,
+  "test_suites": 20,
+  "new_schema_tests": [
+    "gate6_constraints_reject_rebinding_stale_epoch_cross_owner_and_false_completion",
+    "gate6_snapshot_digest_covers_new_private_and_effect_metadata",
+    "gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims",
+    "gate6_incompatible_state_refusal_preserves_files_and_requires_explicit_new_path"
+  ],
+  "runtime_fence_test": "runtime_epoch::tests::opening_a_new_runtime_requires_fresh_connection_observations",
+  "retired_scope": "schema-boundary.json",
+  "source_sha256": {
+    "crates/connect-store/migrations/019_gate6.sql": "3a7f560f9cd62a6436efc0e4f075bc50a1139c14b8288006b2c6f60d32b6cc82",
+    "crates/connect-store/src/lib.rs": "f55779e2c33359bb76157b486e06a1acbc38de246d760c55a6599581437cd6a0",
+    "crates/connect-store/src/recovery.rs": "4b687a05c431c0b2c47a923f6b6a5d5d6568b10277067000694a971b5ff0d051",
+    "crates/connect-store/src/runtime_epoch.rs": "3aa776b218ef9a0095d38c75fe9c3c4001279d66b35f730763f881291408730b",
+    "crates/connect-store/tests/gate6_schema.rs": "96d10270867a20001ff91bf03200eb260c05c371ee65dfe4870660456134b105"
+  },
+  "private_log": ".local/gate-6/store-tests.log",
+  "log_sha256": "6ec48a45717db4b5de7c18b9d216c52c5a0831e1c520e41d9965bd4b69227ada"
+}

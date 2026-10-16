@@ -353,7 +353,7 @@ fn revoked_authority_cancels_pending_work_and_routes_cannot_retarget() {
     assert_eq!(deliveries[0].state, "cancelled");
 }
 #[test]
-fn provider_state_is_included_in_backup_and_v2_migration_preserves_messages() {
+fn provider_state_is_included_in_current_backup() {
     let f = fixture();
     f.bind(false);
     f.send("one", "hello");
@@ -367,81 +367,6 @@ fn provider_state_is_included_in_backup_and_v2_migration_preserves_messages() {
     let copy = Store::open(&backup, Limits::default()).unwrap();
     assert_eq!(copy.recover_provider_jobs().unwrap(), 0);
     assert!(copy.claim_provider_job().unwrap().is_some());
-    let legacy = f._dir.path().join("v2.sqlite3");
-    let c = rusqlite::Connection::open(&legacy).unwrap();
-    c.execute_batch(include_str!("../migrations/001_identity.sql"))
-        .unwrap();
-    c.execute_batch(include_str!("../migrations/002_conversations.sql"))
-        .unwrap();
-    c.execute("INSERT INTO installation VALUES(1,'legacy','key')", [])
-        .unwrap();
-    c.execute_batch(
-        "INSERT INTO identities VALUES('legacy-user','legacy-user','[\"messaging\"]');
-         INSERT INTO conversations VALUES('legacy-conversation',0);
-         INSERT INTO participants VALUES('legacy-conversation','legacy-user');
-         INSERT INTO messages(id,conversation_id,sender,body)
-           VALUES('legacy-message','legacy-conversation','legacy-user','preserve this message');
-         INSERT INTO journal(id,recipient,conversation_id,kind,message_id)
-           VALUES('legacy-event','legacy-user','legacy-conversation','message.accepted','legacy-message');",
-    )
-    .unwrap();
-    drop(c);
-    let b = f._dir.path().join("v2-backup.sqlite3");
-    let expected = Store::backup_database(&legacy, &b).unwrap();
-    assert_eq!(expected.schema, 2);
-    assert_eq!(
-        Store::migrate(&legacy, &b, &expected).unwrap().schema,
-        connect_store::SCHEMA_VERSION
-    );
-    assert_eq!(Store::inspect_snapshot(&b).unwrap(), expected);
-    let upgraded = Store::open(&legacy, Limits::default()).unwrap();
-    assert_eq!(
-        upgraded.identity("legacy-user").unwrap().alias,
-        "legacy-user"
-    );
-    let credential = upgraded
-        .issue(
-            "legacy-user",
-            Scope::operator(),
-            chrono::Utc::now().timestamp() + 600,
-        )
-        .unwrap();
-    let history = upgraded
-        .execute(
-            &credential.id,
-            &Operation::History {
-                conversation_id: "legacy-conversation".into(),
-                after: None,
-                limit: 100,
-            },
-        )
-        .unwrap();
-    match history {
-        Outcome::History { messages, .. } => {
-            assert_eq!(messages.len(), 1);
-            assert_eq!(messages[0].id, "legacy-message");
-            assert_eq!(messages[0].body, "preserve this message");
-        }
-        _ => panic!("expected migrated history"),
-    }
-    match upgraded
-        .execute(
-            &credential.id,
-            &Operation::Inbox {
-                cursor: None,
-                limit: 100,
-                wait_ms: 0,
-            },
-        )
-        .unwrap()
-    {
-        Outcome::Inbox { events, .. } => {
-            assert_eq!(events.len(), 1);
-            assert_eq!(events[0].id, "legacy-event");
-            assert_eq!(events[0].message.as_ref().unwrap().id, "legacy-message");
-        }
-        _ => panic!("expected migrated inbox"),
-    }
 }
 
 #[test]

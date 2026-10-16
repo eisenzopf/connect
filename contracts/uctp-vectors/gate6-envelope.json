@@ -1,0 +1,3169 @@
+{
+  "format": 1,
+  "scope": "Schema vectors; no runtime/authorization/media claim.",
+  "vectors": [
+    {
+      "id": "schema-auth.hello",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "auth.hello",
+        "id": "env_vector_0",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "device": {
+            "id": "example",
+            "kind": "example",
+            "platform": "example",
+            "sdk_version": "example"
+          },
+          "auth_methods": [],
+          "application_profiles": [
+            "example0"
+          ]
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-auth.hello",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "auth.hello",
+        "id": "env_vector_0",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "device": {
+            "id": "example",
+            "kind": "example",
+            "platform": "example",
+            "sdk_version": "example"
+          },
+          "auth_methods": [],
+          "application_profiles": [
+            "example0"
+          ]
+        }
+      }
+    },
+    {
+      "id": "schema-auth.challenge",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "auth.challenge",
+        "id": "env_vector_1",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "nonce": "example",
+          "accepted_methods": []
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-auth.challenge",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "auth.challenge",
+        "id": "env_vector_1",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "nonce": "example",
+          "accepted_methods": []
+        }
+      }
+    },
+    {
+      "id": "schema-auth.response",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "auth.response",
+        "id": "env_vector_2",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "method": "example",
+          "credential": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-auth.response",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "auth.response",
+        "id": "env_vector_2",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "method": "example",
+          "credential": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-auth.session",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "auth.session",
+        "id": "env_vector_3",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "identity_id": "example",
+          "participant_id": "example",
+          "session_token": "example",
+          "expires_at": "2026-10-15T12:00:00Z",
+          "assurance": "example",
+          "application_profile": "connect/2"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-auth.session",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "auth.session",
+        "id": "env_vector_3",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "identity_id": "example",
+          "participant_id": "example",
+          "session_token": "example",
+          "expires_at": "2026-10-15T12:00:00Z",
+          "assurance": "example",
+          "application_profile": "connect/2"
+        }
+      }
+    },
+    {
+      "id": "schema-auth.keepalive",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "auth.keepalive",
+        "id": "env_vector_4",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "session_token": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-auth.keepalive",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "auth.keepalive",
+        "id": "env_vector_4",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "session_token": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-auth.bye",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "auth.bye",
+        "id": "env_vector_5",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-auth.bye",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "auth.bye",
+        "id": "env_vector_5",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-auth.refresh",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "auth.refresh",
+        "id": "env_vector_6",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "method": "example",
+          "credential": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-auth.refresh",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "auth.refresh",
+        "id": "env_vector_6",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "method": "example",
+          "credential": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-conversation.create",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.create",
+        "id": "env_vector_7",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "tenant_id": "example",
+          "policy": "ephemeral"
+        },
+        "operation_id": "op_vector_7"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.create",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.create",
+        "id": "env_vector_7",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "tenant_id": "example",
+          "policy": "ephemeral"
+        },
+        "operation_id": "op_vector_7"
+      }
+    },
+    {
+      "id": "schema-missing-operation-conversation.create",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.create",
+        "id": "env_vector_7",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "tenant_id": "example",
+          "policy": "ephemeral"
+        }
+      }
+    },
+    {
+      "id": "schema-conversation.opened",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.opened",
+        "id": "env_vector_8",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "tenant_id": "example",
+          "policy": "ephemeral",
+          "participants": [],
+          "opened_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.opened",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.opened",
+        "id": "env_vector_8",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "tenant_id": "example",
+          "policy": "ephemeral",
+          "participants": [],
+          "opened_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-conversation.closed",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.closed",
+        "id": "env_vector_9",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example",
+          "closed_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.closed",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.closed",
+        "id": "env_vector_9",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example",
+          "closed_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-conversation.close",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.close",
+        "id": "env_vector_10",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {},
+        "operation_id": "op_vector_10"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.close",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.close",
+        "id": "env_vector_10",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {},
+        "operation_id": "op_vector_10"
+      }
+    },
+    {
+      "id": "schema-missing-operation-conversation.close",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.close",
+        "id": "env_vector_10",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-conversation.list",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.list",
+        "id": "env_vector_11",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.list",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.list",
+        "id": "env_vector_11",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-session.invite",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "example0"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.invite",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "example0"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
+      "id": "schema-missing-operation-session.invite",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "example0"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        }
+      }
+    },
+    {
+      "id": "schema-session.accept",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.accept",
+        "id": "env_vector_13",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "capabilities_answer": {}
+        },
+        "operation_id": "op_vector_13"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.accept",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.accept",
+        "id": "env_vector_13",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "capabilities_answer": {}
+        },
+        "operation_id": "op_vector_13"
+      }
+    },
+    {
+      "id": "schema-missing-operation-session.accept",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.accept",
+        "id": "env_vector_13",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "capabilities_answer": {}
+        }
+      }
+    },
+    {
+      "id": "schema-session.reject",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.reject",
+        "id": "env_vector_14",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_14"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.reject",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.reject",
+        "id": "env_vector_14",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_14"
+      }
+    },
+    {
+      "id": "schema-missing-operation-session.reject",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.reject",
+        "id": "env_vector_14",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-session.cancel",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.cancel",
+        "id": "env_vector_15",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_15"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.cancel",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.cancel",
+        "id": "env_vector_15",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_15"
+      }
+    },
+    {
+      "id": "schema-missing-operation-session.cancel",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.cancel",
+        "id": "env_vector_15",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-session.end",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.end",
+        "id": "env_vector_16",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_16"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.end",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.end",
+        "id": "env_vector_16",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_16"
+      }
+    },
+    {
+      "id": "schema-missing-operation-session.end",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.end",
+        "id": "env_vector_16",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-session.started",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.started",
+        "id": "env_vector_17",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "started_at": "2026-10-15T12:00:00Z",
+          "participants_present": [],
+          "active_connections": [],
+          "negotiated_capabilities": {}
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.started",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.started",
+        "id": "env_vector_17",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "started_at": "2026-10-15T12:00:00Z",
+          "participants_present": [],
+          "active_connections": [],
+          "negotiated_capabilities": {}
+        }
+      }
+    },
+    {
+      "id": "schema-session.ended",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.ended",
+        "id": "env_vector_18",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "ended_at": "2026-10-15T12:00:00Z",
+          "reason_code": 0,
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.ended",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.ended",
+        "id": "env_vector_18",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "ended_at": "2026-10-15T12:00:00Z",
+          "reason_code": 0,
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-session.update",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.update",
+        "id": "env_vector_19",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "kind": "participant-leave",
+          "details": {
+            "participant_id": "part_example"
+          }
+        },
+        "operation_id": "op_vector_19",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.update",
+        "id": "env_vector_19",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "kind": "participant-leave",
+          "details": {
+            "participant_id": "part_example"
+          }
+        },
+        "operation_id": "op_vector_19",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-session.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.update",
+        "id": "env_vector_19",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "kind": "participant-leave",
+          "details": {
+            "participant_id": "part_example"
+          }
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-session.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.update",
+        "id": "env_vector_19",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "kind": "participant-leave",
+          "details": {
+            "participant_id": "part_example"
+          }
+        },
+        "operation_id": "op_vector_19"
+      }
+    },
+    {
+      "id": "schema-session.participant.joined",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.participant.joined",
+        "id": "env_vector_20",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant": {
+            "participant_id": "example",
+            "identity_id": "example",
+            "kind": "example",
+            "role": "example",
+            "joined_at": "2026-10-15T12:00:00Z"
+          },
+          "via_connection": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.participant.joined",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.participant.joined",
+        "id": "env_vector_20",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant": {
+            "participant_id": "example",
+            "identity_id": "example",
+            "kind": "example",
+            "role": "example",
+            "joined_at": "2026-10-15T12:00:00Z"
+          },
+          "via_connection": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-session.participant.left",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.participant.left",
+        "id": "env_vector_21",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example",
+          "left_at": "2026-10-15T12:00:00Z",
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.participant.left",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.participant.left",
+        "id": "env_vector_21",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example",
+          "left_at": "2026-10-15T12:00:00Z",
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-connection.offer",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.offer",
+        "id": "env_vector_22",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "substrate": "example",
+          "capabilities": {},
+          "streams_offered": []
+        },
+        "operation_id": "op_vector_22"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-connection.offer",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "connection.offer",
+        "id": "env_vector_22",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "substrate": "example",
+          "capabilities": {},
+          "streams_offered": []
+        },
+        "operation_id": "op_vector_22"
+      }
+    },
+    {
+      "id": "schema-missing-operation-connection.offer",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.offer",
+        "id": "env_vector_22",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "substrate": "example",
+          "capabilities": {},
+          "streams_offered": []
+        }
+      }
+    },
+    {
+      "id": "schema-connection.answer",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.answer",
+        "id": "env_vector_23",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "substrate": "example",
+          "capabilities": {},
+          "streams_answered": []
+        },
+        "operation_id": "op_vector_23"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-connection.answer",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "connection.answer",
+        "id": "env_vector_23",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "substrate": "example",
+          "capabilities": {},
+          "streams_answered": []
+        },
+        "operation_id": "op_vector_23"
+      }
+    },
+    {
+      "id": "schema-missing-operation-connection.answer",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.answer",
+        "id": "env_vector_23",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "substrate": "example",
+          "capabilities": {},
+          "streams_answered": []
+        }
+      }
+    },
+    {
+      "id": "schema-connection.ready",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.ready",
+        "id": "env_vector_24",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "streams": [
+            {
+              "strm_id": "example",
+              "kind": "audio",
+              "codec": {},
+              "direction": "sendrecv",
+              "stream_local_id": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-connection.ready",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "connection.ready",
+        "id": "env_vector_24",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "streams": [
+            {
+              "strm_id": "example",
+              "kind": "audio",
+              "codec": {},
+              "direction": "sendrecv",
+              "stream_local_id": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "schema-connection.update",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "hold"
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-connection.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "hold"
+        },
+        "operation_id": "op_vector_25",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-connection.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "hold"
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-connection.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.update",
+        "id": "env_vector_25",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "action": "hold"
+        },
+        "operation_id": "op_vector_25"
+      }
+    },
+    {
+      "id": "schema-connection.end",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.end",
+        "id": "env_vector_26",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_26"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-connection.end",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "connection.end",
+        "id": "env_vector_26",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_26"
+      }
+    },
+    {
+      "id": "schema-missing-operation-connection.end",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.end",
+        "id": "env_vector_26",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-connection.ice-candidate",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.ice-candidate",
+        "id": "env_vector_27",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "candidate": "example",
+          "sdp_m_line_index": 0,
+          "sdp_mid": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-connection.ice-candidate",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "connection.ice-candidate",
+        "id": "env_vector_27",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "candidate": "example",
+          "sdp_m_line_index": 0,
+          "sdp_mid": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-stream.opened",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "stream.opened",
+        "id": "env_vector_28",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "stream": {
+            "strm_id": "example",
+            "kind": "audio",
+            "codec": {},
+            "direction": "sendrecv",
+            "stream_local_id": 1,
+            "opened_at": "2026-10-15T12:00:00Z"
+          }
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-stream.opened",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "stream.opened",
+        "id": "env_vector_28",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "stream": {
+            "strm_id": "example",
+            "kind": "audio",
+            "codec": {},
+            "direction": "sendrecv",
+            "stream_local_id": 1,
+            "opened_at": "2026-10-15T12:00:00Z"
+          }
+        }
+      }
+    },
+    {
+      "id": "schema-stream.closed",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "stream.closed",
+        "id": "env_vector_29",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "strm_id": "example",
+          "closed_at": "2026-10-15T12:00:00Z",
+          "reason_code": 0,
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-stream.closed",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "stream.closed",
+        "id": "env_vector_29",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "strm_id": "example",
+          "closed_at": "2026-10-15T12:00:00Z",
+          "reason_code": 0,
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-stream.subscribe",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "stream.subscribe",
+        "id": "env_vector_30",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "subscriptions": []
+        },
+        "operation_id": "op_vector_30",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-stream.subscribe",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "stream.subscribe",
+        "id": "env_vector_30",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "subscriptions": []
+        },
+        "operation_id": "op_vector_30",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-stream.subscribe",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "stream.subscribe",
+        "id": "env_vector_30",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "subscriptions": []
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-stream.subscribe",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "stream.subscribe",
+        "id": "env_vector_30",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "subscriptions": []
+        },
+        "operation_id": "op_vector_30"
+      }
+    },
+    {
+      "id": "schema-stream.unsubscribe",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "stream.unsubscribe",
+        "id": "env_vector_31",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "strm_ids": []
+        },
+        "operation_id": "op_vector_31",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-stream.unsubscribe",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "stream.unsubscribe",
+        "id": "env_vector_31",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "strm_ids": []
+        },
+        "operation_id": "op_vector_31",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-stream.unsubscribe",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "stream.unsubscribe",
+        "id": "env_vector_31",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "strm_ids": []
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-stream.unsubscribe",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "stream.unsubscribe",
+        "id": "env_vector_31",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "strm_ids": []
+        },
+        "operation_id": "op_vector_31"
+      }
+    },
+    {
+      "id": "schema-stream.active-speaker",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "stream.active-speaker",
+        "id": "env_vector_32",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "strm_id": "example",
+          "changed_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-stream.active-speaker",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "stream.active-speaker",
+        "id": "env_vector_32",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "strm_id": "example",
+          "changed_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-message.send",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "message.send",
+        "id": "env_vector_33",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "example",
+          "to": "all",
+          "content_type": "example",
+          "body": "example"
+        },
+        "operation_id": "op_vector_33"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-message.send",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "message.send",
+        "id": "env_vector_33",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "example",
+          "to": "all",
+          "content_type": "example",
+          "body": "example"
+        },
+        "operation_id": "op_vector_33"
+      }
+    },
+    {
+      "id": "schema-missing-operation-message.send",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "message.send",
+        "id": "env_vector_33",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "example",
+          "to": "all",
+          "content_type": "example",
+          "body": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-message.delivered",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "message.delivered",
+        "id": "env_vector_34",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "example",
+          "to_participant": "example",
+          "delivered_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-message.delivered",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "message.delivered",
+        "id": "env_vector_34",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "example",
+          "to_participant": "example",
+          "delivered_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-message.read",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "message.read",
+        "id": "env_vector_35",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "example",
+          "read_at": "2026-10-15T12:00:00Z"
+        },
+        "operation_id": "op_vector_35"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-message.read",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "message.read",
+        "id": "env_vector_35",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "example",
+          "read_at": "2026-10-15T12:00:00Z"
+        },
+        "operation_id": "op_vector_35"
+      }
+    },
+    {
+      "id": "schema-missing-operation-message.read",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "message.read",
+        "id": "env_vector_35",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "example",
+          "read_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "schema-message.history",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "message.history",
+        "id": "env_vector_36",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-unsupported-version-message.history",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "message.history",
+        "id": "env_vector_36",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-capability.advertise",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "capability.advertise",
+        "id": "env_vector_37",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "capabilities": {},
+          "trigger": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-capability.advertise",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "capability.advertise",
+        "id": "env_vector_37",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "capabilities": {},
+          "trigger": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-dtmf.send",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "dtmf.send",
+        "id": "env_vector_38",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "digits": "example",
+          "duration_ms": 0,
+          "method": "example"
+        },
+        "operation_id": "op_vector_38"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-dtmf.send",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "dtmf.send",
+        "id": "env_vector_38",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "digits": "example",
+          "duration_ms": 0,
+          "method": "example"
+        },
+        "operation_id": "op_vector_38"
+      }
+    },
+    {
+      "id": "schema-missing-operation-dtmf.send",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "dtmf.send",
+        "id": "env_vector_38",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "digits": "example",
+          "duration_ms": 0,
+          "method": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-dtmf.received",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "dtmf.received",
+        "id": "env_vector_39",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "digits": "example",
+          "duration_ms": 0,
+          "received_at": "2026-10-15T12:00:00Z",
+          "source": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-dtmf.received",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "dtmf.received",
+        "id": "env_vector_39",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "digits": "example",
+          "duration_ms": 0,
+          "received_at": "2026-10-15T12:00:00Z",
+          "source": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-recording.vcon-ready",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "recording.vcon-ready",
+        "id": "env_vector_40",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "vcon_handle": {},
+          "encrypted": false,
+          "signed_by": []
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-recording.vcon-ready",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "recording.vcon-ready",
+        "id": "env_vector_40",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "vcon_handle": {},
+          "encrypted": false,
+          "signed_by": []
+        }
+      }
+    },
+    {
+      "id": "schema-recording.vcon-fetch",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "recording.vcon-fetch",
+        "id": "env_vector_41",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-unsupported-version-recording.vcon-fetch",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "recording.vcon-fetch",
+        "id": "env_vector_41",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-recording.vcon-fetched",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "recording.vcon-fetched",
+        "id": "env_vector_42",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "delivery": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-recording.vcon-fetched",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "recording.vcon-fetched",
+        "id": "env_vector_42",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "delivery": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-connection.quality",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.quality",
+        "id": "env_vector_43",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "interval_ms": 0,
+          "streams": []
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-connection.quality",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "connection.quality",
+        "id": "env_vector_43",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "interval_ms": 0,
+          "streams": []
+        }
+      }
+    },
+    {
+      "id": "schema-identity.assurance-changed",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "identity.assurance-changed",
+        "id": "env_vector_44",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "previous": "example",
+          "current": "example",
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-identity.assurance-changed",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "identity.assurance-changed",
+        "id": "env_vector_44",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "previous": "example",
+          "current": "example",
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-identity.step-up-request",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "identity.step-up-request",
+        "id": "env_vector_45",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "required": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-identity.step-up-request",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "identity.step-up-request",
+        "id": "env_vector_45",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "required": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-identity.step-up-response",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "identity.step-up-response",
+        "id": "env_vector_46",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "method": "example",
+          "credential": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-identity.step-up-response",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "identity.step-up-response",
+        "id": "env_vector_46",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "method": "example",
+          "credential": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-error",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "error",
+        "id": "env_vector_47",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "code": 0,
+          "category": "example",
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-error",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "error",
+        "id": "env_vector_47",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "code": 0,
+          "category": "example",
+          "reason": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-ack",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "ack",
+        "id": "env_vector_48",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-unsupported-version-ack",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "ack",
+        "id": "env_vector_48",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-conversation.get",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.get",
+        "id": "env_vector_49",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.get",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.get",
+        "id": "env_vector_49",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-conversation.participant.add",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.add",
+        "id": "env_vector_50",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "identity_id": "example",
+          "kind": "human",
+          "role": "example"
+        },
+        "operation_id": "op_vector_50",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.participant.add",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.participant.add",
+        "id": "env_vector_50",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "identity_id": "example",
+          "kind": "human",
+          "role": "example"
+        },
+        "operation_id": "op_vector_50",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-conversation.participant.add",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.add",
+        "id": "env_vector_50",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "identity_id": "example",
+          "kind": "human",
+          "role": "example"
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-conversation.participant.add",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.add",
+        "id": "env_vector_50",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "identity_id": "example",
+          "kind": "human",
+          "role": "example"
+        },
+        "operation_id": "op_vector_50"
+      }
+    },
+    {
+      "id": "schema-conversation.participant.update",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.update",
+        "id": "env_vector_51",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example",
+          "role": "example"
+        },
+        "operation_id": "op_vector_51",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.participant.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.participant.update",
+        "id": "env_vector_51",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example",
+          "role": "example"
+        },
+        "operation_id": "op_vector_51",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-conversation.participant.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.update",
+        "id": "env_vector_51",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example",
+          "role": "example"
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-conversation.participant.update",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.update",
+        "id": "env_vector_51",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example",
+          "role": "example"
+        },
+        "operation_id": "op_vector_51"
+      }
+    },
+    {
+      "id": "schema-conversation.participant.remove",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.remove",
+        "id": "env_vector_52",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example"
+        },
+        "operation_id": "op_vector_52",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.participant.remove",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.participant.remove",
+        "id": "env_vector_52",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example"
+        },
+        "operation_id": "op_vector_52",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-conversation.participant.remove",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.remove",
+        "id": "env_vector_52",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example"
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-conversation.participant.remove",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.remove",
+        "id": "env_vector_52",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example"
+        },
+        "operation_id": "op_vector_52"
+      }
+    },
+    {
+      "id": "schema-conversation.participant.changed",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.participant.changed",
+        "id": "env_vector_53",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example",
+          "kind": "added",
+          "membership_epoch": 1
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.participant.changed",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.participant.changed",
+        "id": "env_vector_53",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "participant_id": "example",
+          "kind": "added",
+          "membership_epoch": 1
+        }
+      }
+    },
+    {
+      "id": "schema-conversation.subscribe",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.subscribe",
+        "id": "env_vector_54",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.subscribe",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.subscribe",
+        "id": "env_vector_54",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {}
+      }
+    },
+    {
+      "id": "schema-conversation.snapshot",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.snapshot",
+        "id": "env_vector_55",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "revision": 0,
+          "cursor": "example",
+          "items": [],
+          "has_more": false
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.snapshot",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.snapshot",
+        "id": "env_vector_55",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "revision": 0,
+          "cursor": "example",
+          "items": [],
+          "has_more": false
+        }
+      }
+    },
+    {
+      "id": "schema-conversation.event",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "conversation.event",
+        "id": "env_vector_56",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "event_id": "example",
+          "cursor": "example",
+          "kind": "example",
+          "revision": 0,
+          "data": {}
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-conversation.event",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "conversation.event",
+        "id": "env_vector_56",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "event_id": "example",
+          "cursor": "example",
+          "kind": "example",
+          "revision": 0,
+          "data": {}
+        }
+      }
+    },
+    {
+      "id": "schema-session.consult",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.consult",
+        "id": "env_vector_57",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "example",
+          "private_participants": [
+            "example0",
+            "example1"
+          ]
+        },
+        "operation_id": "op_vector_57",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.consult",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.consult",
+        "id": "env_vector_57",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "example",
+          "private_participants": [
+            "example0",
+            "example1"
+          ]
+        },
+        "operation_id": "op_vector_57",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-session.consult",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.consult",
+        "id": "env_vector_57",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "example",
+          "private_participants": [
+            "example0",
+            "example1"
+          ]
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-session.consult",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.consult",
+        "id": "env_vector_57",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "example",
+          "private_participants": [
+            "example0",
+            "example1"
+          ]
+        },
+        "operation_id": "op_vector_57"
+      }
+    },
+    {
+      "id": "schema-session.handoff",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.handoff",
+        "id": "env_vector_58",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "source_participant": "part_source",
+          "target_participant": "part_target",
+          "retained_connid": "conn_remote",
+          "outgoing": "leave",
+          "expected_conversation_revision": 1
+        },
+        "operation_id": "op_vector_58",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.handoff",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.handoff",
+        "id": "env_vector_58",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "source_participant": "part_source",
+          "target_participant": "part_target",
+          "retained_connid": "conn_remote",
+          "outgoing": "leave",
+          "expected_conversation_revision": 1
+        },
+        "operation_id": "op_vector_58",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-session.handoff",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.handoff",
+        "id": "env_vector_58",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "source_participant": "part_source",
+          "target_participant": "part_target",
+          "retained_connid": "conn_remote",
+          "outgoing": "leave",
+          "expected_conversation_revision": 1
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-session.handoff",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.handoff",
+        "id": "env_vector_58",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "source_participant": "part_source",
+          "target_participant": "part_target",
+          "retained_connid": "conn_remote",
+          "outgoing": "leave",
+          "expected_conversation_revision": 1
+        },
+        "operation_id": "op_vector_58"
+      }
+    },
+    {
+      "id": "schema-connection.replace",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "connection.replace",
+        "id": "env_vector_59",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "example",
+          "endpoint_id": "endpoint_example"
+        },
+        "operation_id": "op_vector_59",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-unsupported-version-connection.replace",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "connection.replace",
+        "id": "env_vector_59",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "example",
+          "endpoint_id": "endpoint_example"
+        },
+        "operation_id": "op_vector_59",
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-operation-connection.replace",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.replace",
+        "id": "env_vector_59",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "example",
+          "endpoint_id": "endpoint_example"
+        },
+        "expected_revision": 1
+      }
+    },
+    {
+      "id": "schema-missing-revision-connection.replace",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "connection.replace",
+        "id": "env_vector_59",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "example",
+          "endpoint_id": "endpoint_example"
+        },
+        "operation_id": "op_vector_59"
+      }
+    },
+    {
+      "id": "schema-operation.get",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "operation.get",
+        "id": "env_vector_60",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-operation.get",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "operation.get",
+        "id": "env_vector_60",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-operation.cancel",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "operation.cancel",
+        "id": "env_vector_61",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example"
+        },
+        "operation_id": "op_vector_61"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-operation.cancel",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "operation.cancel",
+        "id": "env_vector_61",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example"
+        },
+        "operation_id": "op_vector_61"
+      }
+    },
+    {
+      "id": "schema-missing-operation-operation.cancel",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.cancel",
+        "id": "env_vector_61",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-operation.reconcile",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "operation.reconcile",
+        "id": "env_vector_62",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "outcome": "completed",
+          "evidence_id": "example"
+        },
+        "operation_id": "op_vector_62"
+      }
+    },
+    {
+      "id": "schema-unsupported-version-operation.reconcile",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "operation.reconcile",
+        "id": "env_vector_62",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "outcome": "completed",
+          "evidence_id": "example"
+        },
+        "operation_id": "op_vector_62"
+      }
+    },
+    {
+      "id": "schema-missing-operation-operation.reconcile",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.reconcile",
+        "id": "env_vector_62",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "outcome": "completed",
+          "evidence_id": "example"
+        }
+      }
+    },
+    {
+      "id": "schema-operation.updated",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "accepted",
+          "revision": 0
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-operation.updated",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "accepted",
+          "revision": 0
+        }
+      }
+    },
+    {
+      "id": "schema-session.observation",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.observation",
+        "id": "env_vector_64",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "kind": "transcript",
+          "participant_id": "example",
+          "source": "example",
+          "correlation_id": "example",
+          "data": {}
+        }
+      }
+    },
+    {
+      "id": "schema-unsupported-version-session.observation",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 1,
+        "type": "session.observation",
+        "id": "env_vector_64",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "kind": "transcript",
+          "participant_id": "example",
+          "source": "example",
+          "correlation_id": "example",
+          "data": {}
+        }
+      }
+    }
+  ]
+}

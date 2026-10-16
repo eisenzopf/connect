@@ -1,0 +1,1736 @@
+{
+  "gate": 6,
+  "revision": 1,
+  "updated": "2026-10-15",
+  "status": "source-audited-runtime-unqualified",
+  "baseline": {
+    "repository": "eisenzopf/rvoip",
+    "revision": "f4d528eaabbac935bce9a6404d3ce4fdec35ed0f",
+    "document": "docs/CONVERSATION_PROTOCOL.md",
+    "registry": "crates/uctp/rvoip-uctp/src/types.rs",
+    "envelope_count": 49,
+    "prepared_source_revision": "ca7861af4c9920f6949422ae1f40507bf56ede97",
+    "comparison": "Protocol/model and payload source files compared to public upstream during planning; matched. Gate 6 freeze still required."
+  },
+  "target_revision": "UCTP envelope 2 / connect/2; frozen Gate 6 contract overlays",
+  "rules": [
+    "This file is the planning inventory, not a completed clause-level audit or test result.",
+    "G6-002 expands every normative clause and resolves spec/code contradictions.",
+    "Every existing envelope family and mandatory applicable requirement is in scope.",
+    "Unknown or not-implemented responses do not pass a mandatory behavior.",
+    "Breaking Connect pre-alpha API/SDK/schema changes are allowed; no legacy compatibility layer is required.",
+    "Optional or reserved classification requires a cited source rule or reviewed specification decision."
+  ],
+  "envelopes": [
+    {
+      "id": "U6-001",
+      "type": "auth.hello",
+      "family": "Authentication",
+      "spec_section": "§5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-026",
+        "G6-037",
+        "G6-048",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-17"
+      ],
+      "proof_focus": "Handshake, scope/expiry/refresh, supported methods, device binding and signed retry.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-001"
+    },
+    {
+      "id": "U6-002",
+      "type": "auth.challenge",
+      "family": "Authentication",
+      "spec_section": "§5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-026",
+        "G6-037",
+        "G6-048",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-17"
+      ],
+      "proof_focus": "Handshake, scope/expiry/refresh, supported methods, device binding and signed retry.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-002"
+    },
+    {
+      "id": "U6-003",
+      "type": "auth.response",
+      "family": "Authentication",
+      "spec_section": "§5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-026",
+        "G6-037",
+        "G6-048",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-17"
+      ],
+      "proof_focus": "Handshake, scope/expiry/refresh, supported methods, device binding and signed retry.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-003"
+    },
+    {
+      "id": "U6-004",
+      "type": "auth.session",
+      "family": "Authentication",
+      "spec_section": "§5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-026",
+        "G6-037",
+        "G6-048",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-17"
+      ],
+      "proof_focus": "Handshake, scope/expiry/refresh, supported methods, device binding and signed retry.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-004"
+    },
+    {
+      "id": "U6-005",
+      "type": "auth.keepalive",
+      "family": "Authentication",
+      "spec_section": "§5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-026",
+        "G6-037",
+        "G6-048",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-17"
+      ],
+      "proof_focus": "Handshake, scope/expiry/refresh, supported methods, device binding and signed retry.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-005"
+    },
+    {
+      "id": "U6-006",
+      "type": "auth.bye",
+      "family": "Authentication",
+      "spec_section": "§5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-026",
+        "G6-037",
+        "G6-048",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-17"
+      ],
+      "proof_focus": "Handshake, scope/expiry/refresh, supported methods, device binding and signed retry.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-006"
+    },
+    {
+      "id": "U6-007",
+      "type": "auth.refresh",
+      "family": "Authentication",
+      "spec_section": "§5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-026",
+        "G6-037",
+        "G6-048",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-17"
+      ],
+      "proof_focus": "Handshake, scope/expiry/refresh, supported methods, device binding and signed retry.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-007"
+    },
+    {
+      "id": "U6-008",
+      "type": "conversation.create",
+      "family": "Conversation",
+      "spec_section": "§7.1",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-004",
+        "G6-016",
+        "G6-029",
+        "G6-031",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-01",
+        "A6-02",
+        "A6-03",
+        "A6-10"
+      ],
+      "proof_focus": "Durable creation/list/close, participants, policy, authorization and snapshots.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-008"
+    },
+    {
+      "id": "U6-009",
+      "type": "conversation.opened",
+      "family": "Conversation",
+      "spec_section": "§7.1",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-004",
+        "G6-016",
+        "G6-029",
+        "G6-031",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-01",
+        "A6-02",
+        "A6-03",
+        "A6-10"
+      ],
+      "proof_focus": "Durable creation/list/close, participants, policy, authorization and snapshots.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-009"
+    },
+    {
+      "id": "U6-010",
+      "type": "conversation.closed",
+      "family": "Conversation",
+      "spec_section": "§7.1",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-004",
+        "G6-016",
+        "G6-029",
+        "G6-031",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-01",
+        "A6-02",
+        "A6-03",
+        "A6-10"
+      ],
+      "proof_focus": "Durable creation/list/close, participants, policy, authorization and snapshots.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-010"
+    },
+    {
+      "id": "U6-011",
+      "type": "conversation.close",
+      "family": "Conversation",
+      "spec_section": "§7.1",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-004",
+        "G6-016",
+        "G6-029",
+        "G6-031",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-01",
+        "A6-02",
+        "A6-03",
+        "A6-10"
+      ],
+      "proof_focus": "Durable creation/list/close, participants, policy, authorization and snapshots.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-011"
+    },
+    {
+      "id": "U6-012",
+      "type": "conversation.list",
+      "family": "Conversation",
+      "spec_section": "§7.1",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-004",
+        "G6-016",
+        "G6-029",
+        "G6-031",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-01",
+        "A6-02",
+        "A6-03",
+        "A6-10"
+      ],
+      "proof_focus": "Durable creation/list/close, participants, policy, authorization and snapshots.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-012"
+    },
+    {
+      "id": "U6-013",
+      "type": "session.invite",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-013"
+    },
+    {
+      "id": "U6-014",
+      "type": "session.accept",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-014"
+    },
+    {
+      "id": "U6-015",
+      "type": "session.reject",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-015"
+    },
+    {
+      "id": "U6-016",
+      "type": "session.cancel",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-016"
+    },
+    {
+      "id": "U6-017",
+      "type": "session.end",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-017"
+    },
+    {
+      "id": "U6-018",
+      "type": "session.started",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-018"
+    },
+    {
+      "id": "U6-019",
+      "type": "session.ended",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-019"
+    },
+    {
+      "id": "U6-020",
+      "type": "session.update",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-020"
+    },
+    {
+      "id": "U6-021",
+      "type": "session.participant.joined",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-021"
+    },
+    {
+      "id": "U6-022",
+      "type": "session.participant.left",
+      "family": "Session",
+      "spec_section": "§7.2–7.3",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-006",
+        "G6-016",
+        "G6-019",
+        "G6-020",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-07",
+        "A6-08",
+        "A6-09"
+      ],
+      "proof_focus": "Invite/accept/reject/cancel/end, presence, upgrades and corrected boundary rules.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-022"
+    },
+    {
+      "id": "U6-023",
+      "type": "connection.offer",
+      "family": "Connection",
+      "spec_section": "§7.4 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-023",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-054",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-13",
+        "A6-14",
+        "A6-17"
+      ],
+      "proof_focus": "Offer/answer/ready/update/end, ICE, media ownership and quality observations.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-023"
+    },
+    {
+      "id": "U6-024",
+      "type": "connection.answer",
+      "family": "Connection",
+      "spec_section": "§7.4 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-023",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-054",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-13",
+        "A6-14",
+        "A6-17"
+      ],
+      "proof_focus": "Offer/answer/ready/update/end, ICE, media ownership and quality observations.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-024"
+    },
+    {
+      "id": "U6-025",
+      "type": "connection.ready",
+      "family": "Connection",
+      "spec_section": "§7.4 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-023",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-054",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-13",
+        "A6-14",
+        "A6-17"
+      ],
+      "proof_focus": "Offer/answer/ready/update/end, ICE, media ownership and quality observations.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-025"
+    },
+    {
+      "id": "U6-026",
+      "type": "connection.update",
+      "family": "Connection",
+      "spec_section": "§7.4 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-023",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-054",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-13",
+        "A6-14",
+        "A6-17"
+      ],
+      "proof_focus": "Offer/answer/ready/update/end, ICE, media ownership and quality observations.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-026"
+    },
+    {
+      "id": "U6-027",
+      "type": "connection.end",
+      "family": "Connection",
+      "spec_section": "§7.4 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-023",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-054",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-13",
+        "A6-14",
+        "A6-17"
+      ],
+      "proof_focus": "Offer/answer/ready/update/end, ICE, media ownership and quality observations.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-027"
+    },
+    {
+      "id": "U6-028",
+      "type": "connection.ice-candidate",
+      "family": "Connection",
+      "spec_section": "§7.4 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-023",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-054",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-13",
+        "A6-14",
+        "A6-17"
+      ],
+      "proof_focus": "Offer/answer/ready/update/end, ICE, media ownership and quality observations.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-028"
+    },
+    {
+      "id": "U6-029",
+      "type": "stream.opened",
+      "family": "Stream",
+      "spec_section": "§7.7 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-050",
+        "G6-064",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-13",
+        "A6-14"
+      ],
+      "proof_focus": "Open/close/subscriptions/active-speaker, negotiated routing and bounded media.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-029"
+    },
+    {
+      "id": "U6-030",
+      "type": "stream.closed",
+      "family": "Stream",
+      "spec_section": "§7.7 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-050",
+        "G6-064",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-13",
+        "A6-14"
+      ],
+      "proof_focus": "Open/close/subscriptions/active-speaker, negotiated routing and bounded media.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-030"
+    },
+    {
+      "id": "U6-031",
+      "type": "stream.subscribe",
+      "family": "Stream",
+      "spec_section": "§7.7 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-050",
+        "G6-064",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-13",
+        "A6-14"
+      ],
+      "proof_focus": "Open/close/subscriptions/active-speaker, negotiated routing and bounded media.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-031"
+    },
+    {
+      "id": "U6-032",
+      "type": "stream.unsubscribe",
+      "family": "Stream",
+      "spec_section": "§7.7 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-050",
+        "G6-064",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-13",
+        "A6-14"
+      ],
+      "proof_focus": "Open/close/subscriptions/active-speaker, negotiated routing and bounded media.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-032"
+    },
+    {
+      "id": "U6-033",
+      "type": "stream.active-speaker",
+      "family": "Stream",
+      "spec_section": "§7.7 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-050",
+        "G6-064",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-13",
+        "A6-14"
+      ],
+      "proof_focus": "Open/close/subscriptions/active-speaker, negotiated routing and bounded media.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-033"
+    },
+    {
+      "id": "U6-034",
+      "type": "message.send",
+      "family": "Message",
+      "spec_section": "§9",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-04",
+        "A6-05"
+      ],
+      "proof_focus": "Recipient/content/reply/attachment semantics, history and delivery/read receipts.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-034"
+    },
+    {
+      "id": "U6-035",
+      "type": "message.delivered",
+      "family": "Message",
+      "spec_section": "§9",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-04",
+        "A6-05"
+      ],
+      "proof_focus": "Recipient/content/reply/attachment semantics, history and delivery/read receipts.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-035"
+    },
+    {
+      "id": "U6-036",
+      "type": "message.read",
+      "family": "Message",
+      "spec_section": "§9",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-04",
+        "A6-05"
+      ],
+      "proof_focus": "Recipient/content/reply/attachment semantics, history and delivery/read receipts.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-036"
+    },
+    {
+      "id": "U6-037",
+      "type": "message.history",
+      "family": "Message",
+      "spec_section": "§9",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-04",
+        "A6-05"
+      ],
+      "proof_focus": "Recipient/content/reply/attachment semantics, history and delivery/read receipts.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-037"
+    },
+    {
+      "id": "U6-038",
+      "type": "capability.advertise",
+      "family": "Capability",
+      "spec_section": "§8",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-06",
+        "A6-17"
+      ],
+      "proof_focus": "Advertisement, intersection, unsupported combinations and renegotiation.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-038"
+    },
+    {
+      "id": "U6-039",
+      "type": "dtmf.send",
+      "family": "DTMF",
+      "spec_section": "§7.5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-024",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-17"
+      ],
+      "proof_focus": "Send/receive on an authorized live connection, supported method and attribution.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-039"
+    },
+    {
+      "id": "U6-040",
+      "type": "dtmf.received",
+      "family": "DTMF",
+      "spec_section": "§7.5",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-024",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-17"
+      ],
+      "proof_focus": "Send/receive on an authorized live connection, supported method and attribution.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-040"
+    },
+    {
+      "id": "U6-041",
+      "type": "recording.vcon-ready",
+      "family": "Recording / vCon",
+      "spec_section": "§7.6",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-009",
+        "G6-027",
+        "G6-046",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-05",
+        "A6-18"
+      ],
+      "proof_focus": "Record readiness/retrieval, schema, media references, privacy and lifecycle.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-041"
+    },
+    {
+      "id": "U6-042",
+      "type": "recording.vcon-fetch",
+      "family": "Recording / vCon",
+      "spec_section": "§7.6",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-009",
+        "G6-027",
+        "G6-046",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-05",
+        "A6-18"
+      ],
+      "proof_focus": "Record readiness/retrieval, schema, media references, privacy and lifecycle.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-042"
+    },
+    {
+      "id": "U6-043",
+      "type": "recording.vcon-fetched",
+      "family": "Recording / vCon",
+      "spec_section": "§7.6",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-009",
+        "G6-027",
+        "G6-046",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-05",
+        "A6-18"
+      ],
+      "proof_focus": "Record readiness/retrieval, schema, media references, privacy and lifecycle.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-043"
+    },
+    {
+      "id": "U6-044",
+      "type": "connection.quality",
+      "family": "Connection",
+      "spec_section": "§7.4 / §10",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-016",
+        "G6-023",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-054",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-09",
+        "A6-13",
+        "A6-14",
+        "A6-17"
+      ],
+      "proof_focus": "Offer/answer/ready/update/end, ICE, media ownership and quality observations.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-044"
+    },
+    {
+      "id": "U6-045",
+      "type": "identity.assurance-changed",
+      "family": "Identity assurance",
+      "spec_section": "§5.6–5.8",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-017",
+        "G6-026",
+        "G6-046",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-03",
+        "A6-17"
+      ],
+      "proof_focus": "Assurance provenance, step-up request/response, expiry and policy enforcement.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-045"
+    },
+    {
+      "id": "U6-046",
+      "type": "identity.step-up-request",
+      "family": "Identity assurance",
+      "spec_section": "§5.6–5.8",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-017",
+        "G6-026",
+        "G6-046",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-03",
+        "A6-17"
+      ],
+      "proof_focus": "Assurance provenance, step-up request/response, expiry and policy enforcement.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-046"
+    },
+    {
+      "id": "U6-047",
+      "type": "identity.step-up-response",
+      "family": "Identity assurance",
+      "spec_section": "§5.6–5.8",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-017",
+        "G6-026",
+        "G6-046",
+        "G6-055",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-03",
+        "A6-17"
+      ],
+      "proof_focus": "Assurance provenance, step-up request/response, expiry and policy enforcement.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-047"
+    },
+    {
+      "id": "U6-048",
+      "type": "error",
+      "family": "Errors / acknowledgment",
+      "spec_section": "§11",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-10",
+        "A6-17"
+      ],
+      "proof_focus": "Typed correlated errors, meaningful acceptance/outcomes and safe retries.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-048"
+    },
+    {
+      "id": "U6-049",
+      "type": "ack",
+      "family": "Errors / acknowledgment",
+      "spec_section": "§11",
+      "status": "mapped-runtime-not-qualified",
+      "coverage": "Required inventory item; exact mandatory/conditional clauses are frozen in G6-002, never inferred from parser support.",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "acceptance": [
+        "A6-02",
+        "A6-10",
+        "A6-17"
+      ],
+      "proof_focus": "Typed correlated errors, meaningful acceptance/outcomes and safe retries.",
+      "evidence": [
+        "../contracts/uctp-gate-6-requirements.json"
+      ],
+      "payload_ledger_id": "U6-049"
+    }
+  ],
+  "normative_areas": [
+    {
+      "id": "N6-01",
+      "title": "Envelope and version contract",
+      "source_sections": "§3 / §16",
+      "scope": "IDs, scope/correlation, timestamp meaning, unknown data, bounds and version refusal.",
+      "implementation_items": [
+        "G6-002",
+        "G6-003",
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-02",
+      "title": "Transport framing",
+      "source_sections": "§4 / §10",
+      "scope": "QUIC reliable streams/datagrams, HTTP3/WT, WSS/WebRTC bindings, byte framing and limits.",
+      "implementation_items": [
+        "G6-011",
+        "G6-016",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-094"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-03",
+      "title": "Identity and authentication",
+      "source_sections": "§5",
+      "scope": "Principal/device/participant binding, assurance, supported signing, refresh/revocation and tenant scope.",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-04",
+      "title": "Conversation lifetime",
+      "source_sections": "§7.1",
+      "scope": "Persistence, closure policy, metadata, membership and authorized listing.",
+      "implementation_items": [
+        "G6-004",
+        "G6-029",
+        "G6-031",
+        "G6-037"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-05",
+      "title": "Session boundaries",
+      "source_sections": "§7.2–7.3",
+      "scope": "Active/ended transitions, reconnect grace, concurrent participants and terminal races.",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-019",
+        "G6-038",
+        "G6-047"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-06",
+      "title": "Connection and replacement",
+      "source_sections": "§7.4",
+      "scope": "Ownership, readiness, negotiation, hold/mute, retained/replaced IDs and cancellation.",
+      "implementation_items": [
+        "G6-006",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-039",
+        "G6-040",
+        "G6-041"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-07",
+      "title": "Streams and multiparty",
+      "source_sections": "§7.7 / §10",
+      "scope": "Capabilities, fanout/subscriptions, heterogeneous streams, media graph and flow control.",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-050",
+        "G6-064"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-08",
+      "title": "Messaging and records",
+      "source_sections": "§9",
+      "scope": "Recipients, typed bytes, replies, receipts, history pagination, files and visibility.",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-09",
+      "title": "Capability negotiation",
+      "source_sections": "§8",
+      "scope": "Intersection, unsupported combinations, re-advertisement and transcoding policy.",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-10",
+      "title": "Signaling and observations",
+      "source_sections": "§7.5 / §10.3",
+      "scope": "DTMF and quality schema, scope, source and meaningful observed values.",
+      "implementation_items": [
+        "G6-024",
+        "G6-025",
+        "G6-043",
+        "G6-046"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-11",
+      "title": "vCon and retention",
+      "source_sections": "§7.6 / §14",
+      "scope": "Required outcome records, schema linkage, capture policy, retrieval, redaction and deletion.",
+      "implementation_items": [
+        "G6-009",
+        "G6-027",
+        "G6-046"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-12",
+      "title": "Errors and retry",
+      "source_sections": "§5.5 / §11",
+      "scope": "Anti-replay versus operation retry, accepted/completed distinction, conflicts and unknown outcomes.",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-026",
+        "G6-035",
+        "G6-037",
+        "G6-047"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-13",
+      "title": "Gateway boundary",
+      "source_sections": "§12",
+      "scope": "SIP/WebRTC/provider mapping, addressed endpoints, incoming routing and actual media proof.",
+      "implementation_items": [
+        "G6-015",
+        "G6-024",
+        "G6-032",
+        "G6-044",
+        "G6-045",
+        "G6-054",
+        "G6-067",
+        "G6-100"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-14",
+      "title": "Extension and privacy rules",
+      "source_sections": "§14–16 plus Gate 6 additions",
+      "scope": "Audience-safe replay/context, subscriptions, action observations and extension negotiation.",
+      "implementation_items": [
+        "G6-002",
+        "G6-005",
+        "G6-008",
+        "G6-010",
+        "G6-013",
+        "G6-036",
+        "G6-042",
+        "G6-043"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    },
+    {
+      "id": "N6-15",
+      "title": "Operating limits",
+      "source_sections": "§14 plus frozen Gate 6 profile",
+      "scope": "Rate/backpressure limits, queues, retention windows, teardown, workload and resources.",
+      "implementation_items": [
+        "G6-011",
+        "G6-024",
+        "G6-036",
+        "G6-057",
+        "G6-092",
+        "G6-098"
+      ],
+      "status": "not-assessed",
+      "evidence": []
+    }
+  ],
+  "proposed_additions": [
+    {
+      "id": "P6-01",
+      "title": "Membership, scoped role and historical access",
+      "scope": "Clarify conversation membership versus live session presence and implement explicit changes.",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-019",
+        "G6-031"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    },
+    {
+      "id": "P6-02",
+      "title": "Endpoint provisioning and discovery",
+      "scope": "Standardize shared discovery/capability semantics; define trusted provisioning in an explicit application/admin profile.",
+      "implementation_items": [
+        "G6-004",
+        "G6-011",
+        "G6-017",
+        "G6-030",
+        "G6-032",
+        "G6-055",
+        "G6-066"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    },
+    {
+      "id": "P6-03",
+      "title": "Private consultation",
+      "scope": "Specify isolated media audience, held remote treatment, context and cancellation.",
+      "implementation_items": [
+        "G6-005",
+        "G6-006",
+        "G6-021",
+        "G6-039"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    },
+    {
+      "id": "P6-04",
+      "title": "Participant handoff",
+      "scope": "Specify generic readiness-gated role/speaking transfer and outgoing disposition.",
+      "implementation_items": [
+        "G6-006",
+        "G6-022",
+        "G6-040"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    },
+    {
+      "id": "P6-05",
+      "title": "Device replacement",
+      "scope": "Specify same-participant endpoint replacement and confirmation with stable retained IDs.",
+      "implementation_items": [
+        "G6-006",
+        "G6-023",
+        "G6-041"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    },
+    {
+      "id": "P6-06",
+      "title": "Durable operation status and reconciliation",
+      "scope": "Separate logical operation IDs from envelope anti-replay; define observable progress and uncertainty.",
+      "implementation_items": [
+        "G6-007",
+        "G6-035",
+        "G6-047"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    },
+    {
+      "id": "P6-07",
+      "title": "Snapshots and resumable events",
+      "scope": "Specify authoritative cursor recovery, authorization, expiry and backpressure.",
+      "implementation_items": [
+        "G6-008",
+        "G6-036",
+        "G6-052"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    },
+    {
+      "id": "P6-08",
+      "title": "Audience-safe records and context",
+      "scope": "Specify visibility of receipts/history/files/transcripts/vCon and bounded AI projections.",
+      "implementation_items": [
+        "G6-005",
+        "G6-009",
+        "G6-034",
+        "G6-042",
+        "G6-046"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    },
+    {
+      "id": "P6-09",
+      "title": "Agent observations and action requests",
+      "scope": "Normalize attributed observations and requests without treating model intent as authority.",
+      "implementation_items": [
+        "G6-008",
+        "G6-025",
+        "G6-043",
+        "G6-073"
+      ],
+      "status": "proposed-semantics-wire-names-not-frozen"
+    }
+  ],
+  "normative_ledger": "../contracts/uctp-gate-6-requirements.json",
+  "audit_summary": {
+    "sections": 99,
+    "source_clauses": 207,
+    "baseline_envelopes": 49,
+    "specified_resolutions": 12
+  }
+}

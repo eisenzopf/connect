@@ -1,0 +1,4631 @@
+{
+  "gate": 6,
+  "task": "G6-013",
+  "status": "contract-test-design-complete-runtime-lanes-unrun",
+  "target": {
+    "envelope_version": 2,
+    "native_alpn": "uctp/2",
+    "application_profile": "connect/2",
+    "media_datagram_version": 1,
+    "media_profile": "rtp-datagram/1",
+    "legacy_connect_compatibility": false
+  },
+  "lanes": [
+    {
+      "id": "contract",
+      "scope": "Schema, wire IDs, state graph, source ledger and traceability.",
+      "runner_or_task": "scripts/check-gate6-contracts.py",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "independent-conformance",
+      "scope": "All mandatory clause/canonical command families and independently encoded/decoded media.",
+      "runner_or_task": "G6-094",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "sdk",
+      "scope": "Installed Rust/browser/Node/Python control, events, media roles, errors and managed helpers.",
+      "runner_or_task": "G6-070",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "privacy-recovery",
+      "scope": "Audiences, revocation, crashes, races, late callbacks and private audio.",
+      "runner_or_task": "G6-096",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "transports",
+      "scope": "Native QUIC, Chrome WT/fallback, Firefox fallback and supported remote host.",
+      "runner_or_task": "G6-095",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "regression",
+      "scope": "Retained capabilities expressed through the new API and explicit state handling.",
+      "runner_or_task": "G6-097",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "quality-load",
+      "scope": "Clean/impaired transitions, limits, decoded media, cleanup and separate resources.",
+      "runner_or_task": "G6-098",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "human-contribution",
+      "scope": "Three fresh developers plus independent connector/client implementers.",
+      "runner_or_task": "G6-099",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "actual-model",
+      "scope": "Bounded actual model with fixture communications.",
+      "runner_or_task": "G6-080",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "live-provider",
+      "scope": "Designated real AI/SIP/SMS/telephone endpoints and cleanup.",
+      "runner_or_task": "G6-100",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "release",
+      "scope": "Matching installed runtime/packages/source/protocol kit and owner review.",
+      "runner_or_task": "G6-102\u2013105",
+      "runtime_result": "not-run"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R6-01",
+      "criteria": [
+        "A6-01"
+      ]
+    },
+    {
+      "id": "R6-02",
+      "criteria": [
+        "A6-02",
+        "A6-16",
+        "A6-17",
+        "A6-18"
+      ]
+    },
+    {
+      "id": "R6-03",
+      "criteria": [
+        "A6-03",
+        "A6-05"
+      ]
+    },
+    {
+      "id": "R6-04",
+      "criteria": [
+        "A6-04",
+        "A6-05"
+      ]
+    },
+    {
+      "id": "R6-05",
+      "criteria": [
+        "A6-06"
+      ]
+    },
+    {
+      "id": "R6-06",
+      "criteria": [
+        "A6-07"
+      ]
+    },
+    {
+      "id": "R6-07",
+      "criteria": [
+        "A6-08"
+      ]
+    },
+    {
+      "id": "R6-08",
+      "criteria": [
+        "A6-09"
+      ]
+    },
+    {
+      "id": "R6-09",
+      "criteria": [
+        "A6-10"
+      ]
+    },
+    {
+      "id": "R6-10",
+      "criteria": [
+        "A6-11"
+      ]
+    },
+    {
+      "id": "R6-11",
+      "criteria": [
+        "A6-12",
+        "A6-28"
+      ]
+    },
+    {
+      "id": "R6-12",
+      "criteria": [
+        "A6-13",
+        "A6-14",
+        "A6-15"
+      ]
+    },
+    {
+      "id": "R6-13",
+      "criteria": [
+        "A6-19"
+      ]
+    },
+    {
+      "id": "R6-14",
+      "criteria": [
+        "A6-20",
+        "A6-21"
+      ]
+    },
+    {
+      "id": "R6-15",
+      "criteria": [
+        "A6-24",
+        "A6-25"
+      ]
+    },
+    {
+      "id": "R6-16",
+      "criteria": [
+        "A6-16",
+        "A6-17",
+        "A6-18",
+        "A6-22",
+        "A6-23",
+        "A6-28"
+      ]
+    },
+    {
+      "id": "R6-17",
+      "criteria": [
+        "A6-26",
+        "A6-27"
+      ]
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "A6-01",
+      "implementation_items": [
+        "G6-002",
+        "G6-004",
+        "G6-006",
+        "G6-014",
+        "G6-016",
+        "G6-017",
+        "G6-019",
+        "G6-028",
+        "G6-059",
+        "G6-083",
+        "G6-089",
+        "G6-103"
+      ],
+      "required_proof": "Publish the revised six-noun model and UCTP semantic decisions, with lifecycle diagrams and invariants for membership, live presence, role, audience, handoff, device replacement and logical versus physical stream IDs. Every change traces to a Parley journey or an existing protocol requirement; model, schemas and SDK naming agree.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-02",
+      "implementation_items": [
+        "G6-002",
+        "G6-003",
+        "G6-007",
+        "G6-008",
+        "G6-009",
+        "G6-010",
+        "G6-013",
+        "G6-014",
+        "G6-016",
+        "G6-018",
+        "G6-020",
+        "G6-024",
+        "G6-026",
+        "G6-027",
+        "G6-028",
+        "G6-033",
+        "G6-037",
+        "G6-046",
+        "G6-049",
+        "G6-051",
+        "G6-083",
+        "G6-085",
+        "G6-092",
+        "G6-094",
+        "G6-101",
+        "G6-103"
+      ],
+      "required_proof": "Freeze exact specification/schema revisions and map every baseline envelope, every normative clause and each approved addition to implementation, positive/negative vectors and a result. Resolve conflicting lifecycle, retry, signature and version rules. All mandatory applicable requirements pass; optional and reserved behavior is explicitly negotiated and documented. Recognizing a type or returning not-implemented does not satisfy a required operation.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-03",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-019",
+        "G6-029",
+        "G6-030",
+        "G6-031",
+        "G6-032",
+        "G6-038",
+        "G6-041",
+        "G6-045",
+        "G6-055",
+        "G6-066",
+        "G6-075",
+        "G6-096"
+      ],
+      "required_proof": "A trusted backend provisions identities, conversation participants and verified browser/native/SIP/telephone/message endpoints using a supported API. Ordinary clients discover only permitted contacts, roles, capabilities and fresh reachability, and address participants rather than installation route IDs. Test multiple devices, invitation and removal, endpoint revocation, ambiguity, tenant boundaries and unauthorized provisioning.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-04",
+      "implementation_items": [
+        "G6-005",
+        "G6-010",
+        "G6-018",
+        "G6-029",
+        "G6-033",
+        "G6-034",
+        "G6-037",
+        "G6-044",
+        "G6-045",
+        "G6-074",
+        "G6-075",
+        "G6-096",
+        "G6-097"
+      ],
+      "required_proof": "Send typed text/JSON/binary or attachment-backed messages to one, several or all authorized participants; correlate replies and expose recipient-specific accepted, delivered, read, failed and unknown observations without inventing provider receipts. Verify offline history, pagination, file integrity, duplicate/reordered callbacks, receipt suppression, changed-payload replay and ambiguous inbound routing.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-05",
+      "implementation_items": [
+        "G6-005",
+        "G6-008",
+        "G6-009",
+        "G6-010",
+        "G6-018",
+        "G6-021",
+        "G6-027",
+        "G6-029",
+        "G6-031",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-039",
+        "G6-040",
+        "G6-042",
+        "G6-045",
+        "G6-046",
+        "G6-055",
+        "G6-075",
+        "G6-076",
+        "G6-078",
+        "G6-083",
+        "G6-096",
+        "G6-101"
+      ],
+      "required_proof": "Prove a non-recipient cannot obtain private message bodies, attachments, transcript fragments, consultation events, recordings or derived AI context through live delivery, history, snapshots, search, export, replay or cached links. Membership removal, role change, revoked credentials and post-send joins obey the published access policy. Receipt and identifier metadata obey the same visibility boundary.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-06",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-011",
+        "G6-017",
+        "G6-019",
+        "G6-020",
+        "G6-022",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-050",
+        "G6-051",
+        "G6-064",
+        "G6-095",
+        "G6-098"
+      ],
+      "required_proof": "Use the public SDK to invite, accept, reject, cancel, join, leave, upgrade and end multi-participant sessions. Qualify at least four participants and six connection slots, including pending replacements, with negotiated heterogeneous audio/video/screen/data and stream subscriptions. Ending a connection or leaving does not accidentally end other participants or close the conversation. Unsupported combinations fail before effects.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-07",
+      "implementation_items": [
+        "G6-005",
+        "G6-006",
+        "G6-021",
+        "G6-031",
+        "G6-039",
+        "G6-042",
+        "G6-047",
+        "G6-071",
+        "G6-076",
+        "G6-079",
+        "G6-083",
+        "G6-096",
+        "G6-098",
+        "G6-100"
+      ],
+      "required_proof": "During an active organizer call, retain the original remote Connection and main Session, deliver the declared hold experience, and establish private human/AI consultation. Audio markers and visibility probes prove isolation in both directions, including transcripts and model context. Decline, timeout, media failure, cancellation and remote hangup leave an explicitly reconciled usable or ended state.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-08",
+      "implementation_items": [
+        "G6-006",
+        "G6-019",
+        "G6-022",
+        "G6-025",
+        "G6-035",
+        "G6-040",
+        "G6-047",
+        "G6-071",
+        "G6-076",
+        "G6-079",
+        "G6-083",
+        "G6-096",
+        "G6-098",
+        "G6-100"
+      ],
+      "required_proof": "An authorized AI-to-human and human-to-AI handoff waits for the new participant and verified media readiness, then commits the speaking/role transition while retaining the remote Connection and main Session. Prove consent/policy hooks, observer or leave disposition, duplicate requests, competing handoffs, revocation and failures before/after commit. A requested action or accepted command is not reported as completed media.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-09",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-017",
+        "G6-023",
+        "G6-032",
+        "G6-035",
+        "G6-041",
+        "G6-044",
+        "G6-047",
+        "G6-052",
+        "G6-071",
+        "G6-077",
+        "G6-079",
+        "G6-083",
+        "G6-096",
+        "G6-098",
+        "G6-100"
+      ],
+      "required_proof": "Move the same participant between browser/native endpoints and a provisioned telephone endpoint in the existing Session. Keep the original route until replacement media and configured endpoint confirmation are ready; retire only the intended old leg. Verify DTMF confirmation where selected, cancellation, no-answer, voicemail, wrong endpoint, late callbacks, lost acknowledgments, transport migration and restart reconciliation.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-10",
+      "implementation_items": [
+        "G6-003",
+        "G6-006",
+        "G6-007",
+        "G6-008",
+        "G6-010",
+        "G6-022",
+        "G6-023",
+        "G6-026",
+        "G6-029",
+        "G6-031",
+        "G6-033",
+        "G6-035",
+        "G6-036",
+        "G6-037",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-043",
+        "G6-045",
+        "G6-047",
+        "G6-051",
+        "G6-052",
+        "G6-057",
+        "G6-062",
+        "G6-063",
+        "G6-070",
+        "G6-073",
+        "G6-077",
+        "G6-078",
+        "G6-079",
+        "G6-088",
+        "G6-096"
+      ],
+      "required_proof": "Separate fresh envelope IDs and anti-replay checks from stable logical operation IDs. Accepted mutations expose queryable state and authorized cursor-based events across reconnect/restart; same ID with different content conflicts. Revocation is enforced on retry and dispatch. Exercise crashes around external submission and media commit, stale expected revisions, event gaps, slow consumers and unknown outcomes without blind redial or an exactly-once provider claim.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-11",
+      "implementation_items": [
+        "G6-005",
+        "G6-008",
+        "G6-009",
+        "G6-021",
+        "G6-025",
+        "G6-036",
+        "G6-039",
+        "G6-040",
+        "G6-042",
+        "G6-043",
+        "G6-044",
+        "G6-062",
+        "G6-063",
+        "G6-065",
+        "G6-070",
+        "G6-071",
+        "G6-073",
+        "G6-074",
+        "G6-076",
+        "G6-078",
+        "G6-080",
+        "G6-084",
+        "G6-097",
+        "G6-100"
+      ],
+      "required_proof": "A separate worker receives attributed speech/transcript/action observations and current bounded context, then submits authorized decisions through Connect. Private consultation initializes a fresh provider context as needed while retaining logical participant identity. Show context delivery receipts, interrupted/incomplete transcripts, unsupported provider events, repeated tool requests and a later message using a verified call outcome. Preserve ordinary agent keys and existing optional task/MCP workflows.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-12",
+      "implementation_items": [
+        "G6-025",
+        "G6-032",
+        "G6-043",
+        "G6-044",
+        "G6-045",
+        "G6-067",
+        "G6-068",
+        "G6-075",
+        "G6-086",
+        "G6-087",
+        "G6-100"
+      ],
+      "required_proof": "Vapi, Telnyx and a separately implemented fixture use the published extension contracts for provisioning, addressed messaging, inbound routing, live-media admission/control, observations and reconciliation. Install the fixture through trusted composition without modifying core policy or routing logic. Exercise callback authentication, deduplication, uncertain effects, teardown and capability refusal; a media fixture alone cannot qualify a live provider.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-13",
+      "implementation_items": [
+        "G6-009",
+        "G6-011",
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-052",
+        "G6-054",
+        "G6-058",
+        "G6-060",
+        "G6-064",
+        "G6-094",
+        "G6-095",
+        "G6-098"
+      ],
+      "required_proof": "Independent native processes use canonical UCTP control and identified bidirectional audio/video/data through Connect, including native/native and native/browser paths. Verify media framing, negotiated codecs, stream lifecycle, fragmentation/deadlines, quality feedback, reconnection and transport migration. Durable application state and authorization remain the same across transport changes.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-14",
+      "implementation_items": [
+        "G6-009",
+        "G6-011",
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-052",
+        "G6-054",
+        "G6-058",
+        "G6-061",
+        "G6-074",
+        "G6-095",
+        "G6-098"
+      ],
+      "required_proof": "The browser SDK uses UCTP over WebTransport for signaling and supported media, and UCTP over WSS plus WebRTC when the preferred path is unavailable. Demonstrate decoded duplex audio/video, screen capture and data, forced UDP/WT failure, permission denial, ICE/TURN recovery and authorized resume without duplicated accepted effects. Qualify named Chrome versions for both paths and Firefox for WSS/WebRTC; other browsers have explicit support status.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-15",
+      "implementation_items": [
+        "G6-011",
+        "G6-030",
+        "G6-048",
+        "G6-049",
+        "G6-052",
+        "G6-053",
+        "G6-054",
+        "G6-055",
+        "G6-056",
+        "G6-057",
+        "G6-058",
+        "G6-066",
+        "G6-086",
+        "G6-088",
+        "G6-093",
+        "G6-095",
+        "G6-098",
+        "G6-100"
+      ],
+      "required_proof": "Install the candidate on the named Linux x86_64 host and connect remote native/browser clients through verified TLS, HTTPS/WSS/HTTP3 and the documented NAT/ICE/TURN configuration. Prove scoped credentials, origin policy, trusted proxy behavior, endpoint isolation, certificate/secret rotation, graceful shutdown and backup/restore. No insecure certificate bypass or exposed provider key is required. Preserve the simple local macOS arm64 setup.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-16",
+      "implementation_items": [
+        "G6-002",
+        "G6-003",
+        "G6-013",
+        "G6-016",
+        "G6-028",
+        "G6-037",
+        "G6-085",
+        "G6-087",
+        "G6-092",
+        "G6-094",
+        "G6-103"
+      ],
+      "required_proof": "Use a separately written client with its own parser, state machine and QUIC/HTTP3 runtime to execute all mandatory command/event families and the Parley lifecycle against Connect. Decode/encode the selected native media profile independently; do not call Connect/rvoip/helper code. Apply version, malformed-envelope, privacy, authorization, conflict, transport/fallback and recovery vectors. Publish reusable vectors and bounded reproducible results.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-17",
+      "implementation_items": [
+        "G6-002",
+        "G6-007",
+        "G6-009",
+        "G6-016",
+        "G6-020",
+        "G6-023",
+        "G6-024",
+        "G6-026",
+        "G6-037",
+        "G6-041",
+        "G6-046",
+        "G6-048",
+        "G6-053",
+        "G6-055",
+        "G6-058",
+        "G6-065",
+        "G6-085",
+        "G6-094",
+        "G6-096",
+        "G6-103"
+      ],
+      "required_proof": "Execute the frozen requirements for authentication/refresh/expiry, supported signing and assurance/step-up, capability changes, DTMF, quality observations, errors and acknowledgments. Provenance, expiry and authorization remain distinct from claimed identity or role. Enforce typed limits and explicit unsupported experimental auth methods; no mandatory authentication or assurance behavior is silently classified as optional.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-18",
+      "implementation_items": [
+        "G6-002",
+        "G6-005",
+        "G6-009",
+        "G6-027",
+        "G6-034",
+        "G6-046",
+        "G6-078",
+        "G6-085",
+        "G6-088",
+        "G6-094",
+        "G6-096",
+        "G6-103"
+      ],
+      "required_proof": "Generate and retrieve the session vCon/outcome records required by the frozen contract, link them to the durable Conversation and enforce audience policy on dialogs, messages, transcripts and media references. Test export/schema compatibility, content integrity, retention, redaction/deletion, missing media, store failure and concurrent access. Default capture policy is explicit; no recorded-media claim when only metadata was collected.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-19",
+      "implementation_items": [
+        "G6-010",
+        "G6-012",
+        "G6-030",
+        "G6-050",
+        "G6-055",
+        "G6-059",
+        "G6-060",
+        "G6-061",
+        "G6-062",
+        "G6-063",
+        "G6-064",
+        "G6-065",
+        "G6-066",
+        "G6-067",
+        "G6-069",
+        "G6-070",
+        "G6-072",
+        "G6-079",
+        "G6-080",
+        "G6-082",
+        "G6-084",
+        "G6-085",
+        "G6-090",
+        "G6-097",
+        "G6-101",
+        "G6-102"
+      ],
+      "required_proof": "Fresh projects install versioned Rust, browser/Node TypeScript and Python packages without repository-relative dependencies. All expose the same supported control/event/operation semantics and typed errors; browser and Rust provide capture/render or media I/O, and Node/Python expose documented programmatic audio/video/data I/O through managed helpers. Run equivalent contract tests, helper lifecycle checks, package compatibility and examples; HTTP/CLI/MCP remain public facades with explicit media boundaries.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-20",
+      "implementation_items": [
+        "G6-012",
+        "G6-013",
+        "G6-061",
+        "G6-066",
+        "G6-071",
+        "G6-072",
+        "G6-074",
+        "G6-077",
+        "G6-079",
+        "G6-081",
+        "G6-082",
+        "G6-084",
+        "G6-086",
+        "G6-089",
+        "G6-090",
+        "G6-091",
+        "G6-092",
+        "G6-099",
+        "G6-101",
+        "G6-103"
+      ],
+      "required_proof": "Three developers unfamiliar with the implementation follow only the candidate docs. Target at most ten minutes from installed prerequisites to a local message/reply and thirty minutes to the complete fixture journey. Measure setup failures and assistance; each completes without author-supplied private commands, manual database edits or copied internal IDs. Record live-provider enrollment separately and repair failed mandatory steps before closure.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-21",
+      "implementation_items": [
+        "G6-012",
+        "G6-042",
+        "G6-043",
+        "G6-059",
+        "G6-061",
+        "G6-071",
+        "G6-072",
+        "G6-073",
+        "G6-074",
+        "G6-075",
+        "G6-076",
+        "G6-077",
+        "G6-078",
+        "G6-079",
+        "G6-080",
+        "G6-084",
+        "G6-095",
+        "G6-099",
+        "G6-100"
+      ],
+      "required_proof": "The reference app completes browser/AI conversation, addressed organizer contact, phone call, private consultation, human takeover, browser-to-phone movement and follow-up in one durable Conversation. A separate worker owns travel logic and approvals. Capture a source-boundary audit and observable ID/context continuity; neither app nor worker directly opens Connect storage, creates rvoip bridges or invokes provider communications APIs.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-22",
+      "implementation_items": [
+        "G6-011",
+        "G6-013",
+        "G6-024",
+        "G6-036",
+        "G6-047",
+        "G6-054",
+        "G6-057",
+        "G6-058",
+        "G6-064",
+        "G6-092",
+        "G6-093",
+        "G6-095",
+        "G6-096",
+        "G6-098",
+        "G6-101",
+        "G6-103"
+      ],
+      "required_proof": "Run the frozen clean/impaired/network/restart and load matrix, including at least twenty successful handoffs and twenty device moves per required topology. Verify no private-audio crossover, unchanged retained IDs, bounded switch interruption and cleanup, slow consumers, capacity rejection, provider latency and resource recovery. Attribute Connect, helper and browser resource use separately; publish versions, limits, failures and measurements rather than general capacity claims.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-23",
+      "implementation_items": [
+        "G6-001",
+        "G6-003",
+        "G6-010",
+        "G6-013",
+        "G6-015",
+        "G6-028",
+        "G6-029",
+        "G6-031",
+        "G6-034",
+        "G6-037",
+        "G6-044",
+        "G6-047",
+        "G6-051",
+        "G6-056",
+        "G6-065",
+        "G6-069",
+        "G6-070",
+        "G6-080",
+        "G6-088",
+        "G6-092",
+        "G6-097",
+        "G6-101",
+        "G6-102",
+        "G6-103"
+      ],
+      "required_proof": "Re-express required Gates 1\u20135 behavior through the Gate 6 API, including durable messaging, files, media, SMS suppression and task authority. Breaking SDK/API/schema changes are allowed; no old-client compatibility, downgrade layer or automatic v0.1 migration is required. Document backup and explicit reinitialization where needed, refuse unsupported state safely and verify backup/restore for the new schema. Never silently reset user state or substitute historical evidence for changed behavior.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-24",
+      "implementation_items": [
+        "G6-065",
+        "G6-081",
+        "G6-082",
+        "G6-083",
+        "G6-084",
+        "G6-085",
+        "G6-086",
+        "G6-087",
+        "G6-088",
+        "G6-089",
+        "G6-090",
+        "G6-091",
+        "G6-092",
+        "G6-099",
+        "G6-101",
+        "G6-103",
+        "G6-104"
+      ],
+      "required_proof": "Publish-ready website and repository docs explain VoIP 3 \u2192 UCTP \u2192 rvoip \u2192 Connect \u2192 application; provide quickstart, concepts, progressive Parley tutorial, a dedicated server HTTP/REST API reference, SDK/protocol reference, provider setup, hosting, operations, breaking-change notes and capability matrix. Publish an OpenAPI contract covering every supported HTTP endpoint, auth/scopes, schemas, status/error responses, pagination/event cursors, logical request IDs, operation status/cancellation, file transfer and limits. Run curl examples and check the OpenAPI contract against the real server. Run every supported snippet, check links/accessibility/mobile layout and compare claims with exact candidate evidence. Engineering gates remain accessible behind the developer entry path.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-25",
+      "implementation_items": [
+        "G6-013",
+        "G6-067",
+        "G6-068",
+        "G6-085",
+        "G6-087",
+        "G6-091",
+        "G6-092",
+        "G6-099",
+        "G6-101",
+        "G6-103"
+      ],
+      "required_proof": "An independent contributor follows the connector guide to implement and install a message plus live-media fixture, and an independent client implementer follows only the protocol kit. Record their questions and eliminate undocumented registration, callback or state assumptions. Both exercises use public interfaces and generate reproducible evidence.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-26",
+      "implementation_items": [
+        "G6-012",
+        "G6-015",
+        "G6-028",
+        "G6-056",
+        "G6-060",
+        "G6-068",
+        "G6-069",
+        "G6-070",
+        "G6-088",
+        "G6-089",
+        "G6-090",
+        "G6-097",
+        "G6-102",
+        "G6-103",
+        "G6-104"
+      ],
+      "required_proof": "Build matching macOS arm64 and Linux x86_64 artifacts plus versioned SDK packages, examples, protocol/schema/vector kit and source. Fresh installations verify hashes, licenses, dependency/patch provenance, helper assets and backup/reset instructions. Prepare registry publication and website changes with exact versions and tested commands; no private historical binary is an unexplained prerequisite.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-27",
+      "implementation_items": [
+        "G6-001",
+        "G6-013",
+        "G6-014",
+        "G6-089",
+        "G6-103",
+        "G6-104",
+        "G6-105"
+      ],
+      "required_proof": "Provide the two reconciled plans, complete requirement/acceptance maps, candidate hashes, technical and usability results, independent review and known limits for the owner. Every required criterion is supported; unresolved required work prevents a full-completion claim. Record actual owner acceptance separately from implementation authorization and any later package/website publication.",
+      "runtime_result": "not-run"
+    },
+    {
+      "id": "A6-28",
+      "implementation_items": [
+        "G6-011",
+        "G6-013",
+        "G6-044",
+        "G6-071",
+        "G6-075",
+        "G6-077",
+        "G6-086",
+        "G6-092",
+        "G6-093",
+        "G6-100",
+        "G6-101",
+        "G6-103"
+      ],
+      "required_proof": "On a separately configured rehearsal using designated consenting test endpoints, qualify live Vapi context and voice, Telnyx/SIP telephone control, addressed SMS and the human/AI/device transitions. Verify actual audio, endpoint confirmation, delivery observations and teardown. Record provider/model versions, source/artifact hashes and bounded call counts. Fixtures and old provider evidence cannot pass changed Gate 6 live behavior.",
+      "runtime_result": "not-run"
+    }
+  ],
+  "normative_cases": [
+    {
+      "case_id": "u6-req-0001",
+      "source_requirement": "U6-REQ-0001",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "abd54cc05e21887a18a2aa8892f04fd89e75868dd1c46c8441c03bc02f2773b2",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0002",
+      "source_requirement": "U6-REQ-0002",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "e99928626ea1cdeaffd5e6cdfaa2d3037547eaad6271be4f97d66339d645f9d4",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0003",
+      "source_requirement": "U6-REQ-0003",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "d0ceb60dfd0c7ff067c2e19cbf3e1cf1ffc5ff24da419801f610b507c39d4a82",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0004",
+      "source_requirement": "U6-REQ-0004",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "80eb1c61eeb563627a879273d37145f78475de71c103e8da29b89928bafacfae",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0005",
+      "source_requirement": "U6-REQ-0005",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "2d6fa5694ac5fac4db9603bb44aebbd04bcd090de3c4cab347ccb7487e71ac9a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0006",
+      "source_requirement": "U6-REQ-0006",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "6bc572df4ac04a67e458f154df44f2647873ed7b529d11a47a849a6c32054d83",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0007",
+      "source_requirement": "U6-REQ-0007",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f9b54323d4a2614c4da08722c58165a0a8ff67659cae201476740f72c8015174",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0008",
+      "source_requirement": "U6-REQ-0008",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "dac057a07b27b51fab613dc1e6e6edf69770d6391468a11e16f4c8f1be33a8dc",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0009",
+      "source_requirement": "U6-REQ-0009",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "e50ea5eaa6071e87db0b136d240db90d2b71d30b833b17de78fb1eef1c19ba22",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0010",
+      "source_requirement": "U6-REQ-0010",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a4d55b913ae75ea7fd6c2715b7d9a41002fe8a80a91c0c29956c9c1b93a1d67f",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0011",
+      "source_requirement": "U6-REQ-0011",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "1e471b2d0dce74d7c282b29102c23b4c04aae0584ec3e063313202d8b16b66ac",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0012",
+      "source_requirement": "U6-REQ-0012",
+      "implementation_items": [
+        "G6-003",
+        "G6-004",
+        "G6-016"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "bf2634ad19057d80501161c19f387b97ef7ecf385c8ca6f2538a49c7a9eaa5f5",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0013",
+      "source_requirement": "U6-REQ-0013",
+      "implementation_items": [
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "6be636952a05b188db83a465963e80028e5dbed052f3867933783472bf67a1bf",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0014",
+      "source_requirement": "U6-REQ-0014",
+      "implementation_items": [
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a9906325cb18c8886150a8e86dba89063839a1eac0a1f517bac49421c8780004",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0015",
+      "source_requirement": "U6-REQ-0015",
+      "implementation_items": [
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "94f41181a1fe6c965697303927082646806874b159af25347aae8f0ce01fb90e",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0016",
+      "source_requirement": "U6-REQ-0016",
+      "implementation_items": [
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "8d6ce344247a39ecd934fff580e5032f5b97d37be9ce83cd4d1e508d501cf55f",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0017",
+      "source_requirement": "U6-REQ-0017",
+      "implementation_items": [
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "c935a65c6c7316db70bc14f1b78dd8dd348ceb4324c7f119a91c33dfc35aad91",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0018",
+      "source_requirement": "U6-REQ-0018",
+      "implementation_items": [
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "6c38a6c5ba76ac263862759c63424995b0c7578d62d92b401f51f506e3276319",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0019",
+      "source_requirement": "U6-REQ-0019",
+      "implementation_items": [
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "775b819ca1dfb2e70902843fc160c755ba1f00e7171681aab045a59af9536a8a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0020",
+      "source_requirement": "U6-REQ-0020",
+      "implementation_items": [
+        "G6-007",
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a73570bb85387122ea97e2a2358935efee9c4818df836f67d95bea079af95a1c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0021",
+      "source_requirement": "U6-REQ-0021",
+      "implementation_items": [
+        "G6-011",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "e795d55533de003ad7e0b8069da6955c9492deb929cb35e7c774c150c8912107",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0022",
+      "source_requirement": "U6-REQ-0022",
+      "implementation_items": [
+        "G6-011",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "e621961aa1c34691abe6e188f2b33b9228e524a7b27c6e3e64ad5368d9a54a45",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0023",
+      "source_requirement": "U6-REQ-0023",
+      "implementation_items": [
+        "G6-011",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "0d849728dd6a385d541db1559ddcddc68e434e788d7e3f73776a972d9b79a7d4",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0024",
+      "source_requirement": "U6-REQ-0024",
+      "implementation_items": [
+        "G6-011",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-051",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "5d474a5df6ee19c67602864f41ad8ca2b3c5f5a588f1604b9557cd26ab74b10b",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0025",
+      "source_requirement": "U6-REQ-0025",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "8fe83c41aeee3511797ca660a382cfdac6d8292dfa0cd5a55a9bd06f761ef6f9",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0026",
+      "source_requirement": "U6-REQ-0026",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "5d3053777057740d5ca98b455e8a77c2b269cf7ecf6d02e6b805f8f7774130be",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0027",
+      "source_requirement": "U6-REQ-0027",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a950ca150aefb36c9ee088f337d8383aebcbc6c5ed77a8de10b01c77c24645d6",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0028",
+      "source_requirement": "U6-REQ-0028",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "40f4a32f2cb5e173000968757d9072cc8d35b66c2874bfc99a00dd3fd537ad33",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0029",
+      "source_requirement": "U6-REQ-0029",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "441804efdd5aad07857c2fbbe8ce41fe6ef69c7475da61a5c9d1a945b9e856ab",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0030",
+      "source_requirement": "U6-REQ-0030",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "35712a3640421df9e631c889eba7fd2a039089776cc01a9b5bc12bc15fc67fb8",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0031",
+      "source_requirement": "U6-REQ-0031",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4f51d51f82813945afb05409d7a7f1afcbec5e6b56c8f00cb6084b00f0bcb4c5",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0032",
+      "source_requirement": "U6-REQ-0032",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a6325cec1267f1e2ab0c3068e461b708b2ba487cd2c57c32a67b47b7e35f40a9",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0033",
+      "source_requirement": "U6-REQ-0033",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "597a5f9826471c51761181c5fa6e7e3a0cc2d76a14fc5317cdaca6b2cbf98009",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0034",
+      "source_requirement": "U6-REQ-0034",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "7ad558308d34fb81f61a65843260b5bdea98c3b781cae8063ded242c2df86808",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0035",
+      "source_requirement": "U6-REQ-0035",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "6dc2edfd7efad941badbbd894770f5bed6ed53c18f7415ad78b10719e21adb3e",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0036",
+      "source_requirement": "U6-REQ-0036",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "59cd9d3f531090646fa13be56eb30c5f6f9ed8985a806bc475ca5b05b5e5eae9",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0037",
+      "source_requirement": "U6-REQ-0037",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "b66318557d5a16349137cd760bdb5e3bd852b6a9f2b7d19aaba1c60f1f50f4bc",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0038",
+      "source_requirement": "U6-REQ-0038",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "1a9ff5f6e6222bd51ace9f52586e3c3dfdf759ffde8fc895b005c4a7f6e8c53a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0039",
+      "source_requirement": "U6-REQ-0039",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "0c1bc6f997264fc6cfbdda6c26fea09e93e131e1471c65d83c1c27f710a39922",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0040",
+      "source_requirement": "U6-REQ-0040",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "35ef2b395d30ec797e64ea0e1d2f2e629d022f767b7f2687b67df0177af1af61",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0041",
+      "source_requirement": "U6-REQ-0041",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a32b4b6321962b2b9611cbe035f44ef41f1c9276fd7dc383384e45e4887498a7",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0042",
+      "source_requirement": "U6-REQ-0042",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "2fd37b5b312c8a5b69fa0785d3bfe6ae53cce6b84379e529c0714ffe29a55454",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0043",
+      "source_requirement": "U6-REQ-0043",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "3229ddeb6e71bce293c6eddb2d7f7a660d2670f4f2eb938a8cb52b2d024b530c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0044",
+      "source_requirement": "U6-REQ-0044",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f1aa50aa63c1ec73f09ccf8f5d622dd05764ab75eab029b0450ac3bc57cb246a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0045",
+      "source_requirement": "U6-REQ-0045",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a2d56a4b666fb64d1e961537e2617209064edc981723aaf275211f2726fbe1b2",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0046",
+      "source_requirement": "U6-REQ-0046",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "b2090d61dc6b3ae18034ac6a51e920726ef674ed8fb4e195d20f7b43857d3dcf",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0047",
+      "source_requirement": "U6-REQ-0047",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "80d614bef8f27bba349cae91e178c32854b34a4b8267cac7082b689715c9e8b4",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0048",
+      "source_requirement": "U6-REQ-0048",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f2fc374856b1d95d001da92a22dc7f86fd0f5d0e837fa91bb6fd216199aad280",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0049",
+      "source_requirement": "U6-REQ-0049",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "0a7435306ec9faa03bfeceb4bc44eb181381b46cd5b11d3bb1efae96af8abaef",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0050",
+      "source_requirement": "U6-REQ-0050",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "58c4f31ea83a16c44e5a274e4d20de3082a35aa73b366599d9da913a2cbfc2bb",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0051",
+      "source_requirement": "U6-REQ-0051",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "85b6105c3a3d4056e5694cb7d7ffa26f3036b3636702554b8967f1ab95109b36",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0052",
+      "source_requirement": "U6-REQ-0052",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a3551ff851ee35edf3f80bc3741f6b4886471882dfebe5945849f4b851e8f550",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0053",
+      "source_requirement": "U6-REQ-0053",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "b533c626278de46aacb61461e3136940cea2d8b2f262d2ffd9453a03025a3c83",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0054",
+      "source_requirement": "U6-REQ-0054",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4ebe2f869e4ad2c064e91068c3c56029abe17103ec7db0007393d04516667ccc",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0055",
+      "source_requirement": "U6-REQ-0055",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "01f81a4b09a3e062b0ef14343f3714cdddd60f25de0f56089252a9d48a38ea3c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0056",
+      "source_requirement": "U6-REQ-0056",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "fe34a8467df03459d08763859dbc87f43c22f4babe02e2a5de502cb081c006b3",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0057",
+      "source_requirement": "U6-REQ-0057",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "771b1c78452fb2d5c5646b4b849948102f594fd27f9b8bc64cb163e35cb29f52",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0058",
+      "source_requirement": "U6-REQ-0058",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "82886601c66864dffe169ef5b1f53037dd96e73947f2cbdd0cf9e79a6f269b7c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0059",
+      "source_requirement": "U6-REQ-0059",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4bc75c12ee67d086486c18499deccb9bd7c40e42ea63ddf5c6e2d460284fbb8c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0060",
+      "source_requirement": "U6-REQ-0060",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4499f438674cae2b02f1de84d7a9fdc80d71660bd1a57db3971cfe99d2fea19f",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0061",
+      "source_requirement": "U6-REQ-0061",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f5c3c759231977c35161bf869883f7e58a87baf013dfb43dc92d08a903b4291c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0062",
+      "source_requirement": "U6-REQ-0062",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "0c7ef83dacd8cc6aedeca43e4ec5e1d283de0828c0c059a5fd413d21e6dd8449",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0063",
+      "source_requirement": "U6-REQ-0063",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "2695a660d73c8ecd6fda459bf230e5d12c76380220fc6286b9597b6c41aa4598",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0064",
+      "source_requirement": "U6-REQ-0064",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "31196e2aa452ef1cb8f098ae8b9885b86e7140e590c372b9ad0ed8159d06fb6e",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0065",
+      "source_requirement": "U6-REQ-0065",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4b9c2c53ff123abc22974a6192c518cbe1cf89db2bc77909951dd03b6dd2aaff",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0066",
+      "source_requirement": "U6-REQ-0066",
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-026",
+        "G6-030",
+        "G6-031",
+        "G6-055",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "09bc7a1c4afebea65edbb07d3e26f0e4386dbcbdb68d8459fe4fe61ed1dc33a5",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0067",
+      "source_requirement": "U6-REQ-0067",
+      "implementation_items": [
+        "G6-002",
+        "G6-016",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "86689d07fa3fbc4febd33902eb67ae5d72f615dce3af39d851d81db436a2ade1",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0068",
+      "source_requirement": "U6-REQ-0068",
+      "implementation_items": [
+        "G6-002",
+        "G6-016",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "50e8eb8f4fdb203f27788e74646f17f1a965c6541ab94fd677aed3ada7751a64",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0069",
+      "source_requirement": "U6-REQ-0069",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "de2cd51715f2ed53d0ca417c65474e97e48cc60e1b93204d32fd0316f49b185e",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0070",
+      "source_requirement": "U6-REQ-0070",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "65ba906012ef5007d3d4d44b2263283ff839bf8e855591bbf94d8be1710f0819",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0071",
+      "source_requirement": "U6-REQ-0071",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "392feeb8879c9a7426f8f59b5b6362764cad51b143e1f7fc3377883bfd5f21d7",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0072",
+      "source_requirement": "U6-REQ-0072",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "67b5f7ea18b7fa26361c45f563ce237612bd04e4e582412cdf4bfc281af382ed",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0073",
+      "source_requirement": "U6-REQ-0073",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "673d8110a0f789876bb062de6712a09a8b1532db8d7fc1984eeb8253fc6b5dec",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0074",
+      "source_requirement": "U6-REQ-0074",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "409820a9e6602f8a6246d45d183f206de0ecb54825ffaa128c5efd11a7657376",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0075",
+      "source_requirement": "U6-REQ-0075",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "d34feffd9ae6803ecd734370693493c94f158f45feee5f6282d3447aa8739c48",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0076",
+      "source_requirement": "U6-REQ-0076",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "255213eae0873397ea1b3214cd89f4ebdb80cd8522be59e598434ab45eafaaca",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0077",
+      "source_requirement": "U6-REQ-0077",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "6205fbee3b1f07e518b845aa1f7dd0f23e18ccdfae895d9a15dabf89f3457194",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0078",
+      "source_requirement": "U6-REQ-0078",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "69b43aea2fb981b65595640c478aadfe75e87854f9fe83bcfd2a06a039edef36",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0079",
+      "source_requirement": "U6-REQ-0079",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "84b8bab919ce73ebb4b8af00628e8a4381f23db0fe5f14656f967ec6f33db26f",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0080",
+      "source_requirement": "U6-REQ-0080",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "d3cd5b40c49a4ceb10f2181bd3d4cb64e7f5e2b480f5eb50508c913fc46967b9",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0081",
+      "source_requirement": "U6-REQ-0081",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "8a022755a69d5ef00ca57971385c61965e8e9885b094522cf52a8ac9938f892b",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0082",
+      "source_requirement": "U6-REQ-0082",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "b299044685f15485a223be0862fb17f1a81a093bdc4fd8a34b33bfd57a06a6a6",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0083",
+      "source_requirement": "U6-REQ-0083",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "adbe0b98698d6462c0e51e0928a900428e2b7c5a4fff0b5ead986e2eda1afc5e",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0084",
+      "source_requirement": "U6-REQ-0084",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "402eda7f4af51291431fa9bc081a7572e5a1a521d6b0d762ad48bcdff0b9dc62",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0085",
+      "source_requirement": "U6-REQ-0085",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "36fe6722c33c473359fdeb7135fa207b72d5b268adade589fc60a2381c76d7f6",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0086",
+      "source_requirement": "U6-REQ-0086",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "72eff02f2f0d1ac4d15af2339fe8c1147f25e8619adb7a0ec2e713bb6f8b02aa",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0087",
+      "source_requirement": "U6-REQ-0087",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "38cbd032e44e13af6b4cffec8dec1ee36a0ef309f348bb977a122121682a7133",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0088",
+      "source_requirement": "U6-REQ-0088",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "45ad0a135fa28c21562b2bd0bcaeb62494972fb998ce9bc9f467244e428f5085",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0089",
+      "source_requirement": "U6-REQ-0089",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "b0eafe6f0dbafc0fc158ecc28374668a4e0d7668a2f5e38c2a005f7d6d93f99a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0090",
+      "source_requirement": "U6-REQ-0090",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "726d91f786d05125761f33fe0f607ab1c01a1b4f1fe28bd120931e5a49ee0126",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0091",
+      "source_requirement": "U6-REQ-0091",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "6ffc826e2afc2612aa0cdb0588793d3326c0498c46b3900a7eb3b3d2fc8f062c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0092",
+      "source_requirement": "U6-REQ-0092",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "80ca6c15b6999af4d9d2739023cf07de55badc6c54332ceb28f7a77b173f1cef",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0093",
+      "source_requirement": "U6-REQ-0093",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "6ff325e385c97fffaf2ba41afa7eb89680e5b19184738fe8fec6fc568f61e500",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0094",
+      "source_requirement": "U6-REQ-0094",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "c504af39c4c1375c1e365104849510a2eeb5127423a66af7670ef9b5da5f3537",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0095",
+      "source_requirement": "U6-REQ-0095",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "b71e4e0ad83167ea1ef88003b2348778f62fbd9915ddbafde3ad5208bd3b8fbc",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0096",
+      "source_requirement": "U6-REQ-0096",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "646c13aa5888e4729e5e5ca1bf2eb06ea6d0e017968f4458b812fddb779839eb",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0097",
+      "source_requirement": "U6-REQ-0097",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "78fb289b9b2994ee4ec7efe2673c45e59402d35df410b0113874adbe75df2049",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0098",
+      "source_requirement": "U6-REQ-0098",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "1ca79458b8bcc60e01d9afffb092f2579330c671f1f7fd5ff8efa2fc9eb9eb4f",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0099",
+      "source_requirement": "U6-REQ-0099",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "9fb54d6b7c0ea3efa91734dba4949558ec8df684a4539da4c5b972a6331469a8",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0100",
+      "source_requirement": "U6-REQ-0100",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "cea30b944829a7ecf9fd0b6641c6af4bdf4a17f5d0237c85d6bbb6af1ad1e143",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0101",
+      "source_requirement": "U6-REQ-0101",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "27585c1b85261899b8c5649b505cbe3a8e46ebadb2ede0ae9144d22f9a8e4bfb",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0102",
+      "source_requirement": "U6-REQ-0102",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "2fa21e5c43c1d6b0d0f4fd26a991baa2aa93673c981efebe0c7d4467122a72a1",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0103",
+      "source_requirement": "U6-REQ-0103",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "e4c5919579141d4f19b58ff1cd2c6d0369cb2b961c1b65df67f3f239510422cd",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0104",
+      "source_requirement": "U6-REQ-0104",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "2a15a89156d521d43f17967e09f359e98ea8ba42b96e5bc4947fa823b1c6556c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0105",
+      "source_requirement": "U6-REQ-0105",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "ac2ccb460f148dd4742cb6323f99c4517f482266209b71d939b90f0268657892",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0106",
+      "source_requirement": "U6-REQ-0106",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "241d9f98e74b56c1246f21d3c998f5a003f6a26faa3d4c7031ebf66ed23c24da",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0107",
+      "source_requirement": "U6-REQ-0107",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f00bb52a64e2a1451e4277d0c12b4c0c5cde05b284e455778f91cc9c8c63e040",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0108",
+      "source_requirement": "U6-REQ-0108",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "489fa0b41145ce6efaaeaf1fd1fa2124f6c08aca8471d0b97ce6ee978b6be778",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0109",
+      "source_requirement": "U6-REQ-0109",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "47c1940da608b0a761c2198b144d10b7b3091a959515559b2de74bec9f525289",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0110",
+      "source_requirement": "U6-REQ-0110",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "30f9238285c07646de548679ba25627f115caefc614080f046e4c0e2d418a1a9",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0111",
+      "source_requirement": "U6-REQ-0111",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "9a8bc69257c83aa7fd7d25bcb93b8bbdef8f699a6eaaf4a2358ad0692965dcf9",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0112",
+      "source_requirement": "U6-REQ-0112",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "431b1168b4d4463b8c6b73207e8a365bf71dffe6382b6ad6462940d22d25a695",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0113",
+      "source_requirement": "U6-REQ-0113",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "b95edf630f51f32e1062d5abcf9e6704fb61fce838f29693229f9b4617c645f8",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0114",
+      "source_requirement": "U6-REQ-0114",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "1dc1a3bb5ee603431b3a5070c2a1a487b65a31bb99c63169742887c68bafcc6b",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0115",
+      "source_requirement": "U6-REQ-0115",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "ce54a6dd72c98b6047acc74df2a36dfdf5a6fc458e423d869aeaf656f4446fb0",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0116",
+      "source_requirement": "U6-REQ-0116",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "95f2456d0c6de85a5e2ac18e1e4211050bd7027b7004d73fc84e42ad476f19d8",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0117",
+      "source_requirement": "U6-REQ-0117",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "12566ba44b9585b993136839a4295eacfa07f70f68ed55c4b37c95ec979ec085",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0118",
+      "source_requirement": "U6-REQ-0118",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "afff697bf16c0077c100934d17af06e2ee7e580b1f6baf54153277f47c3b4b76",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0119",
+      "source_requirement": "U6-REQ-0119",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f91e72396865332bf1ff1e8b2b866dd6b93c256278cc531fad6c4a0d60a27c9f",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0120",
+      "source_requirement": "U6-REQ-0120",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "16b94008dbb8672e0d3624ebff6347bf7f811cbf53366a5b5ff97759083ea368",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0121",
+      "source_requirement": "U6-REQ-0121",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "c5ac4f903d1213f40eea3d341fb682b011aa41a17d9da043c5eb56ec601a26ec",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0122",
+      "source_requirement": "U6-REQ-0122",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "23e2e4b02823216ab3d84bb7d57fb8019f7da16bc3caec8e297712711c4dd123",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0123",
+      "source_requirement": "U6-REQ-0123",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "0087c5427c3597aabb76456c03924fc9f59bc54f610ddd3816196fe1788fa0f3",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0124",
+      "source_requirement": "U6-REQ-0124",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "297c46b19fc695cb47eaf88624aa1a95dc406909fdd597445d75420d03fbe24f",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0125",
+      "source_requirement": "U6-REQ-0125",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "9eb81ec35cc53923455835ef8b79055ab8f45d82eb80bbdcf8448df5949165c7",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0126",
+      "source_requirement": "U6-REQ-0126",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "0d82b7420f2109acd69fb58c8931a37807949feaa0a754c20d12a841cb8df609",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0127",
+      "source_requirement": "U6-REQ-0127",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4376ed41293d1eaeda3cb4d5455bb6780ce297bed5efada0140be22cf13666c0",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0128",
+      "source_requirement": "U6-REQ-0128",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "d36030fc8b1f1a003898b59fae40349c58e75ca8e01e3c8b5c71828c8d8e115e",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0129",
+      "source_requirement": "U6-REQ-0129",
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4fe201ce395f0285b89dca4349b7c97c90cb1b0b6a6ec35e0d52f95d8047f0f1",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0130",
+      "source_requirement": "U6-REQ-0130",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "29ed824ac0610db5208b98652db63edc5fbe6815f5416841ef21b6d3ff419454",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0131",
+      "source_requirement": "U6-REQ-0131",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "32b231e74b46f6816b20d4bb51a7d314a16beedeb859cca183f8573f2141c09a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0132",
+      "source_requirement": "U6-REQ-0132",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "adbdf49499691b1a71a639d4644a83edc19ece5d451d82449b1b842afd40c085",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0133",
+      "source_requirement": "U6-REQ-0133",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "d6e36d1a70a75a062ec3966f74ae72e0b72ecae7e6d5d4963656d3234cc85cb7",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0134",
+      "source_requirement": "U6-REQ-0134",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "2c95cd7c888a659e30efa133f39d762892ce9a5d1e88b724840d706c9653ff7d",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0135",
+      "source_requirement": "U6-REQ-0135",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "dfe2b5475490611e4ccfca898a68428555eaa2b6e3822ae2b5f186cb57d6f9af",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0136",
+      "source_requirement": "U6-REQ-0136",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "53e2624875f9d47200a7faea5573fb86b16352aeef6ab16a616d6b56b9b12aa3",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0137",
+      "source_requirement": "U6-REQ-0137",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4249b4b0434caf82ccfc309ffec6f39887dbfe1f4086978ec1a92af14b03e0f3",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0138",
+      "source_requirement": "U6-REQ-0138",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "5ce9975194d7f1de1ace5352b42bd81843cf4fd3fad5aabe5027c01d440615a2",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0139",
+      "source_requirement": "U6-REQ-0139",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a3d2459782de17a9b0220fb500ed9a03a4a6878abf4881842f91878385ce4989",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0140",
+      "source_requirement": "U6-REQ-0140",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "ee1e57fbc30f42df517e5a7a3c665a48a5850f4fe6e63bc9e4d48a63f5f447f8",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0141",
+      "source_requirement": "U6-REQ-0141",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "c4d5f91aaf26de062b8fcafb917e267a8ea8a5fd62d34a49ce3ea2cac5e75588",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0142",
+      "source_requirement": "U6-REQ-0142",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "9b638eeeb8409c7114449b3b36a2cea64e5ff7fb7baf1389056b39e2c40b126a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0143",
+      "source_requirement": "U6-REQ-0143",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "1c107681d005170f83abbf932e88602629d5a1fd42db26bb6722b0afa7933448",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0144",
+      "source_requirement": "U6-REQ-0144",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "04ca5805e05f2b9869e2a3f1c8b90c98ee761a9f2ec6b40117082645c0dd5824",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0145",
+      "source_requirement": "U6-REQ-0145",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "02bbbfec8af337fedcc00c0842d6e08ff09bc3614f4094c2de0c126dd8195863",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0146",
+      "source_requirement": "U6-REQ-0146",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "3ea5577e2805bb73ba8fe53e72902048ec71dbe864d76c9520a546c0f1abbffc",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0147",
+      "source_requirement": "U6-REQ-0147",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "39eeb0c1781876c5c7dea193a0375e85b80d08a1f4cd1ba68d0b4603af022e23",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0148",
+      "source_requirement": "U6-REQ-0148",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "1b3b444b75ec4861e64837fd7a99b9c3a5cf7b97ed9bec21331e5bd174f97eba",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0149",
+      "source_requirement": "U6-REQ-0149",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "5ddca0d960a458fa0edad9eeddd4c4a3dc85632ecc2f6f0c2b4982f983d71d27",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0150",
+      "source_requirement": "U6-REQ-0150",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "e97c08533c3a9deb61a3d1c6a979bf00b4c3464d8437fb8a161926b46e60eb9c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0151",
+      "source_requirement": "U6-REQ-0151",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "7c1ec7d9973e0b3433a08270cda524b843f79aedcad1548636509bec28c5e2f8",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0152",
+      "source_requirement": "U6-REQ-0152",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "07ac677e16f28a96e706f1c10201822a407f7f2c34d6d8acf3e97731cdfff75d",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0153",
+      "source_requirement": "U6-REQ-0153",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a37e508ff7fdf0b4a4c1aeeee2196781386c3bbb4700d71e5d08118d79e4be49",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0154",
+      "source_requirement": "U6-REQ-0154",
+      "implementation_items": [
+        "G6-005",
+        "G6-018",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "5a637a17ac71595e8af3c05da95208b4beba46e3b0d63431b5cf46acda653688",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0155",
+      "source_requirement": "U6-REQ-0155",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "c6f7e20e091a766bbc15039d6fc2832bc35e72499e81b0d07bdfbb0ce138fcd5",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0156",
+      "source_requirement": "U6-REQ-0156",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "d5ec5325d97a2ba7512bf56aed4bd03f21a86841824bfc908609d44f532ce9d3",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0157",
+      "source_requirement": "U6-REQ-0157",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "75f654a8f5de1fc78711783dd5a69a10053d9937714c06b20b8380afe7141fca",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0158",
+      "source_requirement": "U6-REQ-0158",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "048459a1769371070590fbe791c6da6423c3e2f39fa4f9a70c650b9085c94ab6",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0159",
+      "source_requirement": "U6-REQ-0159",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "da2765a66161862210fd11ce16b548c8c2db59dece9c9393ab7e4c0eb7854557",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0160",
+      "source_requirement": "U6-REQ-0160",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "3e049be1a676e7b3aa996adfee4114d3828720a493bc652768ae75e5b9ca6077",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0161",
+      "source_requirement": "U6-REQ-0161",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "c3afa0fe8ff6aac559b6194ab45572ef59543771d01ff40bd76bb6e7bff70e1b",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0162",
+      "source_requirement": "U6-REQ-0162",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "0d7ac7f3750079f7e59ac7bc55e3aa7af460886aed8b78376390cef0271d0e54",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0163",
+      "source_requirement": "U6-REQ-0163",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "e4350b3ecfe904ea230cb9ab197196e10b9acbd9cd9363c370debbfe37eb5ec9",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0164",
+      "source_requirement": "U6-REQ-0164",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "5bd7501f314ce42927ed15ff4e00ae620742757052643e9e81fd9eb83c523b8b",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0165",
+      "source_requirement": "U6-REQ-0165",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "242c26d0b36128bb64efe044ca6acd3fe6c72961835959a589ffff51396e743d",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0166",
+      "source_requirement": "U6-REQ-0166",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "ded2a23fbac8f84808b29e847c46667d008dcf66c2b64b92e3a9239d83a1439a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0167",
+      "source_requirement": "U6-REQ-0167",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "e8df2ac2e20d31b84501b4983f85946fde58d7964aa171cadd70b465e9ce36b8",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0168",
+      "source_requirement": "U6-REQ-0168",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "86bc2cde2ae37b53704a53b690d31f87e9cf4d49871114e90bda35459ab9ce12",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0169",
+      "source_requirement": "U6-REQ-0169",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f80e7245f29316a4a7811842250bb0308d78ba0254eb1e032426f375626b6a2b",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0170",
+      "source_requirement": "U6-REQ-0170",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "cf2e28762fb6f2c7a958282897bc3e0e41cea98a2e56bed75c6ca1df99a5ff50",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0171",
+      "source_requirement": "U6-REQ-0171",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "3a5dbf494e7d839c1dcc8fdecb04afa4fa9b92a4f5b2e47cb844446a48de0e81",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0172",
+      "source_requirement": "U6-REQ-0172",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "4192052a678b77745aa72b4dc95fb1c7c2721c18304d26cbba5a150687153335",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0173",
+      "source_requirement": "U6-REQ-0173",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "9dc0cc7e839882f3acbc5dcf18795ad0c416af7bf56d53edc0fc672e8d943084",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0174",
+      "source_requirement": "U6-REQ-0174",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "43ae5a8e63c9ed6b32e5d084b802249ae9afa2f56b3c6f847a8fdef4509e7adb",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0175",
+      "source_requirement": "U6-REQ-0175",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "a4739e44761ce3b0dbc3cb0c93ef0a8da94528cdf1d5ffcf57826d2517c1199a",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0176",
+      "source_requirement": "U6-REQ-0176",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "8afe092baa01f044fec6968bd7d198a26988696716b131e82936550f0ef12132",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0177",
+      "source_requirement": "U6-REQ-0177",
+      "implementation_items": [
+        "G6-009",
+        "G6-020",
+        "G6-024",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-054",
+        "G6-064",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "aa23c173d36daeedf1eecd5efdaa97f1c371e5544d9efef72c433ed460d2cb12",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0178",
+      "source_requirement": "U6-REQ-0178",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f2a0e8b92c7620b73412572b3868f59d02011678c1cd50146cdf835cf83e8640",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0179",
+      "source_requirement": "U6-REQ-0179",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "f64eba80b1ce3b6d358822084be75343d56ed2de3c526a2d40dfc9f709e2ecf1",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0180",
+      "source_requirement": "U6-REQ-0180",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "6aa399255f2dfded40235cfeb047fa30cf2963895b714d9a55b0e0a91f368e18",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0181",
+      "source_requirement": "U6-REQ-0181",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "90aba8080c19d03235b6353e1976d3cfa1d603ca423a2e639d85771af004f371",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0182",
+      "source_requirement": "U6-REQ-0182",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "2ef2c62454bd3c20b8bdb56cdfc3adc5cae6ad0e126a01f5dc5dc0c2c36b8a4d",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0183",
+      "source_requirement": "U6-REQ-0183",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "d2a0c62c7758b6e790c62c7ccf1e77d00df83f23e12836654715b767dcc459c9",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0184",
+      "source_requirement": "U6-REQ-0184",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "72357cae3f2888fe076bbf9a3e5aa41645e17840b29290b59207ec34422d5fb7",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0185",
+      "source_requirement": "U6-REQ-0185",
+      "implementation_items": [
+        "G6-007",
+        "G6-016",
+        "G6-035",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "faa59fc1a9336007e96568a299049c33f8273692b9aeda7ae376368c023704b6",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0186",
+      "source_requirement": "U6-REQ-0186",
+      "implementation_items": [
+        "G6-015",
+        "G6-024",
+        "G6-032",
+        "G6-044",
+        "G6-045",
+        "G6-054",
+        "G6-067",
+        "G6-100"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "94afa75425540a1355fa1521a4ca65b70395cefdc24ddbb0ba748cbfd0bce861",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0187",
+      "source_requirement": "U6-REQ-0187",
+      "implementation_items": [
+        "G6-015",
+        "G6-024",
+        "G6-032",
+        "G6-044",
+        "G6-045",
+        "G6-054",
+        "G6-067",
+        "G6-100"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "c5e3480190bbf0327ce2cf8de815d6d5d1a96d8fc9fa013aabca5c8c0365e739",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0188",
+      "source_requirement": "U6-REQ-0188",
+      "implementation_items": [
+        "G6-015",
+        "G6-024",
+        "G6-032",
+        "G6-044",
+        "G6-045",
+        "G6-054",
+        "G6-067",
+        "G6-100"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "21b2364739734f4689b62b21006878005e4a1d504cca9ceaa133852fcf879d09",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0189",
+      "source_requirement": "U6-REQ-0189",
+      "implementation_items": [
+        "G6-015",
+        "G6-024",
+        "G6-032",
+        "G6-044",
+        "G6-045",
+        "G6-054",
+        "G6-067",
+        "G6-100"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "750403411a42337376d56a53505f7dfee9a2b9278a955716c4c299da19962ffa",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0190",
+      "source_requirement": "U6-REQ-0190",
+      "implementation_items": [
+        "G6-015",
+        "G6-024",
+        "G6-032",
+        "G6-044",
+        "G6-045",
+        "G6-054",
+        "G6-067",
+        "G6-100"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "fe4d8c735ff12010eb2d81c19f697177e05a09793728537f4fbb9266b38343aa",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0191",
+      "source_requirement": "U6-REQ-0191",
+      "implementation_items": [
+        "G6-015",
+        "G6-024",
+        "G6-032",
+        "G6-044",
+        "G6-045",
+        "G6-054",
+        "G6-067",
+        "G6-100"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "b070306e5ba7d6b58fb721422659b89be13caa177f81e4ad85269780ae096bd5",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0192",
+      "source_requirement": "U6-REQ-0192",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "47c2db64426476bc0438c70c1de2a7a9541bf5d9c727d51d6ea6243ebb63f968",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0193",
+      "source_requirement": "U6-REQ-0193",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "e164a88728febc4bb59f235de896e5c887f9629c3e8f87dbf52a26b1231463ce",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0194",
+      "source_requirement": "U6-REQ-0194",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "d7f3b46ee7c3a7342e8c0afbe661c739e43d96a6f5a18a54cfa05e8a2ef15bed",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0195",
+      "source_requirement": "U6-REQ-0195",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "8960ccfe29ca9018fc8a0f937df9db601a9aca31db1bb2c7cb944d661a7c1692",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0196",
+      "source_requirement": "U6-REQ-0196",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "44ef0ba33f4390381515561f5b9150be3bc71c60447d37824d0e27e99e71fbe3",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0197",
+      "source_requirement": "U6-REQ-0197",
+      "implementation_items": [
+        "G6-002",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "d61b8a6ecc9a6417fa5604536c6fb49db1fdd387f12780eae2c6297bab47b16c",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0198",
+      "source_requirement": "U6-REQ-0198",
+      "implementation_items": [
+        "G6-002",
+        "G6-004",
+        "G6-005",
+        "G6-009",
+        "G6-011",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "7eaf152fed7b1cac19c610b4c8bd8ce7883c857030bc7f67ed39b04d5b45d5e7",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0199",
+      "source_requirement": "U6-REQ-0199",
+      "implementation_items": [
+        "G6-002",
+        "G6-004",
+        "G6-005",
+        "G6-009",
+        "G6-011",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "9153975ae72bab4d5ebac6723f93e76a57e6f46f3c56b05acf26e120f5071fe0",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0200",
+      "source_requirement": "U6-REQ-0200",
+      "implementation_items": [
+        "G6-002",
+        "G6-004",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "8d6793164c5b8d966293fa4ec5c9beb6e712d6b61fd5d8201981e84a8a353208",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0201",
+      "source_requirement": "U6-REQ-0201",
+      "implementation_items": [
+        "G6-002",
+        "G6-004",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "eaa34dab10079cf8eaabbffa45c081a843ea864638de2835a4dd72484942ce16",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0202",
+      "source_requirement": "U6-REQ-0202",
+      "implementation_items": [
+        "G6-002",
+        "G6-004",
+        "G6-013"
+      ],
+      "lane": "contract-decisions",
+      "source_excerpt_sha256": "a8bfe63c736a13f1986e0ad5b35cacf2cf3fa8fc043fe0f14a86b133c1604da7",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0203",
+      "source_requirement": "U6-REQ-0203",
+      "implementation_items": [
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "269131cd3b2fc51cdcadb137a3764058ec406aca360d411474b7ca618807be81",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0204",
+      "source_requirement": "U6-REQ-0204",
+      "implementation_items": [
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "926970be3df655b6dfa1344e20128975cbe8b0a34e0241964960cc5924dad223",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0205",
+      "source_requirement": "U6-REQ-0205",
+      "implementation_items": [
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "82d927a8563a595f3aa1a0aa28a42b31203efd8b7a2bd2ab8e11d49df2f60c07",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0206",
+      "source_requirement": "U6-REQ-0206",
+      "implementation_items": [
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "1e0169b6510ee5a9a7b69f6bbc55aad2c4640cb9226b37f961aeb95ab007912b",
+      "runtime_result": "not-run"
+    },
+    {
+      "case_id": "u6-req-0207",
+      "source_requirement": "U6-REQ-0207",
+      "implementation_items": [
+        "G6-010",
+        "G6-016",
+        "G6-037",
+        "G6-094"
+      ],
+      "lane": "independent-conformance",
+      "source_excerpt_sha256": "cf154d736ddb1f203bffa329f54a63cee664c81f1b4b2a9686480f2fb5e1914e",
+      "runtime_result": "not-run"
+    }
+  ],
+  "failure_injections": [
+    "before external submission",
+    "after possibly accepted external submission",
+    "candidate prepared but not ready",
+    "revocation before commit",
+    "concurrent controller revision conflict",
+    "commit response lost",
+    "retired leg callback arrives late",
+    "server restarts during consultation",
+    "slow or expired subscriber",
+    "incomplete transcript or provider context",
+    "unsupported preferred transport",
+    "wrong phone confirmation or voicemail"
+  ],
+  "independent_client_rule": "No Connect/rvoip parser, helper or protocol state machine; shared published vectors allowed.",
+  "evidence_rule": "Each result binds exact source, dependency, package, profile, runtime versions and actual observed behavior. Skipped or unavailable required lanes remain unrun."
+}

@@ -53,9 +53,9 @@
           "depends_on": [
             "G3-A"
           ],
-          "outcome": "Bridge reliable UCTP control and bidirectional QUIC datagram audio to Vapi’s WebSocket interface using rvoip media components. Bind both media legs to Participants and Connections in a Session belonging to the durable Conversation.",
+          "outcome": "Bridge reliable UCTP control and bidirectional QUIC datagram audio to Vapi\u2019s WebSocket interface using rvoip media components. Bind both media legs to Participants and Connections in a Session belonging to the durable Conversation.",
           "acceptance": "Distinct client/server processes; audible two-way assistant conversation, negotiated formats, interruptions, loss/disconnect, cancellation and paired teardown. Preserve trace evidence separating QUIC and provider WebSocket legs.",
-          "reuse": "rvoip QUIC media and Vapi adapter; Parley audio-host behavior. Requalify against Connect’s pinned dependency graph.",
+          "reuse": "rvoip QUIC media and Vapi adapter; Parley audio-host behavior. Requalify against Connect\u2019s pinned dependency graph.",
           "experiment": "E3; legacy G2-024",
           "status": "complete-local-and-live"
         },
@@ -261,7 +261,7 @@
             "G4-B"
           ],
           "outcome": "Extend the existing storage-independent connector API with a capability/configuration manifest, lifecycle guidance, template and shared contract harness. Publish the interoperable wire profile and conformance materials.",
-          "acceptance": "An independent contributor adds a fixture connector without changing core conversation/routing logic; explicit composition registration is allowed. A separately implemented wire client—not just the same Rust helper—negotiates and exchanges permitted requests/events using the published specification.",
+          "acceptance": "An independent contributor adds a fixture connector without changing core conversation/routing logic; explicit composition registration is allowed. A separately implemented wire client\u2014not just the same Rust helper\u2014negotiates and exchanges permitted requests/events using the published specification.",
           "reuse": "Current connect-connector-api; Bridgefu provider/recipe boundaries; Parley connector guidance. No marketplace or automatic third-party code loading is required.",
           "experiment": "Connector portion of E8; independent conformance",
           "status": "complete-local-scope"
@@ -290,7 +290,7 @@
           "outcome": "Qualify files, messages, voice and video through the public SDK and reference client; rerun both agent and app journeys across declared interfaces. Publish measured limits and recovery behavior.",
           "acceptance": "Fresh-user walkthroughs, cross-channel continuity, independent protocol client, SDK/MCP/CLI parity, credential revocation, file access/retention, restart/replay, unknown provider outcomes and network-loss/load tests. Publish supported OS/runtime, topology, concurrency, latency/loss and retention limits with evidence.",
           "reuse": "Reuse the existing local/package/recovery harness; add the missing media, artifact, host and live-provider evidence. Local Gate 1/2 qualification is a baseline, not this release test.",
-          "experiment": "E1–E8 integrated release evidence",
+          "experiment": "E1\u2013E8 integrated release evidence",
           "status": "complete-local-scope"
         },
         {
@@ -321,7 +321,7 @@
           "not-qualified": 0
         },
         "candidate_behavior_revision": "284cef16c64b324ce2add037b013249692a60087",
-        "reason": "All201 implementation tasks across Gates1–5 are complete in their recorded scopes. Version0.1.0 is published with explicit failed/unrun qualification observations and owner-accepted performance exceptions.",
+        "reason": "All201 implementation tasks across Gates1\u20135 are complete in their recorded scopes. Version0.1.0 is published with explicit failed/unrun qualification observations and owner-accepted performance exceptions.",
         "whole_gate_qualified": true,
         "evidence": "evidence/gate-5/final-candidate-seal-20261015.json",
         "owner_approval": "evidence/gate-5/owner-approval-20261015.json",
@@ -358,9 +358,9 @@
           "gate_status": "planned",
           "gate_planning_status": "product-and-numbered-implementation-plans-for-review",
           "planning_gaps": [
-            "Gate 5 product and 50-item implementation plans are drafted for review. Finalize D5-01–D5-05 and the technical decision records in G5-001 before dependent implementation. No Gate 5 implementation or publication is complete."
+            "Gate 5 product and 50-item implementation plans are drafted for review. Finalize D5-01\u2013D5-05 and the technical decision records in G5-001 before dependent implementation. No Gate 5 implementation or publication is complete."
           ],
-          "planning_status": "Gates 1–4 are qualified within recorded source/platform limits; Gate 5 product and numbered implementation plans are ready for review. All 50 Gate 5 items remain not started; full v0.1 remains unreleased."
+          "planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits; Gate 5 product and numbered implementation plans are ready for review. All 50 Gate 5 items remain not started; full v0.1 remains unreleased."
         },
         "notice_reopening_history": {
           "recorded_at": "2026-10-15T11:08:30.453481+00:00",
@@ -375,7 +375,7 @@
             "G5-045"
           ],
           "reason": "On October 15, G5-044 and G5-045 reopened after review found missing exact crc-catalog and rmcp license notices in the candidate distribution. Replacement packaging and affected qualification are required. The accepted ab843 behavior/model results and 11 technical criteria remain valid at their recorded scopes; A5-15 and final acceptance remain open.",
-          "root_planning_status": "Gates 1–4 are qualified within recorded source/platform limits. Gate 5 has43completed,6in-progress and1not-started implementation items;11local technical criteria are qualified. Distribution-notice repair and final human/owner gates remain open; full v0.1 remains unreleased.",
+          "root_planning_status": "Gates 1\u20134 are qualified within recorded source/platform limits. Gate 5 has43completed,6in-progress and1not-started implementation items;11local technical criteria are qualified. Distribution-notice repair and final human/owner gates remain open; full v0.1 remains unreleased.",
           "planning_gaps": [
             "Gate 5 requires corrected dependency notices and a replacement candidate with reviewed affected qualification, three independent human walkthroughs, final documentation/quality/seal and owner acceptance. Publication remains separate."
           ]
@@ -384,6 +384,105 @@
       },
       "release_url": "https://github.com/eisenzopf/connect/releases/tag/v0.1",
       "publication_record": "evidence/gate-5/v0.1-publication.json"
+    },
+    {
+      "id": 6,
+      "name": "VoIP 3 through Connect",
+      "outcome": "A complete targeted UCTP contract and reusable Connect server/SDK capabilities for a Parley-style app, including developer documentation and supported hosting.",
+      "status": "implementation-in-progress",
+      "implementation_authorized": true,
+      "plan": "connect-gate-6-plan.html",
+      "implementation": "connect-gate-6-implementation.html",
+      "acceptance": "gate-6-acceptance.json",
+      "protocol_coverage": "gate-6-uctp-coverage.json",
+      "task_count": 105,
+      "acceptance_count": 28,
+      "pre_alpha_policy": "Breaking API/SDK/schema changes allowed; no legacy Connect compatibility, downgrade support or automatic historical migrations required.",
+      "milestones": [
+        {
+          "id": "G6-A",
+          "phase": "M0",
+          "title": "Model, protocol and decisions",
+          "outcome": "Freeze the shared semantics, complete requirement inventory, clean API contract and qualification profiles before changing behavior.",
+          "depends_on": [
+            "gate-5"
+          ],
+          "status": "done"
+        },
+        {
+          "id": "G6-B",
+          "phase": "M1",
+          "title": "Reusable rvoip capabilities",
+          "outcome": "Implement and qualify general protocol and media primitives upstream; consume an identified revision or reproducible patch set.",
+          "depends_on": [
+            "G6-A"
+          ],
+          "status": "in-progress"
+        },
+        {
+          "id": "G6-C",
+          "phase": "M2",
+          "title": "Connect state, policy and orchestration",
+          "outcome": "Make the new nouns and transitions durable, authorized, observable and usable through one application service.",
+          "depends_on": [
+            "G6-B"
+          ],
+          "status": "in-progress"
+        },
+        {
+          "id": "G6-D",
+          "phase": "M3",
+          "title": "Transports and supported hosting",
+          "outcome": "Carry the same contract through native QUIC, browser WebTransport and explicit fallback; qualify a remote server installation.",
+          "depends_on": [
+            "G6-C"
+          ],
+          "status": "not-started"
+        },
+        {
+          "id": "G6-E",
+          "phase": "M4",
+          "title": "SDKs, packages and integrations",
+          "outcome": "Expose consistent public operations, useful media interfaces, provisioning and connector/agent integrations in installable packages.",
+          "depends_on": [
+            "G6-D"
+          ],
+          "status": "not-started"
+        },
+        {
+          "id": "G6-F",
+          "phase": "M5",
+          "title": "Parley-style reference application",
+          "outcome": "Build the complete communications journey through public SDKs, with a provider-free rehearsal and a separately qualified live mode.",
+          "depends_on": [
+            "G6-E"
+          ],
+          "status": "not-started"
+        },
+        {
+          "id": "G6-G",
+          "phase": "M6",
+          "title": "Developer documentation and contribution",
+          "outcome": "Write guides alongside implementation, then validate the complete learning path, reference and website changes against the candidate.",
+          "depends_on": [
+            "G6-F"
+          ],
+          "status": "not-started"
+        },
+        {
+          "id": "G6-H",
+          "phase": "M7",
+          "title": "Integrated qualification and review",
+          "outcome": "Prove independent interoperability, failures, retained capabilities, usability, live providers and reproducible packages; hand off for owner review.",
+          "depends_on": [
+            "G6-G"
+          ],
+          "status": "not-started"
+        }
+      ],
+      "authorization": "evidence/gate-6/authorization.json",
+      "completed_task_count": 18,
+      "in_progress_task_count": 0
     }
   ],
   "source_of_truth": {
@@ -393,17 +492,18 @@
     "gate_product_plans": "connect-gate-N-plan.html",
     "gate_implementation": "connect-gate-N-implementation.html",
     "actual_evidence": "evidence/gate-N/",
-    "delivery": "connect-roadmap.html (human-readable) and roadmap.json (structured milestone data)"
+    "delivery": "connect-roadmap.html (human-readable) and roadmap.json (structured milestone data)",
+    "gate_6": "Approved Gate 6 product/implementation plans, acceptance map and UCTP ledger; implementation authorized October 15, 2026."
   },
   "required_feature_coverage": "feature-coverage.json",
   "planning_gaps": [],
   "decision_backlog": "backlog.html",
   "gate_1_completion_audit": "connect-gate-1-audit.html",
   "local_patches": "Accepted for now; source-lock digests verified",
-  "revision": 14,
+  "revision": 15,
   "document": "connect-roadmap.html",
-  "planning_status": "All201 implementation tasks across Gates1–5 are complete in their recorded scopes. Version0.1.0 is published with explicit failed/unrun qualification observations and owner-accepted performance exceptions.",
-  "sequencing_rule": "Keep gates 1–5 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
+  "planning_status": "All201 implementation tasks across Gates1\u20135 are complete in their recorded scopes. Version0.1.0 is published with explicit failed/unrun qualification observations and owner-accepted performance exceptions.",
+  "sequencing_rule": "Keep gates 1\u20135 and their evidence IDs. Close the reactivated SMS lane before beginning Gate 4 as requested. Basic files are delivered; design video early and qualify it in Gate 5.",
   "parallel_lanes": [
     {
       "id": "G2-SMS",

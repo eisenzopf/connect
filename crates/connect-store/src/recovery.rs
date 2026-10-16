@@ -129,6 +129,24 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
             "connector_voice_observations",
         ]);
     }
+    if schema >= 19 {
+        tables.extend([
+            "tenants",
+            "identity_subjects",
+            "devices",
+            "endpoints",
+            "message_audiences",
+            "message_attachments",
+            "message_receipts",
+            "artifact_audiences",
+            "session_participants",
+            "connections",
+            "operations",
+            "operation_resources",
+            "operation_effects",
+            "operation_observations",
+        ]);
+    }
     for table in tables {
         digest.update(table.as_bytes());
         // Names are a fixed allowlist, never user-controlled SQL.
@@ -203,107 +221,17 @@ impl Store {
         let tx = c.transaction().map_err(|_| Error::storage())?;
         let snapshot = inspect(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;
-        Store::create_blob_directory(path)?;
         Ok(snapshot)
     }
 
-    /// Explicit supported-schema migration. Caller holds the installation lock. The verified
-    /// backup must match all current logical state; stale backups cannot qualify.
-    pub fn migrate(path: &Path, backup: &Path, expected: &Snapshot) -> Result<Snapshot> {
-        if &Self::inspect_snapshot(backup)? != expected {
-            return Err(Error::new(
-                "invalid-backup",
-                "Backup integrity or manifest does not match",
-            ));
-        }
-        let mut connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)
-            .map_err(|_| Error::storage())?;
-        Self::configure(&connection)?;
-        let tx = connection
-            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
-        if &inspect(&tx)? != expected {
-            return Err(Error::new("invalid-backup", "Backup is stale or belongs to another installation; create a fresh verified backup"));
-        }
-        if expected.schema >= SCHEMA_VERSION {
-            return Err(Error::new(
-                "unsupported-schema",
-                "Current schema needs no migration",
-            ));
-        }
-        if expected.schema == 1 {
-            tx.execute_batch(include_str!("../migrations/002_conversations.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 3 {
-            tx.execute_batch(include_str!("../migrations/003_providers.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 4 {
-            tx.execute_batch(include_str!("../migrations/004_voice.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 5 {
-            tx.execute_batch(include_str!("../migrations/005_inbound_voice.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 6 {
-            tx.execute_batch(include_str!("../migrations/006_voice_recovery.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 7 {
-            tx.execute_batch(include_str!(
-                "../migrations/007_sessions_context_artifacts.sql"
-            ))
-            .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 8 {
-            tx.execute_batch(include_str!("../migrations/008_artifact_expiry.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 9 {
-            tx.execute_batch(include_str!("../migrations/009_sip_legs.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 10 {
-            tx.execute_batch(include_str!("../migrations/010_sms_eligibility.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 11 {
-            tx.execute_batch(include_str!("../migrations/011_tasks.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 12 {
-            tx.execute_batch(include_str!("../migrations/012_task_effect_authority.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 13 {
-            tx.execute_batch(include_str!("../migrations/013_task_sms_policy.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 14 {
-            tx.execute_batch(include_str!("../migrations/014_media_end_authority.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 15 {
-            tx.execute_batch(include_str!("../migrations/015_native_media_authority.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 16 {
-            tx.execute_batch(include_str!("../migrations/016_vapi_session_setups.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 17 {
-            tx.execute_batch(include_str!("../migrations/017_contacts.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        if expected.schema < 18 {
-            tx.execute_batch(include_str!("../migrations/018_connector_observations.sql"))
-                .map_err(|_| Error::storage())?;
-        }
-        let snapshot = inspect(&tx)?;
-        tx.commit().map_err(|_| Error::storage())?;
-        Ok(snapshot)
+    /// Gate 6 has a deliberate incompatible schema boundary. Retain the API
+    /// only to return an actionable refusal to the operator's migration command.
+    /// No historical conversion or mutation is attempted.
+    pub fn migrate(_path: &Path, _backup: &Path, _expected: &Snapshot) -> Result<Snapshot> {
+        Err(Error::new(
+            "unsupported-schema",
+            "Gate 6 does not convert historical state. Preserve a verified backup with its matching binary, then explicitly initialize a new state path",
+        ))
     }
 }
 

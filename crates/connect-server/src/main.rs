@@ -104,7 +104,7 @@ enum Command {
         #[arg(long)]
         websocket_bind: Option<std::net::SocketAddr>,
     },
-    /// Upgrade stopped state using a verified, matching pre-upgrade backup.
+    /// Reconcile current setup metadata; historical schema conversion is unsupported.
     Migrate {
         #[arg(long)]
         config: PathBuf,

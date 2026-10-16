@@ -239,46 +239,6 @@ fn call_metadata_is_covered_by_verified_backup() {
     assert_eq!(state.state, "ringing");
     assert_eq!(before, Store::inspect_snapshot(&backup).unwrap());
 }
-#[test]
-fn schema_three_upgrade_requires_backup_and_preserves_conversations() {
-    let f = fixture();
-    let path = f.store.path().to_owned();
-    let key = f.key.clone();
-    let conv = f.conversation.clone();
-    drop(f.store);
-    let c = rusqlite::Connection::open(&path).unwrap();
-    remove_gate_four_fixture_tables(&c);
-    c.execute_batch("DROP TABLE connector_observations; DROP TABLE connector_receipt_events; DROP TABLE connector_incoming; DROP TABLE connector_voice_observations; DROP TABLE contact_pairings; DROP TABLE connector_manifests; DROP TABLE vapi_session_setups; DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; DROP TABLE voice_ingress; DROP TABLE voice_calls; DROP TABLE voice_routes; ALTER TABLE journal DROP COLUMN call_json; PRAGMA user_version=3;").unwrap();
-    drop(c);
-    assert_eq!(
-        Store::open(&path, Limits::default()).err().unwrap().code,
-        "unsupported-schema"
-    );
-    let backup = f._dir.path().join("schema3-backup.sqlite3");
-    let old = Store::backup_database(&path, &backup).unwrap();
-    assert_eq!(old.schema, 3);
-    assert_eq!(
-        Store::migrate(&path, &backup, &old).unwrap().schema,
-        connect_store::SCHEMA_VERSION
-    );
-    let upgraded = Store::open(&path, Limits::default()).unwrap();
-    let page = upgraded
-        .execute(
-            &key,
-            &Operation::Inbox {
-                cursor: None,
-                limit: 100,
-                wait_ms: 0,
-            },
-        )
-        .unwrap();
-    if let Outcome::Inbox { events, .. } = page {
-        assert!(events.iter().any(|e| e.conversation_id == conv));
-    } else {
-        panic!()
-    }
-    assert_eq!(Store::inspect_snapshot(&backup).unwrap(), old);
-}
 
 #[test]
 fn inbound_is_deduplicated_scoped_recoverable_and_not_a_dial() {
@@ -366,44 +326,6 @@ fn inbound_is_deduplicated_scoped_recoverable_and_not_a_dial() {
             .code,
         "unauthorized"
     );
-}
-
-#[test]
-fn schema_four_upgrade_preserves_voice_and_requires_snapshot() {
-    let f = fixture();
-    let accepted = call(
-        f.store
-            .execute(&f.key, &start(&f, "pre-migration"))
-            .unwrap(),
-    );
-    let path = f.store.path().to_owned();
-    drop(f.store);
-    let c = rusqlite::Connection::open(&path).unwrap();
-    remove_gate_four_fixture_tables(&c);
-    c.execute_batch("DROP TABLE connector_observations; DROP TABLE connector_receipt_events; DROP TABLE connector_incoming; DROP TABLE connector_voice_observations; DROP TABLE contact_pairings; DROP TABLE connector_manifests; DROP TABLE vapi_session_setups; DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; DROP TABLE voice_ingress; DROP INDEX voice_provider_id; ALTER TABLE voice_calls DROP COLUMN direction; ALTER TABLE voice_calls DROP COLUMN end_credential_id; PRAGMA user_version=4;").unwrap();
-    drop(c);
-    let backup = f._dir.path().join("schema4.sqlite3");
-    let snapshot = Store::backup_database(&path, &backup).unwrap();
-    assert_eq!(snapshot.schema, 4);
-    assert_eq!(
-        Store::migrate(&path, &backup, &snapshot).unwrap().schema,
-        connect_store::SCHEMA_VERSION
-    );
-    let store = Store::open(&path, Limits::default()).unwrap();
-    let current = call(
-        store
-            .execute(
-                &f.key,
-                &Operation::CallStatus {
-                    conversation_id: f.conversation,
-                    call_id: accepted.id,
-                },
-            )
-            .unwrap(),
-    );
-    assert_eq!(current.direction, "outbound");
-    assert_eq!(current.state, "pending");
-    assert_eq!(Store::inspect_snapshot(&backup).unwrap(), snapshot);
 }
 
 fn ready_call(f: &Fixture) -> Call {
@@ -552,47 +474,4 @@ fn inbound_scan_watermark_is_durable_and_rechecked_on_commit() {
         f.store.complete_voice_scan(&b).unwrap_err().code,
         "unauthorized"
     );
-}
-#[test]
-fn schema_five_upgrade_retains_inbound_bindings_and_reconciles_legacy_end_intent() {
-    let f = fixture();
-    let c = ready_call(&f);
-    f.store
-        .configure_voice_ingress(&f.operator, &f.route.id, &f.route.phone_number_id)
-        .unwrap();
-    f.store
-        .execute(
-            &f.key,
-            &Operation::CallEnd {
-                request_id: "old-end".into(),
-                conversation_id: f.conversation.clone(),
-                call_id: c.id.clone(),
-            },
-        )
-        .unwrap();
-    let path = f.store.path().to_owned();
-    drop(f.store);
-    let db = rusqlite::Connection::open(&path).unwrap();
-    remove_gate_four_fixture_tables(&db);
-    db.execute_batch("DROP TABLE connector_observations; DROP TABLE connector_receipt_events; DROP TABLE connector_incoming; DROP TABLE connector_voice_observations; DROP TABLE contact_pairings; DROP TABLE connector_manifests; DROP TABLE vapi_session_setups; DROP TABLE sms_authorities; DROP TABLE sms_grants; DROP TABLE sms_controls; DROP TABLE sms_control_events; ALTER TABLE provider_jobs DROP COLUMN sms_decision; ALTER TABLE provider_jobs DROP COLUMN sms_grant_id; DROP TABLE sip_legs; DROP TABLE context_deliveries; DROP TABLE session_bindings; DROP TABLE sessions; DROP TABLE availability; DROP TABLE artifacts; ALTER TABLE journal DROP COLUMN artifact_json; ALTER TABLE journal DROP COLUMN session_json; ALTER TABLE voice_calls DROP COLUMN end_credential_id; ALTER TABLE voice_ingress DROP COLUMN scanned_until; PRAGMA user_version=5;").unwrap();
-    drop(db);
-    let backup = f._dir.path().join("schema5.sqlite3");
-    let snapshot = Store::backup_database(&path, &backup).unwrap();
-    assert_eq!(snapshot.schema, 5);
-    assert_eq!(
-        Store::migrate(&path, &backup, &snapshot).unwrap().schema,
-        connect_store::SCHEMA_VERSION
-    );
-    let store = Store::open(&path, Limits::default()).unwrap();
-    assert_eq!(store.voice_ingresses().unwrap().len(), 1);
-    let job = store.claim_voice_job().unwrap().unwrap();
-    assert_eq!(job.action, VoiceAction::Poll);
-    assert!(job.call.end_requested);
-    assert_eq!(Store::inspect_snapshot(&backup).unwrap(), snapshot);
-}
-
-// These legacy migration fixtures deliberately reconstruct old schemas in
-// temporary databases. Remove Gate 4 tables too; they never existed at v3–5.
-fn remove_gate_four_fixture_tables(connection: &rusqlite::Connection) {
-    connection.execute_batch("DROP INDEX session_bindings_task_grant; ALTER TABLE session_bindings DROP COLUMN task_grant_id; DROP TABLE media_end_intents; DROP TABLE media_start_admissions; DROP INDEX task_effect_media_resource; DROP TABLE task_effect_links; DROP TABLE task_effect_authority; DROP TABLE task_grants; DROP TABLE task_bindings; DROP TABLE task_claims; DROP TABLE task_effects; DROP TABLE task_replies; DROP TABLE task_requests; DROP TABLE task_events; DROP TABLE tasks;").unwrap();
 }

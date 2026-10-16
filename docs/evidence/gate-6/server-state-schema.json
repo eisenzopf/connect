@@ -1,0 +1,30 @@
+{
+  "task": "G6-029",
+  "executed_at": "2026-10-16T04:44:00.840624+00:00",
+  "passed": true,
+  "scope": "Public local CLI: current setup, matching backup/restore, incompatible schema refusal without destination creation or source mutation, explicit new installation; artifact bytes/checksums and cleanup. No provider/media/network-hosting qualification.",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "connect-server",
+    "--test",
+    "first_run_schema_boundary",
+    "--test",
+    "artifact_recovery"
+  ],
+  "tests_passed": 2,
+  "tests": [
+    "finalized_artifact_blob_is_private_verified_and_restored_with_database",
+    "current_backup_restores_and_incompatible_state_requires_a_fresh_installation"
+  ],
+  "source_sha256": {
+    "crates/connect-server/src/cli/recovery.rs": "96c600d00816877983b64fe573d6824830503317070bbf477acc0c00884d69e9",
+    "crates/connect-server/src/main.rs": "46101394a64631f6ea6b3de20b526869fb8588613870fd4706bbb23eb53b202c",
+    "crates/connect-server/tests/first_run_schema_boundary.rs": "a362ba6ef26d308199585cd54542745c059491fe227be05ee7e9ba979850da05",
+    "crates/connect-server/tests/artifact_recovery.rs": "255ed9e7b34fc5effae7b0e163f4aed10e766f6b0697363e32fa8ab6c09f3e05"
+  },
+  "private_log": ".local/gate-6/server-state-tests.log",
+  "log_sha256": "3285f73556587a56b8423ff7524354988b01aba96e24f27a1a09bcc067242eaa"
+}

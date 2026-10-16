@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 STATES={'not-started','in-progress','blocked','done','deferred'}
 parser=argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--gate',choices=['1','2','3','4','5'],default='1')
+parser.add_argument('--gate',choices=['1','2','3','4','5','6'],default='1')
 parser.add_argument('--item',required=True)
 parser.add_argument('--status',choices=sorted(STATES),required=True)
 parser.add_argument('--owner',default='')
@@ -17,11 +17,11 @@ source=PLAN.read_text()
 match=re.search(r'(<script id="plan-data" type="application/json">)(.*?)(</script>)',source,re.S)
 data=json.loads(match[2]); by_id={t['id']:t for t in data['tasks']}
 if args.item not in by_id: parser.error('Unknown item ID')
-task=by_id[args.item];task.update(status=args.status,owner=args.owner,evidence=args.evidence,notes=args.notes,updated=datetime.datetime.now(ZoneInfo('America/Los_Angeles')).date().isoformat())
+task=by_id[args.item];task.update(status=args.status,owner=args.owner,evidence=args.evidence,notes=args.notes,updated=datetime.datetime.now(ZoneInfo('America/Phoenix' if args.gate=='6' else 'America/Los_Angeles')).date().isoformat())
 for item in data['tasks']:
  if item['status'] not in STATES: parser.error('Invalid status')
  if any(dep not in by_id for dep in item['depends']): parser.error('Unknown dependency')
- if args.gate in ('4', '5') and item['status']=='done' and not item['owner'].strip():
+ if args.gate in ('4', '5', '6') and item['status']=='done' and not item['owner'].strip():
   parser.error('Done requires an owner: '+item['id'])
  if item['status']=='done' and (not item['evidence'].strip() or any(by_id[dep]['status']!='done' for dep in item['depends'])):
   parser.error('Done requires evidence and completed dependencies: '+item['id'])
@@ -67,7 +67,7 @@ for field,value in [('evidence',args.evidence),('notes',args.notes)]:
 card=re.sub(r'(<input type="checkbox" data-action="done"[^>]*)(>)',lambda m:re.sub(r' checked(?:="")?','',m[1])+(' checked' if args.status=='done' else '')+m[2],card)
 card=re.sub(r'(Last updated: ).*?(</p>)',lambda m:m[1]+task['updated']+m[2],card)
 source=re.sub(pattern,lambda _:card,source,count=1,flags=re.S)
-for phase in ('M0','M1','M2','M3','M4','M5'):
+for phase in dict.fromkeys(item['phase'] for item in data['tasks']):
  rows=[t for t in data['tasks'] if t['phase']==phase]
  label=f"{sum(t['status']=='done' for t in rows)} / {len(rows)} done"
  source=re.sub(r'(<span class="phase-count" data-phase="'+phase+r'">).*?(</span>)',lambda m:m[1]+label+m[2],source)

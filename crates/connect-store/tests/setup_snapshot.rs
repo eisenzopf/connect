@@ -4,7 +4,7 @@ use connect_connector_api::{manifest::Manifest, Descriptor};
 use connect_protocol::{Operation, Outcome};
 use connect_store::{Scope, Store};
 #[test]
-fn schema17_snapshot_detects_contact_and_manifest_drift_and_restores_current_revocation() {
+fn snapshot_detects_contact_and_manifest_drift_and_restores_current_revocation() {
     let tmp = tempfile::tempdir().unwrap();
     let path = tmp.path().join("state.db");
     let store = Store::initialize(&path, Default::default()).unwrap();
@@ -42,7 +42,7 @@ fn schema17_snapshot_detects_contact_and_manifest_drift_and_restores_current_rev
     assert_ne!(Store::inspect_snapshot(&path).unwrap().digest, saved.digest);
     assert_eq!(
         Store::migrate(&path, &saved_path, &saved).unwrap_err().code,
-        "invalid-backup"
+        "unsupported-schema"
     );
     connection
         .execute("UPDATE contact_pairings SET attempts=attempts-1", [])
@@ -54,7 +54,7 @@ fn schema17_snapshot_detects_contact_and_manifest_drift_and_restores_current_rev
     assert_ne!(Store::inspect_snapshot(&path).unwrap().digest, saved.digest);
     assert_eq!(
         Store::migrate(&path, &saved_path, &saved).unwrap_err().code,
-        "invalid-backup"
+        "unsupported-schema"
     );
     assert_eq!(Store::inspect_snapshot(&saved_path).unwrap(), saved);
     let restored = Store::open(&saved_path, Default::default()).unwrap();

@@ -798,5 +798,17 @@
     "publication": "https://github.com/eisenzopf/connect/releases/tag/v0.1",
     "published_build_fully_qualified": false,
     "exceptions": "evidence/gate-5/v0.1-release-exceptions.json"
+  },
+  "gate_6_acceptance": "gate-6-acceptance.json",
+  "gate_6_scope": {
+    "status": "implementation-in-progress",
+    "implementation_authorized": true,
+    "plan": "connect-gate-6-plan.html",
+    "implementation": "connect-gate-6-implementation.html",
+    "requirements": "gate-6-acceptance.json",
+    "protocol_inventory": "gate-6-uctp-coverage.json",
+    "note": "Adds R6-01–R6-17 without relabeling historical F-01–F-21 evidence. One clean pre-alpha API; no legacy compatibility requirement.",
+    "requirements_key": "requirements",
+    "authorization": "evidence/gate-6/authorization.json"
   }
 }

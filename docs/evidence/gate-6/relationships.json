@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "task": "G6-017",
+  "executed_at": "2026-10-16T04:26:59.716408+00:00",
+  "scope": "Shared relationship transitions, membership epochs, session roles and endpoint lineage. Not server dispatch, external authentication, live media, provider or independent client conformance.",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--manifest-path",
+    ".deps/rvoip/Cargo.toml",
+    "-p",
+    "rvoip-core",
+    "--features",
+    "opus",
+    "--lib",
+    "relationships::tests",
+    "--",
+    "--nocapture"
+  ],
+  "exit_code": 0,
+  "source_lock_sha256": "b83e23cf0d37beca894f68132e75312e1faf71d61ec99c0ad1d07a443b9e0e0f",
+  "schema_sha256": "c67a75be6bbc269bd0386edad46321f41e84f4cf08314f3669a6b9614af94f7b",
+  "vectors_sha256": "13b9d76310fb5df0f7d7a833711e9e7d94f519dadec2e028638bfcd454d14def",
+  "upstream_sources": {
+    "crates/foundation/rvoip-core/src/relationships.rs": "ccb7132dc7a0d213ca77119df14e7a07b1756d3b4d0c857482eb3db3dc915e67",
+    "crates/foundation/rvoip-core/src/relationships/tests.rs": "f92ac1eab83a66f828ab7026e6b4f28875191c9643a2afa0666481215b18c069",
+    "crates/foundation/rvoip-core-traits/src/ids.rs": "c83884d70630020e1535a5526852f3b27a50f6d8b314947d99b53cf89fcbf6cb"
+  },
+  "schema_vectors": 0,
+  "valid_type_vectors": 0,
+  "tests_passed": [
+    "relationships::tests::authenticated_binding_cannot_be_rebound_by_actor_tenant_or_federation_fields",
+    "relationships::tests::endpoint_replacement_waits_for_current_readiness_and_retires_only_old_lineage",
+    "relationships::tests::roles_are_conversation_defaults_and_session_snapshots",
+    "relationships::tests::revoked_or_foreign_endpoint_cannot_steal_a_ready_route",
+    "relationships::tests::removal_and_rejoin_invalidate_old_presence_and_connection_epochs",
+    "relationships::tests::leaving_one_session_preserves_membership_other_sessions_and_devices",
+    "relationships::tests::relationship_diagnostics_exclude_addresses_identity_and_roles"
+  ],
+  "private_log": ".local/gate-6/relationships.log",
+  "log_sha256": "91aaf1a8b25ad27eaed288bf92145d581a015fc8ec9a5e2c7fbd7813304fa3ba",
+  "passed": true
+}

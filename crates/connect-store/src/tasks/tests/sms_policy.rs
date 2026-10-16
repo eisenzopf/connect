@@ -186,43 +186,7 @@ fn stop_and_start_do_not_revive_the_old_effect_or_cancel_the_task() {
         TaskState::Running
     );
 }
-#[test]
-fn schema_twelve_upgrade_preserves_old_grant_digest_and_task_receipts() {
-    let f = Fixture::new();
-    let task = f.task();
-    let grant = super::grants::grant(&f, &task);
-    let original = f.run(&super::grants::get(&task)).unwrap();
-    f.store
-        .connection()
-        .unwrap()
-        .execute_batch("DROP TABLE connector_observations; DROP TABLE connector_receipt_events; DROP TABLE connector_incoming; DROP TABLE connector_voice_observations; DROP TABLE contact_pairings; DROP TABLE connector_manifests; DROP TABLE vapi_session_setups; DROP INDEX session_bindings_task_grant; ALTER TABLE session_bindings DROP COLUMN task_grant_id; DROP TABLE media_end_intents; DROP TABLE media_start_admissions; DROP INDEX task_effect_media_resource; PRAGMA user_version=12")
-        .unwrap();
-    assert_eq!(
-        Store::open(f.store.path(), connect_protocol::Limits::default())
-            .err()
-            .unwrap()
-            .code,
-        "unsupported-schema"
-    );
-    let backup = f._dir.path().join("schema12.sqlite3");
-    let expected = f.store.backup(&backup).unwrap();
-    let after = Store::migrate(f.store.path(), &backup, &expected).unwrap();
-    assert_eq!(after.schema, crate::SCHEMA_VERSION);
-    let upgraded = Store::open(f.store.path(), connect_protocol::Limits::default()).unwrap();
-    assert_eq!(
-        upgraded
-            .execute_task(&f.key.id, &super::grants::get(&task))
-            .unwrap(),
-        original
-    );
-    assert!(upgraded
-        .authenticate_task_grant(grant.expose_secret(), &grant.grant.binding)
-        .is_ok());
-    assert_eq!(
-        upgraded.execute_task(&f.key.id, &f.create()).unwrap(),
-        original
-    );
-}
+
 #[test]
 fn start_cannot_restore_a_cancelled_sms_task_or_its_invocation() {
     let (f, human) = setup();

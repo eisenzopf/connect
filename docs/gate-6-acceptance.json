@@ -1,0 +1,1314 @@
+{
+  "gate": 6,
+  "title": "VoIP 3 through Connect",
+  "revision": 2,
+  "updated": "2026-10-15",
+  "status": "implementation-in-progress",
+  "implementation_authorized": true,
+  "plan": "connect-gate-6-plan.html",
+  "implementation": "connect-gate-6-implementation.html",
+  "scope": "Owner approved both plans and authorized implementation October 15, 2026. One clean pre-alpha API/SDK; breaking changes allowed; no legacy compatibility requirement.",
+  "requirements": [
+    {
+      "id": "R6-01",
+      "title": "Six nouns with precise lifecycles",
+      "outcome": "Preserve Conversation, Message, Session, Participant, Connection and Stream; specify supporting Identity, Device/Endpoint, audience and operation concepts.",
+      "acceptance": [
+        "A6-01"
+      ]
+    },
+    {
+      "id": "R6-02",
+      "title": "Complete targeted UCTP contract",
+      "outcome": "Cover every existing envelope and normative rule, resolve contradictions and standardize reusable additions; no mandatory feature is silently omitted.",
+      "acceptance": [
+        "A6-02",
+        "A6-16",
+        "A6-17",
+        "A6-18"
+      ]
+    },
+    {
+      "id": "R6-03",
+      "title": "Participants and reachable endpoints",
+      "outcome": "Support dynamic membership, kind/role, verified endpoints, discovery, explicit routing and current authorization.",
+      "acceptance": [
+        "A6-03",
+        "A6-05"
+      ]
+    },
+    {
+      "id": "R6-04",
+      "title": "Addressed durable messaging",
+      "outcome": "Typed content, files, reply references, per-recipient outcomes and authorized history/context use one conversation.",
+      "acceptance": [
+        "A6-04",
+        "A6-05"
+      ]
+    },
+    {
+      "id": "R6-05",
+      "title": "General sessions and streams",
+      "outcome": "Support multiple participants, joins/leaves, negotiated upgrades, subscriptions, audio/video/screen/data and explicit capability refusals.",
+      "acceptance": [
+        "A6-06"
+      ]
+    },
+    {
+      "id": "R6-06",
+      "title": "Private consultation",
+      "outcome": "Retain the remote call while isolating the consultation and its transcripts, events and context.",
+      "acceptance": [
+        "A6-07"
+      ]
+    },
+    {
+      "id": "R6-07",
+      "title": "Human/AI handoff",
+      "outcome": "Prepare, authorize and commit a role/speaking transition while retaining the remote connection; preserve the existing call on failure.",
+      "acceptance": [
+        "A6-08"
+      ]
+    },
+    {
+      "id": "R6-08",
+      "title": "Cross-device continuity",
+      "outcome": "Replace an endpoint for the same participant without changing the conversation or main session; distinguish this from participant handoff.",
+      "acceptance": [
+        "A6-09"
+      ]
+    },
+    {
+      "id": "R6-09",
+      "title": "Durable operations and recovery",
+      "outcome": "Stable logical operation IDs, status, ordered events, cursor recovery, reconciliation and current-authority retry prevent duplicate effects.",
+      "acceptance": [
+        "A6-10"
+      ]
+    },
+    {
+      "id": "R6-10",
+      "title": "Useful context and agent interaction",
+      "outcome": "Attributed observations and action requests, bounded audience-safe context and explicit worker integration support agents and humans equally.",
+      "acceptance": [
+        "A6-11"
+      ]
+    },
+    {
+      "id": "R6-11",
+      "title": "Reusable connectors",
+      "outcome": "Unify messaging, voice/media, provisioning and callback lifecycle integration for Vapi, Telnyx and contributed connectors.",
+      "acceptance": [
+        "A6-12",
+        "A6-28"
+      ]
+    },
+    {
+      "id": "R6-12",
+      "title": "Native, browser and hosted access",
+      "outcome": "Native QUIC, browser WebTransport, WebSocket/WebRTC fallback and a supported Linux deployment share one contract.",
+      "acceptance": [
+        "A6-13",
+        "A6-14",
+        "A6-15"
+      ]
+    },
+    {
+      "id": "R6-13",
+      "title": "Approachable SDKs",
+      "outcome": "Rust, TypeScript browser/Node and Python expose consistent control, events and defined media interfaces through installable packages.",
+      "acceptance": [
+        "A6-19"
+      ]
+    },
+    {
+      "id": "R6-14",
+      "title": "A complete public example",
+      "outcome": "A fresh developer reproduces the Parley-style journey without database access, private APIs or application-owned rvoip bridges.",
+      "acceptance": [
+        "A6-20",
+        "A6-21"
+      ]
+    },
+    {
+      "id": "R6-15",
+      "title": "Docs and contribution",
+      "outcome": "Quickstarts, concepts, progressive tutorial, hosting, a dedicated server HTTP/REST API reference with OpenAPI and curl examples, SDK/protocol reference, breaking-change notes and contributor guides agree with public project pages.",
+      "acceptance": [
+        "A6-24",
+        "A6-25"
+      ]
+    },
+    {
+      "id": "R6-16",
+      "title": "Evidence for the whole product",
+      "outcome": "Independent wire/media implementation, adversarial recovery, operating limits, retained capabilities and real provider checks qualify the exact candidate.",
+      "acceptance": [
+        "A6-16",
+        "A6-17",
+        "A6-18",
+        "A6-22",
+        "A6-23",
+        "A6-28"
+      ]
+    },
+    {
+      "id": "R6-17",
+      "title": "Reviewable distribution",
+      "outcome": "Build reproducible runtime/SDK/source artifacts and exact claims for owner review; publication is recorded separately.",
+      "acceptance": [
+        "A6-26",
+        "A6-27"
+      ]
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "A6-01",
+      "title": "One precise conversation model",
+      "milestone": "G6-A",
+      "status": "in-progress",
+      "proof": "Publish the revised six-noun model and UCTP semantic decisions, with lifecycle diagrams and invariants for membership, live presence, role, audience, handoff, device replacement and logical versus physical stream IDs. Every change traces to a Parley journey or an existing protocol requirement; model, schemas and SDK naming agree.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-002",
+        "G6-004",
+        "G6-006",
+        "G6-014",
+        "G6-016",
+        "G6-017",
+        "G6-019",
+        "G6-028",
+        "G6-059",
+        "G6-083",
+        "G6-089",
+        "G6-103"
+      ],
+      "observation": "6/12 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-01"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-transitions.md",
+        "contracts/schemas/uctp-envelope-2.schema.json",
+        "contracts/uctp-gate-6-requirements.json",
+        "contracts/uctp-vectors/",
+        "contracts/uctp-vectors/operation-transitions.json",
+        "docs/decisions/013-gate-6-model.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/contract-review.json",
+        "docs/evidence/gate-6/protocol-audit.json",
+        "docs/evidence/gate-6/relationships.json",
+        "docs/evidence/gate-6/wire-types.json",
+        "patches/rvoip/gate6-participant-device-relations.patch",
+        "patches/rvoip/gate6-uctp-v2.patch",
+        "scripts/audit-gate6-uctp.py",
+        "scripts/check-gate6-rvoip.py",
+        "scripts/generate-gate6-rust.py"
+      ]
+    },
+    {
+      "id": "A6-02",
+      "title": "The targeted UCTP contract is fully accounted for",
+      "milestone": "G6-A",
+      "status": "in-progress",
+      "proof": "Freeze exact specification/schema revisions and map every baseline envelope, every normative clause and each approved addition to implementation, positive/negative vectors and a result. Resolve conflicting lifecycle, retry, signature and version rules. All mandatory applicable requirements pass; optional and reserved behavior is explicitly negotiated and documented. Recognizing a type or returning not-implemented does not satisfy a required operation.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-002",
+        "G6-003",
+        "G6-007",
+        "G6-008",
+        "G6-009",
+        "G6-010",
+        "G6-013",
+        "G6-014",
+        "G6-016",
+        "G6-018",
+        "G6-020",
+        "G6-024",
+        "G6-026",
+        "G6-027",
+        "G6-028",
+        "G6-033",
+        "G6-037",
+        "G6-046",
+        "G6-049",
+        "G6-051",
+        "G6-083",
+        "G6-085",
+        "G6-092",
+        "G6-094",
+        "G6-101",
+        "G6-103"
+      ],
+      "observation": "9/26 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-02"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-events.md",
+        "contracts/connect-media-v2.md",
+        "contracts/connect-operations.md",
+        "contracts/connect-records.md",
+        "contracts/connect-uctp.md",
+        "contracts/schemas/uctp-envelope-2.schema.json",
+        "contracts/uctp-gate-6-requirements.json",
+        "contracts/uctp-vectors/",
+        "docs/decisions/014-gate-6-contract-version.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/contract-review.json",
+        "docs/evidence/gate-6/protocol-audit.json",
+        "docs/evidence/gate-6/test-design.json",
+        "docs/evidence/gate-6/wire-types.json",
+        "patches/rvoip/gate6-uctp-v2.patch",
+        "scripts/audit-gate6-uctp.py",
+        "scripts/check-gate6-contracts.py",
+        "scripts/check-gate6-rvoip.py",
+        "scripts/generate-gate6-rust.py"
+      ]
+    },
+    {
+      "id": "A6-03",
+      "title": "Participants and endpoints can be provisioned through public interfaces",
+      "milestone": "G6-C",
+      "status": "in-progress",
+      "proof": "A trusted backend provisions identities, conversation participants and verified browser/native/SIP/telephone/message endpoints using a supported API. Ordinary clients discover only permitted contacts, roles, capabilities and fresh reachability, and address participants rather than installation route IDs. Test multiple devices, invitation and removal, endpoint revocation, ambiguity, tenant boundaries and unauthorized provisioning.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-004",
+        "G6-005",
+        "G6-017",
+        "G6-019",
+        "G6-029",
+        "G6-030",
+        "G6-031",
+        "G6-032",
+        "G6-038",
+        "G6-041",
+        "G6-045",
+        "G6-055",
+        "G6-066",
+        "G6-075",
+        "G6-096"
+      ],
+      "observation": "4/15 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-03"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-audiences.md",
+        "contracts/connect-transitions.md",
+        "crates/connect-store/migrations/019_gate6.sql",
+        "crates/connect-store/src/runtime_epoch.rs",
+        "docs/decisions/013-gate-6-model.md",
+        "docs/decisions/014-gate-6-contract-version.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/relationships.json",
+        "docs/evidence/gate-6/schema-boundary.json",
+        "docs/evidence/gate-6/server-state-schema.json",
+        "docs/evidence/gate-6/state-schema.json",
+        "patches/rvoip/gate6-participant-device-relations.patch",
+        "scripts/check-gate6-rvoip.py"
+      ]
+    },
+    {
+      "id": "A6-04",
+      "title": "Messages and files have explicit audiences and outcomes",
+      "milestone": "G6-C",
+      "status": "in-progress",
+      "proof": "Send typed text/JSON/binary or attachment-backed messages to one, several or all authorized participants; correlate replies and expose recipient-specific accepted, delivered, read, failed and unknown observations without inventing provider receipts. Verify offline history, pagination, file integrity, duplicate/reordered callbacks, receipt suppression, changed-payload replay and ambiguous inbound routing.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-005",
+        "G6-010",
+        "G6-018",
+        "G6-029",
+        "G6-033",
+        "G6-034",
+        "G6-037",
+        "G6-044",
+        "G6-045",
+        "G6-074",
+        "G6-075",
+        "G6-096",
+        "G6-097"
+      ],
+      "observation": "3/13 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-04"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-audiences.md",
+        "contracts/connect-uctp.md",
+        "crates/connect-store/migrations/019_gate6.sql",
+        "crates/connect-store/src/runtime_epoch.rs",
+        "docs/decisions/014-gate-6-contract-version.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/schema-boundary.json",
+        "docs/evidence/gate-6/server-state-schema.json",
+        "docs/evidence/gate-6/state-schema.json"
+      ]
+    },
+    {
+      "id": "A6-05",
+      "title": "Privacy follows content across every surface",
+      "milestone": "G6-C",
+      "status": "in-progress",
+      "proof": "Prove a non-recipient cannot obtain private message bodies, attachments, transcript fragments, consultation events, recordings or derived AI context through live delivery, history, snapshots, search, export, replay or cached links. Membership removal, role change, revoked credentials and post-send joins obey the published access policy. Receipt and identifier metadata obey the same visibility boundary.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-005",
+        "G6-008",
+        "G6-009",
+        "G6-010",
+        "G6-018",
+        "G6-021",
+        "G6-027",
+        "G6-029",
+        "G6-031",
+        "G6-033",
+        "G6-034",
+        "G6-036",
+        "G6-039",
+        "G6-040",
+        "G6-042",
+        "G6-045",
+        "G6-046",
+        "G6-055",
+        "G6-075",
+        "G6-076",
+        "G6-078",
+        "G6-083",
+        "G6-096",
+        "G6-101"
+      ],
+      "observation": "5/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-03",
+        "R6-04"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-audiences.md",
+        "contracts/connect-events.md",
+        "contracts/connect-media-v2.md",
+        "contracts/connect-records.md",
+        "contracts/connect-uctp.md",
+        "crates/connect-store/migrations/019_gate6.sql",
+        "crates/connect-store/src/runtime_epoch.rs",
+        "docs/decisions/014-gate-6-contract-version.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/schema-boundary.json",
+        "docs/evidence/gate-6/server-state-schema.json",
+        "docs/evidence/gate-6/state-schema.json"
+      ]
+    },
+    {
+      "id": "A6-06",
+      "title": "Sessions support the complete live model",
+      "milestone": "G6-C",
+      "status": "in-progress",
+      "proof": "Use the public SDK to invite, accept, reject, cancel, join, leave, upgrade and end multi-participant sessions. Qualify at least four participants and six connection slots, including pending replacements, with negotiated heterogeneous audio/video/screen/data and stream subscriptions. Ending a connection or leaving does not accidentally end other participants or close the conversation. Unsupported combinations fail before effects.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-011",
+        "G6-017",
+        "G6-019",
+        "G6-020",
+        "G6-022",
+        "G6-024",
+        "G6-032",
+        "G6-038",
+        "G6-050",
+        "G6-051",
+        "G6-064",
+        "G6-095",
+        "G6-098"
+      ],
+      "observation": "5/16 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-05"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-media-v2.md",
+        "contracts/connect-records.md",
+        "contracts/connect-transitions.md",
+        "contracts/uctp-vectors/operation-transitions.json",
+        "docs/decisions/013-gate-6-model.md",
+        "docs/decisions/015-gate-6-operating-profile.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/relationships.json",
+        "patches/rvoip/gate6-participant-device-relations.patch",
+        "scripts/check-gate6-rvoip.py"
+      ]
+    },
+    {
+      "id": "A6-07",
+      "title": "Consult privately without losing the remote call",
+      "milestone": "G6-C",
+      "status": "in-progress",
+      "proof": "During an active organizer call, retain the original remote Connection and main Session, deliver the declared hold experience, and establish private human/AI consultation. Audio markers and visibility probes prove isolation in both directions, including transcripts and model context. Decline, timeout, media failure, cancellation and remote hangup leave an explicitly reconciled usable or ended state.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-005",
+        "G6-006",
+        "G6-021",
+        "G6-031",
+        "G6-039",
+        "G6-042",
+        "G6-047",
+        "G6-071",
+        "G6-076",
+        "G6-079",
+        "G6-083",
+        "G6-096",
+        "G6-098",
+        "G6-100"
+      ],
+      "observation": "2/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-06"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-audiences.md",
+        "contracts/connect-transitions.md",
+        "contracts/uctp-vectors/operation-transitions.json",
+        "docs/evidence/gate-6/contract-checks.json"
+      ]
+    },
+    {
+      "id": "A6-08",
+      "title": "Handoff preserves the established interaction",
+      "milestone": "G6-C",
+      "status": "in-progress",
+      "proof": "An authorized AI-to-human and human-to-AI handoff waits for the new participant and verified media readiness, then commits the speaking/role transition while retaining the remote Connection and main Session. Prove consent/policy hooks, observer or leave disposition, duplicate requests, competing handoffs, revocation and failures before/after commit. A requested action or accepted command is not reported as completed media.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-006",
+        "G6-019",
+        "G6-022",
+        "G6-025",
+        "G6-035",
+        "G6-040",
+        "G6-047",
+        "G6-071",
+        "G6-076",
+        "G6-079",
+        "G6-083",
+        "G6-096",
+        "G6-098",
+        "G6-100"
+      ],
+      "observation": "1/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-07"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-transitions.md",
+        "contracts/uctp-vectors/operation-transitions.json",
+        "docs/evidence/gate-6/contract-checks.json"
+      ]
+    },
+    {
+      "id": "A6-09",
+      "title": "Move between devices without duplicate calls",
+      "milestone": "G6-C",
+      "status": "in-progress",
+      "proof": "Move the same participant between browser/native endpoints and a provisioned telephone endpoint in the existing Session. Keep the original route until replacement media and configured endpoint confirmation are ready; retire only the intended old leg. Verify DTMF confirmation where selected, cancellation, no-answer, voicemail, wrong endpoint, late callbacks, lost acknowledgments, transport migration and restart reconciliation.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-017",
+        "G6-023",
+        "G6-032",
+        "G6-035",
+        "G6-041",
+        "G6-044",
+        "G6-047",
+        "G6-052",
+        "G6-071",
+        "G6-077",
+        "G6-079",
+        "G6-083",
+        "G6-096",
+        "G6-098",
+        "G6-100"
+      ],
+      "observation": "3/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-08"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-transitions.md",
+        "contracts/uctp-vectors/operation-transitions.json",
+        "docs/decisions/013-gate-6-model.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/relationships.json",
+        "patches/rvoip/gate6-participant-device-relations.patch",
+        "scripts/check-gate6-rvoip.py"
+      ]
+    },
+    {
+      "id": "A6-10",
+      "title": "Operations and events survive uncertainty",
+      "milestone": "G6-C",
+      "status": "in-progress",
+      "proof": "Separate fresh envelope IDs and anti-replay checks from stable logical operation IDs. Accepted mutations expose queryable state and authorized cursor-based events across reconnect/restart; same ID with different content conflicts. Revocation is enforced on retry and dispatch. Exercise crashes around external submission and media commit, stale expected revisions, event gaps, slow consumers and unknown outcomes without blind redial or an exactly-once provider claim.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-003",
+        "G6-006",
+        "G6-007",
+        "G6-008",
+        "G6-010",
+        "G6-022",
+        "G6-023",
+        "G6-026",
+        "G6-029",
+        "G6-031",
+        "G6-033",
+        "G6-035",
+        "G6-036",
+        "G6-037",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-043",
+        "G6-045",
+        "G6-047",
+        "G6-051",
+        "G6-052",
+        "G6-057",
+        "G6-062",
+        "G6-063",
+        "G6-070",
+        "G6-073",
+        "G6-077",
+        "G6-078",
+        "G6-079",
+        "G6-088",
+        "G6-096"
+      ],
+      "observation": "6/32 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-09"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-events.md",
+        "contracts/connect-operations.md",
+        "contracts/connect-transitions.md",
+        "contracts/connect-uctp.md",
+        "contracts/schemas/uctp-envelope-2.schema.json",
+        "contracts/uctp-vectors/operation-transitions.json",
+        "crates/connect-store/migrations/019_gate6.sql",
+        "crates/connect-store/src/runtime_epoch.rs",
+        "docs/decisions/014-gate-6-contract-version.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/schema-boundary.json",
+        "docs/evidence/gate-6/server-state-schema.json",
+        "docs/evidence/gate-6/state-schema.json"
+      ]
+    },
+    {
+      "id": "A6-11",
+      "title": "An external agent worker has the context and events it needs",
+      "milestone": "G6-E",
+      "status": "in-progress",
+      "proof": "A separate worker receives attributed speech/transcript/action observations and current bounded context, then submits authorized decisions through Connect. Private consultation initializes a fresh provider context as needed while retaining logical participant identity. Show context delivery receipts, interrupted/incomplete transcripts, unsupported provider events, repeated tool requests and a later message using a verified call outcome. Preserve ordinary agent keys and existing optional task/MCP workflows.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-005",
+        "G6-008",
+        "G6-009",
+        "G6-021",
+        "G6-025",
+        "G6-036",
+        "G6-039",
+        "G6-040",
+        "G6-042",
+        "G6-043",
+        "G6-044",
+        "G6-062",
+        "G6-063",
+        "G6-065",
+        "G6-070",
+        "G6-071",
+        "G6-073",
+        "G6-074",
+        "G6-076",
+        "G6-078",
+        "G6-080",
+        "G6-084",
+        "G6-097",
+        "G6-100"
+      ],
+      "observation": "3/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-10"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-audiences.md",
+        "contracts/connect-events.md",
+        "contracts/connect-media-v2.md",
+        "contracts/connect-records.md",
+        "docs/evidence/gate-6/contract-checks.json"
+      ]
+    },
+    {
+      "id": "A6-12",
+      "title": "Connectors express the full supported lifecycle",
+      "milestone": "G6-E",
+      "status": "not-started",
+      "proof": "Vapi, Telnyx and a separately implemented fixture use the published extension contracts for provisioning, addressed messaging, inbound routing, live-media admission/control, observations and reconciliation. Install the fixture through trusted composition without modifying core policy or routing logic. Exercise callback authentication, deduplication, uncertain effects, teardown and capability refusal; a media fixture alone cannot qualify a live provider.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-025",
+        "G6-032",
+        "G6-043",
+        "G6-044",
+        "G6-045",
+        "G6-067",
+        "G6-068",
+        "G6-075",
+        "G6-086",
+        "G6-087",
+        "G6-100"
+      ],
+      "observation": "Planned acceptance; no Gate 6 runtime or qualification result exists.",
+      "requirements": [
+        "R6-11"
+      ],
+      "implementation_evidence": []
+    },
+    {
+      "id": "A6-13",
+      "title": "Native QUIC remains a first-class path",
+      "milestone": "G6-D",
+      "status": "in-progress",
+      "proof": "Independent native processes use canonical UCTP control and identified bidirectional audio/video/data through Connect, including native/native and native/browser paths. Verify media framing, negotiated codecs, stream lifecycle, fragmentation/deadlines, quality feedback, reconnection and transport migration. Durable application state and authorization remain the same across transport changes.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-009",
+        "G6-011",
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-048",
+        "G6-049",
+        "G6-050",
+        "G6-052",
+        "G6-054",
+        "G6-058",
+        "G6-060",
+        "G6-064",
+        "G6-094",
+        "G6-095",
+        "G6-098"
+      ],
+      "observation": "2/16 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-12"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-media-v2.md",
+        "contracts/connect-records.md",
+        "docs/decisions/015-gate-6-operating-profile.md",
+        "docs/evidence/gate-6/contract-checks.json"
+      ]
+    },
+    {
+      "id": "A6-14",
+      "title": "Browsers use UCTP with explicit fallback",
+      "milestone": "G6-D",
+      "status": "in-progress",
+      "proof": "The browser SDK uses UCTP over WebTransport for signaling and supported media, and UCTP over WSS plus WebRTC when the preferred path is unavailable. Demonstrate decoded duplex audio/video, screen capture and data, forced UDP/WT failure, permission denial, ICE/TURN recovery and authorized resume without duplicated accepted effects. Qualify named Chrome versions for both paths and Firefox for WSS/WebRTC; other browsers have explicit support status.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-009",
+        "G6-011",
+        "G6-020",
+        "G6-024",
+        "G6-038",
+        "G6-049",
+        "G6-050",
+        "G6-051",
+        "G6-052",
+        "G6-054",
+        "G6-058",
+        "G6-061",
+        "G6-074",
+        "G6-095",
+        "G6-098"
+      ],
+      "observation": "2/15 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-12"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-media-v2.md",
+        "contracts/connect-records.md",
+        "docs/decisions/015-gate-6-operating-profile.md",
+        "docs/evidence/gate-6/contract-checks.json"
+      ]
+    },
+    {
+      "id": "A6-15",
+      "title": "A developer can operate a remote Connect server",
+      "milestone": "G6-D",
+      "status": "in-progress",
+      "proof": "Install the candidate on the named Linux x86_64 host and connect remote native/browser clients through verified TLS, HTTPS/WSS/HTTP3 and the documented NAT/ICE/TURN configuration. Prove scoped credentials, origin policy, trusted proxy behavior, endpoint isolation, certificate/secret rotation, graceful shutdown and backup/restore. No insecure certificate bypass or exposed provider key is required. Preserve the simple local macOS arm64 setup.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-011",
+        "G6-030",
+        "G6-048",
+        "G6-049",
+        "G6-052",
+        "G6-053",
+        "G6-054",
+        "G6-055",
+        "G6-056",
+        "G6-057",
+        "G6-058",
+        "G6-066",
+        "G6-086",
+        "G6-088",
+        "G6-093",
+        "G6-095",
+        "G6-098",
+        "G6-100"
+      ],
+      "observation": "1/18 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-12"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-media-v2.md",
+        "docs/decisions/015-gate-6-operating-profile.md",
+        "docs/evidence/gate-6/contract-checks.json"
+      ]
+    },
+    {
+      "id": "A6-16",
+      "title": "A separate implementation proves interoperability",
+      "milestone": "G6-H",
+      "status": "in-progress",
+      "proof": "Use a separately written client with its own parser, state machine and QUIC/HTTP3 runtime to execute all mandatory command/event families and the Parley lifecycle against Connect. Decode/encode the selected native media profile independently; do not call Connect/rvoip/helper code. Apply version, malformed-envelope, privacy, authorization, conflict, transport/fallback and recovery vectors. Publish reusable vectors and bounded reproducible results.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-002",
+        "G6-003",
+        "G6-013",
+        "G6-016",
+        "G6-028",
+        "G6-037",
+        "G6-085",
+        "G6-087",
+        "G6-092",
+        "G6-094",
+        "G6-103"
+      ],
+      "observation": "4/11 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-02",
+        "R6-16"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-uctp.md",
+        "contracts/schemas/uctp-envelope-2.schema.json",
+        "contracts/uctp-gate-6-requirements.json",
+        "contracts/uctp-vectors/",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/protocol-audit.json",
+        "docs/evidence/gate-6/test-design.json",
+        "docs/evidence/gate-6/wire-types.json",
+        "patches/rvoip/gate6-uctp-v2.patch",
+        "scripts/audit-gate6-uctp.py",
+        "scripts/check-gate6-contracts.py",
+        "scripts/check-gate6-rvoip.py",
+        "scripts/generate-gate6-rust.py"
+      ]
+    },
+    {
+      "id": "A6-17",
+      "title": "Supporting UCTP behavior is implemented",
+      "milestone": "G6-H",
+      "status": "in-progress",
+      "proof": "Execute the frozen requirements for authentication/refresh/expiry, supported signing and assurance/step-up, capability changes, DTMF, quality observations, errors and acknowledgments. Provenance, expiry and authorization remain distinct from claimed identity or role. Enforce typed limits and explicit unsupported experimental auth methods; no mandatory authentication or assurance behavior is silently classified as optional.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-002",
+        "G6-007",
+        "G6-009",
+        "G6-016",
+        "G6-020",
+        "G6-023",
+        "G6-024",
+        "G6-026",
+        "G6-037",
+        "G6-041",
+        "G6-046",
+        "G6-048",
+        "G6-053",
+        "G6-055",
+        "G6-058",
+        "G6-065",
+        "G6-085",
+        "G6-094",
+        "G6-096",
+        "G6-103"
+      ],
+      "observation": "4/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-02",
+        "R6-16"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-media-v2.md",
+        "contracts/connect-operations.md",
+        "contracts/connect-records.md",
+        "contracts/connect-uctp.md",
+        "contracts/schemas/uctp-envelope-2.schema.json",
+        "contracts/uctp-gate-6-requirements.json",
+        "contracts/uctp-vectors/",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/protocol-audit.json",
+        "docs/evidence/gate-6/wire-types.json",
+        "patches/rvoip/gate6-uctp-v2.patch",
+        "scripts/audit-gate6-uctp.py",
+        "scripts/check-gate6-rvoip.py",
+        "scripts/generate-gate6-rust.py"
+      ]
+    },
+    {
+      "id": "A6-18",
+      "title": "vCon and recording behavior is useful and private",
+      "milestone": "G6-H",
+      "status": "in-progress",
+      "proof": "Generate and retrieve the session vCon/outcome records required by the frozen contract, link them to the durable Conversation and enforce audience policy on dialogs, messages, transcripts and media references. Test export/schema compatibility, content integrity, retention, redaction/deletion, missing media, store failure and concurrent access. Default capture policy is explicit; no recorded-media claim when only metadata was collected.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-002",
+        "G6-005",
+        "G6-009",
+        "G6-027",
+        "G6-034",
+        "G6-046",
+        "G6-078",
+        "G6-085",
+        "G6-088",
+        "G6-094",
+        "G6-096",
+        "G6-103"
+      ],
+      "observation": "3/12 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-02",
+        "R6-16"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-audiences.md",
+        "contracts/connect-media-v2.md",
+        "contracts/connect-records.md",
+        "contracts/uctp-gate-6-requirements.json",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/protocol-audit.json",
+        "scripts/audit-gate6-uctp.py"
+      ]
+    },
+    {
+      "id": "A6-19",
+      "title": "Installable SDKs expose a consistent developer contract",
+      "milestone": "G6-E",
+      "status": "in-progress",
+      "proof": "Fresh projects install versioned Rust, browser/Node TypeScript and Python packages without repository-relative dependencies. All expose the same supported control/event/operation semantics and typed errors; browser and Rust provide capture/render or media I/O, and Node/Python expose documented programmatic audio/video/data I/O through managed helpers. Run equivalent contract tests, helper lifecycle checks, package compatibility and examples; HTTP/CLI/MCP remain public facades with explicit media boundaries.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-010",
+        "G6-012",
+        "G6-030",
+        "G6-050",
+        "G6-055",
+        "G6-059",
+        "G6-060",
+        "G6-061",
+        "G6-062",
+        "G6-063",
+        "G6-064",
+        "G6-065",
+        "G6-066",
+        "G6-067",
+        "G6-069",
+        "G6-070",
+        "G6-072",
+        "G6-079",
+        "G6-080",
+        "G6-082",
+        "G6-084",
+        "G6-085",
+        "G6-090",
+        "G6-097",
+        "G6-101",
+        "G6-102"
+      ],
+      "observation": "2/26 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-13"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-uctp.md",
+        "docs/decisions/014-gate-6-contract-version.md",
+        "docs/decisions/016-gate-6-sdk.md",
+        "docs/evidence/gate-6/contract-checks.json"
+      ]
+    },
+    {
+      "id": "A6-20",
+      "title": "A new developer succeeds quickly",
+      "milestone": "G6-G",
+      "status": "in-progress",
+      "proof": "Three developers unfamiliar with the implementation follow only the candidate docs. Target at most ten minutes from installed prerequisites to a local message/reply and thirty minutes to the complete fixture journey. Measure setup failures and assistance; each completes without author-supplied private commands, manual database edits or copied internal IDs. Record live-provider enrollment separately and repair failed mandatory steps before closure.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-012",
+        "G6-013",
+        "G6-061",
+        "G6-066",
+        "G6-071",
+        "G6-072",
+        "G6-074",
+        "G6-077",
+        "G6-079",
+        "G6-081",
+        "G6-082",
+        "G6-084",
+        "G6-086",
+        "G6-089",
+        "G6-090",
+        "G6-091",
+        "G6-092",
+        "G6-099",
+        "G6-101",
+        "G6-103"
+      ],
+      "observation": "2/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-14"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-uctp.md",
+        "contracts/uctp-vectors/",
+        "docs/decisions/016-gate-6-sdk.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/test-design.json",
+        "scripts/check-gate6-contracts.py"
+      ]
+    },
+    {
+      "id": "A6-21",
+      "title": "The Parley-style app uses only public Connect interfaces",
+      "milestone": "G6-F",
+      "status": "in-progress",
+      "proof": "The reference app completes browser/AI conversation, addressed organizer contact, phone call, private consultation, human takeover, browser-to-phone movement and follow-up in one durable Conversation. A separate worker owns travel logic and approvals. Capture a source-boundary audit and observable ID/context continuity; neither app nor worker directly opens Connect storage, creates rvoip bridges or invokes provider communications APIs.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-012",
+        "G6-042",
+        "G6-043",
+        "G6-059",
+        "G6-061",
+        "G6-071",
+        "G6-072",
+        "G6-073",
+        "G6-074",
+        "G6-075",
+        "G6-076",
+        "G6-077",
+        "G6-078",
+        "G6-079",
+        "G6-080",
+        "G6-084",
+        "G6-095",
+        "G6-099",
+        "G6-100"
+      ],
+      "observation": "1/19 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-14"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-uctp.md",
+        "docs/decisions/016-gate-6-sdk.md",
+        "docs/evidence/gate-6/contract-checks.json"
+      ]
+    },
+    {
+      "id": "A6-22",
+      "title": "Failures and operating limits are qualified",
+      "milestone": "G6-H",
+      "status": "in-progress",
+      "proof": "Run the frozen clean/impaired/network/restart and load matrix, including at least twenty successful handoffs and twenty device moves per required topology. Verify no private-audio crossover, unchanged retained IDs, bounded switch interruption and cleanup, slow consumers, capacity rejection, provider latency and resource recovery. Attribute Connect, helper and browser resource use separately; publish versions, limits, failures and measurements rather than general capacity claims.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-011",
+        "G6-013",
+        "G6-024",
+        "G6-036",
+        "G6-047",
+        "G6-054",
+        "G6-057",
+        "G6-058",
+        "G6-064",
+        "G6-092",
+        "G6-093",
+        "G6-095",
+        "G6-096",
+        "G6-098",
+        "G6-101",
+        "G6-103"
+      ],
+      "observation": "2/16 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-16"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-media-v2.md",
+        "contracts/uctp-vectors/",
+        "docs/decisions/015-gate-6-operating-profile.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/test-design.json",
+        "scripts/check-gate6-contracts.py"
+      ]
+    },
+    {
+      "id": "A6-23",
+      "title": "Existing capabilities remain tested on the new contract",
+      "milestone": "G6-H",
+      "status": "in-progress",
+      "proof": "Re-express required Gates 1\u20135 behavior through the Gate 6 API, including durable messaging, files, media, SMS suppression and task authority. Breaking SDK/API/schema changes are allowed; no old-client compatibility, downgrade layer or automatic v0.1 migration is required. Document backup and explicit reinitialization where needed, refuse unsupported state safely and verify backup/restore for the new schema. Never silently reset user state or substitute historical evidence for changed behavior.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-001",
+        "G6-003",
+        "G6-010",
+        "G6-013",
+        "G6-015",
+        "G6-028",
+        "G6-029",
+        "G6-031",
+        "G6-034",
+        "G6-037",
+        "G6-044",
+        "G6-047",
+        "G6-051",
+        "G6-056",
+        "G6-065",
+        "G6-069",
+        "G6-070",
+        "G6-080",
+        "G6-088",
+        "G6-092",
+        "G6-097",
+        "G6-101",
+        "G6-102",
+        "G6-103"
+      ],
+      "observation": "6/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-16"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-uctp.md",
+        "contracts/schemas/uctp-envelope-2.schema.json",
+        "contracts/uctp-vectors/",
+        "crates/connect-store/migrations/019_gate6.sql",
+        "crates/connect-store/src/runtime_epoch.rs",
+        "dependencies/source-lock.json",
+        "docs/decisions/014-gate-6-contract-version.md",
+        "docs/evidence/gate-6/authorization.json",
+        "docs/evidence/gate-6/baseline-control.json",
+        "docs/evidence/gate-6/baseline.json",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/dependency-reproduction.json",
+        "docs/evidence/gate-6/schema-boundary.json",
+        "docs/evidence/gate-6/server-state-schema.json",
+        "docs/evidence/gate-6/state-schema.json",
+        "docs/evidence/gate-6/test-design.json",
+        "docs/evidence/gate-6/upstream-audit.json",
+        "patches/rvoip/",
+        "scripts/check-gate6-contracts.py"
+      ]
+    },
+    {
+      "id": "A6-24",
+      "title": "Documentation tells one current developer story",
+      "milestone": "G6-G",
+      "status": "not-started",
+      "proof": "Publish-ready website and repository docs explain VoIP 3 \u2192 UCTP \u2192 rvoip \u2192 Connect \u2192 application; provide quickstart, concepts, progressive Parley tutorial, a dedicated server HTTP/REST API reference, SDK/protocol reference, provider setup, hosting, operations, breaking-change notes and capability matrix. Publish an OpenAPI contract covering every supported HTTP endpoint, auth/scopes, schemas, status/error responses, pagination/event cursors, logical request IDs, operation status/cancellation, file transfer and limits. Run curl examples and check the OpenAPI contract against the real server. Run every supported snippet, check links/accessibility/mobile layout and compare claims with exact candidate evidence. Engineering gates remain accessible behind the developer entry path.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-065",
+        "G6-081",
+        "G6-082",
+        "G6-083",
+        "G6-084",
+        "G6-085",
+        "G6-086",
+        "G6-087",
+        "G6-088",
+        "G6-089",
+        "G6-090",
+        "G6-091",
+        "G6-092",
+        "G6-099",
+        "G6-101",
+        "G6-103",
+        "G6-104"
+      ],
+      "observation": "Planned acceptance; no Gate 6 runtime or qualification result exists.",
+      "requirements": [
+        "R6-15"
+      ],
+      "implementation_evidence": []
+    },
+    {
+      "id": "A6-25",
+      "title": "A contributor can extend and independently use the contract",
+      "milestone": "G6-G",
+      "status": "in-progress",
+      "proof": "An independent contributor follows the connector guide to implement and install a message plus live-media fixture, and an independent client implementer follows only the protocol kit. Record their questions and eliminate undocumented registration, callback or state assumptions. Both exercises use public interfaces and generate reproducible evidence.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-013",
+        "G6-067",
+        "G6-068",
+        "G6-085",
+        "G6-087",
+        "G6-091",
+        "G6-092",
+        "G6-099",
+        "G6-101",
+        "G6-103"
+      ],
+      "observation": "1/10 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-15"
+      ],
+      "implementation_evidence": [
+        "contracts/uctp-vectors/",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/test-design.json",
+        "scripts/check-gate6-contracts.py"
+      ]
+    },
+    {
+      "id": "A6-26",
+      "title": "The candidate and distribution are reproducible",
+      "milestone": "G6-H",
+      "status": "in-progress",
+      "proof": "Build matching macOS arm64 and Linux x86_64 artifacts plus versioned SDK packages, examples, protocol/schema/vector kit and source. Fresh installations verify hashes, licenses, dependency/patch provenance, helper assets and backup/reset instructions. Prepare registry publication and website changes with exact versions and tested commands; no private historical binary is an unexplained prerequisite.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-012",
+        "G6-015",
+        "G6-028",
+        "G6-056",
+        "G6-060",
+        "G6-068",
+        "G6-069",
+        "G6-070",
+        "G6-088",
+        "G6-089",
+        "G6-090",
+        "G6-097",
+        "G6-102",
+        "G6-103",
+        "G6-104"
+      ],
+      "observation": "2/15 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-17"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-uctp.md",
+        "dependencies/source-lock.json",
+        "docs/decisions/016-gate-6-sdk.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/dependency-reproduction.json",
+        "docs/evidence/gate-6/upstream-audit.json",
+        "patches/rvoip/"
+      ]
+    },
+    {
+      "id": "A6-27",
+      "title": "Owner review closes the gate honestly",
+      "milestone": "G6-H",
+      "status": "in-progress",
+      "proof": "Provide the two reconciled plans, complete requirement/acceptance maps, candidate hashes, technical and usability results, independent review and known limits for the owner. Every required criterion is supported; unresolved required work prevents a full-completion claim. Record actual owner acceptance separately from implementation authorization and any later package/website publication.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-001",
+        "G6-013",
+        "G6-014",
+        "G6-089",
+        "G6-103",
+        "G6-104",
+        "G6-105"
+      ],
+      "observation": "3/7 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-17"
+      ],
+      "implementation_evidence": [
+        "contracts/uctp-vectors/",
+        "docs/evidence/gate-6/authorization.json",
+        "docs/evidence/gate-6/baseline-control.json",
+        "docs/evidence/gate-6/baseline.json",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/contract-review.json",
+        "docs/evidence/gate-6/test-design.json",
+        "scripts/check-gate6-contracts.py"
+      ]
+    },
+    {
+      "id": "A6-28",
+      "title": "Real provider paths reproduce the relevant demo behavior",
+      "milestone": "G6-H",
+      "status": "in-progress",
+      "proof": "On a separately configured rehearsal using designated consenting test endpoints, qualify live Vapi context and voice, Telnyx/SIP telephone control, addressed SMS and the human/AI/device transitions. Verify actual audio, endpoint confirmation, delivery observations and teardown. Record provider/model versions, source/artifact hashes and bounded call counts. Fixtures and old provider evidence cannot pass changed Gate 6 live behavior.",
+      "evidence": [],
+      "implementation_items": [
+        "G6-011",
+        "G6-013",
+        "G6-044",
+        "G6-071",
+        "G6-075",
+        "G6-077",
+        "G6-086",
+        "G6-092",
+        "G6-093",
+        "G6-100",
+        "G6-101",
+        "G6-103"
+      ],
+      "observation": "2/12 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "requirements": [
+        "R6-11",
+        "R6-16"
+      ],
+      "implementation_evidence": [
+        "contracts/connect-media-v2.md",
+        "contracts/uctp-vectors/",
+        "docs/decisions/015-gate-6-operating-profile.md",
+        "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/test-design.json",
+        "scripts/check-gate6-contracts.py"
+      ]
+    }
+  ],
+  "authorization": "evidence/gate-6/authorization.json"
+}

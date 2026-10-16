@@ -1,0 +1,68 @@
+{
+  "format": 1,
+  "states": [
+    "accepted",
+    "preparing",
+    "ready",
+    "committing",
+    "completed",
+    "cancelled",
+    "failed",
+    "interrupted",
+    "unknown"
+  ],
+  "edges": {
+    "accepted": [
+      "preparing",
+      "cancelled",
+      "failed",
+      "interrupted"
+    ],
+    "preparing": [
+      "ready",
+      "committing",
+      "cancelled",
+      "failed",
+      "interrupted",
+      "unknown"
+    ],
+    "ready": [
+      "committing",
+      "cancelled",
+      "failed",
+      "interrupted"
+    ],
+    "committing": [
+      "completed",
+      "failed",
+      "interrupted",
+      "unknown"
+    ],
+    "interrupted": [
+      "preparing",
+      "completed",
+      "cancelled",
+      "failed",
+      "unknown"
+    ],
+    "unknown": [
+      "completed",
+      "cancelled",
+      "failed"
+    ],
+    "completed": [],
+    "cancelled": [],
+    "failed": []
+  },
+  "terminal": [
+    "completed",
+    "cancelled",
+    "failed"
+  ],
+  "conditional_edges": {
+    "interrupted->preparing": "Only after attributed reconciliation proves re-dispatch safe.",
+    "unknown->completed": "Requires attributed authorized reconciliation evidence.",
+    "unknown->cancelled": "Requires attributed authorized reconciliation evidence.",
+    "unknown->failed": "Requires attributed authorized reconciliation evidence."
+  }
+}
