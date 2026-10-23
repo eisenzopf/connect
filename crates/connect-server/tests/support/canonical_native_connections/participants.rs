@@ -36,7 +36,13 @@ pub(super) async fn cover_accepted_peer(
     cid: &str,
     observer: Option<&mut CanonicalClient>,
 ) -> CanonicalClient {
-    let config = party_with_streams(f, &f.peer.identity_id, 237, true);
+    let mut scope = Scope::collaboration(vec!["*".into()]);
+    scope.operations.extend([
+        "stream.subscribe".into(),
+        "stream.unsubscribe".into(),
+        "connection.end".into(),
+    ]);
+    let config = party_with_scope(f, &f.peer.identity_id, 237, vec!["audio".into()], scope);
     let mut client = CanonicalClient::open(config.clone()).await.unwrap();
     let handle = media(&mut client, cid, "accepted-peer-bootstrap").await;
     wait_native_operation(f, &config.credential, cid, "accepted-peer-bootstrap-offer").await;

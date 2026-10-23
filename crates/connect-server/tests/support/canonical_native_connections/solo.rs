@@ -316,7 +316,7 @@ async fn production_session_started_multicasts_original_snapshot_without_recipie
         ready_endpoint(&f).await;
         let mut source = CanonicalClient::open(f.client.clone()).await.unwrap();
         let cid = session(&f, &mut source).await;
-        let mut coverage = participants::cover_accepted_peer(&f, &cid, None).await;
+        let coverage = participants::cover_accepted_peer(&f, &cid, None).await;
         let config = party_with_scope(
             &f,
             &f.peer.identity_id,
