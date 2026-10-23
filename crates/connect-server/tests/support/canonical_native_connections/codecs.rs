@@ -29,7 +29,38 @@ pub(super) async fn setup_with_telephone<T>(
         connect_server::canonical_telephone::CanonicalTelephoneConfig,
     ),
 ) -> (Running, T) {
-    let f = Fixture::with_native_end_scope("EdDSA", 12).await;
+    setup_with_telephone_profile("EdDSA", None, configure).await
+}
+pub(super) async fn setup_with_telephone_dtmf<T>(
+    algorithm: &str,
+    configure: impl FnOnce(
+        &Fixture,
+    ) -> (
+        T,
+        connect_server::canonical_telephone::CanonicalTelephoneConfig,
+    ),
+) -> (Running, T) {
+    let mut source_scope = Scope::collaboration(vec!["*".into()]);
+    source_scope.operations.extend([
+        "stream.subscribe".into(),
+        "stream.unsubscribe".into(),
+        "dtmf.send".into(),
+        "dtmf.receive".into(),
+    ]);
+    setup_with_telephone_profile(algorithm, Some(source_scope), configure).await
+}
+async fn setup_with_telephone_profile<T>(
+    algorithm: &str,
+    source_scope: Option<Scope>,
+    configure: impl FnOnce(
+        &Fixture,
+    ) -> (
+        T,
+        connect_server::canonical_telephone::CanonicalTelephoneConfig,
+    ),
+) -> (Running, T) {
+    let f = Fixture::with_native_end_scope(algorithm, 12).await;
+
     let (host, telephone) = configure(&f);
     let Fixture {
         temp,
@@ -56,7 +87,15 @@ pub(super) async fn setup_with_telephone<T>(
         admin,
         key_revision,
     };
-    setup_started(f, host, "codec-target-offer", "codec-source-offer").await
+    setup_started_profile(
+        f,
+        host,
+        "codec-target-offer",
+        "codec-source-offer",
+        capabilities(),
+        source_scope,
+    )
+    .await
 }
 async fn setup_configured<T>(
     target_operation: &str,

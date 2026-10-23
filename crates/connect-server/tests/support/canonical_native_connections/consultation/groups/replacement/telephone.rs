@@ -1,6 +1,8 @@
 //! Real production canonical Core + provisioned telephone route + actual UDP peer.
 #[path = "telephone/configured.rs"]
 mod configured;
+#[path = "telephone/dtmf.rs"]
+mod dtmf;
 #[path = "telephone/initial.rs"]
 mod initial;
 #[path = "telephone/restart.rs"]
@@ -159,7 +161,7 @@ impl PeerSip {
                             rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
                         )
                         .unwrap();
-                        let admitted: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM native_dtmf_gateways g JOIN operations o ON o.record_id=g.operation_record_id WHERE json_extract(g.target_json,'$.sip_call_id')=?1 AND g.attempted=1 AND g.frame_id IS NOT NULL AND g.disposition IS NULL AND o.state='preparing' AND o.command_type='dtmf.send' AND json_extract(o.intent_json,'$.payload.method')='info')",[&established.call_id],|r|r.get(0)).unwrap();
+                        let admitted: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM native_dtmf_deliveries g JOIN operations o ON o.record_id=g.operation_record_id WHERE g.target_kind IN ('sip-initial','sip-established') AND json_extract(g.target_json,'$.sip_call_id')=?1 AND g.attempted=1 AND g.frame_id IS NOT NULL AND g.disposition IS NULL AND o.state='preparing' AND o.command_type='dtmf.send' AND json_extract(o.intent_json,'$.payload.method')='info')",[&established.call_id],|r|r.get(0)).unwrap();
                         assert!(admitted, "SIP INFO preceded exact durable signal admission");
                         info_seen.lock().unwrap().push(data[..n].to_vec());
                         rvoip_sip_dialog::transaction::utils::response_builders::create_response(
@@ -466,6 +468,7 @@ enum Stop {
     CommittedDrop,
     LostReply,
     StreamControl,
+    Dtmf,
     ReturnNative,
     ReturnObserver,
     Refresh,
@@ -487,6 +490,9 @@ async fn production_telephone_configured_shutdown_cancels_the_actual_ringing_cal
     telephone_case(Stop::Shutdown, true).await;
 }
 async fn telephone_case(stop: Stop, configured: bool) {
+    telephone_case_profile(stop, configured, "EdDSA").await;
+}
+async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "connect_service=debug".into()),
@@ -503,6 +509,7 @@ async fn telephone_case(stop: Stop, configured: bool) {
         | Stop::PrivateDrop
         | Stop::CommittedDrop
         | Stop::StreamControl
+        | Stop::Dtmf
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => Some(0),
@@ -609,6 +616,7 @@ async fn telephone_case(stop: Stop, configured: bool) {
                         | Stop::PrivateDrop
                         | Stop::CommittedDrop
                         | Stop::StreamControl
+                        | Stop::Dtmf
                         | Stop::ReturnNative
                         | Stop::ReturnObserver
                         | Stop::Refresh
@@ -654,7 +662,11 @@ async fn telephone_case(stop: Stop, configured: bool) {
         },
         (endpoint, route_key, route_owner),
     ) = if configured {
-        codecs::setup_with_telephone(configure).await
+        if matches!(stop, Stop::Dtmf) {
+            codecs::setup_with_telephone_dtmf(algorithm, configure).await
+        } else {
+            codecs::setup_with_telephone(configure).await
+        }
     } else {
         codecs::setup_with_host(|f| configure(f).0).await
     };
@@ -1170,6 +1182,9 @@ async fn telephone_case(stop: Stop, configured: bool) {
             "telephone-after-original-preparation-expiry",
         )
         .await;
+        if matches!(stop, Stop::Dtmf) {
+            dtmf::exercise(&f, &cid, &mut peers, &peer, payload, &done, &route_key.id).await;
+        }
         let refresh_session = if matches!(stop, Stop::Refresh) {
             let coordinator = coordinator.as_ref().unwrap();
             let sessions = coordinator.list_sessions().await;
@@ -1438,6 +1453,7 @@ async fn telephone_case(stop: Stop, configured: bool) {
         | Stop::PrivateDrop
         | Stop::CommittedDrop
         | Stop::StreamControl
+        | Stop::Dtmf
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => {

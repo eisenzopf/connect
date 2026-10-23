@@ -3,7 +3,10 @@ use super::*;
 mod gateways;
 use crate::{NativeMediaOrigin, NativeSignalRead};
 use connect_protocol::native_dtmf::{SourceObservation, SubmissionDisposition as Disposition};
-pub use gateways::{NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget};
+pub use gateways::{
+    NativeDtmfGatewayOrigin, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient,
+    NativeDtmfGatewayTarget,
+};
 use std::{
     collections::BTreeSet,
     sync::{Arc, Weak},
@@ -114,7 +117,7 @@ pub(super) fn recipient_scopes(
             AuthorityScope::identity(id, crate::AuthorityMode::Read)
         })
         .collect::<Result<Vec<_>>>()?;
-    let mut q = c.prepare("SELECT DISTINCT json_extract(target_json,'$.route_owner_id') FROM native_dtmf_gateways WHERE operation_record_id=?1").map_err(|_|Error::storage())?;
+    let mut q = c.prepare("SELECT DISTINCT json_extract(target_json,'$.route_owner_id') FROM native_dtmf_deliveries WHERE operation_record_id=?1 AND target_kind IN ('sip-initial','sip-established')").map_err(|_|Error::storage())?;
     let routes = q
         .query_map([record], |r| r.get::<_, String>(0))
         .map_err(|_| Error::storage())?
@@ -179,6 +182,7 @@ fn delivery_table(c: &Connection, record: &str, target: &str) -> Result<&'static
     match kind.as_str() {
         "native" => Ok("native_dtmf_recipients"),
         "sip-initial" => Ok("native_dtmf_gateways"),
+        "sip-established" => Ok("native_dtmf_established_gateways"),
         _ => Err(Error::forbidden()),
     }
 }
@@ -511,7 +515,7 @@ impl Store {
             tx.execute("INSERT INTO native_dtmf_recipients(operation_record_id,target_record_id,registration_id,target_json) VALUES(?1,?2,?3,?4)",params![lease.record_id(),target.origin.offer_record_id(),target.registration_id,snapshot.to_string()]).map_err(|_|Error::storage())?;
         }
         for (target, snapshot) in &gateway_frozen {
-            tx.execute("INSERT INTO native_dtmf_gateways(operation_record_id,target_record_id,registration_id,target_json) VALUES(?1,?2,?3,?4)", params![lease.record_id(),target.origin.record_id(),target.registration_id,snapshot.to_string()]).map_err(|_|Error::storage())?;
+            tx.execute(&format!("INSERT INTO {}(operation_record_id,target_record_id,registration_id,target_json) VALUES(?1,?2,?3,?4)",target.origin.table()), params![lease.record_id(),target.origin.record_id(),target.registration_id,snapshot.to_string()]).map_err(|_|Error::storage())?;
         }
         tx.execute(
             "UPDATE native_dtmf_sources SET sealed=1 WHERE operation_record_id=?1",

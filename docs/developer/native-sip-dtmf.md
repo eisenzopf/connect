@@ -1,7 +1,7 @@
-# Native DTMF to an initial SIP call
+# Native DTMF to a connected SIP call
 
 The G6-046 runtime can send an actual signed native `dtmf.send` to an existing,
-connected initial SIP call in the same Core Session. It uses the public native
+connected initial or committed replacement SIP call in the same Core Session. It uses the public native
 SDK command and the existing `NativeDtmfSubmission` operation result. Completion
 reports local submission, not remote tone playback.
 
@@ -119,3 +119,19 @@ larger fanout, target/route revocation, restart/socket uncertainty and remaining
 private combinations need further implementation or production checks. They do not
 close the cross-substrate DTMF clauses, G6-046, independent G6-094 conformance or
 Linux/browser/remote/provider profiles.
+
+Committed SIP replacements use the same native command. The runtime discovers
+only the actual current replacement controller and freezes its original
+registration. Schema102 binds that recipient to its telephone lifetime,
+generation, SIP call ID and configured route credential. It creates no initial
+call record or native lifetime for the SIP recipient. Current `dtmf.receive`
+on that route and `dtmf.send` on the native source remain independent of RTP
+and subscription permission; the established route also requires `sip_dial`.
+
+Every INFO or RFC4733 write checks the exact replacement binding and current
+original audience. Queued work holds metadata, and a new current-authority
+reader covers each physical write. Reservation failure retries metadata for
+only the original schedule. A captured local outcome can settle after rights
+loss; restart preserves reserved uncertainty and never replays the schedule.
+These native-to-SIP paths do not install received-source monitoring for moved
+SIP calls. That direction remains separate implementation work.

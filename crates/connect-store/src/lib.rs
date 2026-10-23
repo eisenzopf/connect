@@ -52,10 +52,10 @@ pub use transitions::{
     NativeConsultationLease, NativeConsultationOrigin, NativeConsultationPreparation,
     NativeConsultationReturnApplied, NativeConsultationReturnAttempt,
     NativeConsultationReturnLease, NativeConsultationReturnOrigin, NativeConsultationTarget,
-    NativeDtmfBatch, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget,
-    NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeHandoffApplied,
-    NativeHandoffAttempt, NativeHandoffContext, NativeHandoffLease, NativeHandoffOrigin,
-    NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
+    NativeDtmfBatch, NativeDtmfGatewayOrigin, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient,
+    NativeDtmfGatewayTarget, NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget,
+    NativeHandoffApplied, NativeHandoffAttempt, NativeHandoffContext, NativeHandoffLease,
+    NativeHandoffOrigin, NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
     NativeOfferRecoveryObservation, NativeOfferRuntimeObservation, NativeReadyObservation,
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,
     NativeReplacementAllocationRead, NativeReplacementAudienceCapture,
@@ -179,7 +179,7 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 101;
+pub const SCHEMA_VERSION: u32 = 102;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -498,6 +498,10 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/101_received_dtmf.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/102_established_dtmf_gateways.sql"
+        ))
+        .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;

@@ -3,7 +3,10 @@
 mod data;
 pub(crate) mod dtmf;
 pub use dtmf::{NativeDtmfBatch, NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget};
-pub use dtmf::{NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget};
+pub use dtmf::{
+    NativeDtmfGatewayOrigin, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient,
+    NativeDtmfGatewayTarget,
+};
 mod outcomes;
 mod reconciliation;
 mod session_codecs;

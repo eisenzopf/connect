@@ -392,31 +392,41 @@ impl Runtime {
                 .await?;
             let gateway_legs = self
                 .native_preflight(&a, preparation_deadline, || {
-                    self.media
+                    let mut legs = self
+                        .media
                         .initial_dtmf_targets(&source.origin)
                         .map_err(|_| {
                             Error::new("authority-busy", "Gateway registration metadata is busy")
-                        })
+                        })?
+                        .into_iter()
+                        .map(gateways::GatewayLeg::Initial)
+                        .collect::<Vec<_>>();
+                    legs.extend(
+                        self.media
+                            .established_dtmf_targets(&source.origin)
+                            .map_err(|_| {
+                                Error::new("authority-busy", "Established gateway metadata is busy")
+                            })?
+                            .into_iter()
+                            .map(gateways::GatewayLeg::Established),
+                    );
+                    let mut registrations = BTreeMap::new();
+                    for leg in legs {
+                        let id = leg.registration().ok_or_else(Error::forbidden)?.to_owned();
+                        if registrations.insert(id, leg).is_some() {
+                            return Err(Error::forbidden());
+                        }
+                    }
+                    Ok(registrations)
                 })
-                .await?
-                .into_iter()
-                .map(|leg| {
-                    (
-                        leg.dtmf_registration
-                            .get()
-                            .expect("ready SIP registration")
-                            .clone(),
-                        leg,
-                    )
-                })
-                .collect::<BTreeMap<_, _>>();
+                .await?;
             let gateways = self
                 .native_preflight(&a, preparation_deadline, || {
                     let candidates = gateway_legs
                         .iter()
                         .map(|(id, leg)| {
                             Ok(connect_store::NativeDtmfGatewayRecipient {
-                                origin: leg.media.get().cloned().ok_or_else(Error::forbidden)?,
+                                origin: leg.origin().map_err(|_| Error::forbidden())?,
                                 registration_id: id.clone(),
                             })
                         })

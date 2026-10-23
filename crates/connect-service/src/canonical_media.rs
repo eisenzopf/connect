@@ -453,6 +453,26 @@ impl Policy {
             })
             .collect())
     }
+    pub(crate) fn established_dtmf_targets(
+        &self,
+        source: &connect_store::NativeMediaOrigin,
+    ) -> ControlResult<Vec<Arc<crate::telephone_replacement::media::Policy>>> {
+        let mut targets = self.telephone_targets.try_lock().map_err(denied)?;
+        targets.retain(|_, target| target.strong_count() > 0);
+        Ok(targets
+            .values()
+            .filter_map(Weak::upgrade)
+            .filter(|policy| {
+                policy.established_signal_current()
+                    && policy.established_origin().is_some_and(|origin| {
+                        let s = origin.snapshot();
+                        s.conversation_id == source.conversation_id()
+                            && s.session_id == source.session_id()
+                            && s.participant_id != source.participant_id()
+                    })
+            })
+            .collect())
+    }
     pub(super) fn initial_target(
         &self,
         id: &ConnectionId,

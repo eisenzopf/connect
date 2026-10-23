@@ -30,6 +30,7 @@ pub(crate) struct Started {
         OnceLock<Arc<rvoip_core::staged_streams::endpoint_preparation::AudioEndpointPreparation>>,
 }
 pub(crate) struct Policy {
+    pub(crate) dtmf_registration: String,
     pub(super) runtime: Weak<Runtime>,
     pub(super) root: Weak<PreparedReplacement>,
     pub(super) leg: Weak<allocation::Allocated>,
@@ -461,6 +462,7 @@ impl Runtime {
             ));
         }
         let policy = Arc::new(Policy {
+            dtmf_registration: format!("dtmfsip_{}", uuid::Uuid::new_v4().simple()),
             runtime: Arc::downgrade(self),
             root: Arc::downgrade(root),
             leg: Arc::downgrade(leg),

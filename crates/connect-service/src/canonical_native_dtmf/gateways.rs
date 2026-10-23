@@ -1,13 +1,110 @@
 //! One frozen native-source SIP schedule; no queued permission readers.
 use super::*;
-use crate::initial_telephone::policy::Leg;
-use connect_store::{NativeDtmfGatewayRead, NativeDtmfGatewayTarget};
+use crate::initial_telephone::policy::Leg as InitialLeg;
+use connect_store::{NativeDtmfGatewayOrigin, NativeDtmfGatewayRead, NativeDtmfGatewayTarget};
 type WriteResult<T> = std::result::Result<T, DtmfWriteError>;
+
+#[derive(Clone)]
+pub(super) enum GatewayLeg {
+    Initial(Arc<InitialLeg>),
+    Established(Arc<crate::telephone_replacement::media::Policy>),
+}
+impl GatewayLeg {
+    pub(super) fn registration(&self) -> Option<&str> {
+        match self {
+            Self::Initial(leg) => leg.dtmf_registration.get().map(String::as_str),
+            Self::Established(policy) => Some(&policy.dtmf_registration),
+        }
+    }
+    pub(super) fn origin(&self) -> WriteResult<NativeDtmfGatewayOrigin> {
+        match self {
+            Self::Initial(leg) => leg
+                .media
+                .get()
+                .cloned()
+                .map(NativeDtmfGatewayOrigin::Initial)
+                .ok_or(DtmfWriteError::Refused),
+            Self::Established(policy) => policy
+                .established_origin()
+                .map(NativeDtmfGatewayOrigin::Established)
+                .ok_or(DtmfWriteError::Refused),
+        }
+    }
+    fn matches(&self, origin: &NativeDtmfGatewayOrigin) -> bool {
+        match (self, origin) {
+            (Self::Initial(leg), NativeDtmfGatewayOrigin::Initial(origin)) => leg
+                .media
+                .get()
+                .is_some_and(|actual| Arc::ptr_eq(actual, origin)),
+            (Self::Established(policy), NativeDtmfGatewayOrigin::Established(origin)) => policy
+                .established_origin()
+                .is_some_and(|actual| Arc::ptr_eq(&actual, origin)),
+            _ => false,
+        }
+    }
+    fn cancelled(&self) -> bool {
+        match self {
+            Self::Initial(leg) => leg.cancel.is_cancelled(),
+            Self::Established(policy) => !policy.established_signal_current(),
+        }
+    }
+    fn connection(&self) -> WriteResult<ConnectionId> {
+        self.origin()
+            .map(|origin| ConnectionId::from_string(origin.runtime_connection_id()))
+    }
+    fn principal(&self) -> WriteResult<rvoip_core::AuthenticatedPrincipal> {
+        match self {
+            Self::Initial(leg) => Ok(leg.target.principal.clone()),
+            Self::Established(policy) => policy.principal().map_err(|_| DtmfWriteError::Refused),
+        }
+    }
+    fn controller(&self) -> WriteResult<Arc<rvoip_core::staged_streams::StreamController>> {
+        if self.cancelled() {
+            return Err(DtmfWriteError::Refused);
+        }
+        match self {
+            Self::Initial(leg) => {
+                let controller = leg
+                    .controller
+                    .get()
+                    .and_then(Weak::upgrade)
+                    .ok_or(DtmfWriteError::Refused)?;
+                let prepared = leg.prepared.get().ok_or(DtmfWriteError::Refused)?;
+                if !prepared.is_current() || !controller.is_bound_to_outbound(prepared) {
+                    return Err(DtmfWriteError::Refused);
+                }
+                Ok(controller)
+            }
+            Self::Established(policy) => {
+                let controller = policy.controller().map_err(|_| DtmfWriteError::Refused)?;
+                if !controller.is_bound_to_replacement(&policy.pending) {
+                    return Err(DtmfWriteError::Refused);
+                }
+                Ok(controller)
+            }
+        }
+    }
+    fn matches_member(&self, member: &connect_protocol::membership::MemberView) -> bool {
+        match self {
+            Self::Initial(leg) => {
+                member.participant_id == leg.target.member.participant().as_str()
+                    && member.membership_epoch == leg.target.member.epoch()
+                    && member.identity_id == leg.target.principal.subject
+            }
+            Self::Established(policy) => policy.established_origin().is_some_and(|origin| {
+                let s = origin.snapshot();
+                member.participant_id == s.participant_id
+                    && member.membership_epoch == s.membership_epoch
+                    && member.identity_id == s.identity_id
+            }),
+        }
+    }
+}
 
 struct Policy {
     runtime: Weak<Runtime>,
     source: Arc<Connection>,
-    leg: Arc<Leg>,
+    leg: GatewayLeg,
     observed: NativeDtmfObservation,
     target: NativeDtmfGatewayTarget,
     attempt: String,
@@ -33,19 +130,29 @@ impl Policy {
     fn scope(&self, route: &DtmfRouteScope<'_>, method: DtmfMethod) -> WriteResult<()> {
         let source = &self.source.origin;
         let phone = self.target.origin();
-        let actual = self.leg.media.get().ok_or(DtmfWriteError::Refused)?;
-        if !Arc::ptr_eq(actual, phone)
-            || self.leg.dtmf_registration.get().map(String::as_str)
-                != Some(self.target.registration_id())
-            || self.leg.cancel.is_cancelled()
+        if !self.leg.matches(phone)
+            || self.leg.registration() != Some(self.target.registration_id())
+            || self.leg.cancelled()
             || route.source.connection().as_str() != source.runtime_connection_id()
             || route.source.session().as_str() != source.session_id()
             || route.source.conversation().as_str() != source.conversation_id()
             || route.source.participant().as_str() != source.participant_id()
             || route.recipient.connection().as_str() != phone.runtime_connection_id()
-            || route.recipient.session().as_str() != phone.source().request.session_id
-            || route.recipient.conversation().as_str() != phone.source().request.conversation_id
-            || route.recipient.participant().as_str() != phone.source().target.participant_id
+            || route.recipient.session().as_str()
+                != match phone {
+                    NativeDtmfGatewayOrigin::Initial(o) => &o.source().request.session_id,
+                    NativeDtmfGatewayOrigin::Established(o) => &o.snapshot().session_id,
+                }
+            || route.recipient.conversation().as_str()
+                != match phone {
+                    NativeDtmfGatewayOrigin::Initial(o) => &o.source().request.conversation_id,
+                    NativeDtmfGatewayOrigin::Established(o) => &o.snapshot().conversation_id,
+                }
+            || route.recipient.participant().as_str()
+                != match phone {
+                    NativeDtmfGatewayOrigin::Initial(o) => &o.source().target.participant_id,
+                    NativeDtmfGatewayOrigin::Established(o) => &o.snapshot().participant_id,
+                }
             || route.recipient.transport() != rvoip_core::Transport::Sip
             || route.intent.operation_id() != self.target.intent().operation_id
             || route.intent.digits() != self.observed.digits()
@@ -71,21 +178,14 @@ impl Policy {
     ) -> WriteResult<DtmfWriteLease> {
         self.scope(route, method)?;
         let runtime = self.runtime.upgrade().ok_or(DtmfWriteError::Refused)?;
-        let controller = self
-            .leg
-            .controller
-            .get()
-            .and_then(Weak::upgrade)
-            .ok_or(DtmfWriteError::Refused)?;
-        let prepared = self.leg.prepared.get().ok_or(DtmfWriteError::Refused)?;
-        if !prepared.is_current() || !controller.is_bound_to_outbound(prepared) {
-            return Err(DtmfWriteError::Refused);
-        }
+        let controller = self.leg.controller()?;
+        let connection = self.leg.connection()?;
+        let principal = self.leg.principal()?;
         // Prepare engine metadata before acquiring any Store readers. The
         // exact source/route physical guards will surround each actual poll.
         let disclosure = self.observed.disclosure().ok_or(DtmfWriteError::Refused)?;
         let fence = loop {
-            if self.leg.cancel.is_cancelled()
+            if self.leg.cancelled()
                 || runtime.stop.is_cancelled()
                 || self
                     .flight
@@ -98,9 +198,9 @@ impl Policy {
             }
             match runtime.core.native_sip_dtmf_audience_fence(
                 disclosure,
-                &self.leg.connection(),
+                &connection,
                 &controller,
-                &self.leg.target.principal,
+                &principal,
             ) {
                 Ok(fence) => break fence,
                 Err(
@@ -112,7 +212,7 @@ impl Policy {
             }
         };
         loop {
-            if self.leg.cancel.is_cancelled()
+            if self.leg.cancelled()
                 || runtime.stop.is_cancelled()
                 || self
                     .flight
@@ -135,11 +235,7 @@ impl Policy {
                 }
                 Err(_) => return Err(DtmfWriteError::Refused),
             };
-            if read.pair().phone().member().participant_id
-                != self.leg.target.member.participant().as_str()
-                || read.pair().phone().member().membership_epoch != self.leg.target.member.epoch()
-                || read.pair().phone().member().identity_id != self.leg.target.principal.subject
-            {
+            if !self.leg.matches_member(read.phone_member()) {
                 return Err(DtmfWriteError::Refused);
             }
             let reserved = {
@@ -177,7 +273,7 @@ impl Policy {
                 .and_then(|v| v.to_std().ok())
                 .unwrap_or(Duration::ZERO);
             let stop = runtime.stop.clone();
-            let cancel = self.leg.cancel.clone();
+            let leg = self.leg.clone();
             return DtmfWriteLease::new(
                 Owner {
                     read: Some(read),
@@ -187,7 +283,7 @@ impl Policy {
                 move || {
                     current.upgrade().is_some_and(|r| r.current())
                         && !stop.is_cancelled()
-                        && !cancel.is_cancelled()
+                        && !leg.cancelled()
                 },
             )
             .with_fence(fence)?
@@ -226,7 +322,7 @@ impl DtmfRoutePolicy for Policy {
 pub(super) async fn deliver(
     runtime: Arc<Runtime>,
     source: Arc<Connection>,
-    leg: Arc<Leg>,
+    leg: GatewayLeg,
     observed: NativeDtmfObservation,
     target: NativeDtmfGatewayTarget,
     expires_at: i64,
@@ -248,7 +344,11 @@ pub(super) async fn deliver(
     let deadline = Instant::now() + remaining;
     let cancel = runtime.stop.child_token();
     let result = match runtime
-        .prepare_original_dtmf_route(&observed, policy.leg.connection(), deadline)
+        .prepare_original_dtmf_route(
+            &observed,
+            ConnectionId::from_string(policy.target.origin().runtime_connection_id()),
+            deadline,
+        )
         .await
     {
         Ok(route) => {

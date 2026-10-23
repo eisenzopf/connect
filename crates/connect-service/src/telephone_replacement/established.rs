@@ -7,6 +7,22 @@ pub(super) struct Established {
     pub owner: MediaOwner,
 }
 impl media::Policy {
+    /// Actual active replacement binding only; Store named signal authority is
+    /// acquired separately for each write and never converted into RTP rights.
+    pub(crate) fn established_signal_current(&self) -> bool {
+        self.established.get().is_some_and(|established| {
+            established
+                .owner
+                .connection
+                .same_incarnation(self.pending.binding())
+                && established.owner.connection.state() == BindingState::Active
+        }) && self
+            .runtime
+            .upgrade()
+            .is_some_and(|runtime| !runtime.stop.is_cancelled())
+            && self.physical_current()
+    }
+
     pub(crate) fn established_origin(&self) -> Option<Arc<TelephoneMediaOrigin>> {
         self.established.get().map(|e| e.origin.clone())
     }

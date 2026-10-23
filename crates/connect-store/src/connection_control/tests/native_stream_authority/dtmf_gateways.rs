@@ -57,7 +57,7 @@ fn fixture() -> Signal {
 }
 fn candidates(s: &Signal) -> Vec<NativeDtmfGatewayRecipient> {
     vec![NativeDtmfGatewayRecipient {
-        origin: s.phone.clone(),
+        origin: crate::NativeDtmfGatewayOrigin::Initial(s.phone.clone()),
         registration_id: "original-sip-registration".into(),
     }]
 }
@@ -189,7 +189,7 @@ fn native_gateway_dtmf_reserves_one_schedule_and_reports_only_local_submission()
         .try_record_native_dtmf_gateway_outcome(target, D::LocalSubmitted)
         .is_err());
     let read = s.f.store.try_native_dtmf_gateway_read(target).unwrap();
-    assert_eq!(read.pair().phone().member().participant_id, s.f.pids[1]);
+    assert_eq!(read.phone_member().participant_id, s.f.pids[1]);
     s.f.store
         .try_start_native_dtmf_gateway_write(&read, "original-sip-schedule")
         .unwrap();
