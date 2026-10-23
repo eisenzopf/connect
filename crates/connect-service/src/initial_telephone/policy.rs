@@ -703,23 +703,39 @@ impl Leg {
             elapsed_us = started.elapsed().as_micros() as u64,
             problem = result.as_ref().err().map(|e| e.code.as_str()),
             "Current initial SIP to native packet authority");
-        let read = result.map_err(|_| StreamControlError::Authority)?;
-        if !read.current()
-            || !read.phone().is_connected()
-            || !read.native().permits_subscriptions()
-            || read.native().target().private_consultation.is_some()
-            || read.native().target().handoff_preparation
-            || read.native().target().publication_suspended
-        {
-            return Err(StreamControlError::Authority);
-        }
-        self.physical_source_matches(source, read.phone())?;
-        let _ = self.owner(read.phone())?;
-        let owner = native
-            .activation()?
-            .ok_or(StreamControlError::NotReady)?
-            .current(native.owner(read.native().target(), scope.principal, true)?)?;
-        Ok(Box::new(PairLease { owner, _read: read }))
+        let mut stage = "store-read";
+        let result = (|| -> ControlResult<Box<dyn MediaAuthorityLease>> {
+            let read = result.map_err(|_| StreamControlError::Authority)?;
+            stage = "pair-current";
+            if !read.current()
+                || !read.phone().is_connected()
+                || !read.native().permits_subscriptions()
+                || read.native().target().private_consultation.is_some()
+                || read.native().target().handoff_preparation
+                || read.native().target().publication_suspended
+            {
+                return Err(StreamControlError::Authority);
+            }
+            stage = "source-binding";
+            self.physical_source_matches(source, read.phone())?;
+            stage = "sip-owner";
+            let _ = self.owner(read.phone())?;
+            stage = "native-activation";
+            let activation = native.activation()?.ok_or(StreamControlError::NotReady)?;
+            stage = "native-owner";
+            let owner = native.owner(read.native().target(), scope.principal, true)?;
+            stage = "native-current";
+            let owner = activation.current(owner)?;
+            stage = "granted";
+            Ok(Box::new(PairLease { owner, _read: read }))
+        })();
+        tracing::trace!(target: "connect_service::canonical_packet",
+            connection = native.origin.connection_id(),
+            elapsed_us = started.elapsed().as_micros() as u64,
+            stage,
+            problem = ?result.as_ref().err(),
+            "Initial SIP to native packet grant");
+        result
     }
     fn receive_native_participant(
         &self,

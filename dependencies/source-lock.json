@@ -934,6 +934,11 @@
       "path": "patches/rvoip/gate6-received-dtmf-contention.patch",
       "sha256": "86417c18ac8bd0506aa0595a553db3eaf11d7c4f33430cb3c4aed4ff3a119230",
       "source": "G6-046 accepted received DTMF observations preserve temporary Core/physical source contention as NotReady/Pending under the existing bounded wait; never recapture original audience or turn a passive hint into IO authority. Reject retired registrations and definitive physical refusal. Controlled tests cover admission drop, same-observation recovery, cancellation, deadline and source retirement."
+    },
+    {
+      "path": "patches/rvoip/gate6-audio-path-diagnostics.patch",
+      "sha256": "65bfd789d666331e854c3d8d42acab21a888fe73e4201e0ce0066b2c56703e81",
+      "source": "Trace guarded audio mixer and final source/target authorization without media contents or grants."
     }
   ]
 }

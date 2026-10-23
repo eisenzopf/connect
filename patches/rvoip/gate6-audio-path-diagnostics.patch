@@ -1,0 +1,108 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1016,15 +1016,22 @@
+             {
+                 return Err(StreamControlError::Authority);
+             }
+-            let (lease, admission, bound) = source.admit(
+-                &provenance.source,
+-                &provenance.ticket,
+-                false,
+-                None,
+-                audio_consumer::ConsumerCheck::Retained(provenance.consumer.as_ref()),
+-                None,
+-                scene_consumer::SceneCheck::retained_publish(provenance.scene.as_ref()),
+-            )?;
++            let (lease, admission, bound) = source
++                .admit(
++                    &provenance.source,
++                    &provenance.ticket,
++                    false,
++                    None,
++                    audio_consumer::ConsumerCheck::Retained(provenance.consumer.as_ref()),
++                    None,
++                    scene_consumer::SceneCheck::retained_publish(provenance.scene.as_ref()),
++                )
++                .map_err(|problem| {
++                    tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
++                    target = %target.connection, stage = "source-egress", ?problem,
++                    "Guarded audio delivery refused");
++                    problem
++                })?;
+             if let Some(scene) = &admission.scene {
+                 tokens.push(scene.cancel.clone());
+             }
+@@ -1038,19 +1045,26 @@
+             if tokio::time::Instant::now() >= deadline {
+                 return Err(StreamControlError::Deadline);
+             }
+-            let (lease, admission, bound) = target.admit(
+-                &self.target,
+-                &self.target_ticket,
+-                true,
+-                Some(&provenance.descriptor),
+-                audio_consumer::ConsumerCheck::Retained(self.target_consumer.as_ref()),
+-                self.direct.as_ref(),
+-                scene_consumer::SceneCheck::retained_receive(
+-                    self.target_scene.as_ref(),
+-                    provenance.scene.as_ref(),
+-                    self.admitted_at,
+-                ),
+-            )?;
++            let (lease, admission, bound) = target
++                .admit(
++                    &self.target,
++                    &self.target_ticket,
++                    true,
++                    Some(&provenance.descriptor),
++                    audio_consumer::ConsumerCheck::Retained(self.target_consumer.as_ref()),
++                    self.direct.as_ref(),
++                    scene_consumer::SceneCheck::retained_receive(
++                        self.target_scene.as_ref(),
++                        provenance.scene.as_ref(),
++                        self.admitted_at,
++                    ),
++                )
++                .map_err(|problem| {
++                    tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
++                    target = %target.connection, stage = "target-egress", ?problem,
++                    "Guarded audio delivery refused");
++                    problem
++                })?;
+             if let Some(scene) = &admission.scene {
+                 tokens.push(scene.cancel.clone());
+             }
+@@ -1078,6 +1092,8 @@
+         } else {
+             None
+         };
++        tracing::trace!(target: "rvoip_core::audio_path", target = %target.connection,
++            age_us = self.admitted_at.elapsed().as_micros() as u64, "Guarded audio entering IO");
+         let result = tokio::select! {
+             biased;
+             _=audio_consumer::any_cancelled(tokens.clone())=>Err(StreamControlError::Cancelled),
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -485,7 +485,12 @@
+                             segment.origin.scene.as_ref(),
+                             segment.admitted_at,
+                         ),
+-                    ) else {
++                    ).map_err(|problem| {
++                        tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
++                            target = %member.controller.connection, stage = "mixer-target", ?problem,
++                            "Guarded audio delivery refused");
++                        problem
++                    }) else {
+                         continue;
+                     };
+                     subscription_guards.push(subscription_guard);
+@@ -566,6 +571,8 @@
+             }
+             member.previous_subscription = Some(subscription.clone());
+             member.previous_sources = provenance.clone();
++            tracing::trace!(target: "rvoip_core::audio_path", target = %member.controller.connection,
++                age_us = oldest.elapsed().as_micros() as u64, "Guarded audio queued");
+             let _ = member.port.egress.try_send(QueuedMedia {
+                 frame,
+                 data: None,

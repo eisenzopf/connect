@@ -1,0 +1,36 @@
+{
+  "format": 1,
+  "status": "diagnostic-checkpoint; failure-reproduced",
+  "source_lock_patch_count": 167,
+  "behavior_changed": false,
+  "finding": "Actual sibling fanout receives SIP input but queued audio is refused at final source admission when a concurrent fresh Store read reports authority-busy. Native target ownership and activation pass. This trace does not resolve the failure or qualify new clauses.",
+  "observed": {
+    "sibling_queued_frames": 18,
+    "sibling_entering_io": 9,
+    "sibling_source_egress_refusals": 9,
+    "sibling_marked_frames": 9,
+    "unchanged_required_marked_frames": ">10",
+    "production_test_passed": false
+  },
+  "verification": {
+    "fresh_dependency_preparation": true,
+    "server_test_build": true,
+    "plan_integrity": true,
+    "http_openapi_reference": true
+  },
+  "next": "Preserve temporary busy as NotReady and retry original queued frame under its original deadline, without retaining grants while waiting; verify fresh revocation, original generation and no IO retries.",
+  "inputs": {
+    "dependencies/source-lock.json": "6a30e9bef86d2d5b51ff2542ace7a3ed4a16ceb2e7a90b126431dc3da10669d6",
+    "patches/rvoip/gate6-audio-path-diagnostics.patch": "65bfd789d666331e854c3d8d42acab21a888fe73e4201e0ce0066b2c56703e81",
+    "crates/connect-service/src/initial_telephone/policy.rs": "53c0911fe0ca09bd94ea4c61a8394805e9eda15f48e48fdbd230e93a233c01b4"
+  },
+  "logs": {
+    "prepare-installed-audio167.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "build-audio167.log": "d8cdebed3cbc07a4cc40e19c7c4d795d34a934055d9eaf1106d675dc20cd538f",
+    "fanout-audio-path167.log": "d63c33984d468bc8e19ab6903e0c2296a87123e5b0f53c048e8f7209d6e3b3df"
+  },
+  "limits": [
+    "45/105 tasks done; G6-046 56/61 clauses qualified. No additional credit.",
+    "Full regression remains failing; no media threshold or authority check weakened."
+  ]
+}
