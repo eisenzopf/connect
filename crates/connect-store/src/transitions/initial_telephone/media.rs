@@ -180,13 +180,23 @@ fn historical(
     c: &Connection,
     signal: &InitialTelephoneSignaling,
 ) -> Result<rows::Saved> {
+    historical_lifetime(store, c, signal)?;
+    rows::by_record(c, &signal.origin().record)
+}
+// Packet validation needs exact lifetime and current state, never operation
+// display metadata or its complete visible-journal/causal-event projection.
+fn historical_lifetime(
+    store: &Store,
+    c: &Connection,
+    signal: &InitialTelephoneSignaling,
+) -> Result<()> {
     let origin = signal.origin();
     origin.lifetime(store)?;
     let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM initial_telephone_operations n WHERE n.operation_record_id=?1 AND n.signaling_started=1 AND n.attempt_runtime=?2 AND n.runtime_connection_id=?3 AND n.sip_call_id=?4)",params![origin.record,origin.runtime,signal.runtime_connection_id(),signal.sip_call_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
     if !exact {
         return Err(Error::forbidden());
     }
-    rows::by_record(c, &origin.record)
+    Ok(())
 }
 impl Store {
     /// Persist an actual captured answer even if its old command authority was
@@ -297,7 +307,7 @@ impl Store {
     ) -> Result<InitialTelephoneMediaRead> {
         let required = {
             let c = self.try_connection()?;
-            historical(self, &c, &origin.signal)?;
+            historical_lifetime(self, &c, &origin.signal)?;
             current_scopes(&c, origin.signal.origin(), false)?
         };
         let held = self.try_acquire_authority(&required)?;
@@ -346,19 +356,25 @@ impl Store {
         origin: &InitialTelephoneMediaOrigin,
         until: i64,
     ) -> Result<InitialTelephoneProjection> {
-        let row = historical(self, c, &origin.signal)?;
+        historical_lifetime(self, c, &origin.signal)?;
         let original = origin.signal.origin();
         let s = &original.source;
+        let (state, cancel_requested): (String, bool) = c
+            .query_row(
+                "SELECT state,cancel_requested FROM operations WHERE record_id=?1",
+                [&original.record],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()
+            .map_err(|_| Error::storage())?
+            .ok_or_else(Error::forbidden)?;
         let (saved,accepted,connected,retired):(String,bool,bool,bool)=c.query_row("SELECT observation_json,accepted,connected_at IS NOT NULL,retired_at IS NOT NULL FROM initial_telephone_answers WHERE operation_record_id=?1",[&original.record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).map_err(|_|Error::forbidden())?;
         if saved != origin.observation
             || !accepted
             || retired
-            || row.record.cancel_requested
+            || cancel_requested
             || (!connected && crate::now() >= original.expires_at)
-            || !matches!(
-                row.record.state,
-                OperationState::Preparing | OperationState::Completed
-            )
+            || !matches!(state.as_str(), "preparing" | "completed")
         {
             return Err(Error::forbidden());
         }

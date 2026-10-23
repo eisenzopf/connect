@@ -27,7 +27,10 @@ async fn configured_initial_for(
     timeout_seconds: u32,
 ) -> ConfiguredInitial {
     let _ = tracing_subscriber::fmt()
-        .with_env_filter("connect_service=debug")
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "connect_service=debug".into()),
+        )
         .with_test_writer()
         .try_init();
     let f = Fixture::with_native_end_scope(algorithm, 12).await;

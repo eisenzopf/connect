@@ -420,13 +420,17 @@ impl MediaPolicy for Leg {
     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         self.scope(scope)?;
         let runtime = self.runtime()?;
-        let read = Arc::new(
-            runtime
-                .media
-                .store
-                .try_initial_telephone_media_read(self.origin()?)
-                .map_err(|_| StreamControlError::Authority)?,
-        );
+        let started = std::time::Instant::now();
+        let result = runtime
+            .media
+            .store
+            .try_initial_telephone_media_read(self.origin()?);
+        tracing::trace!(target: "connect_service::canonical_packet",
+            elapsed_us = started.elapsed().as_micros() as u64,
+            publishing = matches!(scope.purpose, MediaPurpose::Publish),
+            problem = result.as_ref().err().map(|e| e.code.as_str()),
+            "Current initial SIP packet authority");
+        let read = Arc::new(result.map_err(|_| StreamControlError::Authority)?);
         if !matches!(scope.purpose, MediaPurpose::Control) && !read.is_connected() {
             return Err(StreamControlError::NotReady);
         }
@@ -638,11 +642,16 @@ impl Leg {
         native: &Arc<crate::canonical_media::Connection>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         let runtime = self.runtime()?;
-        let read = runtime
+        let started = std::time::Instant::now();
+        let result = runtime
             .media
             .store
-            .try_initial_telephone_native_read(self.origin()?, native.origin.clone())
-            .map_err(|_| StreamControlError::Authority)?;
+            .try_initial_telephone_native_read(self.origin()?, native.origin.clone());
+        tracing::trace!(target: "connect_service::canonical_packet",
+            elapsed_us = started.elapsed().as_micros() as u64,
+            problem = result.as_ref().err().map(|e| e.code.as_str()),
+            "Current initial SIP to native packet authority");
+        let read = result.map_err(|_| StreamControlError::Authority)?;
         if !read.current()
             || !read.phone().is_connected()
             || !read.native().permits_subscriptions()
