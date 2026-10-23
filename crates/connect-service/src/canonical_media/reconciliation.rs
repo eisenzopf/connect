@@ -1,7 +1,12 @@
 //! A server reoffer owns fresh original-source readers for its exact Core plan.
 use super::sources::StreamSource;
 use super::*;
-use connect_store::NativeReconciliationRead;
+use connect_store::{
+    CredentialMetadata, NativeMediaRead, NativeReconciliationRead, NativeSessionCodecRead,
+    PeerDeviceClaim, PeerSigningKey,
+};
+use rvoip_uctp::v2::native_negotiation::NativeOfferPlan;
+use rvoip_uctp::v2::native_session_codecs::{NativeSessionCodecInvocation, NativeSessionCodecPlan};
 use rvoip_uctp::v2::{
     auth_dispatch::{AuthorityLease, DispatchError},
     native_requests::NativeRequestScope,
@@ -10,12 +15,74 @@ use rvoip_uctp::v2::{
 };
 use serde_json::{json, Value};
 
+pub(crate) enum Source {
+    Subscription(Arc<NativeReconciliationRead>),
+    Codec(Arc<NativeSessionCodecRead>),
+}
+impl Source {
+    pub fn subscription(&self) -> Result<&NativeReconciliationRead, DispatchError> {
+        match self {
+            Self::Subscription(v) => Ok(v),
+            _ => Err(DispatchError::Authority),
+        }
+    }
+    pub fn codec(&self) -> Result<&NativeSessionCodecRead, DispatchError> {
+        match self {
+            Self::Codec(v) => Ok(v),
+            _ => Err(DispatchError::Authority),
+        }
+    }
+    pub fn current(&self) -> bool {
+        match self {
+            Self::Subscription(v) => v.current(),
+            Self::Codec(v) => v.current(),
+        }
+    }
+    pub fn media(&self) -> &NativeMediaRead {
+        match self {
+            Self::Subscription(v) => v.media(),
+            Self::Codec(v) => v.media(),
+        }
+    }
+    fn stream_revision(&self) -> u64 {
+        match self {
+            Self::Subscription(v) => v.stream_revision(),
+            Self::Codec(v) => v.stream_revision(),
+        }
+    }
+    pub fn credential_metadata(&self) -> &CredentialMetadata {
+        match self {
+            Self::Subscription(v) => v.credential_metadata(),
+            Self::Codec(v) => v.credential_metadata(),
+        }
+    }
+    pub fn signing_key(&self) -> &PeerSigningKey {
+        match self {
+            Self::Subscription(v) => v.signing_key(),
+            Self::Codec(v) => v.signing_key(),
+        }
+    }
+    pub fn signing_key_id(&self) -> &str {
+        match self {
+            Self::Subscription(v) => v.signing_key_id(),
+            Self::Codec(v) => v.signing_key_id(),
+        }
+    }
+    pub fn peer_device(&self) -> &PeerDeviceClaim {
+        match self {
+            Self::Subscription(v) => v.peer_device(),
+            Self::Codec(v) => v.peer_device(),
+        }
+    }
+}
 pub(crate) struct Grant {
     pub policy: Arc<Policy>,
     pub domain: Arc<()>,
     pub connection: Arc<Connection>,
-    pub source: Arc<NativeReconciliationRead>,
-    pub plan: NativeSubscriptionPlan,
+    pub source: Source,
+    pub plan: Option<NativeSubscriptionPlan>,
+    pub media: NativeOfferPlan,
+    pub resources: bool,
     pub operation: String,
     pub scope: NativeRequestScope,
     pub deadline: tokio::time::Instant,
@@ -24,6 +91,9 @@ pub(crate) struct Grant {
     pub proposal: Mutex<Option<Envelope>>,
 }
 impl Grant {
+    pub fn media(&self) -> &NativeOfferPlan {
+        &self.media
+    }
     pub fn current(&self) -> bool {
         self.source.current()
             && !self.cancel.is_cancelled()
@@ -41,10 +111,11 @@ impl Grant {
         if !self.current() {
             return Err(StreamControlError::Authority);
         }
-        let owner = self.connection.owner(
+        let owner = self.connection.owner_with_remote(
             self.source.media().target(),
             &self.scope.origin.principal,
             route,
+            Some(self.media().remote_capabilities()),
         )?;
         self.connection
             .activation()?
@@ -52,7 +123,7 @@ impl Grant {
             .current(owner)
     }
     pub fn descriptor(&self) -> Result<Value, DispatchError> {
-        let streams=self.plan.media().selected().iter().map(|s|Ok(json!({
+        let streams=self.media().selected().iter().map(|s|Ok(json!({
             "id":s.requested.logical_id.as_str(),"kind":kind(s.requested.medium),
             "direction":direction(s.requested.direction),"codec":crate::peer_authority::native_stream_codec(&s.format)?
         }))).collect::<Result<Vec<_>,DispatchError>>()?;
@@ -61,9 +132,7 @@ impl Grant {
             .values()
             .map(StreamSource::descriptor)
             .collect::<Vec<_>>();
-        Ok(
-            json!({"streams":streams,"sources":sources,"resources_changed":self.plan.changes_resources()}),
-        )
+        Ok(json!({"streams":streams,"sources":sources,"resources_changed":self.resources}))
     }
     pub fn authorize_proposal(
         &self,
@@ -98,7 +167,7 @@ impl Grant {
             .ok_or(DispatchError::Authority)?;
         if streams.is_empty()
             || streams.len() > 32
-            || streams.len() != self.plan.media().selected().len()
+            || streams.len() != self.media().selected().len()
         {
             return Err(DispatchError::Authority);
         }
@@ -107,7 +176,6 @@ impl Grant {
         for stream in streams {
             let id = stream["strm_id"].as_str().ok_or(DispatchError::Authority)?;
             let selected = self
-                .plan
                 .media()
                 .selected()
                 .iter()
@@ -167,10 +235,64 @@ impl Policy {
                 .try_native_reconciliation_read(&entry.origin)
                 .map_err(|_| DispatchError::Authority)?,
         );
+        let media = plan.media().clone();
+        let resources = plan.changes_resources();
+        self.server_grant(
+            domain,
+            entry,
+            scope,
+            Source::Subscription(source),
+            Some(plan),
+            media,
+            resources,
+            operation,
+            cancel,
+        )
+    }
+    pub(crate) fn codec_grant(
+        self: &Arc<Self>,
+        domain: Arc<()>,
+        entry: Arc<Connection>,
+        scope: &NativeRequestScope,
+        source: Arc<NativeSessionCodecRead>,
+        plan: &NativeSessionCodecPlan,
+        operation: String,
+        cancel: tokio_util::sync::CancellationToken,
+    ) -> Result<Arc<Grant>, DispatchError> {
+        if plan.expected_revision() != scope.stream_revision {
+            return Err(DispatchError::Authority);
+        }
+        self.server_grant(
+            domain,
+            entry,
+            scope,
+            Source::Codec(source),
+            None,
+            plan.media().clone(),
+            plan.changes_resources(),
+            operation,
+            cancel,
+        )
+    }
+    fn server_grant(
+        self: &Arc<Self>,
+        domain: Arc<()>,
+        entry: Arc<Connection>,
+        scope: &NativeRequestScope,
+        source: Source,
+        plan: Option<NativeSubscriptionPlan>,
+        media: NativeOfferPlan,
+        resources: bool,
+        operation: String,
+        cancel: tokio_util::sync::CancellationToken,
+    ) -> Result<Arc<Grant>, DispatchError> {
         let view = source.media().target();
         let s = &scope.origin;
         if source.stream_revision() != scope.stream_revision
-            || plan.selection().expected_revision() != scope.stream_revision
+            || plan
+                .as_ref()
+                .is_some_and(|p| p.selection().expected_revision() != scope.stream_revision)
+            || scope.credential_revision != entry.origin.credential_epoch() + 1
             || s.media.connection.as_str() != entry.origin.runtime_connection_id()
             || s.media.session.as_str() != entry.origin.session_id()
             || s.media.wire_connection != entry.origin.connection_id()
@@ -254,12 +376,18 @@ impl Policy {
                 Err(_) => return Err(DispatchError::Authority),
             }
         }
+        let deadline = tokio::time::Instant::now()
+            + Duration::from_secs(
+                (source.media().expires_at() - chrono::Utc::now().timestamp()).clamp(0, 30) as u64,
+            );
         let grant = Arc::new(Grant {
             policy: self.clone(),
             domain,
             connection: entry,
             source,
             plan,
+            media,
+            resources,
             operation,
             scope: NativeRequestScope {
                 origin: scope.origin.clone(),
@@ -268,7 +396,7 @@ impl Policy {
                 connection_generation: scope.connection_generation,
                 credential_revision: scope.credential_revision,
             },
-            deadline: tokio::time::Instant::now() + Duration::from_secs(30),
+            deadline,
             cancel,
             sources,
             proposal: Mutex::new(None),
@@ -290,17 +418,72 @@ impl Policy {
             || !grant.matches(inv.scope())
             || inv.operation() != grant.operation
             || !std::ptr::eq(self, Arc::as_ptr(&grant.policy))
-            || inv.plan().media().selected() != grant.plan.media().selected()
-            || inv.plan().selection().routing() != grant.plan.selection().routing()
+            || inv.plan().media().selected() != grant.media().selected()
+            || grant
+                .plan
+                .as_ref()
+                .is_none_or(|p| inv.plan().selection().routing() != p.selection().routing())
+            || grant.source.subscription().is_err()
         {
             return Err(StreamControlError::Authority);
         }
         self.scope(scope, &grant.connection)?;
-        super::streams::check_plan(&grant.plan, intent)?;
+        super::streams::check_plan(
+            grant.plan.as_ref().ok_or(StreamControlError::Authority)?,
+            intent,
+        )?;
         let owner = grant.owner(false)?;
         MediaControl::new(
             Box::new(Held {
-                inv: inv.clone(),
+                inv: Invocation::Subscription(inv.clone()),
+                grant,
+                owner,
+            }),
+            inv.cancellation(),
+            inv.deadline(),
+        )
+    }
+    pub(super) fn codec_control(
+        &self,
+        scope: &MediaScope<'_>,
+        intent: &MediaControlIntent<'_>,
+        inv: Arc<NativeSessionCodecInvocation>,
+    ) -> ControlResult<MediaControl> {
+        let grant = inv
+            .authority::<Arc<Grant>>()
+            .ok_or(StreamControlError::Authority)?
+            .clone();
+        if !inv.current()
+            || !grant.matches(inv.scope())
+            || inv.operation() != grant.operation
+            || !std::ptr::eq(self, Arc::as_ptr(&grant.policy))
+            || grant.source.codec().is_err()
+            || grant.plan.is_some()
+            || inv.plan().media().selected() != grant.media().selected()
+            || !inv.plan().changes_resources()
+        {
+            return Err(StreamControlError::Authority);
+        }
+        self.scope(scope, &grant.connection)?;
+        match intent {
+            MediaControlIntent::Change {
+                expected,
+                desired,
+                replace,
+            } if *expected == inv.scope().stream_revision
+                && replace.is_empty()
+                && desired
+                    .iter()
+                    .eq(grant.media().selected().iter().map(|s| &s.requested)) =>
+            {
+                ()
+            }
+            _ => return Err(StreamControlError::Authority),
+        }
+        let owner = grant.owner(false)?;
+        MediaControl::new(
+            Box::new(Held {
+                inv: Invocation::Codec(inv.clone()),
                 grant,
                 owner,
             }),
@@ -309,8 +492,26 @@ impl Policy {
         )
     }
 }
+enum Invocation {
+    Subscription(Arc<NativeSubscriptionInvocation>),
+    Codec(Arc<NativeSessionCodecInvocation>),
+}
+impl Invocation {
+    fn current(&self) -> bool {
+        match self {
+            Self::Subscription(i) => i.current(),
+            Self::Codec(i) => i.current(),
+        }
+    }
+    fn scope(&self) -> &NativeRequestScope {
+        match self {
+            Self::Subscription(i) => i.scope(),
+            Self::Codec(i) => i.scope(),
+        }
+    }
+}
 struct Held {
-    inv: Arc<NativeSubscriptionInvocation>,
+    inv: Invocation,
     grant: Arc<Grant>,
     owner: MediaOwner,
 }

@@ -118,7 +118,7 @@ fn gate_streams(
         })
         .collect()
 }
-fn codec_bindings(
+pub(crate) fn codec_bindings(
     bindings: &[rvoip_core::stream_lifecycle::ReadyMediaBinding],
 ) -> Result<Vec<connect_protocol::native_streams::CodecBinding>> {
     use rvoip_core::stream_lifecycle::{Medium, StreamDirection};

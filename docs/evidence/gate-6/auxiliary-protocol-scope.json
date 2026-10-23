@@ -1494,7 +1494,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-local-native",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1503,9 +1503,10 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
         "live_codec_component": "docs/evidence/gate-6/auxiliary-live-session-codecs.json",
-        "durable_codec_jobs": "docs/evidence/gate-6/auxiliary-session-codec-jobs.json"
+        "durable_codec_jobs": "docs/evidence/gate-6/auxiliary-session-codec-jobs.json",
+        "production_codec_worker": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
       }
     },
     {
@@ -1534,7 +1535,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-local-native",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1543,9 +1544,10 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
         "live_codec_component": "docs/evidence/gate-6/auxiliary-live-session-codecs.json",
-        "durable_codec_jobs": "docs/evidence/gate-6/auxiliary-session-codec-jobs.json"
+        "durable_codec_jobs": "docs/evidence/gate-6/auxiliary-session-codec-jobs.json",
+        "production_codec_worker": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
       }
     },
     {
@@ -3370,8 +3372,8 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Finish remaining Session0082/0083 URI targets,0085 readiness-policy reconciliation,0088/0089 updates and0100 boundary context. Preserve the locally verified owned native0081 journey and first-start/presence/grace/record components. Task-source policy remains G6-055.",
-    "Connect the actual Service worker and host codec MediaPolicy/NativeSessionCodecPolicy to these jobs and the157-patch native executor. Retain real idle request origins from successful signed offers and refresh them from actual credential commits; do not manufacture them from database readiness.",
+    "Finish remaining G6-046 source clauses: URI invitation targets0082/0083; readiness-policy0085 and context0100; offer example0103 and readiness-handle0109; native/SIP DTMF0112/0113/0115; full multiparty selector0123. Reconcile existing actual evidence before adding missing behavior.",
+    "Follow the approved dependency graph through every remaining task and all105-task goal. Keep named remote/provider rehearsal bounds in G6-093 explicit; publication remains separate.",
     "Keep task-scoped enrollment and step-up clauses0061\u20130066 in G6-055 and its prerequisites; preserve all105 tasks and dependency order.",
     "Retain unresolved consultation/provider reliability failures explicitly; named remote/provider rehearsals require G6-093 bounded configuration; full task and acceptance remain open."
   ],
@@ -3619,10 +3621,27 @@
         "The completed policy receipt is an immutable policy decision. A separate reconciliation operation reports settled aggregate outcomes without private Connection IDs. Pending, unknown and cancelled operations carry no completed result. A completed batch may contain refused, unavailable, cancelled or superseded targets; completion does not imply every Connection changed.",
         "Multi-Connection physical execution, retained hold/mute/selector behavior, actual current signed peer confirmation, partial/unknown production outcomes and public SDK recovery still require the Service worker and composed tests. No gate, acceptance, publication or full-goal completion claim."
       ]
+    },
+    "session_codec_worker": {
+      "report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+      "schema_version": 98,
+      "source_lock_patches": 158,
+      "status": "qualified-local-native-production-worker",
+      "newly_qualified_case_ids": [
+        "u6-req-0088",
+        "u6-req-0089"
+      ],
+      "limits": [
+        "Local macOS arm64 actual production canonical QUIC listeners and public signed/native and HTTP SDKs. Two independently authenticated peers have established Connections and explicit duplex routes. No Linux x86_64, browser, remote/provider or frozen quality/impairment workload qualification is claimed.",
+        "A policy receipt accepts the new current Session preference. Its separate aggregate operation can settle partially or remain unknown; it never equates acceptance or a completed batch with remote consumption. Pending/unknown/cancelled operations carry no completed result, and aggregate output omits private Connection IDs.",
+        "The invalid-confirmation test uses a separate HTTP manager with only session.update/operation.get and a concrete six-second expiry. Both native credentials remain independent. One peer changes, the other remains unknown after its invalid signed confirmation and bounded deadline; replay creates no additional native effect.",
+        "Current worker qualification covers compatible per-peer fallback/no-change, independent explicit routes, current credential refresh, observer-to-agent role/replay, actual signed preparations, independent FFmpeg duplex decoding, captured-recording retries, partial uncertainty and no physical resubmission. Wider multiparty/per-Participant Connection fanout, composed independent hold/mute, admission/cancel/crash matrices and other transport profiles retain their assigned checks. Existing direct codec/gate and retained-selector regressions are evidence for those tested paths, not a substitute for every Session-worker composition.",
+        "The schema98 explicit fresh-state boundary is unchanged. No automatic conversion, gate acceptance, publication, G6-046 completion or all105-task completion is claimed. Source-ledger independent conformance remains assigned G6-094; the two clause credits here are the same partial local Connect qualification used by prior component reports."
+      ]
     }
   },
-  "qualified_clause_count": 49,
-  "remaining_clause_count": 12,
+  "qualified_clause_count": 51,
+  "remaining_clause_count": 10,
   "clause_qualification": {
     "status": "partial-local-native",
     "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
@@ -3643,6 +3662,8 @@
       "u6-req-0084",
       "u6-req-0086",
       "u6-req-0087",
+      "u6-req-0088",
+      "u6-req-0089",
       "u6-req-0090",
       "u6-req-0091",
       "u6-req-0092",
@@ -3679,7 +3700,7 @@
     ],
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-    "latest_evidence": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-codec-jobs.json"
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
   }
 }

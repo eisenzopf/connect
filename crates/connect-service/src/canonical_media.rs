@@ -195,6 +195,45 @@ pub(crate) fn offer_plan(
     Ok((profile, plan))
 }
 impl Connection {
+    /// Historical confirmed formats for existing packet IO. Current Store
+    /// ceilings and the broker declaration still authorize future choices.
+    pub(crate) fn remember_bindings(
+        &self,
+        bindings: &[rvoip_core::stream_lifecycle::ReadyMediaBinding],
+    ) {
+        use rvoip_core::stream_lifecycle::StreamDirection;
+        let mut known = self
+            .negotiated_remote
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        for binding in bindings {
+            let stream = &binding.negotiated;
+            let add = |set: &mut Vec<MediaCapability>| {
+                if let Some(cap) = set.iter_mut().find(|c| c.medium == stream.requested.medium) {
+                    if !cap.formats.contains(&stream.format) {
+                        cap.formats.push(stream.format.clone());
+                    }
+                } else {
+                    set.push(MediaCapability {
+                        medium: stream.requested.medium,
+                        formats: vec![stream.format.clone()],
+                    });
+                }
+            };
+            if matches!(
+                stream.requested.direction,
+                StreamDirection::Send | StreamDirection::Both
+            ) {
+                add(&mut known.receive);
+            }
+            if matches!(
+                stream.requested.direction,
+                StreamDirection::Receive | StreamDirection::Both
+            ) {
+                add(&mut known.send);
+            }
+        }
+    }
     pub(crate) fn activation(&self) -> ControlResult<Option<Arc<NativeMediaActivation>>> {
         Ok(self.activation.try_lock().map_err(denied)?.clone())
     }
@@ -838,6 +877,7 @@ impl MediaPolicy for Policy {
         if let Some(i) = held.downcast_ref::<Arc<rvoip_uctp::v2::native_subscriptions::NativeSubscriptionInvocation>>() {
             return self.reconciliation_control(scope, intent, i.clone());
         }
+        if let Some(i)=held.downcast_ref::<Arc<rvoip_uctp::v2::native_session_codecs::NativeSessionCodecInvocation>>() {return self.codec_control(scope,intent,i.clone());}
         if let Some(i) = held.downcast_ref::<streams::StreamInvocation>() {
             return self.stream_control(scope, intent, i).map_err(|error|{tracing::debug!(target:"connect_service::canonical_native_streams",?error,"Native stream control policy refused");error});
         }

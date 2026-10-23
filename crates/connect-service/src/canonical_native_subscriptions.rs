@@ -60,6 +60,11 @@ impl Runtime {
         result: &rvoip_uctp::v2::native::RefreshedNativeMedia,
     ) -> Result<(), DispatchError> {
         let entry = self.media.entry(id).map_err(|_| DispatchError::Authority)?;
+        let origin = result.request_origin(&self.native)?;
+        self.codec_origins
+            .lock()
+            .map_err(|_| DispatchError::Capacity)?
+            .insert(entry.origin.connection_id().into(), origin);
         result.enable_subscriptions(
             &self.native,
             &self.core,
@@ -80,6 +85,15 @@ impl Runtime {
             .media
             .entry(id)
             .map_err(|_| connect_protocol::Error::forbidden())?;
+        let origin = self
+            .native
+            .native_request_origin(id, a)
+            .map_err(|_| connect_protocol::Error::forbidden())?;
+        self.codec_origins
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?
+            .insert(entry.origin.connection_id().into(), origin);
+        self.ensure_session_codec_worker()?;
         let policy = Arc::new(Policy {
             runtime: Arc::downgrade(self),
             entry,
@@ -142,13 +156,13 @@ impl NativeSubscriptionPolicy for Policy {
             operation.clone(),
             runtime.stop.child_token(),
         ).map_err(|error|{tracing::debug!(target:"connect_service::canonical_native_streams",?error,"Native reconciliation source grant deferred");error})?;
-        let lease=runtime.media.store.begin_native_reconciliation(&grant.source,&operation,grant.descriptor()?).map_err(|error|{
+        let lease=runtime.media.store.begin_native_reconciliation(grant.source.subscription()?,&operation,grant.descriptor()?).map_err(|error|{
             tracing::debug!(target:"connect_service::canonical_native_streams",code=%error.code,"Native reconciliation admission deferred");DispatchError::Authority
         })?;
         if let Err(error) = runtime
             .media
             .store
-            .validate_native_reconciliation(&grant.source, &lease)
+            .validate_native_reconciliation(grant.source.subscription()?, &lease)
         {
             // No native call has begun. Record this definite preflight refusal
             // rather than abandoning a reserved attempt as possible IO.

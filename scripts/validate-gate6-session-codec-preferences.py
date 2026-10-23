@@ -2,7 +2,7 @@
 """Validate actual signed initial offers under current Session codec policy.
 
 The production test separately verifies signatures, immutable original offers,
-current policy/replay, explicit live-update refusal and FFmpeg-decoded audio.
+current policy/replay, live Session switching and FFmpeg-decoded audio.
 """
 import argparse
 import json

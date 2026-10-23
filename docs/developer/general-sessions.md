@@ -87,7 +87,7 @@ after a stale revision requires a new operation ID and the current revision.
 | `session.update` / `participant-leave` | Leave one Session appearance, fencing only its own Connections. |
 | `session.update` / `role-change` | Change a Session role label without changing Conversation defaults or another Session. |
 | `session.update` / `medium-upgrade` | Add already accepted media to the desired Session profile. Settled current native Connections may remain connected; new media needs separately negotiated Connections. Pending, foreign-runtime and legacy media bindings refuse this lane. |
-| `session.update` / `codec-renegotiate` | Change declared codec preferences while no media is connected. New native offers use the latest preferences within current accepted capabilities; live Connection changes use the separately scoped `connection.update` coordinator. |
+| `session.update` / `codec-renegotiate` | Change declared codec preferences. New native offers use the latest compatible preferences; the installed canonical worker separately reconciles established signed native QUIC Connections and reports aggregate outcomes. |
 | `session.end` | Any current present Session Participant with `session.end`, or the creator/current explicit manager, ends the logical Session. Physical teardown remains separately observable. |
 
 Session codec preferences rank compatible formats during a new native offer.
@@ -96,12 +96,10 @@ Session profile can be selected. An unavailable preference falls back to the
 peer's remaining usable offered formats. Preferences do not rewrite the signed
 offer, narrow the advertised capability set or grant a codec. Replaying an older
 Session update returns its historical receipt and cannot reset the latest
-preferences or alter established bindings. Changing all live Connections through
-a Session-wide codec coordinator remains unfinished; the current explicit refusal
-preserves existing Session policy and media.
+preferences or repeat an established media change.
 
-Schema98 adds the durable Store foundation for that coordinator. Once its real
-worker is installed, a live policy receipt can include `codec_reconciliation`
+The canonical runtime installs a bounded Session codec worker at schema98. A live
+policy receipt includes `codec_reconciliation`
 with a separate `operation_id` and `record_id`. That operation freezes the target
 set and reports settled Connection outcomes independently of policy acceptance.
 Its completed result contains aggregate counts, including refusals, unavailable,
@@ -115,8 +113,28 @@ job descriptor or retained origin supplies no grant. Admission records one child
 effect before native IO. Cancellation stops unstarted work and retains possible
 effects as unknown; recording a previously captured real success never repeats
 IO or rewinds the current policy. Restart cannot reconstruct an old native
-attempt. The production runtime does not install this worker yet, so the public
-live-update refusal above remains in force.
+attempt. At most16 jobs execute concurrently; queued work has a fixed deadline
+of at most30 seconds, bounded by the original manager credential. The worker
+uses actual signed native QUIC origins, refreshes them only after observed
+credential commits, and polls durable jobs even when wake hints are absent.
+Shutdown removes availability and cancels owned work. An installation without a
+running canonical worker still refuses live policy changes explicitly.
+
+Each peer independently selects its best compatible format from the current
+accepted profile and actual latest declaration. Unavailable preferences fall back;
+an unchanged selection records `unchanged` without a reoffer, new resources or a
+revision increment. Changed bindings require exact signed prepared confirmation.
+Explicit selectors and independent mute/hold state remain engine-owned. A failed
+call after possible media submission stays unknown; the worker never infers
+rollback or retries physical IO. Captured success and definitive preflight refusal
+retain only historical metadata while retrying durable recording. A completed
+policy decision or aggregate batch does not prove remote media consumption.
+
+Current qualification remains local and partial under G6-046. See the recorded
+component evidence for the exact executed matrix. Complete live hold/mute,
+multiple Connections per Participant, fault/recovery, SIP, browser, Linux and
+remote/provider profiles remain their assigned checks; no gate acceptance is
+implied by installing this native worker.
 
 Every mutation of an existing topology requires its current revision. Pending
 reject/cancel retains the documented optional revision assertion. `by` and `from`

@@ -34,6 +34,13 @@ pub(crate) struct Runtime {
     pub(crate) invitation_jobs: Mutex<std::collections::BTreeSet<String>>,
     pub(crate) session_reconnect_worker: Mutex<Option<tokio::task::JoinHandle<()>>>,
     pub(crate) session_lifecycle_worker: Mutex<Option<tokio::task::JoinHandle<()>>>,
+    pub(crate) session_codec_worker: Mutex<Option<tokio::task::JoinHandle<()>>>,
+    pub(crate) codec_origins: Mutex<
+        std::collections::BTreeMap<
+            String,
+            Arc<rvoip_uctp::v2::native_requests::NativeRequestOrigin>,
+        >,
+    >,
     pub(crate) invitation_callers: Mutex<crate::canonical_invitations::Callers>,
     pub(crate) host_configuration_closed: Mutex<bool>,
     physical: Mutex<Vec<Weak<Physical>>>,
@@ -123,6 +130,8 @@ impl Runtime {
             routes: Default::default(),
             invitation_jobs: Mutex::new(Default::default()),
             session_lifecycle_worker: Mutex::new(None),
+            session_codec_worker: Mutex::new(None),
+            codec_origins: Mutex::new(Default::default()),
             session_reconnect_worker: Mutex::new(None),
             invitation_callers: Mutex::new(Default::default()),
             host_configuration_closed: Mutex::new(false),
@@ -412,6 +421,12 @@ pub(crate) fn participant_role(value: &str) -> ParticipantRole {
 impl Drop for Runtime {
     fn drop(&mut self) {
         self.stop.cancel();
+        if let Ok(worker) = self.session_codec_worker.get_mut() {
+            if let Some(worker) = worker.take() {
+                self.media.store.uninstall_session_codec_coordinator();
+                worker.abort();
+            }
+        }
         if let Ok(worker) = self.session_reconnect_worker.get_mut() {
             if let Some(worker) = worker.take() {
                 worker.abort();

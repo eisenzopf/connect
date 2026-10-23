@@ -117,6 +117,11 @@ impl Service {
         peer: Option<std::sync::Arc<rvoip_core::peer_admission::PeerAdmission>>,
         principal: Option<rvoip_core::AuthenticatedPrincipal>,
     ) -> Result<connect_protocol::transitions::OperationRecord> {
+        if matches!(&request.action, Action::Renegotiate { .. }) {
+            if let Some(runtime) = self.canonical_runtime.get() {
+                runtime.ensure_session_codec_worker()?;
+            }
+        }
         let store = self.store.clone();
         let runtime = self.canonical_runtime.get().cloned();
         let result = tokio::task::spawn_blocking(move || match authority {

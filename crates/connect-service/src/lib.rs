@@ -39,6 +39,7 @@ mod canonical_preparation;
 mod canonical_receipts;
 mod canonical_records;
 mod canonical_runtime;
+mod canonical_session_codecs;
 mod canonical_session_lifecycle;
 pub use canonical_runtime::CanonicalRuntimeSnapshot;
 mod assistant_context;
@@ -132,9 +133,14 @@ impl Service {
     }
     /// Install the canonical Core/QUIC composition before accepting peers.
     pub fn install_canonical_runtime(&self) -> Result<()> {
+        let runtime = canonical_runtime::Runtime::new(self.store.clone())?;
         self.canonical_runtime
-            .set(canonical_runtime::Runtime::new(self.store.clone())?)
-            .map_err(|_| Error::new("conflict", "Canonical runtime is already installed"))
+            .set(runtime.clone())
+            .map_err(|_| Error::new("conflict", "Canonical runtime is already installed"))?;
+        if tokio::runtime::Handle::try_current().is_ok() {
+            runtime.ensure_session_codec_worker()?;
+        }
+        Ok(())
     }
     pub fn canonical_runtime_snapshot(&self) -> Option<CanonicalRuntimeSnapshot> {
         self.canonical_runtime
@@ -160,6 +166,21 @@ impl Service {
         let _ = self.drain_consultation_initialization().await;
         if let Some(runtime) = self.canonical_runtime.get() {
             runtime.stop.cancel();
+            self.store.uninstall_session_codec_coordinator();
+            let worker = runtime
+                .session_codec_worker
+                .lock()
+                .ok()
+                .and_then(|mut w| w.take());
+            if let Some(mut worker) = worker {
+                if tokio::time::timeout(std::time::Duration::from_secs(3), &mut worker)
+                    .await
+                    .is_err()
+                {
+                    worker.abort();
+                    let _ = worker.await;
+                }
+            }
             let worker = {
                 runtime
                     .session_lifecycle_worker
@@ -212,6 +233,12 @@ impl Service {
     /// Register the wake hint before journal catch-up. Only a committed journal
     /// read proves delivery; wake hints may be coalesced or absent after restart.
     pub async fn execute(&self, credential_id: String, operation: Operation) -> Result<Outcome> {
+        if matches!(&operation, Operation::SessionControl { request } if matches!(request.action, connect_protocol::session_control::Action::Renegotiate { .. }))
+        {
+            if let Some(runtime) = self.canonical_runtime.get() {
+                runtime.ensure_session_codec_worker()?;
+            }
+        }
         if let Operation::Task { request } = operation {
             return self
                 .execute_task(credential_id, *request)
