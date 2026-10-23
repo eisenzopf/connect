@@ -889,6 +889,11 @@
       "path": "patches/rvoip/gate6-live-session-codec-execution.patch",
       "sha256": "c2e570c86a20819593d2ba97f3965881c3335dbea23a23cd9a463cc96b95400a",
       "source": "G6-046 signed server-origin live Session codec execution with a distinct fresh host authority, exact current origin/revision/declaration fences, no-op without IO, sealed historical commit metadata and conservative possible-effect failure classification. Includes actual QUIC/WebTransport engine tests; Connect durable Session coordination remains separate unfinished work."
+    },
+    {
+      "path": "patches/rvoip/gate6-refreshed-native-request-origin.patch",
+      "sha256": "a82c7aef381541f94138a1eb5c8828a5b230ef5458a5f636a1017b90403bcca6",
+      "source": "G6-046 derive an idle server-request origin only from an actual observed native credential refresh. Share this sealed factory with existing subscription refresh; future codec IO still requires fresh independent host authority and exact current origin/revision."
     }
   ]
 }

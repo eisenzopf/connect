@@ -1,0 +1,63 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -2492,12 +2492,15 @@
+             listener,
+         )
+     }
+-    pub fn enable_subscriptions(
+-        &self,
+-        adapter: &Arc<CanonicalNativeAdapter>,
+-        core: &Arc<rvoip_core::Orchestrator>,
+-        policy: Arc<dyn super::native_subscriptions::NativeSubscriptionPolicy>,
+-    ) -> std::result::Result<(), super::auth_dispatch::DispatchError> {
++    /// Derive an idle request origin only from this actual observed credential
++    /// commit. Future IO still requires a fresh independent exact host grant.
++    pub fn request_origin(
++        &self,
++        adapter: &CanonicalNativeAdapter,
++    ) -> std::result::Result<
++        Arc<super::native_requests::NativeRequestOrigin>,
++        super::auth_dispatch::DispatchError,
++    > {
+         let installed = self
+             .route
+             .installation
+@@ -2521,7 +2524,7 @@
+             .exchange
+             .as_ref()
+             .ok_or(super::auth_dispatch::DispatchError::Unsupported)?;
+-        let origin = super::native_requests::NativeRequestOrigin::from_refresh(
++        super::native_requests::NativeRequestOrigin::from_refresh(
+             self.origin.registration_copy(),
+             context,
+             &i.controller,
+@@ -2530,17 +2533,21 @@
+             &self.route.member,
+             substrate,
+             broker.request_slot.clone(),
+-        )?;
++        )
++    }
++    pub fn enable_subscriptions(
++        &self,
++        adapter: &Arc<CanonicalNativeAdapter>,
++        core: &Arc<rvoip_core::Orchestrator>,
++        policy: Arc<dyn super::native_subscriptions::NativeSubscriptionPolicy>,
++    ) -> std::result::Result<(), super::auth_dispatch::DispatchError> {
++        let origin = self.request_origin(adapter)?;
++        let connection = origin.request_scope(0).origin.media.connection.clone();
+         let changed = core
+             .staged_media_selection_changes(&self.route.session)
+             .map_err(|_| super::auth_dispatch::DispatchError::Authority)?;
+         let runtime = super::native_subscriptions::NativeSubscriptionRuntime::spawn(
+-            core,
+-            adapter,
+-            i.scope.connection.clone(),
+-            origin,
+-            policy,
+-            changed,
++            core, adapter, connection, origin, policy, changed,
+         );
+         if let Some(old) = self
+             .route
