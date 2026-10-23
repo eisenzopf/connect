@@ -1,0 +1,830 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs
+@@ -229,12 +229,17 @@
+         self.at
+     }
+ }
++struct ManagedSource {
++    controller: Weak<crate::staged_streams::StreamController>,
++    principal: crate::AuthenticatedPrincipal,
++}
+ struct Registered {
+     stamp: Stamp,
+     sender: mpsc::Sender<ReceivedDtmfObservation>,
+     cancel: CancellationToken,
+     created: StdInstant,
+     drops: AtomicU64,
++    managed: Option<ManagedSource>,
+ }
+ /// One source subscription owns its registration, not permission or a task.
+ pub struct DtmfSourceSubscription {
+@@ -259,6 +264,7 @@
+     source: DtmfEndpoint,
+     input: DtmfReceivedInput,
+     registration: Weak<Registered>,
++    disclosure: Option<crate::orchestrator::participant_control::ReceivedDtmfDisclosure>,
+ }
+ impl std::fmt::Debug for ReceivedDtmfObservation {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+@@ -271,6 +277,11 @@
+     }
+     pub fn input(&self) -> &DtmfReceivedInput {
+         &self.input
++    }
++    pub fn disclosure(
++        &self,
++    ) -> Option<&crate::orchestrator::participant_control::ReceivedDtmfDisclosure> {
++        self.disclosure.as_ref()
+     }
+     /// Host journals/deduplicates the original operation before scheduling; a
+     /// transport observation ID is not an operation ID or a stored permission.
+@@ -362,6 +373,39 @@
+         adapter: Arc<dyn ConnectionAdapter>,
+         connection: ConnectionId,
+     ) -> std::result::Result<DtmfSourceSubscription, DtmfWriteError> {
++        self.subscribe_inner(core, adapter, connection, None)
++    }
++    /// Register exact managed SIP source metadata; accepted observations seal
++    /// original privacy before queueing. Busy/stale input is counted as dropped,
++    /// never recaptured under a later audience. No host permission is retained.
++    pub fn subscribe_managed(
++        &self,
++        core: &Arc<Orchestrator>,
++        adapter: Arc<dyn ConnectionAdapter>,
++        connection: ConnectionId,
++        controller: &Arc<crate::staged_streams::StreamController>,
++        principal: crate::AuthenticatedPrincipal,
++    ) -> std::result::Result<DtmfSourceSubscription, DtmfWriteError> {
++        if self.transport != Transport::Sip {
++            return Err(DtmfWriteError::Refused);
++        }
++        self.subscribe_inner(
++            core,
++            adapter,
++            connection,
++            Some(ManagedSource {
++                controller: Arc::downgrade(controller),
++                principal,
++            }),
++        )
++    }
++    fn subscribe_inner(
++        &self,
++        core: &Arc<Orchestrator>,
++        adapter: Arc<dyn ConnectionAdapter>,
++        connection: ConnectionId,
++        managed: Option<ManagedSource>,
++    ) -> std::result::Result<DtmfSourceSubscription, DtmfWriteError> {
+         let installed = core
+             .adapter(self.transport)
+             .map_err(|_| DtmfWriteError::Refused)?;
+@@ -375,6 +419,22 @@
+         let (endpoint, ticket, _) = core.capture_dtmf_endpoint_locked(connection.clone())?;
+         if endpoint.transport != self.transport {
+             return Err(DtmfWriteError::Refused);
++        }
++        if let Some(source) = &managed {
++            let controller = source.controller.upgrade().ok_or(DtmfWriteError::Refused)?;
++            core.capture_received_dtmf_disclosure(
++                &endpoint.session,
++                &connection,
++                &controller,
++                &source.principal,
++                StdInstant::now(),
++            )
++            .map_err(|error| match error {
++                crate::orchestrator::participant_control::ParticipantControlError::Media(
++                    crate::staged_streams::StreamControlError::NotReady,
++                ) => DtmfWriteError::NotReady,
++                _ => DtmfWriteError::Refused,
++            })?;
+         }
+         let epoch = core.sessions_by_connection.token(&connection)?;
+         let revision = epoch.load(Ordering::Acquire);
+@@ -395,6 +455,7 @@
+             cancel: CancellationToken::new(),
+             created: StdInstant::now(),
+             drops: AtomicU64::new(0),
++            managed,
+         });
+         let mut entries = self.entries.lock().unwrap_or_else(|p| p.into_inner());
+         entries.retain(|_, v| v.strong_count() > 0);
+@@ -439,10 +500,36 @@
+             registered.drops.fetch_add(1, Ordering::Relaxed);
+             return false;
+         }
++        let disclosure = if let Some(managed) = &registered.managed {
++            let captured = registered
++                .stamp
++                .core
++                .upgrade()
++                .zip(managed.controller.upgrade())
++                .and_then(|(core, controller)| {
++                    core.capture_received_dtmf_disclosure(
++                        &registered.stamp.endpoint.session,
++                        connection,
++                        &controller,
++                        &managed.principal,
++                        input.instant,
++                    )
++                    .ok()
++                });
++            let Some(disclosure) = captured else {
++                self.drops.fetch_add(1, Ordering::Relaxed);
++                registered.drops.fetch_add(1, Ordering::Relaxed);
++                return false;
++            };
++            Some(disclosure)
++        } else {
++            None
++        };
+         let observation = ReceivedDtmfObservation {
+             source: registered.stamp.endpoint.clone(),
+             input,
+             registration: Arc::downgrade(&registered),
++            disclosure,
+         };
+         if registered.sender.try_send(observation).is_err() {
+             self.drops.fetch_add(1, Ordering::Relaxed);
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs
+@@ -230,6 +230,15 @@
+         f.write_str("NativeDtmfDisclosure(redacted)")
+     }
+ }
++/// Original managed SIP receive audience, sealed before queueing. It carries
++/// no native signing metadata, permission reader, or future delivery authority.
++#[derive(Clone)]
++pub struct ReceivedDtmfDisclosure(NativeCapabilityDisclosure);
++impl std::fmt::Debug for ReceivedDtmfDisclosure {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ReceivedDtmfDisclosure(redacted)")
++    }
++}
+ struct DtmfAudienceFence(crate::staged_streams::capability_disclosure::SceneDtmfAudience);
+ impl crate::dtmf::DtmfIoFence for DtmfAudienceFence {
+     fn poll(&self, io: &mut dyn FnMut() -> crate::dtmf::DtmfIoPoll) -> crate::dtmf::DtmfIoPoll {
+@@ -237,6 +246,51 @@
+     }
+ }
+ impl Orchestrator {
++    pub(crate) fn capture_received_dtmf_disclosure(
++        &self,
++        session: &SessionId,
++        source: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++        received: std::time::Instant,
++    ) -> ControlResult<ReceivedDtmfDisclosure> {
++        let runtime = self.participant_runtime(session)?;
++        let state = runtime.state.try_lock().map_err(|_| busy())?;
++        let route = state
++            .routes
++            .get(source)
++            .ok_or(ParticipantControlError::Authority)?;
++        let life = route.lifecycle.state.try_lock().map_err(|_| busy())?;
++        if state.ended || route.lifecycle.connection_id != *source || !live(&route.lifecycle, &life)
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        let disclosure =
++            scene.capture_received_dtmf_disclosure(source, controller, principal, received)?;
++        Ok(ReceivedDtmfDisclosure(NativeCapabilityDisclosure {
++            runtime: Arc::downgrade(&runtime),
++            session: session.clone(),
++            source: source.clone(),
++            life: LifeStamp::new(&route.lifecycle),
++            scene: disclosure,
++        }))
++    }
++    /// Compose the sealed received audience with the actual native recipient.
++    /// Fresh host source/recipient permission plus actual SIP source and native
++    /// target IO fences remain mandatory. This fence owns only SIP's managed
++    /// source credential; it never reenters the native recipient's controller.
++    pub fn received_native_dtmf_audience_fence(
++        &self,
++        disclosure: &ReceivedDtmfDisclosure,
++        recipient: &crate::dtmf::DtmfNativeRecipient,
++    ) -> ControlResult<Arc<dyn crate::dtmf::DtmfIoFence>> {
++        self.managed_native_dtmf_audience_fence(&disclosure.0, recipient, true)
++    }
+     /// Capture a managed source's original private boundaries under its exact
+     /// current controller/credential metadata. No capability is advertised.
+     pub fn capture_native_dtmf_disclosure(
+@@ -276,7 +330,14 @@
+         disclosure: &NativeDtmfDisclosure,
+         recipient: &crate::dtmf::DtmfNativeRecipient,
+     ) -> ControlResult<Arc<dyn crate::dtmf::DtmfIoFence>> {
+-        let source = &disclosure.0;
++        self.managed_native_dtmf_audience_fence(&disclosure.0, recipient, false)
++    }
++    fn managed_native_dtmf_audience_fence(
++        &self,
++        source: &NativeCapabilityDisclosure,
++        recipient: &crate::dtmf::DtmfNativeRecipient,
++        received: bool,
++    ) -> ControlResult<Arc<dyn crate::dtmf::DtmfIoFence>> {
+         if source.session != recipient.session
+             || source.source == recipient.connection
+             || !matches!(
+@@ -322,9 +383,11 @@
+             .staged
+             .as_ref()
+             .ok_or(ParticipantControlError::Unsupported)?;
+-        Ok(Arc::new(DtmfAudienceFence(
+-            scene.native_dtmf_audience(&source.scene, recipient)?,
+-        )))
++        Ok(Arc::new(DtmfAudienceFence(if received {
++            scene.received_native_dtmf_audience(&source.scene, recipient)?
++        } else {
++            scene.native_dtmf_audience(&source.scene, recipient)?
++        })))
+     }
+ 
+     /// Bind the actual managed SIP recipient controller/principal to this
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -8,6 +8,7 @@
+ pub mod capability_disclosure;
+ pub use capability_disclosure::{
+     NativeCapabilityDisclosure, NativeCapabilityListener, NativeDtmfDisclosure,
++    ReceivedDtmfDisclosure,
+ };
+ 
+ mod outbound;
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1300,6 +1300,10 @@
+                 registry.preparations.remove(id);
+             }
+             registry.revision += 1;
++            *self
++                .disclosure_changed_at
++                .lock()
++                .unwrap_or_else(|p| p.into_inner()) = std::time::Instant::now();
+             let departed = receiver_origins
+                 .iter()
+                 .filter(|(_, origin)| !members.values().any(|m| origin.matches(&m.controller)))
+--- a/crates/foundation/rvoip-core/src/staged_streams/capability_declaration.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/capability_declaration.rs
+@@ -2,13 +2,14 @@
+ use super::*;
+ impl StreamController {
+     /// Run a synchronous metadata commit under this exact live incarnation.
+-    /// The host must independently hold current named declaration authority.
++    /// The host independently authorizes each declaration or effect. Capturing
++    /// metadata alone is neither a declaration nor a signal permission.
+     /// `commit` must be a leaf: no Core/controller or domain-policy reentry,
+     /// network IO or retained guard. This never changes media or grants rights.
+-    pub(super) fn commit_capability_declaration<T>(
++    pub(super) fn commit_signal_metadata<T>(
+         &self,
+         principal: &AuthenticatedPrincipal,
+-        expected_revision: u64,
++        expected_revision: Option<u64>,
+         commit: impl FnOnce(&CredentialSnapshot) -> T,
+     ) -> ControlResult<T> {
+         let state = self
+@@ -22,7 +23,7 @@
+         if self.shutdown.is_cancelled() || state.closed {
+             return Err(StreamControlError::Cancelled);
+         }
+-        if state.model.revision() != expected_revision {
++        if expected_revision.is_some_and(|expected| state.model.revision() != expected) {
+             return Err(MediaTransitionError::Conflict.into());
+         }
+         if !reliable_data::same_credential(&credential.principal, principal)
+--- a/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs
+@@ -47,6 +47,44 @@
+         expected: u64,
+         commit: impl FnOnce() -> T,
+     ) -> ControlResult<(T, SceneCapabilityDisclosure)> {
++        self.commit_signal_disclosure(
++            connection,
++            controller,
++            principal,
++            Some(expected),
++            None,
++            commit,
++        )
++    }
++    pub(crate) fn capture_received_dtmf_disclosure(
++        self: &Arc<Self>,
++        connection: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++        received: std::time::Instant,
++    ) -> ControlResult<SceneCapabilityDisclosure> {
++        if controller.origin_endpoint.transport() != crate::connection::Transport::Sip {
++            return Err(StreamControlError::Authority);
++        }
++        self.commit_signal_disclosure(
++            connection,
++            controller,
++            principal,
++            None,
++            Some(received),
++            || (),
++        )
++        .map(|(_, disclosure)| disclosure)
++    }
++    fn commit_signal_disclosure<T>(
++        self: &Arc<Self>,
++        connection: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++        expected: Option<u64>,
++        received: Option<std::time::Instant>,
++        commit: impl FnOnce() -> T,
++    ) -> ControlResult<(T, SceneCapabilityDisclosure)> {
+         let members = self
+             .members
+             .try_lock()
+@@ -61,6 +99,22 @@
+         {
+             return Err(StreamControlError::Authority);
+         }
++        // Capture before the observation enters its host queue. Input that
++        // began before any intervening audience/member change cannot borrow
++        // today's audience, including private -> public or membership ABA.
++        let boundary = if let Some(received) = received {
++            let boundary = self
++                .disclosure_changed_at
++                .try_lock()
++                .map_err(|_| StreamControlError::NotReady)?;
++            if received <= *boundary || received > std::time::Instant::now() {
++                return Err(StreamControlError::Authority);
++            }
++            Some(boundary)
++        } else {
++            None
++        };
++        let _boundary = boundary;
+         // Pure comparisons against the exact principal checked under the
+         // credential mutex below; no audience callback reenters that mutex.
+         let original = registry
+@@ -73,7 +127,7 @@
+                 )
+             })
+             .collect();
+-        controller.commit_capability_declaration(principal, expected, |credential| {
++        controller.commit_signal_metadata(principal, expected, |credential| {
+             let result = commit();
+             (
+                 result,
+@@ -228,6 +282,7 @@
+     source: SceneCapabilityDisclosure,
+     target: SceneCapabilityListener,
+     owns_target_credential: bool,
++    owns_source_credential: bool,
+ }
+ impl SceneCapabilityDisclosure {
+     pub(crate) fn matches_dtmf_source(
+@@ -280,7 +335,17 @@
+             source: source.clone(),
+             target: listener,
+             owns_target_credential: false,
++            owns_source_credential: false,
+         })
++    }
++    pub(crate) fn received_native_dtmf_audience(
++        self: &Arc<Self>,
++        source: &SceneCapabilityDisclosure,
++        target: &crate::dtmf::DtmfNativeRecipient,
++    ) -> ControlResult<SceneDtmfAudience> {
++        let mut audience = self.native_dtmf_audience(source, target)?;
++        audience.owns_source_credential = true;
++        Ok(audience)
+     }
+     /// Bind an actual managed SIP controller. The SIP transport fences its
+     /// route/dialog; this audience additionally owns the controller credential
+@@ -311,6 +376,7 @@
+             source: source.clone(),
+             target: listener,
+             owns_target_credential: true,
++            owns_source_credential: false,
+         })
+     }
+ }
+@@ -347,6 +413,23 @@
+         // Acquire only the actual SIP target here: never reenter the source or
+         // native target controller. All attempts are synchronous and release
+         // every guard on Pending, including audience/relationship contention.
++        // SIP physical source custody owns its route/dialog, not the managed
++        // stream credential. Native physical pumps already own their credential
++        // and must never be reentered here. All optional guards release on Pending.
++        let _source_custody = if self.owns_source_credential {
++            let Ok(state) = source.state.try_lock() else {
++                return Poll::Pending;
++            };
++            let Ok(credential) = source.credential.try_lock() else {
++                return Poll::Pending;
++            };
++            if state.closed || !self.source.source.matches(&credential) {
++                return refuse();
++            }
++            Some((state, credential))
++        } else {
++            None
++        };
+         let _target_custody = if self.owns_target_credential {
+             let Ok(state) = target.state.try_lock() else {
+                 return Poll::Pending;
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -160,6 +160,8 @@
+     pub(super) selection_changed: Arc<tokio::sync::Notify>,
+     pub(super) members: Mutex<HashMap<ConnectionId, SceneMember>>,
+     pub(super) audiences: Arc<Mutex<super::audience::AudienceState>>,
++    // Any committed audience or member change bounds delayed physical input.
++    pub(super) disclosure_changed_at: Mutex<std::time::Instant>,
+     audio: Arc<GuardedAudioMixer>,
+ }
+ impl GuardedMediaScene {
+@@ -180,6 +182,7 @@
+             selection_changed: Arc::new(tokio::sync::Notify::new()),
+             members: Mutex::new(HashMap::new()),
+             audiences: Arc::new(Mutex::new(super::audience::AudienceState::default())),
++            disclosure_changed_at: Mutex::new(std::time::Instant::now()),
+         })
+     }
+     pub(crate) fn selection_changes(&self) -> Arc<tokio::sync::Notify> {
+@@ -391,6 +394,10 @@
+         member.ports.clear();
+         member.flight.take();
+         members.insert(id, member);
++        *self
++            .disclosure_changed_at
++            .lock()
++            .unwrap_or_else(|p| p.into_inner()) = std::time::Instant::now();
+         self.selection_changed.notify_waiters();
+     }
+     pub(crate) fn remove(&self, id: &ConnectionId) {
+@@ -418,6 +425,10 @@
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .remove(id);
++        *self
++            .disclosure_changed_at
++            .lock()
++            .unwrap_or_else(|p| p.into_inner()) = std::time::Instant::now();
+         self.selection_changed.notify_waiters();
+     }
+     pub(crate) fn clear(&self) {
+@@ -438,6 +449,10 @@
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .clear();
++        *self
++            .disclosure_changed_at
++            .lock()
++            .unwrap_or_else(|p| p.into_inner()) = std::time::Instant::now();
+         self.selection_changed.notify_waiters();
+     }
+     pub(crate) fn needs_audio_receive(
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -3012,3 +3012,262 @@
+     }
+     assert_eq!(calls.load(Ordering::SeqCst), 3);
+ }
++
++fn received_sip_disclosure(
++    room: &Room,
++    source: &Arc<StreamController>,
++    at: std::time::Instant,
++) -> ControlResult<super::super::capability_disclosure::SceneCapabilityDisclosure> {
++    room.scene.capture_received_dtmf_disclosure(
++        &source.connection,
++        source,
++        &source.credential_snapshot().principal,
++        at,
++    )
++}
++#[tokio::test]
++async fn received_dtmf_audience_owns_sip_source_without_reentering_native_target_and_releases_pending(
++) {
++    use crate::dtmf::*;
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    let phone = room.nodes["phone"].controller.clone();
++    let bob = room.nodes["bob"].controller.clone();
++    let actual = native_dtmf_recipient(&bob);
++    let disclosure = received_sip_disclosure(&room, &phone, std::time::Instant::now()).unwrap();
++    let audience = room
++        .scene
++        .received_native_dtmf_audience(&disclosure, &actual)
++        .unwrap();
++    for pending in [false, true] {
++        let result = bob.poll_dtmf_source_io(
++            &actual.principal,
++            actual.stream_revision,
++            actual.credential_revision,
++            &actual.audio_bindings,
++            &mut || {
++                audience.poll(&mut || {
++                    assert!(phone.state.try_lock().is_err());
++                    assert!(phone.credential.try_lock().is_err());
++                    assert!(bob.state.try_lock().is_err());
++                    assert!(bob.credential.try_lock().is_err());
++                    assert!(room.scene.members.try_lock().is_err());
++                    assert!(room.scene.audiences.try_lock().is_err());
++                    if pending {
++                        std::task::Poll::Pending
++                    } else {
++                        std::task::Poll::Ready(Ok(()))
++                    }
++                })
++            },
++        );
++        assert_eq!(
++            result,
++            if pending {
++                std::task::Poll::Pending
++            } else {
++                std::task::Poll::Ready(Ok(()))
++            }
++        );
++        assert!(phone.state.try_lock().is_ok());
++        assert!(phone.credential.try_lock().is_ok());
++        assert!(bob.state.try_lock().is_ok());
++        assert!(bob.credential.try_lock().is_ok());
++        assert!(room.scene.members.try_lock().is_ok());
++        assert!(room.scene.audiences.try_lock().is_ok());
++    }
++}
++#[tokio::test]
++async fn received_dtmf_original_private_audience_survives_queued_return_without_public_disclosure()
++{
++    use crate::dtmf::*;
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "consult", Some("public"), true).await;
++    let (_, handle) = room.apply(room.begin_plan()).await.unwrap();
++    let source = room.nodes["consult"].controller.clone();
++    let disclosure = received_sip_disclosure(&room, &source, std::time::Instant::now()).unwrap();
++    let inside = room
++        .scene
++        .received_native_dtmf_audience(
++            &disclosure,
++            &native_dtmf_recipient(&room.nodes["alice"].controller),
++        )
++        .unwrap();
++    let outside = room
++        .scene
++        .received_native_dtmf_audience(
++            &disclosure,
++            &native_dtmf_recipient(&room.nodes["public"].controller),
++        )
++        .unwrap();
++    assert_eq!(
++        inside.poll(&mut || std::task::Poll::Ready(Ok(()))),
++        std::task::Poll::Ready(Ok(()))
++    );
++    let calls = AtomicUsize::new(0);
++    let mut io = || {
++        calls.fetch_add(1, Ordering::SeqCst);
++        std::task::Poll::Ready(Ok(()))
++    };
++    assert_eq!(
++        outside.poll(&mut io),
++        std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++    );
++    let restore = room
++        .scene
++        .plan_restore_audio_audience(
++            &handle,
++            "received-return".into(),
++            room.scene.audience_revision(),
++        )
++        .unwrap();
++    room.apply(restore).await.unwrap();
++    assert_eq!(
++        outside.poll(&mut io),
++        std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++    );
++    assert_eq!(calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test]
++async fn received_dtmf_delayed_input_cannot_capture_a_later_private_or_returned_audience() {
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    add_sip_dtmf_node(&mut room, "consult", Some("public"), true).await;
++    let source = room.nodes["phone"].controller.clone();
++    let before = std::time::Instant::now();
++    let (_, handle) = room.apply(room.begin_plan()).await.unwrap();
++    assert!(received_sip_disclosure(&room, &source, before).is_err());
++    let during = std::time::Instant::now();
++    assert!(received_sip_disclosure(&room, &source, during).is_ok());
++    let restore = room
++        .scene
++        .plan_restore_audio_audience(
++            &handle,
++            "received-late-return".into(),
++            room.scene.audience_revision(),
++        )
++        .unwrap();
++    room.apply(restore).await.unwrap();
++    assert!(received_sip_disclosure(&room, &source, during).is_err());
++    let fresh = received_sip_disclosure(&room, &source, std::time::Instant::now()).unwrap();
++    let audience = room
++        .scene
++        .received_native_dtmf_audience(
++            &fresh,
++            &native_dtmf_recipient(&room.nodes["alice"].controller),
++        )
++        .unwrap();
++    assert_eq!(
++        audience.poll(&mut || std::task::Poll::Ready(Ok(()))),
++        std::task::Poll::Ready(Ok(()))
++    );
++}
++#[tokio::test]
++async fn received_dtmf_delayed_input_cannot_cross_membership_join_remove_or_aba() {
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    let source = room.nodes["phone"].controller.clone();
++    let before_join = std::time::Instant::now();
++    room.add("late", None, false).await;
++    assert!(received_sip_disclosure(&room, &source, before_join).is_err());
++    let before_remove = std::time::Instant::now();
++    room.scene.remove(&ConnectionId::from_string("late"));
++    assert!(received_sip_disclosure(&room, &source, before_remove).is_err());
++    room.nodes.remove("late");
++    room.add("late", None, false).await;
++    assert!(received_sip_disclosure(&room, &source, before_join).is_err());
++    assert!(received_sip_disclosure(&room, &source, std::time::Instant::now()).is_ok());
++}
++#[tokio::test]
++async fn received_dtmf_source_capture_refuses_native_wrong_principal_boundary_and_future_time() {
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    let source = room.nodes["phone"].controller.clone();
++    let native = room.nodes["alice"].controller.clone();
++    assert!(received_sip_disclosure(&room, &native, std::time::Instant::now()).is_err());
++    assert!(room
++        .scene
++        .capture_received_dtmf_disclosure(
++            &source.connection,
++            &source,
++            &native.credential_snapshot().principal,
++            std::time::Instant::now()
++        )
++        .is_err());
++    let boundary = *room.scene.disclosure_changed_at.lock().unwrap();
++    assert!(received_sip_disclosure(&room, &source, boundary).is_err());
++    assert!(received_sip_disclosure(
++        &room,
++        &source,
++        std::time::Instant::now() + std::time::Duration::from_secs(1)
++    )
++    .is_err());
++    assert!(room
++        .scene
++        .capture_received_dtmf_disclosure(
++            &native.connection,
++            &source,
++            &source.credential_snapshot().principal,
++            std::time::Instant::now()
++        )
++        .is_err());
++}
++#[tokio::test]
++async fn received_dtmf_fresh_io_refuses_changed_source_credential_and_retired_member() {
++    use crate::dtmf::*;
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    let source = room.nodes["phone"].controller.clone();
++    let disclosure = received_sip_disclosure(&room, &source, std::time::Instant::now()).unwrap();
++    let audience = room
++        .scene
++        .received_native_dtmf_audience(
++            &disclosure,
++            &native_dtmf_recipient(&room.nodes["bob"].controller),
++        )
++        .unwrap();
++    source.credential.lock().unwrap().revision += 1;
++    let calls = AtomicUsize::new(0);
++    let mut io = || {
++        calls.fetch_add(1, Ordering::SeqCst);
++        std::task::Poll::Ready(Ok(()))
++    };
++    assert_eq!(
++        audience.poll(&mut io),
++        std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++    );
++    let fresh = received_sip_disclosure(&room, &source, std::time::Instant::now()).unwrap();
++    let audience = room
++        .scene
++        .received_native_dtmf_audience(
++            &fresh,
++            &native_dtmf_recipient(&room.nodes["bob"].controller),
++        )
++        .unwrap();
++    room.scene.remove(&source.connection);
++    assert_eq!(
++        audience.poll(&mut io),
++        std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++    );
++    assert_eq!(calls.load(Ordering::SeqCst), 0);
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn received_dtmf_input_during_member_commit_wait_cannot_borrow_post_commit_audience() {
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    let source = room.nodes["phone"].controller.clone();
++    let held = room.scene.selections.lock().unwrap();
++    let scene = room.scene.clone();
++    let worker = std::thread::spawn(move || scene.remove(&ConnectionId::from_string("public")));
++    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
++    while room.scene.members.try_lock().is_ok() {
++        assert!(std::time::Instant::now() < deadline);
++        std::thread::yield_now();
++    }
++    let during = std::time::Instant::now();
++    drop(held);
++    worker.join().unwrap();
++    assert!(received_sip_disclosure(&room, &source, during).is_err());
++    assert!(received_sip_disclosure(&room, &source, std::time::Instant::now()).is_ok());
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2686,7 +2686,7 @@
+     let budget = f.a.stream_open_budget();
+     let calls = AtomicUsize::new(0);
+     let received =
+-        f.a.commit_capability_declaration(&principal, revision, |_| {
++        f.a.commit_signal_metadata(&principal, Some(revision), |_| {
+             calls.fetch_add(1, Ordering::SeqCst);
+             "received"
+         })
+@@ -2703,24 +2703,25 @@
+     );
+     assert!(f
+         .a
+-        .commit_capability_declaration(&principal, revision + 1, |_| calls
++        .commit_signal_metadata(&principal, Some(revision + 1), |_| calls
+             .fetch_add(1, Ordering::SeqCst))
+         .is_err());
+     let foreign = f.b.credential_snapshot().principal;
+     assert!(f
+         .a
+-        .commit_capability_declaration(&foreign, revision, |_| calls.fetch_add(1, Ordering::SeqCst))
++        .commit_signal_metadata(&foreign, Some(revision), |_| calls
++            .fetch_add(1, Ordering::SeqCst))
+         .is_err());
+     let held = f.a.state.lock().unwrap();
+     assert!(matches!(
+-        f.a.commit_capability_declaration(&principal, revision, |_| calls
++        f.a.commit_signal_metadata(&principal, Some(revision), |_| calls
+             .fetch_add(1, Ordering::SeqCst)),
+         Err(StreamControlError::NotReady)
+     ));
+     drop(held);
+     let held = f.a.credential.lock().unwrap();
+     assert!(matches!(
+-        f.a.commit_capability_declaration(&principal, revision, |_| calls
++        f.a.commit_signal_metadata(&principal, Some(revision), |_| calls
+             .fetch_add(1, Ordering::SeqCst)),
+         Err(StreamControlError::NotReady)
+     ));
+@@ -2728,7 +2729,7 @@
+     f.a.shutdown.cancel();
+     assert!(f
+         .a
+-        .commit_capability_declaration(&principal, revision, |_| calls
++        .commit_signal_metadata(&principal, Some(revision), |_| calls
+             .fetch_add(1, Ordering::SeqCst))
+         .is_err());
+     assert_eq!(calls.load(Ordering::SeqCst), 1);
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -1420,6 +1420,22 @@
+         rvoip_core::dtmf::DtmfWriteError,
+     > {
+         self.dtmf_sources.subscribe(core, self.clone(), connection)
++    }
++
++    /// Managed source subscriptions capture original privacy before enqueue.
++    /// Physical input retains its actual INFO/RFC4733 provenance and lifetime.
++    pub fn subscribe_managed_dtmf_source(
++        self: &Arc<Self>,
++        core: &Arc<rvoip_core::Orchestrator>,
++        connection: ConnectionId,
++        controller: &Arc<rvoip_core::staged_streams::StreamController>,
++        principal: rvoip_core::AuthenticatedPrincipal,
++    ) -> std::result::Result<
++        rvoip_core::dtmf::DtmfSourceSubscription,
++        rvoip_core::dtmf::DtmfWriteError,
++    > {
++        self.dtmf_sources
++            .subscribe_managed(core, self.clone(), connection, controller, principal)
+     }
+ 
+     /// Trigger the production media-driver failure monitor for a live route.
