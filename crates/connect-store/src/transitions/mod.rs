@@ -9,7 +9,8 @@ pub use initial_telephone::{
     InitialTelephoneMediaOrigin, InitialTelephoneMediaRead, InitialTelephoneNativeRead,
     InitialTelephoneOrigin, InitialTelephonePolicy, InitialTelephoneRead,
     InitialTelephoneReadyObservation, InitialTelephoneRuntimeObservation,
-    InitialTelephoneSignaling, InitialTelephoneSource,
+    InitialTelephoneSignalDirection, InitialTelephoneSignalRead, InitialTelephoneSignaling,
+    InitialTelephoneSource,
 };
 pub(crate) mod consultation_source;
 pub use consultation_source::{NativeConsultationOrigin, NativeConsultationTarget};

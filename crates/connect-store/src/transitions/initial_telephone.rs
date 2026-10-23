@@ -13,7 +13,8 @@ pub(super) use lifecycle::{cancel, recover_one};
 pub use media::{
     InitialTelephoneAnswerCapture, InitialTelephoneAnswerRecorded, InitialTelephoneMediaOrigin,
     InitialTelephoneMediaRead, InitialTelephoneNativeRead, InitialTelephoneReadyObservation,
-    InitialTelephoneRuntimeObservation,
+    InitialTelephoneRuntimeObservation, InitialTelephoneSignalDirection,
+    InitialTelephoneSignalRead,
 };
 #[cfg(test)]
 mod tests;

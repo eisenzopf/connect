@@ -9,6 +9,8 @@ macro_rules! media_redacted {
         }
     })+};
 }
+mod signal;
+pub use signal::{InitialTelephoneSignalDirection, InitialTelephoneSignalRead};
 
 pub struct InitialTelephoneAnswerCapture {
     signal: Arc<InitialTelephoneSignaling>,
@@ -49,6 +51,11 @@ struct InitialTelephoneProjection {
     conversation_revision: u64,
     expires: i64,
     connected: bool,
+}
+#[derive(Clone, Copy)]
+enum ProjectionPurpose {
+    Media,
+    Signal,
 }
 media_redacted!(
     InitialTelephoneAnswerCapture,
@@ -327,7 +334,7 @@ impl Store {
         ) {
             return Err(Error::forbidden());
         }
-        let p = self.initial_telephone_projection(c, &origin, until)?;
+        let p = self.initial_telephone_projection(c, &origin, until, ProjectionPurpose::Media)?;
         let owner = self.require_runtime_owner()?;
         if p.connected {
             self.remember_session_ready(
@@ -355,6 +362,7 @@ impl Store {
         c: &Connection,
         origin: &InitialTelephoneMediaOrigin,
         until: i64,
+        purpose: ProjectionPurpose,
     ) -> Result<InitialTelephoneProjection> {
         historical_lifetime(self, c, &origin.signal)?;
         let original = origin.signal.origin();
@@ -380,7 +388,9 @@ impl Store {
         }
         let endpoint = actor_from_connection(c, &original.policy.endpoint_credential_id)?;
         let route = actor_from_connection(c, &original.policy.route_credential_id)?;
-        endpoint.require("connection.offer")?;
+        if matches!(purpose, ProjectionPurpose::Media) {
+            endpoint.require("connection.offer")?;
+        }
         route.require("sip_dial")?;
         if endpoint.identity_id != s.target.identity_id || route.identity_id != s.route_owner_id {
             return Err(Error::forbidden());
@@ -416,7 +426,9 @@ impl Store {
                     .any(|n| n.as_str().is_some_and(|n| codec_name(n) == origin.codec))
             })
         };
-        if !allows(&accepted) || !session.capabilities_offer.as_ref().is_some_and(allows) {
+        if matches!(purpose, ProjectionPurpose::Media)
+            && (!allows(&accepted) || !session.capabilities_offer.as_ref().is_some_and(allows))
+        {
             return Err(Error::forbidden());
         }
         for identity in &crate::audience::source_members(
@@ -457,7 +469,7 @@ impl Store {
         c: &Connection,
         origin: &InitialTelephoneMediaOrigin,
     ) -> Result<crate::session_lifecycle::ReadyConnection> {
-        let p = self.initial_telephone_projection(c, origin, i64::MAX)?;
+        let p = self.initial_telephone_projection(c, origin, i64::MAX, ProjectionPurpose::Media)?;
         if !p.connected {
             return Err(Error::forbidden());
         }

@@ -69,6 +69,23 @@ summary. It explicitly labels local submission and includes the frozen source
 observation, recipient incarnations and each actual output-frame reservation.
 These facts do not prove remote playback.
 
+The initial SIP gateway now has a separate Store signal reader,
+`try_initial_telephone_signal_read`. Direction is relative to the telephone
+Endpoint: `FromTelephone` requires `dtmf.send`, while `ToTelephone` requires
+`dtmf.receive`. An answered call must have its original connected incarnation,
+current runtime, Device, verified Endpoint revision, current Participant and
+Session audience, route credential and recipient ceilings. The reader retains
+those authority fences for at most 30 seconds and the credential expiries. It
+does not require `connection.offer`, `stream.subscribe`, or the previously
+selected audio codec merely to signal on the existing audio Connection. Media
+reads continue to enforce their separate permission and codec checks.
+
+This reader is one leg of the bridge's authority boundary. It cannot authorize
+another party, freeze a source observation, reserve a delivery, or supply an RTP
+grant. Mixed SIP/native DTMF execution, durable recipient custody and observed
+SIP/native provenance still require implementation and production verification;
+the Store reader alone does not qualify those clauses.
+
 The signed native QUIC service installs a recipient registration on its actual
 physical handler and drives that handler's DTMF mux. The original source
 observation uses managed Core ingress. The Store selects current named signal
