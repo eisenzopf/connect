@@ -496,103 +496,57 @@ impl Runtime {
         // Release the handler's original invocation before downstream work.
         // The first reply is durable preparation, not a local/remote delivery.
         let _ = tx.send(Ok(reply(started)));
+        // Only frozen metadata is queued. Each worker obtains fresh short-lived
+        // source/recipient permission at actual IO and owns its physical cleanup.
+        // Match Core's bounded scheduler; the approved 50-recipient profile fits
+        // in one wave. Queued work still uses the original operation expiry.
+        let mut deliveries = tokio::task::JoinSet::new();
+        let mut recorded = true;
         for (index, target) in batch.targets().iter().enumerate() {
+            if deliveries.len() == rvoip_core::orchestrator::dtmf_routing::MAX_ACTIVE_DTMF_SEQUENCES
+            {
+                recorded &= matches!(deliveries.join_next().await, Some(Ok(true)));
+            }
             let listener = listeners
                 .get(target.registration_id())
                 .expect("frozen original registration")
                 .clone();
-            let policy = Arc::new(Policy {
-                runtime: Arc::downgrade(&self),
-                source: source.clone(),
-                target: listener,
-                observed: observed.clone(),
-                batch: batch.clone(),
+            deliveries.spawn(self.clone().deliver_native_dtmf(
+                source.clone(),
+                listener,
+                observed.clone(),
+                batch.clone(),
                 index,
-                flight: Arc::new(Flight::default()),
-                touched: Arc::new(AtomicBool::new(false)),
-            });
-            let cancel = self.stop.child_token();
-            let remaining = chrono::DateTime::from_timestamp(signal_expires_at, 0)
-                .map(|expiry| expiry - chrono::Utc::now())
-                .and_then(|remaining| remaining.to_std().ok())
-                .unwrap_or(Duration::ZERO);
-            let deadline = Instant::now() + remaining.min(Duration::from_secs(2));
-            let result = match self
-                .prepare_original_dtmf_route(
-                    &observed,
-                    ConnectionId::from_string(target.origin().runtime_connection_id()),
-                    deadline,
-                )
-                .await
-            {
-                Ok(route) => {
-                    self.core
-                        .route_dtmf(&route, policy.clone(), cancel.clone(), deadline)
-                        .await
-                }
-                Err(e) => {
-                    tracing::debug!(
-                        ?e,
-                        stage = "route-preparation",
-                        "Native DTMF delivery refused"
-                    );
-                    Err(e)
-                }
-            };
-            if let Err(error) = result {
-                tracing::debug!(
-                    ?error,
-                    touched = policy.touched.load(Ordering::Acquire),
-                    stage = "route-outcome",
-                    "Native DTMF delivery stopped"
-                );
-            }
-            cancel.cancel();
-            // Core receipt/deadline can race physical cleanup. Close admission,
-            // then wait until all actual writer leases have been destroyed.
-            policy.flight.close();
-            policy.flight.stopped().await;
-            let disposition = match result {
-                Ok(()) => SubmissionDisposition::LocalSubmitted,
-                Err(DtmfWriteError::OutcomeUnknown) => SubmissionDisposition::OutcomeUnknown,
-                Err(_) if policy.touched.load(Ordering::Acquire) => {
-                    SubmissionDisposition::OutcomeUnknown
-                }
-                Err(_) => SubmissionDisposition::NotStarted,
-            };
-            loop {
-                match store.try_record_native_dtmf_outcome(target, disposition) {
-                    Ok(()) => break,
-                    Err(e)
-                        if matches!(e.code.as_str(), "storage-unavailable" | "authority-busy") =>
-                    {
-                        ()
-                    }
-                    Err(e) => {
-                        tracing::debug!(code=%e.code,"Native DTMF outcome awaits runtime recovery");
-                        return;
-                    }
-                }
-                tokio::select! {_=self.stop.cancelled()=>return,_=tokio::time::sleep(Duration::from_millis(10))=>{}}
-            }
+                signal_expires_at,
+            ));
         }
         for target in batch.gateway_targets() {
+            if deliveries.len() == rvoip_core::orchestrator::dtmf_routing::MAX_ACTIVE_DTMF_SEQUENCES
+            {
+                recorded &= matches!(deliveries.join_next().await, Some(Ok(true)));
+            }
             let Some(leg) = gateway_legs.get(target.registration_id()).cloned() else {
                 tracing::debug!("Original SIP DTMF registration is unavailable");
-                return;
+                recorded = false;
+                continue;
             };
-            if !gateways::deliver(
+            deliveries.spawn(gateways::deliver(
                 self.clone(),
                 source.clone(),
                 leg,
                 observed.clone(),
                 target.clone(),
                 signal_expires_at,
-            )
-            .await
-            {
-                return;
-            }
+            ));
+        }
+        // An uncertain/failed recipient must never abandon another recipient's
+        // physical leases or captured outcome. Await every started worker before
+        // settling; missing facts remain for the existing runtime recovery path.
+        while let Some(result) = deliveries.join_next().await {
+            recorded &= matches!(result, Ok(true));
+        }
+        if !recorded {
+            return;
         }
         loop {
             match store.finish_native_dtmf(&batch) {
@@ -605,6 +559,89 @@ impl Runtime {
             }
             tokio::select! {_=self.stop.cancelled()=>return,_=tokio::time::sleep(Duration::from_millis(10))=>{}}
         }
+    }
+    async fn deliver_native_dtmf(
+        self: Arc<Self>,
+        source: Arc<Connection>,
+        listener: Arc<Listener>,
+        observed: NativeDtmfObservation,
+        batch: Arc<NativeDtmfBatch>,
+        index: usize,
+        signal_expires_at: i64,
+    ) -> bool {
+        let store = &self.media.store;
+        let target = &batch.targets()[index];
+        let policy = Arc::new(Policy {
+            runtime: Arc::downgrade(&self),
+            source: source.clone(),
+            target: listener,
+            observed: observed.clone(),
+            batch: batch.clone(),
+            index,
+            flight: Arc::new(Flight::default()),
+            touched: Arc::new(AtomicBool::new(false)),
+        });
+        let cancel = self.stop.child_token();
+        let remaining = chrono::DateTime::from_timestamp(signal_expires_at, 0)
+            .map(|expiry| expiry - chrono::Utc::now())
+            .and_then(|remaining| remaining.to_std().ok())
+            .unwrap_or(Duration::ZERO);
+        let deadline = Instant::now() + remaining.min(Duration::from_secs(2));
+        let result = match self
+            .prepare_original_dtmf_route(
+                &observed,
+                ConnectionId::from_string(target.origin().runtime_connection_id()),
+                deadline,
+            )
+            .await
+        {
+            Ok(route) => {
+                self.core
+                    .route_dtmf(&route, policy.clone(), cancel.clone(), deadline)
+                    .await
+            }
+            Err(e) => {
+                tracing::debug!(
+                    ?e,
+                    stage = "route-preparation",
+                    "Native DTMF delivery refused"
+                );
+                Err(e)
+            }
+        };
+        if let Err(error) = result {
+            tracing::debug!(
+                ?error,
+                touched = policy.touched.load(Ordering::Acquire),
+                stage = "route-outcome",
+                "Native DTMF delivery stopped"
+            );
+        }
+        cancel.cancel();
+        // Core receipt/deadline can race physical cleanup. Close admission,
+        // then wait until all actual writer leases have been destroyed.
+        policy.flight.close();
+        policy.flight.stopped().await;
+        let disposition = match result {
+            Ok(()) => SubmissionDisposition::LocalSubmitted,
+            Err(DtmfWriteError::OutcomeUnknown) => SubmissionDisposition::OutcomeUnknown,
+            Err(_) if policy.touched.load(Ordering::Acquire) => {
+                SubmissionDisposition::OutcomeUnknown
+            }
+            Err(_) => SubmissionDisposition::NotStarted,
+        };
+        loop {
+            match store.try_record_native_dtmf_outcome(target, disposition) {
+                Ok(()) => break,
+                Err(e) if matches!(e.code.as_str(), "storage-unavailable" | "authority-busy") => (),
+                Err(e) => {
+                    tracing::debug!(code=%e.code,"Native DTMF outcome awaits runtime recovery");
+                    return false;
+                }
+            }
+            tokio::select! {_=self.stop.cancelled()=>return false,_=tokio::time::sleep(Duration::from_millis(10))=>{}}
+        }
+        true
     }
 }
 #[derive(Default)]

@@ -80,6 +80,39 @@ authorization still surrounds each emitted packet, including every final one.
 The controlled UDP delay case checks actual tone wall time and one grant per
 actual packet, alongside exact final sample duration and terminal redundancy.
 
+The native writer keeps metadata admission within its original one-second job
+deadline. The 200 ms physical write budget begins after the host returns a fresh
+lease; the lease's own current-authority deadline can shorten it further.
+Metadata contention therefore waits without retaining permission readers or a
+writer, and cannot renew the original source or job deadline. Controlled
+300 ms metadata delays check successful submission, an actual stalled sink's
+short IO cutoff, and original deadline/cancellation refusal before any IO.
+SIP INFO similarly keeps metadata admission within the original sequence
+deadline and starts its 200 ms physical budget after fresh host authorization.
+An actual two-call Core/UDP test holds the independent permission writer for
+300 ms, then checks one original INFO request. Shorter original expiry and
+cancellation still refuse without a late packet after the writer releases.
+
+Frozen native and SIP recipients now run concurrently, with at most Core's
+64 active schedules per batch. Additional recipients queue only original
+metadata and keep the original expiry; waiting cannot renew a source grant.
+The parent awaits every started worker's physical cleanup and recorded outcome,
+even when another recipient fails. Settlement never abandons healthy work or
+converts a partial result into completion. Each recipient retains the same
+per-write authority, stable attempt ID and no-IO-replay behavior.
+
+A two-dialog production fixture admits separate verified telephone identities,
+Devices and Endpoints through the public Session invite. Each actual peer gets
+two 6000 ms RFC4733 events (12.07 seconds including the gap). Both full schedules
+must fit 18 seconds, their observed first packets must be within one second,
+and each event must end at exactly 48000 samples with three redundant ends.
+A separate INFO case refuses one recipient's first digit while the other
+finishes both digits. The operation stays uncertain with one submitted and one
+uncertain recipient, records both outcomes and replays without another packet.
+Both algorithms check separate schedule IDs, one call per peer and cleanup of
+both original dialogs. These are two-recipient checks, not the full 50-member
+or every-substrate qualification.
+
 These checks qualify a bounded local macOS arm64 component. SIP-originated
 observations, established/replacement SIP legs, other maximum-duration profiles,
 larger fanout, target/route revocation, restart/socket uncertainty and remaining

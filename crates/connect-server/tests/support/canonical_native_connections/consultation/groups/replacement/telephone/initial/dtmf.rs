@@ -1,5 +1,7 @@
 //! Actual signed native ingress and real UDP INFO/RFC4733 on the owned call.
 use super::*;
+#[path = "dtmf/fanout.rs"]
+mod fanout;
 #[path = "dtmf/stops.rs"]
 mod stops;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
