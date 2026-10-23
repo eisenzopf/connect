@@ -116,6 +116,59 @@ async fn production_native_initial_codec_selection_uses_offered_fallback_within_
         assert_eq!(ack.kind(), "ack");
         assert_eq!(ack.original()["in_reply_to"], id);
         assert_eq!(rusqlite::Connection::open(&f.config.database).unwrap().query_row("SELECT COUNT(*) FROM operation_effects e JOIN operations o ON o.record_id=e.operation_record_id WHERE o.operation_id='fallback-refused'", [], |r| r.get::<_,u64>(0)).unwrap(), 0);
+        let mut authority_refusals = Vec::new();
+        for (case, field, value, code, category) in [
+            (
+                "foreign-participant",
+                "by_participant",
+                json!(peer),
+                403,
+                "auth",
+            ),
+            (
+                "foreign-substrate",
+                "substrate",
+                json!("webtransport"),
+                501,
+                "unsupported",
+            ),
+        ] {
+            let mut offered = target_offer.clone();
+            offered[field] = value;
+            let operation = format!("fallback-{case}");
+            let id = target
+                .send_value(
+                    "connection.offer",
+                    offered.clone(),
+                    CommandScope {
+                        conversation_id: Some(cid.clone()),
+                        session_id: Some("native-session".into()),
+                        connection_id: Some(operation.clone()),
+                        operation_id: Some(operation.clone()),
+                        expected_revision: Some(0),
+                    },
+                )
+                .await
+                .unwrap();
+            let refusal = target.receive_control().await.unwrap();
+            assert_eq!(refusal.original()["in_reply_to"], id);
+            assert_eq!(refusal.kind(), "error", "{case}: {:?}", refusal.original());
+            assert_eq!(refusal.original()["payload"]["code"], code);
+            assert_eq!(refusal.original()["payload"]["category"], category);
+            let barrier = target.keepalive().await.unwrap();
+            loop {
+                let frame = target.receive_control().await.unwrap();
+                assert_eq!(frame.kind(), "ack", "{case}: {:?}", frame.original());
+                if frame.original()["in_reply_to"] == barrier {
+                    break;
+                }
+                assert_eq!(frame.original()["in_reply_to"], id);
+            }
+            let effects: u64 = rusqlite::Connection::open(&f.config.database).unwrap()
+                .query_row("SELECT COUNT(*) FROM operation_effects e JOIN operations o ON o.record_id=e.operation_record_id WHERE o.operation_id=?1", [&operation], |r| r.get(0)).unwrap();
+            assert_eq!(effects, 0, "{case} must fail before an effect");
+            authority_refusals.push(json!({"case":case,"request_id":id,"request_payload":offered,"refusal":refusal.original(),"effects":effects}));
+        }
         let (mut source_side, mut target_side) = (source, target);
         codecs::decoded_audio(&source_side, &mut target_side, sh, 0, th, 0, 40000).await;
         codecs::decoded_audio(&target_side, &mut source_side, th, 0, sh, 0, 40200).await;
@@ -130,7 +183,7 @@ async fn production_native_initial_codec_selection_uses_offered_fallback_within_
         if let Some(directory) = std::env::var_os("CONNECT_G6_NEGOTIATION_SAMPLES") {
             let directory = std::path::PathBuf::from(directory);
             std::fs::create_dir_all(&directory).unwrap();
-            std::fs::write(directory.join(format!("{algorithm}.json")), serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"current_session_audio":["g.711-mu"],"target_offer":target_offer,"source_offer":source_offer,"target_answer":t.original(),"source_answer":p.original(),"refused":failed.original(),"bidirectional_decoded_audio":true})).unwrap()).unwrap();
+            std::fs::write(directory.join(format!("{algorithm}.json")), serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"current_session_audio":["g.711-mu"],"target_offer":target_offer,"source_offer":source_offer,"target_answer":t.original(),"source_answer":p.original(),"refused":failed.original(),"authority_refusals":authority_refusals,"bidirectional_decoded_audio":true})).unwrap()).unwrap();
         }
         source_side.close();
         target_side.close();

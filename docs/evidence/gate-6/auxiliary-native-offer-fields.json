@@ -1,0 +1,77 @@
+{
+  "task": "G6-046",
+  "title": "Exact native connection.offer fields and source authority",
+  "recorded_at": "2026-10-23T19:37:22.594868+00:00",
+  "status": "u6-req-0103-qualified-local-native-offer-fields",
+  "qualified_case_ids": [
+    "u6-req-0103"
+  ],
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "source_lock_patch_count": 170,
+  "store_schema": 101,
+  "algorithms": [
+    "EdDSA",
+    "ES256"
+  ],
+  "implementation": "Existing production native coordinator already materializes the selected offer contract. This change adds actual request/answer correlation, signed callback observation, explicit authority-refusal and no-effect assertions. No runtime, API, schema, compatibility or downgrade path is changed.",
+  "verification": {
+    "expanded_existing_production_method": "canonical_native_connections::negotiation::production_native_initial_codec_selection_uses_offered_fallback_within_current_capabilities",
+    "expanded_method_passed": 1,
+    "signing_scenes": 2,
+    "regression_method": "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original",
+    "regression_methods_passed": 1,
+    "distinct_current_methods": 2,
+    "schema_validation": {
+      "passed": true,
+      "signing_scenes": 2,
+      "actual_signed_callback_offers": 4,
+      "actual_signed_answers": 4,
+      "authority_refusals": 4,
+      "scope": "Local Connect native QUIC/public SDK actual offer fields, signed prepared setup, current capability selection, physical/participant authority refusals without effects and independent decoded duplex recovery. No other positive substrate or complete task/acceptance claim."
+    },
+    "unsupported_codec_refusals": 2,
+    "current_audio_recovery": "Independent FFmpeg G.711 decoding succeeds in both directions after all refusals; exactly2 actual native Connections remain."
+  },
+  "assertions": [
+    "Actual public SDK commands create/invite/accept the Session and negotiate two real peer Connections. Captured initial request payloads explicitly name each current actual Participant, quic substrate, capabilities, logical Stream, audio/sendrecv direction and ordered codec preferences.",
+    "Four actual signed server callback connection.offer frames include the exact authenticated Participant and canonical CID/SID/Connection/operation, current capabilities, selected stream preferences and real native-prepared/1 substrate setup. Each prepared logical Stream/codec/physical handle matches its offered Stream.",
+    "Each actual signed answer correlates the exact SDK-returned request ID; callback operation IDs preserve the original logical operation. Both signed callback and answer envelopes validate against the unchanged full frozen schema2.",
+    "The current Session permits only PCMU. Offered PCMA-first preferences select mutual PCMU, and advertised callback capabilities contain only current allowed PCMU. A PCMA-only offer returns a failed operation and creates zero effects.",
+    "A same-Conversation foreign Participant cannot be claimed as the source: the actual server returns signed403/auth. A WebTransport claim on this actual QUIC peer returns signed501/unsupported. Both have the exact request correlation and zero durable effects. Reliable barriers remain usable.",
+    "Actual current decoded duplex audio and the2 live bindings survive all three refusal classes. The existing codec/foreign-physical/replay regression also passes against the same current executable."
+  ],
+  "scope": "Selected local macOS arm64 Connect production native QUIC/public signed SDK profile, with both signing algorithms. No injected Session/Connection rows establish the positive lifecycle. Provisioning installs controlled credentials and the local endpoint.",
+  "inputs": {
+    "Cargo.lock": "3d43b79adda5b07b6770acfe3666217fb6ee3c702fabfff11847c96f68226df3",
+    "dependencies/source-lock.json": "5af7fb3fb5c6bc99c1ba368d9ee62e89ff7881ab45248c6e57c7b69854f2f227",
+    "contracts/schemas/uctp-envelope-2.schema.json": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+    "crates/connect-server/tests/support/canonical_native_connections.rs": "693a5a966c1390504e95c0b1da61d048cc2fae295ea0e7035095ced2e550a2e1",
+    "crates/connect-server/tests/support/canonical_native_connections/negotiation.rs": "26b4a568dd78d3999e7347dd343f8e6c460f752644a702202100934c357fd92f",
+    "crates/connect-server/tests/support/canonical_native_connections/codecs.rs": "53ccaa8f371f93ad7a65f6d5116582c396f525564c595f537eed7827430b954b",
+    "scripts/validate-gate6-native-offers.py": "dce5885db577ade3a3cf941838a7082c9a326337e265e7f45ee385c519c8c373"
+  },
+  "logs": {
+    "prepare-offer170-final.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "build-offer170-final.log": "d2b73f0b2e3e9f7471782f7a5174da7da5e4051c64de8eb168a714a343c81c7a",
+    "native-offer170-final.log": "45a5b5352e6ec1d8e6079ca28a656eb4943fa9ee339eff3bf655cfd8159e0bad",
+    "validate-native-offer170-final.log": "56f067d575313c4ff991bdf5c36549b0c04f3be0514b7fd930c644b0bf75c30f",
+    "native-offer170-codec-regression.log": "865a21ac7f9643b99f86bc6c3215b26e43071063145a2580c4c4e11fe0379bec",
+    "native-offer-validator-initial-error.json": "e6f55d8bde5d185cb2bb544d87008022c2dfe63643b80509bb09ad9095cf82f6"
+  },
+  "samples": {
+    "native-offer170-final.jsonl": "2870f7afca0b149cd2922d3578ea34309fff96edba9c74aacfcf20135d268473",
+    "offer170-final/EdDSA.json": "06c4615eee3e2e5a90b04b468fd0e9b78d5b8950a9959a5c4ef1c46a5508b45d",
+    "offer170-final/ES256.json": "1e0eae4b28ed484aa12b4e1d6d8e5b0ed9840475d6626fe51557c4a3e4d4547f"
+  },
+  "intermediate_checks": [
+    "The first capture-only run passed both algorithms and showed complete actual signed offer fields. The expanded authority run passed before tightening403/501 assertions; repeated scenes are not extra method/profile credit.",
+    "An initial payload-only validator incorrectly merged envelope-root required-v constraints with a payload ref. Corrected to standalone $defs/$ref without changing the contract; full signed frames retain strict envelope validation. This was a harness error, not a runtime wire failure."
+  ],
+  "limits": [
+    "58/61 auxiliary clauses qualified; remaining0112/0113/0123. G6-046 remains in progress,45/105 tasks complete, and the full105-task objective remains active.",
+    "No positive WebTransport/WSS/WebRTC/SIP offer/profile qualification is inferred from a rejected mismatched substrate; those later transport/hosting/remote/independent acceptance profiles remain separately assigned.",
+    "No broad capacity, loss/performance, received-source retention/redaction, general gateway completion, acceptance or publication claim."
+  ]
+}

@@ -1998,6 +1998,8 @@ async fn negotiate_media_payload(
     offer: Value,
 ) -> Envelope {
     let capabilities = offer["capabilities"].clone();
+    let observation = std::env::var_os("CONNECT_NATIVE_OFFER_OBSERVATIONS")
+        .map(|path| (std::path::PathBuf::from(path), offer.clone()));
     let scope = CommandScope {
         conversation_id: Some(cid.into()),
         session_id: Some("native-session".into()),
@@ -2005,7 +2007,7 @@ async fn negotiate_media_payload(
         operation_id: Some(operation.into()),
         expected_revision: Some(0),
     };
-    client
+    let request_id = client
         .send_value("connection.offer", offer, scope.clone())
         .await
         .unwrap();
@@ -2016,6 +2018,7 @@ async fn negotiate_media_payload(
         "{:?}",
         answer.original()
     );
+    assert_eq!(answer.original()["in_reply_to"], request_id);
     let callback = client.receive_control().await.unwrap();
     assert_eq!(
         callback.kind(),
@@ -2026,6 +2029,30 @@ async fn negotiate_media_payload(
     let p = &callback.original()["payload"];
     let streams=p["substrate_setup"]["streams"].as_array().unwrap().iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":match s["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":s["codec"]})).collect::<Vec<_>>();
     client.answer_connection_offer(&callback,serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":capabilities.clone(),"streams_answered":streams,"substrate_setup":p["substrate_setup"]})).unwrap(),&scope).await.unwrap();
+    if let Some((path, offered)) = observation {
+        use std::io::Write;
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join(".local/gate-6");
+        assert!(path.is_absolute() && path.starts_with(root));
+        let mut bytes = serde_json::to_vec(&json!({
+            "request_id":request_id, "operation_id":operation,
+            "request_payload":offered, "answer":answer.original(),
+            "callback_offer":callback.original()
+        }))
+        .unwrap();
+        bytes.push(b'\n');
+        std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .unwrap()
+            .write_all(&bytes)
+            .unwrap();
+    }
     answer
 }
 async fn wait_native_operation(f: &Fixture, credential: &str, cid: &str, id: &str) {

@@ -2139,7 +2139,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0103",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-local-native-offer-fields",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2158,7 +2158,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "passed-exact-local-native-offer-fields-and-authority",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
@@ -2167,7 +2167,27 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
         ],
-        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+        "remaining": "Other positive substrate, hosting, remote and independent-client profiles remain separately assigned; no full task/acceptance pass inferred.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-offer-fields.json"
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0103",
+        "report": "docs/evidence/gate-6/auxiliary-native-offer-fields.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "test": "canonical_native_connections::negotiation::production_native_initial_codec_selection_uses_offered_fallback_within_current_capabilities",
+        "additional_test": "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original",
+        "assertions": [
+          "Actual public SDK commands create/invite/accept the Session and negotiate two real peer Connections. Captured initial request payloads explicitly name each current actual Participant, quic substrate, capabilities, logical Stream, audio/sendrecv direction and ordered codec preferences.",
+          "Four actual signed server callback connection.offer frames include the exact authenticated Participant and canonical CID/SID/Connection/operation, current capabilities, selected stream preferences and real native-prepared/1 substrate setup. Each prepared logical Stream/codec/physical handle matches its offered Stream.",
+          "Each actual signed answer correlates the exact SDK-returned request ID; callback operation IDs preserve the original logical operation. Both signed callback and answer envelopes validate against the unchanged full frozen schema2.",
+          "The current Session permits only PCMU. Offered PCMA-first preferences select mutual PCMU, and advertised callback capabilities contain only current allowed PCMU. A PCMA-only offer returns a failed operation and creates zero effects.",
+          "A same-Conversation foreign Participant cannot be claimed as the source: the actual server returns signed403/auth. A WebTransport claim on this actual QUIC peer returns signed501/unsupported. Both have the exact request correlation and zero durable effects. Reliable barriers remain usable.",
+          "Actual current decoded duplex audio and the2 live bindings survive all three refusal classes. The existing codec/foreign-physical/replay regression also passes against the same current executable."
+        ],
+        "profile": "Selected local macOS arm64 Connect production native QUIC/public signed SDK profile, with both signing algorithms. No injected Session/Connection rows establish the positive lifecycle. Provisioning installs controlled credentials and the local endpoint."
       }
     },
     {
@@ -3433,7 +3453,7 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Complete remaining G6-046 clauses0103,0112,0113 and0123 against their full approved behavior/profile scope; preserve independent failures and source-bound evidence.",
+    "Complete remaining G6-046 clauses0112,0113 and0123 against their full approved behavior/profile scope; preserve independent failures and source-bound evidence.",
     "Extend received-source private/current-audience and IO-boundary cancellation/revocation/uncertainty cases, retention/redaction, other SIP/WebRTC legs and full50member/mixed-substrate profiles. Current initial SIP-to-native attribution, signal-only/current named permission, late captured outcome and orderly successor uncertainty cases are recorded; no full gateway delivery credit.",
     "Continue all105 tasks in approved dependency order. G6-047 depends on complete G6-046; task-scoped enrollment and step-up0061\u20130066 remain G6-055.",
     "Linux/browser/remote/provider, G6-094 and acceptance remain unqualified; named rehearsals require G6-093 bounded configuration and publication stays separate."
@@ -3759,10 +3779,24 @@
       "source_lock_patch_count": 170,
       "production_methods": 2,
       "controlled_native_router_methods": 5
+    },
+    "native_offer_fields": {
+      "status": "u6-req-0103-qualified-local-native-offer-fields",
+      "report": "docs/evidence/gate-6/auxiliary-native-offer-fields.json",
+      "case_ids": [
+        "u6-req-0103"
+      ],
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "production_methods": 2,
+      "actual_signed_callback_offers": 4,
+      "actual_authority_refusals": 4
     }
   },
-  "qualified_clause_count": 57,
-  "remaining_clause_count": 4,
+  "qualified_clause_count": 58,
+  "remaining_clause_count": 3,
   "clause_qualification": {
     "status": "partial-local-native-http-and-loopback-sip",
     "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
@@ -3801,6 +3835,7 @@
       "u6-req-0100",
       "u6-req-0101",
       "u6-req-0102",
+      "u6-req-0103",
       "u6-req-0104",
       "u6-req-0105",
       "u6-req-0106",
@@ -3827,7 +3862,7 @@
     ],
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-    "latest_evidence": "docs/evidence/gate-6/auxiliary-native-handle-mapping.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-handle-mapping.json"
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-native-offer-fields.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-offer-fields.json"
   }
 }
