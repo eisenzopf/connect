@@ -1219,7 +1219,7 @@
       "ReceivedDtmfObservation": {
         "type": "object",
         "additionalProperties": false,
-        "description": "Actual physical receive facts, independent of native signing. RFC4733 duration_ms is the floor of observed samples divided by clock rate; incomplete or fractional timing is retained without fabricating a forwardable tone. Rust additionally checks event/digit and sample/duration consistency.",
+        "description": "Actual physical receive facts, independent of native signing. RFC4733 duration_ms is the receiver summary rounded up from observed samples divided by clock rate; incomplete or fractional timing is retained without fabricating a forwardable tone. Rust additionally checks event/digit and sample/duration consistency.",
         "properties": {
           "kind": {
             "enum": [

@@ -16,8 +16,10 @@ def main():
     assert len(rows) == 5
     contract = json.loads((ROOT/'contracts/openapi-operations.json').read_text())
     validator = Draft202012Validator({**contract, '$ref': '#/components/schemas/ReceivedDtmfSubmission'})
+    record_validator = Draft202012Validator({**contract, '$ref': '#/components/schemas/OperationRecord'})
     states = set()
     for row in rows:
+        record_validator.validate(row)
         states.add(row['state'])
         signal = row['result'] if row['state'] == 'completed' else row['problem']['signal']
         validator.validate(signal)

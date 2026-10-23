@@ -74,7 +74,7 @@ impl SourceObservation {
                     || rtp.duration_samples > 9_007_199_254_740_991
                     || rtp.extended_timestamp > 9_007_199_254_740_991
                     || rtp.event != event
-                    || scaled / u64::from(rtp.clock_rate_hz) != u64::from(self.duration_ms)
+                    || scaled.div_ceil(u64::from(rtp.clock_rate_hz)) != u64::from(self.duration_ms)
                 {
                     return Err(invalid());
                 }
@@ -173,6 +173,7 @@ mod tests {
         assert!(!r.forwardable());
         let mut r = rtp();
         r.rtp.as_mut().unwrap().duration_samples += 1;
+        r.duration_ms = 238; // Preserve the actual receiver's ceiling summary.
         r.validate().unwrap();
         assert!(!r.forwardable());
         let mut r = rtp();

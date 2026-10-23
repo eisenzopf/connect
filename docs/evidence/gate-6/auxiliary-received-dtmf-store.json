@@ -221,12 +221,12 @@
   "distinct_rust_methods": 173,
   "http_reference": "Generated canonical HTTP reference check passed. Five actual controlled Store summaries (completed, failed, cancelled, unknown) validate against separate ReceivedDtmfSubmission schema; no physical or signature claim.",
   "inputs": {
-    "crates/connect-protocol/src/received_dtmf.rs": "55deaf9e47ae1570c6e4b7ce10d96fb690dab00e9d75feb140df0118f2a896b5",
+    "crates/connect-protocol/src/received_dtmf.rs": "cbe881f7c225d9b9ade35ac689e54f2437a50a3f184bb78d38e7de591be30eec",
     "crates/connect-store/migrations/101_received_dtmf.sql": "b7eb6dcbfc8b0c38156ab05e024d87d43b2e7bbd4e3246b30245268d6a58f254",
     "crates/connect-store/src/transitions/received_dtmf.rs": "f85e87a0c8a9459ee83ac3774cecd5423204389337a4a515703404a98849b7e0",
-    "contracts/openapi-operations.json": "d5fbc6ebddf05e2cfb35b1fcc102d13aeaf6da54b156e99771b1b8fb21637c11",
+    "contracts/openapi-operations.json": "44f0b8eee7f90fab4977867e39a125f98a72aa5e74b998e937da81637e07a5e4",
     "scripts/generate-canonical-http-openapi.py": "fb91f09b55bec6934b4260879ccb11f54d15ebc6c8172b0edfa8876b72510198",
-    "scripts/validate-gate6-received-dtmf-results.py": "81d3b89debeb453e35f5173d5b08298abb32abbddc4f4f8ecd6238fe3d91b231",
+    "scripts/validate-gate6-received-dtmf-results.py": "2ca714b61a332af6b8d52e458547f9ab14c53311dc2c2544d09a29253d1bcd2f",
     "crates/connect-store/src/connection_control/tests/native_stream_authority/received_dtmf.rs": "c596daa0f6515e13d2c829ab0259fb28e297a59fbff98810c348e50d31267f8c"
   },
   "limitations": [
@@ -248,6 +248,19 @@
     "scope": "Controlled Store status against HTTP schema. No physical receive, signature or delivery qualification.",
     "validator": "scripts/validate-gate6-received-dtmf-results.py",
     "samples_sha256": "d21949d97f3c6d6abba1db0bbd3409fb4a8b1a4f5278382a1fc89f5cf81f99cf",
-    "capture_log_sha256": "c46658d33c71b138ebb16fe3e3db3e6a8da50b02d408762716e01274a5bcbb50"
+    "capture_log_sha256": "c46658d33c71b138ebb16fe3e3db3e6a8da50b02d408762716e01274a5bcbb50",
+    "complete_operation_records_validated": 5,
+    "full_log_sha256": "b4d7194d597630aad2a5f1a5cdfaa896f9f4601701facf7f2b1e6c4d56f64920"
+  },
+  "actual_decoder_correction": {
+    "finding": "Installed fractional RTP exposed that the real receiver rounds its integer millisecond summary up:1897 samples at8kHz reports238ms. The initial protocol floor comparison rejected the actual observation before journaling.",
+    "change": "Validate the actual receiver ceiling summary while preserving exact sample facts; incomplete or fractional timing remains unforwardable.",
+    "checks": {
+      "protocol_methods": 2,
+      "received_store_methods": 9,
+      "protocol_log_sha256": "3c632a072c2b86fadd1f6eab682ead50f9bc2c6f214c69463378d314b69880a8",
+      "store_log_sha256": "cc48d37838ddc7213c7034176c2c812bebc84512d6f7a96d91049b622a611f91"
+    },
+    "qualification": "Actual final source production rerun remains pending. Normal INFO/RFC4733 delivery had passed both algorithms before this correction; the first fractional timing scene failed and is not credited."
   }
 }
