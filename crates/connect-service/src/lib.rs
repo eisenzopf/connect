@@ -174,6 +174,47 @@ impl Service {
             .media
             .with_native_binding_for_test(connection_id, hold)
     }
+    /// Observe actual managed SIP ingress in isolated fixtures. This retains
+    /// metadata only and grants no delivery, media or signal authority.
+    #[cfg(feature = "test-support")]
+    pub fn initial_telephone_dtmf_source_for_test(
+        &self,
+        runtime_connection_id: &str,
+    ) -> Result<rvoip_core::dtmf::DtmfSourceSubscription> {
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        let leg = runtime
+            .media
+            .initial_target(&rvoip_core::ids::ConnectionId::from_string(
+                runtime_connection_id,
+            ))
+            .map_err(|_| Error::forbidden())?
+            .ok_or_else(Error::forbidden)?;
+        let controller = leg
+            .controller
+            .get()
+            .and_then(std::sync::Weak::upgrade)
+            .ok_or_else(Error::forbidden)?;
+        let telephone = runtime
+            .telephone
+            .lock()
+            .map_err(|_| Error::storage())?
+            .clone()
+            .ok_or_else(Error::forbidden)?;
+        telephone
+            .adapter
+            .subscribe_managed_dtmf_source(
+                &runtime.core,
+                leg.connection(),
+                &controller,
+                leg.target.principal.clone(),
+            )
+            .map_err(|error| match error {
+                rvoip_core::dtmf::DtmfWriteError::NotReady => {
+                    Error::new("authority-busy", "Signal metadata is busy")
+                }
+                _ => Error::forbidden(),
+            })
+    }
     /// Drain the registered adapter's owned work after physical intake stops.
     pub async fn drain_canonical_runtime(&self) {
         let _ = self.drain_session_initialization().await;

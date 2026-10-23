@@ -7,6 +7,9 @@ mod dtmf;
 #[path = "initial/gateways.rs"]
 mod gateways;
 #[cfg(feature = "test-support")]
+#[path = "initial/received.rs"]
+mod received;
+#[cfg(feature = "test-support")]
 #[path = "initial/subscriptions.rs"]
 mod subscriptions;
 use rusqlite::OptionalExtension;
@@ -441,9 +444,16 @@ async fn initial_selected_signal_case(
         live: true,
     }];
     sip_native_duplex(&peer, &mut native, 0, "initial-public-native-duplex").await;
-    if let Some(method) =
-        signal.filter(|v| !matches!(*v, "subscription-binding-busy" | "subscription-rehearsal"))
-    {
+    #[cfg(feature = "test-support")]
+    if signal == Some("received-custody") {
+        received::exercise(&f, &peer, &room.id, algorithm).await;
+    }
+    if let Some(method) = signal.filter(|v| {
+        !matches!(
+            *v,
+            "subscription-binding-busy" | "subscription-rehearsal" | "received-custody"
+        )
+    }) {
         if method.starts_with("signal-only-") {
             dtmf::signal_only(&f, &peer, &mut native, &phone_credential).await;
         }
