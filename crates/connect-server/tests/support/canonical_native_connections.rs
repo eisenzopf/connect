@@ -19,6 +19,8 @@ mod dtmf_diagnostics;
 mod future;
 #[path = "canonical_native_connections/gates.rs"]
 mod gates;
+#[path = "canonical_native_connections/handles.rs"]
+mod handles;
 #[path = "canonical_native_connections/journey.rs"]
 mod journey;
 #[path = "canonical_native_connections/lifecycle.rs"]

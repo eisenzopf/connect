@@ -374,6 +374,7 @@ async fn sip_native_duplex(peer: &PeerSip, peers: &mut [Peer], payload: u8, name
         marked
     };
     let (_, marked) = tokio::join!(peer.rtp(payload), receive);
+    eprintln!("SIP/native audio {name}: direction=sip-to-native marked={marked}");
     assert!(
         marked > 10,
         "{name}: SIP input did not reach retained native peer: {marked}"
@@ -382,6 +383,7 @@ async fn sip_native_duplex(peer: &PeerSip, peers: &mut [Peer], payload: u8, name
         probe(peers, 0, &[], name),
         sip_audio(peer, payload, Duration::from_millis(2600))
     );
+    eprintln!("SIP/native audio {name}: direction=native-to-sip marked={marked}");
     assert!(
         marked > 10,
         "{name}: retained native input did not reach SIP target: {marked}"

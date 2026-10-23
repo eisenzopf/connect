@@ -1,0 +1,52 @@
+{
+  "format": 1,
+  "task": "G6-046",
+  "assigned_clause": "u6-req-0109",
+  "status": "actual-local-native-component-qualified; allocator-boundary-check-pending",
+  "full_task_complete": false,
+  "source_lock_patch_count": 169,
+  "algorithms": [
+    "EdDSA",
+    "ES256"
+  ],
+  "production_methods": 2,
+  "production_scenes": 4,
+  "wire_validation": {
+    "passed": true,
+    "installed_scenes": 2,
+    "signed_answers": 6,
+    "signed_stream_opened": 6,
+    "replacement_scenes": 2,
+    "replacement_signed_events": 8,
+    "scope": "Actual local native QUIC physical-peer handle namespace, two Connections on one peer, rejected foreign input before flow and independently decoded bidirectional recovery. No other substrate, capacity, complete task or Gate6 acceptance claim."
+  },
+  "assertions": [
+    "Two Connections on one actual authenticated native physical peer have distinct nonzero16-bit handles. The independent physical peer also uses numeric handle1, bound to its own Connection.",
+    "A handle owned only by the other peer is submitted through the public SDK on the wrong physical connection before any flow. No datagram or lifecycle readiness/opening results; authenticated reliable barriers remain usable.",
+    "Fresh valid input recovers bidirectional audio, with >10 marked frames per expected egress binding and independent FFmpeg G.711 decoding. Actual datagram headers match each exact peer/Connection binding.",
+    "Six actual signed stream.opened facts follow their own connection.ready and name their exact logical stream and actual physical handle.",
+    "The current existing codec replacement test preserves the logical Stream, closes its actual original binding and opens a new PCMA handle only after observed replacement flow; old/new handle1/2 differ on that same peer. Eight actual replacement lifecycle events validate."
+  ],
+  "allocator_boundary": "Current Core default allocator exhaustion check passes within208; the installed native PeerMediaRouter-specific controlled boundary run is still compiling and is not counted as passed.",
+  "inputs": {
+    "crates/connect-server/tests/support/canonical_native_connections.rs": "6fc29c8bf36bb1e68b176b4feba9fce58f4973bd764e59870e13691ef357fda2",
+    "crates/connect-server/tests/support/canonical_native_connections/handles.rs": "01e3853c00044c81963410b067fd9c249b5745cab177a26f4d1de93d6a1111ce",
+    "crates/connect-server/tests/support/canonical_native_connections/lifecycle.rs": "2e1d54e0d13bf56dfe227f200796d452d15df302ae25e20b74011b3d4f6cbcfe",
+    "scripts/validate-gate6-native-handles.py": "bef96bb2c751a7de96c25a66e08af79fb90f812b6f60c1603e96b8740abe5241",
+    "contracts/schemas/uctp-envelope-2.schema.json": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+    "dependencies/source-lock.json": "e3b13707bcfcbab5fab9d5414fbe8a22184215edae965071336694669b7eda5f"
+  },
+  "logs": {
+    "native-handles169.log": "704b870bb5e6fae32260e6bf72e62d408c43a24a141ef1796c76bc15914f3713",
+    "native-handle-replacement169.log": "305d62f339d1942339cc958e8649986edf63db8bc8ec8d2784cf826299ac359c",
+    "validate-native-handles-replacement169.log": "22f3b4d64d213ea7b72e04265154dfe573db9300be730fda860d5a351cd856ed"
+  },
+  "samples": {
+    "native-handles169.jsonl": "4c60f740d8f33679b12f23d5e5f62f3f01c32d6238f51670ee8b49a9757217fb",
+    "native-handle-replacement169.jsonl": "56595163331206f09deb36a2345f41a84ae1822b496b9cf0d419b5472b8e9b7c"
+  },
+  "limits": [
+    "No whole clause credit yet; reconcile exact ready/bind allocation and native router boundary evidence before updating count.",
+    "Actual local macOS arm64 production QUIC/public SDK only. No other substrate,50-member capacity, remote or independent-client acceptance qualification."
+  ]
+}

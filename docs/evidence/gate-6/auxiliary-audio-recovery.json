@@ -1,0 +1,96 @@
+{
+  "format": 1,
+  "task": "G6-046",
+  "status": "qualified-local-audio-recovery-component",
+  "component_passed": true,
+  "full_task_complete": false,
+  "source_lock_patch_count": 169,
+  "store_schema": 101,
+  "finding": "Concurrent current SQL authority reads caused final source-egress refusal and earlier mixer input loss. Accepted frames now retain their exact original metadata through bounded temporary contention without retaining grants or retrying IO. Stale original tickets/consumers/scenes are discarded, so fresh input is not blocked.",
+  "verification": {
+    "core_media_methods": 208,
+    "new_core_recovery_methods": 9,
+    "received_production_methods": 7,
+    "received_signing_scenes": 14,
+    "received_suite_passed": true,
+    "sibling_audio_observations": [
+      {
+        "algorithm": "EdDSA",
+        "sip_to_native_marked": 15,
+        "native_to_sip_marked": 63
+      },
+      {
+        "algorithm": "ES256",
+        "sip_to_native_marked": 16,
+        "native_to_sip_marked": 53
+      }
+    ],
+    "unchanged_each_direction_threshold": ">10",
+    "fanout_schema_validation": {
+      "passed": true,
+      "installed_scenes": 2,
+      "received_operations": 4,
+      "signed_native_frames": 6,
+      "scope": "Local initial SIP input to two native Connections of one Participant; revoking only one credential retires only that recipient, replay does not redeliver, fresh input reaches the survivor. SDK verifies signatures. No broader transport, privacy, crash, capacity or Gate6 completion claim."
+    },
+    "private_schema_validation": {
+      "passed": true,
+      "installed_scenes": 2,
+      "received_operations": 6,
+      "signed_native_frames": 10,
+      "scope": "Local initial SIP source outside an actual native private pair. Store excludes privately admitted recipient; current Core audience excludes the public primary while its private slot is active. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No other SIP legs, private SIP slots, WebRTC, crash, capacity or complete Gate6 claim."
+    },
+    "current_store_snapshot_methods": 17,
+    "separate_native_handle_methods": 2,
+    "native_handle_signing_scenes": 4,
+    "helper_classification_unit": "1pass against168 dependencies, unchanged helper source; kept separate from current169 production proof"
+  },
+  "behavior": [
+    "The exact originally failing sibling case now passes in the full7-method current installed suite, including distinct physical same-Participant DTMF recipients, local credential revocation, no retransmission replay and fresh surviving delivery.",
+    "The actual mixed native-private consultation retains its existing private audio/exclusion thresholds, public same-Participant Device, SIP outside audience, return/replay and fresh RFC4733 assertions. Both signing scenes and all10 actual private signed frames validate.",
+    "Independent permissions, original SIP INFO/RFC4733 provenance, incomplete/fractional observations, captured settlement after source retirement and successor uncertainty retain their existing full-suite checks.",
+    "No source/target authority or route reader is held between failed admission attempts. Only original-current packets can wait, for no longer than their original200ms age. Actual IO is not resubmitted."
+  ],
+  "intermediate_results": [
+    "Source167 diagnostic reproduced nine final source-egress refusals among18 queued sibling frames.",
+    "Source168 controlled Core tests pass204, but final production sibling setup still had10 marked frames and failed >10. That failure is preserved.",
+    "First169 retained a pre-binding stale packet; existing Core regression failed207/1. Original ticket/consumer/scene checks restore208/0.",
+    "The first two candidate server builds failed in the newly added handle fixture (missing helper import and temporary borrowed array); corrected and the final current build passes."
+  ],
+  "inputs": {
+    "Cargo.lock": "3d43b79adda5b07b6770acfe3666217fb6ee3c702fabfff11847c96f68226df3",
+    "dependencies/source-lock.json": "e3b13707bcfcbab5fab9d5414fbe8a22184215edae965071336694669b7eda5f",
+    "patches/rvoip/gate6-audio-path-diagnostics.patch": "65bfd789d666331e854c3d8d42acab21a888fe73e4201e0ce0066b2c56703e81",
+    "patches/rvoip/gate6-queued-audio-contention.patch": "0796b0118866bc8a9dc84ac6df1939d6985c610af1c6cacc4d28e10126971b48",
+    "patches/rvoip/gate6-mixer-source-contention.patch": "d5770afedd1453b5e3c93b82add20e6b51385edaafb6e3d2390ebee9604e839f",
+    "crates/connect-service/src/canonical_media.rs": "457b1f48536770d3121e71ac9119e8f07966877ae3d7c821915db73f063a5565",
+    "crates/connect-service/src/initial_telephone/policy.rs": "06203eb55a435ae5aad423ba97a2598261a71aa6c6ad0f78cfe3f8df3b9f9e21",
+    "crates/connect-store/src/recovery.rs": "53f0a317cc332eca41c0869ae5f954efabc46ab1c06ee411bb67e8b2ae80f63d",
+    "crates/connect-server/tests/support/canonical_native_connections.rs": "6fc29c8bf36bb1e68b176b4feba9fce58f4973bd764e59870e13691ef357fda2",
+    "crates/connect-server/tests/support/canonical_native_connections/handles.rs": "01e3853c00044c81963410b067fd9c249b5745cab177a26f4d1de93d6a1111ce",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone.rs": "bfbbc349b1ea6cd1f9215b601aa5b0d4229bcecd2f63eff73ad7ea76b96df1dd"
+  },
+  "logs": {
+    "prepare-audio169-coherent-v2.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "build-audio169-coherent-v2.log": "90397bb654d75798c06d5e89ef289a72f6bbff01bd1473e63532e60900dad70e",
+    "received-suite-audio169-final.log": "c2eb7107c1bb50bfce3fbab3cc752691f24c8545946b4cd5ae4431898cb80365",
+    "validate-fanout-audio169-final.log": "69eb6dcf7513a8a27ab0763aae6f61670df9bfca1e1e2875abcd09b0d806433f",
+    "validate-private-audio169-final.log": "fd07aa4ab5dd027212f6a7eec287f9d8781113b185f85104ec8f7477c64d631b",
+    "core-staged-audio169-revalidated.log": "b5eb59b94f0927e480fd84311370b5c8faa5e25e4c9b45665e93731e0d8c34d0",
+    "native-handles169.log": "704b870bb5e6fae32260e6bf72e62d408c43a24a141ef1796c76bc15914f3713",
+    "native-handle-replacement169.log": "305d62f339d1942339cc958e8649986edf63db8bc8ec8d2784cf826299ac359c",
+    "validate-native-handles-replacement169.log": "22f3b4d64d213ea7b72e04265154dfe573db9300be730fda860d5a351cd856ed"
+  },
+  "samples": {
+    "fanout-audio169-final.jsonl": "86bb6b8adb16b56ace58b4cce84c6dacbdf603523c6e6d31435cb35fdb9f91ba",
+    "private-audio169-final.jsonl": "8c1255d1caeeaf8aa316ecb99589923f0da16b9304c62d122a4b45742c9f5462",
+    "native-handles169.jsonl": "4c60f740d8f33679b12f23d5e5f62f3f01c32d6238f51670ee8b49a9757217fb",
+    "native-handle-replacement169.jsonl": "56595163331206f09deb36a2345f41a84ae1822b496b9cf0d419b5472b8e9b7c"
+  },
+  "limits": [
+    "45/105 tasks complete;56/61 auxiliary clauses. No new whole credit from this recovery checkpoint.",
+    "No broad loss/latency/throughput or50-member reliability guarantee is inferred from these passing bounded cases.",
+    "Other SIP/WebRTC/private gateway shapes, full IO-boundary matrix and received-payload retention/redaction remain open, with later browser/Linux/remote/independent acceptance profiles separately required.",
+    "This7-method suite pass does not retroactively rerun the earlier135-method mixed Store batch or qualify the full workspace. No publication."
+  ]
+}

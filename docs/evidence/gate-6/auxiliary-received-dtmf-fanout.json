@@ -92,5 +92,12 @@
     "crates/connect-service/src/canonical_received_dtmf.rs": "f3f26cf9066eb524213153e53ca10dd62ef0f14d054ed4eada63a2436d2f28cf",
     "contracts/openapi-operations.json": "44f0b8eee7f90fab4977867e39a125f98a72aa5e74b998e937da81637e07a5e4",
     "contracts/schemas/uctp-envelope-2.schema.json": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32"
+  },
+  "current_audio_recovery": {
+    "report": "docs/evidence/gate-6/auxiliary-audio-recovery.json",
+    "source_lock_patch_count": 169,
+    "received_suite_methods": 7,
+    "passed": true,
+    "note": "Current bounded installed production check passes; historical failures/results above remain preserved in their original scope. No full workspace, broad performance or whole task credit."
   }
 }

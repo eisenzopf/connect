@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "component_status": "core-qualified; installed-production-check-pending",
+  "component_status": "core-and-current-local-received-production-qualified",
   "source_lock_patch_count": 169,
   "implementation": [
     "One accepted undecoded frame can wait across temporary source admission contention, using its original admission time, route ticket, consumer and scene. Fresh ingress remains in the existing bounded queue.",
@@ -19,7 +19,7 @@
       "original expiry prevents output and fresh input recovers",
       "pause/resume epoch discards pending original, fresh input recovers"
     ],
-    "production_check": "pending final rebuild and actual unchanged sibling/received suite; no integration pass is inferred"
+    "production_check": "Current installed7-method received suite passes both algorithms; see current_audio_recovery."
   },
   "intermediate_failure": "The initial hold rule also kept a pre-binding NotReady packet and delayed fresh input. An existing regression caught this (207pass/1fail). The final original-ticket/consumer/scene predicate restores all208 passes.",
   "inputs": {
@@ -37,5 +37,12 @@
     "45/105 tasks complete; G6-04656/61 clauses. No new whole credit.",
     "The final168 production sibling failure remains unresolved until current169 actual run passes.",
     "No remote/provider/browser/Linux or publication qualification."
-  ]
+  ],
+  "current_audio_recovery": {
+    "report": "docs/evidence/gate-6/auxiliary-audio-recovery.json",
+    "source_lock_patch_count": 169,
+    "received_suite_methods": 7,
+    "passed": true,
+    "note": "Current bounded installed production check passes; historical failures/results above remain preserved in their original scope. No full workspace, broad performance or whole task credit."
+  }
 }

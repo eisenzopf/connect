@@ -120,5 +120,12 @@
     "crates/connect-store/src/transitions/native_returns/custody.rs": "b75d521055eba81ee1aed9c0f9216fd57b210f996fb98d0dd38387a36db8559f",
     "dependencies/source-lock.json": "5f5b42799add7661e89531fee187397e2089899c1e673db0711ea0e8bc772419",
     "scripts/validate-gate6-received-dtmf-private.py": "f363cb8aaf48e8707013d6f869e470e0e0da4f237c645b748de7e33b0cf005b6"
+  },
+  "current_audio_recovery": {
+    "report": "docs/evidence/gate-6/auxiliary-audio-recovery.json",
+    "source_lock_patch_count": 169,
+    "received_suite_methods": 7,
+    "passed": true,
+    "note": "Current bounded installed production check passes; historical failures/results above remain preserved in their original scope. No full workspace, broad performance or whole task credit."
   }
 }
