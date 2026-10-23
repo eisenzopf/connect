@@ -1,0 +1,55 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "created_at": "2026-10-23",
+  "scope": "Accepted received-source contention propagation and bounded original-observation recovery. Controlled local Core/UDP tests; production same-Participant fanout is a separate integration checkpoint.",
+  "source_lock_patch_count": 166,
+  "store_schema": 101,
+  "problem": "Concurrent recipients share one actual SIP source. Accepted source metadata used bool current checks that turned temporary registry/session/SIP source contention into definitive Refused, causing either native recipient to remain not_started. Earlier actual duplex/fanout attempts froze both recipients but submitted only one; this was not Participant deduplication.",
+  "change": [
+    "Accepted Stamp validation preserves capture errors, including NotReady, instead of collapsing busy metadata into retirement. Prequeue source admission remains strict and counts busy input as dropped; original audience is never recaptured.",
+    "The received source wrapper uses physical poll results for its passive hint and accepts temporary NotReady/Pending only for scheduling. Each actual IO poll separately requires exact live registration/binding and physical source custody. It no longer invokes bool physical.current before physical.poll.",
+    "Existing Core bounded waits, source ownership, fresh authorization, original expiry, source observation/operation identity, native recipient fences and captured outcome rules remain in force. No blanket retry of Refused and no serial fanout workaround."
+  ],
+  "verification": {
+    "core_route_tests": 18,
+    "original_received_private_audience_tests": 7,
+    "commands": [
+      "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --test dtmf_auto_route --locked --offline -j4 -- --test-threads=1",
+      "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --lib --locked --offline -j4 received_dtmf_ -- --test-threads=1"
+    ],
+    "new_controlled_cases": [
+      "accepted_received_source_metadata_busy_is_not_retirement_and_unaccepted_input_still_drops",
+      "accepted_received_physical_busy_waits_without_policy_or_io_and_cancel_deadline_stay_bounded"
+    ],
+    "assertions": [
+      "Accepted source under session metadata contention returns NotReady; fresh unaccepted input during the same contention drops and is not queued later. Release prepares and delivers the original observation.",
+      "Physical NotReady and Pending preserve the exact accepted route; while busy there is no host policy acquisition or UDP output. Release recovers; cancellation and deadline remain bounded without output or policy acquisition.",
+      "Definitive physical refusal and dropped source registration remain Refused; source grants are not retained idle. Existing source replacement, retirement, original privacy/credential and audience/member ABA cases remain covered."
+    ],
+    "corrected_setup_failure": "The first new tests used arbitrary operation IDs, but the existing controlled policy requires stable-logical-operation. Both failed on that policy assertion after reaching the intended path. The final tests preserve the required operation identity and all18 route tests pass. No failed attempt is credited."
+  },
+  "custody": {
+    "tracked_patch": "patches/rvoip/gate6-received-dtmf-contention.patch",
+    "fresh_prepared_tree": true,
+    "direct_deps_edits": false,
+    "no_live_compiler_during_install": true,
+    "stable_compiler_path_and_identical_file_mtimes_preserved": true,
+    "prepare_dependencies_passed": true,
+    "upstream_changed_files_rustfmt_check": true
+  },
+  "limits": [
+    "Component tests use a controlled WebRTC-labeled source; they do not qualify a real WebRTC transport.",
+    "No new whole clause or task credit. Gate6 remains45/105 tasks, G6-04656/61 clauses.",
+    "Production received sibling fanout and final default-profile regressions are reported separately; an intermittent additional sibling audio setup failure is unresolved and cannot be counted as a pass.",
+    "No full workspace/test-support/Linux/browser/remote/provider, abrupt-crash,50member, acceptance or publication qualification."
+  ],
+  "inputs": {
+    "Cargo.lock": "3d43b79adda5b07b6770acfe3666217fb6ee3c702fabfff11847c96f68226df3",
+    "dependencies/source-lock.json": "5f5b42799add7661e89531fee187397e2089899c1e673db0711ea0e8bc772419",
+    "patches/rvoip/gate6-received-dtmf-contention.patch": "86417c18ac8bd0506aa0595a553db3eaf11d7c4f33430cb3c4aed4ff3a119230"
+  }
+}

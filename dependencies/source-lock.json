@@ -929,6 +929,11 @@
       "path": "patches/rvoip/gate6-received-dtmf-original-audience.patch",
       "sha256": "3ce671da751e3d4188c2fcb8132cc756369031c2f81d078e7ea9559c2e9a1e1c",
       "source": "G6-046 managed SIP received DTMF captures sealed original audience before its bounded queue. Reject observations delayed across committed audience/member boundaries, preserve actual received provenance and source epoch, and compose fresh native recipient IO with source managed credential custody. No native observation/signing fields are fabricated and no domain permission is retained. Store/service durable ingress and actual installed delivery remain separate required integration."
+    },
+    {
+      "path": "patches/rvoip/gate6-received-dtmf-contention.patch",
+      "sha256": "86417c18ac8bd0506aa0595a553db3eaf11d7c4f33430cb3c4aed4ff3a119230",
+      "source": "G6-046 accepted received DTMF observations preserve temporary Core/physical source contention as NotReady/Pending under the existing bounded wait; never recapture original audience or turn a passive hint into IO authority. Reject retired registrations and definitive physical refusal. Controlled tests cover admission drop, same-observation recovery, cancellation, deadline and source retirement."
     }
   ]
 }

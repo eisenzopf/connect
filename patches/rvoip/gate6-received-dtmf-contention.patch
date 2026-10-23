@@ -1,0 +1,296 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs
+@@ -94,18 +94,19 @@
+ }
+ impl Stamp {
+     fn current(&self) -> bool {
+-        let Some(core) = self.core.upgrade() else {
+-            return false;
+-        };
+-        let Ok(_registry) = core.connection_registry_lock.try_lock() else {
+-            return false;
+-        };
+-        let Ok((endpoint, ticket, _)) =
+-            core.capture_dtmf_endpoint_locked(self.endpoint.connection.clone())
+-        else {
+-            return false;
+-        };
+-        self.epoch.load(Ordering::Acquire) == self.revision
++        self.try_current().is_ok()
++    }
++    // Once accepted, temporary metadata contention is not retirement. Input
++    // admission still uses strict current() before sealing its original audience.
++    fn try_current(&self) -> std::result::Result<(), DtmfWriteError> {
++        let core = self.core.upgrade().ok_or(DtmfWriteError::Refused)?;
++        let _registry = core
++            .connection_registry_lock
++            .try_lock()
++            .map_err(|_| DtmfWriteError::NotReady)?;
++        let (endpoint, ticket, _) =
++            core.capture_dtmf_endpoint_locked(self.endpoint.connection.clone())?;
++        if self.epoch.load(Ordering::Acquire) == self.revision
+             && self.revision != u64::MAX
+             && endpoint == self.endpoint
+             && self
+@@ -117,6 +118,11 @@
+                 .upgrade()
+                 .zip(core.adapter(endpoint.transport).ok())
+                 .is_some_and(|(a, b)| Arc::ptr_eq(&a, &b))
++        {
++            Ok(())
++        } else {
++            Err(DtmfWriteError::Refused)
++        }
+     }
+ }
+ /// Actual receive facts, not the caller's original logical operation or a grant.
+@@ -294,7 +300,6 @@
+     ) -> std::result::Result<DtmfRoute, DtmfWriteError> {
+         let registration = self.registration.upgrade().ok_or(DtmfWriteError::Refused)?;
+         if registration.cancel.is_cancelled()
+-            || !registration.stamp.current()
+             || registration
+                 .stamp
+                 .core
+@@ -303,6 +308,7 @@
+         {
+             return Err(DtmfWriteError::Refused);
+         }
++        registration.stamp.try_current()?;
+         if self.input.rtp.as_ref().is_some_and(|e| {
+             !e.start_observed
+                 || e.clock_rate_hz == 0
+@@ -326,17 +332,32 @@
+             registered: Weak<Registered>,
+             physical: Arc<dyn DtmfSourceFence>,
+         }
++        impl Fence {
++            fn registered_current(&self) -> bool {
++                self.registered.upgrade().is_some_and(|r| {
++                    !r.cancel.is_cancelled()
++                        && r.stamp.revision != u64::MAX
++                        && r.stamp.epoch.load(Ordering::Acquire) == r.stamp.revision
++                })
++            }
++        }
+         impl DtmfSourceFence for Fence {
+             fn current(&self) -> bool {
+-                self.registered.upgrade().is_some_and(|r| {
+-                    !r.cancel.is_cancelled()
+-                        && r.stamp.epoch.load(Ordering::Acquire) == r.stamp.revision
+-                }) && self.physical.current()
++                // Passive hint only: preserve a busy physical source so the
++                // existing bounded wait can retry this exact observation. Every
++                // effect still requires fresh physical custody in poll().
++                self.registered_current()
++                    && matches!(
++                        self.physical.poll(&mut || Poll::Ready(Ok(()))),
++                        Poll::Ready(Ok(()) | Err(DtmfWriteError::NotReady)) | Poll::Pending
++                    )
+             }
+             fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
+-                if !self.current() {
++                if !self.registered_current() {
+                     return Poll::Ready(Err(DtmfWriteError::Refused));
+                 }
++                // Do not probe current() first: that loses NotReady and polls
++                // the same shared SIP source twice during sibling fanout.
+                 self.physical.poll(io)
+             }
+         }
+--- a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
++++ b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+@@ -1364,3 +1364,193 @@
+     );
+     assert_eq!(r.receive().await.payload[0], 1);
+ }
++
++#[tokio::test]
++async fn accepted_received_source_metadata_busy_is_not_retirement_and_unaccepted_input_still_drops()
++{
++    let r = Rig::new_source(Transport::WebRtc).await;
++    let registry = DtmfSourceRegistry::new(Transport::WebRtc);
++    let mut sub = registry
++        .subscribe(&r.core, r.origin.clone(), r.source.clone())
++        .unwrap();
++    assert!(registry.publish(
++        &r.source,
++        received_input(&r, "accepted-before-busy", 800, true)
++    ));
++    let observation = sub.recv().await.unwrap();
++    let session = r.core.session(&r.sid).unwrap();
++    let held = session.write().unwrap();
++    assert_eq!(
++        observation
++            .prepare_route(
++                &r.core,
++                r.target.clone(),
++                "stable-logical-operation".into(),
++                DtmfMethod::Rfc4733
++            )
++            .err(),
++        Some(DtmfWriteError::NotReady)
++    );
++    assert!(!registry.publish(
++        &r.source,
++        received_input(&r, "unaccepted-while-busy", 800, true)
++    ));
++    assert_eq!(sub.dropped(), 1);
++    drop(held);
++    let route = observation
++        .prepare_route(
++            &r.core,
++            r.target.clone(),
++            "stable-logical-operation".into(),
++            DtmfMethod::Rfc4733,
++        )
++        .unwrap();
++    assert_eq!(
++        route.observation().observation_id(),
++        Some("accepted-before-busy")
++    );
++    r.core
++        .route_dtmf(
++            &route,
++            Policy::new(&r),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1),
++        )
++        .await
++        .unwrap();
++    assert_eq!(r.receive().await.payload[0], 5);
++    assert!(tokio::time::timeout(Duration::from_millis(30), sub.recv())
++        .await
++        .is_err());
++}
++
++// Mirrors SIP's physical fence: current() cannot distinguish busy from stale,
++// whereas poll() preserves NotReady/Pending and owns exact custody only in IO.
++struct BusyReceivedSource {
++    source: ControlledSource,
++    mode: AtomicUsize,
++}
++impl DtmfSourceFence for BusyReceivedSource {
++    fn current(&self) -> bool {
++        matches!(
++            self.poll(&mut || std::task::Poll::Ready(Ok(()))),
++            std::task::Poll::Ready(Ok(()))
++        )
++    }
++    fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        match self.mode.load(Ordering::SeqCst) {
++            1 => std::task::Poll::Ready(Err(DtmfWriteError::NotReady)),
++            2 => std::task::Poll::Pending,
++            3 => std::task::Poll::Ready(Err(DtmfWriteError::Refused)),
++            _ => self.source.poll(io),
++        }
++    }
++}
++#[tokio::test]
++async fn accepted_received_physical_busy_waits_without_policy_or_io_and_cancel_deadline_stay_bounded(
++) {
++    for busy in [1, 2] {
++        for finish in ["release", "cancel", "deadline"] {
++            let r = Rig::new_source(Transport::WebRtc).await;
++            let registry = DtmfSourceRegistry::new(Transport::WebRtc);
++            let mut sub = registry
++                .subscribe(&r.core, r.origin.clone(), r.source.clone())
++                .unwrap();
++            let physical = Arc::new(BusyReceivedSource {
++                source: ControlledSource {
++                    adapter: r.origin.clone(),
++                    connection: r.source.clone(),
++                    stream: r.origin.streams.get(&r.source).unwrap().clone(),
++                },
++                mode: AtomicUsize::new(0),
++            });
++            let input = DtmfReceivedInput::rfc4733(
++                DtmfSourceKind::WebRtcRfc4733,
++                "original-busy-observation".into(),
++                received_input(&r, "unused", 800, true)
++                    .rtp()
++                    .unwrap()
++                    .clone(),
++                std::time::SystemTime::now(),
++                std::time::Instant::now(),
++                physical.clone(),
++            )
++            .unwrap();
++            assert!(registry.publish(&r.source, input));
++            let observation = sub.recv().await.unwrap();
++            physical.mode.store(busy, Ordering::SeqCst);
++            let route = observation
++                .prepare_route(
++                    &r.core,
++                    r.target.clone(),
++                    "stable-logical-operation".into(),
++                    DtmfMethod::Rfc4733,
++                )
++                .unwrap();
++            let policy = Policy::new(&r);
++            let cancel = CancellationToken::new();
++            let waiting = r.core.route_dtmf(
++                &route,
++                policy.clone(),
++                cancel.clone(),
++                Instant::now() + Duration::from_millis(180),
++            );
++            tokio::pin!(waiting);
++            assert!(
++                tokio::time::timeout(Duration::from_millis(30), &mut waiting)
++                    .await
++                    .is_err()
++            );
++            assert_eq!(policy.calls.load(Ordering::SeqCst), 0);
++            let mut packet = [0; 2048];
++            assert!(
++                matches!(r.receiver.try_recv(&mut packet), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock)
++            );
++            match finish {
++                "release" => {
++                    physical.mode.store(0, Ordering::SeqCst);
++                    assert_eq!(waiting.await, Ok(()));
++                    assert_eq!(r.receive().await.payload[0], 5);
++                }
++                "cancel" => {
++                    cancel.cancel();
++                    assert_eq!(waiting.await, Err(DtmfWriteError::Refused));
++                }
++                _ => assert_eq!(waiting.await, Err(DtmfWriteError::DeadlineBeforeWrite)),
++            }
++            if finish != "release" {
++                assert_eq!(policy.calls.load(Ordering::SeqCst), 0);
++                physical.mode.store(0, Ordering::SeqCst);
++                assert!(
++                    matches!(r.receiver.try_recv(&mut packet), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock)
++                );
++            }
++            physical.mode.store(3, Ordering::SeqCst);
++            assert_eq!(
++                observation
++                    .prepare_route(
++                        &r.core,
++                        r.target.clone(),
++                        "stable-logical-operation".into(),
++                        DtmfMethod::Rfc4733
++                    )
++                    .err(),
++                Some(DtmfWriteError::Refused)
++            );
++            physical.mode.store(0, Ordering::SeqCst);
++            drop(sub);
++            assert_eq!(
++                r.core
++                    .route_dtmf(
++                        &route,
++                        policy.clone(),
++                        CancellationToken::new(),
++                        Instant::now() + Duration::from_secs(1)
++                    )
++                    .await,
++                Err(DtmfWriteError::Refused)
++            );
++            assert!(policy.domain.try_write().is_ok());
++        }
++    }
++}
