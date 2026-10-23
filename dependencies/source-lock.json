@@ -964,6 +964,11 @@
       "path": "patches/rvoip/gate6-native-lifecycle-seal-retry.patch",
       "sha256": "64b418c946689c6a442fe7c96a64968c633319cbb1aca0871690f1e1218cca47",
       "source": "G6-046 rederive native lifecycle proposals after pre-IO sealing loses current permit/binding while the original observer remains live. Cancel and release all proposal custody before retry; fresh policy still refuses permission withdrawal and retired origins. Controlled actual QUIC one-packet regression stalls metadata past the original timer without a reader and requires original ready/opened delivery with fresh grants, one route and no new packet or offer."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-egress-diagnostics.patch",
+      "sha256": "8e4c27fde5678b45448ade58be3e4a2713a9b34a6417607d4c41b8f827e212d4",
+      "source": "Trace native guarded egress refusal with actual negotiated Stream ID, directional resource flags and typed error; no payload, credential or authority grant. Used to locate full50 native mixer queued-but-unsent frames; diagnostic only, no media or permission behavior change."
     }
   ]
 }

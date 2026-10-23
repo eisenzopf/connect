@@ -41,6 +41,7 @@ mod data_reads;
 mod data_writes;
 mod reconciliation;
 mod session_codecs;
+mod snapshot;
 pub use data_reads::NativeDataRead;
 pub use data_writes::NativeDataWriter;
 pub use reconciliation::NativeReconciliationRead;
@@ -552,16 +553,11 @@ impl Store {
     /// grant. Current ownership/access can survive loss of an independent named
     /// operation permission. All readers are released before the caller idles.
     pub fn try_native_connection_current(&self, origin: &NativeMediaOrigin) -> Result<bool> {
-        let scopes = {
-            let c = self.try_connection()?;
-            facts_for(self, &c, origin, ReadPurpose::Signal)?.1
-        };
-        let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
-        let (_, scopes, expiry) = facts_for(self, &c, origin, ReadPurpose::Signal)?;
-        if !self.authority_covers(&held, &scopes) {
-            return Err(Error::forbidden());
-        }
+        let (expiry, _held) = snapshot::acquire(self, &c, |c| {
+            let (_, scopes, expiry) = facts_for(self, c, origin, ReadPurpose::Signal)?;
+            Ok((expiry, scopes))
+        })?;
         Ok(current_owner(self, origin)?.current() && crate::now() < expiry)
     }
     /// Resolve metadata with the same current origin checks as native IO.
@@ -583,22 +579,20 @@ impl Store {
         Ok((view, expiry, public_handoff))
     }
     /// Immediate fresh packet admission. Refuse contention instead of waiting
-    /// under engine fences. Resolve again after acquiring the complete scope set.
+    /// under engine fences. Capture fresh facts through immediate scope admission;
+    /// refuse any concurrent external commit rather than reuse a mixed snapshot.
     pub fn try_native_media_read(
         &self,
         target: &NativeMediaOrigin,
         source: Option<&NativeMediaOrigin>,
     ) -> Result<NativeMediaRead> {
-        let scopes = {
-            let c = self.try_connection()?;
-            views(self, &c, target, source)?.2
-        };
-        let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
-        let (target_view, source_view, current_scopes, expires_at) =
-            views(self, &c, target, source)?;
-        if !self.authority_covers(&held, &current_scopes) {
-            return Err(Error::forbidden());
+        let ((target_view, source_view, expires_at), held) = snapshot::acquire(self, &c, |c| {
+            let (target_view, source_view, scopes, expires_at) = views(self, c, target, source)?;
+            Ok(((target_view, source_view, expires_at), scopes))
+        })?;
+        if let Some(source) = source {
+            current_owner(self, source)?;
         }
         let owner = current_owner(self, target)?;
         if crate::now() >= expires_at {

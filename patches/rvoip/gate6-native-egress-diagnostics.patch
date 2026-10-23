@@ -1,0 +1,21 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -718,6 +718,8 @@
+                 None
+             };
+             let flow = self.flow.clone();
++            tracing::trace!(target: "rvoip_uctp::native_egress", connection=self.scope.connection.as_str(), stream=binding.transport_id.as_str(), source_ready=binding.source_ready, sink_ready=binding.sink_ready, "Native guarded egress configured");
++            let connection = self.scope.connection.clone();
+             let task = tokio::spawn(async move {
+                 let mut packetizer = Packetizer {
+                     outer: 0,
+@@ -755,7 +757,8 @@
+                             std::future::ready(result.map(|_| ()))
+                         })
+                         .await;
+-                    if result.is_err() {
++                    if let Err(problem) = &result {
++                        tracing::trace!(target: "rvoip_uctp::native_egress", connection=connection.as_str(), stream=binding.transport_id.as_str(), source_ready=binding.source_ready, sink_ready=binding.sink_ready, ?problem, "Native guarded egress refused");
+                         counters.send_errors.fetch_add(1, Ordering::AcqRel);
+                     }
+                     if transport.is_closed() {
