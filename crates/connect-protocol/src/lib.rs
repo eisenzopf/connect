@@ -22,6 +22,7 @@ pub mod messages;
 pub mod provisioning;
 pub mod receipts;
 pub mod routing;
+pub mod session_codecs;
 pub mod session_control;
 pub mod session_decisions;
 pub mod tasks;

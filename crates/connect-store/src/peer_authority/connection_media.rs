@@ -38,9 +38,11 @@ pub use flow_facts::{NativeConnectionFlowFact, NativeConnectionFlowObservation};
 mod data_reads;
 mod data_writes;
 mod reconciliation;
+mod session_codecs;
 pub use data_reads::NativeDataRead;
 pub use data_writes::NativeDataWriter;
 pub use reconciliation::NativeReconciliationRead;
+pub use session_codecs::NativeSessionCodecRead;
 
 /// Store-issued immutable origin, not a grant. No command/SQL/domain grant is
 /// retained here; each future use must acquire and resolve current authority.

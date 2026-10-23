@@ -16,6 +16,10 @@ def render():
     schemas['Envelope']=rewrite(source)
     ref=lambda name:{'$ref':'#/components/schemas/'+name}
     def obj(properties,required=None):return dict(type='object',properties=properties,required=list(properties) if required is None else required,additionalProperties=False)
+    schemas['SessionCodecReconciliationReference']=obj(dict(operation_id=ref('WireIdentifier'),record_id=ref('WireIdentifier')))
+    codec_counts=['targets','queued','preparing','updated','unchanged','refused','unavailable','cancelled','superseded','unknown']
+    schemas['SessionCodecReconciliationCounts']=obj({name:dict(type='integer',minimum=0,maximum=9007199254740991) for name in codec_counts})
+    schemas['SessionCodecReconciliationOutcome']=obj(dict(session_id=ref('WireIdentifier'),policy_operation_id=ref('WireIdentifier'),policy_revision=dict(type='integer',minimum=1,maximum=9007199254740991),counts=ref('SessionCodecReconciliationCounts')))
     schemas['HttpEnvelope']={'allOf':[ref('Envelope'),{'not':{'required':['signature']}}]}
     schemas['Problem']=obj(dict(code=dict(type='integer',enum=[400,401,403,404,409,413,429,488,501,503]),category=dict(enum=['auth','validation','unsupported','state','storage','authorization','capacity','conflict','media']),reason=dict(type='string',maxLength=64)))
     schemas['ReplyBatch']=obj(dict(profile=dict(const='connect/2'),request_id=ref('WireIdentifier'),envelopes=dict(type='array',minItems=1,maxItems=128,items=dict(allOf=[ref('HttpEnvelope'),dict(required=['in_reply_to'])]))))
@@ -40,6 +44,13 @@ def render():
         'outcome':'The shared operation ledger retains the exact original payload and expected revision. Successful selection terminates with ACK. Unknown current sources terminate with correlated error 404; incompatible media capabilities terminate with correlated error 488. A preceding operation.updated and operation.get retain the durable failed result. Exact replay returns that failure under current authorization. Refusal creates no native effect and does not partially install a mixed selector list.'}
     operation['x-native-active-speaker']={'emission':'Disabled in the installed default profile; advisory hints are optional and never authority or durable Session state.','scope':['cid','sid'],'connection-scope':'Optional connid','active_participant':'Required Participant identifier or explicit null for silence/no dominant speaker; omission is invalid.','reference':'docs/developer/native-subscriptions.md'}
     operation['x-session-codec-preferences']={'command':'session.update / codec-renegotiate','admission':'Current Session owner/manager, named permission and expected topology revision; currently requires no connected or pending media.','negotiation':'New native offers use the latest Session preference order within current accepted Endpoint and Session capabilities and the original peer-offered formats; unavailable preferences fall back to usable peer order. The signed offer and advertised capabilities remain intact.','replay':'Original recorded outcome cannot reset newer preferences or existing bindings.','live':'Session-wide switching of established Connections remains unavailable; use the current separately scoped connection.update coordinator.','reference':'docs/developer/general-sessions.md'}
+    operation['x-session-codec-preferences']['durable-reconciliation']={
+        'availability':'Schema98 Store foundation only. The production runtime does not install this coordinator yet; live Session updates retain their explicit unsupported refusal.',
+        'policy-receipt':'When the real coordinator is installed, a live policy decision carries optional codec_reconciliation with a separate operation_id and record_id. The completed policy receipt does not claim completed physical changes.',
+        'reference':ref('SessionCodecReconciliationReference'),
+        'completed-result':ref('SessionCodecReconciliationOutcome'),
+        'status':'operation.get/cancel require current owner/member/management and original recipient authority. Pending, unknown and cancelled operations retain no completed result. A completed reconciliation reports aggregate durable outcomes, including partial refusals, without private Connection IDs.',
+        'replay':'Original policy and reference stay immutable. Superseded unstarted targets perform no IO; submitted effects retain uncertainty and never resubmit. Captured actual successes may record after cancellation without restoring an old policy.'}
     operation['x-native-runtime-controls']={
         'transport':'Signed current original native QUIC peer only; HTTP may inspect/cancel the operation but cannot apply a native runtime gate.',
         'command':'connection.update', 'actions':['hold','resume','mute','unmute'],

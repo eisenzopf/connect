@@ -232,6 +232,8 @@ pub struct ControlOutcome {
     pub operation_id: String,
     pub action: String,
     pub session: SessionView,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codec_reconciliation: Option<crate::session_codecs::ReconciliationReference>,
 }
 impl std::fmt::Debug for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

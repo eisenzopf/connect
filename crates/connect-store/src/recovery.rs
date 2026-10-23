@@ -54,6 +54,9 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     let mut digest = Sha256::new();
     digest.update(schema.to_be_bytes());
     let mut tables = vec!["installation", "identities", "credentials"];
+    if schema >= 98 {
+        tables.extend(["session_codec_batches", "session_codec_targets"]);
+    }
     if schema >= 85 {
         tables.push("user_delegations");
     }

@@ -24,7 +24,7 @@ pub use connection_media::{
     NativeHandoffRead, NativeHandoffSelection, NativeMediaOrigin, NativeMediaRead,
     NativeReconciliationRead, NativeReplacementPreparationRead, NativeReplacementSelection,
     NativeReplacementSourceOrigin, NativeReplacementSourceRead, NativeReturnRead,
-    NativeReturnSelection, NativeSignalRead, SessionRoleMediaRead,
+    NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead, SessionRoleMediaRead,
 };
 pub use native_data::NativeDataProjection;
 pub use native_streams::NativeStreamProjection;

@@ -61,12 +61,28 @@ fn parent_permissions_origin_extra(
     String,
     std::sync::Arc<crate::NativeMediaOrigin>,
 ) {
+    parent_permissions_origin_filtered(granted, completed, end, data, send, extra, &[])
+}
+fn parent_permissions_origin_filtered(
+    granted: bool,
+    completed: bool,
+    end: bool,
+    data: bool,
+    send: bool,
+    extra: &[&str],
+    excluded: &[&str],
+) -> (
+    Fixture,
+    PeerAuthorityRequest,
+    String,
+    std::sync::Arc<crate::NativeMediaOrigin>,
+) {
     let mut f = if data {
         Fixture::with_endpoint_capabilities(vec!["data".into()])
     } else {
         Fixture::new()
     };
-    if granted || !send || !extra.is_empty() {
+    if granted || !send || !extra.is_empty() || !excluded.is_empty() {
         let identity = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
         let mut scope = Scope::collaboration(vec!["*".into()]);
         if granted {
@@ -85,6 +101,9 @@ fn parent_permissions_origin_extra(
         if end {
             scope.operations.push("connection.end".into());
         }
+        scope
+            .operations
+            .retain(|op| !excluded.contains(&op.as_str()));
         f.keys[0] = f
             .store
             .issue(&identity, scope, crate::now() + 600)
@@ -1322,3 +1341,5 @@ mod dtmf;
 mod dtmf_recipients;
 
 mod credential_refresh;
+
+mod session_codecs;

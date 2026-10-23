@@ -1,5 +1,7 @@
 //! Durable lifecycle only. Media preparation/commit belongs to the named coordinator.
 mod actions;
+pub(crate) mod session_codecs;
+pub use session_codecs::SessionCodecTarget;
 mod initial_telephone;
 pub(crate) mod provider_sessions;
 pub use initial_telephone::{

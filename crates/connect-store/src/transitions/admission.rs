@@ -13,6 +13,7 @@ pub(super) fn scopes(owner: &str, cid: Option<&str>) -> Result<Vec<AuthorityScop
 }
 pub(super) fn row_scopes(row: &rows::Saved) -> Result<Vec<AuthorityScope>> {
     if row.native
+        || row.session_codecs
         || row.native_stream
         || (row.native_consultation || row.native_provider)
         || (row.native_return || row.native_handoff || row.native_replacement)

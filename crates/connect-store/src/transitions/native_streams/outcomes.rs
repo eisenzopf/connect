@@ -13,6 +13,7 @@ enum CommittedOutcome {
     },
     Codecs {
         revision: u64,
+        resources_changed: bool,
         bindings: Vec<connect_protocol::native_streams::CodecBinding>,
     },
     Gates {
@@ -106,7 +107,41 @@ impl NativeStreamLease {
         }
         Ok(NativeStreamCommitted {
             lease: self,
-            outcome: CommittedOutcome::Codecs { revision, bindings },
+            outcome: CommittedOutcome::Codecs {
+                revision,
+                bindings,
+                resources_changed: true,
+            },
+        })
+    }
+    /// Trusted host boundary after the sealed Session codec executor returned.
+    /// A no-change result retains its exact original revision and bindings; the
+    /// recorder additionally requires this lease's durable Session batch link.
+    pub fn session_codecs_committed(
+        self,
+        revision: u64,
+        resources_changed: bool,
+        bindings: Vec<connect_protocol::native_streams::CodecBinding>,
+    ) -> Result<NativeStreamCommitted> {
+        connect_protocol::native_streams::validate_codec_bindings(&bindings)?;
+        if self.command != Command::Update
+            || self.quality_interval_ms.is_some()
+            || self.gate_payload.is_some()
+            || revision != self.expected_revision + u64::from(resources_changed)
+            || revision > 9_007_199_254_740_991
+            || bindings
+                .iter()
+                .any(|b| b.connection_generation != self.generation)
+        {
+            return Err(conflict());
+        }
+        Ok(NativeStreamCommitted {
+            lease: self,
+            outcome: CommittedOutcome::Codecs {
+                revision,
+                resources_changed,
+                bindings,
+            },
         })
     }
     /// Trusted host boundary: call only with the actual returned native engine
@@ -234,8 +269,12 @@ impl Store {
             CommittedOutcome::Gates { revision, streams } => {
                 serde_json::json!({"connection_id":lease.connection,"connection_generation":lease.generation,"stream_revision":revision,"resources_changed":false,"action":lease.gate_payload.as_ref().ok_or_else(conflict)?["action"],"gate_streams":streams})
             }
-            CommittedOutcome::Codecs { revision, bindings } => {
-                serde_json::json!({"connection_id":lease.connection,"stream_revision":revision,"resources_changed":true,"codec_bindings":bindings})
+            CommittedOutcome::Codecs {
+                revision,
+                bindings,
+                resources_changed,
+            } => {
+                serde_json::json!({"connection_id":lease.connection,"stream_revision":revision,"resources_changed":resources_changed,"codec_bindings":bindings})
             }
             CommittedOutcome::Streams {
                 revision,
@@ -256,6 +295,20 @@ impl Store {
                 serde_json::json!({"connection_id":lease.connection,"message_id":message_id,"core_queue_admission":true})
             }
         };
+        let codec_batch:Option<String>=tx.query_row("SELECT batch_record_id FROM session_codec_targets WHERE native_operation_record_id=?1",[&lease.record],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
+        if matches!(
+            &receipt.outcome,
+            CommittedOutcome::Codecs {
+                resources_changed: false,
+                ..
+            }
+        ) && codec_batch.is_none()
+        {
+            return Err(conflict());
+        }
+        if let Some(batch) = &codec_batch {
+            result["session_codec_batch"] = serde_json::json!(batch);
+        }
         if lease.command == Command::Reconcile {
             let intent: Intent =
                 serde_json::from_str(row.intent.as_deref().ok_or_else(Error::storage)?)
@@ -325,6 +378,21 @@ impl Store {
             rows::change(&tx, &row, OperationState::Completed, Some(result), self)?;
             close(&tx, &row)?;
             workers::invalidate(&tx, &lease.record)?;
+        }
+        if let Some(batch) = codec_batch {
+            let state = match &receipt.outcome {
+                CommittedOutcome::Codecs {
+                    resources_changed: true,
+                    ..
+                } => "updated",
+                CommittedOutcome::Codecs {
+                    resources_changed: false,
+                    ..
+                } => "unchanged",
+                _ => return Err(conflict()),
+            };
+            tx.execute("UPDATE session_codec_targets SET state=?2 WHERE native_operation_record_id=?1 AND state IN ('preparing','unknown')",params![lease.record,state]).map_err(|_|Error::storage())?;
+            super::super::session_codecs::settle(&tx, &batch, self)?;
         }
         if !owner.current() {
             return Err(Error::forbidden());

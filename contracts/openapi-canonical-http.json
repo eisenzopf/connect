@@ -233,7 +233,19 @@
           "negotiation": "New native offers use the latest Session preference order within current accepted Endpoint and Session capabilities and the original peer-offered formats; unavailable preferences fall back to usable peer order. The signed offer and advertised capabilities remain intact.",
           "replay": "Original recorded outcome cannot reset newer preferences or existing bindings.",
           "live": "Session-wide switching of established Connections remains unavailable; use the current separately scoped connection.update coordinator.",
-          "reference": "docs/developer/general-sessions.md"
+          "reference": "docs/developer/general-sessions.md",
+          "durable-reconciliation": {
+            "availability": "Schema98 Store foundation only. The production runtime does not install this coordinator yet; live Session updates retain their explicit unsupported refusal.",
+            "policy-receipt": "When the real coordinator is installed, a live policy decision carries optional codec_reconciliation with a separate operation_id and record_id. The completed policy receipt does not claim completed physical changes.",
+            "reference": {
+              "$ref": "#/components/schemas/SessionCodecReconciliationReference"
+            },
+            "completed-result": {
+              "$ref": "#/components/schemas/SessionCodecReconciliationOutcome"
+            },
+            "status": "operation.get/cancel require current owner/member/management and original recipient authority. Pending, unknown and cancelled operations retain no completed result. A completed reconciliation reports aggregate durable outcomes, including partial refusals, without private Connection IDs.",
+            "replay": "Original policy and reference stay immutable. Superseded unstarted targets perform no IO; submitted effects retain uncertainty and never resubmit. Captured actual successes may record after cancellation without restoring an old policy."
+          }
         },
         "x-native-runtime-controls": {
           "transport": "Signed current original native QUIC peer only; HTTP may inspect/cancel the operation but cannot apply a native runtime gate.",
@@ -5074,6 +5086,116 @@
             }
           }
         ]
+      },
+      "SessionCodecReconciliationReference": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "record_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "operation_id",
+          "record_id"
+        ],
+        "additionalProperties": false
+      },
+      "SessionCodecReconciliationCounts": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "queued": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "preparing": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updated": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "unchanged": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "refused": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "unavailable": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "cancelled": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "superseded": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "unknown": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "targets",
+          "queued",
+          "preparing",
+          "updated",
+          "unchanged",
+          "refused",
+          "unavailable",
+          "cancelled",
+          "superseded",
+          "unknown"
+        ],
+        "additionalProperties": false
+      },
+      "SessionCodecReconciliationOutcome": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "policy_operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "policy_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "counts": {
+            "$ref": "#/components/schemas/SessionCodecReconciliationCounts"
+          }
+        },
+        "required": [
+          "session_id",
+          "policy_operation_id",
+          "policy_revision",
+          "counts"
+        ],
+        "additionalProperties": false
       },
       "HttpEnvelope": {
         "allOf": [

@@ -62,7 +62,7 @@ fn invite_targets(
 fn owner(c: &Connection, cid: &str, sid: &str) -> Result<String> {
     crate::audience::source_owner(c, cid, ContentKind::Session, sid)?.ok_or_else(Error::forbidden)
 }
-fn manager(c: &Connection, actor: &Actor, r: &Request) -> Result<()> {
+pub(crate) fn manager(c: &Connection, actor: &Actor, r: &Request) -> Result<()> {
     if owner(c, &r.conversation_id, &r.session_id)? == actor.identity_id
         || actor.permits("session.manage")
         || actor.permits("admin")
@@ -491,7 +491,14 @@ pub(crate) fn apply(c: &Connection, actor: &Actor, r: &Request, store: &Store) -
             }) {
                 return Err(unsupported());
             }
-            require_idle_media(c, r)?;
+            if store
+                .session_codec_coordinator
+                .load(std::sync::atomic::Ordering::Acquire)
+            {
+                require_additive_native_media(c, r, store)?;
+            } else {
+                require_idle_media(c, r)?;
+            }
             c.execute(
                 "UPDATE session_control SET codec_preferences_json=?2 WHERE session_id=?1",
                 params![
@@ -542,7 +549,10 @@ pub(crate) fn apply(c: &Connection, actor: &Actor, r: &Request, store: &Store) -
             },
         ))
     } else {
+        let codec_reconciliation =
+            crate::transitions::session_codecs::enqueue(c, actor, r, &session, store)?;
         Ok(Outcome::SessionControl(ControlOutcome {
+            codec_reconciliation,
             operation_id: r.operation_id.clone(),
             action: r.action.name().into(),
             session,

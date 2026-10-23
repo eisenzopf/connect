@@ -100,6 +100,24 @@ preferences or alter established bindings. Changing all live Connections through
 a Session-wide codec coordinator remains unfinished; the current explicit refusal
 preserves existing Session policy and media.
 
+Schema98 adds the durable Store foundation for that coordinator. Once its real
+worker is installed, a live policy receipt can include `codec_reconciliation`
+with a separate `operation_id` and `record_id`. That operation freezes the target
+set and reports settled Connection outcomes independently of policy acceptance.
+Its completed result contains aggregate counts, including refusals, unavailable,
+superseded and cancelled targets, and omits private Connection IDs. Pending,
+uncertain and cancelled operations carry no completed result. A completed batch
+means its work settled; inspect its counts to determine how many targets changed.
+
+Each child needs fresh current manager authority and independent original peer,
+Device/key, credential epoch, member, Endpoint and media authority. A preference,
+job descriptor or retained origin supplies no grant. Admission records one child
+effect before native IO. Cancellation stops unstarted work and retains possible
+effects as unknown; recording a previously captured real success never repeats
+IO or rewinds the current policy. Restart cannot reconstruct an old native
+attempt. The production runtime does not install this worker yet, so the public
+live-update refusal above remains in force.
+
 Every mutation of an existing topology requires its current revision. Pending
 reject/cancel retains the documented optional revision assertion. `by` and `from`
 are checked assertions of the authenticated Participant. The named action

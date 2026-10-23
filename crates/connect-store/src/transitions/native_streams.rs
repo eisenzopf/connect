@@ -5,6 +5,7 @@ pub(crate) mod dtmf;
 pub use dtmf::{NativeDtmfBatch, NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget};
 mod outcomes;
 mod reconciliation;
+mod session_codecs;
 use super::*;
 use crate::{AuthorityMode, AuthorityScope, PeerAuthorityGuard, PeerCommand};
 use connect_protocol::native_streams::{Command, Intent};

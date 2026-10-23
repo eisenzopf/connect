@@ -491,3 +491,5 @@ fn credential_refresh_signal_only_epoch_does_not_need_or_restore_media_permissio
     f.store.revoke(&admin, &next).unwrap();
     assert!(f.store.try_native_connection_current(&renewed).is_err());
 }
+
+mod session_codecs;

@@ -26,6 +26,10 @@ fn projection_scopes(
     row: &rows::Saved,
     result: &mut Vec<AuthorityScope>,
 ) -> Result<()> {
+    if row.session_codecs {
+        result.extend(super::session_codecs::projection_scopes(c, row)?);
+        return Ok(());
+    }
     if row.native || row.native_stream {
         return Ok(());
     }

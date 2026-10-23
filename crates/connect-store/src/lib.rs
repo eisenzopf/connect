@@ -63,14 +63,14 @@ pub use transitions::{
     NativeReplacementPreparationLease, NativeReplacementPrepared, NativeReplacementSceneRead,
     NativeReplacementStartAttempt, NativeReplacementStartRead, NativeReplacementStartUncertain,
     NativeReplacementStarted, NativeStreamCommitted, NativeStreamLease, ReplacementConfirmation,
-    ReplacementPreparationRequest, TelephoneAudioResources, TelephoneConnectionRuntimeObservation,
-    TelephoneConnectionSnapshot, TelephoneMediaOrigin, TelephoneMediaRead,
-    TelephoneNativeMediaRead, TelephoneReplacementAllocated, TelephoneReplacementAttempt,
-    TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
-    TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
-    TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead, TelephoneReplacementPhase,
-    TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture, TelephoneReplacementPolicy,
-    TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
+    ReplacementPreparationRequest, SessionCodecTarget, TelephoneAudioResources,
+    TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot, TelephoneMediaOrigin,
+    TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneReplacementAllocated,
+    TelephoneReplacementAttempt, TelephoneReplacementAudienceCapture,
+    TelephoneReplacementCommitAttempt, TelephoneReplacementCommitUncertain,
+    TelephoneReplacementCommitted, TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead,
+    TelephoneReplacementPhase, TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture,
+    TelephoneReplacementPolicy, TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
     TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
     TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
     TransitionLease,
@@ -96,11 +96,11 @@ pub use peer_authority::{
     NativeDataRead, NativeDataWriter, NativeHandoffRead, NativeHandoffSelection, NativeMediaOrigin,
     NativeMediaRead, NativeReconciliationRead, NativeReplacementPreparationRead,
     NativeReplacementSelection, NativeReplacementSourceOrigin, NativeReplacementSourceRead,
-    NativeReturnRead, NativeReturnSelection, NativeSignalRead, NativeStreamProjection,
-    PeerAuthorityGuard, PeerAuthorityRequest, PeerCommand, PeerConnectionProjection,
-    PeerConversationCommand, PeerDataCommand, PeerDeviceClaim, PeerOperationClaim,
-    PeerReadReceiptCommand, PeerSessionProjection, PeerSubscriptionCommand, PeerSubscriptionRead,
-    PeerSubscriptionSource, SessionRoleMediaRead,
+    NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead,
+    NativeStreamProjection, PeerAuthorityGuard, PeerAuthorityRequest, PeerCommand,
+    PeerConnectionProjection, PeerConversationCommand, PeerDataCommand, PeerDeviceClaim,
+    PeerOperationClaim, PeerReadReceiptCommand, PeerSessionProjection, PeerSubscriptionCommand,
+    PeerSubscriptionRead, PeerSubscriptionSource, SessionRoleMediaRead,
 };
 pub use user_delegation::{IssuedUserDelegation, UserAuthorization};
 mod private_provider;
@@ -174,10 +174,11 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 97;
+pub const SCHEMA_VERSION: u32 = 98;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
+    session_codec_coordinator: std::sync::atomic::AtomicBool,
     authority: std::sync::Arc<authority_fences::Manager>,
     runtime_ownership: installation_ownership::Binding,
     link_epoch: String,
@@ -476,6 +477,8 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/097_record_ready_hints.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/098_session_codec_jobs.sql"))
+            .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;
@@ -491,6 +494,7 @@ impl Store {
             connectors: Default::default(),
             private_provider_cache: Default::default(),
             record_context_projector: Default::default(),
+            session_codec_coordinator: Default::default(),
             connection: Mutex::new(connection),
             limits,
             path: path.into(),
@@ -576,6 +580,7 @@ impl Store {
             connectors: Default::default(),
             private_provider_cache: Default::default(),
             record_context_projector: Default::default(),
+            session_codec_coordinator: Default::default(),
             connection: Mutex::new(connection),
             limits,
             path: path.into(),
