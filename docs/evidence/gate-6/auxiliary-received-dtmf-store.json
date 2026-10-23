@@ -219,13 +219,15 @@
     }
   },
   "distinct_rust_methods": 173,
-  "http_reference": "python3 scripts/generate-canonical-http-openapi.py --check passed. Received-SIP status schema is separate; actual controlled summary validation is pending the capture build.",
+  "http_reference": "Generated canonical HTTP reference check passed. Five actual controlled Store summaries (completed, failed, cancelled, unknown) validate against separate ReceivedDtmfSubmission schema; no physical or signature claim.",
   "inputs": {
     "crates/connect-protocol/src/received_dtmf.rs": "55deaf9e47ae1570c6e4b7ce10d96fb690dab00e9d75feb140df0118f2a896b5",
     "crates/connect-store/migrations/101_received_dtmf.sql": "b7eb6dcbfc8b0c38156ab05e024d87d43b2e7bbd4e3246b30245268d6a58f254",
     "crates/connect-store/src/transitions/received_dtmf.rs": "f85e87a0c8a9459ee83ac3774cecd5423204389337a4a515703404a98849b7e0",
     "contracts/openapi-operations.json": "d5fbc6ebddf05e2cfb35b1fcc102d13aeaf6da54b156e99771b1b8fb21637c11",
-    "scripts/generate-canonical-http-openapi.py": "fb91f09b55bec6934b4260879ccb11f54d15ebc6c8172b0edfa8876b72510198"
+    "scripts/generate-canonical-http-openapi.py": "fb91f09b55bec6934b4260879ccb11f54d15ebc6c8172b0edfa8876b72510198",
+    "scripts/validate-gate6-received-dtmf-results.py": "81d3b89debeb453e35f5173d5b08298abb32abbddc4f4f8ecd6238fe3d91b231",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/received_dtmf.rs": "c596daa0f6515e13d2c829ab0259fb28e297a59fbff98810c348e50d31267f8c"
   },
   "limitations": [
     "Physical installed receive-to-native forwarding is being implemented separately and is not credited here.",
@@ -233,5 +235,19 @@
     "Source retention/redaction and remaining received-source private/recovery profiles require qualification before overall closure.",
     "No new whole clause or task credit; 55/61 G6-046 clauses and 45/105 tasks remain."
   ],
-  "intermediate_failure": "Initial new Store run: 8 pass, 1 test assertion expected operation-conflict instead of actual conflict. Assertion corrected; final 9 tests and 167 authority regressions pass."
+  "intermediate_failure": "Initial new Store run: 8 pass, 1 test assertion expected operation-conflict instead of actual conflict. Assertion corrected; final 9 tests and 167 authority regressions pass.",
+  "http_validation": {
+    "passed": true,
+    "controlled_store_results": 5,
+    "states": [
+      "cancelled",
+      "completed",
+      "failed",
+      "unknown"
+    ],
+    "scope": "Controlled Store status against HTTP schema. No physical receive, signature or delivery qualification.",
+    "validator": "scripts/validate-gate6-received-dtmf-results.py",
+    "samples_sha256": "d21949d97f3c6d6abba1db0bbd3409fb4a8b1a4f5278382a1fc89f5cf81f99cf",
+    "capture_log_sha256": "c46658d33c71b138ebb16fe3e3db3e6a8da50b02d408762716e01274a5bcbb50"
+  }
 }
