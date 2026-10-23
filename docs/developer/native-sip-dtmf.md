@@ -29,8 +29,12 @@ private scene cannot lend a new audience to old work.
 The schedule's fresh signal read lasts at most 200 ms and never constructs a
 media permission. The initial call monitor also permits an existing call to
 remain while a current named signal direction is authorized, even if its media
-permission is withdrawn. RTP remains subject to its own packet guards. This
-signal-only lifetime behavior still needs a physical withdrawal rehearsal.
+permission is withdrawn. RTP remains subject to its own packet guards. The
+physical signal-only rehearsal withdraws all telephone credential operations
+except `dtmf.receive` under the actual Store writer fence, drains previously
+admitted packets, then verifies marked RTP stops while the same connected call
+still accepts both INFO and RFC4733. This controlled credential edit does not
+qualify a public credential-edit API.
 
 After actual writer leases stop, the runtime records local submission,
 not-started or uncertainty and settles the shared mixed batch. Recording retries
@@ -53,9 +57,17 @@ operation submits all three digits with a different schedule ID on that same
 call. This verifies local failure/recovery without claiming remote playback or
 retrying the uncertain operation.
 
+Cancellation and source revocation are also exercised after the peer receives
+the first actual INFO of a three-digit, 1000 ms sequence. The remaining suffix
+stops, one reserved attempt remains uncertain, and the call stays connected.
+An authorized replay of the cancelled operation returns that same uncertainty;
+the revoked source cannot replay, and a fresh credential of the same identity
+can read the original result. The quiet observation crosses the original tone
+duration and gap. Both signing algorithms execute these cases.
+
 These checks qualify a bounded local macOS arm64 component. SIP-originated
 observations, established/replacement SIP legs, maximum-duration sequences,
-larger fanout, physical cancellation/revocation/recovery and remaining private
-combinations need further implementation or production checks. They do not
+larger fanout, target/route revocation, restart/socket uncertainty and remaining
+private combinations need further implementation or production checks. They do not
 close the cross-substrate DTMF clauses, G6-046, independent G6-094 conformance or
 Linux/browser/remote/provider profiles.

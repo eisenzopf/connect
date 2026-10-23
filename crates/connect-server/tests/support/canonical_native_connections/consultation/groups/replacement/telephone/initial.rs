@@ -255,6 +255,7 @@ async fn initial_selected_signal_case(
     let ConfiguredInitial {
         f,
         peer,
+        phone_credential,
         target_reference,
         ..
     } = configured_initial_profile(
@@ -417,6 +418,9 @@ async fn initial_selected_signal_case(
     }];
     sip_native_duplex(&peer, &mut native, 0, "initial-public-native-duplex").await;
     if let Some(method) = signal {
+        if method.starts_with("signal-only-") {
+            dtmf::signal_only(&f, &peer, &mut native, &phone_credential).await;
+        }
         peer.reject_info.store(
             method == "info-refusal",
             std::sync::atomic::Ordering::Release,

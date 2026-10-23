@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("samples", type=pathlib.Path)
     parser.add_argument("--failure-samples", type=pathlib.Path)
+    parser.add_argument("--stop-samples", type=pathlib.Path)
     args = parser.parse_args()
     raw = args.samples.read_bytes()
     assert len(raw) <= 1024 * 1024
@@ -30,7 +31,7 @@ def main():
     for row in rows:
         record = row["completed"]
         assert record["state"] == "completed"
-        assert record["operation_id"] == "native-sip-" + row["method"]
+        assert record["operation_id"] == "native-sip-" + row.get("profile", row["method"])
         result = record["result"]
         validator.validate(result)
         assert result["signal_source"] == "uctp-native"
@@ -79,9 +80,36 @@ def main():
             assert recipient["frame_id"].startswith("dtmfg_")
             assert recipient["frame_id"] not in schedules
             schedules.add(recipient["frame_id"])
+    stops = []
+    if args.stop_samples:
+        raw = args.stop_samples.read_bytes()
+        assert len(raw) <= 1024 * 1024
+        stops = [json.loads(line) for line in raw.splitlines() if line.strip()]
+        assert len(stops) == 4
+        assert {(r["algorithm"], r["mode"]) for r in stops} == {
+            (algorithm, mode)
+            for algorithm in ("EdDSA", "ES256")
+            for mode in ("info-cancel", "info-source-revoke")
+        }
+        for row in stops:
+            record = row["stopped"]
+            assert record["state"] == "unknown"
+            assert record["operation_id"] == "native-sip-" + row["mode"]
+            signal = record["problem"]["signal"]
+            validator.validate(signal)
+            assert signal["local_work_complete"] and signal["local_submission_only"]
+            assert signal["signal_source"] == "uctp-native"
+            assert row["sip_calls"] == row["info_packets"] == 1
+            assert len(signal["recipients"]) == 1
+            recipient = signal["recipients"][0]
+            assert recipient["disposition"] == "outcome_unknown"
+            assert recipient["frame_id"].startswith("dtmfg_")
+            assert recipient["frame_id"] not in schedules
+            schedules.add(recipient["frame_id"])
     print(json.dumps({
         "passed": True, "actual_sdk_summaries": len(rows),
         "actual_uncertain_sdk_summaries": len(failures),
+        "actual_cancelled_or_revoked_summaries": len(stops),
         "algorithms": ["EdDSA", "ES256"], "methods": ["info", "rfc4733"],
         "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
         "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",

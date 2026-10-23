@@ -1,5 +1,15 @@
 //! Actual signed native ingress and real UDP INFO/RFC4733 on the owned call.
 use super::*;
+#[path = "dtmf/stops.rs"]
+mod stops;
+pub(super) async fn signal_only(
+    f: &Fixture,
+    peer: &PeerSip,
+    native: &mut [Peer],
+    credential: &str,
+) {
+    stops::signal_only(f, peer, native, credential).await;
+}
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_native_to_initial_sip_info_uses_original_call_and_never_replays() {
@@ -52,9 +62,15 @@ pub(super) async fn exercise(
     algorithm: &str,
     method: &str,
 ) {
+    if matches!(method, "info-cancel" | "info-source-revoke") {
+        stops::exercise(f, peer, client, cid, algorithm, method).await;
+        return;
+    }
     let refused = method == "missing-receive";
-    let wire_method = if refused || method == "info-refusal" {
+    let wire_method = if refused || method == "info-refusal" || method == "signal-only-info" {
         "info"
+    } else if method == "signal-only-rfc4733" {
+        "rfc4733"
     } else {
         method
     };
@@ -104,7 +120,7 @@ pub(super) async fn exercise(
             | rvoip_uctp::v2::payloads::OperationState::Completed
     ));
     let mut events = std::collections::BTreeMap::<u32, (u8, usize)>::new();
-    if method == "rfc4733" {
+    if wire_method == "rfc4733" {
         let end = tokio::time::Instant::now() + Duration::from_secs(8);
         let mut bytes = [0; 4096];
         while events.len() < 3 || events.values().any(|(_, n)| *n < 3) {
@@ -179,7 +195,7 @@ pub(super) async fn exercise(
     .unwrap();
     assert_eq!(db.query_row("SELECT count(*) FROM native_dtmf_gateways g JOIN operations o ON o.record_id=g.operation_record_id WHERE o.operation_id=?1 AND g.attempted=1 AND g.disposition='local_submitted'",[&operation],|r|r.get::<_,u64>(0)).unwrap(),1);
     let before = peer.info.lock().unwrap().len();
-    if method == "info" {
+    if wire_method == "info" {
         let packets = peer.info.lock().unwrap().clone();
         let mut digits = Vec::new();
         let mut transactions = std::collections::BTreeMap::new();
@@ -206,7 +222,7 @@ pub(super) async fn exercise(
     }
     assert_eq!(
         client
-            .send_native_dtmf(scope, "58#", 100, method)
+            .send_native_dtmf(scope, "58#", 100, wire_method)
             .await
             .unwrap()
             .result,
@@ -214,7 +230,7 @@ pub(super) async fn exercise(
     );
     tokio::time::sleep(Duration::from_millis(200)).await;
     assert_eq!(peer.info.lock().unwrap().len(), before);
-    if method == "rfc4733" {
+    if wire_method == "rfc4733" {
         let end = tokio::time::Instant::now() + Duration::from_millis(200);
         let mut bytes = [0; 4096];
         while let Ok(Ok((n, _))) =
@@ -240,7 +256,7 @@ pub(super) async fn exercise(
             .unwrap()
             .join(".local/gate-6");
         assert!(path.is_absolute() && path.starts_with(root));
-        let mut bytes=serde_json::to_vec(&json!({"algorithm":algorithm,"method":method,"completed":completed,"sip_calls":peer.unique(),"info_packets":before,"rtp_events":events})).unwrap();
+        let mut bytes=serde_json::to_vec(&json!({"algorithm":algorithm,"method":wire_method,"profile":method,"completed":completed,"sip_calls":peer.unique(),"info_packets":before,"rtp_events":events})).unwrap();
         bytes.push(b'\n');
         std::fs::OpenOptions::new()
             .create(true)
