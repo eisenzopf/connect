@@ -646,6 +646,7 @@ impl Runner {
         leg.dtmf_registration
             .set(format!("dtmfsip_{}", uuid::Uuid::new_v4().simple()))
             .map_err(|_| Error::forbidden())?;
+        let mut received = None;
         let mut projected = std::collections::BTreeSet::new();
         loop {
             if leg.cancel.is_cancelled() || runtime.stop.is_cancelled() {
@@ -733,7 +734,34 @@ impl Runner {
                     }
                 }
             }
-            tokio::select! {_ = leg.cancel.cancelled()=>return Ok(()),_ = tokio::time::sleep(Duration::from_millis(25))=>{}}
+            if received.is_none() {
+                if let Some(controller) = leg.controller.get().and_then(Weak::upgrade) {
+                    match self.adapter.subscribe_managed_dtmf_source(
+                        &runtime.core,
+                        leg.connection(),
+                        &controller,
+                        leg.target.principal.clone(),
+                    ) {
+                        Ok(subscription) => received = Some(subscription),
+                        Err(_) => (), // Metadata-only retry; this never redials or grants media.
+                    }
+                }
+            }
+            if let Some(subscription) = received.as_mut() {
+                tokio::select! {biased;
+                    _ = runtime.stop.cancelled() => return Ok(()),
+                    _ = leg.cancel.cancelled() => return Ok(()),
+                    input = subscription.recv() => match input {
+                        Some(observed) => if let Err(error) = runtime.enqueue_received_dtmf(leg.clone(), observed) {
+                            tracing::debug!(code=%error.code, "Received SIP signal refused before journal admission");
+                        },
+                        None => received = None,
+                    },
+                    _ = tokio::time::sleep(Duration::from_millis(25)) => {},
+                }
+            } else {
+                tokio::select! {biased;_ = runtime.stop.cancelled()=>return Ok(()),_ = leg.cancel.cancelled()=>return Ok(()),_ = tokio::time::sleep(Duration::from_millis(25))=>{}}
+            }
         }
     }
 }

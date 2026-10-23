@@ -122,6 +122,11 @@ impl Runtime {
                 break;
             }
         }
+        loop {
+            if store.recover_received_dtmf(256)? < 256 {
+                break;
+            }
+        }
         let stop = tokio_util::sync::CancellationToken::new();
         let retirement: Arc<dyn connect_store::RuntimeRetirementSignal> =
             Arc::new(Retirement(stop.clone()));

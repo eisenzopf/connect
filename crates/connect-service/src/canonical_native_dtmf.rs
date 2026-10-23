@@ -32,10 +32,10 @@ use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 
 pub(crate) struct Listener {
-    registration: Arc<NativeDtmfRegistration>,
-    entry: Arc<Connection>,
-    id: String,
-    physical: CancellationToken,
+    pub(crate) registration: Arc<NativeDtmfRegistration>,
+    pub(crate) entry: Arc<Connection>,
+    pub(crate) id: String,
+    pub(crate) physical: CancellationToken,
 }
 fn proof(a: &AuthorizedEnvelope) -> Result<&PeerAuthorityGuard> {
     a.authority::<StoreInvocationAuthority>()
@@ -645,15 +645,15 @@ impl Runtime {
     }
 }
 #[derive(Default)]
-struct Flight {
-    state: Mutex<(bool, usize)>,
-    changed: tokio::sync::Notify,
+pub(crate) struct Flight {
+    pub(crate) state: Mutex<(bool, usize)>,
+    pub(crate) changed: tokio::sync::Notify,
 }
 impl Flight {
-    fn close(&self) {
+    pub(crate) fn close(&self) {
         self.state.lock().unwrap_or_else(|p| p.into_inner()).0 = true;
     }
-    async fn stopped(&self) {
+    pub(crate) async fn stopped(&self) {
         loop {
             let changed = self.changed.notified();
             tokio::pin!(changed);
@@ -681,7 +681,7 @@ impl Drop for LeaseOwner {
         self.flight.changed.notify_waiters();
     }
 }
-struct Touch(Arc<AtomicBool>);
+pub(crate) struct Touch(pub(crate) Arc<AtomicBool>);
 impl DtmfIoFence for Touch {
     fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
         self.0.store(true, Ordering::Release);
