@@ -1,0 +1,400 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "passed": true,
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T11:48:14.456661+00:00",
+  "schema_version": 99,
+  "source_lock_patches": 159,
+  "scope": "Dedicated Session URI selectors, current verified configured gateways and frozen original resolution through actual signed native/HTTP invocation, UDP SIP and guarded duplex.",
+  "newly_qualified_case_ids": [
+    "u6-req-0082",
+    "u6-req-0083"
+  ],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "rust_test_methods": 128,
+  "results": [
+    {
+      "name": "protocol-all",
+      "crate": "connect-protocol",
+      "passed": 35,
+      "failed": 0,
+      "test_names": [
+        "membership::tests::membership_sets_are_canonical_and_reject_ambiguous_or_unbounded_intent",
+        "connection_control::tests::private_preparation_id_preserves_wire_operation_and_cannot_complete_its_exchange",
+        "messages::tests::binary_encoding_is_strict_and_round_trips_all_bytes",
+        "connection_control::tests::normalized_offer_preserves_optional_extensions_and_codec_preference_order",
+        "messages::tests::sets_normalize_without_equating_changed_content",
+        "messages::tests::malformed_sets_metadata_and_claimed_authority_are_rejected",
+        "membership::tests::membership_wire_shape_rejects_unknown_authority_fields_and_redacts_intent_debug",
+        "native_capabilities::tests::descriptor_replacement_preserves_unknown_values_and_allows_withdrawal_with_explicit_bounds",
+        "connection_control::tests::native_offer_profile_limits_and_required_stream_fields_are_checked",
+        "native_dtmf::tests::dtmf_original_sequence_method_optional_revision_and_extensions_survive_round_trip",
+        "native_data::tests::exact_native_data_intent_preserves_scope_encoding_audience_order_and_extensions",
+        "native_dtmf::tests::dtmf_whole_schedule_and_method_specific_duration_limits_are_checked",
+        "native_data::tests::malformed_audience_actor_payload_and_unsupported_delivery_modes_refuse_before_admission",
+        "native_gates::tests::controls_keep_exact_targets_and_direction_without_mixing_negotiation",
+        "native_streams::tests::actor_assertions_revision_and_unsubscribe_have_one_exact_shape",
+        "native_streams::tests::captured_codec_bindings_are_unique_bounded_observations",
+        "native_streams::tests::codec_update_preserves_exact_preferences_targets_extensions_and_revision",
+        "native_streams::tests::connection_end_preserves_optional_revision_and_bounded_original_reason",
+        "native_streams::tests::original_selector_order_extensions_and_scope_survive_storage_round_trip",
+        "native_streams::tests::contradictory_duplicate_or_unbounded_selectors_cannot_enter_the_ledger",
+        "native_streams::tests::quality_updates_keep_exact_wire_identity_and_reject_mixed_or_unbounded_controls",
+        "native_streams::tests::server_reconciliation_retains_exact_selector_record_plan_and_required_permission",
+        "readiness::tests::legacy_observation_retains_wire_shape_and_unconfigured_is_explicit",
+        "readiness::tests::older_readiness_wire_omits_additive_media_diagnostics",
+        "routing::tests::routing_normalization_bounds_and_explicit_unknown_policy_are_not_authority_claims",
+        "session_control::targets::tests::invitation_selectors_keep_ids_distinct_from_bounded_gateway_uris",
+        "native_dtmf::tests::dtmf_rejects_invalid_suffixes_methods_numeric_coercion_and_oversize_before_effects",
+        "session_control::tests::screen_is_a_distinct_bounded_accepted_media_kind",
+        "tests::browser_selection_preserves_legacy_wire_and_exact_selected_binding",
+        "tasks::access::tests::secret_exchange_redacts_debug_and_is_not_a_task_result",
+        "tests::profile_payload_roundtrips_and_rejects_spoofing",
+        "tests::operations_reject_claimed_sender_and_unknown_fields",
+        "transitions::extension_tests::canonical_transition_extensions_survive_normalization_expiry_and_storage_shape",
+        "transitions::extension_tests::canonical_transition_extensions_cannot_override_known_fields_or_exceed_the_bound",
+        "native_data::tests::decoded_body_limits_apply_to_utf8_and_canonical_binary_independently_of_json_length"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-uri/protocol-all.log",
+        "sha256": "d11d788ab8db1645e2fdb11a55fd2b40c299319017344cfc3b915512f96649ff"
+      }
+    },
+    {
+      "name": "wire-upstream",
+      "crate": "rvoip-uctp",
+      "passed": 2,
+      "failed": 0,
+      "test_names": [
+        "v2::session_target::tests::gateway_selectors_do_not_weaken_resource_identifiers",
+        "v2::tests::frozen_golden_vectors_decode_and_roundtrip_every_type"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-uri/wire-upstream.log",
+        "sha256": "1406b2c5541eb9bbb857740f6f20d5b61840334938afbe7c259413b2b7ec4cfa"
+      }
+    },
+    {
+      "name": "store-current",
+      "crate": "connect-store",
+      "passed": 70,
+      "failed": 0,
+      "test_names": [
+        "peer_authority::tests::session_control::cancelled_invitation_observation_requires_its_exact_current_recipient_read_union",
+        "peer_authority::tests::session_control::invitation_relays_require_original_caller_receipt_current_key_scope_and_exact_read_proof",
+        "peer_authority::tests::session_control::identity_invitation_peer_proof_seals_original_reference_and_current_projection",
+        "peer_authority::tests::session_control::owned_invitation_decision_needs_exact_fresh_peer_claim_and_no_caller_operation",
+        "peer_authority::tests::session_control::owned_invitation_reject_is_atomic_and_storage_recovery_retains_one_original_decision",
+        "peer_authority::tests::session_control::owned_invitation_old_slot_and_spoofed_by_cannot_adopt_a_later_invitation",
+        "peer_authority::tests::session_control::session_projection_requires_completed_exact_intent_and_retains_current_epoch",
+        "session_control::tests::accepted_and_reinvited_slots_cannot_adopt_an_earlier_invitation_source",
+        "peer_authority::tests::session_control::session_control_requires_exact_current_owned_peer_proof_and_replays_one_receipt",
+        "session_control::tests::cancellation_freezes_only_pending_original_targets_and_replay_cannot_rewrite_the_hint",
+        "session_control::tests::camera_mismatch_stale_revision_spoof_and_changed_intent_preserve_existing_session",
+        "session_control::tests::cancellation_hint_storage_failure_rolls_back_the_session_and_recovers_the_same_logical_command",
+        "session_control::tests::canonical_session_context_filters_both_principals_before_limits_and_omissions",
+        "session_control::tests::canonical_session_context_delivery_validates_the_exact_historical_journal_body",
+        "peer_authority::tests::session_control::session_control_source_expiring_behind_sql_cannot_create_presence_audience_or_receipt",
+        "session_control::tests::cancellation_requires_unaccepted_session_and_preserves_pending_invitees_after_acceptance",
+        "session_control::tests::current_recipient_ceiling_cannot_end_other_participants_and_unknown_codecs_do_not_admit",
+        "session_control::tests::current_session_participant_can_end_with_only_named_permission_and_replay_requires_current_rights",
+        "session_control::tests::canonical_session_context_retains_observed_outcomes_and_source_attribution",
+        "session_control::tests::existing_session_invitation_adds_only_explicit_participants_and_reject_does_not_end_others",
+        "session_control::tests::identity_invitation_resolves_current_participants_without_rewriting_original_intent",
+        "session_control::tests::identity_invitation_cannot_join_unadmitted_members_or_bypass_recipient_ceilings",
+        "session_control::tests::identity_invitation_uses_only_current_membership_epoch_after_readmission",
+        "session_control::tests::invitation_aliases_cannot_duplicate_a_participant_or_assert_the_caller",
+        "session_control::tests::invitation_capture_rolls_back_with_failed_journal_and_retries_one_original_intent",
+        "session_control::tests::invitation_metadata_requires_current_target_permission_and_source_ceiling",
+        "session_control::tests::invitation_or_departed_session_presence_does_not_grant_whole_session_end",
+        "session_control::tests::invitation_sources_capture_original_targets_and_hold_no_idle_authority",
+        "session_control::tests::mixed_session_can_accept_explicit_screen_without_claiming_audio_or_camera_support",
+        "session_control::tests::invitation_sources_reconstruct_after_backup_but_old_handles_do_not_cross_runtimes",
+        "session_control::tests::ordinary_session_context_keeps_invite_accept_history_and_admits_its_exact_delivery",
+        "session_control::tests::parallel_sessions_keep_main_identity_and_roles_while_unconnected_capabilities_change",
+        "session_control::tests::public_session_invite_accept_leave_role_and_end_keep_general_presence_and_main_id",
+        "session_control::tests::removed_and_readmitted_targets_require_a_new_original_invitation_epoch",
+        "session_control::tests::original_session_receipt_and_source_facts_survive_backup_and_capability_storage_failure_recovers",
+        "session_control::tests::solo_session_keeps_one_original_participant_and_can_grow_without_rewriting_replay",
+        "session_control::tests::terminal_session_journal_keeps_original_metadata_for_each_authorized_recipient",
+        "transitions::initial_telephone::tests::answer_accepts_only_own_invited_participant_without_publishing_readiness",
+        "session_control::tests::screen_upgrade_requires_original_offer_and_own_explicit_acceptance",
+        "session_control::tests::terminal_record_intent_preserves_each_explicit_numeric_reason_code",
+        "transitions::initial_telephone::tests::connected_answer_requires_exact_observation_and_cleanup_retries_emit_once",
+        "transitions::initial_telephone::tests::connected_phone_uses_own_endpoint_and_route_after_caller_credential_is_revoked",
+        "transitions::initial_telephone::tests::gateways::configured_gateway_sip_uri_uses_only_verified_endpoint_and_exact_configured_authority",
+        "transitions::initial_telephone::tests::gateways::configured_gateway_tel_and_identity_selectors_keep_original_member_and_once_only_intent",
+        "transitions::initial_telephone::tests::gateways::frozen_uri_revision_cannot_adopt_a_later_verified_endpoint_revision",
+        "transitions::initial_telephone::tests::gateways::gateway_resolution_and_invitation_rows_roll_back_together_then_same_intent_recovers",
+        "transitions::initial_telephone::tests::gateways::original_uri_receipt_cannot_retarget_after_endpoint_revocation_and_address_reassignment",
+        "transitions::initial_telephone::tests::gateways::uri_aliases_cannot_invite_one_participant_twice_or_resolve_an_outside_identity",
+        "transitions::initial_telephone::tests::initial_allocation_and_signaling_are_once_only_with_exact_immutable_dialog_binding",
+        "transitions::initial_telephone::tests::initial_cancel_after_submission_preserves_unknown_quota_and_forbids_generic_completion",
+        "transitions::initial_telephone::tests::initial_cancel_before_submission_retires_only_the_dormant_reservation",
+        "transitions::initial_telephone::tests::initial_confirmed_cleanup_retires_an_already_fenced_session_end_without_another_generation",
+        "transitions::initial_telephone::tests::initial_database_dialog_and_once_only_markers_cannot_be_rewritten_or_deleted",
+        "transitions::initial_telephone::tests::initial_endpoint_policy_change_cannot_derive_a_second_child_under_the_same_invitation",
+        "transitions::initial_telephone::tests::initial_invite_child_replay_preserves_ids_owner_endpoint_and_has_no_io_or_acceptance",
+        "transitions::initial_telephone::tests::initial_local_absence_preserves_unknown_submission_and_records_separate_cleanup",
+        "transitions::initial_telephone::tests::initial_ready_activation_storage_failure_retries_metadata_without_new_media_or_operation_effects",
+        "transitions::initial_telephone::tests::initial_ready_phone_waits_for_other_accepted_participants_and_rows_cannot_rebuild_origin_custody",
+        "transitions::initial_telephone::tests::initial_receive_projection_is_original_source_scoped_and_metadata_retry_is_exact",
+        "transitions::initial_telephone::tests::initial_selected_policy_cannot_change_intent_or_borrow_another_identity",
+        "transitions::initial_telephone::tests::initial_recovery_without_signaling_can_retire_dormant_but_submission_stays_unknown",
+        "transitions::initial_telephone::tests::initial_source_requires_actual_successful_exact_invitation_and_explicit_target",
+        "transitions::initial_telephone::tests::initial_unknown_attempt_continues_to_consume_capacity_for_a_new_invitation",
+        "transitions::initial_telephone::tests::gateways::gateway_selectors_refuse_current_credential_device_endpoint_host_and_recipient_withdrawal",
+        "transitions::initial_telephone::tests::initial_withdrawal_after_the_submission_marker_issues_no_fresh_packet_interval",
+        "transitions::initial_telephone::tests::initial_withdrawal_in_allocation_to_signaling_gap_performs_no_submission",
+        "transitions::initial_telephone::tests::observed_answer_survives_withdrawn_authority_without_accepting_or_redialing",
+        "transitions::initial_telephone::tests::initial_ready_activation_rechecks_endpoint_route_generation_runtime_and_membership",
+        "transitions::initial_telephone::tests::unready_session_scan_does_not_queue_a_writer_behind_an_existing_media_interval",
+        "transitions::initial_telephone::tests::unsupported_answer_codec_keeps_fact_and_rolls_back_own_acceptance"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-uri/store-current.log",
+        "sha256": "63f7699071632e76a746827e7e3bf0cbbf199994f894bf35b30a09ba6e343583"
+      }
+    },
+    {
+      "name": "production-new",
+      "crate": "connect-server",
+      "passed": 4,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::gateways::production_gateway_unknown_and_revoked_uri_refuse_before_any_sip_effect",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::gateways::production_http_uri_invitation_shares_native_receipt_and_actual_gateway_duplex",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::gateways::production_identity_invitation_reaches_original_configured_gateway_member",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::gateways::production_native_uri_invitation_executes_verified_tel_and_sip_gateway_once"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-uri/production-new.log",
+        "sha256": "d0842dd1209e26244a16f8ceaeee195470c826eb875605de948a7c7d7d1135c7"
+      }
+    },
+    {
+      "name": "production-regressions",
+      "crate": "connect-server",
+      "passed": 17,
+      "failed": 0,
+      "test_names": [
+        "auxiliary_clauses::production_auxiliary_invitation_sources_preserve_current_target_slots",
+        "auxiliary_clauses::production_auxiliary_owned_invitations_and_correlated_decisions",
+        "auxiliary_clauses::production_auxiliary_session_identity_targets_keep_current_authority_and_original_intent",
+        "auxiliary_clauses::production_owned_decisions_relay_to_exact_caller_and_recover_after_disconnect",
+        "auxiliary_clauses::production_owned_invitation_decisions_require_configured_human_consent_and_new_waiter",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_sip_last_ready_recovers_recording_without_redial_or_another_native_packet",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_codec_refusal_preserves_answer_without_acceptance",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_no_answer_deadline_replay_never_redials",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_while_ringing_cancels_exact_dialog",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_refusal_before_allocation_does_not_poison_drain",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_revocation_while_ringing_preserves_uncertainty_and_cleans_up",
+        "general_session_control::http_only_session_creates_empty_checked_core_and_later_native_attaches_without_recreation",
+        "general_session_control::signed_and_http_general_session_lifecycle_share_four_party_receipts_and_current_views",
+        "general_session_control::signed_session_projection_uses_actual_physical_peers_and_replay_cannot_resurrect_end"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-uri/production-regressions.log",
+        "sha256": "cd634b1431695e407b0fc138eb1110fe401d062b94c4918275ae79651bbc284a"
+      }
+    }
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "12f8248f0be31e7bfc35af45c25733fe87d71356fd11f535927cab438bfa47cd"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/session-uri/inputs.json",
+    "sha256": "e0318c21c82d4accfd857567b751eecf2fc1b5d44004df61a19e262d7421264a"
+  },
+  "source_input_count": 1886,
+  "sources_unchanged_at_final_capture_and_report": true,
+  "compiler_configuration": "CARGO_INCREMENTAL=1; locked/offline dev/test builds; target/debug cache on home storage.",
+  "binaries": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-393a7b721b0d1556",
+      "sha256": "8fde34869ae9714a6012e832e034d666c463615797bc7f5be35a461a3c338649"
+    },
+    {
+      "path": "target/debug/deps/connect_store-500690b8d898aed1",
+      "sha256": "8ddbe14973f6417d7029e5041faff28555ccdf5a9a1de314875430922dbded08"
+    },
+    {
+      "path": "target/debug/deps/rvoip_uctp-0b1cc0db289541ed",
+      "sha256": "530151b67dfe61121ae95ed25d7cbd5c8178b1f649d7b7abfe4322affe64915a"
+    },
+    {
+      "path": "target/debug/deps/connect_protocol-82898a30c1ec228a",
+      "sha256": "5f5ef64a866c63bd566f8bcde4a9522240a57b2f3211f09f92c5e40d1bb7a9c5"
+    }
+  ],
+  "actual_observations": {
+    "file": {
+      "path": ".local/gate-6/session-uri/gateway-samples.jsonl",
+      "sha256": "fa56226b0f59a4cf1ad7ccf3332475b1e65a3a367f947850beb5e0e6ffa90a58"
+    },
+    "validator": {
+      "path": ".local/gate-6/session-uri/wire-validation.log",
+      "sha256": "e9bc1707e3c700acb4ca126b233aceb80084486deec717497e19c6feee4ae9e7"
+    },
+    "successful_duplex_fixtures": 10,
+    "no_IO_refusal_fixtures": 4,
+    "scenarios": [
+      {
+        "algorithm": "EdDSA",
+        "reference_kind": "uri",
+        "scheme": "tel",
+        "http_first": true,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "EdDSA",
+        "reference_kind": "uri",
+        "scheme": "sip",
+        "http_first": true,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "ES256",
+        "reference_kind": "uri",
+        "scheme": "tel",
+        "http_first": true,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "ES256",
+        "reference_kind": "uri",
+        "scheme": "sip",
+        "http_first": true,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "EdDSA",
+        "reference_kind": "identity",
+        "scheme": "identity",
+        "http_first": false,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "ES256",
+        "reference_kind": "identity",
+        "scheme": "identity",
+        "http_first": false,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "EdDSA",
+        "reference_kind": "uri",
+        "scheme": "tel",
+        "http_first": false,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "EdDSA",
+        "reference_kind": "uri",
+        "scheme": "sip",
+        "http_first": false,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "ES256",
+        "reference_kind": "uri",
+        "scheme": "tel",
+        "http_first": false,
+        "sip_calls": 1
+      },
+      {
+        "algorithm": "ES256",
+        "reference_kind": "uri",
+        "scheme": "sip",
+        "http_first": false,
+        "sip_calls": 1
+      }
+    ]
+  },
+  "verification": {
+    "build-uri-normalization": {
+      "path": ".local/gate-6/session-uri/build-uri-normalization.log",
+      "sha256": "1a4f97f41042596c3e5a9da342a1be20978052738bce666a402767a717c119e7"
+    },
+    "check-service-final": {
+      "path": ".local/gate-6/session-uri/check-service-final.log",
+      "sha256": "05683eadde7be2296d188229080a58e3ed42b6fd25b4c2ef0047b79345ed195d"
+    },
+    "dependencies": {
+      "path": ".local/gate-6/session-uri/dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "format-check": {
+      "path": ".local/gate-6/session-uri/format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "openapi-check": {
+      "path": ".local/gate-6/session-uri/openapi-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "schemas": {
+      "path": ".local/gate-6/session-uri/schemas.log",
+      "sha256": "4265b1af9a5c15e7bde6dc80d49af297bddaae565a9271f127546d3c3b569f77"
+    },
+    "plan-check": {
+      "path": ".local/gate-6/session-uri/plan-check.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  },
+  "clause_evidence": {
+    "u6-req-0082": "The published dedicated SessionTarget type accepts URI references only in invitation selectors; ordinary routing/resource IDs retain their alphabet and128-byte bound. Current fixed-schema vectors and shared typed decoder agree. Both algorithms exercise actual native and HTTP Session commands preserving original from/to/medium/intent/capability intent, actual configured tel/sip routing, mixed start and duplex; current invitation regressions retain the six native media alternatives.",
+    "u6-req-0083": "Current Participant/Identity references retain their original request digest and resolve to exact current member epochs. tel/sip references require a current configured owner-bound gateway registration and exact verified Endpoint/Device/current Conversation member, current Endpoint/route credentials, tenant and recipient authority. Schema99 freezes Endpoint ID/revision/address/policy with the original source; revocation/address reassignment cannot redirect original replay. Removed/unknown/unconfigured/revoked/duplicate targets refuse, and insertion failure rolls back resolution/source/Session atomically. Actual gateway IO independently rechecks current rights; URI text is never a dial grant."
+  },
+  "limits": [
+    "Local macOS arm64, signed native QUIC and the public HTTP SDK, with an actual isolated UDP SIP peer. Ten successful duplex fixtures cover both EdDSA and ES256: native/HTTP tel and sip selectors plus Identity-ID initial gateway execution. Four separate refusal fixtures exercise unknown native URI and revoked-Endpoint HTTP commands with no SIP effect.",
+    "The configured initial gateway is an audio UDP SIP host. URI selectors do not create Identities, admit Conversation members, grant media, dial arbitrary network authorities or discover a global directory. Other media/transport and Linux/browser/named remote/provider profiles keep their assigned tasks; sips/TLS is not advertised as a successful host transport.",
+    "The public SDK verified actual received signatures. The additional Python check validates the ten captured reply/start shapes, original durable references, real Request-URI normalization, once-only SIP calls and mixed readiness; it is not an independent cryptographic verifier.",
+    "One first-run Identity fixture returned unknown for a native stream subscription while Store/control tests also ran. The cause remains unproven. It did not recur in the isolated repeat or corrected complete run; the observation remains open for u6-req-0123 stream/fault qualification. No general liveness/performance or complete stream-reliability claim is inferred.",
+    "Method totals are scoped to this current component:128 distinct methods, not a sum with the historical232-method mixed activation report. Source independent conformance remains G6-094. G6-046, all105 tasks, acceptance and publication remain incomplete."
+  ],
+  "historical_failed_runs": [
+    {
+      "path": ".local/gate-6/session-uri/production-before-uri-capture-fix.log",
+      "sha256": "27496eb9defca4f5f20f7b813dd633d789dda2ca9c55e6f65f3cfaeca688a2cf"
+    },
+    {
+      "path": ".local/gate-6/session-uri/identity-debug.log",
+      "sha256": "d5e6652aff5a9693a6558f942d3a174d47a1b8375836660ea064ffaaf50206a4"
+    }
+  ],
+  "corrected_during_verification": [
+    "The initial observer compared the To display header with the actual network destination and assumed every initial Request-URI user was a phone number. The real UDP peer now records the immutable initial Request-URI, keeps the original phone-user assertion and checks the configured SIP user separately. Parsed complete URI equality handles the legitimate percent-encoded plus sign without weakening route or packet assertions.",
+    "The original initial host looked for literal Participant IDs in a request even when the logical invitation used an Identity ID. The host and protected source now use the immutable original invitation targets; the original requested reference remains unchanged in its receipt and source."
+  ],
+  "unresolved_observations": [
+    {
+      "scope": "u6-req-0123",
+      "observation": "First-run Identity fixture native stream subscription returned unknown; cause unproven, later checks pass, no resolution or broader reliability pass inferred.",
+      "artifact": {
+        "path": ".local/gate-6/session-uri/production-before-uri-capture-fix.log",
+        "sha256": "27496eb9defca4f5f20f7b813dd633d789dda2ca9c55e6f65f3cfaeca688a2cf"
+      }
+    }
+  ],
+  "next_required_work": [
+    "Finish literal G6-046 offer0103, ready-handle0109, cross-substrate DTMF0112/0113/0115 and multiparty selector0123; retain the observed unknown subscription for that remaining qualification.",
+    "Continue all105 tasks in approved dependency order; named remote/provider bounds remain G6-093 and publication is separate."
+  ],
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "revision_change_evidence": "The current Store suite explicitly keeps an original URI receipt historical while refusing physical preparation after a verified Endpoint revision changes; a fresh explicit invitation can use the new revision."
+}

@@ -366,3 +366,50 @@ fn gateway_resolution_and_invitation_rows_roll_back_together_then_same_intent_re
         1
     );
 }
+
+#[test]
+fn frozen_uri_revision_cannot_adopt_a_later_verified_endpoint_revision() {
+    let f = Fixture::new();
+    let _gateway = f
+        .store
+        .install_initial_telephone_gateways(vec![f.policy.clone()])
+        .unwrap();
+    let original = request(&f, "old-revision", vec!["tel:+15555550111".into()]);
+    let first = apply(&f, &original).unwrap();
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE endpoints SET revision=revision+1 WHERE id='initial-phone'",
+            [],
+        )
+        .unwrap();
+    // Receipt replay is history; it cannot renew a pending physical target.
+    assert_eq!(apply(&f, &original).unwrap(), first);
+    assert_eq!(
+        f.store
+            .prepare_initial_telephone(&f.keys[0], original, &f.parts[1], f.policy.clone(),)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT count(*) FROM initial_telephone_operations",
+                [],
+                |r| r.get::<_, u64>(0),
+            )
+            .unwrap(),
+        0
+    );
+    let fresh = request(&f, "new-revision", vec!["tel:+15555550111".into()]);
+    apply(&f, &fresh).unwrap();
+    let origin = f
+        .store
+        .prepare_initial_telephone(&f.keys[0], fresh, &f.parts[1], f.policy.clone())
+        .unwrap();
+    assert_eq!(origin.source().endpoint_revision, 1);
+}

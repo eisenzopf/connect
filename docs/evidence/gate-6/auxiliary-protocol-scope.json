@@ -1201,7 +1201,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "native-forwarding-qualified; URI-alternative-open",
+        "status": "qualified-local-native-http-sip",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1210,18 +1210,20 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
-        "current_evidence": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json"
+        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
+        "current_gateway_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json"
       },
       "local_component_evidence": {
         "report": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
         "case_id": "u6-req-0082",
-        "status": "native-PID-and-Identity-target-forwarding-component-qualified; interop-URI-alternative-open",
+        "status": "historical-native-component; configured-URI-completion-linked",
         "assertions": [
           "Current authenticated idle peers receive original from/to, intent and bounded capabilities without a media Connection or subscription.",
           "All six canonical invitation media pass: voice, video, voice+video, screen-share, text-chat and mixed. The earlier pre-alpha voice-video/data invitation spellings are replaced, not aliased."
         ],
-        "remaining": "Designated interop URI target/gateway integration remains open in0083 and prevents a complete0082 claim."
+        "remaining": "The previously open configured tel/sip URI alternative now has local Connect execution evidence; wider profiles remain assigned downstream.",
+        "gateway_completion_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json"
       }
     },
     {
@@ -1250,7 +1252,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "identity-component-qualified; interop-uri-open",
+        "status": "qualified-local-native-http-sip",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1259,13 +1261,16 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Identity-ID target resolution now passes current member, epoch, recipient ceiling and original-intent checks through Store and signed native/HTTP Connect for EdDSA/ES256. Designated interop URI targets remain required and unqualified.",
-        "current_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json"
+        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
+        "current_gateway_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json"
       },
       "runtime_component_evidence": {
         "report": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
         "qualified": "current member Participant/Identity references, original replay and current authority",
-        "remaining": "designated interop URI targets"
+        "remaining": "The previously open configured tel/sip URI alternative now has local Connect execution evidence; wider profiles remain assigned downstream.",
+        "gateway_completion_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "status": "historical-native-component; configured-URI-completion-linked"
       }
     },
     {
@@ -3122,7 +3127,15 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/future.rs"
         ],
-        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite.",
+        "gateway_run_observation": {
+          "scope": "u6-req-0123",
+          "observation": "First-run Identity fixture native stream subscription returned unknown; cause unproven, later checks pass, no resolution or broader reliability pass inferred.",
+          "artifact": {
+            "path": ".local/gate-6/session-uri/production-before-uri-capture-fix.log",
+            "sha256": "27496eb9defca4f5f20f7b813dd633d789dda2ca9c55e6f65f3cfaeca688a2cf"
+          }
+        }
       }
     },
     {
@@ -3374,8 +3387,8 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Finish the remaining literal G6-046 clauses: URI invitation0082/0083, offer0103, ready-handle0109, native/SIP DTMF0112/0113/0115, and multiparty selector0123.",
-    "Continue all105 approved tasks in dependency order. Named remote/provider rehearsals require G6-093 bounded configuration; publication remains separate.",
+    "Finish literal G6-046 offer0103, ready-handle0109, cross-substrate DTMF0112/0113/0115 and multiparty selector0123; retain the observed unknown subscription for that remaining qualification.",
+    "Continue all105 tasks in approved dependency order; named remote/provider bounds remain G6-093 and publication is separate.",
     "Keep task-scoped enrollment and step-up clauses0061\u20130066 in G6-055 and its prerequisites; preserve all105 tasks and dependency order.",
     "Retain unresolved consultation/provider reliability failures explicitly; named remote/provider rehearsals require G6-093 bounded configuration; full task and acceptance remain open."
   ],
@@ -3665,12 +3678,27 @@
         "The handoff case verifies initial phase/current trusted snapshot after actual public promotion, without new flow. Existing private-origin discovery and record/source visibility checks remain enforced; no broad disclosure of historical private metadata is inferred.",
         "The source ledger independent conformance remains G6-094. The two credits are bounded local Connect qualification, including context0100 as a link to already implemented boundary behavior. G6-046, gate acceptance, publication and all105-task completion remain open."
       ]
+    },
+    "session_gateways": {
+      "report": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+      "status": "qualified-local-native-http-and-loopback-sip",
+      "newly_qualified_case_ids": [
+        "u6-req-0082",
+        "u6-req-0083"
+      ],
+      "limits": [
+        "Local macOS arm64, signed native QUIC and the public HTTP SDK, with an actual isolated UDP SIP peer. Ten successful duplex fixtures cover both EdDSA and ES256: native/HTTP tel and sip selectors plus Identity-ID initial gateway execution. Four separate refusal fixtures exercise unknown native URI and revoked-Endpoint HTTP commands with no SIP effect.",
+        "The configured initial gateway is an audio UDP SIP host. URI selectors do not create Identities, admit Conversation members, grant media, dial arbitrary network authorities or discover a global directory. Other media/transport and Linux/browser/named remote/provider profiles keep their assigned tasks; sips/TLS is not advertised as a successful host transport.",
+        "The public SDK verified actual received signatures. The additional Python check validates the ten captured reply/start shapes, original durable references, real Request-URI normalization, once-only SIP calls and mixed readiness; it is not an independent cryptographic verifier.",
+        "One first-run Identity fixture returned unknown for a native stream subscription while Store/control tests also ran. The cause remains unproven. It did not recur in the isolated repeat or corrected complete run; the observation remains open for u6-req-0123 stream/fault qualification. No general liveness/performance or complete stream-reliability claim is inferred.",
+        "Method totals are scoped to this current component:128 distinct methods, not a sum with the historical232-method mixed activation report. Source independent conformance remains G6-094. G6-046, all105 tasks, acceptance and publication remain incomplete."
+      ]
     }
   },
-  "qualified_clause_count": 53,
-  "remaining_clause_count": 8,
+  "qualified_clause_count": 55,
+  "remaining_clause_count": 6,
   "clause_qualification": {
-    "status": "partial-local-native-and-loopback-sip",
+    "status": "partial-local-native-http-and-loopback-sip",
     "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
     "qualified_case_ids": [
       "u6-req-0069",
@@ -3686,6 +3714,8 @@
       "u6-req-0079",
       "u6-req-0080",
       "u6-req-0081",
+      "u6-req-0082",
+      "u6-req-0083",
       "u6-req-0084",
       "u6-req-0085",
       "u6-req-0086",
@@ -3729,7 +3759,7 @@
     ],
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-    "latest_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json"
   }
 }
