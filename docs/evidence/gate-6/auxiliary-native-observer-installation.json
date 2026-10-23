@@ -1,0 +1,46 @@
+{
+  "task": "G6-046",
+  "title": "Install native observers on the original admitted route across temporary metadata contention",
+  "recorded_at": "2026-10-23T22:52:00.010128+00:00",
+  "status": "bounded-native-registration-fix-verified; full-fifty-subscription-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualified_case_ids": [],
+  "source_lock_patch_count": 171,
+  "store_schema": 103,
+  "implementation": [
+    "Initial subscription/lifecycle/capability/DTMF metadata lookups preserve temporary registry NotReady rather than converting it to forbidden. Native metadata NotReady or Dispatch StorageUnavailable remains authority-busy; other typed errors remain refused. Existing capability-specific typed handling remains intact.",
+    "Initial subscription/lifecycle/DTMF observer installation now uses the same original-deadline native_preflight pattern as capability installation. Retry touches only metadata on the already admitted actual route. It does not repeat preparation, signed parameter negotiation, media admission or durable ready commit. Missing/poisoned/unauthorized state cannot supply a grant.",
+    "The source lock remains171 and Store schema103. HTTP/OpenAPI and developer lifecycle reference describe this bounded initial-installation boundary."
+  ],
+  "verification": {
+    "production_regression_methods_passed": 8,
+    "test_methods": [
+      "canonical_native_connections::handles::production_native_stream_handles_keep_same_peer_connections_distinct_and_foreign_peer_cannot_borrow_them",
+      "canonical_native_connections::production_signed_parameter_mismatch_keeps_preparing_until_exact_confirmation_recovers",
+      "canonical_native_connections::production_cancelled_native_confirmation_cannot_admit_or_mark_ready_and_preserves_other_slot",
+      "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+      "canonical_native_connections::future::production_native_unfiltered_participant_selection_routes_current_audio_and_future_camera",
+      "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+      "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "production_current_key_revocation_retires_signed_client_without_borrowing_new_authority"
+    ],
+    "default_server_test_build_passed": true,
+    "dependencies_prepared": true,
+    "format_script_passed": true,
+    "openapi_generation_check_passed": true,
+    "diff_check_passed": true
+  },
+  "failure_provenance": [
+    "At the previous checkpoint, all50 physical peers stayed live while some native receiver routes retired. A debug full-count run then showed an initial offer fail specifically at lifecycle-registration with forbidden; original publisher26 subsequently had durable retired generation2 state. That failed full-count run is not a pass."
+  ],
+  "partial_full_count_observation": [
+    "With this fix, one actual EdDSA50-Participant run passed all publisher readiness/start/opened/49-other-joined assertions, all49 additional receive-only negotiations and the exact99-runtime-Connection assertion. A2.3-second marked-audio probe observed zero marked packets on all50 peers before any subscription.",
+    "The same full-count method then failed its first stream.subscribe with a signed failed/forbidden receipt. The cause is not yet established. The full method, ES25650-Participant scene,49-way decoded fanout and capture validator are not qualified."
+  ],
+  "unresolved": [
+    "Diagnose the first large-subscribe-1 forbidden receipt without reducing the actual50 participant count or weakening current authority. Full fanout, unsubscribe/replay, departure/removal and future-publication composition remain open.",
+    "Remaining0112/0113/0123 stay open; G6-046 remains58/61 and overall45/105.",
+    "Standalone service units, full workspace, Linux/browser/remote/provider lanes and acceptance are not qualified by this checkpoint; publication remains separate."
+  ]
+}

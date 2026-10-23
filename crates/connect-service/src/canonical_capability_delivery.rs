@@ -227,7 +227,10 @@ impl Runtime {
         a: &AuthorizedEnvelope,
         physical: &Physical,
     ) -> Result<()> {
-        let entry = self.media.entry(id).map_err(|_| Error::forbidden())?;
+        let entry = self
+            .media
+            .entry(id)
+            .map_err(|error| crate::canonical_native::registration_error(error.into()))?;
         let registration = self
             .native
             .native_capability_registration(&self.core, id, a)

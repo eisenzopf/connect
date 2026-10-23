@@ -29,6 +29,21 @@ use rvoip_uctp::{
 };
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
+/// Preserve temporary metadata unavailability while installing observers on an
+/// already admitted original route. The caller retains its original deadline;
+/// no negotiation, media effect, or physical writer is repeated by this retry.
+pub(crate) fn registration_error(
+    error: rvoip_uctp::v2::native_negotiation::NativeOfferError,
+) -> Error {
+    use rvoip_uctp::v2::{auth_dispatch::DispatchError, native_negotiation::NativeOfferError};
+    match error {
+        NativeOfferError::NotReady
+        | NativeOfferError::Dispatch(DispatchError::StorageUnavailable) => {
+            Error::new("authority-busy", "Native observer metadata is busy")
+        }
+        _ => Error::forbidden(),
+    }
+}
 pub(crate) fn intent(
     e: &rvoip_uctp::v2::Envelope,
 ) -> Result<connect_protocol::connection_control::OfferIntent> {
@@ -668,9 +683,13 @@ impl Runtime {
             self.queue_handoff_preparation(entry.clone(), evidence.physical.lifetime.clone());
         }
         *stage = "subscription-reconciliation";
-        self.enable_native_reconciliation(&id, &a)?;
+        self.native_preflight(&a, deadline, || self.enable_native_reconciliation(&id, &a))
+            .await?;
         *stage = "lifecycle-registration";
-        self.enable_native_lifecycle(&id, &a, &evidence.physical)?;
+        self.native_preflight(&a, deadline, || {
+            self.enable_native_lifecycle(&id, &a, &evidence.physical)
+        })
+        .await?;
         *stage = "capability-registration";
         // Capturing listener metadata uses Core try-locks. Contention with the
         // real lifecycle worker is transient; retain the original offer and
@@ -680,7 +699,10 @@ impl Runtime {
         })
         .await?;
         *stage = "dtmf-registration";
-        self.enable_native_dtmf(&id, &a, &evidence.physical)?;
+        self.native_preflight(&a, deadline, || {
+            self.enable_native_dtmf(&id, &a, &evidence.physical)
+        })
+        .await?;
         Ok(Reply {
             record,
             answered: true,

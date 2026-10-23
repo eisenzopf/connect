@@ -84,11 +84,11 @@ impl Runtime {
         let entry = self
             .media
             .entry(id)
-            .map_err(|_| connect_protocol::Error::forbidden())?;
+            .map_err(|error| crate::canonical_native::registration_error(error.into()))?;
         let origin = self
             .native
             .native_request_origin(id, a)
-            .map_err(|_| connect_protocol::Error::forbidden())?;
+            .map_err(crate::canonical_native::registration_error)?;
         self.codec_origins
             .lock()
             .map_err(|_| connect_protocol::Error::storage())?
@@ -102,7 +102,7 @@ impl Runtime {
         });
         self.native
             .enable_native_subscriptions(&self.core, id, a, policy)
-            .map_err(|_| connect_protocol::Error::forbidden())
+            .map_err(crate::canonical_native::registration_error)
     }
 }
 #[async_trait]

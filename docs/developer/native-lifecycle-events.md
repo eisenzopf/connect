@@ -21,6 +21,12 @@ next cadence. This retries observation, without repeating an actual write or a
 business command. Physical cancellation and definitive authority denial still
 retire the observer.
 
+After a confirmed offer, temporary metadata contention while installing native
+subscription, lifecycle, capability or DTMF listeners retries within that offer's
+original deadline. The retry uses its already admitted route; it does not repeat
+preparation, parameter negotiation, media admission or the durable ready commit.
+A missing source or definitive authority failure remains a refusal.
+
 `connection.quality` uses the engine's measured packet and byte counters at the
 default five-second cadence. Its stream IDs and wire Conversation, Session and
 Connection scopes belong to that peer. Unmeasured loss, jitter, RTT and MOS are

@@ -129,7 +129,7 @@ impl Runtime {
         let entry = self
             .media
             .entry(id)
-            .map_err(|_| connect_protocol::Error::forbidden())?;
+            .map_err(|error| crate::canonical_native::registration_error(error.into()))?;
         let registration = self
             .native
             .native_lifecycle_registration(
@@ -141,7 +141,7 @@ impl Runtime {
                     physical: physical.lifetime.clone(),
                 }),
             )
-            .map_err(|_| connect_protocol::Error::forbidden())?;
+            .map_err(crate::canonical_native::registration_error)?;
         physical
             .lifecycle
             .register(id.clone(), registration)
