@@ -1,0 +1,46 @@
+{
+  "format": 1,
+  "component_status": "qualified-local-snapshot-custody",
+  "store_schema": 101,
+  "finding": "The logical snapshot digest omitted both schema101 received-DTMF custody tables. Source-observation changes and recipient write reservations could leave the reported digest unchanged.",
+  "change": "Include received_dtmf_sources and received_dtmf_recipients in schema101 logical snapshot inspection, hashing every column through the existing deterministic row encoding. Older schema digest selection is unchanged; live source/recipient immutability and delivery authorization are unchanged.",
+  "verification": {
+    "new_controlled_methods": 2,
+    "received_dtmf_store_methods": 11,
+    "schema_backup_recovery_methods": 4,
+    "wal_receipts_and_capacity_methods": 2,
+    "distinct_methods": 17,
+    "passed": true,
+    "cases": [
+      "An original actual Store source is frozen and backed up. Only its offline-copy observation digits are altered after removing the copy-only immutability trigger; current inspection detects the changed logical digest. No live source protections are removed.",
+      "A legitimate current recipient reserves its original frame through the public Store method. Operation status remains identical, while the backup digest detects the recipient-only reservation.",
+      "Schema refusal, immutable constraints, IDs/private audiences/unknown effects and WAL receipts/events/cursors remain covered by existing backup/recovery checks."
+    ],
+    "before_fix": "Both new cases fail at unchanged digest assertions (0pass/2fail), confirming the omission.",
+    "commands": [
+      "bash scripts/prepare-dependencies.sh",
+      "bash scripts/format.sh",
+      "CARGO_INCREMENTAL=1 cargo test -p connect-store --lib --target-dir <private isolated target> --locked --offline -j4 received_dtmf:: -- --test-threads=1",
+      "CARGO_INCREMENTAL=1 cargo test -p connect-store --test recovery --test gate6_schema --target-dir <same private isolated target> --locked --offline -j4 -- --test-threads=1",
+      "python3 scripts/generate-canonical-http-openapi.py --check",
+      "python3 scripts/check-gate6-progress.py"
+    ]
+  },
+  "inputs": {
+    "Cargo.lock": "3d43b79adda5b07b6770acfe3666217fb6ee3c702fabfff11847c96f68226df3",
+    "crates/connect-store/src/recovery.rs": "53f0a317cc332eca41c0869ae5f954efabc46ab1c06ee411bb67e8b2ae80f63d",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/received_dtmf.rs": "e6d2cca152e4d4c4a87f847e86360b676a4feb7cfc8af8d91956679b53946bee"
+  },
+  "logs": {
+    "prepare-snapshot101-final.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "store-snapshot101-before.log": "7db8a57ca0593fbeda29bb7ca1bec3323edb841c29ed4356999ce0128d030d98",
+    "store-received-snapshot101-final.log": "e1db50701c17fc90a248b4681341bddfa40f77dfb51905442a2418e42675191e",
+    "store-recovery-snapshot101-final.log": "fdc6df02ad7579999444832200b0c70a90b9d5becabf9a06f5d188c4f1acb3d9"
+  },
+  "manifest_effect": "Schema101 snapshot digests intentionally change because their custody coverage is corrected, including table identity for empty tables. Reinspect/regenerate a schema101 manifest with the current inspector; do not accept an old expected digest as equivalent. No legacy digest compatibility path is added.",
+  "limits": [
+    "45/105 tasks complete; G6-04656/61 clauses; no new whole credit.",
+    "This is local logical snapshot fidelity, not source-payload retention/redaction or physical delivery/restart/remote qualification.",
+    "The current production audio169 build and SIP tests remain separately pending."
+  ]
+}

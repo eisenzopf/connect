@@ -385,3 +385,43 @@ fn received_dtmf_metadata_owner_and_sql_seals_refuse_forged_provenance() {
     let c = f.store.connection().unwrap();
     for sql in ["UPDATE received_dtmf_sources SET observation_json=json_set(observation_json,'$.digits','9')", "UPDATE received_dtmf_recipients SET registration_id='replacement'", "DELETE FROM received_dtmf_sources", "DELETE FROM received_dtmf_recipients"] {assert!(c.execute(sql,[]).is_err(),"{sql}");}
 }
+
+#[test]
+fn received_dtmf_snapshot_digest_covers_original_source_observation() {
+    let (f, n, p) = sip_signal::fixture();
+    let _batch = freeze(&f, &n, &p, observed());
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("received-source.sqlite3");
+    let original = f.store.backup(&path).unwrap();
+    assert_eq!(crate::Store::inspect_snapshot(&path).unwrap(), original);
+    let c = rusqlite::Connection::open(&path).unwrap();
+    // Adversarial offline copy only: live source custody remains immutable.
+    // Logical row digests must detect changed contents even in such a copy.
+    c.execute_batch("DROP TRIGGER received_dtmf_source_immutable;
+        UPDATE received_dtmf_sources SET observation_json=json_set(observation_json,'$.digits','9');")
+        .unwrap();
+    drop(c);
+    let changed = crate::Store::inspect_snapshot(&path).unwrap();
+    assert_eq!(changed.schema, original.schema);
+    assert_eq!(changed.installation_id, original.installation_id);
+    assert_ne!(changed.digest, original.digest);
+}
+
+#[test]
+fn received_dtmf_snapshot_digest_covers_recipient_write_reservation() {
+    let (f, n, p) = sip_signal::fixture();
+    let batch = freeze(&f, &n, &p, observed());
+    let dir = tempfile::tempdir().unwrap();
+    let before = f.store.backup(&dir.path().join("before.sqlite3")).unwrap();
+    let operation = get(&f, &batch).unwrap();
+    let read = f.store.try_received_dtmf_read(&batch.targets()[0]).unwrap();
+    f.store
+        .try_start_received_dtmf_write(&read, "reserved-original-frame")
+        .unwrap();
+    drop(read);
+    let after = f.store.backup(&dir.path().join("after.sqlite3")).unwrap();
+    assert_eq!(get(&f, &batch).unwrap(), operation);
+    assert_eq!(before.schema, after.schema);
+    assert_eq!(before.installation_id, after.installation_id);
+    assert_ne!(before.digest, after.digest);
+}

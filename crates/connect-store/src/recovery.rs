@@ -54,6 +54,9 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     let mut digest = Sha256::new();
     digest.update(schema.to_be_bytes());
     let mut tables = vec!["installation", "identities", "credentials"];
+    if schema >= 101 {
+        tables.extend(["received_dtmf_sources", "received_dtmf_recipients"]);
+    }
     if schema >= 100 {
         tables.extend([
             "native_dtmf_sources",
