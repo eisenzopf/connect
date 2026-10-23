@@ -261,6 +261,6 @@
       "protocol_log_sha256": "3c632a072c2b86fadd1f6eab682ead50f9bc2c6f214c69463378d314b69880a8",
       "store_log_sha256": "cc48d37838ddc7213c7034176c2c812bebc84512d6f7a96d91049b622a611f91"
     },
-    "qualification": "Actual final source production rerun remains pending. Normal INFO/RFC4733 delivery had passed both algorithms before this correction; the first fractional timing scene failed and is not credited."
+    "qualification": "Final installed default source cases now pass under both algorithms, including fractional/incomplete refusals and fresh same-call recovery. See auxiliary-received-dtmf-delivery.json. The failed initial floor-assumption run remains recorded."
   }
 }
