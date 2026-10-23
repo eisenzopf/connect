@@ -3638,6 +3638,15 @@
         "Current worker qualification covers compatible per-peer fallback/no-change, independent explicit routes, current credential refresh, observer-to-agent role/replay, actual signed preparations, independent FFmpeg duplex decoding, captured-recording retries, partial uncertainty and no physical resubmission. Wider multiparty/per-Participant Connection fanout, composed independent hold/mute, admission/cancel/crash matrices and other transport profiles retain their assigned checks. Existing direct codec/gate and retained-selector regressions are evidence for those tested paths, not a substitute for every Session-worker composition.",
         "The schema98 explicit fresh-state boundary is unchanged. No automatic conversion, gate acceptance, publication, G6-046 completion or all105-task completion is claimed. Source-ledger independent conformance remains assigned G6-094; the two clause credits here are the same partial local Connect qualification used by prior component reports."
       ]
+    },
+    "session_activation_native": {
+      "report": "docs/evidence/gate-6/auxiliary-session-activation-native.json",
+      "status": "partial-native-component-no-new-clause-credit",
+      "case_id": "u6-req-0085",
+      "remaining": [
+        "This is an incomplete native implementation increment for u6-req-0085, with no new clause credit. Mixed SIP/native startup, initial and replacement telephone readiness, activation after accepted-set changes or public handoff/private-return promotion, and the full transition matrix remain required before that clause can close.",
+        "The original Session start remains immutable. Its negotiated_capabilities currently comes from the final native flow observation; full mixed-source capability aggregation remains required."
+      ]
     }
   },
   "qualified_clause_count": 51,
@@ -3701,6 +3710,6 @@
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
     "latest_evidence": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-activation-native.json"
   }
 }

@@ -1,0 +1,355 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "passed": true,
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T09:07:25.478914+00:00",
+  "schema_version": 98,
+  "source_lock_patches": 158,
+  "scope": "Initial native Session readiness requires actual observed current public Connections covering each accepted Participant, rather than connection count or provisional readiness metadata.",
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 51,
+  "assigned_clause_count": 61,
+  "clause_in_progress": "u6-req-0085",
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "2be75f12a091022558a11d502e8ad0fd3ebd5d2155a41ba66c434d8523db3b4e"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/session-participants/activation-inputs.json",
+    "sha256": "1c39633c84b434d51e2a9b6375bed027efbdb3be2b6c011ce74c1b155d04d974"
+  },
+  "sources_unchanged": true,
+  "source_input_count": 1876,
+  "rust_test_methods": 194,
+  "results": [
+    {
+      "name": "activation-store-final",
+      "passed": 181,
+      "failed": 0,
+      "log": {
+        "path": ".local/gate-6/session-participants/activation-store-final.log",
+        "sha256": "362261ed11aeebefd114736cc53d0b3fc2ed52594fb9ed1111759beebf3e3e8c"
+      },
+      "test_names": [
+        "connection_control::tests::native_stream_authority::capabilities::native_capability_recording_is_atomic_and_delayed_receipt_cannot_revive_retired_media",
+        "connection_control::tests::native_stream_authority::captured_native_connection_end_records_after_storage_failure_and_cancel_without_advancing_stream_revision",
+        "connection_control::tests::native_stream_authority::capabilities::native_capability_original_replay_preserves_newer_exact_descriptor_and_media_bindings",
+        "connection_control::tests::native_stream_authority::additive_upgrade_requires_settled_current_native_slots_and_preserves_their_bindings",
+        "connection_control::tests::native_stream_authority::codecs::native_codec_captured_result_records_after_journal_failure_cancellation_and_actual_retirement_without_revival",
+        "connection_control::tests::native_stream_authority::codecs::native_codec_custody_keeps_exact_original_intent_one_effect_and_actual_binding_metadata",
+        "connection_control::tests::native_stream_authority::codecs::native_codec_permission_is_separate_from_creating_the_connection_and_is_current_on_status",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_does_not_strand_an_original_pending_native_control",
+        "connection_control::tests::native_stream_authority::captured_native_stream_outcome_records_once_after_cancel_and_never_revives_a_retired_parent",
+        "connection_control::tests::native_stream_authority::codecs::native_codec_restart_retains_unknown_original_effect_and_rejects_old_captured_success",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_new_stream_intent_uses_observed_successor_not_predecessor",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_observed_epoch_preserves_source_ids_and_rejects_old_origin",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_refusal_before_submission_keeps_original_authority",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_signal_only_epoch_does_not_need_or_restore_media_permission",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_uncertain_submission_never_lends_either_epoch_or_resubmits",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_restart_classifies_submission_without_reusing_custody",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_wrong_core_observation_cannot_publish_successor_metadata",
+        "connection_control::tests::native_stream_authority::credential_refresh::session_codecs::session_codec_child_uses_the_observed_current_credential_epoch_and_never_the_original_one",
+        "connection_control::tests::native_stream_authority::current_native_stream_source_binds_parent_and_reads_without_effect_or_receipt",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_admission_atomically_keeps_one_message_and_original_audience_without_a_publication_effect",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_all_replay_keeps_original_epoch_snapshots_after_presence_changes",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_attempt_cannot_be_completed_as_a_subscription",
+        "connection_control::tests::native_stream_authority::credential_refresh::credential_refresh_requires_exact_old_credential_device_key_and_current_successor",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_cancel_before_publication_keeps_durable_message_and_never_starts_an_effect",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_capacity_refusal_leaves_no_partial_message_or_identity",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_changed_identity_scope_encoding_audience_and_extensions_conflict_before_new_work",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_captured_queue_receipt_recovers_after_cancel_and_storage_failure_without_reviving_parent",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_journal_failure_rolls_back_message_audience_and_root_then_same_id_recovers",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_message_does_not_enqueue_an_ambient_provider_route",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_queue_receipt_is_local_admission_without_stream_revision_or_delivery_claim",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_shares_message_and_logical_identity_namespaces_with_ordinary_messages",
+        "connection_control::tests::native_stream_authority::data_custody::native_data_successor_preserves_uncertainty_message_and_original_effect_without_resubmission",
+        "connection_control::tests::native_stream_authority::data_reads::native_data_read_connection_creation_does_not_grant_subscription_permission",
+        "connection_control::tests::native_stream_authority::data_reads::native_data_read_cancellation_and_source_revocation_stop_queued_delivery_without_new_identity",
+        "connection_control::tests::native_stream_authority::data_reads::native_data_read_held_current_check_uses_no_store_lock_and_fresh_contention_refuses",
+        "connection_control::tests::native_stream_authority::data_reads::native_data_read_exact_intent_and_original_audience_cannot_be_substituted",
+        "connection_control::tests::native_stream_authority::data_reads::native_data_read_requires_one_begun_original_message_and_has_no_writer_effect",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_callback_refuses_store_contention_immediately_and_retries_same_identity",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_capacity_is_reserved_before_write_and_exchanged_for_exactly_one_fact",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_genuine_unaddressed_target_cannot_reserve_or_record_a_write_and_refusal_releases_without_facts",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_historical_fact_survives_cancel_revocation_and_retired_target_without_revival",
+        "connection_control::tests::native_stream_authority::data_reads::native_data_read_current_target_permission_presence_and_data_floor_are_independent",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refusal_before_admission_is_recorded_but_cannot_become_written",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refuses_wrong_source_message_operation_target_and_store_without_facts",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_sqlite_writer_contention_never_waits_and_preserves_pending_identity",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_storage_failure_retains_original_reservation_and_same_callback_recovers",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_reserves_before_io_and_records_one_typed_local_fact_without_completing_queue_work",
+        "connection_control::tests::native_stream_authority::data_writes::native_data_writer_successor_marks_only_pending_original_writes_unknown_and_rejects_old_tokens",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_definite_no_effect_failure_releases_control_without_a_delivery_claim",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_cancellation_preserves_the_actual_attempt_cutoff_and_reserved_identity",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_preserves_exact_intent_and_replay_never_creates_another_attempt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_attempt_cannot_be_completed_with_a_media_or_descriptor_receipt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_needs_its_named_signal_permission_and_a_current_completed_physical_parent",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_source_schema_rejects_malformed_sequences_even_without_rust_validation",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_stale_revision_fails_durably_before_any_signal_attempt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_successor_recovers_original_uncertainty_without_automatic_resubmission",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_actual_signal_read_holds_both_current_identity_intervals_and_refuses_a_queued_writer",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_captured_fact_survives_revocation_and_retirement_without_reviving_io",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_acceptance_cannot_lend_old_authority_to_a_later_signal_attempt",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freeze_capacity_failure_leaves_no_half_source_or_recipient_set",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freezes_actual_observation_and_recipient_without_payload_provenance_or_an_idle_reader",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_outcome_storage_failure_rolls_back_its_fact_and_original_token_recovers_without_io",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_current_source_and_recipient_signal_rights_are_rechecked_after_queueing",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_requires_separate_named_receive_permission_before_freezing_any_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_partial_known_submission_and_cancelled_no_effect_have_truthful_distinct_outcomes",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserved_outcome_and_final_state_can_finish_at_the_exact_shared_journal_capacity",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_selection_uses_held_named_grants_without_freezing_or_retaining_readers",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserves_one_actual_output_frame_and_records_immutable_local_submission_once",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_signal_only_source_and_receiver_keep_pair_ceilings_without_media_grants",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_source_and_sealed_recipient_binding_reject_changed_observation_and_late_targets",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_storage_contention_refuses_before_a_frame_is_reserved_and_preserves_original_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_successor_recovers_reserved_frames_as_unknown_and_unstarted_recipients_without_replay",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_unknown_local_outcome_preserves_identity_and_frees_only_stopped_control_work",
+        "connection_control::tests::native_stream_authority::flow_facts::activation::session_activation_can_publish_observed_join_before_start_without_reviving_terminal_session",
+        "connection_control::tests::native_stream_authority::flow_facts::activation::session_activation_does_not_require_expired_parent_intent_or_reconstruct_an_origin",
+        "connection_control::tests::native_stream_authority::flow_facts::activation::session_activation_never_reconstructs_actual_origins_from_observed_rows",
+        "connection_control::tests::native_stream_authority::flow_facts::activation::session_activation_requires_participant_coverage_not_just_ready_connection_count",
+        "connection_control::tests::native_stream_authority::flow_facts::activation::session_activation_waits_for_each_accepted_participant_and_keeps_one_original_start",
+        "connection_control::tests::native_stream_authority::flow_facts::flow_fact_failure_rolls_back_and_original_source_can_recover_after_storage_returns",
+        "connection_control::tests::native_stream_authority::flow_facts::lifecycle_hint_metadata_poll_does_not_take_the_foreground_connection_mutex",
+        "connection_control::tests::native_stream_authority::flow_facts::original_flow_fact_is_immutable_and_recapture_does_not_create_effects_or_rewrite_time",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_queued_target_cannot_borrow_removed_signal_scope_key_device_endpoint_or_member_epoch",
+        "connection_control::tests::native_stream_authority::flow_facts::participant_departure_keeps_owner_correlation_and_original_removed_recipient_epoch",
+        "connection_control::tests::native_stream_authority::flow_facts::participant_join_failure_is_atomic_and_original_facts_survive_role_changes_and_terminal_loss",
+        "connection_control::tests::native_stream_authority::flow_facts::reconnect_connected_native_activation_preserves_started_session_without_requiring_new_packets",
+        "connection_control::tests::native_stream_authority::flow_facts::reconnect_current_pending_offer_preserves_session_after_grace_until_permission_is_revoked",
+        "connection_control::tests::native_stream_authority::flow_facts::reconnect_expired_before_timer_reconciliation_refuses_preparation_without_a_dormant_slot",
+        "connection_control::tests::native_stream_authority::flow_facts::reconnect_expiry_storage_failure_rolls_back_terminal_state_and_retry_keeps_one_fact",
+        "connection_control::tests::native_stream_authority::flow_facts::activation::session_activation_excludes_retired_foreign_runtime_and_revoked_ready_sources",
+        "connection_control::tests::native_stream_authority::flow_facts::reconnect_failed_pending_offer_ends_once_and_blocks_new_offers_after_deadline",
+        "connection_control::tests::native_stream_authority::flow_facts::reconnect_policy_defaults_to_thirty_seconds_and_freezes_at_invitation",
+        "connection_control::tests::native_stream_authority::flow_facts::reconnect_scan_is_read_only_and_connected_session_never_expires_from_silence",
+        "connection_control::tests::native_stream_authority::flow_facts::session_start_failure_rolls_back_readiness_phase_and_journal_then_recovers_one_original_fact",
+        "connection_control::tests::native_stream_authority::flow_facts::terminal_native_hint_uses_original_fact_and_current_captured_epoch_and_ceiling",
+        "connection_control::tests::native_stream_authority::gates::gate_capture_replay_keeps_original_outcome_without_resetting_a_newer_state",
+        "connection_control::tests::native_stream_authority::gates::gate_captured_outcome_rolls_back_with_journal_then_recovers_original_after_cancel",
+        "connection_control::tests::native_stream_authority::gates::gate_historical_completion_cannot_revive_retired_or_successor_runtime",
+        "connection_control::tests::native_stream_authority::gates::gate_replay_and_status_require_current_update_permission",
+        "connection_control::tests::native_stream_authority::native_connection_end_cannot_use_subscription_success_or_another_generation_absence",
+        "connection_control::tests::native_stream_authority::flow_facts::reconnect_revoked_credential_ceiling_endpoint_and_stale_runtime_cannot_extend_grace",
+        "connection_control::tests::native_stream_authority::gates::gate_capture_refuses_wrong_action_target_generation_and_codec_receipt",
+        "connection_control::tests::native_stream_authority::native_connection_end_requires_its_own_named_grant_and_retains_exact_optional_revision",
+        "connection_control::tests::native_stream_authority::native_data_source_all_audience_is_current_present_epochs_and_refuses_a_left_explicit_recipient",
+        "connection_control::tests::native_stream_authority::native_data_source_cannot_borrow_binding_authority_or_an_unready_native_parent",
+        "connection_control::tests::native_stream_authority::native_data_source_creation_permission_does_not_grant_message_publication_permission",
+        "connection_control::tests::native_stream_authority::native_data_source_projection_owns_current_parent_and_exact_message_without_effect_or_receipt",
+        "connection_control::tests::native_stream_authority::native_data_source_rechecks_message_label_actor_audience_and_revision",
+        "connection_control::tests::native_stream_authority::native_stream_expired_attempt_becomes_unknown_and_keeps_its_effect_identity",
+        "connection_control::tests::native_stream_authority::native_stream_cancellation_distinguishes_no_attempt_and_uncertain_attempt",
+        "connection_control::tests::native_stream_authority::native_stream_identity_retains_extensions_and_only_one_attempt_and_open_control",
+        "connection_control::tests::native_stream_authority::native_stream_racing_attempts_and_failed_journal_commit_do_not_duplicate_an_effect",
+        "connection_control::tests::native_stream_authority::native_stream_journal_and_receipt_reservations_protect_cancellation_at_capacity",
+        "connection_control::tests::native_stream_authority::native_stream_recovery_key_can_read_but_cannot_execute_or_refuse_another_original_source",
+        "connection_control::tests::native_stream_authority::native_data_source_rechecks_every_profile_floor_and_observed_label_before_no_effect_planning",
+        "connection_control::tests::native_stream_authority::native_stream_status_survives_parent_retirement_but_live_execution_does_not",
+        "connection_control::tests::native_stream_authority::native_stream_successor_preserves_unknown_attempt_without_resubmission",
+        "connection_control::tests::native_stream_authority::owned_job_can_prove_it_stopped_before_entering_engine_without_retiring_the_parent",
+        "connection_control::tests::native_stream_authority::quality::native_quality_captured_completion_recovers_storage_and_never_revives_retired_media",
+        "connection_control::tests::native_stream_authority::quality::native_quality_interval_is_part_of_immutable_intent_and_the_captured_receipt",
+        "connection_control::tests::native_stream_authority::native_stream_stale_revision_and_preflight_refusal_are_retained_without_effects",
+        "connection_control::tests::native_stream_authority::preparing_source_and_creation_permission_cannot_authorize_subscription",
+        "connection_control::tests::native_stream_authority::quality::native_quality_original_receipt_replay_cannot_reset_a_newer_cadence_or_change_bindings",
+        "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_cancellation_cannot_create_a_second_attempt_or_invent_a_failed_commit",
+        "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_fresh_source_keeps_subscription_permission_separate_and_fences_generation",
+        "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_requires_completed_selector_and_current_exact_original_source",
+        "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_cannot_enter_through_a_signed_peer_command_or_borrow_another_kernel",
+        "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_storage_rollback_preserves_the_original_id_and_explicit_plan",
+        "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_successor_keeps_unknown_custody_and_refuses_old_origins_and_receipts",
+        "connection_control::tests::native_stream_authority::selector_sources::explicit_source_kind_mismatch_and_unknown_participant_are_definitive_preflight_refusals",
+        "connection_control::tests::native_stream_authority::selector_sources::selector_preflight_does_not_reuse_a_foreign_credential_or_stale_named_permission",
+        "connection_control::tests::native_stream_authority::selector_sources::wildcard_source_preflight_accepts_common_kind_without_granting_unsupported_future_media",
+        "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_bounded_reconciliation_prioritizes_pending_work_over_older_unknown_batches",
+        "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_no_effect_capture_retries_recording_without_another_native_attempt",
+        "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_cancel_stops_queued_work_and_retains_submitted_uncertainty_until_capture",
+        "connection_control::tests::native_stream_authority::session_codecs::session_codec_captured_success_survives_recording_failure_and_uncertainty_without_another_attempt",
+        "connection_control::tests::native_stream_authority::session_codecs::session_codec_latest_policy_supersedes_only_unstarted_work_and_replay_keeps_original_receipt",
+        "connection_control::tests::native_stream_authority::session_codecs::session_codec_no_change_is_recorded_without_advancing_the_native_revision",
+        "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_restart_cannot_reconstruct_old_queued_or_submitted_native_attempts",
+        "connection_control::tests::native_stream_authority::session_codecs::session_codec_policy_and_targets_commit_once_with_separate_manager_and_peer_grants",
+        "connection_control::tests::native_stream_authority::session_codecs::session_codec_read_requires_current_manager_and_independent_actual_peer_not_idle_job_metadata",
+        "connection_control::tests::native_stream_authority::session_codecs::session_codec_storage_failure_rolls_back_policy_targets_and_native_effect_together",
+        "connection_control::tests::native_stream_authority::source_assertions_device_and_retirement_are_rechecked_before_projection",
+        "peer_authority::tests::session_control::cancelled_invitation_observation_requires_its_exact_current_recipient_read_union",
+        "peer_authority::tests::session_control::invitation_relays_require_original_caller_receipt_current_key_scope_and_exact_read_proof",
+        "peer_authority::tests::session_control::identity_invitation_peer_proof_seals_original_reference_and_current_projection",
+        "peer_authority::tests::session_control::owned_invitation_decision_needs_exact_fresh_peer_claim_and_no_caller_operation",
+        "peer_authority::tests::session_control::owned_invitation_old_slot_and_spoofed_by_cannot_adopt_a_later_invitation",
+        "peer_authority::tests::session_control::owned_invitation_reject_is_atomic_and_storage_recovery_retains_one_original_decision",
+        "peer_authority::tests::session_control::session_projection_requires_completed_exact_intent_and_retains_current_epoch",
+        "session_control::tests::accepted_and_reinvited_slots_cannot_adopt_an_earlier_invitation_source",
+        "peer_authority::tests::session_control::session_control_requires_exact_current_owned_peer_proof_and_replays_one_receipt",
+        "session_control::tests::camera_mismatch_stale_revision_spoof_and_changed_intent_preserve_existing_session",
+        "session_control::tests::cancellation_freezes_only_pending_original_targets_and_replay_cannot_rewrite_the_hint",
+        "session_control::tests::cancellation_hint_storage_failure_rolls_back_the_session_and_recovers_the_same_logical_command",
+        "session_control::tests::canonical_session_context_filters_both_principals_before_limits_and_omissions",
+        "session_control::tests::canonical_session_context_delivery_validates_the_exact_historical_journal_body",
+        "session_control::tests::cancellation_requires_unaccepted_session_and_preserves_pending_invitees_after_acceptance",
+        "session_control::tests::current_recipient_ceiling_cannot_end_other_participants_and_unknown_codecs_do_not_admit",
+        "peer_authority::tests::session_control::session_control_source_expiring_behind_sql_cannot_create_presence_audience_or_receipt",
+        "session_control::tests::canonical_session_context_retains_observed_outcomes_and_source_attribution",
+        "session_control::tests::current_session_participant_can_end_with_only_named_permission_and_replay_requires_current_rights",
+        "session_control::tests::existing_session_invitation_adds_only_explicit_participants_and_reject_does_not_end_others",
+        "session_control::tests::identity_invitation_resolves_current_participants_without_rewriting_original_intent",
+        "session_control::tests::identity_invitation_cannot_join_unadmitted_members_or_bypass_recipient_ceilings",
+        "session_control::tests::identity_invitation_uses_only_current_membership_epoch_after_readmission",
+        "session_control::tests::invitation_capture_rolls_back_with_failed_journal_and_retries_one_original_intent",
+        "session_control::tests::invitation_metadata_requires_current_target_permission_and_source_ceiling",
+        "session_control::tests::invitation_aliases_cannot_duplicate_a_participant_or_assert_the_caller",
+        "session_control::tests::invitation_or_departed_session_presence_does_not_grant_whole_session_end",
+        "session_control::tests::invitation_sources_capture_original_targets_and_hold_no_idle_authority",
+        "session_control::tests::mixed_session_can_accept_explicit_screen_without_claiming_audio_or_camera_support",
+        "session_control::tests::invitation_sources_reconstruct_after_backup_but_old_handles_do_not_cross_runtimes",
+        "session_control::tests::ordinary_session_context_keeps_invite_accept_history_and_admits_its_exact_delivery",
+        "session_control::tests::parallel_sessions_keep_main_identity_and_roles_while_unconnected_capabilities_change",
+        "session_control::tests::public_session_invite_accept_leave_role_and_end_keep_general_presence_and_main_id",
+        "session_control::tests::removed_and_readmitted_targets_require_a_new_original_invitation_epoch",
+        "session_control::tests::original_session_receipt_and_source_facts_survive_backup_and_capability_storage_failure_recovers",
+        "session_control::tests::solo_session_keeps_one_original_participant_and_can_grow_without_rewriting_replay",
+        "session_control::tests::terminal_session_journal_keeps_original_metadata_for_each_authorized_recipient",
+        "session_control::tests::screen_upgrade_requires_original_offer_and_own_explicit_acceptance",
+        "session_control::tests::terminal_record_intent_preserves_each_explicit_numeric_reason_code"
+      ]
+    },
+    {
+      "name": "activation-production-final",
+      "passed": 13,
+      "failed": 0,
+      "log": {
+        "path": ".local/gate-6/session-participants/activation-production-final.log",
+        "sha256": "b3c68db9035d6fd3035aa48b441c91e119afa58122479c5fa852b0e35e7d1f39"
+      },
+      "test_names": [
+        "canonical_native_connections::participants::production_confirmed_loss_deadline_survives_owned_listener_restart_and_policy_change",
+        "canonical_native_connections::participants::production_current_native_offer_in_flight_survives_grace_and_reconnects_same_session",
+        "canonical_native_connections::participants::production_default_thirty_second_loss_grace_ends_once_and_requires_new_invitation",
+        "canonical_native_connections::participants::production_participant_presence_joins_once_across_connections_and_leaves_only_last_then_rejoins_same_session",
+        "canonical_native_connections::participants::production_reconnect_grace_preserves_same_session_ignores_silence_and_explicit_end_is_immediate",
+        "canonical_native_connections::session_activation::production_session_activation_waits_for_each_accepted_participant_not_connection_count_or_metadata",
+        "canonical_native_connections::session_activation::production_session_ended_before_all_accepted_ready_never_emits_a_start",
+        "canonical_native_connections::session_codecs::production_session_codec_bad_confirmation_retains_partial_unknown_and_never_resubmits",
+        "canonical_native_connections::session_codecs::production_session_codec_captured_success_retries_storage_without_another_offer",
+        "canonical_native_connections::session_codecs::production_session_codec_preferences_select_current_policy_switch_live_peers_preserve_fallback_routes_and_replay",
+        "canonical_native_connections::solo::production_native_flow_fact_precedes_hints_and_recovers_storage_without_more_media",
+        "canonical_native_connections::solo::production_session_started_multicasts_original_snapshot_without_recipient_media_and_denies_narrow_scope",
+        "canonical_native_connections::solo::production_solo_session_admits_actual_native_flow_and_preserves_original_receipt_when_growing"
+      ]
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-1b0da6e3c5cdb2d1",
+      "sha256": "22473fdab35f467fc4834e4cfc6e983e34146265ad12e8b84b92f1e800553c64"
+    },
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "1d7e1337886acb55e7075c1e5c0a52c3f9e96970653b5aa71bce07e2cbbff1b1"
+    }
+  ],
+  "behavior_evidence": [
+    "Two actual Connections for one accepted Participant leave the two-Participant Session accepted. Negotiation for the other Participant still does not activate it. Actual direction-appropriate RTP on that other Participant Connection commits the single signed start snapshot containing all three Connections.",
+    "Controlled Store tests cover participant coverage, retired generation, foreign runtime, revoked credential/key, lost permission/recipient ceiling, expired original parent intent, immutable start replay, terminal refusal, and inability to reconstruct origin custody from committed rows.",
+    "The readiness cache retains only actual immutable native origin metadata, bounded by configured live Connection capacity. Fresh projection reuses native current-authority validation; copied rows cannot manufacture origins, IO readers or runtime ownership.",
+    "Joined observations can precede initial Session activation. Older lifecycle fixtures now provide actual ready media through another authenticated Device of the observer Participant, then explicitly retire that Connection to test sole-source loss, packet silence, reconnect grace, in-flight negotiation, explicit end and owned restart.",
+    "Solo activation, initial flow storage failure/recovery without more packets, notification delivery on a physical peer without its own media, narrow recipient refusal, original HTTP catch-up, and live Session codec worker regressions pass in the current binary.",
+    "Activation refuses more than 256 Participants or active Connections before emitting a wire-invalid start snapshot. No broad capacity qualification is inferred from that guard."
+  ],
+  "actual_samples": [
+    {
+      "path": ".local/gate-6/session-participants/activation-final-samples.jsonl",
+      "sha256": "48cbe833a36ee1819b68a581d96195ca13003e364deb1ed71114f7a83cf6defe"
+    },
+    {
+      "path": ".local/gate-6/session-participants/activation-started/ES256-session-started.json",
+      "sha256": "9de24945495675e35043586d21fd962d3a592ec0cb1a526d81f52d3353659d7b"
+    },
+    {
+      "path": ".local/gate-6/session-participants/activation-started/EdDSA-session-started.json",
+      "sha256": "f067fc077d1287b3a13323ce7914845dd4827bd59e9189f8c2bd395ed6c68255"
+    },
+    {
+      "path": ".local/gate-6/session-participants/activation-participants/ES256-participants.json",
+      "sha256": "9a0d14add676446b298776cd071e296c66f2e0307e6cdf811bb2f80b16e0bf88"
+    },
+    {
+      "path": ".local/gate-6/session-participants/activation-participants/EdDSA-participants.json",
+      "sha256": "b87338db2730448c22e1ef26e57a49b11c7191b9246a95806160e07920984bb9"
+    }
+  ],
+  "wire_validators": [
+    {
+      "path": ".local/gate-6/session-participants/activation-wire-final.log",
+      "sha256": "0df7d69a59fada5721c2e12ddda29a193563656c7b36bf1815d84ad3506402e6"
+    },
+    {
+      "path": ".local/gate-6/session-participants/activation-started-wire-final.log",
+      "sha256": "07da745e115aa0038da72186b2ace6692223a95d25af8c74e605f532b9377ea5"
+    },
+    {
+      "path": ".local/gate-6/session-participants/activation-participants-wire-final.log",
+      "sha256": "7b5fbc224f91843150868138c981bd0c779d32d75860f4ca9344568beef92ae6"
+    }
+  ],
+  "verification": {
+    "build-session-activation-final": {
+      "path": ".local/gate-6/session-participants/build-session-activation-final.log",
+      "sha256": "675bbe6de867531885a95269094adc54bbb4e1e1b8e3eb9b35b1f1803c1b0694"
+    },
+    "check-store-activation-final": {
+      "path": ".local/gate-6/session-participants/check-store-activation-final.log",
+      "sha256": "49e4813066eb5edd6b795235114520deeb7e73fc31202012eacb7491b8ec7c55"
+    },
+    "dependencies-session-activation-current": {
+      "path": ".local/gate-6/session-participants/dependencies-session-activation-current.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "format-activation-final-check": {
+      "path": ".local/gate-6/session-participants/format-activation-final-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "openapi-activation-final": {
+      "path": ".local/gate-6/session-participants/openapi-activation-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "schemas-activation-final": {
+      "path": ".local/gate-6/session-participants/schemas-activation-final.log",
+      "sha256": "1afb00e6f78689c38f93cb4544df59c1a39eddfd38b5c56100f136c1089b1a1f"
+    },
+    "plan_integrity": {
+      "path": ".local/gate-6/session-participants/activation-progress-final.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  },
+  "historical_failure": {
+    "log": {
+      "path": ".local/gate-6/session-participants/activation-before.log",
+      "sha256": "d39cd4e27a7f740af8fc8c76a61de51b6e2c25ae064f47ef5773a3e3f5208fc2"
+    },
+    "expected": "One actual native source incorrectly activated a Session despite three other accepted Participants having no Connection."
+  },
+  "historical_fixture_failure": {
+    "log": {
+      "path": ".local/gate-6/session-participants/activation-production-first-fixture-scope.log",
+      "sha256": "828f84b882495fd5adfe043e4c534405fb1d16a740eff8c1ddbecaf15a1b501f"
+    },
+    "failed_methods": 5,
+    "reason": "Auxiliary test Device correctly received 403 because its credential lacked connection.end. The corrected isolated fixture explicitly grants its own Connection retirement; application authorization is unchanged."
+  },
+  "limits": [
+    "Local macOS arm64 canonical QUIC/native and HTTP SDK checks with both EdDSA and ES256. No Linux, browser, remote or provider rehearsal qualification is claimed.",
+    "This is an incomplete native implementation increment for u6-req-0085, with no new clause credit. Mixed SIP/native startup, initial and replacement telephone readiness, activation after accepted-set changes or public handoff/private-return promotion, and the full transition matrix remain required before that clause can close.",
+    "The original Session start remains immutable. Its negotiated_capabilities currently comes from the final native flow observation; full mixed-source capability aggregation remains required.",
+    "Previously recorded codec-worker and broader Gate 6 evidence remains historical. This report claims only the exact current test methods and wire samples listed here, with explicit fixture coverage for every accepted Participant before initial startup.",
+    "G6-046 remains in progress at 51/61 locally qualified clauses, and the all105-task goal remains active. Publication and gate acceptance are separate."
+  ],
+  "next_required_work": [
+    "Complete SIP and mixed-source readiness and activation on accepted-set/current public-scope transitions before qualifying0085.",
+    "Continue remaining G6-046 clauses and all105 approved tasks in dependency order; retain named remote/provider boundaries in G6-093."
+  ]
+}
